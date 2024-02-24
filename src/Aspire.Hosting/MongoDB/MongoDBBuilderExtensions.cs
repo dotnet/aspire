@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -16,7 +15,7 @@ public static class MongoDBBuilderExtensions
     private const int DefaultContainerPort = 27017;
 
     /// <summary>
-    /// Adds a MongoDB resource to the application model. A container is used for local development.
+    /// Adds a MongoDB resource to the application model. A container is used for local development.Adds a Kafka resource to the application. A container is used for local development.  This version the package defaults to the 7.0.5 tag of the mongo container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -28,9 +27,9 @@ public static class MongoDBBuilderExtensions
 
         return builder
             .AddResource(mongoDBContainer)
-            .WithManifestPublishingCallback(WriteMongoDBServerToManifest)
             .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
-            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" });
+            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "7.0.5" })
+            .PublishAsContainer();
     }
 
     /// <summary>
@@ -38,18 +37,23 @@ public static class MongoDBBuilderExtensions
     /// </summary>
     /// <param name="builder">The MongoDB server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MongoDBDatabaseResource> AddDatabase(this IResourceBuilder<MongoDBServerResource> builder, string name)
+    public static IResourceBuilder<MongoDBDatabaseResource> AddDatabase(this IResourceBuilder<MongoDBServerResource> builder, string name, string? databaseName = null)
     {
-        var mongoDBDatabase = new MongoDBDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var mongoDBDatabase = new MongoDBDatabaseResource(name, databaseName, builder.Resource);
 
         return builder.ApplicationBuilder
             .AddResource(mongoDBDatabase)
-            .WithManifestPublishingCallback(context => context.WriteMongoDBDatabaseToManifest(mongoDBDatabase));
+            .WithManifestPublishingCallback(mongoDBDatabase.WriteMongoDBDatabaseToManifest);
     }
 
     /// <summary>
-    /// Adds a MongoExpress administration and development platform for MongoDB to the application model.
+    /// Adds a MongoExpress administration and development platform for MongoDB to the application model. This version the package defaults to the 1.0.2-20 tag of the mongo-express container image
     /// </summary>
     /// <param name="builder">The MongoDB server resource builder.</param>
     /// <param name="hostPort">The host port for the application ui.</param>
@@ -61,7 +65,7 @@ public static class MongoDBBuilderExtensions
 
         var mongoExpressContainer = new MongoExpressContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(mongoExpressContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "latest" })
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "1.0.2-20" })
                                   .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                   .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
                                   .ExcludeFromManifest();
@@ -86,34 +90,5 @@ public static class MongoDBBuilderExtensions
 
             return allocatedEndpoints.Single().Port;
         }
-    }
-
-    /// <summary>
-    /// Changes the MongoDB resource to be published as a container in the manifest.
-    /// </summary>
-    /// <param name="builder">Resource builder for <see cref="MongoDBServerResource"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MongoDBServerResource> PublishAsContainer(this IResourceBuilder<MongoDBServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => WriteMongoDBContainerToManifest(context, builder.Resource));
-    }
-
-    private static void WriteMongoDBContainerToManifest(this ManifestPublishingContext context, MongoDBServerResource resource)
-    {
-        context.WriteContainer(resource);
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
-    }
-
-    private static void WriteMongoDBServerToManifest(this ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "mongodb.server.v0");
-    }
-
-    private static void WriteMongoDBDatabaseToManifest(this ManifestPublishingContext context, MongoDBDatabaseResource mongoDbDatabase)
-    {
-        context.Writer.WriteString("type", "mongodb.database.v0");
-        context.Writer.WriteString("parent", mongoDbDatabase.Parent.Name);
     }
 }

@@ -89,7 +89,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             {
                 // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
                 // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
-                var vaultName = $"v{Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20]}";
+                var vaultName = $"v{Guid.NewGuid().ToString("N")[0..20]}";
 
                 logger.LogInformation("Creating key vault {vaultName} for resource {resource} in {location}...", vaultName, resource.Name, context.Location);
 
@@ -138,9 +138,12 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         var parameters = new JsonObject();
         foreach (var parameter in resource.Parameters)
         {
+            // Execute parameter values which are deferred.
+            object? parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
+
             parameters[parameter.Key] = new JsonObject()
             {
-                ["value"] = parameter.Value switch
+                ["value"] = parameterValue switch
                 {
                     string s => s,
                     IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
@@ -149,6 +152,8 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
                     JsonNode node => node,
                     IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
                     IResourceBuilder<ParameterResource> p => p.Resource.Value,
+                    // TODO: Support this
+                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
                     object o => o.ToString()!,
                     null => null,
                 }

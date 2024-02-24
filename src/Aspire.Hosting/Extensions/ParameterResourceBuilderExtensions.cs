@@ -26,19 +26,29 @@ public static class ParameterResourceBuilderExtensions
         {
             var configurationKey = $"Parameters:{name}";
             return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key `{configurationKey}` is missing.");
-        }, secret: false);
+        }, secret: secret);
     }
 
-    internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> callback, bool secret = false)
+    internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder,
+                                                                     string name,
+                                                                     Func<string> callback,
+                                                                     bool secret = false,
+                                                                     bool connectionString = false)
     {
         var resource = new ParameterResource(name, callback, secret);
         return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource));
+                      .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource, connectionString));
     }
 
-    private static void WriteParameterResourceToManifest(ManifestPublishingContext context, ParameterResource resource)
+    private static void WriteParameterResourceToManifest(ManifestPublishingContext context, ParameterResource resource, bool connectionString)
     {
         context.Writer.WriteString("type", "parameter.v0");
+
+        if (connectionString)
+        {
+            context.Writer.WriteString("connectionString", $"{{{resource.Name}.value}}");
+        }
+
         context.Writer.WriteString("value", $"{{{resource.Name}.inputs.value}}");
         context.Writer.WriteStartObject("inputs");
         context.Writer.WriteStartObject("value");
@@ -67,9 +77,34 @@ public static class ParameterResourceBuilderExtensions
         {
             return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string `{name}` is missing.");
         },
-        secret: true);
+        secret: true,
+        connectionString: true);
 
         var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, () => parameterBuilder.Resource.Value, environmentVariableName);
         return builder.CreateResourceBuilder(surrogate);
+    }
+
+    /// <summary>
+    /// Changes the resource to be published as a connection string reference in the manifest.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The configured <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> PublishAsConnectionString<T>(this IResourceBuilder<T> builder)
+        where T : ContainerResource, IResourceWithConnectionString
+    {
+        ConfigureConnectionStringManifestPublisher(builder);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the manifest writer for this resource to be a parameter resource.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
+    public static void ConfigureConnectionStringManifestPublisher(IResourceBuilder<IResourceWithConnectionString> builder)
+    {
+        // Create a parameter resource that we use to write to the manifest
+        var parameter = new ParameterResource(builder.Resource.Name, () => "", secret: true);
+        builder.WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, parameter, connectionString: true));
     }
 }

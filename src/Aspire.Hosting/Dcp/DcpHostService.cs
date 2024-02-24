@@ -3,53 +3,57 @@
 
 using System.Buffers;
 using System.Collections;
-using System.Globalization;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Properties;
-using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDisposable
+internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
     private readonly ApplicationExecutor _appExecutor;
-    private readonly DistributedApplicationModel _applicationModel;
-    private IAsyncDisposable? _dcpRunDisposable;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly DcpOptions _dcpOptions;
-    private readonly PublishingOptions _publishingOptions;
+    private readonly DistributedApplicationExecutionContext _executionContext;
+    private readonly IDcpDependencyCheckService _dependencyCheckService;
     private readonly Locations _locations;
+    private readonly CancellationTokenSource _shutdownCts = new();
+    private Task? _logProcessorTask;
+    private IAsyncDisposable? _dcpRunDisposable;
+
+    // These environment variables should never be inherited by DCP from app host.
+    private static readonly string[] s_doNotInheritEnvironmentVars =
+    {
+        "ASPNETCORE_URLS",
+        "DOTNET_LAUNCH_PROFILE",
+        "ASPNETCORE_ENVIRONMENT",
+        "DOTNET_ENVIRONMENT"
+    };
 
     public DcpHostService(
-        DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
         IOptions<DcpOptions> dcpOptions,
-        IOptions<PublishingOptions> publishingOptions,
+        DistributedApplicationExecutionContext executionContext,
         ApplicationExecutor appExecutor,
+        IDcpDependencyCheckService dependencyCheckService,
         Locations locations)
     {
-        _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHostService>();
         _dcpOptions = dcpOptions.Value;
-        _publishingOptions = publishingOptions.Value;
+        _executionContext = executionContext;
         _appExecutor = appExecutor;
+        _dependencyCheckService = dependencyCheckService;
         _locations = locations;
     }
 
-    private bool IsSupported => _publishingOptions.Publisher is null or "dcp";
+    private bool IsSupported => !_executionContext.IsPublishMode;
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
@@ -58,10 +62,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
             return;
         }
 
-        var dockerHealthCheckTask = EnsureDockerIfNecessaryAsync(cancellationToken);
-        var dcpVersionCheckTask = EnsureDcpVersionAsync(cancellationToken);
-
-        await Task.WhenAll(dockerHealthCheckTask, dcpVersionCheckTask).ConfigureAwait(false);
+        await _dependencyCheckService.EnsureDcpDependenciesAsync(cancellationToken).ConfigureAwait(false);
 
         EnsureDcpHostRunning();
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
@@ -69,12 +70,21 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (!IsSupported)
+        _shutdownCts.Cancel();
+        if (_logProcessorTask is { } task)
         {
-            return;
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in logging socket processor.");
+            }
         }
-
-        await _appExecutor.StopApplicationAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
@@ -84,7 +94,6 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
             return;
         }
 
-        await _appExecutor.StopApplicationAsync().ConfigureAwait(false);
         await _dcpRunDisposable.DisposeAsync().ConfigureAwait(false);
         _dcpRunDisposable = null;
     }
@@ -101,16 +110,16 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
             try
             {
                 AspireEventSource.Instance.DcpLogSocketCreateStart();
-                Socket loggingSocket = CreateLoggingSocket(_locations.DcpLogSocket);
+                var loggingSocket = CreateLoggingSocket(_locations.DcpLogSocket);
                 loggingSocket.Listen(LoggingSocketConnectionBacklog);
 
                 dcpProcessSpec.EnvironmentVariables.Add("DCP_LOG_SOCKET", _locations.DcpLogSocket);
 
-                _ = Task.Run(() => StartLoggingSocketAsync(loggingSocket), CancellationToken.None);
+                _logProcessorTask = Task.Run(() => StartLoggingSocketAsync(loggingSocket));
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Failed to enable orchestration logging: {ex}");
+                _logger.LogError(ex, "Failed to enable orchestration logging.");
             }
             finally
             {
@@ -128,18 +137,25 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
 
     private ProcessSpec CreateDcpProcessSpec(Locations locations)
     {
-        string? dcpExePath = _dcpOptions.CliPath;
+        var dcpExePath = _dcpOptions.CliPath;
         if (!File.Exists(dcpExePath))
         {
             throw new FileNotFoundException($"The Aspire application host is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
         }
 
+        var arguments = $"start-apiserver --monitor {Environment.ProcessId} --detach --kubeconfig \"{locations.DcpKubeconfigPath}\"";
+        if (!string.IsNullOrEmpty(_dcpOptions.ContainerRuntime))
+        {
+            arguments += $" --container-runtime \"{_dcpOptions.ContainerRuntime}\"";
+        }
+
         ProcessSpec dcpProcessSpec = new ProcessSpec(dcpExePath)
         {
             WorkingDirectory = Directory.GetCurrentDirectory(),
-            Arguments = $"start-apiserver --monitor {Environment.ProcessId} --detach --kubeconfig \"{locations.DcpKubeconfigPath}\"",
+            Arguments = arguments,
             OnOutputData = Console.Out.Write,
             OnErrorData = Console.Error.Write,
+            InheritEnv = false,
         };
 
         _logger.LogInformation("Starting DCP with arguments: {Arguments}", dcpProcessSpec.Arguments);
@@ -148,7 +164,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
         {
             var key = de.Key?.ToString();
             var val = de.Value?.ToString();
-            if (key is not null && val is not null)
+            if (key is not null && val is not null && !s_doNotInheritEnvironmentVars.Contains(key))
             {
                 dcpProcessSpec.EnvironmentVariables.Add(key, val);
             }
@@ -168,183 +184,6 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
         // Currently this contains the Unix socket for logging and the kubeconfig
         dcpProcessSpec.EnvironmentVariables.Add("DCP_SESSION_FOLDER", locations.DcpSessionDir);
         return dcpProcessSpec;
-    }
-
-    // Docker goes to into resource saver mode after 5 minutes of not running a container (by default).
-    // While in this mode, the commands we use for the docker check take quite some time
-    private const int WaitTimeForDockerTestCommandInSeconds = 25;
-
-    private async Task EnsureDockerIfNecessaryAsync(CancellationToken cancellationToken)
-    {
-        // If we don't have any resources that need a container then we
-        // don't need to check for Docker.
-        if (!_applicationModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
-        {
-            return;
-        }
-
-        AspireEventSource.Instance.DockerHealthCheckStart();
-        IAsyncDisposable? processDisposable = null;
-
-        try
-        {
-            Task<ProcessResult> task;
-
-            var dockerCommandArgs = "ps --latest --quiet";
-
-            var processSpec = new ProcessSpec(FileUtil.FindFullPathFromPath("docker"))
-            {
-                Arguments = dockerCommandArgs,
-                ThrowOnNonZeroReturnCode = false,
-            };
-
-            (task, processDisposable) = ProcessUtil.Run(processSpec);
-
-            var taskResult = task.WaitAsync(TimeSpan.FromSeconds(WaitTimeForDockerTestCommandInSeconds), cancellationToken);
-            var processResult = await taskResult.ConfigureAwait(false);
-
-            if (taskResult.IsCompletedSuccessfully)
-            {
-                if (processResult.ExitCode != 0)
-                {
-                    Console.Error.WriteLine(string.Format(
-                        CultureInfo.InvariantCulture,
-                        Resources.DockerUnhealthyExceptionMessage,
-                        $"docker {dockerCommandArgs}",
-                        processResult.ExitCode
-                    ));
-                    Environment.Exit((int)DockerHealthCheckFailures.Unhealthy);
-                }
-            }
-            else
-            {
-                Console.Error.WriteLine(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.DockerUnresponsiveExceptionMessage,
-                    $"docker {dockerCommandArgs}",
-                    WaitTimeForDockerTestCommandInSeconds
-                ));
-                Environment.Exit((int)DockerHealthCheckFailures.Unresponsive);
-            }
-
-            // If we get to here all is good!
-
-        }
-        catch (Exception ex) when (ex is not DistributedApplicationException)
-        {
-            Console.Error.WriteLine(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.DockerPrerequisiteMissingExceptionMessage,
-                    ex.ToString()
-                ));
-            Environment.Exit((int)DockerHealthCheckFailures.PrerequisiteMissing);
-        }
-        finally
-        {
-            AspireEventSource.Instance?.DockerHealthCheckStop();
-
-            if (processDisposable != null)
-            {
-                await processDisposable.DisposeAsync().ConfigureAwait(false);
-            }
-        }
-    }
-
-    [GeneratedRegex("[^\\d\\.].*$")]
-    private static partial Regex VersionRegex();
-
-    private const int WaitTimeForDcpVersionCommandInSeconds = 10;
-
-    private async Task EnsureDcpVersionAsync(CancellationToken cancellationToken)
-    {
-        AspireEventSource.Instance.DcpVersionCheckStart();
-        IAsyncDisposable? processDisposable = null;
-
-        try
-        {
-            // Init
-            Task<ProcessResult> task;
-            var outputStringBuilder = new StringBuilder();
-
-            string? dcpExePath = _dcpOptions.CliPath;
-            if (!File.Exists(dcpExePath))
-            {
-                throw new FileNotFoundException($"The Aspire application host is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
-            }
-
-            // Run `dcp version`
-            var processSpec = new ProcessSpec(dcpExePath)
-            {
-                Arguments = $"version",
-                OnOutputData = s => outputStringBuilder.Append(s),
-            };
-
-            (task, processDisposable) = ProcessUtil.Run(processSpec);
-
-            await task.WaitAsync(TimeSpan.FromSeconds(WaitTimeForDcpVersionCommandInSeconds), cancellationToken).ConfigureAwait(false);
-
-            // Parse the output as JSON
-            var output = outputStringBuilder.ToString();
-            if (output == string.Empty)
-            {
-                return; // Best effort
-            }
-
-            var dcpVersionString = JsonNode.Parse(outputStringBuilder.ToString())?.AsObject()["version"]?.GetValue<string>();
-
-            if (dcpVersionString == null
-                || dcpVersionString == string.Empty
-                || dcpVersionString == "dev")
-            {
-                // If empty, null, or a dev version, pass
-                return;
-            }
-
-            // Early DCP versions (e.g. preview 1) have a +x at the end of their version string, e.g. 0.1.42+5,
-            // which does not parse. Strip off anything like that.
-            dcpVersionString = VersionRegex().Replace(dcpVersionString, string.Empty);
-
-            Version? dcpVersion;
-            if (Version.TryParse(dcpVersionString, out dcpVersion))
-            {
-                if (dcpVersion < DcpVersion.MinimumVersionInclusive)
-                {
-                    Console.Error.WriteLine(string.Format(
-                        CultureInfo.InvariantCulture,
-                        Resources.DcpVersionCheckTooLowMessage
-                    ));
-                    Environment.Exit((int)DcpVersionCheckFailures.DcpVersionIncompatible);
-                }
-                else if (dcpVersion >= DcpVersion.MaximumVersionExclusive)
-                {
-                    Console.Error.WriteLine(string.Format(
-                        CultureInfo.InvariantCulture,
-                        Resources.DcpVersionCheckTooHighMessage,
-                        DcpVersion.MinimumVersionInclusive.ToString()
-                    ));
-                    Environment.Exit((int)DcpVersionCheckFailures.DcpVersionIncompatible);
-                }
-            }
-        }
-        catch (Exception ex) when (ex is not DistributedApplicationException)
-        {
-            Console.Error.WriteLine(string.Format(
-                CultureInfo.InvariantCulture,
-                Resources.DcpVersionCheckFailedMessage,
-                ex.ToString()
-            ));
-
-            // Do not exit, this is a best-effort check
-        }
-        finally
-        {
-            AspireEventSource.Instance?.DcpVersionCheckStop();
-
-            if (processDisposable != null)
-            {
-                await processDisposable.DisposeAsync().ConfigureAwait(false);
-            }
-        }
     }
 
     private static Socket CreateLoggingSocket(string socketPath)
@@ -370,23 +209,29 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
 
     private async Task StartLoggingSocketAsync(Socket socket)
     {
-        while (true)
+        List<Task> outputLoggers = [];
+        while (!_shutdownCts.IsCancellationRequested)
         {
             try
             {
-                Socket acceptedSocket = await socket.AcceptAsync().ConfigureAwait(false);
-                _ = Task.Run(() => LogSocketOutputAsync(acceptedSocket), CancellationToken.None);
+                Socket acceptedSocket = await socket.AcceptAsync(_shutdownCts.Token).ConfigureAwait(false);
+                outputLoggers.Add(Task.Run(() => LogSocketOutputAsync(acceptedSocket, _shutdownCts.Token)));
             }
             catch
             {
                 // Suppress exceptions reading logs from DCP controllers
             }
         }
+
+        await Task.WhenAll(outputLoggers).ConfigureAwait(false);
+        socket.Dispose();
     }
 
-    private async Task LogSocketOutputAsync(Socket socket)
+    private async Task LogSocketOutputAsync(Socket socket, CancellationToken cancellationToken)
     {
-        var reader = PipeReader.Create(new NetworkStream(socket));
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var _ = cancellationToken.Register(s => ((NetworkStream)s!).Close(), stream);
+        var reader = PipeReader.Create(stream);
 
         // Logger cache to avoid creating a new string per log line, for a few categories
         var loggerCache = new Dictionary<int, ILogger>();
@@ -460,11 +305,11 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
                 position = seq.Position;
             }
 
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                var result = await reader.ReadAsync().ConfigureAwait(false);
+                var result = await reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
 
-                if (result.IsCompleted)
+                if (result.IsCompleted || result.IsCanceled)
                 {
                     break;
                 }

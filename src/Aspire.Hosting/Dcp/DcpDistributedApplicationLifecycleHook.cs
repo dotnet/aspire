@@ -3,21 +3,15 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Options;
 using System.Net.Sockets;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
+internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
-    private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
-
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        var publisher = _publishingOptions.Value?.Publisher == null ? "dcp" : _publishingOptions.Value.Publisher;
-
-        if (publisher == "dcp")
+        if (executionContext.IsRunMode)
         {
             PrepareServices(appModel);
         }
@@ -41,11 +35,18 @@ internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<Publishing
             {
                 var uri = new Uri(url);
 
-                if (projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName)))
+                var endpointAnnotations = projectResource.Annotations.OfType<EndpointAnnotation>().Where(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName));
+                if (endpointAnnotations.Any(sb => sb.IsProxied))
                 {
                     // If someone uses WithEndpoint in the dev host to register a endpoint with the name
                     // http or https this exception will be thrown.
                     throw new DistributedApplicationException($"Endpoint with name '{uri.Scheme}' already exists.");
+                }
+
+                if (endpointAnnotations.Any())
+                {
+                    // We have a non-proxied endpoint with the same name as the 'url', don't add another endpoint for the same name
+                    continue;
                 }
 
                 var generatedEndpointAnnotation = new EndpointAnnotation(

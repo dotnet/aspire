@@ -16,7 +16,7 @@ public class ProjectResourceTests
         var appBuilder = CreateBuilder();
 
         appBuilder.AddProject<TestProject>("projectName");
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var projectResources = appModel.GetProjectResources();
@@ -31,7 +31,8 @@ public class ProjectResourceTests
         var annotations = resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -57,7 +58,7 @@ public class ProjectResourceTests
             env =>
             {
                 Assert.Equal("OTEL_RESOURCE_ATTRIBUTES", env.Key);
-                Assert.Equal("service.instance.id={{- .UID -}}", env.Value);
+                Assert.Equal("service.instance.id={{- .Name -}}", env.Value);
             },
             env =>
             {
@@ -88,7 +89,7 @@ public class ProjectResourceTests
 
         appBuilder.AddProject<TestProject>("projectName")
             .WithReplicas(5);
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -107,7 +108,7 @@ public class ProjectResourceTests
 
         appBuilder.AddProject<Projects.ServiceA>("projectName")
             .WithLaunchProfile("http");
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -145,7 +146,7 @@ public class ProjectResourceTests
 
         appBuilder.AddProject<Projects.ServiceA>("projectName")
             .ExcludeLaunchProfile();
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 

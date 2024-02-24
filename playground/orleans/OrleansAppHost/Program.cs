@@ -16,7 +16,8 @@ var orleans = builder.AddOrleans("my-app")
 //                      .WithMemoryGrainStorage("Default");
 
 builder.AddProject<Projects.OrleansServer>("silo")
-       .WithReference(orleans);
+       .WithReference(orleans)
+       .WithReplicas(3);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

@@ -13,7 +13,8 @@ namespace Aspire.Hosting.Tests.Helpers;
 internal sealed class JsonDocumentManifestPublisher(
     ILogger<ManifestPublisher> logger,
     IOptions<PublishingOptions> options,
-    IHostApplicationLifetime lifetime) : ManifestPublisher(logger, options, lifetime)
+    IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext
+    ) : ManifestPublisher(logger, options, lifetime, executionContext)
 {
     protected override async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {

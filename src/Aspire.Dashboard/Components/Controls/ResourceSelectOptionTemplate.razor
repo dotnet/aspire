@@ -1,0 +1,30 @@
+﻿@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Model
+
+@inject IStringLocalizer<ControlsStrings> Loc
+
+<FluentStack Orientation="Orientation.Horizontal" HorizontalGap="3">
+    @if (ViewModel.Id?.Type is OtlpApplicationType.ReplicaSet)
+    {
+        <FluentIcon Icon="Icons.Regular.Size20.AppsList"
+                    Color="Color.Accent"
+                    Style="vertical-align: text-bottom;"/>
+        <span>@ViewModel.Name (<span style="color: var(--accent-foreground-rest)">@Loc[nameof(ControlsStrings.ReplicaSetLower)]</span>)</span>
+    }
+    else if (ViewModel.Id?.Type is OtlpApplicationType.ReplicaInstance)
+    {
+        <div style="width: 20px;"></div>
+        <span aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>
+    }
+    else
+    {
+        @ViewModel.Name
+    }
+</FluentStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public required SelectViewModel<ResourceTypeDetails> ViewModel { get; set; }
+}

@@ -27,6 +27,19 @@ public class StructuredLogsViewModel
     public string? ApplicationServiceId { get => _applicationServiceId; set => SetValue(ref _applicationServiceId, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
     public IReadOnlyList<LogFilter> Filters => _filters;
+
+    public void ClearFilters()
+    {
+        _filters.Clear();
+        _logs = null;
+    }
+
+    public void AddFilters(IEnumerable<LogFilter> filters)
+    {
+        _filters.AddRange(filters);
+        _logs = null;
+    }
+
     public void AddFilter(LogFilter filter)
     {
         _filters.Add(filter);
