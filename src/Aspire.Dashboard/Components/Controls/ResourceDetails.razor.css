@@ -17,6 +17,8 @@
     overflow: auto;
     width: 100%;
     height: 100%;
+    padding: calc(var(--design-unit) * 1px);
+    padding-top: 0;
 }
 
 ::deep fluent-accordion {
@@ -31,13 +33,17 @@
     --fill-color: var(--neutral-fill-rest);
 }
 
-::deep fluent-accordion-item {
-    margin:0 calc(var(--design-unit) * 1px);
-}
-
-::deep fluent-accordion-item::part(heading),
+::deep fluent-accordion-item,
 ::deep fluent-accordion-item::part(region) {
     background-color: var(--fill-color);
+}
+
+/* This is a hack because we can't do a selector that selects inside of a ::part,
+   which is what we'd need to do to access `::part(heading):not(:hover) .icon`.
+   So instead we just change the color token the non-hovered state uses.
+*/
+[data-theme="light"] .resource-details-layout ::deep fluent-accordion-item::part(icon) {
+    --neutral-fill-stealth-rest-on-neutral-fill-layer-rest: var(--fill-color);
 }
 
 ::deep fluent-accordion-item::part(region) {
