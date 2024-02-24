@@ -11,6 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Polly;
+using Polly.Registry;
+using Polly.Retry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 
@@ -97,15 +99,32 @@ public static class AspireRabbitMQExtensions
             return factory;
         }
 
+        const string resilienceKey = "Aspire.RabbitMQ.Client.AspireRabbitMQExtensions.CreateConnection";
+        builder.Services.AddResiliencePipeline(resilienceKey, builder =>
+        {
+            if (settings.MaxConnectRetryCount > 0)
+            {
+                builder.AddRetry(new RetryStrategyOptions
+                {
+                    ShouldHandle = static args => args.Outcome is { Exception: SocketException or BrokerUnreachableException }
+                        ? PredicateResult.True()
+                        : PredicateResult.False(),
+                    BackoffType = DelayBackoffType.Exponential,
+                    MaxRetryAttempts = settings.MaxConnectRetryCount,
+                    Delay = TimeSpan.FromSeconds(1),
+                });
+            }
+        });
+
         if (serviceKey is null)
         {
             builder.Services.AddSingleton<IConnectionFactory>(CreateConnectionFactory);
-            builder.Services.AddSingleton<IConnection>(sp => CreateConnection(sp.GetRequiredService<IConnectionFactory>(), settings.MaxConnectRetryCount));
+            builder.Services.AddSingleton<IConnection>(sp => CreateConnection(sp.GetRequiredService<IConnectionFactory>(), sp.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline(resilienceKey)));
         }
         else
         {
             builder.Services.AddKeyedSingleton<IConnectionFactory>(serviceKey, (sp, _) => CreateConnectionFactory(sp));
-            builder.Services.AddKeyedSingleton<IConnection>(serviceKey, (sp, key) => CreateConnection(sp.GetRequiredKeyedService<IConnectionFactory>(key), settings.MaxConnectRetryCount));
+            builder.Services.AddKeyedSingleton<IConnection>(serviceKey, (sp, key) => CreateConnection(sp.GetRequiredKeyedService<IConnectionFactory>(key), sp.GetRequiredService<ResiliencePipelineProvider<string>>().GetPipeline(resilienceKey)));
         }
 
         builder.Services.AddSingleton<RabbitMQEventSourceLogForwarder>();
@@ -149,16 +168,12 @@ public static class AspireRabbitMQExtensions
         }
     }
 
-    private static IConnection CreateConnection(IConnectionFactory factory, int retryCount)
+    private static IConnection CreateConnection(IConnectionFactory factory, ResiliencePipeline resiliencePipeline)
     {
-        var policy = Policy
-            .Handle<SocketException>().Or<BrokerUnreachableException>()
-            .WaitAndRetry(retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-
         using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
         AddRabbitMQTags(activity);
 
-        return policy.Execute(() =>
+        return resiliencePipeline.Execute(() =>
         {
             using var connectAttemptActivity = s_activitySource.StartActivity("rabbitmq connect attempt", ActivityKind.Client);
             AddRabbitMQTags(connectAttemptActivity, "connect");
