@@ -13,18 +13,7 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     /// <summary>
     /// Gets the connection string expression for the NATS server for the manifest.
     /// </summary>
-    public string? ConnectionStringExpression
-    {
-        get
-        {
-            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-            {
-                return connectionStringAnnotation.Resource.ConnectionStringExpression;
-            }
-
-            return $"nats://{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
-        }
-    }
+    public string? ConnectionStringExpression => $"nats://{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
 
     /// <summary>
     /// Gets the connection string (NATS_URL) for the NATS server.
