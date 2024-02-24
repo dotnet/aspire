@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.IO.Hashing;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -89,66 +88,39 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         return new(path, isTempFile && deleteTemporaryFileOnDispose);
     }
 
+    /// <summary>
+    /// Get the bicep template as a string. Does not write to disk.
+    /// </summary>
+    public string GetBicepTemplateString()
+    {
+        if (TemplateString is not null)
+        {
+            return TemplateString;
+        }
+
+        if (TemplateResourceName is not null)
+        {
+            using var resourceStream = GetType().Assembly.GetManifestResourceStream(TemplateResourceName)
+                ?? throw new InvalidOperationException($"Could not find resource {TemplateResourceName} in assembly {GetType().Assembly}");
+
+            using var reader = new StreamReader(resourceStream, Encoding.UTF8);
+            return reader.ReadToEnd();
+        }
+
+        if (TemplateFile is null)
+        {
+            throw new InvalidOperationException("No template source specified.");
+        }
+
+        return File.ReadAllText(TemplateFile);
+    }
+
     // TODO: Make the name bicep safe
     /// <summary>
     /// TODO: Doc Comments
     /// </summary>
     /// <returns></returns>
     public string CreateBicepResourceName() => Name.ToLower();
-
-    private static string EvalParameter(object? input)
-    {
-        static string Quote(string s) => $"\"{s}\"";
-        static string SingleQuote(string s) => $"'{s}'";
-        static string Parenthesize(string s) => $"[{s}]";
-        static string Join(IEnumerable<string> s) => string.Join(", ", s);
-
-        return input switch
-        {
-            string s => Quote(s),
-            IEnumerable<string> enumerable => Quote(Parenthesize(Join(enumerable.Select(SingleQuote)))),
-            IResourceBuilder<IResourceWithConnectionString> builder => Quote(builder.Resource.GetConnectionString() ?? throw new InvalidOperationException("Missing connection string")),
-            IResourceBuilder<ParameterResource> p => Quote(p.Resource.Value),
-            // REVIEW: The value might not be calculated yet
-            BicepOutputReference output => Quote(output.Name + "=" + output.Resource.GetChecksum()),
-            object o => Quote(input.ToString()!),
-            null => ""
-        };
-    }
-
-    // TODO: Use this when caching the results
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
-    public string GetChecksum()
-    {
-        // TODO: PERF Inefficient
-
-        // First the parameters
-        var combined = string.Join(";", Parameters.OrderBy(p => p.Key).Select(p => $"{p.Key}={EvalParameter(p.Value)}"));
-
-        if (TemplateFile is not null)
-        {
-            combined += File.ReadAllText(TemplateFile);
-        }
-        else if (TemplateString is not null)
-        {
-            combined += TemplateString;
-        }
-        else if (TemplateResourceName is not null)
-        {
-            using var stream = GetType().Assembly.GetManifestResourceStream(TemplateResourceName) ??
-                throw new InvalidOperationException($"Could not find resource {TemplateResourceName} in assembly {GetType().Assembly}");
-
-            combined += new StreamReader(stream).ReadToEnd();
-        }
-
-        var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(combined));
-
-        return Convert.ToHexString(hashedContents).ToLowerInvariant();
-    }
 
     /// <summary>
     /// Writes the resource to the manifest.
@@ -222,6 +194,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         /// The name of the key vault resource used to store secret outputs.
         /// </summary>
         public static readonly string KeyVaultName = "keyVaultName";
+
+        /// <summary>
+        /// The location of the resource. This is required for all resources.
+        /// </summary>
+        public static readonly string Location = "location";
     }
 }
 
