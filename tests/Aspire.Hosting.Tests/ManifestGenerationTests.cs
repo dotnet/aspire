@@ -275,7 +275,7 @@ public class ManifestGenerationTests
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
 
         var connection = resources.GetProperty("natsabstract");
-        Assert.Equal("nats.v0", connection.GetProperty("type").GetString());
+        Assert.Equal("container.v0", connection.GetProperty("type").GetString());
 
         var container = resources.GetProperty("natscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
