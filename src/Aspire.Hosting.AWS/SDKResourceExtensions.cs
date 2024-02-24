@@ -7,6 +7,9 @@ using Aspire.Hosting.AWS;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Extension methods for configuring the AWS SDK for .NET
+/// </summary>
 public static class SDKResourceExtensions
 {
     /// <summary>
@@ -54,7 +57,7 @@ public static class SDKResourceExtensions
     {
         builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.IsPublishMode)
             {
                 return;
             }

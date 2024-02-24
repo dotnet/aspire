@@ -11,6 +11,9 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Extension methods for adding AWS CloudFormation as a provisioning resource.
+/// </summary>
 public static class CloudFormationExtensions
 {
     /// <summary>
@@ -98,7 +101,7 @@ public static class CloudFormationExtensions
 
         builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest" || cloudFormationResourceBuilder.Resource.Outputs == null)
+            if (context.ExecutionContext.IsPublishMode || cloudFormationResourceBuilder.Resource.Outputs == null)
             {
                 return;
             }
