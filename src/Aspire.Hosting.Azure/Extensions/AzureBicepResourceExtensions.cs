@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Extension methods for adding Azure Bicep resources to the application model.
 /// </summary>
-public static class AzureBicepTemplateResourceExtensions
+public static class AzureBicepResourceExtensions
 {
     /// <summary>
     /// Adds an Azure Bicep resource to the application model.
