@@ -253,3 +253,65 @@ layout > .header {
 fluent-switch.table-switch::part(label) {
      width: 160px;
 }
+
+.property-grid-container {
+    grid-area: main;
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+    padding: calc(var(--design-unit) * 1px);
+    padding-top: 0;
+}
+
+.property-grid-container fluent-accordion {
+    gap: calc(var(--design-unit) * 2px);
+    --fill-color: var(--neutral-layer-1);
+}
+
+/* Under the current light theme, --neutral-layer-1 is too white, so we'll
+   use something that's halfway between --neutral-layer-2 and --neutral-layer1.
+*/
+[data-theme="light"] .property-grid-container fluent-accordion {
+    --fill-color: var(--neutral-fill-rest);
+}
+
+.property-grid-container fluent-accordion-item,
+.property-grid-container fluent-accordion-item::part(region) {
+    background-color: var(--fill-color);
+}
+
+/* This is a hack because we can't do a selector that selects inside of a ::part,
+   which is what we'd need to do to access `::part(heading):not(:hover) .icon`.
+   So instead we just change the color token the non-hovered state uses.
+*/
+[data-theme="light"] .property-grid-container fluent-accordion-item::part(icon) {
+    --neutral-fill-stealth-rest-on-neutral-fill-layer-rest: var(--fill-color);
+}
+
+.property-grid-container fluent-accordion-item::part(region) {
+    padding-bottom: 0;
+}
+
+.property-grid-container fluent-accordion-item::part(heading-content) {
+    font-weight: 600;
+    font-size: var(--type-ramp-plus-1-font-size);
+}
+
+.property-grid-container fluent-accordion fluent-data-grid-row:last-of-type {
+    border-bottom: none;
+}
+
+.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:not(:hover)::part(control),
+.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:not(:hover)::part(control) {
+    background-color: var(--fill-color);
+}
+
+.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:hover::part(control),
+.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:hover::part(control) {
+    background-color: var(--neutral-fill-stealth-hover-on-neutral-fill-layer-rest);
+}
+
+/* Under the current dark theme, the fluent-badge background color was too dark on --neutral-layer-1 */
+[data-theme="dark"] .property-grid-container fluent-accordion-item fluent-badge::part(control) {
+    background-color: var(--neutral-fill-active);
+}
