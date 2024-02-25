@@ -173,7 +173,7 @@ public static class AspireRabbitMQExtensions
         using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
         AddRabbitMQTags(activity);
 
-        return resiliencePipeline.Execute(() =>
+        return resiliencePipeline.Execute(static factory =>
         {
             using var connectAttemptActivity = s_activitySource.StartActivity("rabbitmq connect attempt", ActivityKind.Client);
             AddRabbitMQTags(connectAttemptActivity, "connect");
@@ -196,7 +196,7 @@ public static class AspireRabbitMQExtensions
                 }
                 throw;
             }
-        });
+        }, factory);
     }
 
     private static void AddRabbitMQTags(Activity? activity, string? operation = null)
