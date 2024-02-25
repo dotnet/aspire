@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Postgres;
 using Aspire.Hosting.Utils;
 using Xunit;
 

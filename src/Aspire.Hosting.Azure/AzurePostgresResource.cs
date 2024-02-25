@@ -3,30 +3,30 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.Redis;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Azure Redis resource.
+/// Represents an resource for Azure Postgres Flexible Server.
 /// </summary>
-/// <param name="innerResource">The inner resource.</param>
-public class AzureRedisResource(RedisResource innerResource) :
-    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.redis.bicep"),
+/// <param name="innerResource"><see cref="PostgresServerResource"/> that this resource wraps.</param>
+public class AzurePostgresResource(PostgresServerResource innerResource) :
+    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.postgres.bicep"),
     IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets the "connectionString" output reference from the bicep template for the Azure Redis resource.
+    /// Gets the "connectionString" secret output reference from the bicep template for the Azure Postgres Flexible Server.
     /// </summary>
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
-    /// Gets the connection string template for the manifest for the Azure Redis resource.
+    /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
     /// </summary>
     public string ConnectionStringExpression => ConnectionString.ValueExpression;
 
     /// <summary>
-    /// Gets the connection string for the Azure Redis resource.
+    /// Gets the connection string for the Azure Postgres Flexible Server.
     /// </summary>
-    /// <returns>The connection string for the Azure Redis resource.</returns>
+    /// <returns>The connection string.</returns>
     public string? GetConnectionString() => ConnectionString.Value;
 
     /// <inheritdoc/>
