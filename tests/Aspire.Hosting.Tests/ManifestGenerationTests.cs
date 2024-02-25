@@ -259,29 +259,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllNatsManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddNats("natsabstract");
-        program.AppBuilder.AddNats("natscontainer").PublishAsContainer();
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("natsabstract");
-        Assert.Equal("container.v0", connection.GetProperty("type").GetString());
-
-        var container = resources.GetProperty("natscontainer");
-        Assert.Equal("container.v0", container.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();

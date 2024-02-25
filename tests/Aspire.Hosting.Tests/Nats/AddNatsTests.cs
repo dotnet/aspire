@@ -1,11 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Utils;
 using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests;
+namespace Aspire.Hosting.Tests.Nats;
 
 public class AddNatsTests
 {
@@ -16,7 +17,7 @@ public class AddNatsTests
 
         appBuilder.AddNats("nats");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -90,5 +91,17 @@ public class AddNatsTests
         builder.AddNats("nats2");
 
         Assert.Equal(2, builder.Resources.OfType<NatsServerResource>().Count());
+    }
+
+    [Fact]
+    public void VerifyManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var nats = appBuilder.AddNats("nats");
+
+        var manifest = ManifestUtils.GetManifest(nats.Resource);
+
+        Assert.Equal("container.v0", manifest["type"]?.ToString());
+        Assert.Equal(nats.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());
     }
 }
