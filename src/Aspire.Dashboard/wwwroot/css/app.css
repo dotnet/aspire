@@ -315,3 +315,8 @@ fluent-switch.table-switch::part(label) {
 [data-theme="dark"] .property-grid-container fluent-accordion-item fluent-badge::part(control) {
     background-color: var(--neutral-fill-active);
 }
+
+.total-items-footer {
+    padding-left: calc(var(--design-unit) * 2px);
+    padding-bottom: calc(var(--design-unit) * 2px);
+}
