@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Publishing;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -20,5 +22,14 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
         }
 
         return seqEndpointAnnotations.Single().UriString;
+    }
+
+    internal void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.WriteContainer(this);
+
+        context.Writer.WriteString(                     // "connectionString": "...",
+            "connectionString",
+            $"{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}");
     }
 }

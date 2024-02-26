@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -42,8 +41,7 @@ public static class SeqBuilderExtensions
 
         if (addToManifest)
         {
-            resourceBuilder.WithManifestPublishingCallback(context =>
-                WriteSeqResourceToManifest(context, seqResource));
+            resourceBuilder.PublishAsContainer();
         }
         else
         {
@@ -53,11 +51,13 @@ public static class SeqBuilderExtensions
         return resourceBuilder;
     }
 
-    static void WriteSeqResourceToManifest(ManifestPublishingContext context, ContainerResource resource)
+    /// <summary>
+    /// Changes the Seq resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">Resource builder for <see cref="SeqResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    static IResourceBuilder<SeqResource> PublishAsContainer(this IResourceBuilder<SeqResource> builder)
     {
-        context.WriteContainer(resource);
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
+        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
     }
 }
