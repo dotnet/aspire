@@ -27,20 +27,26 @@
     @if (EnableMasking)
     {
         <FluentButton Appearance="Appearance.Lightweight"
-                      BackgroundColor="transparent"
                       IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
                       Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
                       OnClick="ToggleMaskStateAsync"
-                      aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
+                      aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
+                      @attributes="ButtonAttributes"/>
     }
     <FluentButton Appearance="Appearance.Lightweight"
-                  BackgroundColor="transparent"
                   Id="@_anchorId"
+                  Prop
                   Class="defaultHidden"
                   OnClick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, _anchorId))"
-                  aria-label="@Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]">
+                  aria-label="@Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]"
+                  @attributes="ButtonAttributes">
         <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
         <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
     </FluentButton>
     <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyToolTip</FluentTooltip>
 </div>
+
+@code {
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? ButtonAttributes { get; set; }
+}
