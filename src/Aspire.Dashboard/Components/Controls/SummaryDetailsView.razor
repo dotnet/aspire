@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Resources
 @inject IStringLocalizer<ControlsStrings> Loc
 @implements Aspire.Dashboard.Model.IGlobalKeydownListener
+@typeparam T
 
 <div class="summary-details-container">
     <FluentSplitter Orientation="@Orientation" Collapsed="@(!_internalShowDetails)"

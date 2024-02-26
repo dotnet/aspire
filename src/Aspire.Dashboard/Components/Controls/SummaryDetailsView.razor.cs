@@ -11,7 +11,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class SummaryDetailsView
+public partial class SummaryDetailsView<T>
 {
     [Parameter]
     public RenderFragment? Summary { get; set; }
@@ -36,6 +36,9 @@ public partial class SummaryDetailsView
 
     [Parameter]
     public bool RememberOrientation { get; set; } = true;
+
+    [Parameter, EditorRequired]
+    public T? SelectedValue { get; set; }
 
     /// <summary>
     /// Overrides the default key used to store the splitter size and orientation in local storage.
@@ -186,13 +189,13 @@ public partial class SummaryDetailsView
             return;
         }
 
-        if (args.Key.ToLower(CultureInfo.InvariantCulture) == "t")
+        if (args.Key.Equals("t", StringComparison.InvariantCultureIgnoreCase))
         {
             await HandleToggleOrientation();
             return;
         }
 
-        if (args.Key.ToLower(CultureInfo.InvariantCulture) == "o")
+        if (args.Key.Equals("o", StringComparison.InvariantCultureIgnoreCase) && SelectedValue is not null)
         {
             _internalShowDetails = !_internalShowDetails;
             await InvokeAsync(StateHasChanged);
@@ -214,12 +217,12 @@ public partial class SummaryDetailsView
             return;
         }
 
-        if (args.Key == ">")
+        if (args.Key == "+")
         {
             SetPanelSizes(panel1Fraction.Value - 0.05f);
             hasChanged = true;
         }
-        else if (args.Key == "<")
+        else if (args.Key == "-")
         {
             SetPanelSizes(panel1Fraction.Value + 0.05f);
             hasChanged = true;

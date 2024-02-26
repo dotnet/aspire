@@ -48,6 +48,7 @@
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"
                         OnDismiss="() => ClearSelectedResource()"
+                        SelectedValue="@SelectedResource"
                         ViewKey="ResourcesList">
         <Summary>
             <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">

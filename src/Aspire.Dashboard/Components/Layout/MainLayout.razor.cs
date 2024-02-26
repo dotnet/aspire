@@ -117,31 +117,25 @@ public partial class MainLayout
         {
             await LaunchHelpAsync();
         }
-        else if (args.Key.ToLower() == "s" && args.ShiftKey)
+        else if (args.Key.Equals("s", StringComparison.CurrentCultureIgnoreCase) && args.ShiftKey)
         {
             await LaunchSettingsAsync();
         }
         else if (args.CurrentlyHeldKeys.Contains("g"))
         {
-            if (args.Key.ToLower() == "r")
+            var url = args.Key.ToLower() switch
             {
-                NavigationManager.NavigateTo("/");
-            }
-            else if (args.Key.ToLower() == "c")
+                "r" => "/",
+                "c" => "/ConsoleLogs",
+                "s" => "/StructuredLogs",
+                "t" => "/Traces",
+                "m" => "/Metrics",
+                _ => null
+            };
+
+            if (url is not null)
             {
-                NavigationManager.NavigateTo("/ConsoleLogs");
-            }
-            else if (args.Key.ToLower() == "s")
-            {
-                NavigationManager.NavigateTo("/StructuredLogs");
-            }
-            else if (args.Key.ToLower() == "t")
-            {
-                NavigationManager.NavigateTo("/Traces");
-            }
-            else if (args.Key.ToLower() == "m")
-            {
-                NavigationManager.NavigateTo("/Metrics");
+                NavigationManager.NavigateTo(url);
             }
         }
     }

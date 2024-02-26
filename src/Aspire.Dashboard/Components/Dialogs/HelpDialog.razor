@@ -2,7 +2,7 @@
 @implements IDialogContentComponent
 @inject IStringLocalizer<Dialogs> Loc
 
-<FluentAnchor Appearance="Appearance.Lightweight" Class="anchor-no-padding" Href="https://aka.ms/dotnet/aspire/dashboard">
+<FluentAnchor Style="margin-bottom: 5px;" Appearance="Appearance.Lightweight" Class="anchor-no-padding" Href="https://aka.ms/dotnet/aspire/dashboard">
     @Loc[nameof(Dialogs.HelpDialogGetHelpLinkText)]
 </FluentAnchor>
 
@@ -21,9 +21,14 @@
                             @shortcut.Description
                             <FluentSpacer/>
                             <span>
-                                @foreach (var key in shortcut.Keys)
+                                @for (var i = 0; i < shortcut.Keys.Length; i++)
                                 {
-                                    <kbd style="margin-right: 3px;">@key</kbd>
+                                    <kbd style="margin-right: 3px;">@shortcut.Keys[i]</kbd>
+
+                                    if (i < shortcut.Keys.Length - 1)
+                                    {
+                                        <span style="margin-right: 3px;">+</span>
+                                    }
                                 }
                             </span>
                         </FluentStack>
@@ -39,15 +44,15 @@
     [
         new(Loc[nameof(Dialogs.HelpDialogCategoryPanels)],
         [
-            new KeyboardShortcut([">"], Loc[nameof(Dialogs.HelpDialogIncreasePanelSize)]),
-            new KeyboardShortcut(["<"], Loc[nameof(Dialogs.HelpDialogDecreasePanelSize)]),
+            new KeyboardShortcut(["+"], Loc[nameof(Dialogs.HelpDialogIncreasePanelSize)]),
+            new KeyboardShortcut(["-"], Loc[nameof(Dialogs.HelpDialogDecreasePanelSize)]),
             new KeyboardShortcut(["shift", "r"], Loc[nameof(Dialogs.HelpDialogResetPanelSize)]),
             new KeyboardShortcut(["shift", "t"], Loc[nameof(Dialogs.HelpDialogTogglePanelOrientation)]),
             new KeyboardShortcut(["shift", "o"], Loc[nameof(Dialogs.HelpDialogTogglePanelOpen)]),
         ]),
         new(Loc[nameof(Dialogs.HelpDialogCategoryPageNavigation)],
         [
-            new KeyboardShortcut(["g", "r"], Loc[nameof(Dialogs.HelpDialogGoToResources)]),
+            new KeyboardShortcut(["g", "r",], Loc[nameof(Dialogs.HelpDialogGoToResources)]),
             new KeyboardShortcut(["g", "c"], Loc[nameof(Dialogs.HelpDialogGoToConsoleLogs)]),
             new KeyboardShortcut(["g", "s"], Loc[nameof(Dialogs.HelpDialogGoToStructuredLogs)]),
             new KeyboardShortcut(["g", "t"], Loc[nameof(Dialogs.HelpDialogGoToTraces)]),
