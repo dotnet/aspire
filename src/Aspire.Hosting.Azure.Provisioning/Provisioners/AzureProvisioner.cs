@@ -81,7 +81,7 @@ internal sealed class AzureProvisioner(
 
         var armClientLazy = new Lazy<ArmClient>(() =>
         {
-            var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+            var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
             return new ArmClient(credential, subscriptionId);
         });
