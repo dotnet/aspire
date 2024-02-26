@@ -73,7 +73,9 @@ public static partial class AspireEFMySqlExtensions
             // Values are taken from MySqlRetryingExecutionStrategy.MaxRetryCount and MaxRetryDelay.
             builder.AddRetry(new RetryStrategyOptions
             {
-                ShouldHandle = new PredicateBuilder().Handle<MySqlException>(ex => ex.IsTransient),
+                ShouldHandle = static args => args.Outcome is { Exception: MySqlException { IsTransient: true } }
+                    ? PredicateResult.True()
+                    : PredicateResult.False(),
                 BackoffType = DelayBackoffType.Exponential,
                 MaxRetryAttempts = 6,
                 Delay = TimeSpan.FromSeconds(1),
@@ -102,7 +104,7 @@ public static partial class AspireEFMySqlExtensions
 
                 var resiliencePipelineProvider = serviceProvider.GetRequiredService<ResiliencePipelineProvider<string>>();
                 var resiliencePipeline = resiliencePipelineProvider.GetPipeline(resilienceKey);
-                serverVersion = resiliencePipeline.Execute(() => ServerVersion.AutoDetect(connectionString));
+                serverVersion = resiliencePipeline.Execute(static cs => ServerVersion.AutoDetect(cs), connectionString);
             }
             else
             {
