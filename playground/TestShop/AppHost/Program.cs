@@ -19,7 +19,13 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
-       .WithReference(catalogService.GetEndpoint("http"));
+       .WithReference(catalogService.GetEndpoint("http"))
+       .WithEndpoint("https", endpoint =>
+       {
+           endpoint.IsExternal = true;
+       },
+       createIfNotExists: false,
+       deferred: true);
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithReference(messaging)

@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting;
 
@@ -359,9 +360,23 @@ public static class ResourceBuilderExtensions
     /// <param name="endpointName">Name of endpoint to change.</param>
     /// <param name="callback">Callback that modifies the endpoint.</param>
     /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
+    /// <param name="deferred">Defers execution of callback until before start.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true, bool deferred = false) where T : IResourceWithEndpoints
     {
+        if (deferred && createIfNotExists)
+        {
+            throw new ArgumentException("Both createIfNotExists and deferred cannot be true.");
+        }
+
+        if (deferred)
+        {
+            builder.ApplicationBuilder.Services.TryAddLifecycleHook<DeferredEndpointConfigurationLifecycleHook>();
+            var deferredAnnotation = new DeferredEndpointConfigurationCallbackAnnotation(endpointName, callback);
+            builder.WithAnnotation(deferredAnnotation);
+            return builder;
+        }
+
         var endpoint = builder.Resource.Annotations
             .OfType<EndpointAnnotation>()
             .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
