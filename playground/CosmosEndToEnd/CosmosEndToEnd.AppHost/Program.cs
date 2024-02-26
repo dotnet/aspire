@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddAzureCosmosDB("cosmos")
                 .AddDatabase("db")
-                .UseEmulator();
+                .RunAsEmulator();
 
 builder.AddProject<Projects.CosmosEndToEnd_ApiService>("api")
        .WithReference(db);
