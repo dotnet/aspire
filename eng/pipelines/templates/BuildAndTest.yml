@@ -21,6 +21,7 @@ parameters:
 steps:
   - script: ${{ parameters.buildScript }}
             -restore -build
+            -pack
             -configuration ${{ parameters.buildConfig }}
             /p:ArchiveTests=true
             /bl:${{ parameters.repoLogPath }}/build.binlog
@@ -34,10 +35,20 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
+    - script: ${{ parameters.dotnetScript }}
+              build
+              -restore
+              -p:ContinuousIntegrationBuild=true
+              -p:Configuration=${{ parameters.buildConfig }}
+              -t:InstallWorkloadUsingArtifacts
+              -bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
+              $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
+      displayName: Install sdk+workload for testing
+
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
-        HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+        HelixProjectArguments: /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
