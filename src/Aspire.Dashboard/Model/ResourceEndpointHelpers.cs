@@ -10,7 +10,7 @@ internal static class ResourceEndpointHelpers
     /// <summary>
     /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
     /// </summary>
-    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool excludeServices = false, bool includeEndpointUrl = false)
+    public static List<DisplayedEndpoint> GetEndpoints(ILogger logger, ResourceViewModel resource, bool excludeServices = false, bool includeEndpointUrl = false)
     {
         var displayedEndpoints = new List<DisplayedEndpoint>();
 
@@ -30,10 +30,10 @@ internal static class ResourceEndpointHelpers
 
         foreach (var endpoint in resource.Endpoints)
         {
-            ProcessUrl(displayedEndpoints, endpoint.ProxyUrl, "ProxyUrl");
+            ProcessUrl(logger, resource, displayedEndpoints, endpoint.ProxyUrl, "ProxyUrl");
             if (includeEndpointUrl)
             {
-                ProcessUrl(displayedEndpoints, endpoint.EndpointUrl, "EndpointUrl");
+                ProcessUrl(logger, resource, displayedEndpoints, endpoint.EndpointUrl, "EndpointUrl");
             }
         }
 
@@ -41,7 +41,7 @@ internal static class ResourceEndpointHelpers
         return displayedEndpoints.OrderBy(e => e.Url == null).ThenBy(e => e.Address).ThenBy(e => e.Port).ToList();
     }
 
-    private static void ProcessUrl(List<DisplayedEndpoint> displayedEndpoints, string url, string name)
+    private static void ProcessUrl(ILogger logger, ResourceViewModel resource, List<DisplayedEndpoint> displayedEndpoints, string url, string name)
     {
         Uri uri;
         try
@@ -50,7 +50,8 @@ internal static class ResourceEndpointHelpers
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Couldn't parse '{url}' to a URI.", ex);
+            logger.LogWarning(ex, "Couldn't parse '{Url}' to a URI for resource {ResourceName}.", url, resource.Name);
+            return;
         }
 
         // There isn't a good way to match services and endpoints other than by address and port.

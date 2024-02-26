@@ -22,6 +22,9 @@ public partial class ResourceDetails
     [Inject]
     public required IStringLocalizer<Resources.Resources> Loc { get; init; }
 
+    [Inject]
+    public required ILogger<ResourceDetails> Logger { get; init; }
+
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
 
     private bool _showAll;
@@ -98,7 +101,7 @@ public partial class ResourceDetails
 
     private IEnumerable<DisplayedEndpoint> GetEndpoints()
     {
-        return ResourceEndpointHelpers.GetEndpoints(Resource, excludeServices: false, includeEndpointUrl: true);
+        return ResourceEndpointHelpers.GetEndpoints(Logger, Resource, excludeServices: false, includeEndpointUrl: true);
     }
 
     private IEnumerable<SummaryValue> GetResourceValues()

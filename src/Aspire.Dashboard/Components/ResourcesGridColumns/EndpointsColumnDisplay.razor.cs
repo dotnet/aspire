@@ -14,11 +14,14 @@ public partial class EndpointsColumnDisplay
     [Parameter, EditorRequired]
     public required bool HasMultipleReplicas { get; set; }
 
+    [Inject]
+    public required ILogger<EndpointsColumnDisplay> Logger { get; init; }
+
     /// <summary>
     /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
     /// </summary>
-    private static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool excludeServices = false)
+    private List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool excludeServices = false)
     {
-        return ResourceEndpointHelpers.GetEndpoints(resource, excludeServices, includeEndpointUrl: false);
+        return ResourceEndpointHelpers.GetEndpoints(Logger, resource, excludeServices, includeEndpointUrl: false);
     }
 }
