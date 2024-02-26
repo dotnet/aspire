@@ -14,11 +14,6 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
     /// </summary>
     public string? GetConnectionString()
     {
-        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-        {
-            return connectionStringAnnotation.Resource.GetConnectionString();
-        }
-
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var seqEndpointAnnotations))
         {
             throw new DistributedApplicationException("Seq resource does not have endpoint annotation.");
@@ -30,16 +25,6 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
     /// <summary>
     /// Gets the connection string expression for the Seq server for the manifest.
     /// </summary>
-    public string? ConnectionStringExpression
-    {
-        get
-        {
-            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-            {
-                return connectionStringAnnotation.Resource.ConnectionStringExpression;
-            }
-
-            return $"{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
-        }
-    }
+    public string? ConnectionStringExpression =>
+        $"{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
 }
