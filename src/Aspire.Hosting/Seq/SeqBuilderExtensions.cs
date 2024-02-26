@@ -23,7 +23,7 @@ public static class SeqBuilderExtensions
     public static IResourceBuilder<SeqResource> AddSeq(
         this IDistributedApplicationBuilder builder,
         string name = "Seq",
-        int port = 5341,
+        int? port = null,
         string? seqDataDirectory = null)
     {
         var seqResource = new SeqResource(name);
@@ -37,18 +37,6 @@ public static class SeqBuilderExtensions
             resourceBuilder.WithBindMount(seqDataDirectory, SeqContainerDataDirectory);
         }
 
-        resourceBuilder.PublishAsContainer();
-
         return resourceBuilder;
-    }
-
-    /// <summary>
-    /// Changes the Seq resource to be published as a container in the manifest.
-    /// </summary>
-    /// <param name="builder">Resource builder for <see cref="SeqResource"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    static IResourceBuilder<SeqResource> PublishAsContainer(this IResourceBuilder<SeqResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainer(builder.Resource));
     }
 }
