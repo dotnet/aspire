@@ -4,7 +4,6 @@
 using System.Text.Json.Serialization;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
-using Microsoft.Spatial;
 
 namespace AzureSearch.ApiService;
 
@@ -46,10 +45,6 @@ public class Hotel
 
     [SearchableField]
     public Address? Address { get; set; }
-
-    [JsonConverter(typeof(Azure.Core.Serialization.MicrosoftSpatialGeoJsonConverter))]
-    [SimpleField(IsFilterable = true, IsSortable = true)]
-    public GeographyPoint? Location { get; set; }
 
     public Room[]? Rooms { get; set; }
 

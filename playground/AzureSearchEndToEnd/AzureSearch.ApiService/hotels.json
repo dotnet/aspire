@@ -20,13 +20,6 @@
             "PostalCode": "10022",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -73.975403,
-                40.760586
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Budget Room, 1 Queen Bed (Cityside)",
@@ -218,13 +211,6 @@
             "PostalCode": "27713",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -78.940483,
-                35.904160
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Suite, 1 King Bed (Amenities)",
@@ -401,13 +387,6 @@
             "StateProvince": "WA",
             "PostalCode": "98021",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.196700,
-                47.794540
-            ]
         },
         "Rooms": [
             {
@@ -625,13 +604,6 @@
             "StateProvince": "OR",
             "PostalCode": "97070",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.770576,
-                45.322392
-            ]
         },
         "Rooms": [
             {
@@ -899,13 +871,6 @@
             "PostalCode": "63141",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -90.440810,
-                38.672190
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 1 King Bed (Mountain View)",
@@ -1144,13 +1109,6 @@
             "StateProvince": "TX",
             "PostalCode": "75207",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -96.819412,
-                32.800762
-            ]
         },
         "Rooms": [
             {
@@ -1405,13 +1363,6 @@
             "PostalCode": "10036",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -73.989792,
-                40.756729
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 1 King Bed (Waterfront View)",
@@ -1661,13 +1612,6 @@
             "PostalCode": "98121",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.347771,
-                47.611660
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Suite, 2 Queen Beds (Amenities)",
@@ -1911,13 +1855,6 @@
             "StateProvince": "NY",
             "PostalCode": "10014",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -74.003571,
-                40.738651
-            ]
         },
         "Rooms": [
             {
@@ -2201,13 +2138,6 @@
             "PostalCode": "33609",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -82.537735,
-                27.943701
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 1 Queen Bed (Cityside)",
@@ -2414,13 +2344,6 @@
             "StateProvince": "WA",
             "PostalCode": "98052",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.136940,
-                47.644508
-            ]
         },
         "Rooms": [
             {
@@ -2664,13 +2587,6 @@
             "PostalCode": "34243",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -82.452843,
-                27.384417
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Suite, 2 Double Beds (Mountain View)",
@@ -2796,13 +2712,6 @@
             "StateProvince": "NM",
             "PostalCode": "87107",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -106.605949,
-                35.108700
-            ]
         },
         "Rooms": [
             {
@@ -3059,13 +2968,6 @@
             "StateProvince": "GA",
             "PostalCode": "30346",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -84.341530,
-                33.923931
-            ]
         },
         "Rooms": [
             {
@@ -3332,13 +3234,6 @@
             "PostalCode": "98052",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.126381,
-                47.640656
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Deluxe Room, 1 Queen Bed (Amenities)",
@@ -3592,13 +3487,6 @@
             "StateProvince": "WA",
             "PostalCode": "98033",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.198074,
-                47.676857
-            ]
         },
         "Rooms": [
             {
@@ -3876,13 +3764,6 @@
             "PostalCode": "98101",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.335114,
-                47.612839
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 1 Queen Bed (Cityside)",
@@ -4033,13 +3914,6 @@
             "StateProvince": "LA",
             "PostalCode": "70002",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -90.156708,
-                30.004539
-            ]
         },
         "Rooms": [
             {
@@ -4311,13 +4185,6 @@
             "PostalCode": "92121",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -117.206993,
-                32.875282
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Suite, 1 Queen Bed (Amenities)",
@@ -4486,13 +4353,6 @@
             "PostalCode": "33180",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -80.146729,
-                25.956699
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Budget Room, 1 King Bed (City View)",
@@ -4604,13 +4464,6 @@
             "StateProvince": "CA ",
             "PostalCode": "94043",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.075577,
-                37.415588
-            ]
         },
         "Rooms": [
             {
@@ -4858,13 +4711,6 @@
             "PostalCode": "97223",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.782829,
-                45.448959
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 1 King Bed (Cityside)",
@@ -4994,13 +4840,6 @@
             "StateProvince": "GA",
             "PostalCode": "30326",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -84.362465,
-                33.846432
-            ]
         },
         "Rooms": [
             {
@@ -5272,13 +5111,6 @@
             "PostalCode": "78758",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -97.726486,
-                30.400160
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Budget Room, 2 Queen Beds (Mountain View)",
@@ -5404,13 +5236,6 @@
             "StateProvince": "TN",
             "PostalCode": "37215",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -86.816017,
-                36.107281
-            ]
         },
         "Rooms": [
             {
@@ -5670,13 +5495,6 @@
             "PostalCode": "97209",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.685928,
-                45.531139
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 2 Double Beds (Amenities)",
@@ -5776,13 +5594,6 @@
             "StateProvince": "MI",
             "PostalCode": "48226",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -83.049103,
-                42.336109
-            ]
         },
         "Rooms": [
             {
@@ -6041,13 +5852,6 @@
             "PostalCode": "06110",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -72.761261,
-                41.725285
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Budget Room, 2 Double Beds (Waterfront View)",
@@ -6282,13 +6086,6 @@
             "PostalCode": "98004",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.193008,
-                47.617020
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Budget Room, 1 King Bed (Mountain View)",
@@ -6520,13 +6317,6 @@
             "PostalCode": "38120",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -89.847656,
-                35.104061
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Deluxe Room, 2 Double Beds (Amenities)",
@@ -6705,13 +6495,6 @@
             "StateProvince": "CA ",
             "PostalCode": "95050",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -121.946564,
-                37.362087
-            ]
         },
         "Rooms": [
             {
@@ -6989,13 +6772,6 @@
             "PostalCode": "60654",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -87.628640,
-                41.889510
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Suite, 2 Queen Beds (City View)",
@@ -7185,13 +6961,6 @@
             "StateProvince": "CO",
             "PostalCode": "80206",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -104.952133,
-                39.717941
-            ]
         },
         "Rooms": [
             {
@@ -7437,13 +7206,6 @@
             "PostalCode": "78216",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -98.495422,
-                29.518398
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Budget Room, 1 Queen Bed (Waterfront View)",
@@ -7677,13 +7439,6 @@
             "PostalCode": "85251",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -111.929405,
-                33.503067
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Deluxe Room, 1 King Bed (City View)",
@@ -7846,13 +7601,6 @@
             "StateProvince": "HI",
             "PostalCode": "96814",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -157.846817,
-                21.295841
-            ]
         },
         "Rooms": [
             {
@@ -8096,13 +7844,6 @@
             "PostalCode": "83702",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -116.220711,
-                43.616871
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Deluxe Room, 2 Double Beds (Amenities)",
@@ -8308,13 +8049,6 @@
             "StateProvince": "ND",
             "PostalCode": "58104",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -96.845932,
-                46.814121
-            ]
         },
         "Rooms": [
             {
@@ -8589,13 +8323,6 @@
             "PostalCode": "40503",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -84.527771,
-                37.989769
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Deluxe Room, 1 King Bed (City View)",
@@ -8799,13 +8526,6 @@
             "PostalCode": "98109",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.338181,
-                47.621201
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Budget Room, 2 Double Beds (Amenities)",
@@ -8957,13 +8677,6 @@
             "StateProvince": "MA",
             "PostalCode": "02142",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -71.081230,
-                42.361370
-            ]
         },
         "Rooms": [
             {
@@ -9233,13 +8946,6 @@
             "PostalCode": "98004",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.201195,
-                47.616989
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 2 Queen Beds (City View)",
@@ -9402,13 +9108,6 @@
             "PostalCode": "20005",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -77.032410,
-                38.90166
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 2 Queen Beds (City View)",
@@ -9549,13 +9248,6 @@
             "StateProvince": "VA",
             "PostalCode": "22202",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -77.060066,
-                38.863659
-            ]
         },
         "Rooms": [
             {
@@ -9840,13 +9532,6 @@
             "PostalCode": "02199",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -71.082466,
-                42.347179
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Suite, 2 Queen Beds (Waterfront View)",
@@ -10039,13 +9724,6 @@
             "StateProvince": "OK",
             "PostalCode": "74133",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -95.889305,
-                36.072445
-            ]
         },
         "Rooms": [
             {
@@ -10317,13 +9995,6 @@
             "PostalCode": "94104",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.403481,
-                37.792259
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Standard Room, 2 Queen Beds (Mountain View)",
@@ -10513,13 +10184,6 @@
             "StateProvince": "CA ",
             "PostalCode": "95119",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -121.781952,
-                37.242077
-            ]
         },
         "Rooms": [
             {
@@ -10799,13 +10463,6 @@
             "PostalCode": "33156",
             "Country": "USA"
         },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -80.312546,
-                25.689901
-            ]
-        },
         "Rooms": [
             {
                 "Description": "Deluxe Room, 1 Queen Bed (Cityside)",
@@ -11019,13 +10676,6 @@
             "StateProvince": "CA ",
             "PostalCode": "94105",
             "Country": "USA"
-        },
-        "Location": {
-            "type": "Point",
-            "coordinates": [
-                -122.394234,
-                37.793369
-            ]
         },
         "Rooms": [
             {
