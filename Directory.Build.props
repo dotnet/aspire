@@ -29,8 +29,6 @@
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
 
     <DashboardPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'DashboardArtifacts', '$(Configuration)'))</DashboardPublishedArtifactsOutputDir>
-    <WorkloadsPackageSource>$(ArtifactsShippingPackagesDir)</WorkloadsPackageSource>
-    <WorkloadsPackageSource Condition="'$(workloadPackagesPath)' != ''">$(workloadPackagesPath)/</WorkloadsPackageSource>
   </PropertyGroup>
 
   <!-- OS/Architecture properties for local development resources -->
