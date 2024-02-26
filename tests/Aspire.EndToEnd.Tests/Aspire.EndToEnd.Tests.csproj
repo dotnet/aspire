@@ -2,10 +2,49 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
+    <!-- no docker support on helix/windows yet -->
+    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
+    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <TestUsingWorkloads>true</TestUsingWorkloads>
+    <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
+
+    <VersionBandForSdkManifestsDir>8.0.100</VersionBandForSdkManifestsDir>
+    <VersionBandForManifestPackages>8.0.100</VersionBandForManifestPackages>
+    <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
+    <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="data\" />
+
+    <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+
+    <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="'$(TestsRunningOutOfTree)' == 'true' or '$(ArchiveTests)' == 'true'" />
+    <None Include="..\nuget.helix.config" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" Condition="'$(TestsRunningOutOfTree)' == 'true' or '$(ArchiveTests)' == 'true'" />
+
+    <None Include="data\**\*" Link="data\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  
+
+  <Target Name="_AddPackageVersions" AfterTargets="Build">
+    <PropertyGroup>
+      <_TestAssetsOutputDir>$(OutputPath)\testassets\</_TestAssetsOutputDir>
+
+      <_PackagePropsContents>
+<![CDATA[
+      <Project>
+        <PropertyGroup>
+          <PackageVersion>$(PackageVersion)</PackageVersion>
+          <MicrosoftExtensionsHostingAbstractionsPackageVersion>$(MicrosoftExtensionsHostingAbstractionsPackageVersion)</MicrosoftExtensionsHostingAbstractionsPackageVersion>
+        </PropertyGroup>
+      </Project>
+]]>
+      </_PackagePropsContents>
+    </PropertyGroup>
+
+    <WriteLinesToFile Lines="$(_PackagePropsContents)" File="$(_TestAssetsOutputDir)\testproject\Directory.Build.Helix.props" Overwrite="true" />
+  </Target>
+
+  <Import Project="..\Shared\Aspire.Workload.Testing.targets" />
 </Project>

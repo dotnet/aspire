@@ -113,7 +113,7 @@ public class TestProgram : IDisposable
             }
             if (!componentsToSkip.Contains("cosmos", StringComparer.OrdinalIgnoreCase))
             {
-                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").UseEmulator();
+                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
             }
         }
