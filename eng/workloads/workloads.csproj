@@ -10,9 +10,8 @@
     <VSTemp>$(WorkloadIntermediateOutputPath)VS/</VSTemp>
     <WorkloadOutputPath>$(ArtifactsBinDir)workloads/</WorkloadOutputPath>
     <WorkloadOutputPath Condition="'$(workloadArtifactsPath)' != ''">$(workloadArtifactsPath)/</WorkloadOutputPath>
-    <PackageSource>$(ArtifactsShippingPackagesDir)</PackageSource>
-    <PackageSource Condition="'$(workloadPackagesPath)' != ''">$(workloadPackagesPath)/</PackageSource>
     <RunAnalyzers>false</RunAnalyzers>
+    <BuildFullWorkload Condition="'$(BuildFullWorkload)' == ''">true</BuildFullWorkload>
   </PropertyGroup>
 
   <!-- Arcade -->
@@ -37,7 +36,7 @@
   </ItemGroup>
 
   <!-- The list of supported runtimes, which matches those of DCP -->
-  <ItemGroup>
+  <ItemGroup Condition="'$(BuildFullWorkload)' == 'true'">
     <!-- Update Aspire.Dashboard.csproj RuntimeIdentifiers if this list changes -->
     <_PackRuntimes Include="win-x86" />
     <_PackRuntimes Include="win-x64" />
@@ -48,9 +47,16 @@
     <_PackRuntimes Include="osx-arm64" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(BuildFullWorkload)' != 'true'">
+    <!-- Update Aspire.Dashboard.csproj RuntimeIdentifiers if this list changes -->
+    <_PackRuntimes Include="$(NETCoreSdkRuntimeIdentifier)" />
+  </ItemGroup>
+
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
 
-  <Target Name="Build" DependsOnTargets="GetAssemblyVersion;_GetVersionProps;_GenerateMsiVersionString">
+  <Target Name="Build" DependsOnTargets="GetAssemblyVersion;_GetVersionProps;_GenerateMsiVersionString;BuildCommon;BuildForVS" />
+
+  <Target Name="BuildCommon">
     <ItemGroup>
       <!-- Overrides for Visual Studio setup generation. If the workload definition IDs change,
            these must be updated. -->
@@ -75,21 +81,23 @@
       </ShortNames>
     </ItemGroup>
 
-    <MSBuild Projects="../dashboardpack/dashboardpack.csproj" Targets="restore;build" Properties="DashboardRuntime=%(_PackRuntimes.Identity);PackageOutputPath=$(PackageSource)" />
-    <MSBuild Projects="../dcppack/dcppack.csproj" Targets="restore;build" Properties="DcpRuntime=%(_PackRuntimes.Identity);PackageOutputPath=$(PackageSource)" />
+    <MSBuild Projects="../dashboardpack/dashboardpack.csproj" Targets="restore;build" Properties="DashboardRuntime=%(_PackRuntimes.Identity);PackageOutputPath=$(WorkloadsPackageSource)" />
+    <MSBuild Projects="../dcppack/dcppack.csproj" Targets="restore;build" Properties="DcpRuntime=%(_PackRuntimes.Identity);PackageOutputPath=$(WorkloadsPackageSource)" />
 
     <ItemGroup>
-      <ManifestPackages Include="$(PackageSource)Microsoft.NET.Sdk.Aspire.Manifest*.nupkg"
+      <ManifestPackages Include="$(WorkloadsPackageSource)Microsoft.NET.Sdk.Aspire.Manifest*.nupkg"
                         MsiVersion="$(MsiVersion)"
                         SupportsMachineArch="true" />
     </ItemGroup>
+  </Target>
 
+  <Target Name="BuildForVS" Condition="'$(BuildFullWorkload)' == 'true'">
     <CreateVisualStudioWorkload BaseIntermediateOutputPath="$(WorkloadIntermediateOutputPath)"
                                 AllowMissingPacks="True"
                                 BaseOutputPath="$(WorkloadOutputPath)"
                                 EnableSideBySideManifests="true"
                                 ComponentResources="@(ComponentResources)"
-                                PackageSource="$(PackageSource)"
+                                PackageSource="$(WorkloadsPackageSource)"
                                 ShortNames="@(ShortNames)"
                                 WorkloadManifestPackageFiles="@(ManifestPackages)"
                                 WixToolsetPath="$(WixToolsetPath)"

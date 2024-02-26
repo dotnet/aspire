@@ -5,6 +5,9 @@
   <PropertyGroup>
     <PackageId>$(PackageId).Manifest-$(DotNetAspireManifestVersionBand)</PackageId>
     <Description>.NET Aspire workload manifest</Description>
+
+    <!-- this allows installing the manifest as a nuget, which is useful for testing -->
+    <PackageType />
   </PropertyGroup>
 
   <ItemGroup>

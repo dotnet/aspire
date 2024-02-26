@@ -26,8 +26,10 @@
 
   <Target Name="Build" />
 
-  <Target Name="BeforeBuild" BeforeTargets="Build">
-    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime)" />
+  <Target Name="BeforeBuild" BeforeTargets="_GetPackageFiles">
+    <!-- separate restore step to allow targets from nugets to get imported in the publish step -->
+    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="restore" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime)" />
+    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime);_Some_unique_prop=$([System.Guid]::NewGuid())" />
 
     <!-- After publishing the project, we ensure that the published assets get packed in the nuspec. -->
     <ItemGroup>
@@ -36,7 +38,7 @@
     </ItemGroup>
 
     <MakeDir Directories="$(DashboardPublishedArtifactsOutputDir)/$(DashboardRuntime)" />
-    <ZipDirectory SourceDirectory="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish" DestinationFile="$(DashboardPublishedArtifactsOutputDir)/$(DashboardRuntime)/aspire-dashboard-$(DashboardRuntime).zip" />
+    <ZipDirectory SourceDirectory="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish" DestinationFile="$(DashboardPublishedArtifactsOutputDir)/$(DashboardRuntime)/aspire-dashboard-$(DashboardRuntime).zip" Overwrite="true" />
 
     <!-- Throw an error if _PublishItems is empty. -->
     <Error Condition="'@(_PublishItems)' == ''" Text="No files were found to pack. Ensure that the project being packed has a publish target defined." />
