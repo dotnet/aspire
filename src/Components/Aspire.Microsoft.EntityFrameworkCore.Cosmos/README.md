@@ -133,14 +133,11 @@ Aspire supports the usage of the Azure Cosmos DB emulator to use the emulator, a
 var cosmosdb = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
 ```
 
-When the AppHost starts up a local container running the Azure CosmosDB will also be started. Inside the project that uses CosmosDB you also need to specify that you want to ignore the server certificate (so you don't need to manually download and install it):
+When the AppHost starts up a local container running the Azure CosmosDB will also be started:
 
 ```csharp
 // Service code
-builder.AddCosmosDbContext<MyDbContext>("cosmos", "mydb", (settings) =>
-{
-    settings.IgnoreEmulatorCertificate = true;
-});
+builder.AddCosmosDbContext<MyDbContext>("cosmos", "mydb");
 
 ```
 
