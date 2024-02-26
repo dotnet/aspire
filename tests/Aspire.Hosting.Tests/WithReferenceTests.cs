@@ -505,7 +505,7 @@ public class WithReferenceTests
 
         public string? ConnectionString { get; set; }
 
-        public ResourceMetadataCollection Annotations => throw new NotImplementedException();
+        public ResourceAnnotationCollection Annotations => throw new NotImplementedException();
 
         public string? GetConnectionString()
         {
