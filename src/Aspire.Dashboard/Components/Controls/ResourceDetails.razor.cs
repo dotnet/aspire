@@ -33,8 +33,8 @@ public partial class ResourceDetails
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
         ).AsQueryable();
 
-    private IQueryable<Endpoint> FilteredEndpoints => GetEndpoints()
-        .Where(v => v.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Address?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
+    private IQueryable<DisplayedEndpoint> FilteredEndpoints => GetEndpoints()
+        .Where(v => v.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Text.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
         .AsQueryable();
 
     private IQueryable<SummaryValue> FilteredResourceValues => GetResourceValues()
@@ -96,17 +96,9 @@ public partial class ResourceDetails
         }
     }
 
-    private IEnumerable<Endpoint> GetEndpoints()
+    private IEnumerable<DisplayedEndpoint> GetEndpoints()
     {
-        foreach (var endpoint in Resource.Endpoints)
-        {
-            yield return new Endpoint { Name = Loc[Resources.Resources.ResourceDetailsEndpointUrl], IsHttp = true, Address = endpoint.EndpointUrl };
-            yield return new Endpoint { Name = Loc[Resources.Resources.ResourceDetailsProxyUrl], IsHttp = true, Address = endpoint.ProxyUrl };
-        }
-        foreach (var service in Resource.Services)
-        {
-            yield return new Endpoint { Name = service.Name, IsHttp = false, Address = service.AddressAndPort };
-        }
+        return ResourceEndpointHelpers.GetEndpoints(Resource, excludeServices: false, includeEndpointUrl: true);
     }
 
     private IEnumerable<SummaryValue> GetResourceValues()
@@ -205,13 +197,6 @@ public partial class ResourceDetails
             true when !foundUnmasked => true,
             _ => _areEnvironmentVariablesMasked
         };
-    }
-
-    private sealed class Endpoint
-    {
-        public bool IsHttp { get; init; }
-        public required string Name { get; init; }
-        public string? Address { get; init; }
     }
 
     private sealed class SummaryValue
