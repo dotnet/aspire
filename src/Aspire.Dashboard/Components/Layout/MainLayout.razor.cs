@@ -17,6 +17,10 @@ public partial class MainLayout
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
     private IJSObjectReference? _keyboardHandlers;
+    private IDialogReference? _openPageDialog;
+
+    private const string SettingsDialogId = "SettingsDialog";
+    private const string HelpDialogId = "HelpDialog";
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -73,6 +77,14 @@ public partial class MainLayout
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", typeof(App).Assembly.GetName().Name);
             ShortcutManager.AddGlobalKeydownListener(this);
+
+            DialogService.OnDialogCloseRequested += (reference, _) =>
+            {
+                if (reference.Id is HelpDialogId or SettingsDialogId)
+                {
+                    _openPageDialog = null;
+                }
+            };
         }
     }
 
@@ -88,10 +100,21 @@ public partial class MainLayout
             Modal = true,
             Alignment = HorizontalAlignment.Center,
             Width = "700px",
-            Height = "auto"
+            Height = "auto",
+            Id = HelpDialogId
         };
 
-        await DialogService.ShowDialogAsync<HelpDialog>(parameters).ConfigureAwait(true);
+        if (_openPageDialog is not null)
+        {
+            if (Equals(_openPageDialog.Id, HelpDialogId))
+            {
+                return;
+            }
+
+            await _openPageDialog.CloseAsync();
+        }
+
+        _openPageDialog = await DialogService.ShowDialogAsync<HelpDialog>(parameters).ConfigureAwait(true);
     }
 
     public async Task LaunchSettingsAsync()
@@ -106,39 +129,52 @@ public partial class MainLayout
             Modal = true,
             Alignment = HorizontalAlignment.Right,
             Width = "300px",
-            Height = "auto"
+            Height = "auto",
+            Id = SettingsDialogId
         };
 
-        await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        if (_openPageDialog is not null)
+        {
+            if (Equals(_openPageDialog.Id, SettingsDialogId))
+            {
+                return;
+            }
+
+            await _openPageDialog.CloseAsync();
+        }
+
+        _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
     }
 
     public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
-        if (args is { Key: "?", ShiftKey: true })
+        if (args.ShiftKey)
         {
-            await LaunchHelpAsync();
-            return;
+            if (args.Key is "?")
+            {
+                await LaunchHelpAsync();
+            }
+            else if (args.Key.ToLower() is "s")
+            {
+                await LaunchSettingsAsync();
+            }
         }
-
-        if (args.Key.Equals("s", StringComparison.CurrentCultureIgnoreCase) && args.ShiftKey)
+        else
         {
-            await LaunchSettingsAsync();
-            return;
-        }
+            var url = args.Key.ToLower() switch
+            {
+                "r" => "/",
+                "c" => "/ConsoleLogs",
+                "s" => "/StructuredLogs",
+                "t" => "/Traces",
+                "m" => "/Metrics",
+                _ => null
+            };
 
-        var url = args.Key.ToLower() switch
-        {
-            "r" => "/",
-            "c" => "/ConsoleLogs",
-            "s" => "/StructuredLogs",
-            "t" => "/Traces",
-            "m" => "/Metrics",
-            _ => null
-        };
-
-        if (url is not null)
-        {
-            NavigationManager.NavigateTo(url);
+            if (url is not null)
+            {
+                NavigationManager.NavigateTo(url);
+            }
         }
     }
 
