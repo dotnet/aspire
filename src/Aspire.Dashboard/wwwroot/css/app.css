@@ -46,6 +46,8 @@ fluent-toolbar[orientation=horizontal] {
 
     /* overrides of default fluentui-blazor styling */
     --disabled-opacity: 0.7 !important;
+
+    --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
 }
 
 [data-theme="dark"] {
@@ -69,6 +71,13 @@ fluent-toolbar[orientation=horizontal] {
 
 [data-theme="light"] {
     color-scheme: light;
+}
+
+h1 {
+    font-size: var(--type-ramp-plus-4-font-size);
+    line-height: var(--type-ramp-plus-4-line-height);
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
 }
 
  #components-reconnect-modal :is(h5, p) {
@@ -197,7 +206,7 @@ fluent-data-grid-cell .long-inner-content {
 }
 
 .page-header {
-    padding: calc(var(--design-unit) * 1px) calc(var(--design-unit) * 2px);
+    padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
 }
 
 .selected-row,
@@ -317,6 +326,6 @@ fluent-switch.table-switch::part(label) {
 }
 
 .total-items-footer {
-    padding-left: calc(var(--design-unit) * 2px);
-    padding-bottom: calc(var(--design-unit) * 2px);
+    padding-left: calc(var(--design-unit) * 2.5px);
+    padding-bottom: calc(var(--design-unit) * 2.5px);
 }
