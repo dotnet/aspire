@@ -1,6 +1,6 @@
-@AzureSearch.ApiService_HostAddress = http://localhost:5250
+@AzureSearch_ApiService_HostAddress = http://localhost:5250
 
-GET {{AzureSearch.ApiService_HostAddress}}/
+GET {{AzureSearch_ApiService_HostAddress}}/
 Accept: application/json
 
 ###
