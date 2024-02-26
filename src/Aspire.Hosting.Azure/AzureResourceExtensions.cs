@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
@@ -64,25 +63,5 @@ public static class AzureResourceExtensions
     {
         ParameterResourceBuilderExtensions.ConfigureConnectionStringManifestPublisher((IResourceBuilder<IResourceWithConnectionString>)builder);
         return builder;
-    }
-
-    /// <summary>
-    /// Adds an Azure Search resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchResource}"/>.</returns>
-    public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
-    {
-        var resource = new AzureSearchResource(name);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(WriteAzureSearchToManifest);
-    }
-
-    private static void WriteAzureSearchToManifest(ManifestPublishingContext context)
-    {
-        // Example:
-        // "type": "azure.search.v0",
-        context.Writer.WriteString("type", "azure.search.v0");
     }
 }

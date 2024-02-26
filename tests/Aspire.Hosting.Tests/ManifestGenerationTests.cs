@@ -381,25 +381,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllAzureSearchManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureSearch("search");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var azureSearch = resources.GetProperty("search");
-        Assert.Equal("azure.search.v0", azureSearch.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void NodeAppIsExecutableResource()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();

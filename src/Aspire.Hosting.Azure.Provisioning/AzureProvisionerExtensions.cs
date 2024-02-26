@@ -4,11 +4,9 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Azure.Provisioning.Provisioners;
 using Aspire.Hosting.Lifecycle;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
-using Azure.ResourceManager.Search;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -29,9 +27,6 @@ public static class AzureProvisionerExtensions
         // Attempt to read azure configuration from configuration
         builder.Services.AddOptions<AzureProvisionerOptions>()
             .BindConfiguration("Azure");
-
-        builder.AddAzureProvisioner<AzureSearchResource, AzureSearchProvisioner>();
-        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetSearchServices(), resource => resource.Data.Tags);
 
         builder.AddAzureProvisioner<AzureBicepResource, BicepProvisioner>();
 

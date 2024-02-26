@@ -7,21 +7,22 @@ using Aspire.Hosting.Azure;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding the Azure ApplicationInsights resources to the application model.
+/// Provides extension methods for adding the Azure Search resources to the application model.
 /// </summary>
-public static class AzureApplicationInsightsExtensions
+public static class AzureSearchExtensions
 {
     /// <summary>
-    /// Adds an Azure Application Insights resource to the application model.
+    /// Adds an Azure Search resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureApplicationInsightsResource}"/>.</returns>
-    public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchResource}"/>.</returns>
+    public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
     {
-        var resource = new AzureApplicationInsightsResource(name);
+        var resource = new AzureSearchResource(name);
         return builder.AddResource(resource)
-                .WithParameter("appInsightsName", resource.CreateBicepResourceName())
+                .WithParameter("name", resource.CreateBicepResourceName())
+                .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                 .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

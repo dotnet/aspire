@@ -6,20 +6,27 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// A resource that represents an Azure Search.
+/// Represents an Azure Search resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class AzureSearchResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString
+public class AzureSearchResource(string name) :
+    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.search.bicep"),
+    IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets or sets the connection string for the Azure Search resource.
+    /// Gets the "connectionString" reference from the secret outputs of the Azure Search resource.
     /// </summary>
-    public string? ConnectionString { get; set; }
+    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
-    /// Gets the connection string for the Azure Search service.
+    /// Gets the connection string template for the manifest for the resource.
     /// </summary>
-    /// <returns>The connection string for the Azure Search service.</returns>
-    string? IResourceWithConnectionString.GetConnectionString() => ConnectionString;
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string for the resource.
+    /// </summary>
+    /// <returns>The connection string for the resource.</returns>
+    public string? GetConnectionString() => ConnectionString.Value;
 }
 
