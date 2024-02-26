@@ -6,6 +6,9 @@ using k8s.Autorest;
 
 namespace Aspire.Hosting.Dcp;
 
+// We need to create a custom Kubernetes client to support reading arbitrary subresources from a Kubernetes resource as a stream.
+// k8s.Kubernetes does not support this operation natively, and required machinery (SendRequest() in particular) is protected.
+
 internal class DcpKubernetesClient : k8s.Kubernetes
 {
     public DcpKubernetesClient(KubernetesClientConfiguration config, params DelegatingHandler[] handlers) : base(config, handlers)

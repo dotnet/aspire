@@ -1,17 +1,24 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class ResourceLogSource<R>(IKubernetesService kubernetesService, R resource):
-    IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
-    where R: CustomResource
+using LogEntry = (string Content, bool IsErrorMessage);
+using LogEntryList = IReadOnlyList<(string Content, bool IsErrorMessage)>;
+
+internal sealed class ResourceLogSource<TResource>(
+    ILoggerFactory loggerFactory,
+    IKubernetesService kubernetesService,
+    TResource resource) :
+    IAsyncEnumerable<LogEntryList>
+    where TResource : CustomResource
 {
-    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken)
+    public async IAsyncEnumerator<LogEntryList> GetAsyncEnumerator(CancellationToken cancellationToken)
     {
         if (!cancellationToken.CanBeCanceled)
         {
@@ -21,28 +28,60 @@ internal sealed class ResourceLogSource<R>(IKubernetesService kubernetesService,
         var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, follow: true, cancellationToken).ConfigureAwait(false);
         var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, follow: true, cancellationToken).ConfigureAwait(false);
 
-        var channel = Channel.CreateUnbounded<(string Content, bool IsErrorMessage)>(
-            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false });
+        var channel = Channel.CreateUnbounded<LogEntry>(new UnboundedChannelOptions
+        {
+            AllowSynchronousContinuations = false,
+            SingleReader = true,
+            SingleWriter = false
+        });
 
-        _ = Task.Run(() => streamLogs(stdoutStream, isError: false), cancellationToken);
-        _ = Task.Run(() => streamLogs(stderrStream, isError: true), cancellationToken);
+        var logger = loggerFactory.CreateLogger<ResourceLogSource<TResource>>();
+
+        var stdoutStreamTask = Task.Run(() => StreamLogsAsync(stdoutStream, isError: false), cancellationToken);
+        var stderrStreamTask = Task.Run(() => StreamLogsAsync(stderrStream, isError: true), cancellationToken);
+
+        // End the enumeration when both streams have been read to completion.
+        _ = Task.WhenAll(stdoutStreamTask, stderrStreamTask).ContinueWith
+            (_ => { channel.Writer.TryComplete(); },
+            cancellationToken,
+            TaskContinuationOptions.None,
+            TaskScheduler.Default).ConfigureAwait(false);
 
         await foreach (var batch in channel.GetBatches(cancellationToken))
         {
             yield return batch;
         }
 
-        async Task streamLogs(Stream stream, bool isError)
+        async Task StreamLogsAsync(Stream stream, bool isError)
         {
-            using StreamReader sr = new StreamReader(stream, leaveOpen: false);
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
-                var line = await sr.ReadLineAsync(cancellationToken).ConfigureAwait(false);
-                if (line is null)
+                using StreamReader sr = new StreamReader(stream, leaveOpen: false);
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    return; // No more data
+                    var line = await sr.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+                    if (line is null)
+                    {
+                        return; // No more data
+                    }
+
+                    var succeeded = channel.Writer.TryWrite((line, isError));
+                    if (!succeeded)
+                    {
+                        logger.LogWarning("Failed to write log entry to channel. Logs for {Kind} {Name} may be incomplete", resource.Kind, resource.Metadata.Name);
+                        channel.Writer.TryComplete();
+                        return;
+                    }
                 }
-                channel.Writer.TryWrite((line, isError));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Expected
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unexpected error happened when capturing logs for {Kind} {Name}", resource.Kind, resource.Metadata.Name);
+                channel.Writer.TryComplete(ex);
             }
         }
     }
