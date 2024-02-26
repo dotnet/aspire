@@ -43,6 +43,7 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-accent-foreground-color: #1d00d0;
     --reconnection-ui-bg: rgb(255, 255, 255);
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
+    --kbd-background-color: var(--neutral-layer-4);
 
     /* overrides of default fluentui-blazor styling */
     --disabled-opacity: 0.7 !important;
@@ -61,6 +62,7 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-accent-foreground-color: #512bd4;
     --reconnection-ui-bg: #D6D6D6;
     --error-counter-badge-foreground-color: #ffffff;
+    --kbd-background-color: var(--fill-color);
 
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
@@ -182,6 +184,11 @@ fluent-data-grid-cell .long-inner-content {
     font-size: small;
 }
 
+.anchor-no-padding::part(control) {
+    padding: 0;
+    flex-grow: 0;
+}
+
 .ellipsis-overflow {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -257,6 +264,12 @@ layout > .header {
 
 .flex-filler {
     flex-grow: 1;
+}
+
+
+kbd {
+    color: unset;
+    background-color: var(--kbd-background-color);
 }
 
 fluent-switch.table-switch::part(label) {
