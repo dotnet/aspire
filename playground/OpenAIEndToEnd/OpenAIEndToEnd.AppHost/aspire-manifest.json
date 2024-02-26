@@ -1,25 +1,23 @@
 {
   "resources": {
-    "mongo": {
-      "type": "container.v0",
-      "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
-      "image": "mongo:7.0.5",
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "containerPort": 27017
+    "openai": {
+      "type": "parameter.v0",
+      "connectionString": "{openai.value}",
+      "value": "{openai.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
         }
       }
     },
-    "api": {
+    "webstory": {
       "type": "project.v0",
-      "path": "../Mongo.ApiService/Mongo.ApiService.csproj",
+      "path": "../OpenAIEndToEnd.WebStory/OpenAIEndToEnd.WebStory.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__mongo": "{mongo.connectionString}"
+        "ConnectionStrings__openai": "{openai.connectionString}"
       },
       "bindings": {
         "http": {

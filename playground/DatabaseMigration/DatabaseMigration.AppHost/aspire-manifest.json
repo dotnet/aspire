@@ -1,29 +1,12 @@
 {
   "resources": {
     "sql1": {
-      "type": "azure.bicep.v0",
-      "connectionString": "Server=tcp:{sql1.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-      "path": "aspire.hosting.azure.bicep.sql.bicep",
-      "params": {
-        "serverName": "sql1",
-        "principalId": "",
-        "principalName": "",
-        "databases": [
-          "db1"
-        ]
-      }
-    },
-    "db1": {
-      "type": "value.v0",
-      "connectionString": "{sql1.connectionString};Database=db1"
-    },
-    "sql2": {
       "type": "container.v0",
-      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2.inputs.password};TrustServerCertificate=true",
+      "connectionString": "Server={sql1.bindings.tcp.host},{sql1.bindings.tcp.port};User ID=sa;Password={sql1.inputs.password};TrustServerCertificate=true",
       "image": "mcr.microsoft.com/mssql/server:2022-latest",
       "env": {
         "ACCEPT_EULA": "Y",
-        "MSSQL_SA_PASSWORD": "{sql2.inputs.password}"
+        "MSSQL_SA_PASSWORD": "{sql1.inputs.password}"
       },
       "bindings": {
         "tcp": {
@@ -45,18 +28,17 @@
         }
       }
     },
-    "db2": {
+    "db1": {
       "type": "value.v0",
-      "connectionString": "{sql2.connectionString};Database=db2"
+      "connectionString": "{sql1.connectionString};Database=db1"
     },
     "api": {
       "type": "project.v0",
-      "path": "../SqlServerEndToEnd.ApiService/SqlServerEndToEnd.ApiService.csproj",
+      "path": "../DatabaseMigration.ApiService/DatabaseMigration.ApiService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__db1": "{db1.connectionString}",
-        "ConnectionStrings__db2": "{db2.connectionString}"
+        "ConnectionStrings__db1": "{db1.connectionString}"
       },
       "bindings": {
         "http": {
@@ -69,6 +51,15 @@
           "protocol": "tcp",
           "transport": "http"
         }
+      }
+    },
+    "migration": {
+      "type": "project.v0",
+      "path": "../DatabaseMigration.MigrationService/DatabaseMigration.MigrationService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__db1": "{db1.connectionString}"
       }
     }
   }
