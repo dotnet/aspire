@@ -1,7 +1,13 @@
 {
   "resources": {
     "search": {
-      "type": "azure.search.v0"
+      "type": "azure.bicep.v0",
+      "connectionString": "{search.secretOutputs.connectionString}",
+      "path": "aspire.hosting.azure.bicep.search.bicep",
+      "params": {
+        "name": "search",
+        "keyVaultName": ""
+      }
     },
     "api": {
       "type": "project.v0",
