@@ -37,5 +37,5 @@ public class AzureSqlServerResource(SqlServerServerResource innerResource) :
     public override string Name => innerResource.Name;
 
     /// <inheritdoc />
-    public override ResourceMetadataCollection Annotations => innerResource.Annotations;
+    public override ResourceAnnotationCollection Annotations => innerResource.Annotations;
 }
