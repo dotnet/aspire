@@ -184,6 +184,29 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         Assert.Equal(connectionString2, actualConnectionString);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString)
+        ]);
+
+        if (useServiceType)
+        {
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseOracle(ConnectionString));
+        }
+        else
+        {
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseOracle(ConnectionString));
+        }
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection"));
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddOracleDatabaseDbContext().", exception.Message);
+    }
+
     public class TestDbContext2 : DbContext
     {
         public TestDbContext2(DbContextOptions<TestDbContext2> options) : base(options)

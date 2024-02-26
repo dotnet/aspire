@@ -156,4 +156,27 @@ public class AspireEFMySqlExtensionsTests
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString)
+        ]);
+
+        if (useServiceType)
+        {
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMySql(ConnectionString, new MySqlServerVersion(new Version(8, 2, 0))));
+        }
+        else
+        {
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMySql(ConnectionString, new MySqlServerVersion(new Version(8, 2, 0))));
+        }
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddMySqlDbContext<TestDbContext>("mysql"));
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddMySqlDbContext().", exception.Message);
+    }
 }

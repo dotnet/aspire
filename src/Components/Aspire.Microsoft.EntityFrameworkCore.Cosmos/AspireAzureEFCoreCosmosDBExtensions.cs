@@ -45,6 +45,8 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        builder.EnsureDbContextNotRegistered<TContext>();
+
         var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosDBSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)

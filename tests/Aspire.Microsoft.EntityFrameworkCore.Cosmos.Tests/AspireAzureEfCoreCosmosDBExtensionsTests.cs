@@ -77,6 +77,29 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         Assert.Equal("test2", actualConnectionString);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", ConnectionString)
+        ]);
+
+        if (useServiceType)
+        {
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseCosmos(ConnectionString, "databaseName"));
+        }
+        else
+        {
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseCosmos(ConnectionString, "databaseName"));
+        }
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddCosmosDbContext<TestDbContext>("cosmos", "databaseName"));
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddCosmosDbContext().", exception.Message);
+    }
+
     public class TestDbContext2 : DbContext
     {
         public TestDbContext2(DbContextOptions<TestDbContext2> options) : base(options)
