@@ -27,14 +27,12 @@
     @if (EnableMasking)
     {
         <FluentButton Appearance="Appearance.Lightweight"
-                      BackgroundColor="transparent"
                       IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
                       Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
                       OnClick="ToggleMaskStateAsync"
                       aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
     }
     <FluentButton Appearance="Appearance.Lightweight"
-                  BackgroundColor="transparent"
                   Id="@_anchorId"
                   Class="defaultHidden"
                   OnClick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, _anchorId))"

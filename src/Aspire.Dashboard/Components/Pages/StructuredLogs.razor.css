@@ -22,15 +22,18 @@
     grid-area: main;
 }
 
-::deep .log-row-critical {
+::deep .log-row-critical,
+::deep .log-row-critical fluent-button[appearance=lightweight]:not(:hover)::part(control) {
     background-color: var(--log-critical);
 }
 
-::deep .log-row-error {
+::deep .log-row-error,
+::deep .log-row-error fluent-button[appearance=lightweight]:not(:hover)::part(control) {
     background-color: var(--log-error);
 }
 
-::deep .log-row-warning {
+::deep .log-row-warning,
+::deep .log-row-warning fluent-button[appearance=lightweight]:not(:hover)::part(control){
     background-color: var(--log-warning);
 }
 
