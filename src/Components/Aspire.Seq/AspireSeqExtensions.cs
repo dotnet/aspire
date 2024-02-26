@@ -45,18 +45,15 @@ public static class AspireSeqExtensions
                 ? DefaultConnectionStringConfigurationKey
                 : $"{ConnectionStringConfigurationKeyPrefix}{name}"]) ?? "http://localhost:5341";
 
-        builder.Services.Configure<OpenTelemetryLoggerOptions>(logging =>
+        builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddOtlpExporter(opt =>
         {
-            logging.AddOtlpExporter(opt =>
+            opt.Endpoint = new Uri($"{seqUri}/ingest/otlp/v1/logs");
+            opt.Protocol = OtlpExportProtocol.HttpProtobuf;
+            if (!string.IsNullOrEmpty(settings.ApiKey))
             {
-                opt.Endpoint = new Uri($"{seqUri}/ingest/otlp/v1/logs");
-                opt.Protocol = OtlpExportProtocol.HttpProtobuf;
-                if (!string.IsNullOrEmpty(settings.ApiKey))
-                {
-                    opt.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-                }
-            });
-        });
+                opt.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
+            }
+        }));
         builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing
             .AddOtlpExporter(opt =>
                 {
