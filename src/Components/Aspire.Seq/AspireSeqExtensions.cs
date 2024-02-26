@@ -19,6 +19,15 @@ public static class AspireSeqExtensions
 {
     const string ConnectionStringConfigurationKeyPrefix = "ConnectionStrings:";
     const string DefaultConnectionStringConfigurationKey = $"{ConnectionStringConfigurationKeyPrefix}seq";
+    const string DefaultName = "Seq";
+
+    /// <summary>
+    /// Registers OTLP log and trace exporters to send to Seq.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    public static void AddSeqEndpoint(this IHostApplicationBuilder builder,
+        Action<SeqSettings>? configureSettings = null) => AddSeqEndpoint(builder, DefaultName, configureSettings);
 
     /// <summary>
     /// Registers OTLP log and trace exporters to send to Seq.
@@ -60,7 +69,7 @@ public static class AspireSeqExtensions
         if (settings.HealthChecks)
         {
             builder.TryAddHealthCheck(new HealthCheckRegistration(
-                "Seq.Client",
+                "Seq",
                 _ => new SeqHealthCheck(seqUri),
                 failureStatus: default,
                 tags: default));

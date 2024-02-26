@@ -53,10 +53,10 @@ The .NET Aspire Seq component supports [Microsoft.Extensions.Configuration](http
 Also you can pass the `Action<SeqSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddSeqEndpoint("Seq", settings => {
-        settings.HealthChecks = false;
-        settings.ServerUrl = "http://localhost:5341"
-    });
+builder.AddSeqEndpoint("Seq", settings => {
+    settings.HealthChecks = false;
+    settings.ServerUrl = "http://localhost:5341"
+});
 ```
 
 ## AppHost extensions
@@ -64,9 +64,9 @@ Also you can pass the `Action<SeqSettings> configureSettings` delegate to set up
 In your AppHost project, register a Seq server and propagate its configuration using the following methods (note that you must accept the [Seq End User Licence Agreement](https://datalust.co/doc/eula-current.pdf) for Seq to start):
 
 ```csharp
-var seq = builder.AddSeq(acceptEula: true);
+var seq = builder.AddSeq();
 
-var myService = builder.AddProject<Projects.MyService>()
+var myService = builder.AddProject<Projects_MyService>()
                        .WithReference(seq);
 ```
 
@@ -81,9 +81,7 @@ builder.AddSeqEndpoint();
 To retain Seq's data and configuration across application restarts register Seq with a data directory.
 
 ```csharp
-var seq = builder.AddSeq(
-    acceptEula: true,
-    seqDataDirectory: "./seqdata");
+var seq = builder.AddSeq(seqDataDirectory: "./seqdata");
 ```
 
 Note that the directory specified must already exist.
@@ -92,11 +90,10 @@ Note that the directory specified must already exist.
 
 To deploy Seq as part of .NET Aspire deployment it must be included in the manifest.
 
-> Note that this should not be done without having [properly secured the Seq instance](https://docs.datalust.co/docs/production-deployment). It is currently easier to setup a secure production Seq server outside of .NET Aspire.
+> Note that this should not be done without having [properly secured the Seq instance](https://docs.datalust.co/docs/production-deployment). It is currently easier to set up a secure production Seq server outside of .NET Aspire.
 
 ```csharp
 var seq = builder.AddSeq(
-    acceptEula: true,
     seqDataDirectory: "./seqdata",
     addToManifest: true);
 ```

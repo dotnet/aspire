@@ -11,7 +11,7 @@ namespace Aspire.Seq;
 /// <param name="seqUri">The URI of the Seq server to check.</param>
 public class SeqHealthCheck(string seqUri) : IHealthCheck
 {
-    readonly HttpClient _client = new() { BaseAddress = new Uri(seqUri) };
+    readonly HttpClient _client = new(new SocketsHttpHandler { ActivityHeadersPropagator = null }) { BaseAddress = new Uri(seqUri) };
 
     /// <summary>
     /// Checks the health of a Seq server by calling its <a href="https://docs.datalust.co/docs/using-the-http-api#checking-health">health</a> endpoint.
