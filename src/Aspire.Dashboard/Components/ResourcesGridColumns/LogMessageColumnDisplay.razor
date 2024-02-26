@@ -48,18 +48,11 @@
                 </div>
             </div>
         </FluentTooltip>
+    }
 
-        <GridValue Value="@LogEntry.Message"
-                   EnableHighlighting="true"
-                   HighlightText="@FilterText"
-                   BackgroundColor="transparent" />
-    }
-    else
-    {
-        <GridValue Value="@LogEntry.Message"
-                   EnableHighlighting="true"
-                   HighlightText="@FilterText"/>
-    }
+    <GridValue Value="@LogEntry.Message"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"/>
 </FluentStack>
 
 @code {
