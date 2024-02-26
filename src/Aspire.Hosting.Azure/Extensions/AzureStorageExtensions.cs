@@ -54,6 +54,18 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
+    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model. This version the package defaults to version 3.29.0 of the mcr.microsoft.com/azure-storage/azurite container image.
+    /// </summary>
+    /// <param name="builder">The Azure storage resource builder.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Renamed to RunAsEmulator. Will be removed in next preview.")]
+    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
+    {
+        return builder.RunAsEmulator(configureContainer);
+    }
+
+    /// <summary>
     /// Enables persistence in the Azure Storage emulator.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
