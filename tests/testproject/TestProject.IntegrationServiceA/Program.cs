@@ -2,22 +2,55 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddSqlServerClient("tempdb");
-builder.AddMySqlDataSource("mysqldb");
-builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
-builder.AddRedis("redis");
-builder.AddNpgsqlDataSource("postgresdb");
-builder.AddRabbitMQ("rabbitmq");
-builder.AddMongoDBClient("mymongodb");
-builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
-builder.AddKafkaProducer<string, string>("kafka");
-builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
+// builder.Configuration.AddEnvironmentVariables();
+string[] componentsToSkip = Array.Empty<string>();
+if (Environment.GetEnvironmentVariable("SKIP_COMPONENTS") is string skipComponents && skipComponents.Length > 0)
 {
-    consumerBuilder.Config.GroupId = "aspire-consumer-group";
-    consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
-});
+    componentsToSkip = skipComponents.Split(',', StringSplitOptions.RemoveEmptyEntries);
+}
+if (!componentsToSkip.Contains("sqlserver", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddSqlServerClient("tempdb");
+}
+if (!componentsToSkip.Contains("mysql", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddMySqlDataSource("mysqldb");
+    builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
+}
+if (!componentsToSkip.Contains("redis", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddRedis("redis");
+}
+if (!componentsToSkip.Contains("postgres", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddNpgsqlDataSource("postgresdb");
+}
+if (!componentsToSkip.Contains("rabbitmq", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddRabbitMQ("rabbitmq");
+}
+if (!componentsToSkip.Contains("mongodb", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddMongoDBClient("mymongodb");
+}
+if (!componentsToSkip.Contains("oracledatabase", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
+}
+if (!componentsToSkip.Contains("kafka", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddKafkaProducer<string, string>("kafka");
+    builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
+    {
+        consumerBuilder.Config.GroupId = "aspire-consumer-group";
+        consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
+    });
+}
 
-builder.AddAzureCosmosDB("cosmos");
+if (!componentsToSkip.Contains("cosmos", StringComparer.OrdinalIgnoreCase))
+{
+    builder.AddAzureCosmosDB("cosmos");
+}
 
 var app = builder.Build();
 
@@ -27,24 +60,54 @@ app.MapGet("/", () => "Hello World!");
 
 app.MapGet("/pid", () => Environment.ProcessId);
 
-app.MapRedisApi();
+if (!componentsToSkip.Contains("redis", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapRedisApi();
+}
 
-app.MapMongoDBApi();
+if (!componentsToSkip.Contains("mongodb", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapMongoDBApi();
+}
 
-app.MapMySqlApi();
+if (!componentsToSkip.Contains("mysql", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapMySqlApi();
+}
 
-app.MapPomeloEFCoreMySqlApi();
+if (!componentsToSkip.Contains("pomelo", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapPomeloEFCoreMySqlApi();
+}
 
-app.MapPostgresApi();
+if (!componentsToSkip.Contains("postgres", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapPostgresApi();
+}
 
-app.MapSqlServerApi();
+if (!componentsToSkip.Contains("sqlserver", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapSqlServerApi();
+}
 
-app.MapRabbitMQApi();
+if (!componentsToSkip.Contains("rabbitmq", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapRabbitMQApi();
+}
 
-app.MapOracleDatabaseApi();
+if (!componentsToSkip.Contains("oracledatabase", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapOracleDatabaseApi();
+}
 
-app.MapKafkaApi();
+if (!componentsToSkip.Contains("kafka", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapKafkaApi();
+}
 
-app.MapCosmosApi();
+if (!componentsToSkip.Contains("cosmos", StringComparer.OrdinalIgnoreCase))
+{
+    app.MapCosmosApi();
+}
 
 app.Run();
