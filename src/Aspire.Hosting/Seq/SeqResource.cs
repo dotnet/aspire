@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Publishing;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -14,8 +12,13 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
     /// <summary>
     /// Gets the Uri of the Seq endpoint
     /// </summary>
-    public string GetConnectionString()
+    public string? GetConnectionString()
     {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionString();
+        }
+
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var seqEndpointAnnotations))
         {
             throw new DistributedApplicationException("Seq resource does not have endpoint annotation.");
@@ -24,12 +27,19 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
         return seqEndpointAnnotations.Single().UriString;
     }
 
-    internal void WriteToManifest(ManifestPublishingContext context)
+    /// <summary>
+    /// Gets the connection string expression for the Seq server for the manifest.
+    /// </summary>
+    public string? ConnectionStringExpression
     {
-        context.WriteContainer(this);
+        get
+        {
+            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+            {
+                return connectionStringAnnotation.Resource.ConnectionStringExpression;
+            }
 
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}");
+            return $"{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+        }
     }
 }
