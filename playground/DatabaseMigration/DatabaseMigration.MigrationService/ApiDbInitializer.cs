@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Trace;
 
 namespace DatabaseMigration.MigrationService;
 
@@ -18,20 +19,29 @@ public class ApiDbInitializer(
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        using var scope = serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<MyDb1Context>();
-        var dbCreator = dbContext.GetService<IRelationalDatabaseCreator>();
+        using var activity = s_activitySource.StartActivity("Migrating database", ActivityKind.Client);
 
-        await InitializeDatabaseAsync(dbContext, dbCreator, cancellationToken);
+        try
+        {
+            using var scope = serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<MyDb1Context>();
+
+            await EnsureDatabaseAsync(dbContext, cancellationToken);
+            await RunMigrationAsync(dbContext, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            activity?.RecordException(ex);
+            throw;
+        }
 
         hostApplicationLifetime.StopApplication();
     }
 
-    private static async Task InitializeDatabaseAsync(MyDb1Context dbContext, IRelationalDatabaseCreator dbCreator, CancellationToken cancellationToken)
+    private static async Task EnsureDatabaseAsync(MyDb1Context dbContext, CancellationToken cancellationToken)
     {
-        using var activity = s_activitySource.StartActivity("Migrating database", ActivityKind.Client);
+        var dbCreator = dbContext.GetService<IRelationalDatabaseCreator>();
 
-        // Database container might not be ready yet, so we need to retry.
         var strategy = dbContext.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
@@ -41,7 +51,14 @@ public class ApiDbInitializer(
             {
                 await dbCreator.CreateAsync(cancellationToken);
             }
+        });
+    }
 
+    private static async Task RunMigrationAsync(MyDb1Context dbContext, CancellationToken cancellationToken)
+    {
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
             // Run migration in a transaction to avoid partial migration if it fails.
             await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
             await dbContext.Database.MigrateAsync(cancellationToken);
