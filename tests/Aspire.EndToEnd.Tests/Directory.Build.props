@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <IsHelixOnlyTestProject>true</IsHelixOnlyTestProject>
+  </PropertyGroup>
+
+  <Import Project="..\Directory.Build.props" />
+  <PropertyGroup>
+    <TestArchiveTestsDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e'))</TestArchiveTestsDir>
+  </PropertyGroup>
+</Project>

@@ -46,8 +46,9 @@ public sealed class ProjectInfo
                     return;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine ($"WaitForHealthyStatusAsync failed for {bindingName}: {ex}");
                 await Task.Delay(100, cancellationToken);
             }
         }
