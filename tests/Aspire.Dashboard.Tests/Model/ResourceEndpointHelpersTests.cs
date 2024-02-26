@@ -49,6 +49,14 @@ public sealed class ResourceEndpointHelpersTests
         Assert.Collection(endpoints,
             e =>
             {
+                Assert.Equal("http://localhost:8081", e.Text);
+                Assert.Equal("ProxyUrl", e.Name);
+                Assert.Equal("http://localhost:8081", e.Url);
+                Assert.Equal("localhost", e.Address);
+                Assert.Equal(8081, e.Port);
+            },
+            e =>
+            {
                 Assert.Equal("localhost:8080", e.Text);
                 Assert.Equal("Test", e.Name);
                 Assert.Null(e.Url);
@@ -62,14 +70,6 @@ public sealed class ResourceEndpointHelpersTests
                 Assert.Null(e.Url);
                 Assert.Equal("localhost", e.Address);
                 Assert.Equal(8083, e.Port);
-            },
-            e =>
-            {
-                Assert.Equal("http://localhost:8081", e.Text);
-                Assert.Equal("ProxyUrl", e.Name);
-                Assert.Equal("http://localhost:8081", e.Url);
-                Assert.Equal("localhost", e.Address);
-                Assert.Equal(8081, e.Port);
             });
     }
 
