@@ -178,7 +178,7 @@ internal static class Rules
     }
 }
 
-internal sealed class Logs
+internal static class Logs
 {
     public const string StreamTypeStdOut = "stdout";
     public const string StreamTypeStdErr = "stderr";
