@@ -5,7 +5,7 @@ using Azure.Search.Documents.Indexes;
 
 namespace AzureSearch.ApiService;
 
-public partial class Address
+public class Address
 {
     [SearchableField(IsFilterable = true)]
     public string? StreetAddress { get; set; }

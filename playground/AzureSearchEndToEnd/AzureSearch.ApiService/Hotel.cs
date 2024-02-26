@@ -8,7 +8,7 @@ using Microsoft.Spatial;
 
 namespace AzureSearch.ApiService;
 
-public partial class Hotel
+public class Hotel
 {
     [SimpleField(IsKey = true, IsFilterable = true)]
     public string? HotelId { get; set; }
@@ -52,4 +52,6 @@ public partial class Hotel
     public GeographyPoint? Location { get; set; }
 
     public Room[]? Rooms { get; set; }
+
+    public override string ToString() => $"Id: {HotelId}, Name: {HotelName}";
 }

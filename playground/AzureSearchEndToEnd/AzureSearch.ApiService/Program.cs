@@ -53,7 +53,7 @@ static async Task DeleteIfExistsAsync(ILogger logger, string indexName, SearchIn
     catch (RequestFailedException e) when (e.Status == 404)
     {
         //if exception occurred and status is "Not Found", this is work as expect
-        logger.LogError(e, "Failed to find index and this is because it's not there.");
+        logger.LogDebug(e, "Didn't find index.");
     }
 }
 
