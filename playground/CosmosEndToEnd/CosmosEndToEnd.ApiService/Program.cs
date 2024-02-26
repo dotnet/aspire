@@ -49,6 +49,7 @@ app.MapGet("/ef", async (TestCosmosContext context) =>
     await context.Database.EnsureCreatedAsync();
 
     context.Entries.Add(new EntityFrameworkEntry());
+    await context.SaveChangesAsync();
 
     return await context.Entries.ToListAsync();
 });
