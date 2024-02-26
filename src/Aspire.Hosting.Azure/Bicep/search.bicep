@@ -14,7 +14,7 @@ param tags object = {}
   'storage_optimized_l1'
   'storage_optimized_l2'
 ])
-param sku string = 'basic'
+param sku string = 'free'
 
 @description('Replicas distribute search workloads across the service. You need at least two replicas to support high availability of query workloads (not applicable to the free tier).')
 @minValue(1)
