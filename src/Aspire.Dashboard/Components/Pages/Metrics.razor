@@ -1,7 +1,7 @@
-﻿@page "/Metrics"
-@page "/Metrics/{applicationName}"
-@page "/Metrics/{applicationName}/Meter/{meterName}"
-@page "/Metrics/{applicationName}/Meter/{meterName}/Instrument/{instrumentName}"
+﻿@page "/metrics"
+@page "/metrics/resource/{applicationName}"
+@page "/metrics/resource/{applicationName}/meter/{meterName}"
+@page "/metrics/resource/{applicationName}/meter/{meterName}/instrument/{instrumentName}"
 
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
@@ -69,7 +69,7 @@
                             <FluentDataGrid Style="max-width:1100px;" Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
                                 <ChildContent>
                                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                        <FluentAnchor Href="@($"/Metrics/{PageViewModel.SelectedApplication.Name}/Meter/{context.Parent.MeterName}/Instrument/{context.Name}")" Appearance="Appearance.Lightweight">
+                                        <FluentAnchor Href="@($"/metrics/resource/{PageViewModel.SelectedApplication.Name}/meter/{context.Parent.MeterName}/instrument/{context.Name}")" Appearance="Appearance.Lightweight">
                                             @context.Name
                                         </FluentAnchor>
                                     </TemplateColumn>
