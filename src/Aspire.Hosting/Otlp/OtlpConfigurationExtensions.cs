@@ -29,7 +29,7 @@ public static class OtlpConfigurationExtensions
 
         resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
         {
-            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+            if (context.ExecutionContext.IsPublishMode)
             {
                 // REVIEW:  Do we want to set references to an imaginary otlp provider as a requirement?
                 return;
@@ -41,7 +41,7 @@ public static class OtlpConfigurationExtensions
                 : url;
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
-            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .UID -}}";
+            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";
 
             // Set a small batch schedule delay in development.

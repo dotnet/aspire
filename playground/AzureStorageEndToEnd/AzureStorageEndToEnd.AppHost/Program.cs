@@ -3,7 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var storage = builder.AddAzureStorage("storage").UseEmulator(container =>
+var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
 {
     container.UsePersistence();
 });

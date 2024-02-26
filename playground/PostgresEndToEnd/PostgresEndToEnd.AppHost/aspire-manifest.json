@@ -1,8 +1,8 @@
 {
   "resources": {
     "pg1": {
-      "connectionString": "Host={pg1.bindings.tcp.host};Port={pg1.bindings.tcp.port};Username=postgres;Password={pg1.inputs.password}",
       "type": "container.v0",
+      "connectionString": "Host={pg1.bindings.tcp.host};Port={pg1.bindings.tcp.port};Username=postgres;Password={pg1.inputs.password}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
@@ -30,12 +30,12 @@
       }
     },
     "db1": {
-      "connectionString": "{pg1.connectionString};Database=db1",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{pg1.connectionString};Database=db1"
     },
     "pg2": {
-      "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username=postgres;Password={pg2.inputs.password}",
       "type": "container.v0",
+      "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username=postgres;Password={pg2.inputs.password}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
@@ -63,12 +63,12 @@
       }
     },
     "db2": {
-      "connectionString": "{pg2.connectionString};Database=db2",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{pg2.connectionString};Database=db2"
     },
     "pg3": {
-      "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pg3.inputs.password}",
       "type": "container.v0",
+      "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pg3.inputs.password}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
@@ -96,16 +96,16 @@
       }
     },
     "db3": {
-      "connectionString": "{pg3.connectionString};Database=db3",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{pg3.connectionString};Database=db3"
     },
     "db4": {
-      "connectionString": "{pg3.connectionString};Database=db4",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{pg3.connectionString};Database=db4"
     },
     "pg4": {
-      "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4.inputs.password}",
       "type": "container.v0",
+      "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4.inputs.password}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
@@ -133,12 +133,12 @@
       }
     },
     "db5": {
-      "connectionString": "{pg4.connectionString};Database=db5",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{pg4.connectionString};Database=db5"
     },
     "pg5": {
-      "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5.inputs.password}",
       "type": "container.v0",
+      "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5.inputs.password}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
@@ -166,12 +166,12 @@
       }
     },
     "db6": {
-      "connectionString": "{pg5.connectionString};Database=db6",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{pg5.connectionString};Database=db6"
     },
     "pg6": {
-      "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6.inputs.password}",
       "type": "container.v0",
+      "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6.inputs.password}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
@@ -199,12 +199,16 @@
       }
     },
     "db7": {
-      "connectionString": "{pg6.connectionString};Database=db7",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{pg6.connectionString};Database=db7"
     },
     "db8": {
-      "connectionString": "{pg6.connectionString};Database=db8",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{pg6.connectionString};Database=db8"
+    },
+    "db9": {
+      "type": "value.v0",
+      "connectionString": "{pg6.connectionString};Database=db8"
     },
     "api": {
       "type": "project.v0",
@@ -219,7 +223,8 @@
         "ConnectionStrings__db5": "{db5.connectionString}",
         "ConnectionStrings__db6": "{db6.connectionString}",
         "ConnectionStrings__db7": "{db7.connectionString}",
-        "ConnectionStrings__db8": "{db8.connectionString}"
+        "ConnectionStrings__db8": "{db8.connectionString}",
+        "ConnectionStrings__db9": "{db9.connectionString}"
       },
       "bindings": {
         "http": {

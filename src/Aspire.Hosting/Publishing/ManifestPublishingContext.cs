@@ -206,7 +206,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                     Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
                 }
-
             }
         }
     }

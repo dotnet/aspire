@@ -8,6 +8,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a collection of resource metadata annotations.
 /// </summary>
-public sealed class ResourceMetadataCollection : Collection<IResourceAnnotation>
+public sealed class ResourceAnnotationCollection : Collection<IResourceAnnotation>
 {
 }

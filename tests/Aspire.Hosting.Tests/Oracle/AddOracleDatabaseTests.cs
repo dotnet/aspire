@@ -16,7 +16,7 @@ public class AddOracleDatabaseTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("orcl");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -65,7 +65,7 @@ public class AddOracleDatabaseTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("orcl", 1234, "pass");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -121,7 +121,7 @@ public class AddOracleDatabaseTests
             "https"
             ));
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -147,7 +147,7 @@ public class AddOracleDatabaseTests
             ))
             .AddDatabase("db");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -166,7 +166,7 @@ public class AddOracleDatabaseTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("oracle", 1234, "pass").AddDatabase("db");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var containerResources = appModel.GetContainerResources();
@@ -225,5 +225,63 @@ public class AddOracleDatabaseTests
 
         Assert.Equal("value.v0", dbManifest["type"]?.ToString());
         Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNames()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db = builder.AddOracleDatabase("oracle1");
+        db.AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddOracleDatabase("oracle1")
+            .AddDatabase("db");
+
+        var db = builder.AddOracleDatabase("oracle2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithDifferentNamesOnSingleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var oracle1 = builder.AddOracleDatabase("oracle1");
+
+        var db1 = oracle1.AddDatabase("db1", "customers1");
+        var db2 = oracle1.AddDatabase("db2", "customers2");
+
+        Assert.Equal("customers1", db1.Resource.DatabaseName);
+        Assert.Equal("customers2", db2.Resource.DatabaseName);
+
+        Assert.Equal("{oracle1.connectionString}/customers1", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{oracle1.connectionString}/customers2", db2.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithTheSameNameOnMultipleServers()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db1 = builder.AddOracleDatabase("oracle1")
+            .AddDatabase("db1", "imports");
+
+        var db2 = builder.AddOracleDatabase("oracle2")
+            .AddDatabase("db2", "imports");
+
+        Assert.Equal("imports", db1.Resource.DatabaseName);
+        Assert.Equal("imports", db2.Resource.DatabaseName);
+
+        Assert.Equal("{oracle1.connectionString}/imports", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{oracle2.connectionString}/imports", db2.Resource.ConnectionStringExpression);
     }
 }
