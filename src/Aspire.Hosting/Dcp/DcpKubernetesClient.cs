@@ -68,8 +68,7 @@ internal class DcpKubernetesClient : k8s.Kubernetes
         }
         url += q.ToString();
 
-        const IReadOnlyDictionary<string, IReadOnlyList<string>>? customHeaders = null;
-        var httpResponse = await SendRequest<object?>(url, HttpMethod.Get, customHeaders, body: null, cancellationToken).ConfigureAwait(false);
+        var httpResponse = await SendRequest<object?>(url, HttpMethod.Get, customHeaders : null, body: null, cancellationToken).ConfigureAwait(false);
         var httpRequest = httpResponse.RequestMessage;
         var result = new HttpOperationResponse<Stream>()
         {
