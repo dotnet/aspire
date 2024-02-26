@@ -108,8 +108,8 @@
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogTogglePanelOpen">
-        <source>Toggle panel open/close</source>
-        <target state="new">Toggle panel open/close</target>
+        <source>Close panel</source>
+        <target state="new">Close panel</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogTogglePanelOrientation">

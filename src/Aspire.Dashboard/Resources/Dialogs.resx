@@ -176,7 +176,7 @@
     <value>Toggle panel orientation</value>
   </data>
   <data name="HelpDialogTogglePanelOpen" xml:space="preserve">
-    <value>Toggle panel open/close</value>
+    <value>Close panel</value>
   </data>
   <data name="HelpDialogGoToResources" xml:space="preserve">
     <value>Go to Resources</value>

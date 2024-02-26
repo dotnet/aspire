@@ -249,7 +249,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Toggle panel open/close.
+        ///   Looks up a localized string similar to Close panel.
         /// </summary>
         public static string HelpDialogTogglePanelOpen {
             get {

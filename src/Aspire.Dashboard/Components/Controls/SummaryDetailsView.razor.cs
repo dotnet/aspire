@@ -189,22 +189,24 @@ public partial class SummaryDetailsView<T>
             return;
         }
 
-        if (args.Key.Equals("t", StringComparison.InvariantCultureIgnoreCase))
+        var key = args.Key.ToLower();
+
+        if (key is "t")
         {
             await HandleToggleOrientation();
             return;
         }
 
-        if (args.Key.Equals("o", StringComparison.InvariantCultureIgnoreCase) && SelectedValue is not null)
+        if (key is "o" && SelectedValue is not null)
         {
-            _internalShowDetails = !_internalShowDetails;
+            await HandleDismissAsync();
             await InvokeAsync(StateHasChanged);
             return;
         }
 
         var hasChanged = false;
 
-        if (args.Key.ToLower() == "r")
+        if (key is "r")
         {
             ResetPanelSizes();
             hasChanged = true;
@@ -217,12 +219,12 @@ public partial class SummaryDetailsView<T>
             return;
         }
 
-        if (args.Key is "+")
+        if (key is "+")
         {
             SetPanelSizes(panel1Fraction.Value - 0.05f);
             hasChanged = true;
         }
-        else if (args.Key is "-" or "_")
+        else if (key is "-" or "_")
         {
             SetPanelSizes(panel1Fraction.Value + 0.05f);
             hasChanged = true;
