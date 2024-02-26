@@ -8,10 +8,16 @@
     <IsAspireHost>true</IsAspireHost>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TestsRunningOutOfTree)' != 'true'">
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
-    
+  </ItemGroup>
+  <ItemGroup Condition="'$(TestsRunningOutOfTree)' == 'true'">
+    <PackageReference Include="Aspire.Hosting.Azure" />
+    <PackageReference Include="Aspire.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" AspireProjectMetadataTypeName="IntegrationServiceA" />
     <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" AspireProjectMetadataTypeName="ServiceA" />
     <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" AspireProjectMetadataTypeName="ServiceB" />

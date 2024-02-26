@@ -10,9 +10,11 @@
 
   <ItemGroup>
     <Using Include="Confluent.Kafka" />
+
+    <!--<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.1.0" />-->
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TestsRunningOutOfTree)' != 'true'">
     <ProjectReference Include="..\..\..\src\Components\Aspire.Confluent.Kafka\Aspire.Confluent.Kafka.csproj" />
     <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Azure.Cosmos\Aspire.Microsoft.Azure.Cosmos.csproj" />
     <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" />
@@ -23,6 +25,19 @@
     <ProjectReference Include="..\..\..\src\Components\Aspire.Pomelo.EntityFrameworkCore.MySql\Aspire.Pomelo.EntityFrameworkCore.MySql.csproj" />
     <ProjectReference Include="..\..\..\src\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj" />
     <ProjectReference Include="..\..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TestsRunningOutOfTree)' == 'true'">
+    <PackageReference Include="Aspire.Confluent.Kafka" />
+    <PackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
+    <PackageReference Include="Aspire.Microsoft.Data.SqlClient" />
+    <PackageReference Include="Aspire.MongoDB.Driver" />
+    <PackageReference Include="Aspire.MySqlConnector" />
+    <PackageReference Include="Aspire.Npgsql" />
+    <PackageReference Include="Aspire.Oracle.EntityFrameworkCore" />
+    <PackageReference Include="Aspire.Pomelo.EntityFrameworkCore.MySql" />
+    <PackageReference Include="Aspire.RabbitMQ.Client" />
+    <PackageReference Include="Aspire.StackExchange.Redis" />
   </ItemGroup>
 
 </Project>

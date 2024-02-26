@@ -1,0 +1,4 @@
+<Project>
+  <Import Project="Directory.Packages.Helix.props" Condition="'$(TestsRunningOutOfTree)' == 'true'" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutOfTree)' != 'true'" />
+</Project>
