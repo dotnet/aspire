@@ -99,12 +99,8 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 builder.Region(settings.Region);
             }
 
-            if (settings.IgnoreEmulatorCertificate && CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
+            if (CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
             {
-                builder.HttpClientFactory(() => new HttpClient(new HttpClientHandler()
-                {
-                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                }));
                 builder.ConnectionMode(ConnectionMode.Gateway);
                 builder.LimitToEndpoint(true);
             }

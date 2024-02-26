@@ -176,6 +176,7 @@
 
 ::deep.trace-detail-layout > fluent-toolbar {
     grid-area: toolbar;
+    padding: var(--layout-toolbar-padding);
 }
 
 ::deep.trace-detail-layout > .summary-details-container {

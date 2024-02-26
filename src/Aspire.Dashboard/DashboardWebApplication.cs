@@ -129,7 +129,7 @@ public class DashboardWebApplication : IAsyncDisposable
             logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
         }
 
-        // Redirect browser directly to /StructuredLogs address if the dashboard is running without a resource service.
+        // Redirect browser directly to /structuredlogs address if the dashboard is running without a resource service.
         // This is done to avoid immediately navigating in the Blazor app.
         _app.Use(async (context, next) =>
         {

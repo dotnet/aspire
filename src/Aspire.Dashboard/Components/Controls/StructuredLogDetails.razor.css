@@ -5,15 +5,9 @@
         "toolbar"
         "main";
     overflow: auto;
+    gap: calc(var(--design-unit) * 1px);
 }
 
 ::deep.structured-log-details-layout > fluent-toolbar {
     grid-area: toolbar;
-}
-
-::deep .property-grid-container {
-    grid-area: main;
-    overflow: auto;
-    width: 100%;
-    height: 100%;
 }

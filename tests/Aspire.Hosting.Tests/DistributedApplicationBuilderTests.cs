@@ -139,6 +139,6 @@ public class DistributedApplicationBuilderTests
     {
         public string Name => nameof(TestResource);
 
-        public ResourceMetadataCollection Annotations => throw new NotImplementedException();
+        public ResourceAnnotationCollection Annotations => throw new NotImplementedException();
     }
 }
