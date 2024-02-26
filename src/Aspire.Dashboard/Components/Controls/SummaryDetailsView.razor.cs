@@ -197,7 +197,7 @@ public partial class SummaryDetailsView<T>
             return;
         }
 
-        if (key is "o" && SelectedValue is not null)
+        if (key is "x" && SelectedValue is not null)
         {
             await HandleDismissAsync();
             await InvokeAsync(StateHasChanged);
