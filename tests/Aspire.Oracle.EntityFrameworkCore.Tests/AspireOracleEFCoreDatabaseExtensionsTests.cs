@@ -189,7 +189,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
     [InlineData(false)]
     public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
     {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { EnvironmentName = Environments.Development });
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString)
         ]);
@@ -204,7 +204,31 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection"));
-        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddOracleDatabaseDbContext().", exception.Message);
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddOracleDatabaseDbContext() or use the corresponding 'Enrich' method.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DoesntThrowWhenDbContextIsRegisteredBeforeAspireComponentProduction(bool useServiceType)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { EnvironmentName = Environments.Production });
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString)
+        ]);
+
+        if (useServiceType)
+        {
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseOracle(ConnectionString));
+        }
+        else
+        {
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseOracle(ConnectionString));
+        }
+
+        var exception = Record.Exception(() => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection"));
+
+        Assert.Null(exception);
     }
 
     public class TestDbContext2 : DbContext

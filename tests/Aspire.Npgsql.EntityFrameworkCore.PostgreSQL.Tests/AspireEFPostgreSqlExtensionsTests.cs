@@ -196,7 +196,7 @@ public class AspireEFPostgreSqlExtensionsTests
     [InlineData(false)]
     public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
     {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { EnvironmentName = Environments.Development });
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
         ]);
@@ -211,7 +211,31 @@ public class AspireEFPostgreSqlExtensionsTests
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.AddNpgsqlDbContext<TestDbContext>("npgsql"));
-        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddNpgsqlDbContext().", exception.Message);
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddNpgsqlDbContext() or use the corresponding 'Enrich' method.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DoesntThrowWhenDbContextIsRegisteredBeforeAspireComponentProduction(bool useServiceType)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { EnvironmentName = Environments.Production });
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+        ]);
+
+        if (useServiceType)
+        {
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseNpgsql(ConnectionString));
+        }
+        else
+        {
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(ConnectionString));
+        }
+
+        var exception = Record.Exception(() => builder.AddNpgsqlDbContext<TestDbContext>("npgsql"));
+
+        Assert.Null(exception);
     }
 
     public class TestDbContext2 : DbContext
