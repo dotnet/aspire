@@ -18,13 +18,11 @@ public static class SeqBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name to give the resource.</param>
-    /// <param name="addToManifest">Should this resource be added to the manifest.</param>
     /// <param name="port">The host port for the Seq server.</param>
     /// <param name="seqDataDirectory">Host directory to bind to Seq's data directory. This must already exist.</param>
     public static IResourceBuilder<SeqResource> AddSeq(
         this IDistributedApplicationBuilder builder,
         string name = "Seq",
-        bool addToManifest = false,
         int port = 5341,
         string? seqDataDirectory = null)
     {
@@ -39,14 +37,7 @@ public static class SeqBuilderExtensions
             resourceBuilder.WithBindMount(seqDataDirectory, SeqContainerDataDirectory);
         }
 
-        if (addToManifest)
-        {
-            resourceBuilder.PublishAsContainer();
-        }
-        else
-        {
-            resourceBuilder.ExcludeFromManifest();
-        }
+        resourceBuilder.PublishAsContainer();
 
         return resourceBuilder;
     }
