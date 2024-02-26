@@ -267,7 +267,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatabaseMigration.AppHost",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatabaseMigration.MigrationService", "playground\DatabaseMigration\DatabaseMigration.MigrationService\DatabaseMigration.MigrationService.csproj", "{E7DB736B-C316-460E-A609-2200E58BF0C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseMigration.ApiModel", "playground\DatabaseMigration\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj", "{C15F3F13-AB63-47CF-AAFE-D319F02E7B33}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatabaseMigration.ApiModel", "playground\DatabaseMigration\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj", "{C15F3F13-AB63-47CF-AAFE-D319F02E7B33}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "signalr", "signalr", "{E6985EED-47E3-4EAC-8222-074E5410CEDC}"
 EndProject
@@ -280,6 +280,12 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProxylessEndToEnd.ApiService", "playground\ProxylessEndToEnd\ProxylessEndToEnd.ApiService\ProxylessEndToEnd.ApiService.csproj", "{51654CD7-2E05-4664-B2EB-95308A300609}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProxylessEndToEnd.AppHost", "playground\ProxylessEndToEnd\ProxylessEndToEnd.AppHost\ProxylessEndToEnd.AppHost.csproj", "{0244203D-7491-4414-9C88-10BFED9C5B2D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cdk", "cdk", "{C3F48531-87D9-4E52-90AC-715A3E55751A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CdkSample.AppHost", "playground\cdk\CdkSample.AppHost\CdkSample.AppHost.csproj", "{A357411A-5909-4A49-9519-12A935F84395}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CdkSample.ApiService", "playground\cdk\CdkSample.ApiService\CdkSample.ApiService.csproj", "{4601F5A2-E445-41B2-9C1F-2CE016642E62}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -735,6 +741,14 @@ Global
 		{0244203D-7491-4414-9C88-10BFED9C5B2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0244203D-7491-4414-9C88-10BFED9C5B2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0244203D-7491-4414-9C88-10BFED9C5B2D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A357411A-5909-4A49-9519-12A935F84395}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A357411A-5909-4A49-9519-12A935F84395}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A357411A-5909-4A49-9519-12A935F84395}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A357411A-5909-4A49-9519-12A935F84395}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4601F5A2-E445-41B2-9C1F-2CE016642E62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4601F5A2-E445-41B2-9C1F-2CE016642E62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4601F5A2-E445-41B2-9C1F-2CE016642E62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4601F5A2-E445-41B2-9C1F-2CE016642E62}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -869,6 +883,9 @@ Global
 		{9C30FFD6-2262-45E7-B010-24B30E0433C2} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{51654CD7-2E05-4664-B2EB-95308A300609} = {9C30FFD6-2262-45E7-B010-24B30E0433C2}
 		{0244203D-7491-4414-9C88-10BFED9C5B2D} = {9C30FFD6-2262-45E7-B010-24B30E0433C2}
+		{C3F48531-87D9-4E52-90AC-715A3E55751A} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
+		{A357411A-5909-4A49-9519-12A935F84395} = {C3F48531-87D9-4E52-90AC-715A3E55751A}
+		{4601F5A2-E445-41B2-9C1F-2CE016642E62} = {C3F48531-87D9-4E52-90AC-715A3E55751A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
