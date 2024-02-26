@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Postgres;
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -99,7 +98,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepCosmosDb()
+    public void AddAzureCosmosDb()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -147,8 +146,14 @@ public class AzureBicepResourceTests
         Assert.Equal("Aspire.Hosting.Azure.Bicep.appinsights.bicep", appInsights.Resource.TemplateResourceName);
         Assert.Equal("appInsights", appInsights.Resource.Name);
         Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
+        Assert.True(appInsights.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
         Assert.Equal("myinstrumentationkey", appInsights.Resource.GetConnectionString());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression);
+
+        var appInsightsManifest = ManifestUtils.GetManifest(appInsights.Resource);
+        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsightsManifest["connectionString"]?.ToString());
+        Assert.Equal("azure.bicep.v0", appInsightsManifest["type"]?.ToString());
+        Assert.Equal("aspire.hosting.azure.bicep.appinsights.bicep", appInsightsManifest["path"]?.ToString());
     }
 
     [Fact]
@@ -224,7 +229,7 @@ public class AzureBicepResourceTests
         {
             azureSql = resource;
         });
-        sql.AddDatabase("db");
+        sql.AddDatabase("db", "dbName");
 
         Assert.NotNull(azureSql);
         azureSql.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -237,7 +242,7 @@ public class AzureBicepResourceTests
         Assert.Equal("sql", sql.Resource.Name);
         Assert.Equal("sql", azureSql.Resource.Parameters["serverName"]);
         Assert.NotNull(databases);
-        Assert.Equal(["db"], databases);
+        Assert.Equal(["dbName"], databases);
         Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.GetConnectionString());
         Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression);
     }
@@ -259,7 +264,7 @@ public class AzureBicepResourceTests
             Assert.NotNull(resource);
             azurePostgres = resource;
         });
-        postgres.AddDatabase("db");
+        postgres.AddDatabase("db", "dbName");
 
         Assert.NotNull(azurePostgres);
 
@@ -274,7 +279,7 @@ public class AzureBicepResourceTests
         Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
         Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
         Assert.NotNull(databases);
-        Assert.Equal(["db"], databases);
+        Assert.Equal(["dbName"], databases);
 
         // Setup to verify that connection strings is acquired via resource connectionstring redirct.
         azurePostgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
@@ -332,30 +337,40 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepServiceBus()
+    public void AddAzureServiceBus()
     {
         var builder = DistributedApplication.CreateBuilder();
+        var serviceBus = builder.AddAzureServiceBus("sb");
 
-        var sb = AzureServiceBusExtensions.AddAzureServiceBus(builder, "sb", ["queue1"], ["topic1"]);
+        serviceBus
+            .AddQueue("queue1")
+            .AddQueue("queue2")
+            .AddTopic("t1", ["s1", "s2"])
+            .AddTopic("t2", [])
+            .AddTopic("t3", ["s3"]);
 
-        sb.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
+        serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 
-        var queues = sb.Resource.Parameters["queues"] as IEnumerable<string>;
-        var topics = sb.Resource.Parameters["topics"] as IEnumerable<string>;
+        var queuesCallback = serviceBus.Resource.Parameters["queues"] as Func<object?>;
+        var topicsCallback = serviceBus.Resource.Parameters["topics"] as Func<object?>;
+        Assert.NotNull(queuesCallback);
+        Assert.NotNull(topicsCallback);
+        var queues = queuesCallback() as IEnumerable<string>;
+        var topics = topicsCallback() as JsonNode;
 
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.servicebus.bicep", sb.Resource.TemplateResourceName);
-        Assert.Equal("sb", sb.Resource.Name);
-        Assert.Equal("sb", sb.Resource.Parameters["serviceBusNamespaceName"]);
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.servicebus.bicep", serviceBus.Resource.TemplateResourceName);
+        Assert.Equal("sb", serviceBus.Resource.Name);
+        Assert.Equal("sb", serviceBus.Resource.Parameters["serviceBusNamespaceName"]);
         Assert.NotNull(queues);
-        Assert.Equal(["queue1"], queues);
+        Assert.Equal(["queue1", "queue2"], queues);
         Assert.NotNull(topics);
-        Assert.Equal(["topic1"], topics);
-        Assert.Equal("mynamespaceEndpoint", sb.Resource.GetConnectionString());
-        Assert.Equal("{sb.outputs.serviceBusEndpoint}", sb.Resource.ConnectionStringExpression);
+        Assert.Equal("""[{"name":"t1","subscriptions":["s1","s2"]},{"name":"t2","subscriptions":[]},{"name":"t3","subscriptions":["s3"]}]""", topics.ToJsonString());
+        Assert.Equal("mynamespaceEndpoint", serviceBus.Resource.GetConnectionString());
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
     }
 
     [Fact]
-    public void AddBicepStorage()
+    public void AddAzureStorage()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -388,5 +403,30 @@ public class AzureBicepResourceTests
 
         var tableManifest = ManifestUtils.GetManifest(table.Resource);
         Assert.Equal("{storage.outputs.tableEndpoint}", tableManifest["connectionString"]?.ToString());
+    }
+
+    [Fact]
+    public void PublishAsConnectionString()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var ai = builder.AddAzureApplicationInsights("ai").PublishAsConnectionString();
+        var serviceBus = builder.AddAzureServiceBus("servicebus").PublishAsConnectionString();
+
+        var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
+            .WithReference(ai)
+            .WithReference(serviceBus);
+
+        var aiManifest = ManifestUtils.GetManifest(ai.Resource);
+        Assert.Equal("{ai.value}", aiManifest["connectionString"]?.ToString());
+        Assert.Equal("parameter.v0", aiManifest["type"]?.ToString());
+
+        var serviceBusManifest = ManifestUtils.GetManifest(serviceBus.Resource);
+        Assert.Equal("{servicebus.value}", serviceBusManifest["connectionString"]?.ToString());
+        Assert.Equal("parameter.v0", serviceBusManifest["type"]?.ToString());
+
+        var serviceManifest = ManifestUtils.GetManifest(serviceA.Resource);
+        Assert.Equal("{ai.connectionString}", serviceManifest["env"]?["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.ToString());
+        Assert.Equal("{servicebus.connectionString}", serviceManifest["env"]?["ConnectionStrings__servicebus"]?.ToString());
     }
 }

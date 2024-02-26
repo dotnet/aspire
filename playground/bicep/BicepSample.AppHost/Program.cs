@@ -1,5 +1,3 @@
-using Aspire.Hosting.Azure;
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -16,7 +14,7 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
 var kv = builder.AddAzureKeyVault("kv");
 var appConfig = builder.AddAzureAppConfiguration("appConfig").WithParameter("sku", "standard");
 var storage = builder.AddAzureStorage("storage");
-                    // .UseEmulator();
+                    // .RunAsEmulator();
 
 var blobs = storage.AddBlobs("blob");
 var tables = storage.AddTables("table");
@@ -39,7 +37,11 @@ var appInsights = builder.AddAzureApplicationInsights("ai");
 var redis = builder.AddRedis("redis")
                    .AsAzureRedis();
 
-var serviceBus = builder.AddAzureServiceBus("sb", ["queue1"], ["topic1"]);
+var serviceBus = builder.AddAzureServiceBus("sb")
+                        .AddQueue("queue1")
+                        .AddTopic("topic1", ["subscription1", "subscription2"])
+                        .AddTopic("topic2", ["subscription1"]);
+var signalr = builder.AddAzureSignalR("signalr");
 
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
@@ -53,6 +55,7 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(appInsights)
        .WithReference(redis)
        .WithReference(serviceBus)
+       .WithReference(signalr)
        .WithEnvironment("bicepValue_test", templ.GetOutput("test"))
        .WithEnvironment("bicepValue0", templ.GetOutput("val0"))
        .WithEnvironment("bicepValue1", templ.GetOutput("val1"));

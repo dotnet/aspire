@@ -79,7 +79,6 @@ The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microso
     "Microsoft": {
       "EntityFrameworkCore": {
         "Cosmos": {
-          "DbContextPooling": true,
           "Tracing": false
         }
       }
@@ -99,7 +98,7 @@ Also you can pass the `Action<EntityFrameworkCoreCosmosDBSettings> configureSett
 or
 
 ```csharp
-    builder.EnrichCosmosDbContext<MyDbContext>(settings => settings.HealthChecks = false);
+    builder.EnrichCosmosDbContext<MyDbContext>(settings => settings.Tracing = false);
 ```
 
 ## AppHost extensions
@@ -131,17 +130,14 @@ Aspire supports the usage of the Azure Cosmos DB emulator to use the emulator, a
 
 ```csharp
 // AppHost
-var cosmosdb = builder.AddAzureCosmosDB("cosmos").UseEmulator();
+var cosmosdb = builder.AddAzureCosmosDB("cosmos").RunAsEmulator();
 ```
 
-When the AppHost starts up a local container running the Azure CosmosDB will also be started. Inside the project that uses CosmosDB you also need to specify that you want to ignore the server certificate (so you don't need to manually download and install it):
+When the AppHost starts up a local container running the Azure CosmosDB will also be started:
 
 ```csharp
 // Service code
-builder.AddCosmosDbContext<MyDbContext>("cosmos", "mydb", (settings) =>
-{
-    settings.IgnoreEmulatorCertificate = true;
-});
+builder.AddCosmosDbContext<MyDbContext>("cosmos", "mydb");
 
 ```
 

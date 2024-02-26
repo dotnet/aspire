@@ -32,7 +32,7 @@ public static class OracleDatabaseBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+                          if (context.ExecutionContext.IsPublishMode)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
                           }
@@ -49,10 +49,15 @@ public static class OracleDatabaseBuilderExtensions
     /// </summary>
     /// <param name="builder">The Oracle Database server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, string name)
+    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, string name, string? databaseName = null)
     {
-        var oracleDatabase = new OracleDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var oracleDatabase = new OracleDatabaseResource(name, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(oracleDatabase)
                                          .WithManifestPublishingCallback(oracleDatabase.WriteToManifest);
     }

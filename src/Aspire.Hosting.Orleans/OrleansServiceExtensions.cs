@@ -358,6 +358,11 @@ public static class OrleansServiceExtensions
             builder.WithEnvironment("Orleans__ServiceId", res.ServiceId);
         }
 
+        // Set silo-to-silo and client-to-gateway ports
+        // Note that we sets these ports even when adding a reference to a client.
+        builder.WithEndpoint(scheme: "tcp", name: "orleans-silo", env: "Orleans__Endpoints__SiloPort");
+        builder.WithEndpoint(scheme: "tcp", name: "orleans-gateway", env: "Orleans__Endpoints__GatewayPort");
+
         // Enable distributed tracing by default
         if (res.EnableDistributedTracing != false)
         {

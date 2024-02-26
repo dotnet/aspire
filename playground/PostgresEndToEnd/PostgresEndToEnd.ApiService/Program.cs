@@ -19,9 +19,11 @@ var connectionString = builder.Configuration.GetConnectionString("db8");
 builder.Services.AddDbContextPool<MyDb8Context>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
 builder.EnrichNpgsqlDbContext<MyDb8Context>();
 
+builder.AddNpgsqlDbContext<MyDb9Context>("db9");
+
 var app = builder.Build();
 
-app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context, MyDb3Context db3Context, MyDb4Context db4Context, MyDb5Context db5Context, MyDb6Context db6Context, MyDb7Context db7Context, MyDb8Context db8Context) =>
+app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context, MyDb3Context db3Context, MyDb4Context db4Context, MyDb5Context db5Context, MyDb6Context db6Context, MyDb7Context db7Context, MyDb8Context db8Context, MyDb9Context db9Context) =>
 {
     // You wouldn't normally do this on every call,
     // but doing it here just to make this simple.
@@ -33,6 +35,7 @@ app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context, MyDb3Co
     db6Context.Database.EnsureCreated();
     db7Context.Database.EnsureCreated();
     db8Context.Database.EnsureCreated();
+    db9Context.Database.EnsureCreated();
 
     // We only work with db1Context for the rest of this
     // since we've proven connectivity to the others for now.
@@ -136,6 +139,18 @@ public class MyDb7Context(DbContextOptions<MyDb7Context> options) : DbContext(op
 }
 
 public class MyDb8Context(DbContextOptions<MyDb8Context> options) : DbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Entry>().HasKey(e => e.Id);
+    }
+
+    public DbSet<Entry> Entries { get; set; }
+}
+
+public class MyDb9Context(DbContextOptions<MyDb9Context> options) : DbContext(options)
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

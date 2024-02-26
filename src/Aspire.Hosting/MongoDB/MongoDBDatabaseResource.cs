@@ -9,14 +9,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a MongoDB database. This is a child resource of a <see cref="MongoDBServerResource"/>.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
+/// <param name="databaseName">The database name.</param>
 /// <param name="parent">The MongoDB server resource associated with this database.</param>
-public class MongoDBDatabaseResource(string name, MongoDBServerResource parent) : Resource(name), IResourceWithParent<MongoDBServerResource>, IResourceWithConnectionString
+public class MongoDBDatabaseResource(string name, string databaseName, MongoDBServerResource parent) : Resource(name), IResourceWithParent<MongoDBServerResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the connection string expression for the MongoDB database.
     /// </summary>
     public string ConnectionStringExpression
-        => $"{{{Parent.Name}.connectionString}}/{Name}";
+        => $"{{{Parent.Name}.connectionString}}/{DatabaseName}";
 
     /// <summary>
     /// Gets the parent MongoDB container resource.
@@ -32,12 +33,17 @@ public class MongoDBDatabaseResource(string name, MongoDBServerResource parent) 
         if (Parent.GetConnectionString() is { } connectionString)
         {
             return connectionString.EndsWith('/') ?
-                $"{connectionString}{Name}" :
-                $"{connectionString}/{Name}";
+                $"{connectionString}{DatabaseName}" :
+                $"{connectionString}/{DatabaseName}";
         }
 
         throw new DistributedApplicationException("Parent resource connection string was null.");
     }
+
+    /// <summary>
+    /// Gets the database name.
+    /// </summary>
+    public string DatabaseName { get; } = databaseName;
 
     internal void WriteMongoDBDatabaseToManifest(ManifestPublishingContext context)
     {

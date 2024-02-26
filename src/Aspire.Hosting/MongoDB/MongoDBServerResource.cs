@@ -35,4 +35,16 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
             .WithPort(allocatedEndpoint.Port)
             .Build();
     }
+
+    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
+
+    /// <summary>
+    /// A dictionary where the key is the resource name and the value is the database name.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Databases => _databases;
+
+    internal void AddDatabase(string name, string databaseName)
+    {
+        _databases.TryAdd(name, databaseName);
+    }
 }

@@ -23,7 +23,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
 
-    public string BasePath => "Metrics";
+    public string BasePath => "metrics";
     public string SessionStorageKey => "Metrics_PageState";
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
@@ -39,6 +39,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
     public int DurationMinutes { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? ViewKindName { get; set; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
@@ -72,7 +76,13 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             Id = null,
             Name = ControlsStringsLoc[ControlsStrings.SelectAResource]
         };
-        PageViewModel = new MetricsViewModel { SelectedApplication = _selectApplication, SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration) };
+
+        PageViewModel = new MetricsViewModel
+        {
+            SelectedApplication = _selectApplication,
+            SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration),
+            SelectedViewKind = null
+        };
 
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
@@ -97,7 +107,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             ApplicationName = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
             MeterName = PageViewModel.SelectedMeter?.MeterName,
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
-            DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes
+            DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
+            ViewKind = PageViewModel.SelectedViewKind?.ToString()
         };
     }
 
@@ -110,6 +121,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
+        viewModel.SelectedViewKind = Enum.TryParse(typeof(MetricViewKind), ViewKindName, out var view) && view is MetricViewKind vk ? vk : null;
+
         if (viewModel.Instruments != null && !string.IsNullOrEmpty(MeterName))
         {
             viewModel.SelectedMeter = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName)?.Parent;
@@ -152,6 +165,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
         public List<OtlpInstrument>? Instruments { get; set; }
+        public required MetricViewKind? SelectedViewKind { get; set; }
     }
 
     public class MetricsPageState
@@ -160,6 +174,13 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
+        public required string? ViewKind { get; set; }
+    }
+
+    public enum MetricViewKind
+    {
+        Table,
+        Graph
     }
 
     private Task HandleSelectedTreeItemChangedAsync()
@@ -189,12 +210,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         if (serializable.ApplicationName is not null && serializable.MeterName is not null)
         {
             path = serializable.InstrumentName is not null
-                ? $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
-                : $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}";
+                ? $"/{BasePath}/resource/{serializable.ApplicationName}/meter/{serializable.MeterName}/instrument/{serializable.InstrumentName}"
+                : $"/{BasePath}/resource/{serializable.ApplicationName}/meter/{serializable.MeterName}";
         }
         else if (serializable.ApplicationName is not null)
         {
-            path = $"/{BasePath}/{serializable.ApplicationName}";
+            path = $"/{BasePath}/resource/{serializable.ApplicationName}";
         }
         else
         {
@@ -208,7 +229,18 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             queryParameters.Add("duration", serializable.DurationMinutes.ToString(CultureInfo.InvariantCulture));
         }
 
+        if (PageViewModel.SelectedViewKind is not null)
+        {
+            queryParameters.Add("view", PageViewModel.SelectedViewKind.ToString());
+        }
+
         return new UrlState(path, queryParameters);
+    }
+
+    private async Task OnViewChangedAsync(MetricViewKind newView)
+    {
+        PageViewModel.SelectedViewKind = newView;
+        await this.AfterViewModelChangedAsync();
     }
 
     private void UpdateSubscription()
