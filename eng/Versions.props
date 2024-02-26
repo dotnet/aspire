@@ -7,6 +7,7 @@
     <VersionPrefix>8.0.0</VersionPrefix>
     <PreReleaseVersionLabel>preview.4</PreReleaseVersionLabel>
     <UseVSTestRunner>true</UseVSTestRunner>
+    <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.2.24108.9</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->

@@ -119,6 +119,7 @@
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.26.64" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
+    <PackageVersion Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="9.0.0-preview.2.24108.9" />
     <PackageVersion Include="Testcontainers.RabbitMq" Version="3.7.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
