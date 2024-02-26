@@ -227,7 +227,7 @@ internal static class ]]>%(ClassName)<![CDATA[
     <AspireManifestPublishOutputPath Condition="'$(AspireManifestPublishOutputPath)' == ''">$(_AspireIntermediatePath)</AspireManifestPublishOutputPath>
   </PropertyGroup>
 
-  <Target Name="_EnsureAspireManifestPublishOutputPathExists" BeforeTargets="GenerateAspireManifest">
+  <Target Name="_EnsureAspireManifestPublishOutputPathExists">
     <PropertyGroup>
       <AspireManifestPublishOutputPath>$([MSBuild]::NormalizeDirectory($(AspireManifestPublishOutputPath)))</AspireManifestPublishOutputPath>
       <_AspireManifestPublishOutputFile>$([MSBuild]::NormalizePath('$(AspireManifestPublishOutputPath)', 'manifest.json'))</_AspireManifestPublishOutputFile>
