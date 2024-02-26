@@ -1,25 +1,22 @@
 {
   "resources": {
-    "mongo": {
-      "type": "container.v0",
-      "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
-      "image": "mongo:7.0.5",
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "containerPort": 27017
-        }
+    "signalr1": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Endpoint=https://{signalr1.outputs.hostName};AuthType=azure",
+      "path": "aspire.hosting.azure.bicep.signalr.bicep",
+      "params": {
+        "name": "signalr1",
+        "principalId": "",
+        "principalType": ""
       }
     },
-    "api": {
+    "webfrontend": {
       "type": "project.v0",
-      "path": "../Mongo.ApiService/Mongo.ApiService.csproj",
+      "path": "../SignalRWeb/SignalRWeb.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__mongo": "{mongo.connectionString}"
+        "ConnectionStrings__signalr1": "{signalr1.connectionString}"
       },
       "bindings": {
         "http": {
