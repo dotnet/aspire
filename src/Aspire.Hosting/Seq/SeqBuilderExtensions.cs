@@ -58,6 +58,6 @@ public static class SeqBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     static IResourceBuilder<SeqResource> PublishAsContainer(this IResourceBuilder<SeqResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
+        return builder.WithManifestPublishingCallback(context => context.WriteContainer(builder.Resource));
     }
 }
