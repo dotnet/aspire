@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard;
@@ -22,7 +23,7 @@ public static class ShortcutManager
     }
 
     [JSInvokable]
-    public static Task OnGlobalKeyDown(KeyboardEventArgsWithPressedKeys args)
+    public static Task OnGlobalKeyDown(KeyboardEventArgs args)
     {
         return Task.WhenAll(s_globalKeydownListenerComponents.Values.Select(component => component.OnPageKeyDownAsync(args)));
     }

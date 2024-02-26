@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -182,7 +182,7 @@ public partial class SummaryDetailsView<T>
         _panel2Size = string.Create(CultureInfo.InvariantCulture, $"{(1 - panel1Fraction):F3}fr");
     }
 
-    public async Task OnPageKeyDownAsync(KeyboardEventArgsWithPressedKeys args)
+    public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
         if (_splitterRef is null || !args.ShiftKey)
         {
@@ -217,12 +217,12 @@ public partial class SummaryDetailsView<T>
             return;
         }
 
-        if (args.Key == "+")
+        if (args.Key is "+")
         {
             SetPanelSizes(panel1Fraction.Value - 0.05f);
             hasChanged = true;
         }
-        else if (args.Key == "-")
+        else if (args.Key is "-" or "_")
         {
             SetPanelSizes(panel1Fraction.Value + 0.05f);
             hasChanged = true;

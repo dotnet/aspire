@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -111,32 +112,33 @@ public partial class MainLayout
         await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
     }
 
-    public async Task OnPageKeyDownAsync(KeyboardEventArgsWithPressedKeys args)
+    public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
         if (args is { Key: "?", ShiftKey: true })
         {
             await LaunchHelpAsync();
+            return;
         }
-        else if (args.Key.Equals("s", StringComparison.CurrentCultureIgnoreCase) && args.ShiftKey)
+
+        if (args.Key.Equals("s", StringComparison.CurrentCultureIgnoreCase) && args.ShiftKey)
         {
             await LaunchSettingsAsync();
+            return;
         }
-        else if (args.CurrentlyHeldKeys.Contains("g"))
-        {
-            var url = args.Key.ToLower() switch
-            {
-                "r" => "/",
-                "c" => "/ConsoleLogs",
-                "s" => "/StructuredLogs",
-                "t" => "/Traces",
-                "m" => "/Metrics",
-                _ => null
-            };
 
-            if (url is not null)
-            {
-                NavigationManager.NavigateTo(url);
-            }
+        var url = args.Key.ToLower() switch
+        {
+            "r" => "/",
+            "c" => "/ConsoleLogs",
+            "s" => "/StructuredLogs",
+            "t" => "/Traces",
+            "m" => "/Metrics",
+            _ => null
+        };
+
+        if (url is not null)
+        {
+            NavigationManager.NavigateTo(url);
         }
     }
 

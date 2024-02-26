@@ -273,7 +273,9 @@ function isActiveElementInput() {
 
 function isInputElement(element, isRoot, isShadowRoot) {
     const tag = element.tagName.toLowerCase();
-    if (tag === "input" || tag === "textarea" || tag === "select") return true; // comes from https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
+    // comes from https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
+    // fluent-select does not use <select /> element
+    if (tag === "input" || tag === "textarea" || tag === "select" || tag === "fluent-select") return true;
 
     if (isShadowRoot || isRoot) {
         const elementChildren = element.children;
@@ -294,8 +296,6 @@ function isInputElement(element, isRoot, isShadowRoot) {
 }
 
 window.registerGlobalKeydownListener = function(assemblyName) {
-    let currentlyHeldKeys = [];
-
     const serializeEvent = function (e) {
         if (e) {
             return {
@@ -307,34 +307,24 @@ window.registerGlobalKeydownListener = function(assemblyName) {
                 shiftKey: e.shiftKey,
                 altKey: e.altKey,
                 metaKey: e.metaKey,
-                type: e.type,
-                currentlyHeldKeys: currentlyHeldKeys
+                type: e.type
             };
         }
     };
 
     const keydownListener = function (e) {
         if (!isActiveElementInput()) {
-            currentlyHeldKeys.push(e.key.toLowerCase());
             DotNet.invokeMethodAsync(assemblyName, 'OnGlobalKeyDown', serializeEvent(e))
         }
     }
 
-    const keyupListener = function (e) {
-        currentlyHeldKeys = currentlyHeldKeys.filter(key => key !== e.key);
-    };
-
     window.document.addEventListener('keydown', keydownListener);
-
-    window.document.addEventListener('keyup', keyupListener);
 
     return {
         keydownListener: keydownListener,
-        keyupListener: keyupListener
     }
 }
 
-window.unregisterGlobalKeydownListener = function (keydownListener, keyupListener) {
+window.unregisterGlobalKeydownListener = function (keydownListener) {
     window.document.removeEventListener('keydown', keydownListener);
-    window.document.removeEventListener('keyup', keyupListener);
 }
