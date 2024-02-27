@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -184,7 +185,7 @@ public partial class SummaryDetailsView<T>
 
     public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
-        if (_splitterRef is null || !args.ShiftKey || args.AltKey || args.CtrlKey)
+        if (_splitterRef is null || !args.OnlyShiftPressed())
         {
             return;
         }

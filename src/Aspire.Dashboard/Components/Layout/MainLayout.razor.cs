@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -148,7 +149,7 @@ public partial class MainLayout
 
     public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
-        if (args.ShiftKey && !args.CtrlKey && !args.AltKey)
+        if (args.OnlyShiftPressed())
         {
             if (args.Key is "?")
             {
@@ -159,7 +160,7 @@ public partial class MainLayout
                 await LaunchSettingsAsync();
             }
         }
-        else if (!args.ShiftKey && !args.CtrlKey && !args.AltKey)
+        else if (args.NoModifiersPressed())
         {
             var url = args.Key.ToLower() switch
             {
