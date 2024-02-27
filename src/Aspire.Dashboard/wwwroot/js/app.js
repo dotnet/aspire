@@ -264,3 +264,67 @@ function registerLocale(serverLocale) {
     };
     Plotly.register(locale);
 }
+
+function isActiveElementInput() {
+    const currentElement = document.activeElement;
+    // fluent components may have shadow roots that contain inputs
+    return currentElement.tagName.toLowerCase() === "input" || currentElement.tagName.toLowerCase().startsWith("fluent") ? isInputElement(currentElement, false) : false;
+}
+
+function isInputElement(element, isRoot, isShadowRoot) {
+    const tag = element.tagName.toLowerCase();
+    // comes from https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
+    // fluent-select does not use <select /> element
+    if (tag === "input" || tag === "textarea" || tag === "select" || tag === "fluent-select") return true;
+
+    if (isShadowRoot || isRoot) {
+        const elementChildren = element.children;
+        for (let i = 0; i < elementChildren.length; i++) {
+            if (isInputElement(elementChildren[i], false, isShadowRoot)) return true;
+        }
+    }
+
+    const shadowRoot = element.shadowRoot;
+    if (shadowRoot) {
+        const shadowRootChildren = shadowRoot.children;
+        for (let i = 0; i < shadowRootChildren.length; i++) {
+            if (isInputElement(shadowRootChildren[i], false, true)) return true;
+        }
+    }
+
+    return false;
+}
+
+window.registerGlobalKeydownListener = function(assemblyName) {
+    const serializeEvent = function (e) {
+        if (e) {
+            return {
+                key: e.key,
+                code: e.keyCode.toString(),
+                location: e.location,
+                repeat: e.repeat,
+                ctrlKey: e.ctrlKey,
+                shiftKey: e.shiftKey,
+                altKey: e.altKey,
+                metaKey: e.metaKey,
+                type: e.type
+            };
+        }
+    };
+
+    const keydownListener = function (e) {
+        if (!isActiveElementInput()) {
+            DotNet.invokeMethodAsync(assemblyName, 'OnGlobalKeyDown', serializeEvent(e))
+        }
+    }
+
+    window.document.addEventListener('keydown', keydownListener);
+
+    return {
+        keydownListener: keydownListener,
+    }
+}
+
+window.unregisterGlobalKeydownListener = function (keydownListener) {
+    window.document.removeEventListener('keydown', keydownListener);
+}

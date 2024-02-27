@@ -1,0 +1,61 @@
+{
+  "resources": {
+    "storage": {
+      "type": "azure.bicep.v0",
+      "path": "aspire.hosting.azure.bicep.storage.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "storageName": "storage"
+      }
+    },
+    "clustering": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.tableEndpoint}"
+    },
+    "grainstate": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "silo": {
+      "type": "project.v0",
+      "path": "../OrleansServer/OrleansServer.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "Orleans__Clustering__ProviderType": "AzureTableStorage",
+        "Orleans__Clustering__ServiceKey": "clustering",
+        "ConnectionStrings__clustering": "{clustering.connectionString}",
+        "Orleans__GrainStorage__Default__ProviderType": "AzureBlobStorage",
+        "Orleans__GrainStorage__Default__ServiceKey": "grainstate",
+        "ConnectionStrings__grainstate": "{grainstate.connectionString}",
+        "Orleans__ClusterId": "206dd66da4f14e3eaba538a7f111a613",
+        "Orleans__EnableDistributedTracing": "true",
+        "Orleans__Endpoints__SiloPort": "{silo.bindings.orleans-silo.port}",
+        "Orleans__Endpoints__GatewayPort": "{silo.bindings.orleans-gateway.port}"
+      },
+      "bindings": {
+        "orleans-silo": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        },
+        "orleans-gateway": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        },
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}
