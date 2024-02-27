@@ -139,7 +139,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnParametersSetAsync()
     {
-        Logger.LogDebug($"Initializing console logs view model.");
+        Logger.LogDebug("Initializing console logs view model.");
         await this.InitializeViewModelAsync();
 
         await ClearLogsAsync();
