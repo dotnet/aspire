@@ -1,0 +1,34 @@
+{
+  "resources": {
+    "search": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{search.secretOutputs.connectionString}",
+      "path": "aspire.hosting.azure.bicep.search.bicep",
+      "params": {
+        "name": "search",
+        "keyVaultName": ""
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../AzureSearch.ApiService/AzureSearch.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__search": "{search.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

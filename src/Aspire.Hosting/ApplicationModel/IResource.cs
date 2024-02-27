@@ -16,5 +16,5 @@ public interface IResource
     /// <summary>
     /// Gets the annotations associated with the resource.
     /// </summary>
-    ResourceMetadataCollection Annotations { get; }
+    ResourceAnnotationCollection Annotations { get; }
 }

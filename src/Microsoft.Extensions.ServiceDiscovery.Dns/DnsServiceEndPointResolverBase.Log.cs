@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
-internal partial class DnsServiceEndPointResolverBase
+partial class DnsServiceEndPointResolverBase
 {
     internal static partial class Log
     {

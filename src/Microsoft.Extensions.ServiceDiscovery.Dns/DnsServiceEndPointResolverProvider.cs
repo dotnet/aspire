@@ -10,7 +10,7 @@ using Microsoft.Extensions.ServiceDiscovery.Internal;
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
 /// <summary>
-/// Provides <see cref="IServiceEndPointResolver"/> instances which resolve endpoints from DNS.
+/// Provides <see cref="IServiceEndPointProvider"/> instances which resolve endpoints from DNS.
 /// </summary>
 /// <remarks>
 /// Initializes a new <see cref="DnsServiceEndPointResolverProvider"/> instance.
@@ -24,7 +24,7 @@ internal sealed partial class DnsServiceEndPointResolverProvider(
     TimeProvider timeProvider) : IServiceEndPointResolverProvider
 {
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointResolver? resolver)
+    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
         if (!ServiceNameParts.TryParse(serviceName, out var parts))
         {

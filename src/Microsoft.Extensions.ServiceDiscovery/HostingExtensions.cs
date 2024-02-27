@@ -39,7 +39,7 @@ public static class HostingExtensions
         services.TryAddSingleton<TimeProvider>(static sp => TimeProvider.System);
         services.TryAddSingleton<IServiceEndPointSelectorProvider, RoundRobinServiceEndPointSelectorProvider>();
         services.TryAddSingleton<ServiceEndPointResolverFactory>();
-        services.TryAddSingleton<ServiceEndPointResolverRegistry>();
+        services.TryAddSingleton<ServiceEndPointResolver>(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointResolverFactory>(), sp.GetRequiredService<TimeProvider>()));
         return services;
     }
 

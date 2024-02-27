@@ -38,14 +38,14 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
         var url = OtlpHelpers.GetValue(attributes, "url.full") ?? OtlpHelpers.GetValue(attributes, "http.url");
 
         // Quick check of URL with EndsWith before more expensive Uri parsing.
-        if (url != null && url.EndsWith(lastSegment, StringComparison.OrdinalIgnoreCase))
+        if (url != null && url.EndsWith(lastSegment, StringComparisons.UrlPath))
         {
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && string.Equals(uri.Host, "localhost", StringComparisons.UrlHost))
             {
                 var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 2)
                 {
-                    if (Guid.TryParse(parts[0], out _) && string.Equals(parts[1], lastSegment, StringComparison.OrdinalIgnoreCase))
+                    if (Guid.TryParse(parts[0], out _) && string.Equals(parts[1], lastSegment, StringComparisons.UrlPath))
                     {
                         name = "Browser Link";
                         return true;
