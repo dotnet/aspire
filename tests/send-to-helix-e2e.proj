@@ -17,8 +17,8 @@
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TestsRunningOutOfTree=true" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TestsRunningOutOfTree=true" />
 
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SHOW_BUILD_OUTPUT=1" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SHOW_BUILD_OUTPUT=1" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SHOW_BUILD_OUTPUT=true" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SHOW_BUILD_OUTPUT=true" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set BUILT_NUGETS_PATH=%HELIX_CORRELATION_PAYLOAD%\built-nugets" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export BUILT_NUGETS_PATH=$HELIX_CORRELATION_PAYLOAD/built-nugets" />
