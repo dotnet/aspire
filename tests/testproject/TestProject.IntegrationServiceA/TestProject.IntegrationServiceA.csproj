@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Condition="'$(TestsRunningOutOfTree)' != 'true'" Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
     <PackageReference Condition="'$(TestsRunningOutOfTree)' == 'true'" Include="@(ComponentReferenceForTests)" />
+    <PackageReference Include="Polly" />
   </ItemGroup>
 
 </Project>

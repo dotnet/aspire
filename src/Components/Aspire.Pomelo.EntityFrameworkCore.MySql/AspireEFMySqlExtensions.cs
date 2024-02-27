@@ -49,6 +49,8 @@ public static partial class AspireEFMySqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        builder.EnsureDbContextNotRegistered<TContext>();
+
         var settings = builder.GetDbContextSettings<TContext, PomeloEntityFrameworkCoreMySqlSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)

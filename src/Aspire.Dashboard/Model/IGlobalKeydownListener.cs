@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components.Web;
 
 namespace Aspire.Dashboard.Model;
 
-public interface IGlobalKeydownListener : IDisposable
+public interface IGlobalKeydownListener
 {
     Task OnPageKeyDownAsync(KeyboardEventArgs args);
 }
