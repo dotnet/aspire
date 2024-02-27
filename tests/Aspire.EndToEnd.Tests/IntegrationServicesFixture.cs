@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-// using Polly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -51,7 +50,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         _appHostProcess = new Process();
 
         string processArguments = $"run -- ";
-        if (GetComponentsToSkipArgument() is var componentsToSkip && componentsToSkip.Count > 0)
+        if (GetResourcesToSkip() is var componentsToSkip && componentsToSkip.Count > 0)
         {
             processArguments += $"--skip-components {string.Join(',', componentsToSkip)}";
         }
@@ -71,7 +70,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
         if (ForceOutOfTree)
         {
-            AddEnvironmentVariable("TestsRuningOutOfTree", "true");
+            AddEnvironmentVariable("TestsRunningOutOfTree", "true");
         }
 
         _testOutput.WriteLine($"Starting the process: {BuildEnvironment.DotNet} {processArguments} in {_appHostProcess.StartInfo.WorkingDirectory}");
@@ -283,22 +282,22 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
     }
 
-    private static IList<string> GetComponentsToSkipArgument()
+    private static IList<string> GetResourcesToSkip()
     {
-        List<string> componentsToSkip = new();
+        List<string> resourcesToSkip = new();
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            componentsToSkip.Add("cosmos");
+            resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
         }
         if (BuildEnvironment.IsRunningOnCI)
         {
-            componentsToSkip.Add("cosmos");
-            componentsToSkip.Add("oracledatabase");
+            resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
+            resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
         }
 
-        componentsToSkip.Add("dashboard");
+        resourcesToSkip.Add(nameof(TestResourceNames.dashboard));
 
-        return componentsToSkip;
+        return resourcesToSkip;
     }
 
 }

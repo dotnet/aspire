@@ -20,30 +20,30 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Theory]
-    [InlineData("mongodb")]
-    [InlineData("mysql")]
-    [InlineData("pomelo")]
-    [InlineData("postgres")]
-    [InlineData("rabbitmq")]
-    [InlineData("redis")]
-    [InlineData("sqlserver")]
-    public async Task VerifyComponentWorks(string component)
+    [InlineData(TestResourceNames.mongodb)]
+    [InlineData(TestResourceNames.mysql)]
+    [InlineData(TestResourceNames.pomelo)]
+    [InlineData(TestResourceNames.postgres)]
+    [InlineData(TestResourceNames.rabbitmq)]
+    [InlineData(TestResourceNames.redis)]
+    [InlineData(TestResourceNames.sqlserver)]
+    public async Task VerifyComponentWorks(TestResourceNames resourceName)
     {
         _integrationServicesFixture.EnsureAppHostRunning();
 
-        _testOutput.WriteLine ($"[{DateTime.Now}] >>>> Starting VerifyComponentWorks for {component} --");
+        _testOutput.WriteLine ($"[{DateTime.Now}] >>>> Starting VerifyComponentWorks for {resourceName} --");
         try
         {
-            var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{component}/verify");
+            var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
             var responseContent = await response.Content.ReadAsStringAsync();
 
             Assert.True(response.IsSuccessStatusCode, responseContent);
-            _testOutput.WriteLine ($"[{DateTime.Now}] <<<< Done VerifyComponentWorks for {component} --");
+            _testOutput.WriteLine ($"[{DateTime.Now}] <<<< Done VerifyComponentWorks for {resourceName} --");
         }
         catch
         {
-            _testOutput.WriteLine ($"[{DateTime.Now}] <<<< FAILED VerifyComponentWorks for {component} --");
-            await _integrationServicesFixture.DumpComponentLogsAsync(component, _testOutput);
+            _testOutput.WriteLine ($"[{DateTime.Now}] <<<< FAILED VerifyComponentWorks for {resourceName} --");
+            await _integrationServicesFixture.DumpComponentLogsAsync(resourceName.ToString().ToLowerInvariant(), _testOutput);
             await _integrationServicesFixture.DumpDockerInfoAsync();
 
             throw;
@@ -53,16 +53,16 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     // FIXME: open issue
     [ConditionalTheory]
     [SkipOnCI("not working on CI yet")]
-    [InlineData("cosmos")]
-    [InlineData("oracledatabase")]
-    public Task VerifyComponentWorksDisabledOnCI(string component)
+    [InlineData(TestResourceNames.cosmos)]
+    [InlineData(TestResourceNames.oracledatabase)]
+    public Task VerifyComponentWorksDisabledOnCI(TestResourceNames resourceName)
     {
-        if (component == "cosmos" && RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        if (resourceName == TestResourceNames.cosmos && RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            throw new SkipException("Skipping 'cosmos' test because the emulator isn't supported on macOS ARM64.");
+            throw new SkipException($"Skipping '{resourceName}' test because the emulator isn't supported on macOS ARM64.");
         }
 
-        return VerifyComponentWorks(component);
+        return VerifyComponentWorks(resourceName);
     }
 
     [Fact]
@@ -113,20 +113,4 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             throw;
         }
     }
-}
-
-// FIXME: remove?
-public static class TestComponents
-{
-    public static string Cosmos => "cosmos";
-    public static string Mongodb => "mongodb";
-    public static string Mysql => "mysql";
-    public static string Pomelo => "pomelo";
-    public static string Oracledatabase => "oracledatabase";
-    public static string Postgres => "postgres";
-    public static string Rabbitmq => "rabbitmq";
-    public static string Redis => "redis";
-    public static string Sqlserver => "sqlserver";
-    public static string Kafka => "kafka";
-
 }

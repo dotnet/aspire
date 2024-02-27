@@ -4,6 +4,8 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.EndToEnd.Tests;
+
 //using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 
@@ -11,22 +13,23 @@ public class TestProgram : IDisposable
 {
     private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard)
     {
-        List<string> componentsToSkip = new();
+        IList<TestResourceNames> resourcesToSkip = [];
         for (int i = 0; i < args.Length; i++)
         {
-            if (args[i].StartsWith("--skip-components", StringComparison.InvariantCultureIgnoreCase))
+            if (args[i].StartsWith("--skip-resources", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (args.Length > i + 1)
                 {
-                    componentsToSkip.AddRange(args[i + 1].Split(','));
+                    resourcesToSkip = Aspire.EndToEnd.Tests.TestResourceNamesExtensions.Parse(args[i + 1].Split(','));
+                    break;
                 }
                 else
                 {
-                    throw new ArgumentException("Missing argument to --skip-components option.");
+                    throw new ArgumentException("Missing argument to --skip-resources option.");
                 }
             }
         }
-        if (componentsToSkip.Contains("dashboard", StringComparer.OrdinalIgnoreCase))
+        if (resourcesToSkip.Contains(TestResourceNames.dashboard))
         {
             disableDashboard = true;
         }
@@ -57,16 +60,16 @@ public class TestProgram : IDisposable
         if (includeIntegrationServices)
         {
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
-            IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_COMPONENTS", string.Join(',', componentsToSkip));
+            IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_COMPONENTS", string.Join(',', resourcesToSkip));
 
-            if (!componentsToSkip.Contains("sqlserver", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
             {
                 var sqlserverDbName = "tempdb";
                 var sqlserver = AppBuilder.AddSqlServer("sqlserver")
                     .AddDatabase(sqlserverDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(sqlserver);
             }
-            if (!componentsToSkip.Contains("mysql", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.mysql))
             {
                 var mysqlDbName = "mysqldb";
                 var mysql = AppBuilder.AddMySql("mysql")
@@ -74,12 +77,12 @@ public class TestProgram : IDisposable
                     .AddDatabase(mysqlDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mysql);
             }
-            if (!componentsToSkip.Contains("redis", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.redis))
             {
                 var redis = AppBuilder.AddRedis("redis");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
-            if (!componentsToSkip.Contains("postgres", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.postgres))
             {
                 var postgresDbName = "postgresdb";
                 var postgres = AppBuilder.AddPostgres("postgres")
@@ -87,31 +90,31 @@ public class TestProgram : IDisposable
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
-            if (!componentsToSkip.Contains("rabbitmq", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
             {
                 var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(rabbitmq);
             }
-            if (!componentsToSkip.Contains("mongodb", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.mongodb))
             {
                 var mongoDbName = "mymongodb";
                 var mongodb = AppBuilder.AddMongoDB("mongodb")
                     .AddDatabase(mongoDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
             }
-            if (!componentsToSkip.Contains("oracledatabase", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.oracledatabase))
             {
                 var oracleDbName = "freepdb1";
                 var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
                     .AddDatabase(oracleDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
             }
-            if (!componentsToSkip.Contains("kafka", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.kafka))
             {
                 var kafka = AppBuilder.AddKafka("kafka");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(kafka);
             }
-            if (!componentsToSkip.Contains("cosmos", StringComparer.OrdinalIgnoreCase))
+            if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
             {
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);

@@ -1,43 +1,44 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.EndToEnd.Tests;
+
 var builder = WebApplication.CreateBuilder(args);
-// builder.Configuration.AddEnvironmentVariables();
-string[] componentsToSkip = Array.Empty<string>();
-if (Environment.GetEnvironmentVariable("SKIP_COMPONENTS") is string skipComponents && skipComponents.Length > 0)
-{
-    componentsToSkip = skipComponents.Split(',', StringSplitOptions.RemoveEmptyEntries);
-}
-if (!componentsToSkip.Contains("sqlserver", StringComparer.OrdinalIgnoreCase))
+string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
+var resourcesToSkip = !string.IsNullOrEmpty(skipResourcesValue)
+                        ? TestResourceNamesExtensions.Parse(skipResourcesValue.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                        : [];
+
+if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 {
     builder.AddSqlServerClient("tempdb");
 }
-if (!componentsToSkip.Contains("mysql", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.mysql))
 {
     builder.AddMySqlDataSource("mysqldb");
     builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
 }
-if (!componentsToSkip.Contains("redis", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.redis))
 {
     builder.AddRedis("redis");
 }
-if (!componentsToSkip.Contains("postgres", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.postgres))
 {
     builder.AddNpgsqlDataSource("postgresdb");
 }
-if (!componentsToSkip.Contains("rabbitmq", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
 {
     builder.AddRabbitMQ("rabbitmq");
 }
-if (!componentsToSkip.Contains("mongodb", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.mongodb))
 {
     builder.AddMongoDBClient("mymongodb");
 }
-if (!componentsToSkip.Contains("oracledatabase", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.oracledatabase))
 {
     builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
 }
-if (!componentsToSkip.Contains("kafka", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.kafka))
 {
     builder.AddKafkaProducer<string, string>("kafka");
     builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
@@ -47,7 +48,7 @@ if (!componentsToSkip.Contains("kafka", StringComparer.OrdinalIgnoreCase))
     });
 }
 
-if (!componentsToSkip.Contains("cosmos", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 {
     builder.AddAzureCosmosDB("cosmos");
 }
@@ -60,52 +61,52 @@ app.MapGet("/", () => "Hello World!");
 
 app.MapGet("/pid", () => Environment.ProcessId);
 
-if (!componentsToSkip.Contains("redis", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.redis))
 {
     app.MapRedisApi();
 }
 
-if (!componentsToSkip.Contains("mongodb", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.mongodb))
 {
     app.MapMongoDBApi();
 }
 
-if (!componentsToSkip.Contains("mysql", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.mysql))
 {
     app.MapMySqlApi();
 }
 
-if (!componentsToSkip.Contains("pomelo", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.pomelo))
 {
     app.MapPomeloEFCoreMySqlApi();
 }
 
-if (!componentsToSkip.Contains("postgres", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.postgres))
 {
     app.MapPostgresApi();
 }
 
-if (!componentsToSkip.Contains("sqlserver", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 {
     app.MapSqlServerApi();
 }
 
-if (!componentsToSkip.Contains("rabbitmq", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
 {
     app.MapRabbitMQApi();
 }
 
-if (!componentsToSkip.Contains("oracledatabase", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.oracledatabase))
 {
     app.MapOracleDatabaseApi();
 }
 
-if (!componentsToSkip.Contains("kafka", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.kafka))
 {
     app.MapKafkaApi();
 }
 
-if (!componentsToSkip.Contains("cosmos", StringComparer.OrdinalIgnoreCase))
+if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
 }

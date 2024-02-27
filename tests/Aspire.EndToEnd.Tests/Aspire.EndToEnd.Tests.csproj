@@ -15,16 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="data\" />
-
     <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
 
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="'$(TestsRunningOutOfTree)' == 'true' or '$(ArchiveTests)' == 'true'" />
     <None Include="..\nuget.helix.config" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" Condition="'$(TestsRunningOutOfTree)' == 'true' or '$(ArchiveTests)' == 'true'" />
-
-    <None Include="data\**\*" Link="data\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="_AddPackageVersions" AfterTargets="Build">

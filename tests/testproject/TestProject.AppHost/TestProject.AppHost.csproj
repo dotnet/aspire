@@ -18,6 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)tests\Aspire.EndToEnd.Tests\TestResourceNames.cs" />
+
     <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" AspireProjectMetadataTypeName="IntegrationServiceA" />
     <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" AspireProjectMetadataTypeName="ServiceA" />
     <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" AspireProjectMetadataTypeName="ServiceB" />
