@@ -58,7 +58,7 @@ public class TestProgram : IDisposable
         if (includeIntegrationServices)
         {
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
-            IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_COMPONENTS", string.Join(',', resourcesToSkip));
+            IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
             if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
             {
