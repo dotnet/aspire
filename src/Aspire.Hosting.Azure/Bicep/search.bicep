@@ -56,6 +56,7 @@ resource search 'Microsoft.Search/searchServices@2022-09-01' = {
     replicaCount: replicaCount
     partitionCount: partitionCount
     hostingMode: hostingMode
+    disableLocalAuth: true
   }
   tags: tags
 }
