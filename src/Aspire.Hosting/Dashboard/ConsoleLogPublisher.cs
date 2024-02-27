@@ -31,6 +31,7 @@ internal sealed class ConsoleLogPublisher(
             {
                 ExecutableSnapshot executable => SubscribeExecutableResource(executable),
                 ContainerSnapshot container => SubscribeContainerResource(container),
+                GenericResourceSnapshot => SubscribeGenericResource(),
                 _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
             };
         }
@@ -40,6 +41,7 @@ internal sealed class ConsoleLogPublisher(
             {
                 ExecutableSnapshot executable => SubscribeExecutable(executable),
                 ContainerSnapshot container => SubscribeContainer(container),
+                GenericResourceSnapshot => SubscribeGenericResource(),
                 _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
             };
         }
@@ -75,5 +77,12 @@ internal sealed class ConsoleLogPublisher(
 
             return new DockerContainerLogSource(container.ContainerId);
         }
+    }
+
+    private static async LogsEnumerable SubscribeGenericResource()
+    {
+        await Task.Yield();
+
+        yield return [("No logs available", false)];
     }
 }
