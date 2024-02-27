@@ -22,7 +22,8 @@ public static class AzureSearchExtensions
         var resource = new AzureSearchResource(name);
         return builder.AddResource(resource)
                 .WithParameter("name", resource.CreateBicepResourceName())
-                .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
+                .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                 .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

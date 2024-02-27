@@ -1,5 +1,5 @@
 param name string
-param keyVaultName string
+param principalId string
 
 @description('Tags that will be applied to all resources')
 param tags object = {}
@@ -14,7 +14,7 @@ param tags object = {}
   'storage_optimized_l1'
   'storage_optimized_l2'
 ])
-param sku string = 'free'
+param sku string = 'basic'
 
 @description('Replicas distribute search workloads across the service. You need at least two replicas to support high availability of query workloads (not applicable to the free tier).')
 @minValue(1)
@@ -44,7 +44,9 @@ param location string = resourceGroup().location
 
 var resourceToken = uniqueString(resourceGroup().id)
 
-resource search 'Microsoft.Search/searchServices@2020-08-01' = {
+param principalType string = 'ServicePrincipal'
+
+resource search 'Microsoft.Search/searchServices@2022-09-01' = {
   name: '${name}-${resourceToken}'
   location: location
   sku: {
@@ -58,17 +60,30 @@ resource search 'Microsoft.Search/searchServices@2020-08-01' = {
   tags: tags
 }
 
-var primaryKey = search.listAdminKeys(search.apiVersion).primaryKey
-var searchServiceName = search.name
+// Search Service Contributor, c.f. https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+var roleDefinitionId1 = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
 
-resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-    name: keyVaultName
+// Search Index Data Contributor
+var roleDefinitionId2 = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
 
-    resource secret 'secrets@2023-07-01' = {
-        name: 'connectionString'
-        properties: {
-            value: 'Endpoint=https://${searchServiceName}.search.windows.net;Key=${primaryKey}'
-        }
-    }
+resource searchRoleAssignment1 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(search.id, principalId, roleDefinitionId1)
+  scope: search
+  properties: {
+    principalId: principalId
+    principalType: principalType
+    roleDefinitionId: roleDefinitionId1
+  }
 }
 
+resource searchRoleAssignment2 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(search.id, principalId, roleDefinitionId2)
+  scope: search
+  properties: {
+    principalId: principalId
+    principalType: principalType
+    roleDefinitionId: roleDefinitionId2
+  }
+}
+
+output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'

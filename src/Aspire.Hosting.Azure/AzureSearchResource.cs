@@ -14,9 +14,9 @@ public class AzureSearchResource(string name) :
     IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets the "connectionString" reference from the secret outputs of the Azure Search resource.
+    /// Gets the "connectionString" output reference from the Azure Search resource.
     /// </summary>
-    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+    public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.

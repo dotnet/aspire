@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
-var azureSearch = builder.AddAzureSearch("search");
+var azureSearch = builder.AddAzureSearch("search2");
 
 builder.AddProject<Projects.AzureSearch_ApiService>("api")
        .WithReference(azureSearch);
