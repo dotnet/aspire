@@ -19,7 +19,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" />
-    <PackageReference Include="Polly.Extensions" />
+    <PackageReference Include="Polly.Core" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />

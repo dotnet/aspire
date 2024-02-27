@@ -98,7 +98,7 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.21.121" />
     <PackageVersion Include="Polly" Version="8.3.0" />
-    <PackageVersion Include="Polly.Extensions" Version="8.3.0" />
+    <PackageVersion Include="Polly.Core" Version="8.3.0" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.0-beta.2" />
     <PackageVersion Include="RabbitMQ.Client" Version="6.8.1" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.17" />

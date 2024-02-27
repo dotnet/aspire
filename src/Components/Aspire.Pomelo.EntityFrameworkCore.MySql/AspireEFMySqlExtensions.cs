@@ -12,7 +12,6 @@ using MySqlConnector;
 using MySqlConnector.Logging;
 using OpenTelemetry.Metrics;
 using Polly;
-using Polly.Registry;
 using Polly.Retry;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 
@@ -67,22 +66,6 @@ public static partial class AspireEFMySqlExtensions
 
         builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
 
-        const string resilienceKey = "Microsoft.Extensions.Hosting.AspireEFMySqlExtensions.ServerVersion";
-        builder.Services.AddResiliencePipeline(resilienceKey, static builder =>
-        {
-            // Values are taken from MySqlRetryingExecutionStrategy.MaxRetryCount and MaxRetryDelay.
-            builder.AddRetry(new RetryStrategyOptions
-            {
-                ShouldHandle = static args => args.Outcome is { Exception: MySqlException { IsTransient: true } }
-                    ? PredicateResult.True()
-                    : PredicateResult.False(),
-                BackoffType = DelayBackoffType.Exponential,
-                MaxRetryAttempts = 6,
-                Delay = TimeSpan.FromSeconds(1),
-                MaxDelay = TimeSpan.FromSeconds(30),
-            });
-        });
-
         ConfigureInstrumentation<TContext>(builder, settings);
 
         void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
@@ -95,16 +78,12 @@ public static partial class AspireEFMySqlExtensions
 
             var connectionString = settings.ConnectionString ?? string.Empty;
 
-            // Initialize serverVersion to a dummy value; the loop below will either replace it with an actual value or throw an unhandled exception.
-            ServerVersion serverVersion = null!;
-
+            ServerVersion serverVersion;
             if (settings.ServerVersion is null)
             {
                 ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
-                var resiliencePipelineProvider = serviceProvider.GetRequiredService<ResiliencePipelineProvider<string>>();
-                var resiliencePipeline = resiliencePipelineProvider.GetPipeline(resilienceKey);
-                serverVersion = resiliencePipeline.Execute(static cs => ServerVersion.AutoDetect(cs), connectionString);
+                serverVersion = DetectServerVersion(connectionString);
             }
             else
             {
@@ -126,6 +105,25 @@ public static partial class AspireEFMySqlExtensions
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }
+    }
+
+    private static ServerVersion DetectServerVersion(string connectionString)
+    {
+        const int MaxRetryAttempts = 6;
+
+        var resiliencePipelineBuilder = new ResiliencePipelineBuilder();
+        resiliencePipelineBuilder.AddRetry(new RetryStrategyOptions
+        {
+            ShouldHandle = static args => args.Outcome is { Exception: MySqlException { IsTransient: true } }
+                ? PredicateResult.True()
+                : PredicateResult.False(),
+            BackoffType = DelayBackoffType.Exponential,
+            MaxRetryAttempts = MaxRetryAttempts,
+            Delay = TimeSpan.FromSeconds(1),
+        });
+
+        var resiliencePipeline = resiliencePipelineBuilder.Build();
+        return resiliencePipeline.Execute(static cs => ServerVersion.AutoDetect(cs), connectionString);
     }
 
     /// <summary>
