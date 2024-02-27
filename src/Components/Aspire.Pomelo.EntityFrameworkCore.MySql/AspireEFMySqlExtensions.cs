@@ -113,18 +113,18 @@ public static partial class AspireEFMySqlExtensions
     {
         const int MaxRetryAttempts = 6;
 
-        var resiliencePipelineBuilder = new ResiliencePipelineBuilder();
-        resiliencePipelineBuilder.AddRetry(new RetryStrategyOptions
-        {
-            ShouldHandle = static args => args.Outcome is { Exception: MySqlException { IsTransient: true } }
-                ? PredicateResult.True()
-                : PredicateResult.False(),
-            BackoffType = DelayBackoffType.Exponential,
-            MaxRetryAttempts = MaxRetryAttempts,
-            Delay = TimeSpan.FromSeconds(1),
-        });
+        var resiliencePipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new RetryStrategyOptions
+            {
+                ShouldHandle = static args => args.Outcome is { Exception: MySqlException { IsTransient: true } }
+                    ? PredicateResult.True()
+                    : PredicateResult.False(),
+                BackoffType = DelayBackoffType.Exponential,
+                MaxRetryAttempts = MaxRetryAttempts,
+                Delay = TimeSpan.FromSeconds(1),
+            })
+            .Build();
 
-        var resiliencePipeline = resiliencePipelineBuilder.Build();
         return resiliencePipeline.Execute(static cs => ServerVersion.AutoDetect(cs), connectionString);
     }
 
