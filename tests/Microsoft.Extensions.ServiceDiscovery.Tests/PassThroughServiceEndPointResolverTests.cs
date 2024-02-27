@@ -127,7 +127,7 @@ public class PassThroughServiceEndPointResolverTests
             .AddServiceDiscovery() // Adds the configuration and pass-through providers.
             .BuildServiceProvider();
 
-        var resolver = services.GetRequiredService<ServiceEndPointResolverRegistry>();
+        var resolver = services.GetRequiredService<ServiceEndPointResolver>();
         var endPoints = await resolver.GetEndPointsAsync("catalog", default);
         Assert.Equal(new DnsEndPoint("catalog", 0), endPoints[0].EndPoint);
     }
