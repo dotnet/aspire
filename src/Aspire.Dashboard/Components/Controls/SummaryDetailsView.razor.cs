@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -12,7 +13,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class SummaryDetailsView<T>
+public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 {
     [Parameter]
     public RenderFragment? Summary { get; set; }
@@ -60,6 +61,9 @@ public partial class SummaryDetailsView<T>
 
     [Inject]
     public required IJSRuntime JS { get; set; }
+
+    [Inject]
+    public required ShortcutManager ShortcutManager { get; set; }
 
     private readonly Icon _splitHorizontalIcon = new Icons.Regular.Size16.SplitHorizontal();
     private readonly Icon _splitVerticalIcon = new Icons.Regular.Size16.SplitVertical();

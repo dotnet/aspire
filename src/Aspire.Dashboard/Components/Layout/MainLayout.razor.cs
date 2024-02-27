@@ -12,12 +12,13 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public partial class MainLayout
+public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 {
     private IDisposable? _themeChangedSubscription;
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
     private IJSObjectReference? _keyboardHandlers;
+    private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
     private IDialogReference? _openPageDialog;
 
     private const string SettingsDialogId = "SettingsDialog";
@@ -40,6 +41,9 @@ public partial class MainLayout
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
+
+    [Inject]
+    public required ShortcutManager ShortcutManager { get; init; }
 
     protected override void OnInitialized()
     {
@@ -76,7 +80,8 @@ public partial class MainLayout
         if (firstRender)
         {
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
-            _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", typeof(App).Assembly.GetName().Name);
+            _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
+            _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             ShortcutManager.AddGlobalKeydownListener(this);
 
             DialogService.OnDialogCloseRequested += (reference, _) =>
@@ -179,15 +184,13 @@ public partial class MainLayout
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
+        _shortcutManagerReference?.Dispose();
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
+        
         try
         {
             await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _keyboardHandlers);

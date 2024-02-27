@@ -8,23 +8,28 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard;
 
-public static class ShortcutManager
+public sealed class ShortcutManager : IDisposable
 {
-    private static readonly ConcurrentDictionary<IGlobalKeydownListener, IGlobalKeydownListener> s_globalKeydownListenerComponents = [];
+    private readonly ConcurrentDictionary<IGlobalKeydownListener, IGlobalKeydownListener> _keydownListenerComponents = [];
 
-    public static void AddGlobalKeydownListener(IGlobalKeydownListener listener)
+    public void AddGlobalKeydownListener(IGlobalKeydownListener listener)
     {
-        s_globalKeydownListenerComponents[listener] = listener;
+        _keydownListenerComponents[listener] = listener;
     }
 
-    public static void RemoveGlobalKeydownListener(IGlobalKeydownListener listener)
+    public void RemoveGlobalKeydownListener(IGlobalKeydownListener listener)
     {
-        s_globalKeydownListenerComponents.Remove(listener, out _);
+        _keydownListenerComponents.Remove(listener, out _);
     }
 
     [JSInvokable]
-    public static Task OnGlobalKeyDown(KeyboardEventArgs args)
+    public Task OnGlobalKeyDown(KeyboardEventArgs args)
     {
-        return Task.WhenAll(s_globalKeydownListenerComponents.Values.Select(component => component.OnPageKeyDownAsync(args)));
+        return Task.WhenAll(_keydownListenerComponents.Values.Select(component => component.OnPageKeyDownAsync(args)));
+    }
+
+    public void Dispose()
+    {
+        _keydownListenerComponents.Clear();
     }
 }
