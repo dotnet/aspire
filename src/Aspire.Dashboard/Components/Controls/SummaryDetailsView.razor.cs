@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -188,7 +189,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
     public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
-        if (_splitterRef is null || !args.ShiftKey)
+        if (_splitterRef is null || !args.OnlyShiftPressed())
         {
             return;
         }
