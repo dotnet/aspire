@@ -23,7 +23,7 @@ dotnet add package Aspire.Seq
 In the _Program.cs_ file of your projects, call the `AddSeqEndpoint` extension method to register OpenTelemetry Protocol exporters to send logs and traces to Seq. The method takes an optional name parameter.
 
 ```csharp
-builder.AddSeqEndpoint();
+builder.AddSeqEndpoint("seq");
 ```
 
 Logs and traces will then be sent to Seq, in addition to the .NET Aspire dashboard.
@@ -52,7 +52,7 @@ The .NET Aspire Seq component supports [Microsoft.Extensions.Configuration](http
 Also you can pass the `Action<SeqSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddSeqEndpoint("Seq", settings => {
+builder.AddSeqEndpoint("seq", settings => {
     settings.HealthChecks = false;
     settings.ServerUrl = "http://localhost:5341"
 });
@@ -63,7 +63,7 @@ builder.AddSeqEndpoint("Seq", settings => {
 In your AppHost project, register a Seq server and propagate its configuration using the following methods (note that you must accept the [Seq End User Licence Agreement](https://datalust.co/doc/eula-current.pdf) for Seq to start):
 
 ```csharp
-var seq = builder.AddSeq();
+var seq = builder.AddSeq("seq);
 
 var myService = builder.AddProject<Projects_MyService>()
                        .WithReference(seq);
@@ -72,7 +72,7 @@ var myService = builder.AddProject<Projects_MyService>()
 In the _Program.cs_ file of `MyService`, logging and tracing to Seq can be configured with:
 
 ```csharp
-builder.AddSeqEndpoint();
+builder.AddSeqEndpoint("seq");
 ```
 
 ### Persistent logs and traces
@@ -80,7 +80,7 @@ builder.AddSeqEndpoint();
 To retain Seq's data and configuration across application restarts register Seq with a data directory.
 
 ```csharp
-var seq = builder.AddSeq(seqDataDirectory: "./seqdata");
+var seq = builder.AddSeq("seq", seqDataDirectory: "./seqdata");
 ```
 
 Note that the directory specified must already exist.
@@ -92,7 +92,7 @@ To deploy Seq as part of .NET Aspire deployment it must be included in the manif
 > Note that this should not be done without having [properly secured the Seq instance](https://docs.datalust.co/docs/production-deployment). It is currently easier to set up a secure production Seq server outside of .NET Aspire.
 
 ```csharp
-var seq = builder.AddSeq(seqDataDirectory: "./seqdata");
+var seq = builder.AddSeq("seq", seqDataDirectory: "./seqdata");
 ```
 
 ## Additional documentation
