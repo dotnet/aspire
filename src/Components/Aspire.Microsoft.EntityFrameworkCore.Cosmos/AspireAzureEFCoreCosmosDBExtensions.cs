@@ -106,6 +106,11 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 builder.ConnectionMode(ConnectionMode.Gateway);
                 builder.LimitToEndpoint(true);
             }
+
+            if (settings.RequestTimeout.HasValue)
+            {
+                builder.RequestTimeout(TimeSpan.FromSeconds(settings.RequestTimeout.Value));
+            }
         }
     }
 

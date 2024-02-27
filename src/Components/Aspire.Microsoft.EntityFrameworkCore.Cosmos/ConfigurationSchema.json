@@ -57,6 +57,10 @@
                       "type": "string",
                       "description": "Gets or sets a string value that indicates what Azure region this client will run in."
                     },
+                    "RequestTimeout": {
+                      "type": "integer",
+                      "description": "The time in seconds to wait for the response to come back from the network peer"
+                    },
                     "Tracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
