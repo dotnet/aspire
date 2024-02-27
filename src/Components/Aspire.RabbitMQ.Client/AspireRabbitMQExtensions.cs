@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Polly;
+using Polly.Retry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 
@@ -151,14 +152,25 @@ public static class AspireRabbitMQExtensions
 
     private static IConnection CreateConnection(IConnectionFactory factory, int retryCount)
     {
-        var policy = Policy
-            .Handle<SocketException>().Or<BrokerUnreachableException>()
-            .WaitAndRetry(retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+        var resiliencePipelineBuilder = new ResiliencePipelineBuilder();
+        if (retryCount > 0)
+        {
+            resiliencePipelineBuilder.AddRetry(new RetryStrategyOptions
+            {
+                ShouldHandle = static args => args.Outcome is { Exception: SocketException or BrokerUnreachableException }
+                    ? PredicateResult.True()
+                    : PredicateResult.False(),
+                BackoffType = DelayBackoffType.Exponential,
+                MaxRetryAttempts = retryCount,
+                Delay = TimeSpan.FromSeconds(1),
+            });
+        }
+        var resiliencePipeline = resiliencePipelineBuilder.Build();
 
         using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
         AddRabbitMQTags(activity);
 
-        return policy.Execute(() =>
+        return resiliencePipeline.Execute(static factory =>
         {
             using var connectAttemptActivity = s_activitySource.StartActivity("rabbitmq connect attempt", ActivityKind.Client);
             AddRabbitMQTags(connectAttemptActivity, "connect");
@@ -181,7 +193,7 @@ public static class AspireRabbitMQExtensions
                 }
                 throw;
             }
-        });
+        }, factory);
     }
 
     private static void AddRabbitMQTags(Activity? activity, string? operation = null)
