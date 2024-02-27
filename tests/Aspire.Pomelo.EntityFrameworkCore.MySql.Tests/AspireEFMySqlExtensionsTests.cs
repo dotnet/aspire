@@ -177,7 +177,7 @@ public class AspireEFMySqlExtensionsTests
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.AddMySqlDbContext<TestDbContext>("mysql"));
-        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddMySqlDbContext() or use the corresponding 'Enrich' method.", exception.Message);
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddMySqlDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
     [Theory]

@@ -204,7 +204,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection"));
-        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddOracleDatabaseDbContext() or use the corresponding 'Enrich' method.", exception.Message);
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddOracleDatabaseDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
     [Theory]

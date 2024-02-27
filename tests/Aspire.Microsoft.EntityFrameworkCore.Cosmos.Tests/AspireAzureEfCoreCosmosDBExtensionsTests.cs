@@ -97,7 +97,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.AddCosmosDbContext<TestDbContext>("cosmos", "databaseName"));
-        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddCosmosDbContext() or use the corresponding 'Enrich' method.", exception.Message);
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddCosmosDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
     [Theory]

@@ -211,7 +211,7 @@ public class AspireEFPostgreSqlExtensionsTests
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.AddNpgsqlDbContext<TestDbContext>("npgsql"));
-        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure AddDbContext<TestDbContext>() is not invoked before AddNpgsqlDbContext() or use the corresponding 'Enrich' method.", exception.Message);
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddNpgsqlDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
     [Theory]
