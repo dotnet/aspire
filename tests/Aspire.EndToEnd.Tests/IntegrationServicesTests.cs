@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using Aspire.TestProject;
 
 namespace Aspire.EndToEnd.Tests;
 

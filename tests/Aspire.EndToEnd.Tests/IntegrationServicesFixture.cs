@@ -8,6 +8,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
+using Aspire.TestProject;
 
 namespace Aspire.EndToEnd.Tests;
 

@@ -4,8 +4,8 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.EndToEnd.Tests;
 using Aspire.Hosting.Lifecycle;
+using Aspire.TestProject;
 
 public class TestProgram : IDisposable
 {
@@ -18,7 +18,7 @@ public class TestProgram : IDisposable
             {
                 if (args.Length > i + 1)
                 {
-                    resourcesToSkip = Aspire.EndToEnd.Tests.TestResourceNamesExtensions.Parse(args[i + 1].Split(','));
+                    resourcesToSkip = TestResourceNamesExtensions.Parse(args[i + 1].Split(','));
                     break;
                 }
                 else

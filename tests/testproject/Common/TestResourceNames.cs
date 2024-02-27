@@ -1,5 +1,5 @@
 
-namespace Aspire.EndToEnd.Tests;
+namespace Aspire.TestProject;
 
 public enum TestResourceNames
 {
