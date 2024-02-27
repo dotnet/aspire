@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -12,7 +13,8 @@ using LogsEnumerable = IAsyncEnumerable<IReadOnlyList<(string Content, bool IsEr
 internal sealed class ConsoleLogPublisher(
     ResourcePublisher resourcePublisher,
     IKubernetesService kubernetesService,
-    ILoggerFactory loggerFactory)
+    ILoggerFactory loggerFactory,
+    IConfiguration configuration)
 {
     internal LogsEnumerable? Subscribe(string resourceName)
     {
@@ -23,7 +25,7 @@ internal sealed class ConsoleLogPublisher(
         }
 
         // Obtain logs using the relevant approach.
-        if (Environment.GetEnvironmentVariable("ASPIRE_USE_STREAMING_LOGS") is not null)
+        if (configuration.GetBool("DOTNET_ASPIRE_USE_STREAMING_LOGS") is true)
         {
             return resource switch
             {
