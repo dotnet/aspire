@@ -12,20 +12,29 @@ namespace Aspire.Hosting;
 /// An Aspire resource which is also a CDK construct.
 /// </summary>
 /// <param name="name"></param>
+/// <param name="infrastructure"></param>
 /// <param name="createConstruct"></param>
-public class AzureConstructResource(string name, Func<AspireResourceConstruct> createConstruct) : AzureBicepResource(name, templateFile: $"{name}.generated.bicep")
+public class AzureConstructResource(string name, Infrastructure infrastructure, Func<IConstruct, AspireResourceConstruct> createConstruct) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
     /// <summary>
     /// TODO:
     /// </summary>
-    public Func<AspireResourceConstruct> CreateConstruct { get; } = createConstruct;
+    public Func<IConstruct, AspireResourceConstruct> CreateConstruct { get; } = createConstruct;
 
     /// <inheritdoc />
     public override void WriteToManifest(ManifestPublishingContext context)
     {
-        var path = context.GetManifestRelativePath($"{Name}.generated.bicep");
-        var construct = CreateConstruct();
-        construct.Build(path);
+        // HACK: Using CDK to generate files but then copying just the module
+        //       to where it needs to be.
+        var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
+        CreateConstruct(infrastructure);
+        infrastructure.Build(generationPath);
+
+        var moduleSourcePath = Path.Combine(generationPath, "resources", "rg_temp_module", "rg_temp_module.bicep");
+        var moduleDestinationPath = context.GetManifestRelativePath(TemplateFile);
+        File.Copy(moduleSourcePath, moduleDestinationPath!, true);
+
+        Directory.Delete(generationPath, true);
 
         base.WriteToManifest(context);
     }
@@ -45,9 +54,9 @@ public static class CdkResourceExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<IConstruct> configureConstruct)
     {
-        var createConstruct = () =>
+        var createConstruct = (IConstruct subscriptionConstruct) =>
         {
-            var resourceConstruct = new AspireResourceConstruct(builder.Environment.EnvironmentName);
+            var resourceConstruct = new AspireResourceConstruct(subscriptionConstruct, name, builder.Environment.EnvironmentName);
             configureConstruct(resourceConstruct);
             return resourceConstruct;
         };
@@ -61,9 +70,12 @@ public static class CdkResourceExtensions
     /// <param name="name">The name of the resource being added.</param>
     /// <param name="createConstruct"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Func<AspireResourceConstruct> createConstruct)
+    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Func<IConstruct, AspireResourceConstruct> createConstruct)
     {
-        var resource = new AzureConstructResource(name, createConstruct);
+        // HACK: We shouldn't need this.
+        var infrastructure = new DummyInfrastructure(Guid.NewGuid(), Guid.NewGuid(), "temp");
+
+        var resource = new AzureConstructResource(name, infrastructure, createConstruct);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
@@ -72,7 +84,13 @@ public static class CdkResourceExtensions
 /// <summary>
 /// TODO:
 /// </summary>
+/// <param name="scope"></param>
+/// <param name="resourceName"></param>
 /// <param name="envName"></param>
-public class AspireResourceConstruct(string envName) : Infrastructure(ConstructScope.ResourceGroup, envName: envName)
+public class AspireResourceConstruct(IConstruct scope, string resourceName, string envName) : Construct(scope, resourceName, ConstructScope.ResourceGroup, tenantId: Guid.NewGuid(), subscriptionId: Guid.NewGuid(), envName: envName)
+{
+}
+
+internal class DummyInfrastructure(Guid tenantId, Guid subscriptionId, string envName) : Infrastructure(tenantId: tenantId, subscriptionId: subscriptionId, envName: envName)
 {
 }

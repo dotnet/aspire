@@ -1,3 +1,28 @@
 {
   "resources": {
     "empty": {
+      "type": "azure.bicep.v0",
+      "path": "empty.module.bicep"
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

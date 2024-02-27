@@ -22,7 +22,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 {
     internal string? TemplateFile { get; } = templateFile;
 
-    internal string? TemplateString { get; } = templateString;
+    internal string? TemplateString { get; set; } = templateString;
 
     internal string? TemplateResourceName { get; } = templateResouceName;
 
