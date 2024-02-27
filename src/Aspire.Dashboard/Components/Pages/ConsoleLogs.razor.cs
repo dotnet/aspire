@@ -224,7 +224,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await StopWatchingLogsAsync();
         await ClearLogsAsync();
 
-        PageViewModel.SelectedResource = PageViewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
+        PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
         await this.AfterViewModelChangedAsync();
     }
 
