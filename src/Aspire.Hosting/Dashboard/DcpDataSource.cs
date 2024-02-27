@@ -273,9 +273,9 @@ internal sealed class DcpDataSource
             string? resourceName = null;
             resource.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
 
-            if (resourceName is not null && _placeHolderResources.TryRemove(resourceName, out var dummy))
+            if (resourceName is not null && _placeHolderResources.TryRemove(resourceName, out var placeHolder))
             {
-                await _onResourceChanged(dummy, ResourceSnapshotChangeType.Delete).ConfigureAwait(false);
+                await _onResourceChanged(placeHolder, ResourceSnapshotChangeType.Delete).ConfigureAwait(false);
             }
         }
 
