@@ -107,7 +107,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             Alignment = HorizontalAlignment.Center,
             Width = "700px",
             Height = "auto",
-            Id = HelpDialogId
+            Id = HelpDialogId,
+            OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, HandleDialogResult)
         };
 
         if (_openPageDialog is not null)
@@ -123,6 +124,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _openPageDialog = await DialogService.ShowDialogAsync<HelpDialog>(parameters).ConfigureAwait(true);
     }
 
+    private void HandleDialogResult(DialogResult dialogResult)
+    {
+        _openPageDialog = null;
+    }
+
     public async Task LaunchSettingsAsync()
     {
         DialogParameters parameters = new()
@@ -136,7 +142,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             Alignment = HorizontalAlignment.Right,
             Width = "300px",
             Height = "auto",
-            Id = SettingsDialogId
+            Id = SettingsDialogId,
+            OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, HandleDialogResult)
         };
 
         if (_openPageDialog is not null)
