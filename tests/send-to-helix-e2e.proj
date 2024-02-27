@@ -38,7 +38,7 @@
 
   <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsE2E->Count()) > 0">
     <PropertyGroup>
-      <_workItemTimeout>00:20:00</_workItemTimeout>
+      <_WorkItemTimeoutForE2E>00:20:00</_WorkItemTimeoutForE2E>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
       <HelixPostCommands>$(HelixPostCommands);@(HelixPostCommand)</HelixPostCommands>
@@ -59,7 +59,7 @@
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
+        <Timeout>$(_WorkItemTimeoutForE2E)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
