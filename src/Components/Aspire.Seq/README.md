@@ -1,5 +1,4 @@
-Aspire.Seq Library
-==================
+# Aspire.Seq Library
 
 Adds OTLP exporters to send logs and traces to a Seq server. Can be configured to persist logs and traces across application restarts.
 
