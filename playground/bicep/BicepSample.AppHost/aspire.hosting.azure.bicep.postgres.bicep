@@ -5,12 +5,12 @@ param keyVaultName string
 param administratorLoginPassword string
 param location string = resourceGroup().location
 param serverName string
-param serverEdition string = 'GeneralPurpose'
-param skuSizeGB int = 128
-param dbInstanceType string = 'Standard_D4ds_v4'
-param haMode string = 'ZoneRedundant'
+param serverEdition string = 'Burstable'
+param skuSizeGB int = 32
+param dbInstanceType string = 'Standard_B1ms'
+param haMode string = 'Disabled'
 param availabilityZone string = '1'
-param version string = '12'
+param version string = '16'
 param databases array = []
 
 var resourceToken = uniqueString(resourceGroup().id)
@@ -64,5 +64,8 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
         properties: {
             value: 'Host=${pgserver.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
         }
+    }
+}
+ }
     }
 }
