@@ -28,6 +28,7 @@
     <HelixPreCommand Include="docker container ls --all" />
     <HelixPreCommand Include="docker container prune -f" />
 
+    <HelixPostCommand Include="docker container ls --all" />
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
   </ItemGroup>
 
