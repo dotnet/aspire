@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -153,7 +154,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
-        if (args.ShiftKey)
+        if (args.OnlyShiftPressed())
         {
             if (args.Key is "?")
             {
@@ -164,15 +165,15 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 await LaunchSettingsAsync();
             }
         }
-        else
+        else if (args.NoModifiersPressed())
         {
             var url = args.Key.ToLower() switch
             {
                 "r" => "/",
-                "c" => "/ConsoleLogs",
-                "s" => "/StructuredLogs",
-                "t" => "/Traces",
-                "m" => "/Metrics",
+                "c" => "/consolelogs",
+                "s" => "/structuredlogs",
+                "t" => "/traces",
+                "m" => "/metrics",
                 _ => null
             };
 
@@ -189,7 +190,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
-
+        
         try
         {
             await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _keyboardHandlers);
