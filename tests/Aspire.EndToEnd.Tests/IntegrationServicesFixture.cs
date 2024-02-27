@@ -50,9 +50,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         _appHostProcess = new Process();
 
         string processArguments = $"run -- ";
-        if (GetResourcesToSkip() is var componentsToSkip && componentsToSkip.Count > 0)
+        if (GetResourcesToSkip() is var resourcesToSkip && resourcesToSkip.Count > 0)
         {
-            processArguments += $"--skip-components {string.Join(',', componentsToSkip)}";
+            processArguments += $"--skip-resources {string.Join(',', resourcesToSkip)}";
         }
         _appHostProcess.StartInfo = new ProcessStartInfo(BuildEnvironment.DotNet, processArguments)
         {
