@@ -71,7 +71,7 @@ public class BuildEnvironment
             BuiltNuGetsPath = Path.Combine(solutionRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
 
             // this is the only difference for local run but out-of-tree
-            if (EnvironmentVariables.TestsRunningOutOfTree)
+            if (EnvironmentVariables.TestsRunningOutOfTree || forceOutOfTree)
             {
                 TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
             }
