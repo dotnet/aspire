@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.Postgres;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an resource for Azure Postgres Flexible Server.
@@ -33,5 +33,5 @@ public class AzurePostgresResource(PostgresServerResource innerResource) :
     public override string Name => innerResource.Name;
 
     /// <inheritdoc />
-    public override ResourceMetadataCollection Annotations => innerResource.Annotations;
+    public override ResourceAnnotationCollection Annotations => innerResource.Annotations;
 }

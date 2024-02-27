@@ -48,6 +48,7 @@
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"
                         OnDismiss="() => ClearSelectedResource()"
+                        SelectedValue="@SelectedResource"
                         ViewKey="ResourcesList">
         <Summary>
             <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
@@ -69,7 +70,7 @@
                         <EndpointsColumnDisplay Resource="context" HasMultipleReplicas="HasMultipleReplicas(context)" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]">
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ConsoleLogs/{context.Name}")">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/consolelogs/resource/{context.Name}")">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false">
                         <FluentButton Appearance="Appearance.Lightweight"

@@ -1,14 +1,19 @@
 {
   "resources": {
-    "db": {
+    "sql": {
       "type": "parameter.v0",
-      "value": "{db.inputs.value}",
+      "connectionString": "{sql.value}",
+      "value": "{sql.inputs.value}",
       "inputs": {
         "value": {
           "type": "string",
           "secret": true
         }
       }
+    },
+    "db": {
+      "type": "value.v0",
+      "connectionString": "{sql.connectionString};Database=db"
     },
     "insertionrows": {
       "type": "parameter.v0",
@@ -26,7 +31,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "InsertionRows": "{insertionrows.value}",
-        "ConnectionStrings__db": "{db.value}"
+        "ConnectionStrings__db": "{db.connectionString}"
       },
       "bindings": {
         "http": {

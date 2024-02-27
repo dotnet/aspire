@@ -19,7 +19,7 @@ internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplica
     {
         if (executionContext.IsRunMode)
         {
-            logger.LogInformation("Distributed application started. Press CTRL-C to stop.");
+            logger.LogInformation("Distributed application started. Press Ctrl+C to shut down.");
         }
 
         return Task.CompletedTask;

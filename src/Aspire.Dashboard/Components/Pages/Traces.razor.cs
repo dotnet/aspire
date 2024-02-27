@@ -100,7 +100,7 @@ public partial class Traces
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigationManager.NavigateTo($"/Traces/{_selectedApplication.Name}");
+        NavigationManager.NavigateTo($"/traces/resource/{_selectedApplication.Name}");
         _applicationChanged = true;
 
         return Task.CompletedTask;

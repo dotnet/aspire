@@ -1,4 +1,4 @@
-﻿@page "/Trace/{traceId}"
+﻿@page "/traces/detail/{traceId}"
 
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
@@ -37,10 +37,14 @@
             <div>
                 @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@_trace.Spans.Count</strong>
             </div>
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?traceId={_trace.TraceId}")">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/structuredlogs?traceId={_trace.TraceId}")">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
         </FluentToolbar>
 
-        <SummaryDetailsView ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()" ViewKey="TraceDetail">
+        <SummaryDetailsView
+            ShowDetails="SelectedSpan is not null"
+            OnDismiss="() => ClearSelectedSpan()"
+            ViewKey="TraceDetail"
+            SelectedValue="@SelectedSpan">
             <DetailsTitleTemplate>
                 @{ var shortedSpanId = OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId); }
                 <div class="span-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">

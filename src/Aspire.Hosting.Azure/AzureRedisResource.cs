@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.Redis;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure Redis resource.
@@ -33,5 +33,5 @@ public class AzureRedisResource(RedisResource innerResource) :
     public override string Name => innerResource.Name;
 
     /// <inheritdoc />
-    public override ResourceMetadataCollection Annotations => innerResource.Annotations;
+    public override ResourceAnnotationCollection Annotations => innerResource.Annotations;
 }

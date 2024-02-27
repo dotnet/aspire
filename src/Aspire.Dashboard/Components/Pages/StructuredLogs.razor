@@ -1,4 +1,5 @@
-﻿@page "/StructuredLogs/{applicationName?}"
+﻿@page "/structuredlogs"
+@page "/structuredlogs/resource/{applicationName}"
 
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
@@ -62,7 +63,12 @@
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()" ViewKey="StructuredLogsList">
+    <SummaryDetailsView
+        DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
+        ShowDetails="SelectedLogEntryProperties is not null"
+        OnDismiss="() => ClearSelectedLogEntry()"
+        ViewKey="StructuredLogsList"
+        SelectedValue="@SelectedLogEntryProperties">
         <Summary>
             <div class="logs-summary-layout">
                 <div class="logs-grid-container continuous-scroll-overflow">
@@ -85,7 +91,7 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                 @if (!string.IsNullOrEmpty(context.TraceId))
                                 {
-                                    <a href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
+                                    <a href="@($"/traces/detail/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
                                         @OtlpHelpers.ToShortenedId(context.TraceId)
                                     </a>
                                 }
