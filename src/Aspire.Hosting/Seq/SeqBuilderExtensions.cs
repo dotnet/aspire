@@ -22,7 +22,7 @@ public static class SeqBuilderExtensions
     /// <param name="seqDataDirectory">Host directory to bind to Seq's data directory. This must already exist.</param>
     public static IResourceBuilder<SeqResource> AddSeq(
         this IDistributedApplicationBuilder builder,
-        string name = "Seq",
+        string name,
         int? port = null,
         string? seqDataDirectory = null)
     {

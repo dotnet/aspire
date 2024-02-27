@@ -17,7 +17,7 @@ public static class Extensions
 {
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
-        builder.AddSeqEndpoint(s =>
+        builder.AddSeqEndpoint("seq", s =>
         {
             s.HealthChecks = false;
         });
