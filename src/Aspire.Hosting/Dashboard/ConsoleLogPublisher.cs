@@ -14,8 +14,6 @@ internal sealed class ConsoleLogPublisher(
     IKubernetesService kubernetesService,
     ILoggerFactory loggerFactory)
 {
-    const bool UseLogStreaming = true;
-
     internal LogsEnumerable? Subscribe(string resourceName)
     {
         // Look up the requested resource, so we know how to obtain logs.
@@ -25,7 +23,7 @@ internal sealed class ConsoleLogPublisher(
         }
 
         // Obtain logs using the relevant approach.
-        if (UseLogStreaming)
+        if (Environment.GetEnvironmentVariable("ASPIRE_USE_STREAMING_LOGS") is not null)
         {
             return resource switch
             {
@@ -36,14 +34,12 @@ internal sealed class ConsoleLogPublisher(
         }
         else
         {
-#pragma warning disable CS0162 // Unreachable code detected
             return resource switch
             {
                 ExecutableSnapshot executable => SubscribeExecutable(executable),
                 ContainerSnapshot container => SubscribeContainer(container),
                 _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
             };
-#pragma warning restore CS0162 // Unreachable code detected
         }
 
         LogsEnumerable SubscribeExecutableResource(ExecutableSnapshot executable)
