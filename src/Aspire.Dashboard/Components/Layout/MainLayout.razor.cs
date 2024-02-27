@@ -83,14 +83,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             ShortcutManager.AddGlobalKeydownListener(this);
-
-            DialogService.OnDialogCloseRequested += (reference, _) =>
-            {
-                if (reference.Id is HelpDialogId or SettingsDialogId)
-                {
-                    _openPageDialog = null;
-                }
-            };
         }
     }
 
@@ -197,7 +189,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
-        
+
         try
         {
             await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _keyboardHandlers);
