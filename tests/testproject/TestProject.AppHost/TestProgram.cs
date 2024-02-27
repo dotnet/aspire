@@ -5,8 +5,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.EndToEnd.Tests;
-
-//using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 
 public class TestProgram : IDisposable
