@@ -67,7 +67,7 @@ public static class ParameterResourceBuilderExtensions
     /// Adds a parameter to the distributed application but wrapped in a resource with a connection string for use with <see cref="ResourceBuilderExtensions.WithReference{TDestination}(IResourceBuilder{TDestination}, IResourceBuilder{IResourceWithConnectionString}, string?, bool)"/>
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
-    /// <param name="name">Name of parameter resource</param>
+    /// <param name="name">Name of parameter resource, maps to the key under "ConnectionStrings" section in appsettings.json or user secrets</param>
     /// <param name="environmentVariableName">Environment variable name to set when WithReference is used.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
