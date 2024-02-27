@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <_DefaultWorkItemsE2E Include="$(WorkItemArchiveWildCardE2E)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest;%PATH%" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />
 
@@ -32,7 +36,7 @@
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
   </ItemGroup>
 
-  <Target Name="BuildHelixWorkItemsForEnd2EndTests">
+  <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsE2E->Count()) > 0">
     <PropertyGroup>
       <_workItemTimeout>00:20:00</_workItemTimeout>
 
@@ -49,8 +53,6 @@
     <ItemGroup>
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />
       <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
-
-      <_DefaultWorkItemsE2E Include="$(WorkItemArchiveWildCardE2E)" />
 
       <HelixWorkItem Include="@(_DefaultWorkItemsE2E -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
