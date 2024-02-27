@@ -15,7 +15,8 @@ internal class DeferredEndpointConfigurationLifecycleHook : IDistributedApplicat
 
             if (endpointAnnotations.Any())
             {
-                var deferredAnnotations = resource.Annotations.OfType<DeferredEndpointConfigurationCallbackAnnotation>().ToDictionary(a => a.EndpointName);
+                var deferredAnnotations = resource.Annotations.OfType<DeferredEndpointConfigurationCallbackAnnotation>()
+                    .ToDictionary(a => a.EndpointName, StringComparers.EndpointAnnotationName);
 
                 foreach (var endpoint in endpointAnnotations)
                 {

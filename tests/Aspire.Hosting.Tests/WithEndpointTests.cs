@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -117,6 +118,47 @@ public class WithEndpointTests
         Assert.Equal("PORT", endpoints[0].EnvironmentVariable);
     }
 
+    [Fact]
+    public async Task DeferredEndpointMutationWorks()
+    {
+        using var testProgram = CreateTestProgram();
+        var executed = false;
+        testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
+        {
+            executed = true;
+            endpoint.IsProxied = false;
+            endpoint.IsExternal = true;
+            endpoint.Port = 1;
+        },
+        createIfNotExists: false, deferred: true);
+
+        Assert.False(executed);
+        Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
+
+        // Throw before ApplicationExecutor starts doing real work
+        testProgram.AppBuilder.Services.AddLifecycleHook<ThrowLifecycleHook>();
+
+        var app = testProgram.Build();
+
+        // Don't want to actually start an app
+        await Assert.ThrowsAnyAsync<Exception>(() => app.StartAsync());
+
+        Assert.True(executed);
+        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpointAnnotations));
+        var endpoint = Assert.Single(endpointAnnotations);
+        Assert.True(endpoint.IsExternal);
+        Assert.False(endpoint.IsProxied);
+        Assert.Equal(1, endpoint.Port);
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithEndpointTests>(args);
+
+    private sealed class ThrowLifecycleHook : IDistributedApplicationLifecycleHook
+    {
+        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException();
+        }
+    }
 
 }

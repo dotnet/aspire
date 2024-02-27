@@ -663,6 +663,48 @@ public class DistributedApplicationTests
         Assert.Equal("Service 'redis' needs to specify a port for endpoint 'tcp' since it isn't using a proxy.", ex.Message);
     }
 
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessEndpointCanUsePortFromLaunchSettings()
+    {
+        var testProgram = CreateTestProgram();
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        testProgram.ServiceABuilder.WithEndpoint("http", e => e.IsProxied = false, createIfNotExists: false, deferred: true);
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        var token = new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token;
+
+        var urls = string.Empty;
+        while (true)
+        {
+            try
+            {
+                urls = await client.GetStringAsync("http://localhost:5156/urls", token);
+                break;
+            }
+            catch
+            {
+                await Task.Delay(100, token);
+            }
+        }
+
+        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var annotations));
+        var allocatedEndpoint = Assert.Single(annotations);
+        Assert.Equal(urls, $"[\"{allocatedEndpoint.EndpointNameQualifiedUriString}\"]");
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
         TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices: includeIntegrationServices, includeNodeApp: includeNodeApp);
 }

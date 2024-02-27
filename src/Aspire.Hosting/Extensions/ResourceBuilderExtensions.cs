@@ -360,7 +360,7 @@ public static class ResourceBuilderExtensions
     /// <param name="endpointName">Name of endpoint to change.</param>
     /// <param name="callback">Callback that modifies the endpoint.</param>
     /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
-    /// <param name="deferred">Defers execution of callback until before start.</param>
+    /// <param name="deferred">Defers execution of <paramref name="callback"/> until before start.</param>
     /// <returns></returns>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true, bool deferred = false) where T : IResourceWithEndpoints
     {
