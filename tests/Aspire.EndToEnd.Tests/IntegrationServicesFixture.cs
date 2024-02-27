@@ -205,7 +205,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                         string msg = $"[{DateTime.Now}] Retry #{args.AttemptNumber+1} for '{args.Outcome.Result?.RequestMessage?.RequestUri}'" +
                                         $" due to StatusCode: {(int?)args.Outcome.Result?.StatusCode} ReasonPhrase: '{args.Outcome.Result?.ReasonPhrase}'";
 
-                        msg += (args.Outcome.Exception is not null) ? $" Exception: {args.Outcome.Exception.Message} " : "";
+                        msg += (args.Outcome.Exception is not null) ? $" Exception: {args.Outcome.Exception} " : "";
                         if (args.Outcome.Result?.Content is HttpContent content && (await content.ReadAsStringAsync()) is string contentStr)
                         {
                             msg += $" Content:{Environment.NewLine}{contentStr}";
