@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\testproject\Common\TestResourceNames.cs" />
     <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
