@@ -1,6 +1,6 @@
 <Project>
   <!-- Workaround https://github.com/dependabot/dependabot-core/issues/8490 -->
-  <Import Project="eng/Versions.props" />
+  <Import Project="eng/Versions.props" Condition="'$(MajorVersion)' == ''"/>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
