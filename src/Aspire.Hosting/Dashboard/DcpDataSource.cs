@@ -24,6 +24,7 @@ internal sealed class DcpDataSource
 {
     private readonly IKubernetesService _kubernetesService;
     private readonly Dictionary<string, IResource> _applicationModel;
+    private readonly ConcurrentDictionary<string, ResourceSnapshot> _placeHolderResources = [];
     private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
 
@@ -139,6 +140,8 @@ internal sealed class DcpDataSource
                 Ports = []
             };
 
+            _placeHolderResources.TryAdd(resource.Name, snapshot);
+
             await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
         else if (resource is ProjectResource p)
@@ -164,6 +167,8 @@ internal sealed class DcpDataSource
                 WorkingDirectory = null
             };
 
+            _placeHolderResources.TryAdd(resource.Name, snapshot);
+
             await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
         else if (resource is ExecutableResource exe)
@@ -187,6 +192,8 @@ internal sealed class DcpDataSource
                 Endpoints = [],
                 Services = []
             };
+
+            _placeHolderResources.TryAdd(resource.Name, snapshot);
 
             await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
@@ -260,6 +267,16 @@ internal sealed class DcpDataSource
             var snapshot = snapshotFactory(resource);
 
             await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
+
+            // Remove the placeholder resource if it exists since we're getting an update about the real resource
+            // from DCP.
+            string? resourceName = null;
+            resource.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
+
+            if (resourceName is not null && _placeHolderResources.TryRemove(resourceName, out var dummy))
+            {
+                await _onResourceChanged(dummy, ResourceSnapshotChangeType.Delete).ConfigureAwait(false);
+            }
         }
 
         void UpdateAssociatedServicesMap()
@@ -382,9 +399,6 @@ internal sealed class DcpDataSource
         string? projectPath = null;
         executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
 
-        string? resourceName = null;
-        executable.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
-
         var (endpoints, services) = GetEndpointsAndServices(executable, "Executable", projectPath);
 
         if (projectPath is not null)
@@ -394,8 +408,8 @@ internal sealed class DcpDataSource
             // the project.
             return new ProjectSnapshot
             {
-                Name = resourceName ?? executable.Metadata.Name,
-                DisplayName = resourceName ?? GetDisplayName(executable),
+                Name = executable.Metadata.Name,
+                DisplayName = GetDisplayName(executable),
                 Uid = executable.Metadata.Uid,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
                 ExecutablePath = executable.Spec.ExecutablePath,
@@ -416,8 +430,8 @@ internal sealed class DcpDataSource
 
         return new ExecutableSnapshot
         {
-            Name = resourceName ?? executable.Metadata.Name,
-            DisplayName = resourceName ?? GetDisplayName(executable),
+            Name = executable.Metadata.Name,
+            DisplayName = GetDisplayName(executable),
             Uid = executable.Metadata.Uid,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
@@ -437,6 +451,7 @@ internal sealed class DcpDataSource
         static string GetDisplayName(Executable executable)
         {
             var displayName = executable.Metadata.Name;
+
             var replicaSetOwner = executable.Metadata.OwnerReferences?.FirstOrDefault(
                 or => or.Kind == Dcp.Model.Dcp.ExecutableReplicaSetKind
             );
