@@ -9,11 +9,18 @@
         }
       }
     },
-    "empty": {
+    "construct1": {
       "type": "azure.bicep.v0",
-      "path": "empty.module.bicep",
+      "path": "construct1.module.bicep",
       "params": {
-        "storagesku": "{storagesku.value}"
+        "storagesku": "Aspire.Hosting.ApplicationModel.ParameterResource"
+      }
+    },
+    "construct2": {
+      "type": "azure.bicep.v0",
+      "path": "construct2.module.bicep",
+      "params": {
+        "tableUri": "{construct1.outputs.tableUri}"
       }
     },
     "api": {
@@ -21,7 +28,8 @@
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "TABLE_URI": "{construct1.outputs.tableUri}"
       },
       "bindings": {
         "http": {

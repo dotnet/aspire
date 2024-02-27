@@ -12,23 +12,35 @@ namespace Aspire.Hosting;
 /// An Aspire resource which is also a CDK construct.
 /// </summary>
 /// <param name="name"></param>
-/// <param name="infrastructure"></param>
-/// <param name="createConstruct"></param>
-public class AzureConstructResource(string name, Infrastructure infrastructure, Func<AzureConstructResource, IConstruct, AspireResourceConstruct> createConstruct) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
+/// <param name="configureConstruct"></param>
+public class AzureConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
     /// <summary>
     /// TODO:
     /// </summary>
-    public Func<AzureConstructResource, IConstruct, AspireResourceConstruct> CreateConstruct { get; } = createConstruct;
+    public Action<ResourceModuleConstruct> ConfigureConstruct { get; } = configureConstruct;
 
     /// <inheritdoc />
     public override void WriteToManifest(ManifestPublishingContext context)
     {
         // HACK: Using CDK to generate files but then copying just the module
         //       to where it needs to be.
+        var tempInfrastructure = new TempInfrastructure();
+        var resourceModuleConstruct = new ResourceModuleConstruct(this, tempInfrastructure);
+
+        var locationParameter = new Parameter("location", defaultValue: "West US 3");
+        resourceModuleConstruct.AddParameter(locationParameter);
+
+        foreach (var aspireParameter in this.Parameters)
+        {
+            var constructParameter = new Parameter(aspireParameter.Key);
+            resourceModuleConstruct.AddParameter(constructParameter);
+        }
+
+        ConfigureConstruct(resourceModuleConstruct);
+
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
-        CreateConstruct(this, infrastructure);
-        infrastructure.Build(generationPath);
+        tempInfrastructure.Build(generationPath);
 
         var moduleSourcePath = Path.Combine(generationPath, "resources", "rg_temp_module", "rg_temp_module.bicep");
         var moduleDestinationPath = context.GetManifestRelativePath(TemplateFile);
@@ -52,55 +64,98 @@ public static class CdkResourceExtensions
     /// <param name="name">The name of the resource being added.</param>
     /// <param name="configureConstruct">A callback used to configure the resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<AzureConstructResource, IConstruct> configureConstruct)
+    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct> configureConstruct)
     {
-        var createConstruct = (AzureConstructResource resource, IConstruct subscriptionConstruct) =>
-        {
-            var resourceConstruct = new AspireResourceConstruct(subscriptionConstruct, name, builder.Environment.EnvironmentName);
-
-            var locationParameter = new Parameter("location", defaultValue: "West US 3");
-            resourceConstruct.AddParameter(locationParameter);
-
-            foreach (var aspireParameter in resource.Parameters)
-            {
-                var constructParameter = new Parameter(aspireParameter.Key);
-                resourceConstruct.AddParameter(constructParameter);
-            }
-
-            configureConstruct(resource, resourceConstruct);
-            return resourceConstruct;
-        };
-        return builder.AddAzureConstruct(name, createConstruct);
+        var resource = new AzureConstructResource(name, configureConstruct);
+        return builder.AddResource(resource)
+                      .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>
-    /// Adds a CDK resource to the application model.
+    /// TODO:
     /// </summary>
-    /// <param name="builder">The distributed application builder.</param>
-    /// <param name="name">The name of the resource being added.</param>
-    /// <param name="createConstruct"></param>
+    /// <param name="resourceModuleConstruct"></param>
+    /// <param name="parameterResourceBuilder"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Func<AzureConstructResource, IConstruct, AspireResourceConstruct> createConstruct)
+    public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, IResourceBuilder<ParameterResource> parameterResourceBuilder)
     {
-        // HACK: We shouldn't need this.
-        var infrastructure = new DummyInfrastructure(Guid.NewGuid(), Guid.NewGuid(), "temp");
+        return resourceModuleConstruct.AddParameter(parameterResourceBuilder.Resource.Name, parameterResourceBuilder);
+    }
 
-        var resource = new AzureConstructResource(name, infrastructure, createConstruct);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    /// <param name="resourceModuleConstruct"></param>
+    /// <param name="name"></param>
+    /// <param name="parameterResourceBuilder"></param>
+    /// <returns></returns>
+    public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, string name, IResourceBuilder<ParameterResource> parameterResourceBuilder)
+    {
+        // Ensure the parameter is added to the Aspire resource.
+        resourceModuleConstruct.Resource.Parameters.Add(name, parameterResourceBuilder);
+
+        var parameter = new Parameter(name, isSecure: parameterResourceBuilder.Resource.Secret);
+        resourceModuleConstruct.AddParameter(parameter);
+        return parameter;
+    }
+
+    /// <summary>
+    ///  TODO:
+    /// </summary>
+    /// <param name="resourceModuleConstruct"></param>
+    /// <param name="outputReference"></param>
+    /// <returns></returns>
+    public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, BicepOutputReference outputReference)
+    {
+        return resourceModuleConstruct.AddParameter(outputReference.Name, outputReference);
+    }
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    /// <param name="resourceModuleConstruct"></param>
+    /// <param name="name"></param>
+    /// <param name="outputReference"></param>
+    /// <returns></returns>
+    public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, string name, BicepOutputReference outputReference)
+    {
+        resourceModuleConstruct.Resource.Parameters.Add(name, outputReference);
+
+        var parameter = new Parameter(name);
+        resourceModuleConstruct.AddParameter(parameter);
+        return parameter;
     }
 }
 
 /// <summary>
-/// TODO:
+/// TODO: Can't think of a better name right now
 /// </summary>
-/// <param name="scope"></param>
-/// <param name="resourceName"></param>
-/// <param name="envName"></param>
-public class AspireResourceConstruct(IConstruct scope, string resourceName, string envName) : Construct(scope, resourceName, ConstructScope.ResourceGroup, tenantId: Guid.NewGuid(), subscriptionId: Guid.NewGuid(), envName: envName)
+public class ResourceModuleConstruct : Construct
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="scope"></param>
+    public ResourceModuleConstruct(AzureConstructResource resource, IConstruct scope) : base(scope, resource.Name, ConstructScope.ResourceGroup, tenantId: Guid.NewGuid(), subscriptionId: Guid.NewGuid(), envName: "temp")
+    {
+        Resource = resource;
+        LocationParameter = new Parameter("location", "West US 3");
+        AddParameter(LocationParameter);
+
+    }
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public AzureConstructResource Resource { get; }
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public Parameter LocationParameter { get; }
 }
 
-internal class DummyInfrastructure(Guid tenantId, Guid subscriptionId, string envName) : Infrastructure(tenantId: tenantId, subscriptionId: subscriptionId, envName: envName)
+internal class TempInfrastructure() : Infrastructure(tenantId: Guid.NewGuid(), subscriptionId: Guid.NewGuid(), envName: "temp")
 {
 }
