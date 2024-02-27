@@ -350,15 +350,12 @@ internal sealed class DcpDataSource
         var containerId = container.Status?.ContainerId;
         var (endpoints, services) = GetEndpointsAndServices(container, "Container");
 
-        string? resourceName = null;
-        container.Metadata.Annotations?.TryGetValue(Container.ResourceNameAnnotation, out resourceName);
-
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
 
         return new ContainerSnapshot
         {
-            Name = resourceName ?? container.Metadata.Name,
-            DisplayName = resourceName ?? container.Metadata.Name,
+            Name = container.Metadata.Name,
+            DisplayName = container.Metadata.Name,
             Uid = container.Metadata.Uid,
             ContainerId = containerId,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -451,7 +448,6 @@ internal sealed class DcpDataSource
         static string GetDisplayName(Executable executable)
         {
             var displayName = executable.Metadata.Name;
-
             var replicaSetOwner = executable.Metadata.OwnerReferences?.FirstOrDefault(
                 or => or.Kind == Dcp.Model.Dcp.ExecutableReplicaSetKind
             );
