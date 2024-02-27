@@ -35,15 +35,17 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
-    - script: ${{ parameters.dotnetScript }}
-              build
-              -restore
-              -p:ContinuousIntegrationBuild=true
-              -p:Configuration=${{ parameters.buildConfig }}
-              -t:InstallWorkloadUsingArtifacts
-              -bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
-              $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
-      displayName: Install sdk+workload for testing
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      # E2E tests are disabled on windows for now
+      - script: ${{ parameters.dotnetScript }}
+                build
+                -restore
+                -p:ContinuousIntegrationBuild=true
+                -p:Configuration=${{ parameters.buildConfig }}
+                -t:InstallWorkloadUsingArtifacts
+                -bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
+                $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
+        displayName: Install sdk+workload for testing
 
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
