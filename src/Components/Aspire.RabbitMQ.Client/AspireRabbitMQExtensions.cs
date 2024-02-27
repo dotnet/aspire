@@ -152,9 +152,6 @@ public static class AspireRabbitMQExtensions
 
     private static IConnection CreateConnection(IConnectionFactory factory, int retryCount)
     {
-        using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
-        AddRabbitMQTags(activity);
-
         var resiliencePipelineBuilder = new ResiliencePipelineBuilder();
         if (retryCount > 0)
         {
@@ -169,6 +166,9 @@ public static class AspireRabbitMQExtensions
             });
         }
         var resiliencePipeline = resiliencePipelineBuilder.Build();
+
+        using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
+        AddRabbitMQTags(activity);
 
         return resiliencePipeline.Execute(static factory =>
         {
