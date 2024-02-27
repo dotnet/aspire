@@ -6,18 +6,28 @@ using Azure.ResourceManager.Storage.Models;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var sku = builder.AddParameter("storagesku");
+
 // This is just an empty resource. Not referenced, but
 // just part of the .NET Aspire application model.
-builder.AddAzureConstruct("empty", (construct) =>
+var storage = builder.AddAzureConstruct("empty", (resource, construct) =>
 {
-    construct.AddStorageAccount(
-        name: "bob",
-        kind: StorageKind.BlobStorage,
-        sku: StorageSkuName.StandardLrs
-        );
-});
+    var parameters = construct.GetParameters().ToDictionary(p => p.Name);
 
-builder.AddProject<Projects.CdkSample_ApiService>("api");
+    var account = construct.AddStorageAccount(
+                    name: "bob",
+                    kind: StorageKind.BlobStorage,
+                    sku: StorageSkuName.StandardLrs
+                    );
+
+    account.AssignParameter(a => a.Sku.Name, parameters["storagesku"]);
+    account.AssignParameter(a => a.Location, parameters["location"]);
+
+    account.AddOutput(data => data.PrimaryEndpoints.TableUri, "tableUri", isSecure: true);
+}).WithParameter("storagesku", sku);
+
+builder.AddProject<Projects.CdkSample_ApiService>("api")
+       .WithEnvironment("TABLE_URI", storage.GetOutput("tableUri"));
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

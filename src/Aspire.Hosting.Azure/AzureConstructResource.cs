@@ -14,12 +14,12 @@ namespace Aspire.Hosting;
 /// <param name="name"></param>
 /// <param name="infrastructure"></param>
 /// <param name="createConstruct"></param>
-public class AzureConstructResource(string name, Infrastructure infrastructure, Func<IConstruct, AspireResourceConstruct> createConstruct) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
+public class AzureConstructResource(string name, Infrastructure infrastructure, Func<AzureConstructResource, IConstruct, AspireResourceConstruct> createConstruct) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
     /// <summary>
     /// TODO:
     /// </summary>
-    public Func<IConstruct, AspireResourceConstruct> CreateConstruct { get; } = createConstruct;
+    public Func<AzureConstructResource, IConstruct, AspireResourceConstruct> CreateConstruct { get; } = createConstruct;
 
     /// <inheritdoc />
     public override void WriteToManifest(ManifestPublishingContext context)
@@ -27,7 +27,7 @@ public class AzureConstructResource(string name, Infrastructure infrastructure, 
         // HACK: Using CDK to generate files but then copying just the module
         //       to where it needs to be.
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
-        CreateConstruct(infrastructure);
+        CreateConstruct(this, infrastructure);
         infrastructure.Build(generationPath);
 
         var moduleSourcePath = Path.Combine(generationPath, "resources", "rg_temp_module", "rg_temp_module.bicep");
@@ -52,12 +52,22 @@ public static class CdkResourceExtensions
     /// <param name="name">The name of the resource being added.</param>
     /// <param name="configureConstruct">A callback used to configure the resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<IConstruct> configureConstruct)
+    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<AzureConstructResource, IConstruct> configureConstruct)
     {
-        var createConstruct = (IConstruct subscriptionConstruct) =>
+        var createConstruct = (AzureConstructResource resource, IConstruct subscriptionConstruct) =>
         {
             var resourceConstruct = new AspireResourceConstruct(subscriptionConstruct, name, builder.Environment.EnvironmentName);
-            configureConstruct(resourceConstruct);
+
+            var locationParameter = new Parameter("location", defaultValue: "West US 3");
+            resourceConstruct.AddParameter(locationParameter);
+
+            foreach (var aspireParameter in resource.Parameters)
+            {
+                var constructParameter = new Parameter(aspireParameter.Key);
+                resourceConstruct.AddParameter(constructParameter);
+            }
+
+            configureConstruct(resource, resourceConstruct);
             return resourceConstruct;
         };
         return builder.AddAzureConstruct(name, createConstruct);
@@ -70,7 +80,7 @@ public static class CdkResourceExtensions
     /// <param name="name">The name of the resource being added.</param>
     /// <param name="createConstruct"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Func<IConstruct, AspireResourceConstruct> createConstruct)
+    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Func<AzureConstructResource, IConstruct, AspireResourceConstruct> createConstruct)
     {
         // HACK: We shouldn't need this.
         var infrastructure = new DummyInfrastructure(Guid.NewGuid(), Guid.NewGuid(), "temp");

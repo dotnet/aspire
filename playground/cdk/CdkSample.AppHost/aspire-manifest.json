@@ -1,8 +1,20 @@
 {
   "resources": {
+    "storagesku": {
+      "type": "parameter.v0",
+      "value": "{storagesku.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "empty": {
       "type": "azure.bicep.v0",
-      "path": "empty.module.bicep"
+      "path": "empty.module.bicep",
+      "params": {
+        "storagesku": "{storagesku.value}"
+      }
     },
     "api": {
       "type": "project.v0",
