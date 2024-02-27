@@ -1,11 +1,21 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Azure.Provisioning.Storage;
+using Azure.ResourceManager.Storage.Models;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // This is just an empty resource. Not referenced, but
 // just part of the .NET Aspire application model.
-builder.AddCdkResource("empty");
+builder.AddAzureConstruct("empty", (construct) =>
+{
+    construct.AddStorageAccount(
+        name: "bob",
+        kind: StorageKind.BlobStorage,
+        sku: StorageSkuName.StandardLrs
+        );
+});
 
 builder.AddProject<Projects.CdkSample_ApiService>("api");
 
