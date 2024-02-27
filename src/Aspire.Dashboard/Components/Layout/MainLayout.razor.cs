@@ -83,6 +83,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             ShortcutManager.AddGlobalKeydownListener(this);
+    
         }
     }
 
@@ -100,7 +101,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             Width = "700px",
             Height = "auto",
             Id = HelpDialogId,
-            OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, HandleDialogResult)
+            OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
         };
 
         if (_openPageDialog is not null)
@@ -116,7 +117,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _openPageDialog = await DialogService.ShowDialogAsync<HelpDialog>(parameters).ConfigureAwait(true);
     }
 
-    private void HandleDialogResult(DialogResult dialogResult)
+    private void HandleDialogClose(DialogInstance dialogResult)
     {
         _openPageDialog = null;
     }
@@ -135,7 +136,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             Width = "300px",
             Height = "auto",
             Id = SettingsDialogId,
-            OnDialogResult = EventCallback.Factory.Create<DialogResult>(this, HandleDialogResult)
+            OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
         };
 
         if (_openPageDialog is not null)
@@ -189,7 +190,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
-        
+
         try
         {
             await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _keyboardHandlers);
