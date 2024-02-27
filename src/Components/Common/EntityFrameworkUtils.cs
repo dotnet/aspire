@@ -94,7 +94,7 @@ internal static class EntityFrameworkUtils
 
         if (oldDbContextOptionsDescriptor is not null)
         {
-            throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> is already registered. Please ensure AddDbContext<{typeof(TContext).Name}>() is not invoked before {callerMemberName}() or use the corresponding 'Enrich' method.");
+            throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> is already registered. Please ensure 'services.AddDbContext<{typeof(TContext).Name}>()' is not used when calling '{callerMemberName}()' or use the corresponding 'Enrich' method.");
         }
     }
 }
