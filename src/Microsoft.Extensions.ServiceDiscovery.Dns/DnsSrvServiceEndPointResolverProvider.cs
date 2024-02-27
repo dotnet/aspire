@@ -11,7 +11,7 @@ using Microsoft.Extensions.ServiceDiscovery.Internal;
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
 /// <summary>
-/// Provides <see cref="IServiceEndPointResolver"/> instances which resolve endpoints from DNS using SRV queries.
+/// Provides <see cref="IServiceEndPointProvider"/> instances which resolve endpoints from DNS using SRV queries.
 /// </summary>
 /// <remarks>
 /// Initializes a new <see cref="DnsSrvServiceEndPointResolverProvider"/> instance.
@@ -32,7 +32,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
     private readonly string? _querySuffix = options.CurrentValue.QuerySuffix ?? GetKubernetesHostDomain();
 
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointResolver? resolver)
+    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
         // If a default namespace is not specified, then this provider will attempt to infer the namespace from the service name, but only when running inside Kubernetes.
         // Kubernetes DNS spec: https://github.com/kubernetes/dns/blob/master/docs/specification.md

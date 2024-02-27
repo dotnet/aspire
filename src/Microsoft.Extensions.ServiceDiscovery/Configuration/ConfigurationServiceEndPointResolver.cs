@@ -13,7 +13,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
 /// <summary>
 /// A service endpoint resolver that uses configuration to resolve endpoints.
 /// </summary>
-internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEndPointResolver, IHostNameFeature
+internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEndPointProvider, IHostNameFeature
 {
     private readonly string _serviceName;
     private readonly string? _endpointName;
@@ -147,7 +147,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     private ServiceEndPoint CreateEndPoint(EndPoint endPoint)
     {
         var serviceEndPoint = ServiceEndPoint.Create(endPoint);
-        serviceEndPoint.Features.Set<IServiceEndPointResolver>(this);
+        serviceEndPoint.Features.Set<IServiceEndPointProvider>(this);
         if (_options.Value.ApplyHostNameMetadata(serviceEndPoint))
         {
             serviceEndPoint.Features.Set<IHostNameFeature>(this);

@@ -32,6 +32,91 @@
         <target state="new">Value</target>
         <note />
       </trans-unit>
+      <trans-unit id="HelpDialogCategoryNavigation">
+        <source>Site-wide navigation</source>
+        <target state="new">Site-wide navigation</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryPageNavigation">
+        <source>Page navigation</source>
+        <target state="new">Page navigation</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryPanels">
+        <source>Panels</source>
+        <target state="new">Panels</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDecreasePanelSize">
+        <source>Decrease panel size</source>
+        <target state="new">Decrease panel size</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGetHelpLinkText">
+        <source>Go to Microsoft Learn documentation</source>
+        <target state="new">Go to Microsoft Learn documentation</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToConsoleLogs">
+        <source>Go to Console Logs</source>
+        <target state="new">Go to Console Logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToHelp">
+        <source>Go to Help</source>
+        <target state="new">Go to Help</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToMetrics">
+        <source>Go to Metrics</source>
+        <target state="new">Go to Metrics</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToResources">
+        <source>Go to Resources</source>
+        <target state="new">Go to Resources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToSettings">
+        <source>Go to Settings</source>
+        <target state="new">Go to Settings</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToStructuredLogs">
+        <source>Go to Structured Logs</source>
+        <target state="new">Go to Structured Logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToTraces">
+        <source>Go to Traces</source>
+        <target state="new">Go to Traces</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogIncreasePanelSize">
+        <source>Increase panel size</source>
+        <target state="new">Increase panel size</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogKeyboardShortcutsTitle">
+        <source>Keyboard Shortcuts</source>
+        <target state="new">Keyboard Shortcuts</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogResetPanelSize">
+        <source>Reset panel sizes</source>
+        <target state="new">Reset panel sizes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogTogglePanelOpen">
+        <source>Close panel</source>
+        <target state="new">Close panel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogTogglePanelOrientation">
+        <source>Toggle panel orientation</source>
+        <target state="new">Toggle panel orientation</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
         <target state="new">Dark</target>

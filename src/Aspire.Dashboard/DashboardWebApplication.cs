@@ -215,7 +215,7 @@ public class DashboardWebApplication : IAsyncDisposable
     {
         foreach (var uri in uris)
         {
-            if (string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(uri.Host, "localhost", StringComparisons.UrlHost))
             {
                 kestrelOptions.ListenLocalhost(uri.Port, ConfigureListenOptions);
             }
