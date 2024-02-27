@@ -2,14 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
+
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
-    <VersionBandForSdkManifestsDir>8.0.100</VersionBandForSdkManifestsDir>
-    <VersionBandForManifestPackages>8.0.100</VersionBandForManifestPackages>
     <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
     <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
   </PropertyGroup>
