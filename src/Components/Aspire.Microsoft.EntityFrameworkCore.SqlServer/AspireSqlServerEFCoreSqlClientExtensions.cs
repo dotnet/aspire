@@ -74,9 +74,9 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                 }
 
                 // The time in seconds to wait for the command to execute.
-                if (settings.Timeout.HasValue)
+                if (settings.CommandTimeout.HasValue)
                 {
-                    builder.CommandTimeout(settings.Timeout);
+                    builder.CommandTimeout(settings.CommandTimeout);
                 }
             });
 

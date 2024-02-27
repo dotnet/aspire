@@ -48,5 +48,5 @@ public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
     /// <summary>
     /// The time in seconds to wait for the command to execute.
     /// </summary>
-    public int? Timeout { get; set; }
+    public int? CommandTimeout { get; set; }
 }
