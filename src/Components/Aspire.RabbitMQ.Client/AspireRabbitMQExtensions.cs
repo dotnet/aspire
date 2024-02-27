@@ -32,9 +32,9 @@ public static class AspireRabbitMQExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="IConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client" section.</remarks>
-    public static void AddRabbitMQ(this IHostApplicationBuilder builder, string connectionName, Action<RabbitMQClientSettings>? configureSettings = null, Action<IConnectionFactory>? configureConnectionFactory = null)
+    public static void AddRabbitMQ(this IHostApplicationBuilder builder, string connectionName, Action<RabbitMQClientSettings>? configureSettings = null, Action<ConnectionFactory>? configureConnectionFactory = null)
         => AddRabbitMQ(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
 
     /// <summary>
@@ -44,9 +44,9 @@ public static class AspireRabbitMQExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="IConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client:{name}" section.</remarks>
-    public static void AddKeyedRabbitMQ(this IHostApplicationBuilder builder, string name, Action<RabbitMQClientSettings>? configureSettings = null, Action<IConnectionFactory>? configureConnectionFactory = null)
+    public static void AddKeyedRabbitMQ(this IHostApplicationBuilder builder, string name, Action<RabbitMQClientSettings>? configureSettings = null, Action<ConnectionFactory>? configureConnectionFactory = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
@@ -57,7 +57,7 @@ public static class AspireRabbitMQExtensions
         IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<RabbitMQClientSettings>? configureSettings,
-        Action<IConnectionFactory>? configureConnectionFactory,
+        Action<ConnectionFactory>? configureConnectionFactory,
         string connectionName,
         object? serviceKey)
     {
@@ -172,7 +172,7 @@ public static class AspireRabbitMQExtensions
                 if (connectAttemptActivity is not null)
                 {
                     connectAttemptActivity.AddTag("exception.message", ex.Message);
-                    // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property. 
+                    // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property.
                     // See https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
                     // and https://github.com/open-telemetry/opentelemetry-specification/pull/697#discussion_r453662519
                     connectAttemptActivity.AddTag("exception.stacktrace", ex.ToString());
