@@ -88,17 +88,11 @@ public class AspireEFPostgreSqlExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Retry", "true"),
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:CommandTimeout", "123")
         ]);
 
-        builder.AddNpgsqlDbContext<TestDbContext>("npgsql", configureDbContextOptions: optionsBuilder =>
-        {
-            ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
-            optionsBuilder.UseNpgsql(npgsqlBuilder =>
-            {
-                npgsqlBuilder.CommandTimeout(123);
-            });
-        });
+        builder.AddNpgsqlDbContext<TestDbContext>("npgsql", configureDbContextOptions: ConfigureDbContextOptionsBuilderForTesting);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

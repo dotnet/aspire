@@ -79,7 +79,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "true"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Timeout", "608")
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:CommandTimeout", "608")
         ]);
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configureDbContextOptions: optionsBuilder =>
@@ -126,13 +126,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "false"),
         ]);
 
-        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configureDbContextOptions: optionsBuilder =>
-        {
-            optionsBuilder.UseSqlServer(sqlBuilder =>
-            {
-                sqlBuilder.CommandTimeout(123);
-            });
-        });
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configureSettings: settings => settings.CommandTimeout = 123);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

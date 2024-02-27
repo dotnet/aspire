@@ -80,7 +80,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
             new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "true"),
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Timeout", "608")
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:CommandTimeout", "608")
         ]);
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configureDbContextOptions: optionsBuilder =>

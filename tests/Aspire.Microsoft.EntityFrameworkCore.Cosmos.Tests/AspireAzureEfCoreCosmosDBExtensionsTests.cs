@@ -22,15 +22,11 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:cosmosConnection", ConnectionString),
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:Region", "westus"),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:RequestTimeout", "608"),
         ]);
 
-        builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName", configureDbContextOptions: optionsBuilder =>
-        {
-            optionsBuilder.UseCosmos(ConnectionString, "databaseName", cosmosBuilder =>
-            {
-                cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(608));
-            });
-        });
+        builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
+            configureDbContextOptions: optionsBuilder => optionsBuilder.UseCosmos(ConnectionString, "databaseName"));
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
