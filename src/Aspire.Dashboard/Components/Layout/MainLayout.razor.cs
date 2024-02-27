@@ -148,7 +148,7 @@ public partial class MainLayout
 
     public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
-        if (args.ShiftKey)
+        if (args.ShiftKey && !args.CtrlKey && !args.AltKey)
         {
             if (args.Key is "?")
             {
@@ -159,15 +159,15 @@ public partial class MainLayout
                 await LaunchSettingsAsync();
             }
         }
-        else
+        else if (!args.ShiftKey && !args.CtrlKey && !args.AltKey)
         {
             var url = args.Key.ToLower() switch
             {
                 "r" => "/",
-                "c" => "/ConsoleLogs",
-                "s" => "/StructuredLogs",
-                "t" => "/Traces",
-                "m" => "/Metrics",
+                "c" => "/consolelogs",
+                "s" => "/structuredlogs",
+                "t" => "/traces",
+                "m" => "/metrics",
                 _ => null
             };
 

@@ -184,7 +184,7 @@ public partial class SummaryDetailsView<T>
 
     public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
-        if (_splitterRef is null || !args.ShiftKey)
+        if (_splitterRef is null || !args.ShiftKey || args.AltKey || args.CtrlKey)
         {
             return;
         }
