@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Logging;
 
 static class TestResourceExtensions
 {
@@ -11,6 +12,7 @@ static class TestResourceExtensions
         builder.Services.AddLifecycleHook<TestResourceLifecycleHook>();
 
         var rb = builder.AddResource(new TestResource(name))
+                      .WithResourceLogger()
                       .WithCustomResourceState(() => new()
                       {
                           ResourceType = "Test Resource",
@@ -34,14 +36,21 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
     {
         foreach (var item in appModel.Resources.OfType<TestResource>())
         {
-            if (item.TryGetLastAnnotation<CustomResourceAnnotation>(out var annotation))
+            if (item.TryGetLastAnnotation<CustomResourceAnnotation>(out var customResourceAnnotation))
             {
+                item.TryGetLastAnnotation<CustomResourceLoggerAnnotation>(out var loggerAnnotation);
+
+                if (loggerAnnotation is null)
+                {
+                    continue;
+                }
+
                 var states = new[] { "Starting", "Running", "Finished" };
 
                 Task.Run(async () =>
                 {
                     // Simulate custom resource state changes
-                    var state = annotation.GetInitialSnapshot();
+                    var state = customResourceAnnotation.GetInitialSnapshot();
                     var seconds = Random.Shared.Next(2, 12);
 
                     state = state with
@@ -49,19 +58,25 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
                         Properties = [.. state.Properties, ("Interval", seconds.ToString(CultureInfo.InvariantCulture))]
                     };
 
+                    loggerAnnotation.Logger.LogInformation("Starting test resource {ResourceName} with update interval {Interval} seconds", item.Name, seconds);
+
                     // This might run before the dashboard is ready to receive updates, but it will be queued.
-                    await annotation.UpdateStateAsync(state);
+                    await customResourceAnnotation.UpdateStateAsync(state);
 
                     using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds));
 
                     while (await timer.WaitForNextTickAsync(_tokenSource.Token))
                     {
+                        var randomState = states[Random.Shared.Next(0, states.Length)];
+
                         state = state with
                         {
-                            State = states[Random.Shared.Next(0, states.Length)]
+                            State = randomState
                         };
 
-                        await annotation.UpdateStateAsync(state);
+                        loggerAnnotation.Logger.LogInformation("Test resource {ResourceName} is now in state {State}", item.Name, randomState);
+
+                        await customResourceAnnotation.UpdateStateAsync(state);
                     }
                 },
                 cancellationToken);

@@ -25,10 +25,12 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         IConfiguration configuration,
         ILoggerFactory loggerFactory)
     {
-        _resourcePublisher = new ResourcePublisher(_cts.Token);
-        _consoleLogPublisher = new ConsoleLogPublisher(_resourcePublisher, kubernetesService, loggerFactory, configuration);
+        var resourceMap = applicationModel.Resources.ToDictionary(resource => resource.Name, StringComparer.Ordinal);
 
-        _ = new DcpDataSource(kubernetesService, applicationModel, configuration, loggerFactory, _resourcePublisher.IntegrateAsync, _cts.Token);
+        _resourcePublisher = new ResourcePublisher(_cts.Token);
+        _consoleLogPublisher = new ConsoleLogPublisher(_resourcePublisher, resourceMap, kubernetesService, loggerFactory, configuration);
+
+        _ = new DcpDataSource(kubernetesService, resourceMap, configuration, loggerFactory, _resourcePublisher.IntegrateAsync, _cts.Token);
     }
 
     public async ValueTask DisposeAsync()

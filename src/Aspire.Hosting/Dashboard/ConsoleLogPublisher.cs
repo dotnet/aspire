@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +13,7 @@ using LogsEnumerable = IAsyncEnumerable<IReadOnlyList<(string Content, bool IsEr
 
 internal sealed class ConsoleLogPublisher(
     ResourcePublisher resourcePublisher,
+    IReadOnlyDictionary<string, IResource> resourceMap,
     IKubernetesService kubernetesService,
     ILoggerFactory loggerFactory,
     IConfiguration configuration)
@@ -31,7 +33,7 @@ internal sealed class ConsoleLogPublisher(
             {
                 ExecutableSnapshot executable => SubscribeExecutableResource(executable),
                 ContainerSnapshot container => SubscribeContainerResource(container),
-                GenericResourceSnapshot => SubscribeGenericResource(),
+                GenericResourceSnapshot genericResource when resourceMap.TryGetValue(genericResource.Name, out var appModelResource) => SubscribeGenericResource(appModelResource),
                 _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
             };
         }
@@ -41,7 +43,7 @@ internal sealed class ConsoleLogPublisher(
             {
                 ExecutableSnapshot executable => SubscribeExecutable(executable),
                 ContainerSnapshot container => SubscribeContainer(container),
-                GenericResourceSnapshot => SubscribeGenericResource(),
+                GenericResourceSnapshot genericResource when resourceMap.TryGetValue(genericResource.Name, out var appModelResource) => SubscribeGenericResource(appModelResource),
                 _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
             };
         }
@@ -79,8 +81,18 @@ internal sealed class ConsoleLogPublisher(
         }
     }
 
+    private static LogsEnumerable SubscribeGenericResource(IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<CustomResourceLoggerAnnotation>(out var loggerAnnotation))
+        {
+            return loggerAnnotation.WatchAsync();
+        }
+
+        return NoLogsAvailableEnumerable();
+    }
+
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-    private static async LogsEnumerable SubscribeGenericResource()
+    private static async LogsEnumerable NoLogsAvailableEnumerable()
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
         yield return [("No logs available", false)];
