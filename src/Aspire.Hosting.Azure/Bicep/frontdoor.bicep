@@ -1,11 +1,13 @@
+@description('The name of the Front Door instance')
 param frontDoorProfileName string
+@description('The domain name to provison for the Front Door endpoint')
 param domainName string
 
 param location string = resourceGroup().location
 
-param dnsResourceGroupName string
-param dnsSubscriptionId string
+@description('The name of the DNS zone to configure alongside the Front Door instance for custom domain certificate issuance and ingest')
 param dnsZoneName string
+@description('The path the health probe should use for load balancing purposes')
 param healthProbePath string = '/health'
 
 // Route properties

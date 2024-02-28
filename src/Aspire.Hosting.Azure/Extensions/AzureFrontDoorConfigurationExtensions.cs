@@ -40,6 +40,7 @@ public static class AzureFrontDoorConfigurationExtensions
             .WithParameter("allowSessionAffinity", options.AllowSessionAffinity)
             .WithParameter("httpsRedirect", options.SupportHttpsRedirect)
             .WithParameter("createWwwSubdomainForCustomDomain", options.CreateWwwSubdomainForDomain)
+            .WithParameter("dnsZoneName", options.DnsZoneName)
             .WithParameter("dnsRecordTimeToLiveInSeconds", options.DnsRecordTtl)
             .WithParameter("originContainerAppName", options.OriginContainerAppName)
             .WithManifestPublishingCallback(resource.WriteToManifest);
@@ -54,12 +55,14 @@ public sealed class AzureFrontDoorOptions
     /// <summary>
     /// Constructor used to create an instance of <see cref="AzureFrontDoorOptions"/>.
     /// </summary>
-    /// <param name="domainName"></param>
-    /// <param name="originContainerAppName"></param>
-    public AzureFrontDoorOptions(string domainName, string originContainerAppName)
+    /// <param name="domainName">The domain name to provision the Front Door endpoint and route for.</param>
+    /// <param name="originContainerAppName">The name of the Container App that Front Door should be configured to point to as the origin.</param>
+    /// <param name="dnsZoneName">The name of the DNS zone to configure alongside the Front Door instance for custom domain certificate issuance and ingest.</param>
+    public AzureFrontDoorOptions(string domainName, string originContainerAppName, string dnsZoneName)
     {
         DomainName = domainName;
         OriginContainerAppName = originContainerAppName;
+        DnsZoneName = dnsZoneName;
     }
 
     /// <summary>
@@ -71,6 +74,11 @@ public sealed class AzureFrontDoorOptions
     /// Flag indicating whether a "www." subdomain should be created in addition to the domain for <see cref="DomainName"/>.
     /// </summary>
     public bool CreateWwwSubdomainForDomain { get; init; }
+
+    /// <summary>
+    /// The name of the DNS zone to configure alongside the Front Door instance.
+    /// </summary>
+    public string DnsZoneName { get; init; }
 
     /// <summary>
     /// The name of the container 
