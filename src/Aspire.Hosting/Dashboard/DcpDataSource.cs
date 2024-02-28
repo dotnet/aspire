@@ -23,7 +23,7 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DcpDataSource
 {
     private readonly IKubernetesService _kubernetesService;
-    private readonly Dictionary<string, IResource> _applicationModel;
+    private readonly IReadOnlyDictionary<string, IResource> _applicationModel;
     private readonly ConcurrentDictionary<string, ResourceSnapshot> _placeHolderResources = [];
     private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
@@ -36,14 +36,14 @@ internal sealed class DcpDataSource
 
     public DcpDataSource(
         IKubernetesService kubernetesService,
-        DistributedApplicationModel applicationModel,
+        IReadOnlyDictionary<string, IResource> applicationModel,
         IConfiguration configuration,
         ILoggerFactory loggerFactory,
         Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
-        _applicationModel = applicationModel.Resources.ToDictionary(d => d.Name);
+        _applicationModel = applicationModel;
         _onResourceChanged = onResourceChanged;
 
         _logger = loggerFactory.CreateLogger<DcpDataSource>();
@@ -54,7 +54,7 @@ internal sealed class DcpDataSource
             async () =>
             {
                 // Show all resources initially and allow updates from DCP (for the relevant resources)
-                foreach (var resource in applicationModel.Resources)
+                foreach (var (_, resource) in _applicationModel)
                 {
                     await ProcessInitialResourceAsync(resource, cancellationToken).ConfigureAwait(false);
                 }
