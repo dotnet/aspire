@@ -32,14 +32,12 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     {
         _integrationServicesFixture.EnsureAppHostRunning();
 
-        _testOutput.WriteLine ($"[{DateTime.Now}] >>>> Starting VerifyComponentWorks for {resourceName} --");
         try
         {
             var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
             var responseContent = await response.Content.ReadAsStringAsync();
 
             Assert.True(response.IsSuccessStatusCode, responseContent);
-            _testOutput.WriteLine ($"[{DateTime.Now}] <<<< Done VerifyComponentWorks for {resourceName} --");
         }
         catch
         {
@@ -69,7 +67,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Fact]
     public async Task KafkaComponentCanProduceAndConsume()
     {
-        _testOutput.WriteLine($"[{DateTime.Now}] >>>> Starting KafkaComponentCanProduceAndConsume --");
         try
         {
             _integrationServicesFixture.EnsureAppHostRunning();
@@ -83,7 +80,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}");
             responseContent = await response.Content.ReadAsStringAsync();
             Assert.True(response.IsSuccessStatusCode, responseContent);
-            _testOutput.WriteLine ($"[{DateTime.Now}] <<<< Done KafkaComponentCanProduceAndConsume --");
         }
         catch
         {
@@ -96,8 +92,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Fact]
     public async Task VerifyHealthyOnIntegrationServiceA()
     {
-        _testOutput.WriteLine($"[{DateTime.Now}] >>>> Starting VerifyHealthyOnIntegrationServiceA --");
-
         try
         {
             _integrationServicesFixture.EnsureAppHostRunning();
@@ -105,7 +99,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             // We wait until timeout for the /health endpoint to return successfully. We assume
             // that components wired up into this project have health checks enabled.
             await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http");
-            _testOutput.WriteLine($"[{DateTime.Now}] <<<< Done VerifyHealthyOnIntegrationServiceA --");
         }
         catch
         {

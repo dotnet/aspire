@@ -58,7 +58,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var stderrComplete = new TaskCompletionSource();
         _appHostProcess = new Process();
 
-        string processArguments = $"run -bl:testproject.binlog -- ";
+        string processArguments = $"run -- ";
         if (GetResourcesToSkip() is var resourcesToSkip && resourcesToSkip.Count > 0)
         {
             processArguments += $"--skip-resources {string.Join(',', resourcesToSkip)}";
@@ -92,7 +92,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             }
 
             output.AppendLine(e.Data);
-            _testOutput.WriteLine($"[{DateTime.Now}][apphost] {e.Data}");
+            _testOutput.WriteLine($"[apphost] {e.Data}");
 
             if (e.Data?.StartsWith("$ENDPOINTS: ") == true)
             {
@@ -114,14 +114,14 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             }
 
             output.AppendLine(e.Data);
-            _testOutput.WriteLine($"[{DateTime.Now}][apphost] {e.Data}");
+            _testOutput.WriteLine($"[apphost] {e.Data}");
         };
 
         EventHandler appExitedCallback = (sender, e) =>
         {
-            _testOutput.WriteLine($"[{DateTime.Now}] ");
-            _testOutput.WriteLine($"[{DateTime.Now}] ----------- app has exited -------------");
-            _testOutput.WriteLine($"[{DateTime.Now}] ");
+            _testOutput.WriteLine("");
+            _testOutput.WriteLine($"----------- app has exited -------------");
+            _testOutput.WriteLine("");
             _appExited.SetResult();
         };
         _appHostProcess.EnableRaisingEvents = true;
@@ -182,7 +182,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
     }
 
-    private static HttpClient CreateHttpClient()
+    private HttpClient CreateHttpClient()
     {
         var services = new ServiceCollection();
         services.AddHttpClient()
@@ -208,7 +208,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                     options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(10);
                     options.Retry.OnRetry = async (args) =>
                     {
-                        var msg = $"[{DateTime.Now}] Retry #{args.AttemptNumber+1} for '{args.Outcome.Result?.RequestMessage?.RequestUri}'" +
+                        var msg = $"Retry #{args.AttemptNumber+1} for '{args.Outcome.Result?.RequestMessage?.RequestUri}'" +
                                         $" due to StatusCode: {(int?)args.Outcome.Result?.StatusCode} ReasonPhrase: '{args.Outcome.Result?.ReasonPhrase}'";
 
                         msg += (args.Outcome.Exception is not null) ? $" Exception: {args.Outcome.Exception} " : "";
@@ -217,7 +217,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                             msg += $" Content:{Environment.NewLine}{contentStr}";
                         }
 
-                        Console.WriteLine(msg);
+                        _testOutput.WriteLine(msg);
                     };
                     options.Retry.MaxRetryAttempts = 20;
                 });
