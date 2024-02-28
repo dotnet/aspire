@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <IsTestSupportProject>true</IsTestSupportProject>
+    <TestsRunningOutOfTree Condition="'$(TestsRunningOutOfTree)' == '' and ('$(RepoRoot)' == '' or !Exists($(RepoRoot)))">true</TestsRunningOutOfTree>
   </PropertyGroup>
 
   <Import Project="Directory.Build.Helix.props" Condition="'$(TestsRunningOutOfTree)' == 'true'" />

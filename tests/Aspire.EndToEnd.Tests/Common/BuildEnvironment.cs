@@ -122,7 +122,8 @@ public class BuildEnvironment
             ["DOTNET_MULTILEVEL_LOOKUP"] = "0",
             ["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1",
             ["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}",
-            ["BUILT_NUGETS_PATH"] = BuiltNuGetsPath
+            ["BUILT_NUGETS_PATH"] = BuiltNuGetsPath,
+            ["NUGET_PACKAGES"] = Path.Combine(Path.GetTempPath(), "nuget-cache")
         };
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");

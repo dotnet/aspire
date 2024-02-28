@@ -16,16 +16,18 @@
 
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
 
-    <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" Condition="'$(TestsRunningOutOfTree)' == 'true' or '$(ArchiveTests)' == 'true'" />
-    <None Include="..\nuget.helix.config" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" Condition="'$(TestsRunningOutOfTree)' == 'true' or '$(ArchiveTests)' == 'true'" />
+    <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\nuget.helix.config" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Target Name="_AddPackageVersions" AfterTargets="Build">
+  <Target Name="_AddPackageVersionsForUseWithHelix" AfterTargets="Build">
     <PropertyGroup>
       <_TestAssetsOutputDir>$(OutputPath)\testassets\</_TestAssetsOutputDir>
 
@@ -35,6 +37,7 @@
         <PropertyGroup>
           <PackageVersion>$(PackageVersion)</PackageVersion>
           <MicrosoftExtensionsHostingAbstractionsPackageVersion>$(MicrosoftExtensionsHostingAbstractionsPackageVersion)</MicrosoftExtensionsHostingAbstractionsPackageVersion>
+          <MicrosoftExtensionsHostingPackageVersion>$(MicrosoftExtensionsHostingPackageVersion)</MicrosoftExtensionsHostingPackageVersion>
         </PropertyGroup>
       </Project>
 ]]>

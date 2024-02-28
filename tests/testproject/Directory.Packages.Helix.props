@@ -1,7 +1,9 @@
 <Project>
   <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <_DirectoryPackagesRepoProps>$(MSBuildThisFileDirectory)Directory.Packages.repo.props</_DirectoryPackagesRepoProps>
   </PropertyGroup>
+  <Import Project="$(_DirectoryPackagesRepoProps)" Condition="Exists($(_DirectoryPackagesRepoProps))" />
+
   <ItemGroup>
     <PackageVersion Include="Aspire.Confluent.Kafka" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />
@@ -15,7 +17,5 @@
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting" Version="$(PackageVersion)" />
-
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsHostingAbstractionsPackageVersion)" />
   </ItemGroup>
 </Project>

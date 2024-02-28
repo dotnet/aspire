@@ -31,18 +31,26 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private readonly TaskCompletionSource _appExited = new();
     private Dictionary<string, ProjectInfo>? _projects;
     private readonly IMessageSink _diagnosticMessageSink;
-    private TestOutputWrapper? _testOutput;
+    private readonly TestOutputWrapper _testOutput;
 
     public IntegrationServicesFixture(IMessageSink messageSink)
     {
         _diagnosticMessageSink = messageSink;
+        _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
     }
 
     public async Task InitializeAsync()
     {
         var appHostDirectory = Path.Combine(BuildEnvironment.TestProjectPath, "TestProject.AppHost");
 
-        _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
+        {
+            using var cmd = new DotNetCommand(BuildEnvironment, _testOutput)
+                .WithWorkingDirectory(appHostDirectory);
+
+            (await cmd.ExecuteAsync(CancellationToken.None, "build -bl:testproject.binlog"))
+                .EnsureSuccessful();
+        }
+
         var output = new StringBuilder();
         var projectsParsed = new TaskCompletionSource();
         var appRunning = new TaskCompletionSource();
@@ -50,7 +58,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var stderrComplete = new TaskCompletionSource();
         _appHostProcess = new Process();
 
-        string processArguments = $"run -- ";
+        string processArguments = $"run -bl:testproject.binlog -- ";
         if (GetResourcesToSkip() is var resourcesToSkip && resourcesToSkip.Count > 0)
         {
             processArguments += $"--skip-resources {string.Join(',', resourcesToSkip)}";
@@ -158,9 +166,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
         Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{output}");
 
-        // FIXME: don't remove this.. fail the whole thing is the app exits early!
-        //_appHostProcess.Exited -= appExitedCallback;
-
         var client = CreateHttpClient();
         foreach (var project in Projects.Values)
         {
@@ -203,7 +208,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                     options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(10);
                     options.Retry.OnRetry = async (args) =>
                     {
-                        string msg = $"[{DateTime.Now}] Retry #{args.AttemptNumber+1} for '{args.Outcome.Result?.RequestMessage?.RequestUri}'" +
+                        var msg = $"[{DateTime.Now}] Retry #{args.AttemptNumber+1} for '{args.Outcome.Result?.RequestMessage?.RequestUri}'" +
                                         $" due to StatusCode: {(int?)args.Outcome.Result?.StatusCode} ReasonPhrase: '{args.Outcome.Result?.ReasonPhrase}'";
 
                         msg += (args.Outcome.Exception is not null) ? $" Exception: {args.Outcome.Exception} " : "";
