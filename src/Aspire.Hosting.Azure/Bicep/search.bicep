@@ -61,30 +61,33 @@ resource search 'Microsoft.Search/searchServices@2022-09-01' = {
   tags: tags
 }
 
-// Search Service Contributor, c.f. https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
-var roleDefinitionId1 = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
+// Find list of roles and GUIDs in https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+
+// Search Service Contributor
+var scRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
 
 // Search Index Data Contributor
-var roleDefinitionId2 = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
+var idRoleDefinitionId2 = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
 
-resource searchRoleAssignment1 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(search.id, principalId, roleDefinitionId1)
+resource scSearchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(search.id, principalId, scRoleDefinitionId)
   scope: search
   properties: {
     principalId: principalId
     principalType: principalType
-    roleDefinitionId: roleDefinitionId1
+    roleDefinitionId: scRoleDefinitionId
   }
 }
 
-resource searchRoleAssignment2 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(search.id, principalId, roleDefinitionId2)
+resource isSearchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(search.id, principalId, idRoleDefinitionId2)
   scope: search
   properties: {
     principalId: principalId
     principalType: principalType
-    roleDefinitionId: roleDefinitionId2
+    roleDefinitionId: idRoleDefinitionId2
   }
 }
 
+// The resource provider doesn't expose the final endpoint url, so we construct it from the unique name
 output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'

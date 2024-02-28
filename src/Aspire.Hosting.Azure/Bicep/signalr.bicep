@@ -66,7 +66,7 @@ resource signalR 'Microsoft.SignalRService/signalR@2022-02-01' = {
   tags: tags
 }
 
-// RoleName: SignalR App Server, c.f. https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+// RoleName: SignalR App Server
 var roleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7')
 resource signalRRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(signalR.id, principalId, roleDefinitionId)
