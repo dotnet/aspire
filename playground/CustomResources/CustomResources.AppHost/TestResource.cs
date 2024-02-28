@@ -41,7 +41,7 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
 
                 Task.Run(async () =>
                 {
-                    // The background thread
+                    // Simulate custom resource state changes
                     var state = annotation.GetIntialState();
                     var seconds = Random.Shared.Next(2, 12);
 
