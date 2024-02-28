@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
@@ -28,27 +27,27 @@ public partial class Resources : ComponentBase, IDisposable
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    private ImmutableHashSet<string> _allResourceTypes = [];
-    private readonly HashSet<string> _visibleResourceTypes;
+    private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes;
     private string _filter = "";
     private bool _isTypeFilterVisible;
 
     public Resources()
     {
-        _visibleResourceTypes = new HashSet<string>(_allResourceTypes, StringComparers.ResourceType);
+        _visibleResourceTypes = new(StringComparers.ResourceType);
     }
 
-    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.Contains(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter));
+    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter));
 
     protected void OnResourceTypeVisibilityChanged(string resourceType, bool isVisible)
     {
         if (isVisible)
         {
-            _visibleResourceTypes.Add(resourceType);
+            _visibleResourceTypes[resourceType] = true;
         }
         else
         {
-            _visibleResourceTypes.Remove(resourceType);
+            _visibleResourceTypes.TryRemove(resourceType, out _);
         }
     }
 
@@ -56,17 +55,37 @@ public partial class Resources : ComponentBase, IDisposable
     {
         get
         {
-            return _visibleResourceTypes.SetEquals(_allResourceTypes)
+            static bool SetEqualsKeys(ConcurrentDictionary<string, bool> left, ConcurrentDictionary<string, bool> right)
+            {
+                // PERF: This is inefficient since Keys locks and copies the keys.
+                var keysLeft = left.Keys;
+                var keysRight = right.Keys;
+
+                return keysLeft.Count == keysRight.Count && keysLeft.SequenceEqual(keysRight, StringComparers.ResourceType);
+            }
+
+            return SetEqualsKeys(_visibleResourceTypes, _allResourceTypes)
                 ? true
-                : _visibleResourceTypes.Count == 0
+                : _visibleResourceTypes.IsEmpty
                     ? false
                     : null;
         }
         set
         {
+            static bool UnionWithKeys(ConcurrentDictionary<string, bool> left, ConcurrentDictionary<string, bool> right)
+            {
+                // .Keys locks and copies the keys so avoid it here.
+                foreach (var (key, _) in right)
+                {
+                    left[key] = true;
+                }
+
+                return true;
+            }
+
             if (value is true)
             {
-                _visibleResourceTypes.UnionWith(_allResourceTypes);
+                UnionWithKeys(_visibleResourceTypes, _allResourceTypes);
             }
             else if (value is false)
             {
@@ -100,23 +119,15 @@ public partial class Resources : ComponentBase, IDisposable
         {
             var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
-            var builder = ImmutableHashSet.CreateBuilder<string>();
-
             // Apply snapshot.
             foreach (var resource in snapshot)
             {
                 var added = _resourceByName.TryAdd(resource.Name, resource);
 
-                builder.Add(resource.ResourceType);
+                _allResourceTypes.TryAdd(resource.ResourceType, true);
+                _visibleResourceTypes.TryAdd(resource.ResourceType, true);
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
-            }
-
-            _allResourceTypes = builder.ToImmutable();
-
-            foreach (var resourceType in _allResourceTypes)
-            {
-                _visibleResourceTypes.Add(resourceType);
             }
 
             // Listen for updates and apply.
@@ -128,7 +139,8 @@ public partial class Resources : ComponentBase, IDisposable
                     {
                         _resourceByName[resource.Name] = resource;
 
-                        ImmutableInterlocked.Update(ref _allResourceTypes, set => set.Add(resource.ResourceType));
+                        _allResourceTypes[resource.ResourceType] = true;
+                        _visibleResourceTypes[resource.ResourceType] = true;
                     }
                     else if (changeType == ResourceViewModelChangeType.Delete)
                     {
@@ -136,12 +148,7 @@ public partial class Resources : ComponentBase, IDisposable
                         Debug.Assert(removed, "Cannot remove unknown resource.");
                     }
 
-                    await InvokeAsync(() =>
-                    {
-                        _visibleResourceTypes.Add(resource.ResourceType);
-
-                        StateHasChanged();
-                    });
+                    await InvokeAsync(StateHasChanged);
                 }
             });
         }
