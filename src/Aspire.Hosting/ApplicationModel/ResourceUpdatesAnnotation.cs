@@ -8,18 +8,18 @@ using Aspire.Dashboard.Model;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// The annotation that reflects how a resource shows up in the dashboard.
-/// This is a single producer, single consumer channel model for pushing updates to the dashboard.
-/// The resource server will be the only caller of WatchAsync.
+/// The annotation that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public sealed class CustomResourceAnnotation(Func<CustomResourceSnapshot> initialSnapshotFactory) : IResourceAnnotation
+public sealed class ResourceUpdatesAnnotation(Func<CustomResourceSnapshot> initialSnapshotFactory) : IResourceAnnotation
 {
-    private readonly Channel<CustomResourceSnapshot> _channel = Channel.CreateUnbounded<CustomResourceSnapshot>();
+    private readonly CancellationTokenSource _streamClosedCts = new();
+
+    private Func<CustomResourceSnapshot, Task>? OnSnapshotUpdated { get; set; }
 
     /// <summary>
     /// Watch for changes to the dashboard state for a resource.
     /// </summary>
-    public IAsyncEnumerable<CustomResourceSnapshot> WatchAsync(CancellationToken cancellationToken = default) => _channel.Reader.ReadAllAsync(cancellationToken);
+    public IAsyncEnumerable<CustomResourceSnapshot> WatchAsync() => new ResourceUpdatesAsyncEnumerable(this);
 
     /// <summary>
     /// Gets the initial snapshot of the dashboard state for this resource.
@@ -30,14 +30,63 @@ public sealed class CustomResourceAnnotation(Func<CustomResourceSnapshot> initia
     /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
     /// </summary>
     /// <param name="state">The new <see cref="CustomResourceSnapshot"/>.</param>
-    public async Task UpdateStateAsync(CustomResourceSnapshot state)
+    public Task UpdateStateAsync(CustomResourceSnapshot state)
     {
-        await _channel.Writer.WriteAsync(state).ConfigureAwait(false);
+        if (_streamClosedCts.IsCancellationRequested)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (OnSnapshotUpdated != null)
+        {
+            return OnSnapshotUpdated(state);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Signal that no more updates are expected for this resource.
+    /// </summary>
+    public void Complete()
+    {
+        _streamClosedCts.Cancel();
+    }
+
+    private sealed class ResourceUpdatesAsyncEnumerable(ResourceUpdatesAnnotation customResourceAnnotation) : IAsyncEnumerable<CustomResourceSnapshot>
+    {
+        public async IAsyncEnumerator<CustomResourceSnapshot> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            var channel = Channel.CreateUnbounded<CustomResourceSnapshot>();
+
+            async Task WriteToChannel(CustomResourceSnapshot state)
+            {
+                await channel.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+            }
+
+            using var _ = customResourceAnnotation._streamClosedCts.Token.Register(() => channel.Writer.TryComplete());
+
+            customResourceAnnotation.OnSnapshotUpdated = WriteToChannel;
+
+            try
+            {
+                await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    yield return item;
+                }
+            }
+            finally
+            {
+                customResourceAnnotation.OnSnapshotUpdated -= WriteToChannel;
+
+                channel.Writer.TryComplete();
+            }
+        }
     }
 }
 
 /// <summary>
-/// The context for a all of the properties and URLs that should show up in the dashboard for a resource.
+/// An immutable snapshot of the state of a resource.
 /// </summary>
 public sealed record CustomResourceSnapshot
 {
