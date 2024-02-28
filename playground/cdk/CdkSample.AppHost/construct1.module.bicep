@@ -1,3 +1,5 @@
+targetScope = 'resourceGroup'
+
 @description('West US 3')
 param location string
 
@@ -5,8 +7,8 @@ param location string
 param storagesku string
 
 
-resource storageAccount_jUWh3LB5G 'Microsoft.Storage/storageAccounts@2022-09-01' = {
-  name: 'bob814ae87fd35d4c2988917'
+resource storageAccount_WLTg4zEgJ 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+  name: 'bobd3c49aedcdfc40eb8f3d8'
   location: location
   sku: {
     name: storagesku
@@ -16,4 +18,4 @@ resource storageAccount_jUWh3LB5G 'Microsoft.Storage/storageAccounts@2022-09-01'
   }
 }
 
-output tableUri string = storageAccount_jUWh3LB5G.properties.primaryEndpoints.table
+output tableUri string = storageAccount_WLTg4zEgJ.properties.primaryEndpoints.table

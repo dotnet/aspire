@@ -23,10 +23,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// <inheritdoc />
     public override void WriteToManifest(ManifestPublishingContext context)
     {
-        // HACK: Using CDK to generate files but then copying just the module
-        //       to where it needs to be.
-        var tempInfrastructure = new TempInfrastructure();
-        var resourceModuleConstruct = new ResourceModuleConstruct(this, tempInfrastructure);
+        var resourceModuleConstruct = new ResourceModuleConstruct(this);
 
         var locationParameter = new Parameter("location", defaultValue: "West US 3");
         resourceModuleConstruct.AddParameter(locationParameter);
@@ -40,9 +37,9 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         ConfigureConstruct(resourceModuleConstruct);
 
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
-        tempInfrastructure.Build(generationPath);
+        resourceModuleConstruct.Build(generationPath);
 
-        var moduleSourcePath = Path.Combine(generationPath, "resources", "rg_temp_module", "rg_temp_module.bicep");
+        var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
         var moduleDestinationPath = context.GetManifestRelativePath(TemplateFile);
         File.Copy(moduleSourcePath, moduleDestinationPath!, true);
 
@@ -130,19 +127,17 @@ public static class CdkResourceExtensions
 /// <summary>
 /// TODO: Can't think of a better name right now
 /// </summary>
-public class ResourceModuleConstruct : Construct
+public class ResourceModuleConstruct : Infrastructure
 {
     /// <summary>
     /// 
     /// </summary>
     /// <param name="resource"></param>
-    /// <param name="scope"></param>
-    public ResourceModuleConstruct(AzureConstructResource resource, IConstruct scope) : base(scope, resource.Name, ConstructScope.ResourceGroup, tenantId: Guid.NewGuid(), subscriptionId: Guid.NewGuid(), envName: "temp")
+    public ResourceModuleConstruct(AzureConstructResource resource) : base(constructScope: ConstructScope.ResourceGroup, tenantId: Guid.Empty, subscriptionId: Guid.Empty, envName: "temp", useAnonymousResourceGroup: true)
     {
         Resource = resource;
         LocationParameter = new Parameter("location", "West US 3");
         AddParameter(LocationParameter);
-
     }
 
     /// <summary>
@@ -154,8 +149,4 @@ public class ResourceModuleConstruct : Construct
     /// TODO:
     /// </summary>
     public Parameter LocationParameter { get; }
-}
-
-internal class TempInfrastructure() : Infrastructure(tenantId: Guid.NewGuid(), subscriptionId: Guid.NewGuid(), envName: "temp")
-{
 }

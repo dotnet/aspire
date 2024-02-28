@@ -1,3 +1,5 @@
+targetScope = 'resourceGroup'
+
 @description('West US 3')
 param location string
 
@@ -5,11 +7,11 @@ param location string
 param tableUri string
 
 
-resource keyVault_jIQqamCos 'Microsoft.KeyVault/vaults@2023-02-01' = {
+resource keyVault_kb5kSO8cv 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: 'jane-temp'
   location: location
   properties: {
-    tenantId: '83da9385-a5f2-44d6-8190-6d0c4184a19a'
+    tenantId: '00000000-0000-0000-0000-000000000000'
     sku: {
       name: 'standard'
       family: 'A'
@@ -18,12 +20,12 @@ resource keyVault_jIQqamCos 'Microsoft.KeyVault/vaults@2023-02-01' = {
   }
 }
 
-resource keyVaultSecret_BJ0gguPoz 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: keyVault_jIQqamCos
+resource keyVaultSecret_BirhV1djm 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault_kb5kSO8cv
   name: 'mysecret-temp'
   properties: {
     value: tableUri
   }
 }
 
-output vaultUri string = keyVault_jIQqamCos.properties.vaultUri
+output vaultUri string = keyVault_kb5kSO8cv.properties.vaultUri
