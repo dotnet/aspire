@@ -20,8 +20,12 @@ namespace Aspire.EndToEnd.Tests;
 /// </summary>
 public sealed class IntegrationServicesFixture : IAsyncLifetime
 {
+#if TESTS_RUNNING_OUT_OF_TREE
     /* Set to true to force the testproject to run out-of-tree with the workload */
-    public static bool ForceOutOfTree;// = false;
+    public static bool ForceOutOfTree = true;
+#else
+    public static bool ForceOutOfTree;
+#endif
 
     public Dictionary<string, ProjectInfo> Projects => _projects!;
     public BuildEnvironment BuildEnvironment { get; } = new(ForceOutOfTree);
@@ -47,7 +51,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             using var cmd = new DotNetCommand(BuildEnvironment, _testOutput)
                 .WithWorkingDirectory(appHostDirectory);
 
-            (await cmd.ExecuteAsync(CancellationToken.None, "build -bl:testproject.binlog"))
+            (await cmd.ExecuteAsync(CancellationToken.None, $"build -bl:{Path.Combine(BuildEnvironment.LogRootPath, "testproject-build.binlog")} -v q"))
                 .EnsureSuccessful();
         }
 
@@ -58,7 +62,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var stderrComplete = new TaskCompletionSource();
         _appHostProcess = new Process();
 
-        string processArguments = $"run -- ";
+        string processArguments = $"run --no-build -- ";
         if (GetResourcesToSkip() is var resourcesToSkip && resourcesToSkip.Count > 0)
         {
             processArguments += $"--skip-resources {string.Join(',', resourcesToSkip)}";

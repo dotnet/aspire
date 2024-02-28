@@ -12,19 +12,21 @@
 
     <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
     <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
+    <DefineConstants Condition="'$(TestsRunningOutOfTree)' == 'true'">TESTS_RUNNING_OUT_OF_TREE;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
+
+    <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- TODO: copy over the default, and poke in the extra bits -->
+    <None Include="..\nuget.helix.config" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
-
-    <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\nuget.helix.config" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="_AddPackageVersionsForUseWithHelix" AfterTargets="Build">
@@ -48,4 +50,10 @@
   </Target>
 
   <Import Project="..\Shared\Aspire.Workload.Testing.targets" />
+
+  <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutOfTree)' == 'true'">
+    <Error Condition="'$(SdkWithWorkloadForTestingPath)' == '' or !Exists($(SdkWithWorkloadForTestingPath))"
+           Text="Could not find %24(SdkWithWorkloadForTestingPath)=$(SdkWithWorkloadForTestingPath) .. FIXME: add full message "/>
+  </Target>
+
 </Project>

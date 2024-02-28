@@ -15,6 +15,7 @@ public class BuildEnvironment
 
     public string                           WorkloadPacksDir              { get; init; }
     public string                           BuiltNuGetsPath               { get; init; }
+    public bool                             IsRunningOutOfTree            { get; init; }
 
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
@@ -38,10 +39,11 @@ public class BuildEnvironment
             solutionRoot = solutionRoot.Parent;
         }
 
+        IsRunningOutOfTree = EnvironmentVariables.TestsRunningOutOfTree || forceOutOfTree;
         string sdkForWorkloadPath;
         if (solutionRoot is not null)
         {
-            if (EnvironmentVariables.TestsRunningOutOfTree || forceOutOfTree)
+            if (IsRunningOutOfTree)
             {
                 // Is this a "local run?
                 var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
@@ -114,17 +116,18 @@ public class BuildEnvironment
         WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
         TestProjectPath = Path.Combine(TestAssetsPath, "testproject");
 
-        Console.WriteLine ($"*** Using workload path: {sdkForWorkloadPath}");
-        EnvVars = new Dictionary<string, string>
+        Console.WriteLine($"*** Using workload path: {sdkForWorkloadPath}");
+        EnvVars = new Dictionary<string, string>();
+        if (IsRunningOutOfTree)
         {
-            ["DOTNET_ROOT"] = sdkForWorkloadPath,
-            ["DOTNET_INSTALL_DIR"] = sdkForWorkloadPath,
-            ["DOTNET_MULTILEVEL_LOOKUP"] = "0",
-            ["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1",
-            ["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}",
-            ["BUILT_NUGETS_PATH"] = BuiltNuGetsPath,
-            ["NUGET_PACKAGES"] = Path.Combine(Path.GetTempPath(), "nuget-cache")
-        };
+            EnvVars["DOTNET_ROOT"] = sdkForWorkloadPath;
+            EnvVars["DOTNET_INSTALL_DIR"] = sdkForWorkloadPath;
+            EnvVars["DOTNET_MULTILEVEL_LOOKUP"] = "0";
+            EnvVars["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
+            EnvVars["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
+            EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
+            EnvVars["NUGET_PACKAGES"] = Path.Combine(BuildEnvironment.TmpPath, "nuget-cache");
+        }
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
