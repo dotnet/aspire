@@ -31,7 +31,7 @@ namespace Aspire.Dashboard.Model;
 /// </remarks>
 internal sealed class DashboardClient : IDashboardClient
 {
-    internal const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
+    private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
