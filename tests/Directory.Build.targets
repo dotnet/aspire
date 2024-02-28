@@ -2,7 +2,7 @@
   <Import Project="..\Directory.Build.targets" />
   <PropertyGroup>
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
-    <XunitTestRunnerJson Condition="'$(XunitTestRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitTestRunnerJson>
+    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == ''">false</RunTestsOnHelix>
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <None Include="$(RepositoryEngineeringDir)testing\.runsettings" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
-    <None Include="$(XunitTestRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">

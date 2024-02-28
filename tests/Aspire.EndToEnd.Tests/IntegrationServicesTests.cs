@@ -6,6 +6,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using Aspire.TestProject;
+using Aspire.Workload.Tests;
 
 namespace Aspire.EndToEnd.Tests;
 

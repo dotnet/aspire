@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
 using Aspire.TestProject;
+using Aspire.Workload.Tests;
 
 namespace Aspire.EndToEnd.Tests;
 
