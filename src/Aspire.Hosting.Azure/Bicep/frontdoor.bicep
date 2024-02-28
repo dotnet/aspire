@@ -1,11 +1,6 @@
 param frontDoorProfileName string
 param domainName string
 
-//The following is a hacky way to get at the 'resourceToken' for the CAE name
-param logAnalyticsWorkspaceId string
-var resourceToken = replace(last(split(logAnalyticsWorkspaceId, '/')), 'law-', '')
-var containerAppEnvName = 'cae-${resourceToken}'
-
 param location string = resourceGroup().location
 
 param dnsResourceGroupName string
