@@ -11,6 +11,6 @@
     "Microsoft.DotNet.Arcade.Sdk": "8.0.0-beta.24113.2",
     "Microsoft.DotNet.Helix.Sdk": "8.0.0-beta.24113.2",
     "Microsoft.DotNet.SharedFramework.Sdk": "8.0.0-beta.24113.2",
-    "Microsoft.Build.NoTargets": "3.7.0"
+    "Microsoft.Build.NoTargets": "3.7.56"
   }
 }
