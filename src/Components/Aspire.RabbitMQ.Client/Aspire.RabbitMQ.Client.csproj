@@ -17,9 +17,13 @@
     <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="Polly" />
+    <PackageReference Include="Polly.Core" />
     <PackageReference Include="RabbitMQ.Client" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.RabbitMQ.Client.Tests" />
   </ItemGroup>
 
 </Project>

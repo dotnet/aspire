@@ -2,7 +2,7 @@
 
 One of .NET Aspire's objectives is to ensure that apps are straightforward to debug and diagnose. By default, .NET Aspire apps are configured to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, .NET Aspire local development includes UI in the dashboard for viewing OTEL data. Telemetry just works and is easy to use.
 
-This document details how OpenTelemtry is used in .NET Aspire apps.
+This document details how OpenTelemetry is used in .NET Aspire apps.
 
 ## Telemetry types
 

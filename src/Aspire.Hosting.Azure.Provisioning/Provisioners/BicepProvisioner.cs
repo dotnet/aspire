@@ -1,18 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 using System.Diagnostics;
+using System.IO.Hashing;
 using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Azure;
-using Azure.ResourceManager.KeyVault.Models;
 using Azure.ResourceManager.KeyVault;
+using Azure.ResourceManager.KeyVault.Models;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Azure.Security.KeyVault.Secrets;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -30,16 +31,13 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             return false;
         }
 
-        // TODO: Cache contents by their checksum so we don't reuse changed outputs from potentially changed templates
+        var currentCheckSum = GetCurrentChecksum(resource, section);
+        var configCheckSum = section["CheckSum"];
 
-        //var checkSum = resource.GetChecksum();
-
-        //var checkSumSection = section.GetSection(checkSum);
-
-        //if (!checkSumSection.Exists())
-        //{
-        //    return false;
-        //}
+        if (currentCheckSum != configCheckSum)
+        {
+            return false;
+        }
 
         foreach (var item in section.GetSection("Outputs").GetChildren())
         {
@@ -136,24 +134,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
 
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
-        foreach (var parameter in resource.Parameters)
-        {
-            parameters[parameter.Key] = new JsonObject()
-            {
-                ["value"] = parameter.Value switch
-                {
-                    string s => s,
-                    IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
-                    int i => i,
-                    bool b => b,
-                    JsonNode node => node,
-                    IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
-                    IResourceBuilder<ParameterResource> p => p.Resource.Value,
-                    object o => o.ToString()!,
-                    null => null,
-                }
-            };
-        }
+        SetParameters(parameters, resource);
 
         var sw = Stopwatch.StartNew();
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Completed, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
@@ -184,18 +165,21 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
 
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
+        var resourceConfig = context.UserSecrets
+            .Prop("Azure")
+            .Prop("Deployments")
+            .Prop(resource.Name);
+
+        // Stash all parameters as a single JSON string
+        resourceConfig["Parameters"] = parameters.ToJsonString();
+
+        // Save the checksum to the configuration
+        resourceConfig["CheckSum"] = GetChecksum(resource, parameters);
+
         if (outputObj is not null)
         {
             // TODO: Make this more robust
-            // Cache contents by their checksum so we don't reuse changed outputs from potentially changed templates
-            // var checkSum = resource.GetChecksum();
-
-            var configOutputs = context.UserSecrets
-                .Prop("Azure")
-                .Prop("Deployments")
-                .Prop(resource.Name)
-                // .Prop(checkSum)
-                .Prop("Outputs");
+            var configOutputs = resourceConfig.Prop("Outputs");
 
             foreach (var item in outputObj.AsObject())
             {
@@ -214,12 +198,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         // Populate secret outputs from key vault (if any)
         if (keyVault is not null)
         {
-            var configOutputs = context.UserSecrets
-                .Prop("Azure")
-                .Prop("Deployments")
-                .Prop(resource.Name)
-                // .Prop(checkSum)
-                .Prop("SecretOutputs");
+            var configOutputs = resourceConfig.Prop("SecretOutputs");
 
             var client = new SecretClient(keyVault.Data.Properties.VaultUri, context.Credential);
 
@@ -254,6 +233,15 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         {
             resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = "User";
         }
+
+        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, out var logAnalyticsWorkspaceId) && logAnalyticsWorkspaceId is null)
+        {
+            // We don't have a log analytics workspace for environments so we will just let the bicep file create one
+            resource.Parameters.Remove(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+        }
+
+        // Always specify the location
+        resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
     }
 
     private static async Task<bool> ExecuteCommand(ProcessSpec processSpec)
@@ -296,5 +284,95 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         }
 
         return null;
+    }
+
+    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters)
+    {
+        // TODO: PERF Inefficient
+
+        // Combine the parameter values with the bicep template to create a unique value
+        var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
+
+        // Hash the contents
+        var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
+
+        // Convert the hash to a string
+        return Convert.ToHexString(hashedContents).ToLowerInvariant();
+    }
+
+    internal static string? GetCurrentChecksum(AzureBicepResource resource, IConfiguration section)
+    {
+        // Fill in parameters from configuration
+        if (section["Parameters"] is not string jsonString)
+        {
+            return null;
+        }
+
+        try
+        {
+            var parameters = JsonNode.Parse(jsonString)?.AsObject();
+
+            if (parameters is null)
+            {
+                return null;
+            }
+
+            // Now overwite with live object values skipping known values.
+            // This is important because the provisioner will fill in the known values
+            SetParameters(parameters, resource, skipKnownValues: true);
+
+            // Get the checksum of the new values
+            return GetChecksum(resource, parameters);
+        }
+        catch
+        {
+            // Unable to parse the JSON, to treat it as not existing
+            return null;
+        }
+    }
+
+    // Known values since they will be filled in by the provisioner
+    private static readonly string[] s_knownParameterNames =
+    [
+        AzureBicepResource.KnownParameters.PrincipalName,
+        AzureBicepResource.KnownParameters.PrincipalId,
+        AzureBicepResource.KnownParameters.PrincipalType,
+        AzureBicepResource.KnownParameters.KeyVaultName,
+        AzureBicepResource.KnownParameters.Location,
+        AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId,
+    ];
+
+    // Converts the parameters to a JSON object compatible with the ARM template
+    internal static void SetParameters(JsonObject parameters, AzureBicepResource resource, bool skipKnownValues = false)
+    {
+        // Convert the parameters to a JSON object
+        foreach (var parameter in resource.Parameters)
+        {
+            if (skipKnownValues && s_knownParameterNames.Contains(parameter.Key))
+            {
+                continue;
+            }
+
+            // Execute parameter values which are deferred.
+            var parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
+
+            parameters[parameter.Key] = new JsonObject()
+            {
+                ["value"] = parameterValue switch
+                {
+                    string s => s,
+                    IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
+                    int i => i,
+                    bool b => b,
+                    JsonNode node => node,
+                    IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
+                    IResourceBuilder<ParameterResource> p => p.Resource.Value,
+                    // TODO: Support this
+                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
+                    object o => o.ToString()!,
+                    null => null,
+                }
+            };
+        }
     }
 }

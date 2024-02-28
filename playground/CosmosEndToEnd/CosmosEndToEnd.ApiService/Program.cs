@@ -2,15 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Azure.Cosmos;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddAzureCosmosDB("db", settings =>
-{
-    settings.IgnoreEmulatorCertificate = true;
-});
+builder.AddAzureCosmosDB("cosmos");
+builder.AddCosmosDbContext<TestCosmosContext>("cosmos", "ef");
 
 var app = builder.Build();
 
@@ -45,10 +44,30 @@ app.MapGet("/", async (CosmosClient cosmosClient) =>
     };
 });
 
+app.MapGet("/ef", async (TestCosmosContext context) =>
+{
+    await context.Database.EnsureCreatedAsync();
+
+    context.Entries.Add(new EntityFrameworkEntry());
+    await context.SaveChangesAsync();
+
+    return await context.Entries.ToListAsync();
+});
+
 app.Run();
 
 public class Entry
 {
     [JsonProperty("id")]
     public string? Id { get; set; }
+}
+
+public class TestCosmosContext(DbContextOptions<TestCosmosContext> options) : DbContext(options)
+{
+    public DbSet<EntityFrameworkEntry> Entries { get; set; }
+}
+
+public class EntityFrameworkEntry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
 }

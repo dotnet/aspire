@@ -12,6 +12,12 @@ namespace Aspire.Hosting;
 public class KafkaServerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithEnvironment
 {
     /// <summary>
+    /// Gets the connection string expression for Kafka broker for the manifest.
+    /// </summary>
+    public string ConnectionStringExpression =>
+        $"{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+
+    /// <summary>
     /// Gets the connection string for Kafka broker.
     /// </summary>
     /// <returns>A connection string for the Kafka in the form "host:port" to be passed as <see href="https://docs.confluent.io/platform/current/clients/confluent-kafka-dotnet/_site/api/Confluent.Kafka.ClientConfig.html#Confluent_Kafka_ClientConfig_BootstrapServers">BootstrapServers</see>.</returns>

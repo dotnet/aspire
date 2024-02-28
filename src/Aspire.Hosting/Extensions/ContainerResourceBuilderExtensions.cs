@@ -42,14 +42,28 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The source path of the volume. This is the physical location on the host.</param>
-    /// <param name="target">The target path in the container.</param>
-    /// <param name="type">The type of volume mount.</param>
+    /// <param name="source">The source name of the volume.</param>
+    /// <param name="target">The target path where the file or directory is mounted in the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithVolumeMount<T>(this IResourceBuilder<T> builder, string source, string target, VolumeMountType type = default, bool isReadOnly = false) where T : ContainerResource
+    public static IResourceBuilder<T> WithVolumeMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
     {
-        var annotation = new VolumeMountAnnotation(source, target, type, isReadOnly);
+        var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.Named, isReadOnly);
+        return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Adds a bind mount to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source path of the mount. This is the path to the file or directory on the host.</param>
+    /// <param name="target">The target path where the file or directory is mounted in the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
+    {
+        var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.Bind, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
 
@@ -89,10 +103,10 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="tag">Tag value.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string? tag) where T : ContainerResource
+    public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string tag) where T : ContainerResource
     {
         var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Tag = tag ?? "latest";
+        containerImageAnnotation.Tag = tag;
         return builder;
     }
 
@@ -138,6 +152,15 @@ public static class ContainerResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Changes the Kafka resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">Resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> PublishAsContainer<T>(this IResourceBuilder<T> builder) where T : ContainerResource
+    {
+        return builder.WithManifestPublishingCallback(context => context.WriteContainer(builder.Resource));
+    }
 }
 
 internal static class IListExtensions

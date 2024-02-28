@@ -1,11 +1,22 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Dcp.Model;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher)
+using LogsEnumerable = IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>;
+
+internal sealed class ConsoleLogPublisher(
+    ResourcePublisher resourcePublisher,
+    IKubernetesService kubernetesService,
+    ILoggerFactory loggerFactory,
+    IConfiguration configuration)
 {
-    internal IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? Subscribe(string resourceName)
+    internal LogsEnumerable? Subscribe(string resourceName)
     {
         // Look up the requested resource, so we know how to obtain logs.
         if (!resourcePublisher.TryGetResource(resourceName, out var resource))
@@ -14,13 +25,38 @@ internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher)
         }
 
         // Obtain logs using the relevant approach.
-        // Note, we would like to obtain these logs via DCP directly, rather than sourcing them in the dashboard.
-        return resource switch
+        if (configuration.GetBool("DOTNET_ASPIRE_USE_STREAMING_LOGS") is true)
         {
-            ExecutableSnapshot executable => SubscribeExecutable(executable),
-            ContainerSnapshot container => SubscribeContainer(container),
-            _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
-        };
+            return resource switch
+            {
+                ExecutableSnapshot executable => SubscribeExecutableResource(executable),
+                ContainerSnapshot container => SubscribeContainerResource(container),
+                GenericResourceSnapshot => SubscribeGenericResource(),
+                _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
+            };
+        }
+        else
+        {
+            return resource switch
+            {
+                ExecutableSnapshot executable => SubscribeExecutable(executable),
+                ContainerSnapshot container => SubscribeContainer(container),
+                GenericResourceSnapshot => SubscribeGenericResource(),
+                _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
+            };
+        }
+
+        LogsEnumerable SubscribeExecutableResource(ExecutableSnapshot executable)
+        {
+            var executableIdentity = Executable.Create(executable.Name, string.Empty);
+            return new ResourceLogSource<Executable>(loggerFactory, kubernetesService, executableIdentity);
+        }
+
+        LogsEnumerable SubscribeContainerResource(ContainerSnapshot container)
+        {
+            var containerIdentity = Container.Create(container.Name, string.Empty);
+            return new ResourceLogSource<Container>(loggerFactory, kubernetesService, containerIdentity);
+        }
 
         static FileLogSource? SubscribeExecutable(ExecutableSnapshot executable)
         {
@@ -41,5 +77,12 @@ internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher)
 
             return new DockerContainerLogSource(container.ContainerId);
         }
+    }
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+    private static async LogsEnumerable SubscribeGenericResource()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+    {
+        yield return [("No logs available", false)];
     }
 }

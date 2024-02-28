@@ -224,15 +224,24 @@ internal static class ]]>%(ClassName)<![CDATA[
 
   <PropertyGroup>
     <AspirePublisher Condition="'$(AspirePublisher)' == ''">manifest</AspirePublisher>
-    <AspireManifestPublishOutputPath Condition="'$(AspireManifestPublishOutputPath)' == ''">$(_AspireIntermediatePath)manifest.json</AspireManifestPublishOutputPath>
+    <AspireManifestPublishOutputPath Condition="'$(AspireManifestPublishOutputPath)' == ''">$(_AspireIntermediatePath)</AspireManifestPublishOutputPath>
   </PropertyGroup>
 
+  <Target Name="_EnsureAspireManifestPublishOutputPathExists">
+    <PropertyGroup>
+      <AspireManifestPublishOutputPath>$([MSBuild]::NormalizeDirectory($(AspireManifestPublishOutputPath)))</AspireManifestPublishOutputPath>
+      <_AspireManifestPublishOutputFile>$([MSBuild]::NormalizePath('$(AspireManifestPublishOutputPath)', 'manifest.json'))</_AspireManifestPublishOutputFile>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(AspireManifestPublishOutputPath)" />
+  </Target>
+
   <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->
-  <Target Name="GenerateAspireManifest" DependsOnTargets="Build" Inputs="$(TargetFileName)" Outputs="$(AspireManifestPublishOutputPath)">
+  <Target Name="GenerateAspireManifest" DependsOnTargets="Build;_EnsureAspireManifestPublishOutputPathExists" Inputs="$(TargetFileName)" Outputs="$(_AspireManifestPublishOutputFile)">
     <ItemGroup>
       <_AspireManifestPublishArg Include="%22$(DOTNET_HOST_PATH)%22; %22$(TargetPath)%22;"/>
       <_AspireManifestPublishArg Include="--publisher; $(AspirePublisher);" />
-      <_AspireManifestPublishArg Include="--output-path; %22$(AspireManifestPublishOutputPath)%22" />
+      <_AspireManifestPublishArg Include="--output-path; %22$(_AspireManifestPublishOutputFile)%22" />
     </ItemGroup>
 
     <Exec Command="@(_AspireManifestPublishArg, ' ')"

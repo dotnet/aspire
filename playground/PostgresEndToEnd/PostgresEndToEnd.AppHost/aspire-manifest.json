@@ -1,33 +1,112 @@
 {
   "resources": {
     "pg1": {
-      "type": "postgres.server.v0"
+      "type": "container.v0",
+      "connectionString": "Host={pg1.bindings.tcp.host};Port={pg1.bindings.tcp.port};Username=postgres;Password={pg1.inputs.password}",
+      "image": "postgres:16.2",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{pg1.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
     },
     "db1": {
-      "type": "postgres.database.v0",
-      "parent": "pg1"
+      "type": "value.v0",
+      "connectionString": "{pg1.connectionString};Database=db1"
     },
     "pg2": {
-      "type": "postgres.server.v0"
+      "type": "container.v0",
+      "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username=postgres;Password={pg2.inputs.password}",
+      "image": "postgres:16.2",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{pg2.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
     },
     "db2": {
-      "type": "postgres.database.v0",
-      "parent": "pg2"
+      "type": "value.v0",
+      "connectionString": "{pg2.connectionString};Database=db2"
     },
     "pg3": {
-      "type": "postgres.server.v0"
+      "type": "container.v0",
+      "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pg3.inputs.password}",
+      "image": "postgres:16.2",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{pg3.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
     },
     "db3": {
-      "type": "postgres.database.v0",
-      "parent": "pg3"
+      "type": "value.v0",
+      "connectionString": "{pg3.connectionString};Database=db3"
     },
     "db4": {
-      "type": "postgres.database.v0",
-      "parent": "pg3"
+      "type": "value.v0",
+      "connectionString": "{pg3.connectionString};Database=db4"
     },
     "pg4": {
       "type": "container.v0",
-      "image": "postgres:latest",
+      "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4.inputs.password}",
+      "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -41,7 +120,6 @@
           "containerPort": 5432
         }
       },
-      "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4.inputs.password};",
       "inputs": {
         "password": {
           "type": "string",
@@ -55,12 +133,13 @@
       }
     },
     "db5": {
-      "type": "postgres.database.v0",
-      "parent": "pg4"
+      "type": "value.v0",
+      "connectionString": "{pg4.connectionString};Database=db5"
     },
     "pg5": {
       "type": "container.v0",
-      "image": "postgres:latest",
+      "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5.inputs.password}",
+      "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -74,7 +153,6 @@
           "containerPort": 5432
         }
       },
-      "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5.inputs.password};",
       "inputs": {
         "password": {
           "type": "string",
@@ -88,12 +166,13 @@
       }
     },
     "db6": {
-      "type": "postgres.database.v0",
-      "parent": "pg5"
+      "type": "value.v0",
+      "connectionString": "{pg5.connectionString};Database=db6"
     },
     "pg6": {
       "type": "container.v0",
-      "image": "postgres:latest",
+      "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6.inputs.password}",
+      "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -107,7 +186,6 @@
           "containerPort": 5432
         }
       },
-      "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6.inputs.password};",
       "inputs": {
         "password": {
           "type": "string",
@@ -121,12 +199,31 @@
       }
     },
     "db7": {
-      "type": "postgres.database.v0",
-      "parent": "pg6"
+      "type": "value.v0",
+      "connectionString": "{pg6.connectionString};Database=db7"
     },
     "db8": {
-      "type": "postgres.database.v0",
-      "parent": "pg6"
+      "type": "value.v0",
+      "connectionString": "{pg6.connectionString};Database=db8"
+    },
+    "db9": {
+      "type": "value.v0",
+      "connectionString": "{pg6.connectionString};Database=db8"
+    },
+    "pg10": {
+      "type": "parameter.v0",
+      "connectionString": "{pg10.value}",
+      "value": "{pg10.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "db10": {
+      "type": "value.v0",
+      "connectionString": "{pg10.connectionString};Database=db10"
     },
     "api": {
       "type": "project.v0",
@@ -141,7 +238,9 @@
         "ConnectionStrings__db5": "{db5.connectionString}",
         "ConnectionStrings__db6": "{db6.connectionString}",
         "ConnectionStrings__db7": "{db7.connectionString}",
-        "ConnectionStrings__db8": "{db8.connectionString}"
+        "ConnectionStrings__db8": "{db8.connectionString}",
+        "ConnectionStrings__db9": "{db9.connectionString}",
+        "ConnectionStrings__db10": "{db10.connectionString}"
       },
       "bindings": {
         "http": {

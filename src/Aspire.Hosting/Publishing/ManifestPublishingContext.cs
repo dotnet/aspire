@@ -8,24 +8,30 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Publishing;
 
 /// <summary>
-/// TODO: Doc Comments
+/// Contextual information used for manifest publishing during this execution of the AppHost.
 /// </summary>
-/// <param name="manifestPath"></param>
-/// <param name="writer"></param>
-public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWriter writer)
+/// <param name="executionContext">Global contextual information for this invocation of the AppHost.</param>
+/// <param name="manifestPath">Manifest path passed in for this invocation of the AppHost.</param>
+/// <param name="writer">JSON writer used to writing the manifest.</param>
+public sealed class ManifestPublishingContext(DistributedApplicationExecutionContext executionContext, string manifestPath, Utf8JsonWriter writer)
 {
     /// <summary>
-    /// TODO: Doc Comments
+    /// Gets execution context for this invocation of the AppHost.
+    /// </summary>
+    public DistributedApplicationExecutionContext ExecutionContext { get; } = executionContext;
+
+    /// <summary>
+    /// Gets manifest path specified for this invocation of the AppHost.
     /// </summary>
     public string ManifestPath { get; } = manifestPath;
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Gets JSON writer for writing manifest entries.
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Generates a relative path based on the location of the manifest path.
     /// </summary>
     /// <param name="path"></param>
     /// <returns></returns>
@@ -53,6 +59,9 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
     public void WriteContainer(ContainerResource container)
     {
         Writer.WriteString("type", "container.v0");
+
+        // Attempt to write the connection string for the container (if this resource has one).
+        WriteConnectionString(container);
 
         if (!container.TryGetContainerImageName(out var image))
         {
@@ -88,6 +97,19 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
         WriteEnvironmentVariables(container);
         WriteBindings(container, emitContainerPort: true);
+    }
+
+    /// <summary>
+    /// Writes the "connectionString" field for the underlying resource.
+    /// </summary>
+    /// <param name="resource"></param>
+    public void WriteConnectionString(IResource resource)
+    {
+        if (resource is IResourceWithConnectionString resourceWithConnectionString &&
+            resourceWithConnectionString.ConnectionStringExpression is string connectionString)
+        {
+            Writer.WriteString("connectionString", connectionString);
+        }
     }
 
     /// <summary>
@@ -130,7 +152,8 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
     public void WriteEnvironmentVariables(IResource resource)
     {
         var config = new Dictionary<string, string>();
-        var envContext = new EnvironmentCallbackContext("manifest", config);
+
+        var envContext = new EnvironmentCallbackContext(ExecutionContext, config);
 
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {
@@ -183,7 +206,6 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
                     Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
                 }
-
             }
         }
     }

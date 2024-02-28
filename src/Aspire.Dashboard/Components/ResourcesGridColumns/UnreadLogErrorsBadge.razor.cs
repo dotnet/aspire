@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
@@ -10,6 +10,7 @@ namespace Aspire.Dashboard.Components;
 
 public partial class UnreadLogErrorsBadge
 {
+    private string? _applicationName;
     private int _unviewedCount;
 
     [Parameter, EditorRequired]
@@ -24,32 +25,37 @@ public partial class UnreadLogErrorsBadge
 
     protected override void OnParametersSet()
     {
-        _unviewedCount = GetUnviewedErrorCount(Resource);
+        (_applicationName, _unviewedCount) = GetUnviewedErrorCount(Resource);
     }
 
-    private int GetUnviewedErrorCount(ResourceViewModel resource)
+    private (string? applicationName, int unviewedErrorCount) GetUnviewedErrorCount(ResourceViewModel resource)
     {
         if (UnviewedErrorCounts is null)
         {
-            return 0;
+            return (null, 0);
         }
 
-        var application = TelemetryRepository.GetApplication(resource.Uid);
+        var application = TelemetryRepository.GetApplication(resource.Name);
         if (application is null)
         {
-            return 0;
+            return (null, 0);
         }
 
-        if (!UnviewedErrorCounts.TryGetValue(application, out var count))
+        if (!UnviewedErrorCounts.TryGetValue(application, out var count) || count == 0)
         {
-            return 0;
+            return (null, 0);
         }
 
-        return count;
+        var applications = TelemetryRepository.GetApplications();
+        var applicationName = applications.Count(a => a.ApplicationName == application.ApplicationName) > 1
+            ? application.InstanceId
+            : application.ApplicationName;
+
+        return (applicationName, count);
     }
 
-    private static string GetResourceErrorStructuredLogsUrl(ResourceViewModel resource)
+    private string GetResourceErrorStructuredLogsUrl()
     {
-        return $"/StructuredLogs/{resource.Uid}?level=error";
+        return $"/structuredlogs/resource/{_applicationName}?level=error";
     }
 }

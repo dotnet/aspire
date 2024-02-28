@@ -24,7 +24,7 @@ public class ConfigurationServiceEndPointResolverProvider(
     private readonly ILogger<ConfigurationServiceEndPointResolver> _logger = loggerFactory.CreateLogger<ConfigurationServiceEndPointResolver>();
 
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointResolver? resolver)
+    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
         resolver = new ConfigurationServiceEndPointResolver(serviceName, _configuration, _logger, _options);
         return true;

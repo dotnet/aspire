@@ -15,7 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="**/*.proto" GrpcServices="Server">
+    <!-- Build service and client types. Integration tests use the client types to call OTLP services. -->
+    <Protobuf Include="**/*.proto">
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
   </ItemGroup>

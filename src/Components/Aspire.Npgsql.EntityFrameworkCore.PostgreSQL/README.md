@@ -38,9 +38,9 @@ public ProductsController(MyDbContext context)
 You might also need to configure specific option of Npgsql, or register a `DbContext` in other ways. In this case call the `EnrichNpgsqlDbContext` extension method, for example:
 
 ```csharp
-var connectionString = builder.Configuration.GetConnectionString("catalogdb");
-builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
-builder.EnrichNpgsqlDbContext<CatalogDbContext>();
+var connectionString = builder.Configuration.GetConnectionString("postgresdb");
+builder.Services.AddDbContextPool<MyDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
+builder.EnrichNpgsqlDbContext<MyDbContext>();
 ```
 
 ## Configuration

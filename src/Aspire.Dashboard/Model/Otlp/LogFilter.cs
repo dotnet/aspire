@@ -13,6 +13,7 @@ public class LogFilter
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
+
     public string FilterText => $"{Field} {ConditionToString(Condition)} {Value}";
 
     public static List<string> GetAllPropertyNames(List<string> propertyKeys)

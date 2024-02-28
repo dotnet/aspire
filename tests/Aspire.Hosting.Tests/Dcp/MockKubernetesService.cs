@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Dcp;
@@ -30,6 +30,11 @@ internal sealed class MockKubernetesService : IKubernetesService
     }
 
     public IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<Stream> GetLogStreamAsync<T>(T obj, string logStreamType, bool? follow = true, CancellationToken cancellationToken = default) where T : CustomResource
     {
         throw new NotImplementedException();
     }

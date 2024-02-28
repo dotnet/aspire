@@ -1,14 +1,25 @@
 {
   "resources": {
     "sql1": {
-      "type": "sqlserver.server.v0"
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{sql1.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "aspire.hosting.azure.bicep.sql.bicep",
+      "params": {
+        "serverName": "sql1",
+        "principalId": "",
+        "principalName": "",
+        "databases": [
+          "db1"
+        ]
+      }
     },
     "db1": {
-      "type": "sqlserver.database.v0",
-      "parent": "sql1"
+      "type": "value.v0",
+      "connectionString": "{sql1.connectionString};Database=db1"
     },
     "sql2": {
       "type": "container.v0",
+      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2.inputs.password};TrustServerCertificate=true",
       "image": "mcr.microsoft.com/mssql/server:2022-latest",
       "env": {
         "ACCEPT_EULA": "Y",
@@ -22,7 +33,6 @@
           "containerPort": 1433
         }
       },
-      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2.inputs.password};TrustServerCertificate=true;",
       "inputs": {
         "password": {
           "type": "string",
@@ -36,8 +46,8 @@
       }
     },
     "db2": {
-      "type": "sqlserver.database.v0",
-      "parent": "sql2"
+      "type": "value.v0",
+      "connectionString": "{sql2.connectionString};Database=db2"
     },
     "api": {
       "type": "project.v0",

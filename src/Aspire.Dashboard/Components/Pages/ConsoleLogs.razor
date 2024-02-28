@@ -1,8 +1,8 @@
-﻿@page "/ConsoleLogs/{resourceName?}"
+﻿@page "/consolelogs"
+@page "/consolelogs/resource/{resourceName}"
+
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
-@using Aspire.Dashboard.Components.Controls
-@using Aspire.Dashboard.Model
 @inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
@@ -11,14 +11,18 @@
 <div class="resource-logs-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect @ref="_resourceSelectComponent" TOption="Option<string>"
+        <FluentSelect @ref="_resourceSelectComponent"
                       Items="@_resources"
-                      OptionText="(o) => o.Text"
-                      OptionValue="(o) => o.Value"
-                      @bind-SelectedOption="ViewModel.SelectedOption"
+                      OptionValue="@(c => c.Id?.InstanceId)"
+                      OptionDisabled="@(c => c.Id?.Type is Otlp.Model.OtlpApplicationType.ReplicaSet)"
+                      @bind-SelectedOption="PageViewModel.SelectedOption"
                       @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
-                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"/>
-        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@ViewModel.Status</FluentLabel>
+                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]">
+            <OptionTemplate>
+                 <ResourceSelectOptionTemplate ViewModel="@context" />
+            </OptionTemplate>
+        </FluentSelect>
+        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />
 </div>
