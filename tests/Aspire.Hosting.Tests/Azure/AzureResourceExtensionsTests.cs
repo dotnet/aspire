@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Lifecycle;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Azure;
@@ -25,7 +26,7 @@ public class AzureResourceExtensionsTests
     }
 
     [Fact]
-    public void AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
+    public async Task AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
     {
         var builder = DistributedApplication.CreateBuilder();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
@@ -34,6 +35,14 @@ public class AzureResourceExtensionsTests
             builder.UseQueuePort(9002);
             builder.UseTablePort(9003);
         });
+
+        // Throw before ApplicationExecutor starts doing real work
+        builder.Services.AddLifecycleHook<TestUtils.ThrowLifecycleHook>();
+
+        var app = builder.Build();
+
+        // Don't want to actually start an app
+        await Assert.ThrowsAnyAsync<Exception>(() => app.StartAsync());
 
         Assert.Collection(
             storage.Resource.Annotations.OfType<EndpointAnnotation>(),
@@ -46,7 +55,7 @@ public class AzureResourceExtensionsTests
     [InlineData(null)]
     [InlineData(8081)]
     [InlineData(9007)]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
+    public async Task AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -56,6 +65,14 @@ public class AzureResourceExtensionsTests
         {
             container.UseGatewayPort(port);
         });
+
+        // Throw before ApplicationExecutor starts doing real work
+        builder.Services.AddLifecycleHook<TestUtils.ThrowLifecycleHook>();
+
+        var app = builder.Build();
+
+        // Don't want to actually start an app
+        await Assert.ThrowsAnyAsync<Exception>(() => app.StartAsync());
 
         var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
         Assert.NotNull(endpointAnnotation);

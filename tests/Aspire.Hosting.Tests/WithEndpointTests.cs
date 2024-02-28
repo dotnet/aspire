@@ -20,7 +20,7 @@ public class WithEndpointTests
         });
 
         // Throw before ApplicationExecutor starts doing real work
-        testProgram.AppBuilder.Services.AddLifecycleHook<ThrowLifecycleHook>();
+        testProgram.AppBuilder.Services.AddLifecycleHook<TestUtils.ThrowLifecycleHook>();
 
         var app = testProgram.Build();
 
@@ -48,7 +48,7 @@ public class WithEndpointTests
         Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
 
         // Throw before ApplicationExecutor starts doing real work
-        testProgram.AppBuilder.Services.AddLifecycleHook<ThrowLifecycleHook>();
+        testProgram.AppBuilder.Services.AddLifecycleHook<TestUtils.ThrowLifecycleHook>();
 
         var app = testProgram.Build();
 
@@ -124,7 +124,7 @@ public class WithEndpointTests
         Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
 
         // Throw before ApplicationExecutor starts doing real work
-        testProgram.AppBuilder.Services.AddLifecycleHook<ThrowLifecycleHook>();
+        testProgram.AppBuilder.Services.AddLifecycleHook<TestUtils.ThrowLifecycleHook>();
 
         var app = testProgram.Build();
 
@@ -140,13 +140,4 @@ public class WithEndpointTests
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithEndpointTests>(args);
-
-    private sealed class ThrowLifecycleHook : IDistributedApplicationLifecycleHook
-    {
-        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
-        {
-            throw new InvalidOperationException();
-        }
-    }
-
 }
