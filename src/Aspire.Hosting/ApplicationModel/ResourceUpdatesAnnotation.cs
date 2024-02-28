@@ -103,7 +103,7 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
     /// </summary>
-    public ImmutableArray<(string Name, string Value)> EnviromentVariables { get; init; } = [];
+    public ImmutableArray<(string Name, string Value)> EnvironmentVariables { get; init; } = [];
 
     /// <summary>
     /// The URLs that should show up in the dashboard for this resource.
@@ -150,7 +150,7 @@ public sealed record CustomResourceSnapshot
         return new CustomResourceSnapshot()
         {
             ResourceType = resource.GetType().Name.Replace("Resource", ""),
-            EnviromentVariables = environmentVariables,
+            EnvironmentVariables = environmentVariables,
             Urls = urls,
             Properties = properties
         };

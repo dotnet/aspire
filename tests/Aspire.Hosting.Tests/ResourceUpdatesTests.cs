@@ -25,7 +25,7 @@ public class ResourceUpdatesTests
 
         Assert.Equal("Custom", state.ResourceType);
 
-        Assert.Collection(state.EnviromentVariables, a =>
+        Assert.Collection(state.EnvironmentVariables, a =>
         {
             Assert.Equal("x", a.Name);
             Assert.Equal("1000", a.Value);
@@ -64,7 +64,7 @@ public class ResourceUpdatesTests
         var state = annotation.GetInitialSnapshot();
 
         Assert.Equal("MyResource", state.ResourceType);
-        Assert.Empty(state.EnviromentVariables);
+        Assert.Empty(state.EnvironmentVariables);
         Assert.Collection(state.Properties, c =>
         {
             Assert.Equal("A", c.Key);

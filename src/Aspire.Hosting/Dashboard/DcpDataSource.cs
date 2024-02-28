@@ -231,7 +231,7 @@ internal sealed class DcpDataSource
     private static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, DateTime creationTimestamp, CustomResourceSnapshot dashboardState)
     {
         ImmutableArray<EnvironmentVariableSnapshot> environmentVariables = [..
-            dashboardState.EnviromentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, false))];
+            dashboardState.EnvironmentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, false))];
 
         ImmutableArray<EndpointSnapshot> endpoints = [..
             dashboardState.Urls.Select(u => new EndpointSnapshot(u, u))];
