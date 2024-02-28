@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -8,7 +9,7 @@ namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests
 {
-    [Fact]
+    [LocalOnlyFact]
     public async Task HasEndPoints()
     {
         var appHost = new DistributedApplicationTestingBuilder<Program>();
@@ -27,7 +28,7 @@ public class TestingBuilderTests
         Assert.True(pgConnectionString.Length > 0);
     }
 
-    [Fact]
+    [LocalOnlyFact]
     public async Task CanRemoveResources()
     {
         var appHost = new DistributedApplicationTestingBuilder<Program>();

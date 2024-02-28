@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
+using Aspire.Hosting.Tests.Helpers;
 using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
@@ -10,7 +11,7 @@ public class TestingHarnessTests(DistributedApplicationFixture<Program> appHostF
 {
     private readonly HttpClient _httpClient = appHostFixture.CreateHttpClient("mywebapp1");
 
-    [Fact]
+    [LocalOnlyFact]
     public async Task HttpClientGetTest()
     {
         var result1 = await _httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
