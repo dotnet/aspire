@@ -12,25 +12,25 @@ namespace Aspire.Hosting.ApplicationModel;
 /// This is a single producer, single consumer channel model for pushing updates to the dashboard.
 /// The resource server will be the only caller of WatchAsync.
 /// </summary>
-public sealed class CustomResourceAnnotation(Func<CustomResourceState> initialState) : IResourceAnnotation
+public sealed class CustomResourceAnnotation(Func<CustomResourceSnapshot> initialSnapshotFactory) : IResourceAnnotation
 {
-    private readonly Channel<CustomResourceState> _channel = Channel.CreateUnbounded<CustomResourceState>();
+    private readonly Channel<CustomResourceSnapshot> _channel = Channel.CreateUnbounded<CustomResourceSnapshot>();
 
     /// <summary>
     /// Watch for changes to the dashboard state for a resource.
     /// </summary>
-    public IAsyncEnumerable<CustomResourceState> WatchAsync(CancellationToken cancellationToken = default) => _channel.Reader.ReadAllAsync(cancellationToken);
+    public IAsyncEnumerable<CustomResourceSnapshot> WatchAsync(CancellationToken cancellationToken = default) => _channel.Reader.ReadAllAsync(cancellationToken);
 
     /// <summary>
     /// Gets the initial snapshot of the dashboard state for this resource.
     /// </summary>
-    public CustomResourceState GetInitialState() => initialState();
+    public CustomResourceSnapshot GetInitialSnapshot() => initialSnapshotFactory();
 
     /// <summary>
-    /// Updates the snapshot of the dashboard state for a resource.
+    /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
     /// </summary>
-    /// <param name="state">The new <see cref="CustomResourceState"/>.</param>
-    public async Task UpdateStateAsync(CustomResourceState state)
+    /// <param name="state">The new <see cref="CustomResourceSnapshot"/>.</param>
+    public async Task UpdateStateAsync(CustomResourceSnapshot state)
     {
         await _channel.Writer.WriteAsync(state).ConfigureAwait(false);
     }
@@ -39,7 +39,7 @@ public sealed class CustomResourceAnnotation(Func<CustomResourceState> initialSt
 /// <summary>
 /// The context for a all of the properties and URLs that should show up in the dashboard for a resource.
 /// </summary>
-public record CustomResourceState
+public sealed record CustomResourceSnapshot
 {
     /// <summary>
     /// The type of the resource.
@@ -67,11 +67,11 @@ public record CustomResourceState
     public ImmutableArray<string> Urls { get; init; } = [];
 
     /// <summary>
-    /// Creates a new <see cref="CustomResourceState"/> for a resource using the well known annotations.
+    /// Creates a new <see cref="CustomResourceSnapshot"/> for a resource using the well known annotations.
     /// </summary>
     /// <param name="resource">The resource.</param>
-    /// <returns>The new <see cref="CustomResourceState"/>.</returns>
-    public static CustomResourceState Create(IResource resource)
+    /// <returns>The new <see cref="CustomResourceSnapshot"/>.</returns>
+    public static CustomResourceSnapshot Create(IResource resource)
     {
         ImmutableArray<string> urls = [];
 
@@ -103,7 +103,7 @@ public record CustomResourceState
         }
 
         // Initialize the state with the well known annotations
-        return new CustomResourceState()
+        return new CustomResourceSnapshot()
         {
             ResourceType = resource.GetType().Name.Replace("Resource", ""),
             EnviromentVariables = environmentVariables,

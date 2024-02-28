@@ -15,13 +15,13 @@ public static class CustomResourceExtensions
     /// </summary>
     /// <typeparam name="TResource">The resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="initialState">The callback to create the initial <see cref="CustomResourceState"/>.</param>
+    /// <param name="initialSnapshotFactory">The factory to create the initial <see cref="CustomResourceSnapshot"/> for this resource.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<TResource> WithCustomResourceState<TResource>(this IResourceBuilder<TResource> builder, Func<CustomResourceState>? initialState = null)
+    public static IResourceBuilder<TResource> WithCustomResourceState<TResource>(this IResourceBuilder<TResource> builder, Func<CustomResourceSnapshot>? initialSnapshotFactory = null)
         where TResource : IResource
     {
-        initialState ??= () => CustomResourceState.Create(builder.Resource);
+        initialSnapshotFactory ??= () => CustomResourceSnapshot.Create(builder.Resource);
 
-        return builder.WithAnnotation(new CustomResourceAnnotation(initialState), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new CustomResourceAnnotation(initialSnapshotFactory), ResourceAnnotationMutationBehavior.Replace);
     }
 }

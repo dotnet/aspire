@@ -21,7 +21,7 @@ public class CustomResourceStateTests
 
         Assert.NotNull(annotation);
 
-        var state = annotation.GetInitialState();
+        var state = annotation.GetInitialSnapshot();
 
         Assert.Equal("Custom", state.ResourceType);
 
@@ -61,7 +61,7 @@ public class CustomResourceStateTests
 
         Assert.NotNull(annotation);
 
-        var state = annotation.GetInitialState();
+        var state = annotation.GetInitialSnapshot();
 
         Assert.Equal("MyResource", state.ResourceType);
         Assert.Empty(state.EnviromentVariables);
@@ -86,7 +86,7 @@ public class CustomResourceStateTests
 
         Assert.NotNull(annotation);
 
-        var state = annotation.GetInitialState();
+        var state = annotation.GetInitialSnapshot();
 
         state = state with { Properties = state.Properties.Add(("A", "value")) };
 

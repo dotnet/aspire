@@ -39,7 +39,7 @@ public static class ParameterResourceBuilderExtensions
         return builder.AddResource(resource)
                       .WithCustomResourceState(() =>
                       {
-                          var state = new CustomResourceState()
+                          var state = new CustomResourceSnapshot()
                           {
                               ResourceType = "Parameter",
                               Properties = [
