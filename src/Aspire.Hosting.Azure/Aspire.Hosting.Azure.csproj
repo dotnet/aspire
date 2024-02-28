@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Bicep\dns-zone.bicep" />
+    <None Remove="bicep\frontdoor.bicep" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
     <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
