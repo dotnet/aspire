@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 
@@ -38,14 +37,14 @@ public static class ParameterResourceBuilderExtensions
     {
         var resource = new ParameterResource(name, callback, secret);
         return builder.AddResource(resource)
-                      .WithDashboardState(() =>
+                      .WithCustomResourceState(() =>
                       {
-                          var state = new DashboardResourceState()
+                          var state = new CustomResourceState()
                           {
                               ResourceType = "Parameter",
                               Properties = [
                                 ("Secret", secret.ToString()),
-                                (DashboardKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+                                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
                               ]
                           };
 

@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dashboard;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
-public class DashboardResourceStateTests
+public class CustomResourceStateTests
 {
     [Fact]
     public void CreatePopulatesStateFromResource()
@@ -16,13 +15,13 @@ public class DashboardResourceStateTests
         var custom = builder.AddResource(new CustomResource("myResource"))
             .WithEndpoint(name: "ep", scheme: "http", hostPort: 8080)
             .WithEnvironment("x", "1000")
-            .WithDashboardState();
+            .WithCustomResourceState();
 
-        var annotation = custom.Resource.Annotations.OfType<DashboardAnnotation>().SingleOrDefault();
+        var annotation = custom.Resource.Annotations.OfType<CustomResourceAnnotation>().SingleOrDefault();
 
         Assert.NotNull(annotation);
 
-        var state = annotation.GetIntialState();
+        var state = annotation.GetInitialState();
 
         Assert.Equal("Custom", state.ResourceType);
 
@@ -45,24 +44,24 @@ public class DashboardResourceStateTests
     }
 
     [Fact]
-    public void InitialDashboardStateCanBeSpecified()
+    public void InitialStateCanBeSpecified()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var custom = builder.AddResource(new CustomResource("myResource"))
             .WithEndpoint(name: "ep", scheme: "http", hostPort: 8080)
             .WithEnvironment("x", "1000")
-            .WithDashboardState(() => new()
+            .WithCustomResourceState(() => new()
             {
                 ResourceType = "MyResource",
                 Properties = [("A", "B")],
             });
 
-        var annotation = custom.Resource.Annotations.OfType<DashboardAnnotation>().SingleOrDefault();
+        var annotation = custom.Resource.Annotations.OfType<CustomResourceAnnotation>().SingleOrDefault();
 
         Assert.NotNull(annotation);
 
-        var state = annotation.GetIntialState();
+        var state = annotation.GetInitialState();
 
         Assert.Equal("MyResource", state.ResourceType);
         Assert.Empty(state.EnviromentVariables);
@@ -81,13 +80,13 @@ public class DashboardResourceStateTests
         var custom = builder.AddResource(new CustomResource("myResource"))
             .WithEndpoint(name: "ep", scheme: "http", hostPort: 8080)
             .WithEnvironment("x", "1000")
-            .WithDashboardState();
+            .WithCustomResourceState();
 
-        var annotation = custom.Resource.Annotations.OfType<DashboardAnnotation>().SingleOrDefault();
+        var annotation = custom.Resource.Annotations.OfType<CustomResourceAnnotation>().SingleOrDefault();
 
         Assert.NotNull(annotation);
 
-        var state = annotation.GetIntialState();
+        var state = annotation.GetInitialState();
 
         state = state with { Properties = state.Properties.Add(("A", "value")) };
 

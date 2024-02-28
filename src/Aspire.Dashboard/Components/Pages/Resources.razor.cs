@@ -81,13 +81,13 @@ public partial class Resources : ComponentBase, IDisposable
     private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
     private readonly GridSort<ResourceViewModel> _startTimeSort = GridSort<ResourceViewModel>.ByDescending(p => p.CreationTimeStamp);
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
         {
-            await SubscribeResources();
+            SubscribeResources();
         }
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
@@ -96,28 +96,28 @@ public partial class Resources : ComponentBase, IDisposable
             await InvokeAsync(StateHasChanged);
         });
 
-        async Task SubscribeResources()
+        void SubscribeResources()
         {
             var (snapshot, subscription) = DashboardClient.SubscribeResources();
+
+            var builder = ImmutableHashSet.CreateBuilder<string>();
 
             // Apply snapshot.
             foreach (var resource in snapshot)
             {
                 var added = _resourceByName.TryAdd(resource.Name, resource);
 
-                ImmutableInterlocked.Update(ref _allResourceTypes, set => set.Add(resource.ResourceType));
+                builder.Add(resource.ResourceType);
+
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
 
-            await InvokeAsync(() =>
-            {
-                foreach (var resourceType in _allResourceTypes)
-                {
-                    _visibleResourceTypes.Add(resourceType);
-                }
+            _allResourceTypes = builder.ToImmutable();
 
-                StateHasChanged();
-            });
+            foreach (var resourceType in _allResourceTypes)
+            {
+                _visibleResourceTypes.Add(resourceType);
+            }
 
             // Listen for updates and apply.
             _ = Task.Run(async () =>

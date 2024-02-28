@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Lifecycle;
 
 static class TestResourceExtensions
@@ -12,13 +11,13 @@ static class TestResourceExtensions
         builder.Services.AddLifecycleHook<TestResourceLifecycleHook>();
 
         var rb = builder.AddResource(new TestResource(name))
-                      .WithDashboardState(() => new()
+                      .WithCustomResourceState(() => new()
                       {
                           ResourceType = "Test Resource",
                           State = "Starting",
                           Properties = [
                               ("P1", "P2"),
-                              (DashboardKnownProperties.Source, "Custom")
+                              (CustomResourceKnownProperties.Source, "Custom")
                           ]
                       })
                       .ExcludeFromManifest();
@@ -35,14 +34,14 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
     {
         foreach (var item in appModel.Resources.OfType<TestResource>())
         {
-            if (item.TryGetLastAnnotation<DashboardAnnotation>(out var annotation))
+            if (item.TryGetLastAnnotation<CustomResourceAnnotation>(out var annotation))
             {
                 var states = new[] { "Starting", "Running", "Finished" };
 
                 Task.Run(async () =>
                 {
                     // Simulate custom resource state changes
-                    var state = annotation.GetIntialState();
+                    var state = annotation.GetInitialState();
                     var seconds = Random.Shared.Next(2, 12);
 
                     state = state with

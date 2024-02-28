@@ -3,25 +3,25 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Dashboard;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for applying dashboard annotations to resources.
 /// </summary>
-public static class DashboardResourceExtensions
+public static class CustomResourceExtensions
 {
     /// <summary>
     /// Adds a callback to configure the dashboard context for a resource.
     /// </summary>
     /// <typeparam name="TResource">The resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="initialState">The callback to create the initial <see cref="DashboardResourceState"/>.</param>
+    /// <param name="initialState">The callback to create the initial <see cref="CustomResourceState"/>.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<TResource> WithDashboardState<TResource>(this IResourceBuilder<TResource> builder, Func<DashboardResourceState>? initialState = null)
+    public static IResourceBuilder<TResource> WithCustomResourceState<TResource>(this IResourceBuilder<TResource> builder, Func<CustomResourceState>? initialState = null)
         where TResource : IResource
     {
-        initialState ??= () => DashboardResourceState.Create(builder.Resource);
+        initialState ??= () => CustomResourceState.Create(builder.Resource);
 
-        return builder.WithAnnotation(new DashboardAnnotation(initialState), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new CustomResourceAnnotation(initialState), ResourceAnnotationMutationBehavior.Replace);
     }
 }

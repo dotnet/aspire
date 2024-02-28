@@ -79,10 +79,10 @@ internal sealed class ConsoleLogPublisher(
         }
     }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     private static async LogsEnumerable SubscribeGenericResource()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
-        await Task.Yield();
-
         yield return [("No logs available", false)];
     }
 }

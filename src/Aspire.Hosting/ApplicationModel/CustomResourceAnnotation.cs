@@ -4,34 +4,33 @@
 using System.Collections.Immutable;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
-using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Dashboard;
+namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// The annotation that reflects how a resource shows up in the dashboard.
 /// This is a single producer, single consumer channel model for pushing updates to the dashboard.
 /// The resource server will be the only caller of WatchAsync.
 /// </summary>
-public class DashboardAnnotation(Func<DashboardResourceState> initialState) : IResourceAnnotation
+public sealed class CustomResourceAnnotation(Func<CustomResourceState> initialState) : IResourceAnnotation
 {
-    private readonly Channel<DashboardResourceState> _channel = Channel.CreateUnbounded<DashboardResourceState>();
+    private readonly Channel<CustomResourceState> _channel = Channel.CreateUnbounded<CustomResourceState>();
 
     /// <summary>
     /// Watch for changes to the dashboard state for a resource.
     /// </summary>
-    public IAsyncEnumerable<DashboardResourceState> WatchAsync(CancellationToken cancellationToken = default) => _channel.Reader.ReadAllAsync(cancellationToken);
+    public IAsyncEnumerable<CustomResourceState> WatchAsync(CancellationToken cancellationToken = default) => _channel.Reader.ReadAllAsync(cancellationToken);
 
     /// <summary>
     /// Gets the initial snapshot of the dashboard state for this resource.
     /// </summary>
-    public DashboardResourceState GetIntialState() => initialState();
+    public CustomResourceState GetInitialState() => initialState();
 
     /// <summary>
     /// Updates the snapshot of the dashboard state for a resource.
     /// </summary>
-    /// <param name="state">The new <see cref="DashboardResourceState"/>.</param>
-    public async Task UpdateStateAsync(DashboardResourceState state)
+    /// <param name="state">The new <see cref="CustomResourceState"/>.</param>
+    public async Task UpdateStateAsync(CustomResourceState state)
     {
         await _channel.Writer.WriteAsync(state).ConfigureAwait(false);
     }
@@ -40,7 +39,7 @@ public class DashboardAnnotation(Func<DashboardResourceState> initialState) : IR
 /// <summary>
 /// The context for a all of the properties and URLs that should show up in the dashboard for a resource.
 /// </summary>
-public record DashboardResourceState
+public record CustomResourceState
 {
     /// <summary>
     /// The type of the resource.
@@ -68,11 +67,11 @@ public record DashboardResourceState
     public ImmutableArray<string> Urls { get; init; } = [];
 
     /// <summary>
-    /// Creates a new <see cref="DashboardResourceState"/> for a resource using the well known annotations.
+    /// Creates a new <see cref="CustomResourceState"/> for a resource using the well known annotations.
     /// </summary>
     /// <param name="resource">The resource.</param>
-    /// <returns>The new <see cref="DashboardResourceState"/>.</returns>
-    public static DashboardResourceState Create(IResource resource)
+    /// <returns>The new <see cref="CustomResourceState"/>.</returns>
+    public static CustomResourceState Create(IResource resource)
     {
         ImmutableArray<string> urls = [];
 
@@ -104,7 +103,7 @@ public record DashboardResourceState
         }
 
         // Initialize the state with the well known annotations
-        return new DashboardResourceState()
+        return new CustomResourceState()
         {
             ResourceType = resource.GetType().Name.Replace("Resource", ""),
             EnviromentVariables = environmentVariables,
@@ -117,7 +116,7 @@ public record DashboardResourceState
 /// <summary>
 /// Known properties for resources that show up in the dashboard.
 /// </summary>
-public static class DashboardKnownProperties
+public static class CustomResourceKnownProperties
 {
     /// <summary>
     /// The source of the resource
