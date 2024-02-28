@@ -36,15 +36,9 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
     {
         foreach (var item in appModel.Resources.OfType<TestResource>())
         {
-            if (item.TryGetLastAnnotation<CustomResourceAnnotation>(out var customResourceAnnotation))
+            if (item.TryGetLastAnnotation<CustomResourceAnnotation>(out var customResourceAnnotation) &&
+                item.TryGetLastAnnotation<CustomResourceLoggerAnnotation>(out var loggerAnnotation))
             {
-                item.TryGetLastAnnotation<CustomResourceLoggerAnnotation>(out var loggerAnnotation);
-
-                if (loggerAnnotation is null)
-                {
-                    continue;
-                }
-
                 var states = new[] { "Starting", "Running", "Finished" };
 
                 Task.Run(async () =>
