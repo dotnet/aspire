@@ -139,47 +139,37 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
         EnsureApp();
         ThrowIfNotInitialized();
 
-        var resources = ApplicationModel.Resources;
-        var resource = resources.FirstOrDefault(r => string.Equals(r.Name, resourceName, StringComparison.OrdinalIgnoreCase));
+        return DistributedApplication.CreateHttpClient(resourceName, endpointName);
+    }
 
-        if (resource is null)
-        {
-            throw new ArgumentException($"Resource '{resourceName}' not found", nameof(resourceName));
-        }
+    /// <summary>
+    /// Gets the connection string for the specified resource.
+    /// </summary>
+    /// <param name="resourceName">The resource name.</param>
+    /// <returns>The connection string for the specified resource.</returns>
+    /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
+    public string? GetConnectionString(string resourceName)
+    {
+        EnsureApp();
+        ThrowIfNotInitialized();
 
-        if (!resource.TryGetAllocatedEndPoints(out var endpoints))
-        {
-            throw new InvalidOperationException($"Cannot create a client for resource '{resourceName}' because it has no allocated endpoints.");
-        }
+        return DistributedApplication.GetConnectionString(resourceName);
+    }
 
-        AllocatedEndpointAnnotation? endpoint = null;
+    /// <summary>
+    /// Gets the endpoint for the specified resource.
+    /// </summary>
+    /// <param name="resourceName">The resource name.</param>
+    /// <param name="endpointName">The optional endpoint name. If none are specified, the single defined endpoint is returned.</param>
+    /// <returns>A URI representation of the endpoint.</returns>
+    /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
+    /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
+    public Uri GetEndpoint(string resourceName, string? endpointName = default)
+    {
+        EnsureApp();
+        ThrowIfNotInitialized();
 
-        if (!string.IsNullOrEmpty(endpointName))
-        {
-            endpoint = endpoints.FirstOrDefault(e => string.Equals(e.Name, endpointName, StringComparison.OrdinalIgnoreCase));
-
-            if (endpoint is null)
-            {
-                throw new ArgumentException($"Endpoint '{endpointName}' for resource '{resourceName}' not found", nameof(endpointName));
-            }
-        }
-        else
-        {
-            endpoint = endpoints.FirstOrDefault(e =>
-                string.Equals(e.UriScheme, "http", StringComparison.OrdinalIgnoreCase) || string.Equals(e.UriScheme, "https", StringComparison.OrdinalIgnoreCase));
-
-            if (endpoint is null)
-            {
-                throw new InvalidOperationException($"Cannot create a client for resource '{resourceName}' because it has no allocated HTTP endpoints.");
-            }
-        }
-
-        var clientFactory = _app.Services.GetRequiredService<IHttpClientFactory>();
-
-        var client = clientFactory.CreateClient();
-        client.BaseAddress = new(endpoint.UriString);
-
-        return client;
+        return DistributedApplication.GetEndpoint(resourceName, endpointName);
     }
 
     /// <summary>
