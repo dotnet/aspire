@@ -38,9 +38,13 @@ else if (Resource.TryGetContainerImage(out var containerImage))
                PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
                ToolTip="@containerImage" />
 }
-else
+else if (Resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
 {
-    // TODO we need to add support for arbitrary resource types. Until then, they'll just show an empty source column.
+    <GridValue Value="@value.StringValue"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
+               ToolTip="@value.StringValue" />
 }
 
 @code {

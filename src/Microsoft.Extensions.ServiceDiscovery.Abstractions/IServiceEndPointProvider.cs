@@ -4,12 +4,12 @@
 namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 /// <summary>
-/// Functionality for resolving endpoints for a service.
+/// Provides details about a service's endpoints.
 /// </summary>
-public interface IServiceEndPointResolver : IAsyncDisposable
+public interface IServiceEndPointProvider : IAsyncDisposable
 {
     /// <summary>
-    /// Attempts to resolve the endpoints for the service which this instance is configured to resolve endpoints for.
+    /// Resolves the endpoints for the service.
     /// </summary>
     /// <param name="endPoints">The endpoint collection, which resolved endpoints will be added to.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>

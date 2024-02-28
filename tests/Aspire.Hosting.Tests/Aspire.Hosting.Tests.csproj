@@ -20,7 +20,6 @@
     <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" IsAspireProjectResource="false" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-    <PackageReference Include="Polly" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
   </ItemGroup>

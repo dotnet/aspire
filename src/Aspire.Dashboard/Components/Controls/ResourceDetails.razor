@@ -74,13 +74,13 @@
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
                         <GridValue Value="@context.Address" MaxDisplayLength="0">
                             <ContentAfterValue>
-                                @if (context.IsHttp)
+                                @if (context.Url != null)
                                 {
-                                    <a href="@context.Address" target="_blank">@context.Address</a>
+                                    <a href="@context.Url" target="_blank">@context.Url</a>
                                 }
                                 else
                                 {
-                                    @context.Address
+                                    @context.Text
                                 }
                             </ContentAfterValue>
                         </GridValue>

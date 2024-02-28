@@ -1,0 +1,35 @@
+{
+  "resources": {
+    "signalr1": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Endpoint=https://{signalr1.outputs.hostName};AuthType=azure",
+      "path": "aspire.hosting.azure.bicep.signalr.bicep",
+      "params": {
+        "name": "signalr1",
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "webfrontend": {
+      "type": "project.v0",
+      "path": "../SignalRWeb/SignalRWeb.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__signalr1": "{signalr1.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

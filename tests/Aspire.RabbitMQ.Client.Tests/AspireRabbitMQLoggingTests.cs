@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -54,10 +55,11 @@ public class AspireRabbitMQLoggingTests
 
         await tsc.Task.WaitAsync(TimeSpan.FromMinutes(1));
 
-        Assert.True(logger.Logs.Count >= 2, "Should be at least 2 logs written.");
+        var logs = logger.Logs.ToArray();
+        Assert.True(logs.Length >= 2, "Should be at least 2 logs written.");
 
-        Assert.Contains(logger.Logs, l => l.Level == LogLevel.Information && l.Message == "Performing automatic recovery");
-        Assert.Contains(logger.Logs, l => l.Level == LogLevel.Error && l.Message == "Connection recovery exception.");
+        Assert.Contains(logs, l => l.Level == LogLevel.Information && l.Message == "Performing automatic recovery");
+        Assert.Contains(logs, l => l.Level == LogLevel.Error && l.Message == "Connection recovery exception.");
     }
 
     [Fact]
@@ -75,16 +77,18 @@ public class AspireRabbitMQLoggingTests
         var message = "This is an informational message.";
         RabbitMqClientEventSource.Log.Info(message);
 
-        Assert.Single(logger.Logs);
-        Assert.Equal(LogLevel.Information, logger.Logs[0].Level);
-        Assert.Equal(message, logger.Logs[0].Message);
+        var logs = logger.Logs.ToArray();
+        Assert.Single(logs);
+        Assert.Equal(LogLevel.Information, logs[0].Level);
+        Assert.Equal(message, logs[0].Message);
 
         var warningMessage = "This is a warning message.";
         RabbitMqClientEventSource.Log.Warn(warningMessage);
 
-        Assert.Equal(2, logger.Logs.Count);
-        Assert.Equal(LogLevel.Warning, logger.Logs[1].Level);
-        Assert.Equal(warningMessage, logger.Logs[1].Message);
+        logs = logger.Logs.ToArray();
+        Assert.Equal(2, logs.Length);
+        Assert.Equal(LogLevel.Warning, logs[1].Level);
+        Assert.Equal(warningMessage, logs[1].Message);
     }
 
     [Fact]
@@ -114,11 +118,12 @@ public class AspireRabbitMQLoggingTests
         var logMessage = "This is an error message.";
         RabbitMqClientEventSource.Log.Error(logMessage, testException);
 
-        Assert.Single(logger.Logs);
-        Assert.Equal(LogLevel.Error, logger.Logs[0].Level);
-        Assert.Equal(logMessage, logger.Logs[0].Message);
+        var logs = logger.Logs.ToArray();
+        Assert.Single(logs);
+        Assert.Equal(LogLevel.Error, logs[0].Level);
+        Assert.Equal(logMessage, logs[0].Message);
 
-        var errorEvent = Assert.IsAssignableFrom<IReadOnlyList<KeyValuePair<string, object?>>>(logger.Logs[0].State);
+        var errorEvent = Assert.IsAssignableFrom<IReadOnlyList<KeyValuePair<string, object?>>>(logs[0].State);
         Assert.Equal(5, errorEvent.Count);
 
         Assert.Equal("message", errorEvent[0].Key);
@@ -146,7 +151,7 @@ public class AspireRabbitMQLoggingTests
 
     private sealed class TestLogger : ILogger
     {
-        public List<(LogLevel Level, string Message, object? State)> Logs { get; } = new();
+        public BlockingCollection<(LogLevel Level, string Message, object? State)> Logs { get; } = new();
         public Action? LoggedMessage { get; set; }
 
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull =>

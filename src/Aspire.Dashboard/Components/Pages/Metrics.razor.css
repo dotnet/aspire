@@ -88,6 +88,7 @@
 
 ::deep.metrics-layout > fluent-toolbar {
     grid-area: toolbar;
+    padding: var(--layout-toolbar-padding);
 }
 
 ::deep.metrics-layout > .page-content-area {

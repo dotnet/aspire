@@ -40,7 +40,11 @@
             <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/structuredlogs?traceId={_trace.TraceId}")">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
         </FluentToolbar>
 
-        <SummaryDetailsView ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()" ViewKey="TraceDetail">
+        <SummaryDetailsView
+            ShowDetails="SelectedSpan is not null"
+            OnDismiss="() => ClearSelectedSpan()"
+            ViewKey="TraceDetail"
+            SelectedValue="@SelectedSpan">
             <DetailsTitleTemplate>
                 @{ var shortedSpanId = OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId); }
                 <div class="span-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
@@ -177,6 +181,6 @@
 else
 {
     <div class="empty-content">
-        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)]
+        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @string.Format(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)], TraceId)
     </div>
 }
