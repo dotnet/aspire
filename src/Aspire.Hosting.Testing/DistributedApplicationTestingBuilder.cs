@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Testing;
 /// <typeparam name="TEntryPoint">
 /// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
 /// </typeparam>
-public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistributedApplicationBuilder, IAsyncDisposable, IDisposable where TEntryPoint : class
+public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistributedApplicationBuilder where TEntryPoint : class
 {
     private readonly SuspendingDistributedApplicationFactory _factory;
     private readonly DistributedApplicationBuilder _applicationBuilder;
@@ -65,20 +65,8 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
         return new DelegatedDistributedApplication(new DelegatedHost(_factory));
     }
 
-    /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
-    {
-        await _factory.DisposeAsync().ConfigureAwait(false);
-    }
-
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        _factory.Dispose();
-    }
-
     private sealed class SuspendingDistributedApplicationFactory(Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
-        : DistributedApplicationTestingHarness<TEntryPoint>, IDisposable
+        : DistributedApplicationTestingHarness<TEntryPoint>
     {
         private readonly SemaphoreSlim _continueBuilding = new(0);
         private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -114,14 +102,16 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
 
         public override async ValueTask DisposeAsync()
         {
+            _continueBuilding.Release();
             _builderTcs.TrySetCanceled();
             await base.DisposeAsync().ConfigureAwait(false);
         }
 
         public override void Dispose()
         {
-            base.Dispose();
+            _continueBuilding.Release();
             _builderTcs.TrySetCanceled();
+            base.Dispose();
         }
     }
 
@@ -129,23 +119,27 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
     {
         private readonly DelegatedHost _host = host;
 
-        public override async Task RunAsync(CancellationToken cancellationToken = default)
+        public override async Task RunAsync(CancellationToken cancellationToken)
         {
+            // Avoid calling the base here, since it will execute the pre-start hooks
+            // before calling the corresponding host method, which also executes the same pre-start hooks.
             await _host.RunAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public override async Task StartAsync(CancellationToken cancellationToken = default)
+        public override async Task StartAsync(CancellationToken cancellationToken)
         {
+            // Avoid calling the base here, since it will execute the pre-start hooks
+            // before calling the corresponding host method, which also executes the same pre-start hooks.
             await _host.StartAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public override async Task StopAsync(CancellationToken cancellationToken = default)
+        public override async Task StopAsync(CancellationToken cancellationToken)
         {
             await _host.StopAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private sealed class DelegatedHost(DistributedApplicationTestingHarness<TEntryPoint> appFactory) : IHost, IAsyncDisposable
+    private sealed class DelegatedHost(SuspendingDistributedApplicationFactory appFactory) : IHost, IAsyncDisposable
     {
         public IServiceProvider Services => appFactory.Services;
 
@@ -159,12 +153,12 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
             await appFactory.DisposeAsync().ConfigureAwait(false);
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken = default)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             await appFactory.InitializeAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task StopAsync(CancellationToken cancellationToken = default)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
             await appFactory.DisposeAsync().ConfigureAwait(false);
         }

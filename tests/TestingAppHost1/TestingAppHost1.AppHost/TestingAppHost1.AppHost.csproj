@@ -14,8 +14,4 @@
     <ProjectReference Include="..\TestingAppHost1.MyWorker\TestingAppHost1.MyWorker.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Testing.Tests" />
-  </ItemGroup>
-
 </Project>
