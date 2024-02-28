@@ -14,25 +14,40 @@ using static OpenTelemetry.Proto.Trace.V1.Span.Types;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
-public class TelemetryRepository
+public sealed class TelemetryOptions
 {
-    internal const string MaxLogCountKey = "MaxLogCount";
-    internal const string MaxTraceCountKey = "MaxTraceCount";
-    internal const string MaxMetricsCountKey = "MaxMetricsCount";
+    public int LogCountLimit { get; init; }
+    public int TraceCountLimit { get; init; }
+    public int MetricsCountLimit { get; init; }
+    public int AttributeCountLimit { get; init; }
+    public int AttributeLengthLimit { get; init; }
+    public int SpanEventCountLimit { get; init; }
+}
 
-    private const int DefaultMaxTelemetryCount = 10_000;
-    private const int DefaultMaxMetricsCount = 100_000; // Allows for 1 metric point per second for over 24 hours.
+public sealed class TelemetryRepository
+{
+    internal const string LogCountLimitKey = "DOTNET_DASHBOARD_OTEL_LOG_COUNT_LIMIT";
+    internal const string TraceCountLimitKey = "DOTNET_DASHBOARD_OTEL_TRACE_COUNT_LIMIT";
+    internal const string MetricsCountLimitKey = "DOTNET_DASHBOARD_OTEL_METRIC_COUNT_LIMIT";
+    internal const string AttributeCountLimitKey = "DOTNET_DASHBOARD_OTEL_ATTRIBUTE_COUNT_LIMIT";
+    internal const string AttributeLengthLimitKey = "DOTNET_DASHBOARD_OTEL_ATTRIBUTE_LENGTH_LIMIT";
+    internal const string SpanEventCountLimitKey = "DOTNET_DASHBOARD_OTEL_SPAN_EVENT_COUNT_LIMIT";
+
+    private const int DefaultTraceCountLimit = 10_000;
+    private const int DefaultMetricsCountLimit = 50_000; // Allows for 1 metric point per second for over 12 hours.
+    private const int DefaultAttributeCountLimit = 128;
+    private const int DefaultAttributeLengthLimit = int.MaxValue;
+    private const int DefaultSpanEventCountLimit = int.MaxValue;
 
     private readonly object _lock = new();
     private readonly ILogger _logger;
-
+    private readonly TelemetryOptions _options;
     private readonly List<Subscription> _applicationSubscriptions = new();
     private readonly List<Subscription> _logSubscriptions = new();
     private readonly List<Subscription> _metricsSubscriptions = new();
     private readonly List<Subscription> _tracesSubscriptions = new();
 
     private readonly ConcurrentDictionary<string, OtlpApplication> _applications = new();
-    private readonly int _maxMetricsCount;
 
     private readonly ReaderWriterLockSlim _logsLock = new();
     private readonly Dictionary<string, OtlpScope> _logScopes = new();
@@ -48,9 +63,18 @@ public class TelemetryRepository
     {
         _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
 
-        _logs = new(config.GetValue(MaxLogCountKey, DefaultMaxTelemetryCount));
-        _traces = new(config.GetValue(MaxTraceCountKey, DefaultMaxTelemetryCount));
-        _maxMetricsCount = config.GetValue(MaxMetricsCountKey, DefaultMaxMetricsCount);
+        _options = new TelemetryOptions
+        {
+            LogCountLimit = config.GetValue(LogCountLimitKey, DefaultTraceCountLimit),
+            TraceCountLimit = config.GetValue(TraceCountLimitKey, DefaultTraceCountLimit),
+            MetricsCountLimit = config.GetValue(MetricsCountLimitKey, DefaultMetricsCountLimit),
+            AttributeCountLimit = config.GetValue(AttributeCountLimitKey, DefaultAttributeCountLimit),
+            AttributeLengthLimit = config.GetValue(AttributeLengthLimitKey, DefaultAttributeLengthLimit),
+            SpanEventCountLimit = config.GetValue(SpanEventCountLimitKey, DefaultSpanEventCountLimit),
+        };
+
+        _logs = new(_options.LogCountLimit);
+        _traces = new(_options.TraceCountLimit);
     }
 
     public List<OtlpApplication> GetApplications()
@@ -176,7 +200,7 @@ public class TelemetryRepository
             var application = _applications.GetOrAdd(serviceId, _ =>
             {
                 newApplication = true;
-                return new OtlpApplication(resource, _applications, _logger, _maxMetricsCount);
+                return new OtlpApplication(resource, _applications, _logger, _options);
             });
             return (application, newApplication);
         }
@@ -271,7 +295,7 @@ public class TelemetryRepository
                     var name = sl.Scope?.Name ?? string.Empty;
                     if (!_logScopes.TryGetValue(name, out scope))
                     {
-                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope) : OtlpScope.Empty;
+                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope, _options) : OtlpScope.Empty;
                         _logScopes.Add(name, scope);
                     }
                 }
@@ -286,7 +310,7 @@ public class TelemetryRepository
                 {
                     try
                     {
-                        var logEntry = new OtlpLogEntry(record, application, scope);
+                        var logEntry = new OtlpLogEntry(record, application, scope, _options);
 
                         // Insert log entry in the correct position based on timestamp.
                         // Logs can be added out of order by different services.
@@ -323,7 +347,7 @@ public class TelemetryRepository
                             }
                         }
 
-                        foreach (var kvp in logEntry.Properties)
+                        foreach (var kvp in logEntry.Attributes)
                         {
                             _logPropertyKeys.Add((application, kvp.Key));
                         }
@@ -548,7 +572,7 @@ public class TelemetryRepository
                     var name = scopeSpan.Scope?.Name ?? string.Empty;
                     if (!_traceScopes.TryGetValue(name, out scope))
                     {
-                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope) : OtlpScope.Empty;
+                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope, _options) : OtlpScope.Empty;
                         _traceScopes.Add(name, scope);
                     }
                 }
@@ -579,7 +603,7 @@ public class TelemetryRepository
                             newTrace = true;
                         }
 
-                        var newSpan = CreateSpan(application, span, trace);
+                        var newSpan = CreateSpan(application, span, trace, _options);
                         trace.AddSpan(newSpan);
 
                         // Traces are sorted by the start time of the first span.
@@ -688,7 +712,7 @@ public class TelemetryRepository
         }
     }
 
-    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace)
+    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, TelemetryOptions options)
     {
         var id = span.SpanId?.ToHexString();
         if (id is null)
@@ -703,8 +727,13 @@ public class TelemetryRepository
             {
                 Name = e.Name,
                 Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
-                Attributes = e.Attributes.ToKeyValuePairs()
+                Attributes = e.Attributes.ToKeyValuePairs(options)
             });
+
+            if (events.Count >= options.SpanEventCountLimit)
+            {
+                break;
+            }
         }
 
         var newSpan = new OtlpSpan(application, trace)
@@ -717,7 +746,7 @@ public class TelemetryRepository
             EndTime = OtlpHelpers.UnixNanoSecondsToDateTime(span.EndTimeUnixNano),
             Status = ConvertStatus(span.Status),
             StatusMessage = span.Status?.Message,
-            Attributes = span.Attributes.ToKeyValuePairs(),
+            Attributes = span.Attributes.ToKeyValuePairs(options),
             State = span.TraceState,
             Events = events
         };

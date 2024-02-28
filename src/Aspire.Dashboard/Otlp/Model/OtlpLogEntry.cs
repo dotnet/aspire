@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Otlp.Storage;
 using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -9,7 +10,7 @@ namespace Aspire.Dashboard.Otlp.Model;
 [DebuggerDisplay("TimeStamp = {TimeStamp}, Severity = {Severity}, Message = {Message}")]
 public class OtlpLogEntry
 {
-    public KeyValuePair<string, string>[] Properties { get; }
+    public KeyValuePair<string, string>[] Attributes { get; }
     public DateTime TimeStamp { get; }
     public uint Flags { get; }
     public LogLevel Severity { get; }
@@ -20,32 +21,31 @@ public class OtlpLogEntry
     public OtlpApplication Application { get; }
     public OtlpScope Scope { get; }
 
-    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope)
+    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryOptions options)
     {
-        var properties = new List<KeyValuePair<string, string>>();
-        foreach (var kv in record.Attributes)
+        string? originalFormat = null;
+        Attributes = record.Attributes.ToKeyValuePairs(options, filter: attribute =>
         {
-            switch (kv.Key)
+            switch (attribute.Key)
             {
                 case "{OriginalFormat}":
-                    OriginalFormat = kv.Value.GetString();
-                    break;
+                    originalFormat = attribute.Value.GetString();
+                    return false;
                 case "SpanId":
                 case "TraceId":
                     // Explicitly ignore these
-                    break;
+                    return false;
                 default:
-                    properties.Add(KeyValuePair.Create(kv.Key, kv.Value.GetString()));
-                    break;
+                    return true;
             }
-        }
-        Properties = properties.ToArray();
+        });
 
         TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
 
-        Message = record.Body.GetString();
+        Message = OtlpHelpers.TruncateString(record.Body.GetString(), options.AttributeLengthLimit);
+        OriginalFormat = originalFormat;
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
         Application = logApp;
@@ -93,7 +93,7 @@ public class OtlpLogEntry
         AddOptionalValue("SpanId", SpanId, props);
         AddOptionalValue("OriginalFormat", OriginalFormat, props);
 
-        foreach (var kv in Properties)
+        foreach (var kv in Attributes)
         {
             props.TryAdd(kv.Key, kv.Value);
         }

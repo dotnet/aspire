@@ -39,8 +39,7 @@ public static class OtlpHelpers
         return serviceName;
     }
 
-    public static string ToShortenedId(string id) =>
-        id.Length > 7 ? id[..7] : id;
+    public static string ToShortenedId(string id) => TruncateString(id, maxLength: 7);
 
     public static string ToHexString(ReadOnlyMemory<byte> bytes)
     {
@@ -59,6 +58,11 @@ public static class OtlpHelpers
                 ToCharsBuffer(data[pos], chars, pos * 2);
             }
         });
+    }
+
+    public static string TruncateString(string value, int maxLength)
+    {
+        return value.Length > maxLength ? value[..maxLength] : value;
     }
 
     public static string ToHexString(this ByteString bytes)
@@ -101,39 +105,77 @@ public static class OtlpHelpers
         return (long)(nanoseconds / TimeSpan.NanosecondsPerTick);
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryOptions options)
     {
         if (attributes.Count == 0)
         {
             return Array.Empty<KeyValuePair<string, string>>();
         }
 
-        var values = new KeyValuePair<string, string>[attributes.Count];
-        CopyKeyValues(attributes, values);
+        var values = new KeyValuePair<string, string>[Math.Min(attributes.Count, options.AttributeCountLimit)];
+        CopyKeyValues(attributes, values, options);
 
         return values;
     }
 
-    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryOptions options, Func<KeyValue, bool> filter)
     {
-        if (copiedAttributes is null || copiedAttributes.Length < attributes.Count)
+        if (attributes.Count == 0)
         {
-            copiedAttributes = new KeyValuePair<string, string>[attributes.Count];
+            return Array.Empty<KeyValuePair<string, string>>();
+        }
+
+        var readLimit = Math.Min(attributes.Count, options.AttributeCountLimit);
+        var values = new List<KeyValuePair<string, string>>(readLimit);
+        for (var i = 0; i < attributes.Count; i++)
+        {
+            var attribute = attributes[i];
+
+            if (!filter(attribute))
+            {
+                continue;
+            }
+
+            var value = TruncateString(attribute.Value.GetString(), options.AttributeLengthLimit);
+
+            values.Add(new KeyValuePair<string, string>(attribute.Key, value));
+
+            if (values.Count >= readLimit)
+            {
+                break;
+            }
+        }
+
+        return values.ToArray();
+    }
+
+    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, TelemetryOptions options, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
+    {
+        copyCount = Math.Min(attributes.Count, options.AttributeCountLimit);
+
+        if (copiedAttributes is null || copiedAttributes.Length < copyCount)
+        {
+            copiedAttributes = new KeyValuePair<string, string>[copyCount];
         }
         else
         {
             Array.Clear(copiedAttributes);
         }
 
-        CopyKeyValues(attributes, copiedAttributes);
+        CopyKeyValues(attributes, copiedAttributes, options);
     }
 
-    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes)
+    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, TelemetryOptions options)
     {
-        for (var i = 0; i < attributes.Count; i++)
+        var copyCount = Math.Min(attributes.Count, options.AttributeCountLimit);
+
+        for (var i = 0; i < copyCount; i++)
         {
-            var keyValue = attributes[i];
-            copiedAttributes[i] = new KeyValuePair<string, string>(keyValue.Key, keyValue.Value.GetString());
+            var attribute = attributes[i];
+
+            var value = TruncateString(attribute.Value.GetString(), options.AttributeLengthLimit);
+
+            copiedAttributes[i] = new KeyValuePair<string, string>(attribute.Key, value);
         }
     }
 
