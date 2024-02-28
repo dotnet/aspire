@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
+
 public class CustomResourceLoggerTests
 {
     [Fact]
