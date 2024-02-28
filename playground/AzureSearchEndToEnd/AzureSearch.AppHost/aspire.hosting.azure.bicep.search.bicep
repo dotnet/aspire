@@ -64,7 +64,7 @@ resource search 'Microsoft.Search/searchServices@2022-09-01' = {
 
 // Search Service Contributor
 var searchServiceContributorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
-resource scSearchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource searchServiceContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(search.id, principalId, searchServiceContributorRole)
   scope: search
   properties: {
@@ -76,7 +76,7 @@ resource scSearchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04
 
 // Search Index Data Contributor
 var searchIndexDataContributorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
-resource isSearchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource searchIndexDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(search.id, principalId, searchIndexDataContributorRole)
   scope: search
   properties: {
