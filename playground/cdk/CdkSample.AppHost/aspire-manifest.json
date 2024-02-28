@@ -13,7 +13,7 @@
       "type": "azure.bicep.v0",
       "path": "construct1.module.bicep",
       "params": {
-        "storagesku": "Aspire.Hosting.ApplicationModel.ParameterResource"
+        "storagesku": "{storagesku.value}"
       }
     },
     "construct2": {

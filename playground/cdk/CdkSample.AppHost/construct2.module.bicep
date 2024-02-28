@@ -5,11 +5,11 @@ param location string
 param tableUri string
 
 
-resource keyVault_Mc6LeAH6Q 'Microsoft.KeyVault/vaults@2023-02-01' = {
+resource keyVault_jIQqamCos 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: 'jane-temp'
   location: location
   properties: {
-    tenantId: '5f85e12e-4fd7-475a-8acf-b6f07b4ff684'
+    tenantId: '83da9385-a5f2-44d6-8190-6d0c4184a19a'
     sku: {
       name: 'standard'
       family: 'A'
@@ -18,12 +18,12 @@ resource keyVault_Mc6LeAH6Q 'Microsoft.KeyVault/vaults@2023-02-01' = {
   }
 }
 
-resource keyVaultSecret_ZTFvs0PgN 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: keyVault_Mc6LeAH6Q
+resource keyVaultSecret_BJ0gguPoz 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault_jIQqamCos
   name: 'mysecret-temp'
   properties: {
     value: tableUri
   }
 }
 
-output vaultUri string = keyVault_Mc6LeAH6Q.properties.vaultUri
+output vaultUri string = keyVault_jIQqamCos.properties.vaultUri

@@ -5,8 +5,8 @@ param location string
 param storagesku string
 
 
-resource storageAccount_Jdw5JxFxB 'Microsoft.Storage/storageAccounts@2022-09-01' = {
-  name: 'bobb45549e63c694665b351f'
+resource storageAccount_jUWh3LB5G 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+  name: 'bob814ae87fd35d4c2988917'
   location: location
   sku: {
     name: storagesku
@@ -16,4 +16,4 @@ resource storageAccount_Jdw5JxFxB 'Microsoft.Storage/storageAccounts@2022-09-01'
   }
 }
 
-output tableUri string = storageAccount_Jdw5JxFxB.properties.primaryEndpoints.table
+output tableUri string = storageAccount_jUWh3LB5G.properties.primaryEndpoints.table
