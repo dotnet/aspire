@@ -21,8 +21,9 @@
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TestsRunningOutOfTree=true" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TestsRunningOutOfTree=true" />
 
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SHOW_BUILD_OUTPUT=true" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SHOW_BUILD_OUTPUT=true" />
+    <!-- setting this via xunit.runner.json now -->
+    <!--<HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SHOW_BUILD_OUTPUT=true" />-->
+    <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SHOW_BUILD_OUTPUT=true" />-->
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set BUILT_NUGETS_PATH=%HELIX_CORRELATION_PAYLOAD%\built-nugets" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export BUILT_NUGETS_PATH=$HELIX_CORRELATION_PAYLOAD/built-nugets" />
@@ -33,7 +34,7 @@
     <HelixPreCommand Include="docker container prune -f" />
 
     <HelixPostCommand Include="docker container ls --all" />
-    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
+    <!--<HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />-->
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsE2E->Count()) > 0">
