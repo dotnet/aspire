@@ -24,4 +24,16 @@ public static class CustomResourceExtensions
 
         return builder.WithAnnotation(new CustomResourceAnnotation(initialSnapshotFactory), ResourceAnnotationMutationBehavior.Replace);
     }
+
+    /// <summary>
+    /// Initializes the resource with a logger that writes to the log stream for the resource.
+    /// </summary>
+    /// <typeparam name="TResource">The resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The resource builder.</returns>
+    public static IResourceBuilder<TResource> WithResourceLogger<TResource>(this IResourceBuilder<TResource> builder)
+        where TResource : IResource
+    {
+        return builder.WithAnnotation(new CustomResourceLoggerAnnotation(), ResourceAnnotationMutationBehavior.Replace);
+    }
 }

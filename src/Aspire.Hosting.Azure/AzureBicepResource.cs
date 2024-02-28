@@ -15,8 +15,8 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">Name of the resource. This will be the name of the deployment.</param>
 /// <param name="templateFile">The path to the bicep file.</param>
 /// <param name="templateString">A bicep snippet.</param>
-/// <param name="templateResouceName">The name of an embedded resource that represents the bicep file.</param>
-public class AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResouceName = null) :
+/// <param name="templateResourceName">The name of an embedded resource that represents the bicep file.</param>
+public class AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) :
     Resource(name),
     IAzureResource
 {
@@ -24,7 +24,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
     internal string? TemplateString { get; } = templateString;
 
-    internal string? TemplateResourceName { get; } = templateResouceName;
+    internal string? TemplateResourceName { get; } = templateResourceName;
 
     /// <summary>
     /// Parameters that will be passed into the bicep template.
