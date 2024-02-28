@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -19,14 +20,18 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 {
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
+
     [Inject]
     public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; set; }
+    public required ProtectedSessionStorage SessionStorage { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Parameter]
     public string? ResourceName { get; set; }
@@ -35,7 +40,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
     private readonly CancellationSeries _logSubscriptionCancellationSeries = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    private List<SelectViewModel<ResourceTypeDetails>>? _resources;
+    private ImmutableList<SelectViewModel<ResourceTypeDetails>>? _resources;
 
     // UI
     private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
@@ -48,14 +53,27 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public string BasePath => "consolelogs";
     public string SessionStorageKey => "ConsoleLogs_PageState";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
-        TrackResourceSnapshots();
+        var loadingTcs = new TaskCompletionSource();
 
-        void TrackResourceSnapshots()
+        await TrackResourceSnapshotsAsync();
+
+        // Wait for resource to be selected. If selected resource isn't available after a few seconds then stop waiting.
+        try
+        {
+            await loadingTcs.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            Logger.LogDebug("Loading task completed.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
+        }
+
+        async Task TrackResourceSnapshotsAsync()
         {
             if (!DashboardClient.IsEnabled)
             {
@@ -64,6 +82,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
+            Logger.LogDebug("Received initial resource snapshot with {ResourceCount} resources.", snapshot.Length);
+
             foreach (var resource in snapshot)
             {
                 var added = _resourceByName.TryAdd(resource.Name, resource);
@@ -71,6 +91,20 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
 
             UpdateResourcesList();
+
+            // Set loading task result if the selected resource is already in the snapshot or there is no selected resource.
+            if (ResourceName != null)
+            {
+                if (_resourceByName.TryGetValue(ResourceName, out var selectedResource))
+                {
+                    await SetSelectedResourceOptionAsync(selectedResource);
+                }
+            }
+            else
+            {
+                Logger.LogDebug("No resource selected.");
+                loadingTcs.TrySetResult();
+            }
 
             _ = Task.Run(async () =>
             {
@@ -85,18 +119,27 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                     // we should mark it as selected
                     if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
                     {
-                        PageViewModel.SelectedResource = resource;
-                        Debug.Assert(_resources is not null);
-                        PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ReplicaSet && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
-                        await SetSelectedConsoleResource(resource);
+                        await SetSelectedResourceOptionAsync(resource);
                     }
                 }
             });
+        }
+
+        async Task SetSelectedResourceOptionAsync(ResourceViewModel resource)
+        {
+            PageViewModel.SelectedResource = resource;
+            Debug.Assert(_resources is not null);
+            PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ReplicaSet && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
+            await SetSelectedConsoleResource(resource);
+
+            Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
+            loadingTcs.TrySetResult();
         }
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        Logger.LogDebug("Initializing console logs view model.");
         await this.InitializeViewModelAsync();
 
         await ClearLogsAsync();
@@ -122,15 +165,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private void UpdateResourcesList()
     {
-        _resources ??= new(_resourceByName.Count + 1);
-        _resources.Clear();
-        _resources.Add(_noSelection);
+        var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
+        builder.Add(_noSelection);
 
         foreach (var resourceGroupsByApplicationName in _resourceByName.Values.OrderBy(c => c.Name).GroupBy(resource => resource.DisplayName))
         {
             if (resourceGroupsByApplicationName.Count() > 1)
             {
-                _resources.Add(new SelectViewModel<ResourceTypeDetails>
+                builder.Add(new SelectViewModel<ResourceTypeDetails>
                 {
                     Id = ResourceTypeDetails.CreateReplicaSet(resourceGroupsByApplicationName.Key),
                     Name = resourceGroupsByApplicationName.Key
@@ -139,9 +181,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             foreach (var resource in resourceGroupsByApplicationName)
             {
-                _resources.Add(ToOption(resource, resourceGroupsByApplicationName.Count() > 1, resourceGroupsByApplicationName.Key));
+                builder.Add(ToOption(resource, resourceGroupsByApplicationName.Count() > 1, resourceGroupsByApplicationName.Key));
             }
         }
+
+        _resources = builder.ToImmutable();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
@@ -224,7 +268,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await StopWatchingLogsAsync();
         await ClearLogsAsync();
 
-        PageViewModel.SelectedResource = PageViewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
+        PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
         await this.AfterViewModelChangedAsync();
     }
 
