@@ -1,5 +1,6 @@
 param name string
 param principalId string
+param principalType string = 'ServicePrincipal'
 
 @description('Tags that will be applied to all resources')
 param tags object = {}
@@ -44,8 +45,6 @@ param location string = resourceGroup().location
 
 var resourceToken = uniqueString(resourceGroup().id)
 
-param principalType string = 'ServicePrincipal'
-
 resource search 'Microsoft.Search/searchServices@2022-09-01' = {
   name: '${name}-${resourceToken}'
   location: location
@@ -61,31 +60,29 @@ resource search 'Microsoft.Search/searchServices@2022-09-01' = {
   tags: tags
 }
 
-// Find list of roles and GUIDs in https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+// Find list of roles and GUIDs in https://learn.microsoft.com/azure/role-based-access-control/built-in-roles
 
 // Search Service Contributor
-var scRoleDefinitionId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
-
-// Search Index Data Contributor
-var idRoleDefinitionId2 = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
-
+var searchServiceContributorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
 resource scSearchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(search.id, principalId, scRoleDefinitionId)
+  name: guid(search.id, principalId, searchServiceContributorRole)
   scope: search
   properties: {
     principalId: principalId
     principalType: principalType
-    roleDefinitionId: scRoleDefinitionId
+    roleDefinitionId: searchServiceContributorRole
   }
 }
 
+// Search Index Data Contributor
+var searchIndexDataContributorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
 resource isSearchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(search.id, principalId, idRoleDefinitionId2)
+  name: guid(search.id, principalId, searchIndexDataContributorRole)
   scope: search
   properties: {
     principalId: principalId
     principalType: principalType
-    roleDefinitionId: idRoleDefinitionId2
+    roleDefinitionId: searchIndexDataContributorRole
   }
 }
 
