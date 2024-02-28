@@ -13,6 +13,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed class CustomResourceLoggerAnnotation : IResourceAnnotation
 {
     private readonly ResourceLogger _logger;
+    private readonly CancellationTokenSource _logStreamCts = new();
 
     // History of logs, capped at 10000 entries.
     private readonly CircularBuffer<(string Content, bool IsErrorMessage)> _backlog = new(10000);
@@ -39,6 +40,15 @@ public sealed class CustomResourceLoggerAnnotation : IResourceAnnotation
     /// </summary>
     public ILogger Logger => _logger;
 
+    /// <summary>
+    /// Close the log stream for the resource. Future subscribers will not receive any updates and will complete immediately.
+    /// </summary>
+    public void Complete()
+    {
+        // REVIEW: Do we clean up the backlog?
+        _logStreamCts.Cancel();
+    }
+
     private sealed class ResourceLogger(CustomResourceLoggerAnnotation annotation) : ILogger
     {
         IDisposable? ILogger.BeginScope<TState>(TState state) => null;
@@ -47,6 +57,12 @@ public sealed class CustomResourceLoggerAnnotation : IResourceAnnotation
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
+            if (annotation._logStreamCts.IsCancellationRequested)
+            {
+                // Noop if logging after completing the stream
+                return;
+            }
+
             var log = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
             var isErrorMessage = logLevel >= LogLevel.Error;
 
@@ -60,6 +76,7 @@ public sealed class CustomResourceLoggerAnnotation : IResourceAnnotation
             annotation.OnNewLog?.Invoke(payload);
         }
     }
+
     private sealed class LogAsyncEnumerable(CustomResourceLoggerAnnotation annotation) : IAsyncEnumerable<IReadOnlyList<(string, bool)>>
     {
         public async IAsyncEnumerator<IReadOnlyList<(string, bool)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
@@ -84,9 +101,12 @@ public sealed class CustomResourceLoggerAnnotation : IResourceAnnotation
 
             annotation.OnNewLog += Log;
 
+            // Connect both tokens so we can stop streaming if the stream was closed
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, annotation._logStreamCts.Token);
+
             try
             {
-                await foreach (var entry in channel.GetBatches(cancellationToken))
+                await foreach (var entry in channel.GetBatches(cts.Token))
                 {
                     yield return entry;
                 }
