@@ -86,7 +86,7 @@ public class ResourceUpdatesTests
 
         Assert.NotNull(annotation);
 
-        var enumerableTask = Task.Run(async () =>
+        async Task<List<CustomResourceSnapshot>> GetValuesAsync()
         {
             var values = new List<CustomResourceSnapshot>();
 
@@ -96,7 +96,9 @@ public class ResourceUpdatesTests
             }
 
             return values;
-        });
+        }
+
+        var enumerableTask = GetValuesAsync();
 
         var state = annotation.GetInitialSnapshot();
 
