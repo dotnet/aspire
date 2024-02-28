@@ -41,6 +41,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         _diagnosticMessageSink = messageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
+        if (BuildEnvironment.IsRunningOutOfTree)
+        {
+            BuildEnvironment.EnvVars["TestsRunningOutOfTree"] = "true";
+        }
     }
 
     public async Task InitializeAsync()
@@ -51,7 +55,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             using var cmd = new DotNetCommand(BuildEnvironment, _testOutput)
                 .WithWorkingDirectory(appHostDirectory);
 
-            (await cmd.ExecuteAsync(CancellationToken.None, $"build -bl:{Path.Combine(BuildEnvironment.LogRootPath, "testproject-build.binlog")} -v q"))
+            (await cmd.ExecuteAsync(CancellationToken.None, $"build -bl:{Path.Combine(BuildEnvironment.LogRootPath, "testproject-build.binlog")} -v m"))
                 .EnsureSuccessful();
         }
 
@@ -80,10 +84,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         foreach (var item in BuildEnvironment.EnvVars)
         {
             AddEnvironmentVariable(item.Key, item.Value);
-        }
-        if (ForceOutOfTree)
-        {
-            AddEnvironmentVariable("TestsRunningOutOfTree", "true");
         }
 
         _testOutput.WriteLine($"Starting the process: {BuildEnvironment.DotNet} {processArguments} in {_appHostProcess.StartInfo.WorkingDirectory}");
