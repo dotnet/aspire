@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name"></param>
 public class AzureStorageResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.storage.bicep")
+    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.storage.bicep")
 {
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.

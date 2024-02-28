@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="innerResource"><see cref="PostgresServerResource"/> that this resource wraps.</param>
 public class AzurePostgresResource(PostgresServerResource innerResource) :
-    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.postgres.bicep"),
+    AzureBicepResource(innerResource.Name, templateResourceName: "Aspire.Hosting.Azure.Bicep.postgres.bicep"),
     IResourceWithConnectionString
 {
     /// <summary>
