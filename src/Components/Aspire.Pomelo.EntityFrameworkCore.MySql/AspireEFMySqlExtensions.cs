@@ -97,9 +97,7 @@ public static partial class AspireEFMySqlExtensions
 
             var connectionString = settings.ConnectionString ?? string.Empty;
 
-            // Initialize serverVersion to a dummy value; the loop below will either replace it with an actual value or throw an unhandled exception.
-            ServerVersion serverVersion = null!;
-
+            ServerVersion serverVersion;
             if (settings.ServerVersion is null)
             {
                 ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
