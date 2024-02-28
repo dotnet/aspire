@@ -14,7 +14,7 @@ public sealed class ResourceUpdatesAnnotation(Func<CustomResourceSnapshot> initi
 {
     private readonly CancellationTokenSource _streamClosedCts = new();
 
-    private Func<CustomResourceSnapshot, Task>? OnSnapshotUpdated { get; set; }
+    private Action<CustomResourceSnapshot>? OnSnapshotUpdated { get; set; }
 
     /// <summary>
     /// Watch for changes to the dashboard state for a resource.
@@ -37,10 +37,7 @@ public sealed class ResourceUpdatesAnnotation(Func<CustomResourceSnapshot> initi
             return Task.CompletedTask;
         }
 
-        if (OnSnapshotUpdated != null)
-        {
-            return OnSnapshotUpdated(state);
-        }
+        OnSnapshotUpdated?.Invoke(state);
 
         return Task.CompletedTask;
     }
@@ -59,10 +56,8 @@ public sealed class ResourceUpdatesAnnotation(Func<CustomResourceSnapshot> initi
         {
             var channel = Channel.CreateUnbounded<CustomResourceSnapshot>();
 
-            async Task WriteToChannel(CustomResourceSnapshot state)
-            {
-                await channel.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
-            }
+            void WriteToChannel(CustomResourceSnapshot state)
+                => channel.Writer.TryWrite(state);
 
             using var _ = customResourceAnnotation._streamClosedCts.Token.Register(() => channel.Writer.TryComplete());
 
