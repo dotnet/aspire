@@ -48,7 +48,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <param name="deleteTemporaryFileOnDispose">A boolean that determines if the file should be deleted on disposal of the <see cref="BicepTemplateFile"/>.</param>
     /// <returns>A <see cref="BicepTemplateFile"/> that represents the bicep file.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
+    public virtual BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
         // Throw if multiple template sources are specified
         if (TemplateFile is not null && (TemplateString is not null || TemplateResourceName is not null))

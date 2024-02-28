@@ -1,5 +1,8 @@
 targetScope = 'resourceGroup'
 
+@description('')
+param storageName string = 'bob${uniqueString(resourceGroup().id)}'
+
 @description('West US 3')
 param location string
 
@@ -7,8 +10,8 @@ param location string
 param storagesku string
 
 
-resource storageAccount_WLTg4zEgJ 'Microsoft.Storage/storageAccounts@2022-09-01' = {
-  name: 'bobd3c49aedcdfc40eb8f3d8'
+resource storageAccount_zianFGpKu 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+  name: storageName
   location: location
   sku: {
     name: storagesku
@@ -18,4 +21,4 @@ resource storageAccount_WLTg4zEgJ 'Microsoft.Storage/storageAccounts@2022-09-01'
   }
 }
 
-output tableUri string = storageAccount_WLTg4zEgJ.properties.primaryEndpoints.table
+output tableUri string = storageAccount_zianFGpKu.properties.primaryEndpoints.table

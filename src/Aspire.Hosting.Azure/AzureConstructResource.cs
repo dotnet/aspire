@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 
 namespace Aspire.Hosting;
@@ -20,8 +19,8 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// </summary>
     public Action<ResourceModuleConstruct> ConfigureConstruct { get; } = configureConstruct;
 
-    /// <inheritdoc />
-    public override void WriteToManifest(ManifestPublishingContext context)
+    /// <inheritdoc/>
+    public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
         var resourceModuleConstruct = new ResourceModuleConstruct(this);
 
@@ -40,12 +39,10 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         resourceModuleConstruct.Build(generationPath);
 
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
-        var moduleDestinationPath = context.GetManifestRelativePath(TemplateFile);
+        var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
         File.Copy(moduleSourcePath, moduleDestinationPath!, true);
 
-        Directory.Delete(generationPath, true);
-
-        base.WriteToManifest(context);
+        return new BicepTemplateFile(moduleDestinationPath, directory is null);
     }
 }
 

@@ -16,13 +16,6 @@
         "storagesku": "{storagesku.value}"
       }
     },
-    "construct2": {
-      "type": "azure.bicep.v0",
-      "path": "construct2.module.bicep",
-      "params": {
-        "tableUri": "{construct1.outputs.tableUri}"
-      }
-    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
