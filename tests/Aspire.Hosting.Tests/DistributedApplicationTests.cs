@@ -504,7 +504,7 @@ public class DistributedApplicationTests
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
+        testProgram.ServiceABuilder.ExcludeLaunchProfile().WithEndpoint("http", endpoint =>
         {
             endpoint.IsProxied = false;
         });
@@ -675,7 +675,7 @@ public class DistributedApplicationTests
                 b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
             });
 
-        testProgram.ServiceABuilder.WithEndpoint("http", e => e.IsProxied = false, createIfNotExists: false, deferred: true);
+        testProgram.ServiceABuilder.WithEndpoint("http", e => e.IsProxied = false);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();

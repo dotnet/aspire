@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Tests;
 public class WithEndpointTests
 {
     [Fact]
-    public void WithEndpointInvokesCallback()
+    public async Task WithEndpointInvokesCallback()
     {
         using var testProgram = CreateTestProgram();
         testProgram.ServiceABuilder.WithEndpoint(3000, 1000, name: "mybinding");
@@ -19,28 +19,22 @@ public class WithEndpointTests
             endpoint.Port = 2000;
         });
 
-        var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>().Single();
-        Assert.Equal(2000, endpoint.Port);
+        // Throw before ApplicationExecutor starts doing real work
+        testProgram.AppBuilder.Services.AddLifecycleHook<ThrowLifecycleHook>();
+
+        var app = testProgram.Build();
+
+        // Don't want to actually start an app
+        await Assert.ThrowsAnyAsync<Exception>(() => app.StartAsync());
+
+        var endpoints = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>();
+        Assert.Collection(endpoints,
+            e1 => Assert.Equal(2000, e1.Port),
+            e2 => Assert.Equal("http", e2.Name));
     }
 
     [Fact]
-    public void WithEndpointCallbackDoesNotRunIfEndpointDoesntExistAndCreateIfNotExistsIsFalse()
-    {
-        var executed = false;
-
-        using var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
-        {
-            executed = true;
-        },
-        createIfNotExists: false);
-
-        Assert.False(executed);
-        Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
-    }
-
-    [Fact]
-    public void WithEndpointCallbackRunsIfEndpointDoesntExistAndCreateIfNotExistsIsDefault()
+    public async Task WithEndpointCallbackRunsIfEndpointDoesntExistAndCreateIfNotExistsIsTrue()
     {
         var executed = false;
 
@@ -50,21 +44,16 @@ public class WithEndpointTests
             executed = true;
         });
 
-        Assert.True(executed);
-        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
-    }
+        Assert.False(executed);
+        Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
 
-    [Fact]
-    public void WithEndpointCallbackRunsIfEndpointDoesntExistAndCreateIfNotExistsIsTrue()
-    {
-        var executed = false;
+        // Throw before ApplicationExecutor starts doing real work
+        testProgram.AppBuilder.Services.AddLifecycleHook<ThrowLifecycleHook>();
 
-        using var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
-        {
-            executed = true;
-        },
-        createIfNotExists: true);
+        var app = testProgram.Build();
+
+        // Don't want to actually start an app
+        await Assert.ThrowsAnyAsync<Exception>(() => app.StartAsync());
 
         Assert.True(executed);
         Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
@@ -129,8 +118,7 @@ public class WithEndpointTests
             endpoint.IsProxied = false;
             endpoint.IsExternal = true;
             endpoint.Port = 1;
-        },
-        createIfNotExists: false, deferred: true);
+        });
 
         Assert.False(executed);
         Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));

@@ -354,50 +354,18 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Changes an existing creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
+    /// Invokes the <paramref name="callback"/> during <see cref="IDistributedApplicationLifecycleHook.BeforeStartAsync(DistributedApplicationModel, CancellationToken)"/> to modify an endpoint.
+    /// If the endpoint doesn't exist one will be created.
     /// </summary>
     /// <param name="builder">Resource builder for resource with endpoints.</param>
     /// <param name="endpointName">Name of endpoint to change.</param>
     /// <param name="callback">Callback that modifies the endpoint.</param>
-    /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
-    /// <param name="deferred">Defers execution of <paramref name="callback"/> until before start.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true, bool deferred = false) where T : IResourceWithEndpoints
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback) where T : IResourceWithEndpoints
     {
-        if (deferred && createIfNotExists)
-        {
-            throw new ArgumentException("Both createIfNotExists and deferred cannot be true.");
-        }
-
-        if (deferred)
-        {
-            builder.ApplicationBuilder.Services.TryAddLifecycleHook<DeferredEndpointConfigurationLifecycleHook>();
-            var deferredAnnotation = new DeferredEndpointConfigurationCallbackAnnotation(endpointName, callback);
-            builder.WithAnnotation(deferredAnnotation);
-            return builder;
-        }
-
-        var endpoint = builder.Resource.Annotations
-            .OfType<EndpointAnnotation>()
-            .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
-            .SingleOrDefault();
-
-        if (endpoint != null)
-        {
-            callback(endpoint);
-
-        }
-        if (endpoint == null && createIfNotExists)
-        {
-            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
-            callback(endpoint);
-            builder.Resource.Annotations.Add(endpoint);
-        }
-        else if (endpoint == null && !createIfNotExists)
-        {
-            return builder;
-        }
-
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook<DeferredEndpointConfigurationLifecycleHook>();
+        var deferredAnnotation = new DeferredEndpointConfigurationCallbackAnnotation(endpointName, callback);
+        builder.WithAnnotation(deferredAnnotation);
         return builder;
     }
 

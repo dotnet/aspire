@@ -23,9 +23,7 @@ builder.AddProject<Projects.MyFrontend>("frontend")
        .WithEndpoint("https", endpoint =>
        {
            endpoint.IsExternal = true;
-       },
-       createIfNotExists: false,
-       deferred: true);
+       });
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithReference(messaging)

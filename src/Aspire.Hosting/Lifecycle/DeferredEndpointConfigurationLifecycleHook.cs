@@ -13,18 +13,25 @@ internal class DeferredEndpointConfigurationLifecycleHook : IDistributedApplicat
         {
             var endpointAnnotations = resource.Annotations.OfType<EndpointAnnotation>();
 
+            var deferredAnnotations = resource.Annotations.OfType<DeferredEndpointConfigurationCallbackAnnotation>()
+                .ToDictionary(a => a.EndpointName, StringComparers.EndpointAnnotationName);
+
             if (endpointAnnotations.Any())
             {
-                var deferredAnnotations = resource.Annotations.OfType<DeferredEndpointConfigurationCallbackAnnotation>()
-                    .ToDictionary(a => a.EndpointName, StringComparers.EndpointAnnotationName);
-
                 foreach (var endpoint in endpointAnnotations)
                 {
-                    if (deferredAnnotations.TryGetValue(endpoint.Name, out var deferredAnnotation))
+                    if (deferredAnnotations.Remove(endpoint.Name, out var callback))
                     {
-                        deferredAnnotation.Callback(endpoint);
+                        callback.Callback(endpoint);
                     }
                 }
+            }
+
+            foreach (var annotation in deferredAnnotations)
+            {
+                var newEndpoint = new EndpointAnnotation(System.Net.Sockets.ProtocolType.Tcp, name: annotation.Value.EndpointName);
+                annotation.Value.Callback(newEndpoint);
+                resource.Annotations.Add(newEndpoint);
             }
         }
 
