@@ -37,6 +37,26 @@ public static class ParameterResourceBuilderExtensions
     {
         var resource = new ParameterResource(name, callback, secret);
         return builder.AddResource(resource)
+                      .WithCustomResourceState(() =>
+                      {
+                          var state = new CustomResourceSnapshot()
+                          {
+                              ResourceType = "Parameter",
+                              Properties = [
+                                ("Secret", secret.ToString()),
+                                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+                              ]
+                          };
+
+                          try
+                          {
+                              return state with { Properties = [.. state.Properties, ("Value", callback())] };
+                          }
+                          catch (DistributedApplicationException ex)
+                          {
+                              return state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
+                          }
+                      })
                       .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource, connectionString));
     }
 
