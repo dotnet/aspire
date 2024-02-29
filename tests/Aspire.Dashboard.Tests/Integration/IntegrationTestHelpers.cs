@@ -29,7 +29,7 @@ public static class IntegrationTestHelpers
 
         var dashboardWebApplication = new DashboardWebApplication(builder =>
         {
-            builder.Services.Configure<LoggerFilterOptions>(o =>
+            builder.Services.PostConfigure<LoggerFilterOptions>(o =>
             {
                 o.Rules.Clear();
             });
