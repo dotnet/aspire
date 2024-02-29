@@ -149,7 +149,7 @@ window.updateChart = function (id, traces, xValues, rangeStartTime, rangeEndTime
             type: 'date',
             range: [rangeEndTime, rangeStartTime],
             fixedrange: true,
-            tickformat: "%-I:%M:%S %p",
+            tickformat: "%X",
             color: themeColors.textColor
         }
     };
@@ -159,7 +159,9 @@ window.updateChart = function (id, traces, xValues, rangeStartTime, rangeEndTime
     fixTraceLineRendering(chartDiv);
 };
 
-window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEndTime) {
+window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEndTime, serverLocale) {
+    registerLocale(serverLocale);
+
     var chartContainerDiv = document.getElementById(id);
 
     // Reusing a div can create issues with chart lines appearing beyond the end range.
@@ -183,7 +185,16 @@ window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEnd
         data.push(t);
     }
 
+    // Explicitly set the width and height based on the container div.
+    // If there is no explicit width and height, Plotly will use the rendered container size.
+    // However, if the container isn't visible then it uses a default size.
+    // Being explicit ensures the chart is always the correct size.
+    var width = parseInt(chartContainerDiv.style.width);
+    var height = parseInt(chartContainerDiv.style.height);
+
     var layout = {
+        width: width,
+        height: height,
         paper_bgcolor: themeColors.backgroundColor,
         plot_bgcolor: themeColors.backgroundColor,
         margin: { t: 0, r: 0, b: 40, l: 50 },
@@ -191,7 +202,7 @@ window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEnd
             type: 'date',
             range: [rangeEndTime, rangeStartTime],
             fixedrange: true,
-            tickformat: "%-I:%M:%S %p",
+            tickformat: "%X",
             color: themeColors.textColor
         },
         yaxis: {
@@ -218,3 +229,102 @@ window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEnd
 
     fixTraceLineRendering(chartDiv);
 };
+
+function registerLocale(serverLocale) {
+    // Register the locale for Plotly.js. This is to enable localization of time format shown by the charts.
+    // Changing plotly.js time formatting is better than supplying values from the server which is very difficult to do correctly.
+
+    // Right now necessary changes are to:
+    // -Update AM/PM
+    // -Update time format to 12/24 hour.
+    var locale = {
+        moduleType: 'locale',
+        name: 'en',
+        dictionary: {
+            'Click to enter Colorscale title': 'Click to enter Colourscale title'
+        },
+        format: {
+            days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+            shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            periods: serverLocale.periods,
+            dateTime: '%a %b %e %X %Y',
+            date: '%d/%m/%Y',
+            time: serverLocale.time,
+            decimal: '.',
+            thousands: ',',
+            grouping: [3],
+            currency: ['$', ''],
+            year: '%Y',
+            month: '%b %Y',
+            dayMonth: '%b %-d',
+            dayMonthYear: '%b %-d, %Y'
+        }
+    };
+    Plotly.register(locale);
+}
+
+function isActiveElementInput() {
+    const currentElement = document.activeElement;
+    // fluent components may have shadow roots that contain inputs
+    return currentElement.tagName.toLowerCase() === "input" || currentElement.tagName.toLowerCase().startsWith("fluent") ? isInputElement(currentElement, false) : false;
+}
+
+function isInputElement(element, isRoot, isShadowRoot) {
+    const tag = element.tagName.toLowerCase();
+    // comes from https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
+    // fluent-select does not use <select /> element
+    if (tag === "input" || tag === "textarea" || tag === "select" || tag === "fluent-select") return true;
+
+    if (isShadowRoot || isRoot) {
+        const elementChildren = element.children;
+        for (let i = 0; i < elementChildren.length; i++) {
+            if (isInputElement(elementChildren[i], false, isShadowRoot)) return true;
+        }
+    }
+
+    const shadowRoot = element.shadowRoot;
+    if (shadowRoot) {
+        const shadowRootChildren = shadowRoot.children;
+        for (let i = 0; i < shadowRootChildren.length; i++) {
+            if (isInputElement(shadowRootChildren[i], false, true)) return true;
+        }
+    }
+
+    return false;
+}
+
+window.registerGlobalKeydownListener = function(assemblyName) {
+    const serializeEvent = function (e) {
+        if (e) {
+            return {
+                key: e.key,
+                code: e.keyCode.toString(),
+                location: e.location,
+                repeat: e.repeat,
+                ctrlKey: e.ctrlKey,
+                shiftKey: e.shiftKey,
+                altKey: e.altKey,
+                metaKey: e.metaKey,
+                type: e.type
+            };
+        }
+    };
+
+    const keydownListener = function (e) {
+        if (!isActiveElementInput()) {
+            DotNet.invokeMethodAsync(assemblyName, 'OnGlobalKeyDown', serializeEvent(e))
+        }
+    }
+
+    window.document.addEventListener('keydown', keydownListener);
+
+    return {
+        keydownListener: keydownListener,
+    }
+}
+
+window.unregisterGlobalKeydownListener = function (keydownListener) {
+    window.document.removeEventListener('keydown', keydownListener);
+}

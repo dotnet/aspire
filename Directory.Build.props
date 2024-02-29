@@ -7,6 +7,7 @@
     <LangVersion>preview</LangVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <SharedDir>$(MSBuildThisFileDirectory)/src/Shared/</SharedDir>
+    <TestsSharedDir>$(MSBuildThisFileDirectory)/tests/Shared/</TestsSharedDir>
     <!-- Capture PackageIconFullPath into DefaultDotnetIconFullPath before we overwrite PackageIconFullPath. -->
     <!-- DefaultDotnetIconFullPath is only needed for the ServiceDisovery packages. The property can be removed when these libraries move. See https://github.com/dotnet/aspire/issues/170 -->
     <DefaultDotnetIconFullPath>$(PackageIconFullPath)</DefaultDotnetIconFullPath>

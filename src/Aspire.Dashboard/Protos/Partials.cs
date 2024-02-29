@@ -22,7 +22,7 @@ partial class Resource
             DisplayName = ValidateNotNull(DisplayName),
             Uid = ValidateNotNull(Uid),
             CreationTimeStamp = CreatedAt.ToDateTime(),
-            Properties = Properties.ToFrozenDictionary(p => ValidateNotNull(p.Name), p => ValidateNotNull(p.Value), StringComparers.ResourcePropertyName),
+            Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
             Endpoints = GetEndpoints(),
             Environment = GetEnvironment(),
             ExpectedEndpointsCount = ExpectedEndpointsCount,
@@ -51,11 +51,11 @@ partial class Resource
                 .ToImmutableArray();
         }
 
-        static T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
+        T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
         {
             if (value is null)
             {
-                throw new InvalidOperationException($"Message field '{expression}' cannot be null.");
+                throw new InvalidOperationException($"Message field '{expression}' on resource with name '{Name}' cannot be null.");
             }
 
             return value;

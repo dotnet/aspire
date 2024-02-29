@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.Data.Cosmos;
 
 namespace Aspire.Hosting.Azure;
 
@@ -20,5 +19,5 @@ public class AzureCosmosDBEmulatorResource(AzureCosmosDBResource innerResource) 
     /// <summary>
     /// TODO: Doc Comments
     /// </summary>
-    public override ResourceMetadataCollection Annotations => _innerResource.Annotations;
+    public override ResourceAnnotationCollection Annotations => _innerResource.Annotations;
 }

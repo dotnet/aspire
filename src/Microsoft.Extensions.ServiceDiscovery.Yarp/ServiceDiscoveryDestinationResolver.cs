@@ -13,8 +13,8 @@ namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
 /// <remarks>
 /// Initializes a new <see cref="ServiceDiscoveryDestinationResolver"/> instance.
 /// </remarks>
-/// <param name="registry">The endpoint resolver registry.</param>
-internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolverRegistry registry) : IDestinationResolver
+/// <param name="resolver">The endpoint resolver registry.</param>
+internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolver resolver) : IDestinationResolver
 {
     /// <inheritdoc/>
     public async ValueTask<ResolvedDestinationCollection> ResolveDestinationsAsync(IReadOnlyDictionary<string, DestinationConfig> destinations, CancellationToken cancellationToken)
@@ -54,7 +54,7 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolve
         var originalHost = originalConfig.Host is { Length: > 0 } h ? h : originalUri.Authority;
         var serviceName = originalUri.GetLeftPart(UriPartial.Authority);
 
-        var endPoints = await registry.GetEndPointsAsync(serviceName, cancellationToken).ConfigureAwait(false);
+        var endPoints = await resolver.GetEndPointsAsync(serviceName, cancellationToken).ConfigureAwait(false);
         var results = new List<(string Name, DestinationConfig Config)>(endPoints.Count);
         var uriBuilder = new UriBuilder(originalUri);
         var healthUri = originalConfig.Health is { Length: > 0 } health ? new Uri(health) : null;

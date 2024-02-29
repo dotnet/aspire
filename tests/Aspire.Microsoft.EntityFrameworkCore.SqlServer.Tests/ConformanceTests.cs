@@ -44,7 +44,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
                 "SqlServer": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
                   "HealthChecks": false,
-                  "DbContextPooling": true,
                   "Tracing": true,
                   "Metrics": true
                 }

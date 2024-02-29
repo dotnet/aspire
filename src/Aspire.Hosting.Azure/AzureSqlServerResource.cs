@@ -1,32 +1,41 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure Sql Server resource.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-public class AzureSqlServerResource(string name) : Resource(name), IAzureResource
+/// <param name="innerResource">The <see cref="SqlServerServerResource"/> that this resource wraps.</param>
+public class AzureSqlServerResource(SqlServerServerResource innerResource) :
+    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.sql.bicep"),
+    IResourceWithConnectionString
 {
-    private readonly List<AzureSqlDatabaseResource> _databases = new();
+    /// <summary>
+    /// Gets the fully qualified domain name (FQDN) output reference from the bicep template for the Azure SQL Server resource.
+    /// </summary>
+    public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
 
     /// <summary>
-    /// Gets or sets the hostname of the Azure SQL Server resource.
+    /// Gets the connection template for the manifest for the Azure SQL Server resource.
     /// </summary>
-    public string? Hostname { get; set; }
+    public string ConnectionStringExpression =>
+        $"Server=tcp:{FullyQualifiedDomainName.ValueExpression},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
 
     /// <summary>
-    /// Gets the list of databases of the Azure SQL Server resource.
+    /// Gets the connection string for the Azure SQL Server resource.
     /// </summary>
-    public IReadOnlyList<AzureSqlDatabaseResource> Databases => _databases;
-
-    internal void AddDatabase(AzureSqlDatabaseResource database)
+    /// <returns>The connection string for the Azure SQL Server resource.</returns>
+    public string? GetConnectionString()
     {
-        if (database.Parent != this)
-        {
-            throw new ArgumentException("Database belongs to another server", nameof(database));
-        }
-        _databases.Add(database);
+        return $"Server=tcp:{FullyQualifiedDomainName.Value},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
     }
+
+    /// <inheritdoc/>
+    public override string Name => innerResource.Name;
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => innerResource.Annotations;
 }

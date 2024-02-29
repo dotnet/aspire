@@ -16,7 +16,7 @@ builder.AddServiceDefaults();
 
 builder.AddSqlServerDbContext<MyDbContext>("db");
 builder.AddNpgsqlDbContext<MyPgDbContext>("db2");
-builder.AddAzureCosmosDB("db3", settings => settings.IgnoreEmulatorCertificate = true);
+builder.AddAzureCosmosDB("db3");
 builder.AddRedis("redis");
 builder.AddAzureBlobService("blob");
 builder.AddAzureTableService("table");

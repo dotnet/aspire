@@ -3,29 +3,31 @@
 
 using System.Globalization;
 using System.Text;
+using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.ApplicationModel;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure Storage resource.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-public class AzureStorageResource(string name) : Resource(name), IAzureResource
+/// <param name="name"></param>
+public class AzureStorageResource(string name) :
+    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.storage.bicep")
 {
     /// <summary>
-    /// Gets or sets the URI of the Azure Table Storage resource.
+    /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
-    public Uri? TableUri { get; set; }
+    public BicepOutputReference BlobEndpoint => new("blobEndpoint", this);
 
     /// <summary>
-    /// Gets or sets the URI of the Azure Storage queue.
+    /// Gets the "queueEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
-    public Uri? QueueUri { get; set; }
+    public BicepOutputReference QueueEndpoint => new("queueEndpoint", this);
 
     /// <summary>
-    /// Gets or sets the URI of the blob.
+    /// Gets the "tableEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
-    public Uri? BlobUri { get; set; }
+    public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
 
     /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
@@ -34,15 +36,15 @@ public class AzureStorageResource(string name) : Resource(name), IAzureResource
 
     internal string? GetTableConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(tablePort: GetEmulatorPort("table"))
-        : TableUri?.ToString();
+        : TableEndpoint.Value;
 
     internal string? GetQueueConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(queuePort: GetEmulatorPort("queue"))
-        : QueueUri?.ToString();
+        : QueueEndpoint.Value;
 
     internal string? GetBlobConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(blobPort: GetEmulatorPort("blob"))
-        : BlobUri?.ToString();
+        : BlobEndpoint.Value;
 
     private int GetEmulatorPort(string endpointName) =>
         Annotations

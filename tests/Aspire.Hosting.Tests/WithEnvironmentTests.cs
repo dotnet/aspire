@@ -11,7 +11,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentReferencingEndpointPopulatesWithBindingUrl()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
@@ -47,7 +47,7 @@ public class WithEnvironmentTests
     [Fact]
     public void SimpleEnvironmentWithNameAndValue()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         testProgram.ServiceABuilder.WithEnvironment("myName", "value");
 
@@ -73,7 +73,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackPopulatesValueWhenCalled()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         var environmentValue = "value";
         testProgram.ServiceABuilder.WithEnvironment("myName", () => environmentValue);
@@ -101,7 +101,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackPopulatesValueWhenParameterResourceProvided()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Configuration["Parameters:parameter"] = "MY_PARAMETER_VALUE";
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
@@ -126,7 +126,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackPopulatesWithExpressionPlaceholderWhenPublishingManifest()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
         testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
@@ -150,7 +150,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackThrowsWhenParameterValueMissingInDcpMode()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
         testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
@@ -177,7 +177,7 @@ public class WithEnvironmentTests
     [Fact]
     public void ComplexEnvironmentCallbackPopulatesValueWhenCalled()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         var environmentValue = "value";
         testProgram.ServiceABuilder.WithEnvironment((context) =>

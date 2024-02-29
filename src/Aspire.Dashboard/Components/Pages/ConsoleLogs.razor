@@ -1,4 +1,6 @@
-﻿@page "/ConsoleLogs/{resourceName?}"
+﻿@page "/consolelogs"
+@page "/consolelogs/resource/{resourceName}"
+
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
 @inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
@@ -13,14 +15,14 @@
                       Items="@_resources"
                       OptionValue="@(c => c.Id?.InstanceId)"
                       OptionDisabled="@(c => c.Id?.Type is Otlp.Model.OtlpApplicationType.ReplicaSet)"
-                      @bind-SelectedOption="ViewModel.SelectedOption"
+                      @bind-SelectedOption="PageViewModel.SelectedOption"
                       @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
                       AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]">
             <OptionTemplate>
                  <ResourceSelectOptionTemplate ViewModel="@context" />
             </OptionTemplate>
         </FluentSelect>
-        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@ViewModel.Status</FluentLabel>
+        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />
 </div>

@@ -35,28 +35,38 @@ internal sealed class AzureProvisioner(
 
     private readonly AzureProvisionerOptions _options = options.Value;
 
+    private static IResource PromoteAzureResourceFromAnnotation(IResource resource)
+    {
+        // Some resources do not derive from IAzureResource but can be handled
+        // by the Azure provisioner because they have the AzureBicepResourceAnnotation
+        // which holds a reference to the surrogate AzureBicepResource which implements
+        // IAzureResource and can be used by the Azure Bicep Provisioner.
+
+        if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is not { } azureSurrogate)
+        {
+            return resource;
+        }
+        else
+        {
+            return azureSurrogate.Resource;
+        }
+    }
+
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
-        if (executionContext.Operation == DistributedApplicationOperation.Publish)
+        if (executionContext.IsPublishMode)
         {
             return;
         }
 
-        var azureResources = appModel.Resources.OfType<IAzureResource>();
+        var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>();
         if (!azureResources.OfType<IAzureResource>().Any())
         {
             return;
         }
 
-        try
-        {
-            await ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken).ConfigureAwait(false);
-        }
-        catch (MissingConfigurationException ex)
-        {
-            logger.LogWarning(ex, "Required configuration is missing.");
-        }
+        await ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
@@ -69,20 +79,18 @@ internal sealed class AzureProvisioner(
             CredentialProcessTimeout = TimeSpan.FromSeconds(15)
         });
 
-        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
-        var location = _options.Location switch
+        var armClientLazy = new Lazy<ArmClient>(() =>
         {
-            null => throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value."),
-            string loc => new AzureLocation(loc)
-        };
+            var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
-        var armClient = new ArmClient(credential, subscriptionId);
+            return new ArmClient(credential, subscriptionId);
+        });
 
         var subscriptionLazy = new Lazy<Task<SubscriptionResource>>(async () =>
         {
             logger.LogInformation("Getting default subscription...");
 
-            var value = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
+            var value = await armClientLazy.Value.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Default subscription: {name} ({subscriptionId})", value.Data.DisplayName, value.Id);
 
@@ -91,11 +99,16 @@ internal sealed class AzureProvisioner(
 
         Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
         {
+            if (string.IsNullOrEmpty(_options.Location))
+            {
+                throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
+            }
+
             var unique = $"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}";
             // Name of the resource group to create based on the machine name and application name
             var (resourceGroupName, createIfAbsent) = _options.ResourceGroup switch
             {
-                null => ($"rg-aspire-{unique}", true),
+                null or { Length: 0 } => ($"rg-aspire-{unique}", true),
                 string rg => (rg, _options.AllowResourceGroupCreation ?? false)
             };
 
@@ -227,6 +240,8 @@ internal sealed class AzureProvisioner(
 
             subscription ??= await subscriptionLazy.Value.ConfigureAwait(false);
 
+            AzureLocation location = default;
+
             if (resourceGroup is null)
             {
                 (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
@@ -234,7 +249,7 @@ internal sealed class AzureProvisioner(
 
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
             principal ??= await principalLazy.Value.ConfigureAwait(false);
-            provisioningContext ??= new ProvisioningContext(credential, armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
+            provisioningContext ??= new ProvisioningContext(credential, armClientLazy.Value, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
 
             var task = provisioner.GetOrCreateResourceAsync(
                     resource,
@@ -280,7 +295,7 @@ internal sealed class AzureProvisioner(
                     continue;
                 }
 
-                var response = await armClient.GetGenericResources().GetAsync(sa.Id, cancellationToken).ConfigureAwait(false);
+                var response = await armClientLazy.Value.GetGenericResources().GetAsync(sa.Id, cancellationToken).ConfigureAwait(false);
 
                 logger.LogInformation("Deleting unused resource {keyVaultName} which maps to resource name {name}.", sa.Id, name);
 

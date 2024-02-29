@@ -1,5 +1,3 @@
-using Aspire.Hosting.Azure;
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -13,31 +11,37 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
                    .WithParameter("test", parameter)
                    .WithParameter("values", ["one", "two"]);
 
-var kv = builder.AddBicepKeyVault("kv");
-var appConfig = builder.AddBicepAppConfiguration("appConfig").WithParameter("sku", "standard");
-var storage = builder.AddAzureBicepAzureStorage("storage");
-                    // .UseEmulator();
+var kv = builder.AddAzureKeyVault("kv");
+var appConfig = builder.AddAzureAppConfiguration("appConfig").WithParameter("sku", "standard");
+var storage = builder.AddAzureStorage("storage");
+                    // .RunAsEmulator();
 
-var blobs = storage.AddBlob("blob");
-var tables = storage.AddTable("table");
-var queues = storage.AddQueue("queue");
+var blobs = storage.AddBlobs("blob");
+var tables = storage.AddTables("table");
+var queues = storage.AddQueues("queue");
 
-var sqlServer = builder.AddBicepAzureSqlServer("sql").AddDatabase("db");
+var sqlServer = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("db");
 
-var pwd = builder.AddParameter("password", secret: true);
+var administratorLogin = builder.AddParameter("administratorLogin");
+var administratorLoginPassword = builder.AddParameter("administratorLoginPassword", secret: true);
+var pg = builder.AddPostgres("postgres2")
+                .AsAzurePostgresFlexibleServer(administratorLogin, administratorLoginPassword)
+                .AddDatabase("db2");
 
-var pg = builder.AddBicepAzurePostgres("postgres2", "someuser", pwd).AddDatabase("db2");
-
-var cosmosDb = builder.AddBicepCosmosDb("cosmos")
-                      // .UseEmulator()
+var cosmosDb = builder.AddAzureCosmosDB("cosmos")
                       .AddDatabase("db3");
 
-var appInsights = builder.AddBicepApplicationInsights("ai");
+var appInsights = builder.AddAzureApplicationInsights("ai");
 
 // Redis takes forever to spin up...
-var redis = builder.AddRedis("redis").PublishAsAzureRedis();
+var redis = builder.AddRedis("redis")
+                   .AsAzureRedis();
 
-var serviceBus = builder.AddBicepAzureServiceBus("sb", ["queue1"], ["topic1"]);
+var serviceBus = builder.AddAzureServiceBus("sb")
+                        .AddQueue("queue1")
+                        .AddTopic("topic1", ["subscription1", "subscription2"])
+                        .AddTopic("topic2", ["subscription1"]);
+var signalr = builder.AddAzureSignalR("signalr");
 
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
@@ -51,6 +55,7 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(appInsights)
        .WithReference(redis)
        .WithReference(serviceBus)
+       .WithReference(signalr)
        .WithEnvironment("bicepValue_test", templ.GetOutput("test"))
        .WithEnvironment("bicepValue0", templ.GetOutput("val0"))
        .WithEnvironment("bicepValue1", templ.GetOutput("val1"));

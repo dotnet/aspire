@@ -3,10 +3,12 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
 
+[DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 public sealed class ResourceViewModel
 {
     public required string Name { get; init; }
@@ -37,7 +39,7 @@ public sealed class ResourceViewModel
                 count++;
                 if (count >= 2)
                 {
-                    return ResourceFormatter.GetName(resource.DisplayName, resource.Uid);
+                    return resource.Name;
                 }
             }
         }
@@ -104,4 +106,5 @@ public static class ResourceStates
     public const string ExitedState = "Exited";
     public const string FailedToStartState = "FailedToStart";
     public const string StartingState = "Starting";
+    public const string RunningState = "Running";
 }

@@ -88,6 +88,7 @@
 
 ::deep.metrics-layout > fluent-toolbar {
     grid-area: toolbar;
+    padding: var(--layout-toolbar-padding);
 }
 
 ::deep.metrics-layout > .page-content-area {
@@ -102,4 +103,9 @@
 
 ::deep #plotly-chart-container {
     margin-left: -40px;
+}
+
+::deep .metric-info-icon {
+    vertical-align: text-bottom;
+    margin-left: 3px;
 }

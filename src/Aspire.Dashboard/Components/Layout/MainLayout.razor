@@ -1,19 +1,18 @@
-﻿@using Aspire.Dashboard.Components.Dialogs
-@using Aspire.Dashboard.Components.CustomIcons;
-@using Aspire.Dashboard.Model
+﻿@using Aspire.Dashboard.Components.CustomIcons;
 @using Aspire.Dashboard.Resources
-@using Microsoft.AspNetCore.Http
 @inherits LayoutComponentBase
+@implements Aspire.Dashboard.Model.IGlobalKeydownListener
+@implements IAsyncDisposable
 
 <div class="layout">
     <div class="aspire-icon">
         <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo"
                       title="@Loc[nameof(Layout.MainLayoutAspire)]"
                       aria-label="@Loc[nameof(Layout.MainLayoutAspire)]">
-            <img src="/Logo_24.png" />
+            <img src="/Logo.svg" />
         </FluentAnchor>
     </div>
-    
+
     <FluentHeader>
         <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo">
             <ApplicationName />
@@ -24,12 +23,11 @@
                         Title="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]">
             <FluentIcon Value="@(new AspireIcons.Size24.GitHub())" Color="Color.Neutral" />
         </FluentAnchor>
-        <FluentAnchor Appearance="Appearance.Stealth"
-                        Href="https://aka.ms/dotnet/aspire/dashboard" Target="_blank" Rel="noreferrer noopener"
+        <FluentButton Appearance="Appearance.Stealth" OnClick="@LaunchHelpAsync" Target="_blank" Rel="noreferrer noopener"
                         Title="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]">
             <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Neutral" />
-        </FluentAnchor>
-        <FluentButton Appearance="Appearance.Stealth" OnClick="LaunchSettings"
+        </FluentButton>
+        <FluentButton Appearance="Appearance.Stealth" OnClick="@LaunchSettingsAsync"
                         Title="@Loc[nameof(Layout.MainLayoutLaunchSettings)]" aria-label="@Loc[nameof(Layout.MainLayoutLaunchSettings)]">
             <FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Neutral" />
         </FluentButton>

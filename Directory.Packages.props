@@ -6,27 +6,20 @@
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="1.0.0-beta.13" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.8.3" />
-    <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.0" />
+    <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.1" />
     <PackageVersion Include="Azure.Identity" Version="1.10.4" />
-    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.17.2" />
-    <PackageVersion Include="Azure.ResourceManager.Resources" Version="1.7.0" />
-    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.6.0-beta.2" />
+    <PackageVersion Include="Azure.Search.Documents" Version="11.5.1" />
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.17.3" />
+    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.6.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.19.1" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.17.1" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.38.1" />
-    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.1" />
-    <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.1.0" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.25.0" />
+    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.2" />
     <!-- Azure Management SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.ResourceManager.CosmosDB" Version="1.4.0-beta.5" />
-    <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.2.0" />
-    <PackageVersion Include="Azure.ResourceManager.ServiceBus" Version="1.1.0-beta.4" />
-    <PackageVersion Include="Azure.ResourceManager.Storage" Version="1.2.0" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0" />
-    <PackageVersion Include="Azure.ResourceManager.Redis" Version="1.3.0" />
-    <PackageVersion Include="Azure.ResourceManager.AppConfiguration" Version="1.2.0" />
-    <PackageVersion Include="Azure.ResourceManager.Sql" Version="1.2.0" />
-    <PackageVersion Include="Azure.ResourceManager.ApplicationInsights" Version="1.0.0-beta.4" />
-    <PackageVersion Include="Azure.ResourceManager.OperationalInsights" Version="1.2.0" />
+    <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.2.0" />
+    <PackageVersion Include="Azure.ResourceManager.Resources" Version="1.7.0" />
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreOpenApiPackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion)" />
@@ -58,6 +51,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosPackageVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPackageVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsPackageVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignPackageVersion)" />
     <!-- runtime dependencies-->
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(MicrosoftExtensionsConfigurationAbstractionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="$(MicrosoftExtensionsConfigurationBinderPackageVersion)" />
@@ -80,7 +74,7 @@
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="13.0.11" />
     <PackageVersion Include="JsonSchema.Net" Version="6.0.2" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.2.0" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.4.2-preview.24048.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.2.0" />
     <PackageVersion Include="MongoDB.Driver" Version="2.23.1" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.3.0" />
@@ -126,6 +120,7 @@
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.26.64" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
+    <PackageVersion Include="Testcontainers.RabbitMq" Version="3.7.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- Introduced by Microsoft.Azure.Cosmos, https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->

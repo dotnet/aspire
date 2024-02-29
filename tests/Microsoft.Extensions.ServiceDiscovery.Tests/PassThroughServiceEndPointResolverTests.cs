@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
 /// Tests for <see cref="PassThroughServiceEndPointResolverProvider"/>.
-/// These also cover <see cref="ServiceEndPointResolver"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
+/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
 /// </summary>
 public class PassThroughServiceEndPointResolverTests
 {
@@ -26,7 +26,7 @@ public class PassThroughServiceEndPointResolverTests
             .AddPassThroughServiceEndPointResolver()
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
@@ -58,7 +58,7 @@ public class PassThroughServiceEndPointResolverTests
             .AddServiceDiscovery() // Adds the configuration and pass-through providers.
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
@@ -92,7 +92,7 @@ public class PassThroughServiceEndPointResolverTests
             .AddServiceDiscovery() // Adds the configuration and pass-through providers.
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://catalog")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
@@ -108,5 +108,27 @@ public class PassThroughServiceEndPointResolverTests
             Assert.Single(initialResult.EndPoints);
             Assert.Equal(new DnsEndPoint("catalog", 80), initialResult.EndPoints[0].EndPoint);
         }
+    }
+
+    // Ensures that pass-through resolution succeeds in scenarios where no scheme is specified during resolution.
+    [Fact]
+    public async Task ResolveServiceEndPoint_Fallback_NoScheme()
+    {
+        var configSource = new MemoryConfigurationSource
+        {
+            InitialData = new Dictionary<string, string?>
+            {
+                ["services:basket:0"] = "http://localhost:8080",
+            }
+        };
+        var config = new ConfigurationBuilder().Add(configSource);
+        var services = new ServiceCollection()
+            .AddSingleton<IConfiguration>(config.Build())
+            .AddServiceDiscovery() // Adds the configuration and pass-through providers.
+            .BuildServiceProvider();
+
+        var resolver = services.GetRequiredService<ServiceEndPointResolver>();
+        var endPoints = await resolver.GetEndPointsAsync("catalog", default);
+        Assert.Equal(new DnsEndPoint("catalog", 0), endPoints[0].EndPoint);
     }
 }

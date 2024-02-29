@@ -7,14 +7,12 @@ internal sealed class ResourceWithConnectionStringSurrogate(IResource innerResou
 {
     public string Name => innerResource.Name;
 
-    public ResourceMetadataCollection Annotations => innerResource.Annotations;
+    public ResourceAnnotationCollection Annotations => innerResource.Annotations;
 
     public string? GetConnectionString()
     {
         return callback();
     }
-
-    public string ConnectionStringReferenceExpression => $"{{{Name}.value}}";
 
     public string? ConnectionStringEnvironmentVariable => environmentVariableName;
 }
