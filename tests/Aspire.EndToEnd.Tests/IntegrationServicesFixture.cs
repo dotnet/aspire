@@ -68,7 +68,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
 
         {
-            using var cmd = new DotNetCommand(BuildEnvironment, _testOutput)
+            using var cmd = new DotNetCommand(BuildEnvironment, _testOutput, label: "build")
                 .WithWorkingDirectory(appHostDirectory);
 
             (await cmd.ExecuteAsync(CancellationToken.None, $"build -bl:{Path.Combine(BuildEnvironment.LogRootPath, "testproject-build.binlog")} -v m"))
