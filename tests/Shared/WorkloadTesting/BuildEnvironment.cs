@@ -127,7 +127,7 @@ public class BuildEnvironment
             EnvVars["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
             EnvVars["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
             EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
-            // EnvVars["NUGET_PACKAGES"] = Path.Combine(BuildEnvironment.TmpPath, "nuget-cache");
+            EnvVars["NUGET_PACKAGES"] = Path.Combine(BuildEnvironment.TmpPath, "nuget-cache");
         }
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");

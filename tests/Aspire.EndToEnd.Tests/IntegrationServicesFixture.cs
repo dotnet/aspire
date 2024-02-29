@@ -99,7 +99,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         foreach (var item in BuildEnvironment.EnvVars)
         {
-            AddEnvironmentVariable(item.Key, item.Value);
+            _appHostProcess.StartInfo.Environment[item.Key] = item.Value;
+            _testOutput.WriteLine($"\t[{item.Key}] = {item.Value}");
         }
 
         _testOutput.WriteLine($"Starting the process: {BuildEnvironment.DotNet} {processArguments} in {_appHostProcess.StartInfo.WorkingDirectory}");
@@ -160,7 +161,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var resultTask = await Task.WhenAny(successfulTask, failedAppTask, timeoutTask);
         if (resultTask == failedAppTask)
         {
-            // _testOutput.WriteLine($"resultTask == failedAppTask");
             // wait for all the output to be read
             var allOutputComplete = Task.WhenAll(stdoutComplete.Task, stderrComplete.Task);
             var appExitTimeout = Task.Delay(TimeSpan.FromSeconds(5));
@@ -168,10 +168,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             if (t == appExitTimeout)
             {
                 _testOutput.WriteLine($"\tand timed out waiting for the full output");
-            }
-            else
-            {
-                _testOutput.WriteLine($"\tall output completed");
             }
 
             var outputMessage = output.ToString();
@@ -190,15 +186,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         foreach (var project in Projects.Values)
         {
             project.Client = client;
-        }
-
-        void AddEnvironmentVariable(string key, string? value)
-        {
-            if (value is not null)
-            {
-                _appHostProcess.StartInfo.Environment[key] = value;
-                _testOutput.WriteLine($"\t[{key}] = {value}");
-            }
         }
     }
 

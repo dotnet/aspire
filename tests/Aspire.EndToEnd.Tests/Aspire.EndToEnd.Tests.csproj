@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
-    <Compile Include="..\Shared\WorkloadTesting\*.cs" />
+    <Compile Include="..\Shared\WorkloadTesting\*.cs" Link="WorkloadTestingCommon" />
 
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <!-- TODO: copy over the default, and poke in the extra bits -->

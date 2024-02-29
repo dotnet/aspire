@@ -77,11 +77,6 @@ public class ToolCommand : IDisposable
         return this;
     }
 
-    // public virtual CommandResult Execute(params string[] args)
-    // {
-    //     return Task.Run(async () => await ExecuteAsync(CancellationToken.None, args)).Result;
-    // }
-
     public virtual async Task<CommandResult> ExecuteAsync(params string[] args)
     {
         var resolvedCommand = _command;
@@ -95,21 +90,13 @@ public class ToolCommand : IDisposable
         return await ExecuteAsyncInternal(resolvedCommand, fullArgs, cts.Token);
     }
 
-    public virtual async Task<CommandResult> ExecuteAsync(CancellationToken token, params string[] args)
+    public virtual Task<CommandResult> ExecuteAsync(CancellationToken token, params string[] args)
     {
         var resolvedCommand = _command;
         string fullArgs = GetFullArgs(args);
         _testOutput.WriteLine($"[{_label}] Executing - {resolvedCommand} {fullArgs} {WorkingDirectoryInfo()}");
-        return await ExecuteAsyncInternal(resolvedCommand, fullArgs, token);
+        return ExecuteAsyncInternal(resolvedCommand, fullArgs, token);
     }
-
-    // public virtual CommandResult ExecuteWithCapturedOutput(params string[] args)
-    // {
-    //     var resolvedCommand = _command;
-    //     string fullArgs = GetFullArgs(args);
-    //     _testOutput.WriteLine($"[{_label}] Executing (Captured Output) - {resolvedCommand} {fullArgs} - {WorkingDirectoryInfo()}");
-    //     return Task.Run(async () => await ExecuteAsyncInternal(resolvedCommand, fullArgs)).Result;
-    // }
 
     public virtual void Dispose()
     {
@@ -165,12 +152,6 @@ public class ToolCommand : IDisposable
             CurrentProcess.BeginOutputReadLine();
             CurrentProcess.BeginErrorReadLine();
             await exitedTask.WaitAsync(token);
-            //_testOutput.WriteLine($"ExecuteAsyncInternal: back from completion task: {exitedTask.Status}, hasExited: {CurrentProcess.HasExited}");
-            //CurrentProcess.WaitForExit();
-            // FIXME: cancel token
-            //if (CurrentProcess.HasExited)
-            //await CurrentProcess.WaitForExitAsync(token).ConfigureAwait(true);
-            //_testOutput.WriteLine($"ExecuteAsyncInternal: back from waitforexitasync");
 
             RemoveNullTerminator(output);
 
@@ -184,9 +165,6 @@ public class ToolCommand : IDisposable
             _testOutput.WriteLine($"Exception: {ex}");
             if (!CurrentProcess.HasExited)
             {
-                /*_testOutput.WriteLine($"Sending ctrl+c");
-                CurrentProcess.StandardInput.WriteLine("\x3");
-                await CurrentProcess.WaitForExitAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(15), CancellationToken.None);*/
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     CurrentProcess.CloseMainWindow();
