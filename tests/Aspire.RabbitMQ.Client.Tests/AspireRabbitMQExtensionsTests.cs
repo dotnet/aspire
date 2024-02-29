@@ -12,18 +12,23 @@ using Xunit;
 
 namespace Aspire.RabbitMQ.Client.Tests;
 
-public class AspireRabbitMQExtensionsTests
+public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixture>
 {
-    [ConditionalTheory]
+    private readonly RabbitMQContainerFixture _containerFixture;
+
+    public AspireRabbitMQExtensionsTests(RabbitMQContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
+
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
     {
-        AspireRabbitMQHelpers.SkipIfCannotConnectToServer();
-
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:messaging", AspireRabbitMQHelpers.TestingEndpoint)
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", _containerFixture.GetConnectionString())
         ]);
 
         if (useKeyed)
@@ -40,23 +45,22 @@ public class AspireRabbitMQExtensionsTests
             host.Services.GetRequiredKeyedService<IConnection>("messaging") :
             host.Services.GetRequiredService<IConnection>();
 
-        Assert.Equal("localhost", connection.Endpoint.HostName);
-        Assert.Equal(5672, connection.Endpoint.Port);
+        var uri = new Uri(_containerFixture.GetConnectionString());
+        Assert.Equal(uri.Host, connection.Endpoint.HostName);
+        Assert.Equal(uri.Port, connection.Endpoint.Port);
     }
 
-    [ConditionalTheory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
     {
-        AspireRabbitMQHelpers.SkipIfCannotConnectToServer();
-
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:messaging", "unused")
         ]);
 
-        static void SetConnectionString(RabbitMQClientSettings settings) => settings.ConnectionString = AspireRabbitMQHelpers.TestingEndpoint;
+        void SetConnectionString(RabbitMQClientSettings settings) => settings.ConnectionString = _containerFixture.GetConnectionString();
         if (useKeyed)
         {
             builder.AddKeyedRabbitMQ("messaging", SetConnectionString);
@@ -71,23 +75,22 @@ public class AspireRabbitMQExtensionsTests
             host.Services.GetRequiredKeyedService<IConnection>("messaging") :
             host.Services.GetRequiredService<IConnection>();
 
-        Assert.Equal("localhost", connection.Endpoint.HostName);
-        Assert.Equal(5672, connection.Endpoint.Port);
+        var uri = new Uri(_containerFixture.GetConnectionString());
+        Assert.Equal(uri.Host, connection.Endpoint.HostName);
+        Assert.Equal(uri.Port, connection.Endpoint.Port);
     }
 
-    [ConditionalTheory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed)
     {
-        AspireRabbitMQHelpers.SkipIfCannotConnectToServer();
-
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
         var key = useKeyed ? "redis" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:RabbitMQ:Client", key, "ConnectionString"), "unused"),
-            new KeyValuePair<string, string?>("ConnectionStrings:messaging", AspireRabbitMQHelpers.TestingEndpoint)
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", _containerFixture.GetConnectionString())
         ]);
 
         if (useKeyed)
@@ -104,8 +107,9 @@ public class AspireRabbitMQExtensionsTests
             host.Services.GetRequiredKeyedService<IConnection>("messaging") :
             host.Services.GetRequiredService<IConnection>();
 
-        Assert.Equal("localhost", connection.Endpoint.HostName);
-        Assert.Equal(5672, connection.Endpoint.Port);
+        var uri = new Uri(_containerFixture.GetConnectionString());
+        Assert.Equal(uri.Host, connection.Endpoint.HostName);
+        Assert.Equal(uri.Port, connection.Endpoint.Port);
     }
 
     [Fact]

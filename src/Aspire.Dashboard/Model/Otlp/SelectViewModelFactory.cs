@@ -21,7 +21,7 @@ public class SelectViewModelFactory
                 var app = replicas.Single();
                 selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = new ResourceTypeDetails(OtlpApplicationType.Singleton, app.InstanceId),
+                    Id = ResourceTypeDetails.CreateSingleton(app.InstanceId),
                     Name = app.ApplicationName
                 });
 
@@ -31,7 +31,7 @@ public class SelectViewModelFactory
             // add a disabled "Resource" as a header
             selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
             {
-                Id = new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, null),
+                Id = ResourceTypeDetails.CreateReplicaSet(applicationName),
                 Name = applicationName
             });
 
@@ -39,8 +39,8 @@ public class SelectViewModelFactory
             selectViewModels.AddRange(replicas.Select(replica =>
                 new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = new ReplicaTypeDetails(OtlpApplicationType.Replica, replica.InstanceId, applicationName),
-                    Name = ResourceFormatter.GetName(replica.ApplicationName, replica.InstanceId)
+                    Id = ResourceTypeDetails.CreateReplicaInstance(replica.InstanceId, applicationName),
+                    Name = replica.InstanceId
                 }));
         }
 

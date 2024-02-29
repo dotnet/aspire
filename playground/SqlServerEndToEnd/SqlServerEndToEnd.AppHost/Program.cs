@@ -3,7 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db1 = builder.AddSqlServer("sql1").AddDatabase("db1");
+var db1 = builder.AddSqlServer("sql1").PublishAsAzureSqlDatabase().AddDatabase("db1");
 var db2 = builder.AddSqlServer("sql2").PublishAsContainer().AddDatabase("db2");
 
 builder.AddProject<Projects.SqlServerEndToEnd_ApiService>("api")

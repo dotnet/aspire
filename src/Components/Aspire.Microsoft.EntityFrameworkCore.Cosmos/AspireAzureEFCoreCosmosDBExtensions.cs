@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire;
 using Aspire.Hosting.Azure.Cosmos;
 using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using Azure.Identity;
@@ -44,7 +45,10 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = GetDbContextSettings<TContext>(builder);
+        var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosDBSettings>(
+            DefaultConfigSectionName,
+            (settings, section) => section.Bind(settings)
+        );
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -95,12 +99,8 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 builder.Region(settings.Region);
             }
 
-            if (settings.IgnoreEmulatorCertificate && CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
+            if (CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
             {
-                builder.HttpClientFactory(() => new HttpClient(new HttpClientHandler()
-                {
-                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                }));
                 builder.ConnectionMode(ConnectionMode.Gateway);
                 builder.LimitToEndpoint(true);
             }
@@ -118,17 +118,14 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = GetDbContextSettings<TContext>(builder);
+        var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosDBSettings>(
+            DefaultConfigSectionName,
+            (settings, section) => section.Bind(settings)
+        );
 
         configureSettings?.Invoke(settings);
 
-        // Ensure DbContext was registered prior to calling EnrichCosmosDbContext
-        var dbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
-
-        if (dbContextOptionsDescriptor is null)
-        {
-            throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered. Ensure you have registered the DbContext in DI before calling EnrichCosmosDbContext.");
-        }
+        builder.PatchServiceDescriptor<TContext>();
 
         ConfigureInstrumentation<TContext>(builder, settings);
     }
@@ -156,22 +153,5 @@ public static class AspireAzureEFCoreCosmosDBExtensions
             });
         }
 
-    }
-
-    private static EntityFrameworkCoreCosmosDBSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
-    {
-        var settings = new EntityFrameworkCoreCosmosDBSettings();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
-
-        return settings;
     }
 }

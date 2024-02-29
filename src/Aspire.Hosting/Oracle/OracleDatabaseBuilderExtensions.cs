@@ -3,7 +3,6 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -16,7 +15,7 @@ public static class OracleDatabaseBuilderExtensions
     private const string PasswordEnvVarName = "ORACLE_PWD";
 
     /// <summary>
-    /// Adds a Oracle Database resource to the application model. A container is used for local development.
+    /// Adds a Oracle Database resource to the application model. A container is used for local development. This version the package defaults to the 23.3.0.0 tag of the container-registry.oracle.com/database/free container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -29,12 +28,11 @@ public static class OracleDatabaseBuilderExtensions
 
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
         return builder.AddResource(oracleDatabaseServer)
-                      .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+                          if (context.ExecutionContext.IsPublishMode)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
                           }
@@ -42,7 +40,8 @@ public static class OracleDatabaseBuilderExtensions
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, oracleDatabaseServer.Password);
                           }
-                      });
+                      })
+                      .PublishAsContainer();
     }
 
     /// <summary>
@@ -50,23 +49,17 @@ public static class OracleDatabaseBuilderExtensions
     /// </summary>
     /// <param name="builder">The Oracle Database server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, string name)
+    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, string name, string? databaseName = null)
     {
-        var oracleDatabase = new OracleDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var oracleDatabase = new OracleDatabaseResource(name, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(oracleDatabase)
-                                         .WithManifestPublishingCallback(context => WriteOracleDatabaseToManifest(context, oracleDatabase));
-    }
-
-    private static void WriteOracleDatabaseContainerToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "oracle.server.v0");
-    }
-
-    private static void WriteOracleDatabaseToManifest(ManifestPublishingContext context, OracleDatabaseResource oracleDatabase)
-    {
-        context.Writer.WriteString("type", "oracle.database.v0");
-        context.Writer.WriteString("parent", oracleDatabase.Parent.Name);
+                                         .WithManifestPublishingCallback(oracleDatabase.WriteToManifest);
     }
 
     /// <summary>
@@ -76,25 +69,6 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<OracleDatabaseServerResource> PublishAsContainer(this IResourceBuilder<OracleDatabaseServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(context => WriteOracleDatabaseContainerResourceToManifest(context, builder.Resource));
-    }
-
-    private static void WriteOracleDatabaseContainerResourceToManifest(ManifestPublishingContext context, OracleDatabaseServerResource resource)
-    {
-        context.WriteContainer(resource);
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"user id=system;password={{{resource.Name}.inputs.password}};data source={{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}};");
-        context.Writer.WriteStartObject("inputs");      // "inputs": {
-        context.Writer.WriteStartObject("password");    //   "password": {
-        context.Writer.WriteString("type", "string");   //     "type": "string",
-        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
-        context.Writer.WriteStartObject("default");     //     "default": {
-        context.Writer.WriteStartObject("generate");    //       "generate": {
-        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
-        context.Writer.WriteEndObject();                //       }
-        context.Writer.WriteEndObject();                //     }
-        context.Writer.WriteEndObject();                //   }
-        context.Writer.WriteEndObject();                // }
+        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
     }
 }

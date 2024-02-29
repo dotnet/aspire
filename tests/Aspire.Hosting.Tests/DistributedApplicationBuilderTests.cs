@@ -25,7 +25,7 @@ public class DistributedApplicationBuilderTests
     public void BuilderAddsDefaultServices()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest"));
         Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("dcp"));
@@ -47,7 +47,7 @@ public class DistributedApplicationBuilderTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddResource(new TestResource());
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resource = Assert.Single(appModel.Resources);
@@ -58,7 +58,7 @@ public class DistributedApplicationBuilderTests
     public void BuilderConfiguresPublishingOptionsFromCommandLine()
     {
         var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest", "--output-path", "/tmp/"]);
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var publishOptions = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
         Assert.Equal("manifest", publishOptions.Value.Publisher);
@@ -71,7 +71,7 @@ public class DistributedApplicationBuilderTests
         var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest", "--output-path", "/tmp/"]);
         appBuilder.Configuration["Publishing:Publisher"] = "docker";
         appBuilder.Configuration["Publishing:OutputPath"] = "/path/";
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var publishOptions = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
         Assert.Equal("docker", publishOptions.Value.Publisher);
@@ -83,7 +83,7 @@ public class DistributedApplicationBuilderTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var appHostDirectory = appBuilder.AppHostDirectory;
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var config = app.Services.GetRequiredService<IConfiguration>();
         Assert.Equal(appHostDirectory, config["AppHost:Directory"]);
@@ -139,6 +139,6 @@ public class DistributedApplicationBuilderTests
     {
         public string Name => nameof(TestResource);
 
-        public ResourceMetadataCollection Annotations => throw new NotImplementedException();
+        public ResourceAnnotationCollection Annotations => throw new NotImplementedException();
     }
 }

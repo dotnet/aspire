@@ -7,5 +7,5 @@ public enum OtlpApplicationType
 {
     ReplicaSet,
     Singleton,
-    Replica
+    ReplicaInstance
 }

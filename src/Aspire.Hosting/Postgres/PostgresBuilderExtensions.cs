@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -18,7 +17,7 @@ public static class PostgresBuilderExtensions
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
     /// <summary>
-    /// Adds a PostgreSQL resource to the application model. A container is used for local development.
+    /// Adds a PostgreSQL resource to the application model. A container is used for local development. This version the package defaults to the 16.2 tag of the postgres container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -31,14 +30,13 @@ public static class PostgresBuilderExtensions
 
         var postgresServer = new PostgresServerResource(name, password);
         return builder.AddResource(postgresServer)
-                      .WithManifestPublishingCallback(WritePostgresContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "16.2" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+                          if (context.ExecutionContext.IsPublishMode)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{postgresServer.Name}.inputs.password}}");
                           }
@@ -46,7 +44,8 @@ public static class PostgresBuilderExtensions
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, postgresServer.Password);
                           }
-                      });
+                      })
+                      .PublishAsContainer();
     }
 
     /// <summary>
@@ -54,16 +53,21 @@ public static class PostgresBuilderExtensions
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name)
+    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name, string? databaseName = null)
     {
-        var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithManifestPublishingCallback(context => WritePostgresDatabaseToManifest(context, postgresDatabase));
+                                         .WithManifestPublishingCallback(postgresDatabase.WriteToManifest);
     }
 
     /// <summary>
-    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model.
+    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version the package defaults to the 8.3 tag of the dpage/pgadmin4 container image
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="hostPort">The host port for the application ui.</param>
@@ -82,16 +86,16 @@ public static class PostgresBuilderExtensions
 
         var pgAdminContainer = new PgAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" })
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "8.3" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
-                                  .WithEnvironment(SetPgAdminEnviromentVariables)
-                                  .WithVolumeMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
+                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
+                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                   .ExcludeFromManifest();
 
         return builder;
     }
 
-    private static void SetPgAdminEnviromentVariables(EnvironmentCallbackContext context)
+    private static void SetPgAdminEnvironmentVariables(EnvironmentCallbackContext context)
     {
         // Disables pgAdmin authentication.
         context.EnvironmentVariables.Add("PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", "False");
@@ -102,17 +106,6 @@ public static class PostgresBuilderExtensions
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
     }
 
-    private static void WritePostgresContainerToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "postgres.server.v0");
-    }
-
-    private static void WritePostgresDatabaseToManifest(ManifestPublishingContext context, PostgresDatabaseResource postgresDatabase)
-    {
-        context.Writer.WriteString("type", "postgres.database.v0");
-        context.Writer.WriteString("parent", postgresDatabase.Parent.Name);
-    }
-
     /// <summary>
     /// Changes the PostgreSQL resource to be published as a container in the manifest.
     /// </summary>
@@ -120,25 +113,6 @@ public static class PostgresBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<PostgresServerResource> PublishAsContainer(this IResourceBuilder<PostgresServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(context => WritePostgresContainerResourceToManifest(context, builder.Resource));
-    }
-
-    private static void WritePostgresContainerResourceToManifest(ManifestPublishingContext context, PostgresServerResource resource)
-    {
-        context.WriteContainer(resource);
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"Host={{{resource.Name}.bindings.tcp.host}};Port={{{resource.Name}.bindings.tcp.port}};Username=postgres;Password={{{resource.Name}.inputs.password}};");
-        context.Writer.WriteStartObject("inputs");      // "inputs": {
-        context.Writer.WriteStartObject("password");    //   "password": {
-        context.Writer.WriteString("type", "string");   //     "type": "string",
-        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
-        context.Writer.WriteStartObject("default");     //     "default": {
-        context.Writer.WriteStartObject("generate");    //       "generate": {
-        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
-        context.Writer.WriteEndObject();                //       }
-        context.Writer.WriteEndObject();                //     }
-        context.Writer.WriteEndObject();                //   }
-        context.Writer.WriteEndObject();                // }
+        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
     }
 }

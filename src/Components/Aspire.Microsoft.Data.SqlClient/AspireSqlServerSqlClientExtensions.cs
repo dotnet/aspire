@@ -67,11 +67,8 @@ public static class AspireSqlServerSqlClientExtensions
         string GetConnectionString()
         {
             var connectionString = settings.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
-            }
-            return connectionString;
+            ConnectionStringValidation.ValidateConnectionString(connectionString, connectionName, DefaultConfigSectionName);
+            return connectionString!;
         }
 
         if (serviceKey is null)

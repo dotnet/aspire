@@ -11,7 +11,7 @@ internal static class ConsoleLogsConfigurationExtensions
     {
         return builder.WithEnvironment((context) =>
         {
-            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+            if (context.ExecutionContext.IsPublishMode)
             {
                 return;
             }

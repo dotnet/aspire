@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Tests;
 
 /// <summary>
 /// Tests for <see cref="DnsServiceEndPointResolverBase"/> and <see cref="DnsSrvServiceEndPointResolverProvider"/>.
-/// These also cover <see cref="ServiceEndPointResolver"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
+/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
 /// </summary>
 public class DnsSrvServiceEndPointResolverTests
 {
@@ -104,7 +104,7 @@ public class DnsSrvServiceEndPointResolverTests
             .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns")
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
@@ -191,7 +191,7 @@ public class DnsSrvServiceEndPointResolverTests
         };
         var services = serviceCollection.BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
