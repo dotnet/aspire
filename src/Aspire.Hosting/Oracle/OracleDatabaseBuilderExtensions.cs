@@ -30,6 +30,7 @@ public static class OracleDatabaseBuilderExtensions
         return builder.AddResource(oracleDatabaseServer)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
+                      .WithDefaultPassword()
                       .WithEnvironment(context =>
                       {
                           if (context.ExecutionContext.IsPublishMode)
@@ -69,6 +70,6 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<OracleDatabaseServerResource> PublishAsContainer(this IResourceBuilder<OracleDatabaseServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifestAsync);
+        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 }

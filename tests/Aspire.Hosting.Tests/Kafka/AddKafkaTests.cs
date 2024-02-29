@@ -74,7 +74,24 @@ public class AddKafkaTests
 
         var manifest = await ManifestUtils.GetManifest(kafka.Resource);
 
-        Assert.Equal("container.v0", manifest["type"]?.ToString());
-        Assert.Equal(kafka.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
+              "image": "confluentinc/confluent-local:7.6.0",
+              "env": {
+                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 9092
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 }

@@ -130,12 +130,31 @@ public class AddMongoDBTests
 
         var mongoManifest = await ManifestUtils.GetManifest(mongo.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
-        
-        Assert.Equal("container.v0", mongoManifest["type"]?.ToString());
-        Assert.Equal(mongo.Resource.ConnectionStringExpression, mongoManifest["connectionString"]?.ToString());
 
-        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
-        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
+              "image": "mongo:7.0.5",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 27017
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, mongoManifest.ToString());
+
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{mongo.connectionString}/mydb"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
     [Fact]

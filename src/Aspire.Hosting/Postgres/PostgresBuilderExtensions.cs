@@ -32,6 +32,7 @@ public static class PostgresBuilderExtensions
         return builder.AddResource(postgresServer)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "16.2" })
+                      .WithDefaultPassword()
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
@@ -113,6 +114,6 @@ public static class PostgresBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<PostgresServerResource> PublishAsContainer(this IResourceBuilder<PostgresServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifestAsync);
+        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 }

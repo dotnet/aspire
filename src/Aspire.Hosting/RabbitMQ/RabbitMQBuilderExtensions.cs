@@ -27,6 +27,7 @@ public static class RabbitMQBuilderExtensions
         return builder.AddResource(rabbitMq)
                        .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
+                       .WithDefaultPassword()
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment(context =>
                        {
@@ -49,6 +50,6 @@ public static class RabbitMQBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> PublishAsContainer(this IResourceBuilder<RabbitMQServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifestAsync);
+        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 }
