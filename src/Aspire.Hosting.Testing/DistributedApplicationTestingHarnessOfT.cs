@@ -225,6 +225,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
 
     private async Task<DistributedApplication> ResolveApp(Func<string[], CancellationToken, Task<DistributedApplication>> factory)
     {
+        await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         using var cts = new CancellationTokenSource(GetConfiguredTimeout());
         var app = await factory([], cts.Token).ConfigureAwait(false);
         _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
