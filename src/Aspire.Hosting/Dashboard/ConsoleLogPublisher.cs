@@ -83,7 +83,7 @@ internal sealed class ConsoleLogPublisher(
 
     private static LogsEnumerable SubscribeGenericResource(IResource resource)
     {
-        if (resource.TryGetLastAnnotation<CustomResourceLoggerAnnotation>(out var loggerAnnotation))
+        if (resource.TryGetLastAnnotation<ResourceLoggerAnnotation>(out var loggerAnnotation))
         {
             return loggerAnnotation.WatchAsync();
         }

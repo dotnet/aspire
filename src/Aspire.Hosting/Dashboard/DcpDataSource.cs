@@ -197,11 +197,11 @@ internal sealed class DcpDataSource
 
             await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
-        else if (resource.TryGetLastAnnotation<CustomResourceAnnotation>(out var dashboardAnnotation))
+        else if (resource.TryGetLastAnnotation<ResourceUpdatesAnnotation>(out var resourceUpdates))
         {
             // We have a dashboard annotation, so we want to create a snapshot for the resource
             // and update data immediately. We also want to watch for changes to the dashboard state.
-            var state = dashboardAnnotation.GetInitialSnapshot();
+            var state = resourceUpdates.GetInitialSnapshot();
             var creationTimestamp = DateTime.UtcNow;
 
             var snapshot = CreateResourceSnapshot(resource, creationTimestamp, state);
@@ -210,7 +210,7 @@ internal sealed class DcpDataSource
 
             _ = Task.Run(async () =>
             {
-                await foreach (var state in dashboardAnnotation.WatchAsync(cancellationToken))
+                await foreach (var state in resourceUpdates.WatchAsync().WithCancellation(cancellationToken))
                 {
                     try
                     {
@@ -231,7 +231,7 @@ internal sealed class DcpDataSource
     private static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, DateTime creationTimestamp, CustomResourceSnapshot dashboardState)
     {
         ImmutableArray<EnvironmentVariableSnapshot> environmentVariables = [..
-            dashboardState.EnviromentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, false))];
+            dashboardState.EnvironmentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, false))];
 
         ImmutableArray<EndpointSnapshot> endpoints = [..
             dashboardState.Urls.Select(u => new EndpointSnapshot(u, u))];
