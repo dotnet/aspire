@@ -16,7 +16,6 @@ var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
         kind: StorageKind.BlobStorage,
         sku: StorageSkuName.StandardLrs
         );
-
     account.AssignParameter(a => a.Sku.Name, construct.AddParameter(sku));
 
     account.AddOutput(data => data.PrimaryEndpoints.TableUri, "tableUri", isSecure: true);

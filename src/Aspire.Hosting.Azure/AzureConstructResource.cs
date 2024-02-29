@@ -8,14 +8,14 @@ using Azure.Provisioning;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// An Aspire resource which is also a CDK construct.
+/// An Aspire resource that supports use of Azure Provisioning APIs to create Azure resources.
 /// </summary>
 /// <param name="name"></param>
 /// <param name="configureConstruct"></param>
 public class AzureConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
     /// <summary>
-    /// TODO:
+    /// Callback for configuring construct.
     /// </summary>
     public Action<ResourceModuleConstruct> ConfigureConstruct { get; } = configureConstruct;
 
@@ -49,16 +49,16 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
 }
 
 /// <summary>
-/// Extensions for working with CDK resources in the .NET Aspire application model.
+/// Extensions for working with <see cref="AzureConstructResource"/> and related types.
 /// </summary>
-public static class CdkResourceExtensions
+public static class AzureConstructResourceExtensions
 {
     /// <summary>
-    /// Adds a CDK resource to the application model.
+    /// Adds an Azure construct resource to the application model.
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource being added.</param>
-    /// <param name="configureConstruct">A callback used to configure the resource.</param>
+    /// <param name="configureConstruct">A callback used to configure the construct resource.</param>
     /// <returns></returns>
     public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct> configureConstruct)
     {
@@ -68,10 +68,10 @@ public static class CdkResourceExtensions
     }
 
     /// <summary>
-    /// TODO:
+    /// Adds a parameter to the Azure construct resource based on an Aspire parameter.
     /// </summary>
-    /// <param name="resourceModuleConstruct"></param>
-    /// <param name="parameterResourceBuilder"></param>
+    /// <param name="resourceModuleConstruct">The Azure construct resource.</param>
+    /// <param name="parameterResourceBuilder">The Aspire parameter resource builder.</param>
     /// <returns></returns>
     public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, IResourceBuilder<ParameterResource> parameterResourceBuilder)
     {
@@ -79,11 +79,11 @@ public static class CdkResourceExtensions
     }
 
     /// <summary>
-    /// TODO:
+    /// Adds a parameter to the Azure construct resource based on an Aspire parameter.
     /// </summary>
-    /// <param name="resourceModuleConstruct"></param>
-    /// <param name="name"></param>
-    /// <param name="parameterResourceBuilder"></param>
+    /// <param name="resourceModuleConstruct">The Azure construct resource.</param>
+    /// <param name="name">The name to be used for the Azure construct parameter.</param>
+    /// <param name="parameterResourceBuilder">The Aspire parameter resource builder.</param>
     /// <returns></returns>
     public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, string name, IResourceBuilder<ParameterResource> parameterResourceBuilder)
     {
@@ -96,10 +96,10 @@ public static class CdkResourceExtensions
     }
 
     /// <summary>
-    ///  TODO:
+    /// Adds a parameter to the Azure construct resource based on an <see cref="BicepOutputReference"/>
     /// </summary>
-    /// <param name="resourceModuleConstruct"></param>
-    /// <param name="outputReference"></param>
+    /// <param name="resourceModuleConstruct">The Azure construct resource.</param>
+    /// <param name="outputReference">The Aspire Bicep output reference.</param>
     /// <returns></returns>
     public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, BicepOutputReference outputReference)
     {
@@ -107,11 +107,11 @@ public static class CdkResourceExtensions
     }
 
     /// <summary>
-    /// TODO:
+    /// Adds a parameter to the Azure construct resource based on an <see cref="BicepOutputReference"/>
     /// </summary>
-    /// <param name="resourceModuleConstruct"></param>
-    /// <param name="name"></param>
-    /// <param name="outputReference"></param>
+    /// <param name="resourceModuleConstruct">The Azure construct resource.</param>
+    /// <param name="name">The name to be used for the Azure construct parameter.</param>
+    /// <param name="outputReference">The Aspire Bicep output reference.</param>
     /// <returns></returns>
     public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, string name, BicepOutputReference outputReference)
     {
@@ -124,29 +124,17 @@ public static class CdkResourceExtensions
 }
 
 /// <summary>
-/// TODO: Can't think of a better name right now
+/// An Azure Provisioning construct which represents the root Bicep module that is generated for an Azure construct resource.
 /// </summary>
 public class ResourceModuleConstruct : Infrastructure
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="resource"></param>
-    /// <param name="configuration"></param>
-    public ResourceModuleConstruct(AzureConstructResource resource, Configuration configuration) : base(constructScope: ConstructScope.ResourceGroup, tenantId: Guid.Empty, subscriptionId: Guid.Empty, envName: "temp", configuration: configuration)
+    internal ResourceModuleConstruct(AzureConstructResource resource, Configuration configuration) : base(constructScope: ConstructScope.ResourceGroup, tenantId: Guid.Empty, subscriptionId: Guid.Empty, envName: "temp", configuration: configuration)
     {
         Resource = resource;
-        LocationParameter = new Parameter("location", "West US 3");
-        AddParameter(LocationParameter);
     }
 
     /// <summary>
-    /// TODO:
+    /// The Azure cosntruct resource that this resource module construct represents.
     /// </summary>
     public AzureConstructResource Resource { get; }
-
-    /// <summary>
-    /// TODO:
-    /// </summary>
-    public Parameter LocationParameter { get; }
 }
