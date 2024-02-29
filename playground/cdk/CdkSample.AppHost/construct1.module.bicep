@@ -7,7 +7,7 @@ param location string = resourceGroup().location
 param storagesku string
 
 
-resource storageAccount_tgMUsfGUA 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+resource storageAccount_unUi1Obb4 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: toLower(take(concat('bob', uniqueString(resourceGroup().id)), 24))
   location: location
   sku: {
@@ -18,4 +18,4 @@ resource storageAccount_tgMUsfGUA 'Microsoft.Storage/storageAccounts@2022-09-01'
   }
 }
 
-output tableUri string = storageAccount_tgMUsfGUA.properties.primaryEndpoints.table
+output tableUri string = storageAccount_unUi1Obb4.properties.primaryEndpoints.table

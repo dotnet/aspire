@@ -32,8 +32,3 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();
-
-// OPEN QUESTIONS:
-// 1. Is it possible to express resourceGroup().location
-// 2. Outputting a module and sub-modules (no main.bicep)
-// 3. Assigning parameters to mandatory properties (without duplications)
