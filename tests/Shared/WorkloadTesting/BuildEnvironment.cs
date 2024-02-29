@@ -15,8 +15,7 @@ public class BuildEnvironment
 
     public string                           WorkloadPacksDir              { get; init; }
     public string                           BuiltNuGetsPath               { get; init; }
-    // FIXME: BE doesn't need to know about this
-    public bool                             IsRunningOutOfTree            { get; init; }
+    public bool                             HasSdkWithWorkload            { get; init; }
     public string                           TestAssetsPath                { get; init; }
     public string                           TestProjectPath               { get; init; }
 
@@ -27,7 +26,7 @@ public class BuildEnvironment
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
 
-    public BuildEnvironment(bool forceOutOfTree = false)
+    public BuildEnvironment(bool expectSdkWithWorkload = true, Action<string, string>? sdkWithWorkloadNotFound = null)
     {
         DirectoryInfo? solutionRoot = new(AppContext.BaseDirectory);
         while (solutionRoot != null)
@@ -40,13 +39,13 @@ public class BuildEnvironment
             solutionRoot = solutionRoot.Parent;
         }
 
-        IsRunningOutOfTree = EnvironmentVariables.TestsRunningOutOfTree || forceOutOfTree;
+        // HasSdkWithWorkload = EnvironmentVariables.TestsRunningOutOfTree || expectSdkWithWorkload;
         string sdkForWorkloadPath;
         if (solutionRoot is not null)
         {
-            if (IsRunningOutOfTree)
+            // Local run
+            if (expectSdkWithWorkload)
             {
-                // Is this a "local run?
                 var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
                 var probePath = Path.Combine(solutionRoot!.FullName, "artifacts", "bin", sdkDirName);
                 if (Directory.Exists(probePath))
@@ -55,7 +54,8 @@ public class BuildEnvironment
                 }
                 else
                 {
-                    throw new ArgumentException($"Running out-of-tree: Could not find {probePath} computed from solutionRoot={solutionRoot}. Build all the packages with `./build -pack`. And install the sdk+workload 'dotnet tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.csproj /t:InstallWorkloadUsingArtifacts /p:Configuration=<config>");
+                    sdkWithWorkloadNotFound?.Invoke(probePath, solutionRoot.FullName);
+                    throw new InvalidOperationException($"Could not find find a sdk with the workload installed at {probePath} computed from solutionRoot={solutionRoot}.");
                 }
             }
             else
@@ -74,7 +74,7 @@ public class BuildEnvironment
             BuiltNuGetsPath = Path.Combine(solutionRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
 
             // this is the only difference for local run but out-of-tree
-            if (EnvironmentVariables.TestsRunningOutOfTree || forceOutOfTree)
+            if (expectSdkWithWorkload)
             {
                 TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
             }
@@ -90,7 +90,6 @@ public class BuildEnvironment
         else
         {
             // CI
-            // FIXME: extra check empty/exists to a func
             if (string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath) || !Directory.Exists(EnvironmentVariables.SdkForWorkloadTestingPath))
             {
                 throw new ArgumentException($"Cannot find 'SDK_FOR_WORKLOAD_TESTING_PATH={EnvironmentVariables.SdkForWorkloadTestingPath}'");
@@ -112,6 +111,7 @@ public class BuildEnvironment
             sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
         }
 
+        HasSdkWithWorkload = expectSdkWithWorkload;
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
         WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
@@ -119,7 +119,7 @@ public class BuildEnvironment
 
         Console.WriteLine($"*** Using workload path: {sdkForWorkloadPath}");
         EnvVars = new Dictionary<string, string>();
-        if (IsRunningOutOfTree)
+        if (HasSdkWithWorkload)
         {
             EnvVars["DOTNET_ROOT"] = sdkForWorkloadPath;
             EnvVars["DOTNET_INSTALL_DIR"] = sdkForWorkloadPath;

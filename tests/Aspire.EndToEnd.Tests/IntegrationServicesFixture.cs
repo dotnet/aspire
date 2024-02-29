@@ -22,14 +22,13 @@ namespace Aspire.EndToEnd.Tests;
 public sealed class IntegrationServicesFixture : IAsyncLifetime
 {
 #if TESTS_RUNNING_OUT_OF_TREE
-    /* Set to true to force the testproject to run out-of-tree with the workload */
-    public static bool ForceOutOfTree = true;
+    public static bool TestsRunningOutOfTree = true;
 #else
-    public static bool ForceOutOfTree;
+    public static bool TestsRunningOutOfTree;
 #endif
 
     public Dictionary<string, ProjectInfo> Projects => _projects!;
-    public BuildEnvironment BuildEnvironment { get; } = new(ForceOutOfTree);
+    public BuildEnvironment BuildEnvironment { get; init; }
     public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
 
     private Process? _appHostProcess;
@@ -42,7 +41,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         _diagnosticMessageSink = messageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        if (BuildEnvironment.IsRunningOutOfTree)
+        BuildEnvironment = new(TestsRunningOutOfTree, (probePath, solutionRoot) =>
+        {
+            throw new InvalidProgramException(
+                    $"Running out-of-tree: Could not find {probePath} computed from solutionRoot={solutionRoot}. " +
+                    $"Build all the packages with `./build -pack`. And install the sdk+workload 'dotnet build tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.csproj /t:InstallWorkloadUsingArtifacts /p:Configuration=<config>");
+        });
+        if (BuildEnvironment.HasSdkWithWorkload)
         {
             BuildEnvironment.EnvVars["TestsRunningOutOfTree"] = "true";
         }
@@ -51,7 +56,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         var appHostDirectory = Path.Combine(BuildEnvironment.TestProjectPath, "TestProject.AppHost");
-        if (ForceOutOfTree)
+        if (TestsRunningOutOfTree)
         {
             _testOutput.WriteLine("");
             _testOutput.WriteLine($"****************************************");
