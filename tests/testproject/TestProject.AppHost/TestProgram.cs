@@ -5,12 +5,29 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Lifecycle;
+using Aspire.TestProject;
 
 public class TestProgram : IDisposable
 {
     private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard)
     {
-        if (args.Contains("--disable-dashboard"))
+        IList<TestResourceNames> resourcesToSkip = [];
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i].StartsWith("--skip-resources", StringComparison.InvariantCultureIgnoreCase))
+            {
+                if (args.Length > i + 1)
+                {
+                    resourcesToSkip = TestResourceNamesExtensions.Parse(args[i + 1].Split(','));
+                    break;
+                }
+                else
+                {
+                    throw new ArgumentException("Missing argument to --skip-resources option.");
+                }
+            }
+        }
+        if (resourcesToSkip.Contains(TestResourceNames.dashboard))
         {
             disableDashboard = true;
         }
@@ -40,39 +57,66 @@ public class TestProgram : IDisposable
 
         if (includeIntegrationServices)
         {
-            var sqlserverDbName = "tempdb";
-            var mysqlDbName = "mysqldb";
-            var postgresDbName = "postgresdb";
-            var mongoDbName = "mymongodb";
-            var oracleDbName = "freepdb1";
+            IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
+            IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
-            var sqlserver = AppBuilder.AddSqlServer("sqlserver")
-                .AddDatabase(sqlserverDbName);
-            var mysql = AppBuilder.AddMySql("mysql")
-                .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
-                .AddDatabase(mysqlDbName);
-            var redis = AppBuilder.AddRedis("redis");
-            var postgres = AppBuilder.AddPostgres("postgres")
-                .WithEnvironment("POSTGRES_DB", postgresDbName)
-                .AddDatabase(postgresDbName);
-            var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
-            var mongodb = AppBuilder.AddMongoDB("mongodb")
-                .AddDatabase(mongoDbName);
-            var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
-                .AddDatabase(oracleDbName);
-            var kafka = AppBuilder.AddKafka("kafka");
-            var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
-
-            IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
-                .WithReference(sqlserver)
-                .WithReference(mysql)
-                .WithReference(redis)
-                .WithReference(postgres)
-                .WithReference(rabbitmq)
-                .WithReference(mongodb)
-                .WithReference(oracleDatabase)
-                .WithReference(kafka)
-                .WithReference(cosmos);
+            if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
+            {
+                var sqlserverDbName = "tempdb";
+                var sqlserver = AppBuilder.AddSqlServer("sqlserver")
+                    .AddDatabase(sqlserverDbName);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(sqlserver);
+            }
+            if (!resourcesToSkip.Contains(TestResourceNames.mysql))
+            {
+                var mysqlDbName = "mysqldb";
+                var mysql = AppBuilder.AddMySql("mysql")
+                    .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
+                    .AddDatabase(mysqlDbName);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mysql);
+            }
+            if (!resourcesToSkip.Contains(TestResourceNames.redis))
+            {
+                var redis = AppBuilder.AddRedis("redis");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
+            }
+            if (!resourcesToSkip.Contains(TestResourceNames.postgres))
+            {
+                var postgresDbName = "postgresdb";
+                var postgres = AppBuilder.AddPostgres("postgres")
+                    .WithEnvironment("POSTGRES_DB", postgresDbName)
+                    .AddDatabase(postgresDbName);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
+            }
+            if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
+            {
+                var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(rabbitmq);
+            }
+            if (!resourcesToSkip.Contains(TestResourceNames.mongodb))
+            {
+                var mongoDbName = "mymongodb";
+                var mongodb = AppBuilder.AddMongoDB("mongodb")
+                    .AddDatabase(mongoDbName);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
+            }
+            if (!resourcesToSkip.Contains(TestResourceNames.oracledatabase))
+            {
+                var oracleDbName = "freepdb1";
+                var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
+                    .AddDatabase(oracleDbName);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
+            }
+            if (!resourcesToSkip.Contains(TestResourceNames.kafka))
+            {
+                var kafka = AppBuilder.AddKafka("kafka");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(kafka);
+            }
+            if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
+            {
+                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
+            }
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
