@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
-public class CustomResourceLoggerTests
+public class ResourceLoggerTests
 {
     [Fact]
     public void AddingResourceLoggerAnnotationAllowsLogging()
@@ -16,7 +16,7 @@ public class CustomResourceLoggerTests
         var testResource = builder.AddResource(new TestResource("myResource"))
             .WithResourceLogger();
 
-        var annotation = testResource.Resource.Annotations.OfType<CustomResourceLoggerAnnotation>().SingleOrDefault();
+        var annotation = testResource.Resource.Annotations.OfType<ResourceLoggerAnnotation>().SingleOrDefault();
 
         Assert.NotNull(annotation);
 
@@ -48,7 +48,7 @@ public class CustomResourceLoggerTests
         var testResource = builder.AddResource(new TestResource("myResource"))
             .WithResourceLogger();
 
-        var annotation = testResource.Resource.Annotations.OfType<CustomResourceLoggerAnnotation>().SingleOrDefault();
+        var annotation = testResource.Resource.Annotations.OfType<ResourceLoggerAnnotation>().SingleOrDefault();
 
         Assert.NotNull(annotation);
 

@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
-public class CustomResourceStateTests
+public class ResourceUpdatesTests
 {
     [Fact]
     public void CreatePopulatesStateFromResource()
@@ -15,9 +15,9 @@ public class CustomResourceStateTests
         var custom = builder.AddResource(new CustomResource("myResource"))
             .WithEndpoint(name: "ep", scheme: "http", hostPort: 8080)
             .WithEnvironment("x", "1000")
-            .WithCustomResourceState();
+            .WithResourceUpdates();
 
-        var annotation = custom.Resource.Annotations.OfType<CustomResourceAnnotation>().SingleOrDefault();
+        var annotation = custom.Resource.Annotations.OfType<ResourceUpdatesAnnotation>().SingleOrDefault();
 
         Assert.NotNull(annotation);
 
@@ -25,7 +25,7 @@ public class CustomResourceStateTests
 
         Assert.Equal("Custom", state.ResourceType);
 
-        Assert.Collection(state.EnviromentVariables, a =>
+        Assert.Collection(state.EnvironmentVariables, a =>
         {
             Assert.Equal("x", a.Name);
             Assert.Equal("1000", a.Value);
@@ -51,20 +51,20 @@ public class CustomResourceStateTests
         var custom = builder.AddResource(new CustomResource("myResource"))
             .WithEndpoint(name: "ep", scheme: "http", hostPort: 8080)
             .WithEnvironment("x", "1000")
-            .WithCustomResourceState(() => new()
+            .WithResourceUpdates(() => new()
             {
                 ResourceType = "MyResource",
                 Properties = [("A", "B")],
             });
 
-        var annotation = custom.Resource.Annotations.OfType<CustomResourceAnnotation>().SingleOrDefault();
+        var annotation = custom.Resource.Annotations.OfType<ResourceUpdatesAnnotation>().SingleOrDefault();
 
         Assert.NotNull(annotation);
 
         var state = annotation.GetInitialSnapshot();
 
         Assert.Equal("MyResource", state.ResourceType);
-        Assert.Empty(state.EnviromentVariables);
+        Assert.Empty(state.EnvironmentVariables);
         Assert.Collection(state.Properties, c =>
         {
             Assert.Equal("A", c.Key);
@@ -80,11 +80,25 @@ public class CustomResourceStateTests
         var custom = builder.AddResource(new CustomResource("myResource"))
             .WithEndpoint(name: "ep", scheme: "http", hostPort: 8080)
             .WithEnvironment("x", "1000")
-            .WithCustomResourceState();
+            .WithResourceUpdates();
 
-        var annotation = custom.Resource.Annotations.OfType<CustomResourceAnnotation>().SingleOrDefault();
+        var annotation = custom.Resource.Annotations.OfType<ResourceUpdatesAnnotation>().SingleOrDefault();
 
         Assert.NotNull(annotation);
+
+        async Task<List<CustomResourceSnapshot>> GetValuesAsync()
+        {
+            var values = new List<CustomResourceSnapshot>();
+
+            await foreach (var item in annotation.WatchAsync())
+            {
+                values.Add(item);
+            }
+
+            return values;
+        }
+
+        var enumerableTask = GetValuesAsync();
 
         var state = annotation.GetInitialSnapshot();
 
@@ -96,15 +110,12 @@ public class CustomResourceStateTests
 
         await annotation.UpdateStateAsync(state);
 
-        var enumerator = annotation.WatchAsync().GetAsyncEnumerator();
+        annotation.Complete();
 
-        await enumerator.MoveNextAsync();
+        var values = await enumerableTask;
 
-        Assert.Equal("value", enumerator.Current.Properties.Single(p => p.Key == "A").Value);
-
-        await enumerator.MoveNextAsync();
-
-        Assert.Equal("value", enumerator.Current.Properties.Single(p => p.Key == "B").Value);
+        Assert.Equal("value", values[0].Properties.Single(p => p.Key == "A").Value);
+        Assert.Equal("value", values[1].Properties.Single(p => p.Key == "B").Value);
     }
 
     private sealed class CustomResource(string name) : Resource(name),

@@ -37,7 +37,7 @@ public static class ParameterResourceBuilderExtensions
     {
         var resource = new ParameterResource(name, callback, secret);
         return builder.AddResource(resource)
-                      .WithCustomResourceState(() =>
+                      .WithResourceUpdates(() =>
                       {
                           var state = new CustomResourceSnapshot()
                           {

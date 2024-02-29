@@ -13,7 +13,7 @@ static class TestResourceExtensions
 
         var rb = builder.AddResource(new TestResource(name))
                       .WithResourceLogger()
-                      .WithCustomResourceState(() => new()
+                      .WithResourceUpdates(() => new()
                       {
                           ResourceType = "Test Resource",
                           State = "Starting",
@@ -36,15 +36,15 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
     {
         foreach (var item in appModel.Resources.OfType<TestResource>())
         {
-            if (item.TryGetLastAnnotation<CustomResourceAnnotation>(out var customResourceAnnotation) &&
-                item.TryGetLastAnnotation<CustomResourceLoggerAnnotation>(out var loggerAnnotation))
+            if (item.TryGetLastAnnotation<ResourceUpdatesAnnotation>(out var resourceUpdates) &&
+                item.TryGetLastAnnotation<ResourceLoggerAnnotation>(out var loggerAnnotation))
             {
                 var states = new[] { "Starting", "Running", "Finished" };
 
                 Task.Run(async () =>
                 {
                     // Simulate custom resource state changes
-                    var state = customResourceAnnotation.GetInitialSnapshot();
+                    var state = resourceUpdates.GetInitialSnapshot();
                     var seconds = Random.Shared.Next(2, 12);
 
                     state = state with
@@ -55,7 +55,7 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
                     loggerAnnotation.Logger.LogInformation("Starting test resource {ResourceName} with update interval {Interval} seconds", item.Name, seconds);
 
                     // This might run before the dashboard is ready to receive updates, but it will be queued.
-                    await customResourceAnnotation.UpdateStateAsync(state);
+                    await resourceUpdates.UpdateStateAsync(state);
 
                     using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds));
 
@@ -70,7 +70,7 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
 
                         loggerAnnotation.Logger.LogInformation("Test resource {ResourceName} is now in state {State}", item.Name, randomState);
 
-                        await customResourceAnnotation.UpdateStateAsync(state);
+                        await resourceUpdates.UpdateStateAsync(state);
                     }
                 },
                 cancellationToken);

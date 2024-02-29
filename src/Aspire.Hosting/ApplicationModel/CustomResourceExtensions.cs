@@ -11,18 +11,18 @@ namespace Aspire.Hosting;
 public static class CustomResourceExtensions
 {
     /// <summary>
-    /// Adds a callback to configure the dashboard context for a resource.
+    /// Initializes the resource with a <see cref="ResourceUpdatesAnnotation"/> that allows publishing and subscribing to changes in the state of this resource.
     /// </summary>
     /// <typeparam name="TResource">The resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="initialSnapshotFactory">The factory to create the initial <see cref="CustomResourceSnapshot"/> for this resource.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<TResource> WithCustomResourceState<TResource>(this IResourceBuilder<TResource> builder, Func<CustomResourceSnapshot>? initialSnapshotFactory = null)
+    public static IResourceBuilder<TResource> WithResourceUpdates<TResource>(this IResourceBuilder<TResource> builder, Func<CustomResourceSnapshot>? initialSnapshotFactory = null)
         where TResource : IResource
     {
         initialSnapshotFactory ??= () => CustomResourceSnapshot.Create(builder.Resource);
 
-        return builder.WithAnnotation(new CustomResourceAnnotation(initialSnapshotFactory), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new ResourceUpdatesAnnotation(initialSnapshotFactory), ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
@@ -34,6 +34,6 @@ public static class CustomResourceExtensions
     public static IResourceBuilder<TResource> WithResourceLogger<TResource>(this IResourceBuilder<TResource> builder)
         where TResource : IResource
     {
-        return builder.WithAnnotation(new CustomResourceLoggerAnnotation(), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new ResourceLoggerAnnotation(), ResourceAnnotationMutationBehavior.Replace);
     }
 }
