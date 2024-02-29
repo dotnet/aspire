@@ -205,7 +205,7 @@ public class AddMySqlTests
         expectedManifest = """
             {
               "type": "value.v0",
-              "connectionString": "{oracle.connectionString}/db"
+              "connectionString": "{mysql.connectionString};Database=db"
             }
             """;
         Assert.Equal(expectedManifest, dbManifest.ToString());

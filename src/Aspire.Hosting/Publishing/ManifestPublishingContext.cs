@@ -198,7 +198,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             foreach (var input in inputs)
             {
                 Writer.WriteStartObject(input.Name);
-                Writer.WriteString("type", input.Type ?? "string");
+                Writer.WriteString("type", input.Type);
 
                 if (input.Secret)
                 {

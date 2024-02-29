@@ -18,10 +18,13 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <summary>
     /// Initializes a new instance of <see cref="InputAnnotation"/>.
     /// </summary>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="type">An optional type name of the input. "string" is the default, if not specified.</param>
+    /// <param name="secret">A flag indicating whether the input is secret.</param>
     public InputAnnotation(string name, string? type = null, bool secret = false)
     {
         Name = name;
-        Type = type;
+        Type = type ?? "string";
         Secret = secret;
     }
 
@@ -33,7 +36,7 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <summary>
     /// The type of the input.
     /// </summary>
-    public string? Type { get; set; }
+    public string Type { get; set; }
 
     /// <summary>
     /// Indicates if the input is a secret.
@@ -41,7 +44,7 @@ public sealed class InputAnnotation : IResourceAnnotation
     public bool Secret { get; set; }
 
     /// <summary>
-    /// Represents what the
+    /// Represents how the default value of the input should be retrieved.
     /// </summary>
     public InputDefault? Default { get; set; }
 }
