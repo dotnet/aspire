@@ -62,7 +62,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// </summary>
     /// <param name="container"></param>
     /// <exception cref="DistributedApplicationException"></exception>
-    public async Task WriteContainer(ContainerResource container)
+    public async Task WriteContainerAsync(ContainerResource container)
     {
         Writer.WriteString("type", "container.v0");
 
@@ -104,7 +104,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
         }
 
-        await WriteEnvironmentVariables(container).ConfigureAwait(false);
+        await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container, emitContainerPort: true);
     }
 
@@ -158,7 +158,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// TODO: Doc Comments
     /// </summary>
     /// <param name="resource"></param>
-    public async Task WriteEnvironmentVariables(IResource resource)
+    public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
         var config = new Dictionary<string, string>();
 

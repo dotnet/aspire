@@ -41,7 +41,7 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="args"> The list of command-line arguments.</param>
 /// <param name="cancellationToken"> The cancellation token associated with this execution.</param>
-public class CommandLineArgsCallbackContext(IList<string> args, CancellationToken cancellationToken = default)
+public sealed class CommandLineArgsCallbackContext(IList<string> args, CancellationToken cancellationToken = default)
 {
     /// <summary>
     /// Gets the list of command-line arguments.

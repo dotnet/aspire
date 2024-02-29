@@ -69,6 +69,6 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<OracleDatabaseServerResource> PublishAsContainer(this IResourceBuilder<OracleDatabaseServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
+        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifestAsync);
     }
 }

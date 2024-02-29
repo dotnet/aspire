@@ -38,9 +38,9 @@ public class RabbitMQServerResource(string name, string password) : ContainerRes
         return $"amqp://guest:{Password}@{endpoint.EndPointString}";
     }
 
-    internal async Task WriteToManifest(ManifestPublishingContext context)
+    internal async Task WriteToManifestAsync(ManifestPublishingContext context)
     {
-        await context.WriteContainer(this).ConfigureAwait(false);
+        await context.WriteContainerAsync(this).ConfigureAwait(false);
 
         context.Writer.WriteStartObject("inputs");      // "inputs": {
         context.Writer.WriteStartObject("password");    //   "password": {

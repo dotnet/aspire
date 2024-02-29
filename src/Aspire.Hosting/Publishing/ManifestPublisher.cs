@@ -51,23 +51,23 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
         var context = new ManifestPublishingContext(_executionContext, manifestPath, jsonWriter, cancellationToken);
 
         jsonWriter.WriteStartObject();
-        await WriteResources(model, context).ConfigureAwait(false);
+        await WriteResourcesAsync(model, context).ConfigureAwait(false);
         jsonWriter.WriteEndObject();
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteResources(DistributedApplicationModel model, ManifestPublishingContext context)
+    private static async Task WriteResourcesAsync(DistributedApplicationModel model, ManifestPublishingContext context)
     {
         context.Writer.WriteStartObject("resources");
         foreach (var resource in model.Resources)
         {
-            await WriteResource(resource, context).ConfigureAwait(false);
+            await WriteResourceAsync(resource, context).ConfigureAwait(false);
         }
         context.Writer.WriteEndObject();
     }
 
-    internal static async Task WriteResource(IResource resource, ManifestPublishingContext context)
+    internal static async Task WriteResourceAsync(IResource resource, ManifestPublishingContext context)
     {
         // First see if the resource has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
@@ -75,27 +75,27 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
         {
             if (manifestPublishingCallbackAnnotation.Callback != null)
             {
-                await WriteResourceObject(resource, () => manifestPublishingCallbackAnnotation.Callback(context)).ConfigureAwait(false);
+                await WriteResourceObjectAsync(resource, () => manifestPublishingCallbackAnnotation.Callback(context)).ConfigureAwait(false);
             }
         }
         else if (resource is ContainerResource container)
         {
-            await WriteResourceObject(container, () => context.WriteContainer(container)).ConfigureAwait(false);
+            await WriteResourceObjectAsync(container, () => context.WriteContainerAsync(container)).ConfigureAwait(false);
         }
         else if (resource is ProjectResource project)
         {
-            await WriteResourceObject(project, () => WriteProject(project, context)).ConfigureAwait(false);
+            await WriteResourceObjectAsync(project, () => WriteProjectAsync(project, context)).ConfigureAwait(false);
         }
         else if (resource is ExecutableResource executable)
         {
-            await WriteResourceObject(executable, () => WriteExecutable(executable, context)).ConfigureAwait(false);
+            await WriteResourceObjectAsync(executable, () => WriteExecutableAsync(executable, context)).ConfigureAwait(false);
         }
         else
         {
-            await WriteResourceObject(resource, () => WriteError(context)).ConfigureAwait(false);
+            await WriteResourceObjectAsync(resource, () => WriteErrorAsync(context)).ConfigureAwait(false);
         }
 
-        async Task WriteResourceObject<T>(T resource, Func<Task> action) where T : IResource
+        async Task WriteResourceObjectAsync<T>(T resource, Func<Task> action) where T : IResource
         {
             context.Writer.WriteStartObject(resource.Name);
             await action().ConfigureAwait(false);
@@ -104,13 +104,13 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
         }
     }
 
-    private static Task WriteError(ManifestPublishingContext context)
+    private static Task WriteErrorAsync(ManifestPublishingContext context)
     {
         context.Writer.WriteString("error", "This resource does not support generation in the manifest.");
         return Task.CompletedTask;
     }
 
-    private static async Task WriteProject(ProjectResource project, ManifestPublishingContext context)
+    private static async Task WriteProjectAsync(ProjectResource project, ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "project.v0");
 
@@ -123,11 +123,11 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
         context.Writer.WriteString("path", relativePathToProjectFile);
 
-        await context.WriteEnvironmentVariables(project).ConfigureAwait(false);
+        await context.WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
         context.WriteBindings(project);
     }
 
-    private static async Task WriteExecutable(ExecutableResource executable, ManifestPublishingContext context)
+    private static async Task WriteExecutableAsync(ExecutableResource executable, ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "executable.v0");
 
@@ -163,7 +163,7 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
             context.Writer.WriteEndArray();
         }
 
-        await context.WriteEnvironmentVariables(executable).ConfigureAwait(false);
+        await context.WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
         context.WriteBindings(executable);
     }
 }

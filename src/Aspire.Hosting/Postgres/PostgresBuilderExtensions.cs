@@ -113,6 +113,6 @@ public static class PostgresBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<PostgresServerResource> PublishAsContainer(this IResourceBuilder<PostgresServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
+        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifestAsync);
     }
 }

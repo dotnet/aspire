@@ -44,7 +44,7 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
                 Task.Run(async () =>
                 {
                     // Simulate custom resource state changes
-                    var state = await resourceUpdates.GetInitialSnapshotAsync();
+                    var state = await resourceUpdates.GetInitialSnapshotAsync(_tokenSource.Token);
                     var seconds = Random.Shared.Next(2, 12);
 
                     state = state with

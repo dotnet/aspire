@@ -79,7 +79,7 @@ public static class ExecutableResourceBuilderExtensions
         var manifestFileRelativePathToContextDirectory = context.GetManifestRelativePath(executable.WorkingDirectory);
         context.Writer.WriteString("context", manifestFileRelativePathToContextDirectory);
 
-        await context.WriteEnvironmentVariables(executable).ConfigureAwait(false);
+        await context.WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
         context.WriteBindings(executable, emitContainerPort: true);
     }
 }

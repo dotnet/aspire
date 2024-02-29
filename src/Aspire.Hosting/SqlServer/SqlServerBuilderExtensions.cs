@@ -52,7 +52,7 @@ public static class SqlServerBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<SqlServerServerResource> PublishAsContainer(this IResourceBuilder<SqlServerServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
+        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifestAsync);
     }
 
     /// <summary>

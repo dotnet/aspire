@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// The annotation that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public sealed class ResourceUpdatesAnnotation(Func<ValueTask<CustomResourceSnapshot>> initialSnapshotFactory) : IResourceAnnotation
+public sealed class ResourceUpdatesAnnotation(Func<CancellationToken, ValueTask<CustomResourceSnapshot>> initialSnapshotFactory) : IResourceAnnotation
 {
     private readonly CancellationTokenSource _streamClosedCts = new();
 
@@ -24,7 +24,7 @@ public sealed class ResourceUpdatesAnnotation(Func<ValueTask<CustomResourceSnaps
     /// <summary>
     /// Gets the initial snapshot of the dashboard state for this resource.
     /// </summary>
-    public ValueTask<CustomResourceSnapshot> GetInitialSnapshotAsync() => initialSnapshotFactory();
+    public ValueTask<CustomResourceSnapshot> GetInitialSnapshotAsync(CancellationToken cancellationToken = default) => initialSnapshotFactory(cancellationToken);
 
     /// <summary>
     /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
