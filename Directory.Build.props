@@ -24,7 +24,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Set RunSettingsFilePath property which is read by VSTest. -->
-    <RunSettingsFilePath>$(RepositoryEngineeringDir).runsettings</RunSettingsFilePath>
+    <RunSettingsFilePath Condition="'$(RunSettingsFilePath)' == ''">$(RepositoryEngineeringDir).runsettings</RunSettingsFilePath>
     <!-- We don't want to use the workload for AppHost projects in this repo -->
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
 
@@ -44,7 +44,7 @@
     <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/</DcpDir>
 
     <TestArchiveTestsDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'tests'))</TestArchiveTestsDir>
-    <TestArchiveTestsDirForE2E Condition="'$(TestArchiveTestsDirForE2E)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e'))</TestArchiveTestsDirForE2E>
+    <TestArchiveTestsDirForWorkloadTests Condition="'$(TestArchiveTestsDirForWorkloadTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'workload-tests'))</TestArchiveTestsDirForWorkloadTests>
     <!-- TODO: Need to figure out we can automatically detect target framework here. This property
                is specified to support dashboard path metadata generation on the inner loop. -->
     <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net8.0/</AspireDashboardDir>

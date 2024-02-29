@@ -1,11 +1,11 @@
 <Project>
 
   <PropertyGroup>
-    <WorkItemArchiveWildCardE2E>$(TestArchiveTestsDirForE2E)**/*.zip</WorkItemArchiveWildCardE2E>
+    <WorkItemArchiveWildCardWorkloadTests>$(TestArchiveTestsDirForWorkloadTests)**/*.zip</WorkItemArchiveWildCardWorkloadTests>
   </PropertyGroup>
 
   <ItemGroup>
-    <_DefaultWorkItemsE2E Include="$(WorkItemArchiveWildCardE2E)" />
+    <_DefaultWorkItemsWorkloadTests Include="$(WorkItemArchiveWildCardWorkloadTests)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,9 +37,9 @@
     <!--<HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />-->
   </ItemGroup>
 
-  <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsE2E->Count()) > 0">
+  <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsWorkloadTests->Count()) > 0">
     <PropertyGroup>
-      <_WorkItemTimeoutForE2E>00:20:00</_WorkItemTimeoutForE2E>
+      <_WorkItemTimeoutForWorkloadTests>00:20:00</_WorkItemTimeoutForWorkloadTests>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
       <HelixPostCommands>$(HelixPostCommands);@(HelixPostCommand)</HelixPostCommands>
@@ -55,12 +55,12 @@
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />
       <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsE2E -> '%(FileName)')">
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_WorkItemTimeoutForE2E)</Timeout>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>

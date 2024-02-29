@@ -36,22 +36,10 @@
     <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
   </ItemGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)send-to-helix-e2e.proj" />
-
-  <!--
-
-    - payload:
-        - dotnet-latest
-        - .zip
-  -->
+  <Import Project="$(MSBuildThisFileDirectory)send-to-helix-workload-tests.proj" />
 
   <Target Name="BuildHelixWorkItemsForDefaultTests" DependsOnTargets="_StageDependenciesForHelix">
-    <!--<Error Condition="'$(RepoTestResultsPath)' == ''" Text="%24(RepoTestResultsPath) is unset" />-->
-    <!--<Error Condition="'$(RepoTestResultsPath)' == ''" Text="%24(RepoTestResultsPath) is unset" />-->
-
     <PropertyGroup>
-      <!--<HelixResultsDestinationDir>$(RepoTestResultsPath)</HelixResultsDestinationDir>-->
-
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
     </PropertyGroup>
