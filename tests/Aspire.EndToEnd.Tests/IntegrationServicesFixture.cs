@@ -51,6 +51,16 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         var appHostDirectory = Path.Combine(BuildEnvironment.TestProjectPath, "TestProject.AppHost");
+        if (ForceOutOfTree)
+        {
+            _testOutput.WriteLine("");
+            _testOutput.WriteLine($"****************************************");
+            _testOutput.WriteLine($"   Running tests out-of-tree");
+            _testOutput.WriteLine($"   TestProject: {appHostDirectory}");
+            _testOutput.WriteLine($"   Using dotnet: {BuildEnvironment.DotNet}");
+            _testOutput.WriteLine($"****************************************");
+            _testOutput.WriteLine("");
+        }
 
         {
             using var cmd = new DotNetCommand(BuildEnvironment, _testOutput)
