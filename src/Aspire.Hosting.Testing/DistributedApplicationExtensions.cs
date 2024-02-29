@@ -1,0 +1,110 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Aspire.Hosting.Testing;
+
+/// <summary>
+/// Extensions for working with <see cref="DistributedApplication"/> in test code.
+/// </summary>
+public static class DistributedApplicationExtensions
+{
+    /// <summary>
+    /// Creates an <see cref="HttpClient"/> configured to communicate with the specified resource.
+    /// </summary>
+    /// <param resourceName="app">The application.</param>
+    /// <param resourceName="resourceName">The resourceName of the resource.</param>
+    /// <param resourceName="endpointName">The resourceName of the endpoint on the resource to communicate with.</param>
+    /// <returns>The <see cref="HttpClient"/>.</returns>
+    public static HttpClient CreateHttpClient(this DistributedApplication app, string resourceName, string? endpointName = default)
+    {
+        var baseUri = GetEndpointUriStringCore(app, resourceName, endpointName);
+        var clientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
+        var client = clientFactory.CreateClient();
+        client.BaseAddress = new(baseUri);
+
+        return client;
+    }
+
+    /// <summary>
+    /// Gets the connection string for the specified resource.
+    /// </summary>
+    /// <param name="app">The application.</param>
+    /// <param name="resourceName">The resource name.</param>
+    /// <returns>The connection string for the specified resource.</returns>
+    /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
+    public static string? GetConnectionString(this DistributedApplication app, string resourceName)
+    {
+        var resource = GetResource(app, resourceName);
+        if (resource is not IResourceWithConnectionString resourceWithConnectionString)
+        {
+            throw new ArgumentException($"Resource '{resourceName}' does not expose a connection string.", nameof(resourceName));
+        }
+
+        return resourceWithConnectionString.GetConnectionString();
+    }
+
+    /// <summary>
+    /// Gets the endpoint for the specified resource.
+    /// </summary>
+    /// <param name="app">The application.</param>
+    /// <param name="resourceName">The resource name.</param>
+    /// <param name="endpointName">The optional endpoint name. If none are specified, the single defined endpoint is returned.</param>
+    /// <returns>A URI representation of the endpoint.</returns>
+    /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
+    /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
+    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default) => new(GetEndpointUriStringCore(app, resourceName, endpointName));
+
+    private static IResource GetResource(DistributedApplication app, string resourceName)
+    {
+        var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resources = applicationModel.Resources;
+        var resource = resources.SingleOrDefault(r => string.Equals(r.Name, resourceName, StringComparison.OrdinalIgnoreCase));
+
+        if (resource is null)
+        {
+            throw new ArgumentException($"Resource '{resourceName}' not found.", nameof(resourceName));
+        }
+
+        return resource;
+    }
+
+    private static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default)
+    {
+        var resource = GetResource(app, resourceName);
+        if (!resource.TryGetAllocatedEndPoints(out var endpoints))
+        {
+            throw new InvalidOperationException($"Resource '{resourceName}' has no allocated endpoints.");
+        }
+
+        AllocatedEndpointAnnotation? endpoint;
+        if (!string.IsNullOrEmpty(endpointName))
+        {
+            endpoint = GetEndpointOrDefault(endpoints, resourceName, endpointName);
+        }
+        else
+        {
+            endpoint = GetEndpointOrDefault(endpoints, resourceName, "http") ?? GetEndpointOrDefault(endpoints, resourceName, "https");
+        }
+
+        if (endpoint is null)
+        {
+            throw new ArgumentException($"Endpoint '{endpointName}' for resource '{resourceName}' not found.", nameof(endpointName));
+        }
+
+        return endpoint.UriString;
+    }
+
+    static AllocatedEndpointAnnotation? GetEndpointOrDefault(IEnumerable<AllocatedEndpointAnnotation> endpoints, string resourceName, string? endpointName)
+    {
+        var filteredEndpoints = endpoints.Where(e => string.Equals(e.Name, endpointName, StringComparison.OrdinalIgnoreCase)).ToList();
+        return filteredEndpoints.Count switch
+        {
+            0 => null,
+            1 => filteredEndpoints[0],
+            _ => throw new InvalidOperationException($"Resource '{resourceName}' has multiple endpoints named '{endpointName}'."),
+        };
+    }
+}

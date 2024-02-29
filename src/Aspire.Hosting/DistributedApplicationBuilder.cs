@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -18,8 +20,13 @@ namespace Aspire.Hosting;
 /// </summary>
 public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 {
+    private const string HostingDiagnosticListenerName = "Aspire.Hosting";
+    private const string ApplicationBuildingEventName = "DistributedApplicationBuilding";
+    private const string ApplicationBuiltEventName = "DistributedApplicationBuilt";
+    private const string BuilderConstructingEventName = "DistributedApplicationBuilderConstructing";
+    private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
+
     private readonly HostApplicationBuilder _innerBuilder;
-    private readonly string[] _args;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -42,11 +49,20 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
     /// </summary>
+    /// <param name="args">The arguments provided to the builder.</param>
+    public DistributedApplicationBuilder(string[] args) : this(new DistributedApplicationOptions { Args = args })
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
+    /// </summary>
     /// <param name="options">The options for the distributed application.</param>
     public DistributedApplicationBuilder(DistributedApplicationOptions options)
     {
-        _args = options.Args ?? [];
-        _innerBuilder = new HostApplicationBuilder();
+        var innerBuilderOptions = new HostApplicationBuilderSettings();
+        LogBuilderConstructing(options, innerBuilderOptions);
+        _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.None);
@@ -96,6 +112,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
 
         _innerBuilder.Services.AddSingleton<DistributedApplicationExecutionContext>(ExecutionContext);
+        LogBuilderConstructed(this);
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
@@ -126,6 +143,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         AspireEventSource.Instance.DistributedApplicationBuildStart();
         try
         {
+            LogAppBuilding(this);
+
             // AddResource(resource) validates that a name is unique but it's possible to add resources directly to the resource collection.
             // Validate names for duplicates while building the application.
             foreach (var duplicateResourceName in Resources.GroupBy(r => r.Name, StringComparers.ResourceName)
@@ -135,7 +154,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
             }
 
-            var application = new DistributedApplication(_innerBuilder.Build(), _args);
+            var application = new DistributedApplication(_innerBuilder.Build());
+            LogAppBuilt(application);
             return application;
         }
         finally
@@ -161,5 +181,68 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
         return builder;
+    }
+
+    private static DiagnosticListener LogBuilderConstructing(DistributedApplicationOptions appBuilderOptions, HostApplicationBuilderSettings hostBuilderOptions)
+    {
+        var diagnosticListener = new DiagnosticListener(HostingDiagnosticListenerName);
+
+        if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(BuilderConstructingEventName))
+        {
+            Write(diagnosticListener, BuilderConstructingEventName, (appBuilderOptions, hostBuilderOptions));
+        }
+
+        return diagnosticListener;
+    }
+
+    private static DiagnosticListener LogBuilderConstructed(DistributedApplicationBuilder builder)
+    {
+        var diagnosticListener = new DiagnosticListener(HostingDiagnosticListenerName);
+
+        if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(BuilderConstructedEventName))
+        {
+            Write(diagnosticListener, BuilderConstructedEventName, builder);
+        }
+
+        return diagnosticListener;
+    }
+
+    private static DiagnosticListener LogAppBuilding(DistributedApplicationBuilder appBuilder)
+    {
+        var diagnosticListener = new DiagnosticListener(HostingDiagnosticListenerName);
+
+        if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(ApplicationBuildingEventName))
+        {
+            Write(diagnosticListener, ApplicationBuildingEventName, appBuilder);
+        }
+
+        return diagnosticListener;
+    }
+
+    private static DiagnosticListener LogAppBuilt(DistributedApplication app)
+    {
+        var diagnosticListener = new DiagnosticListener(HostingDiagnosticListenerName);
+
+        if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(ApplicationBuiltEventName))
+        {
+            Write(diagnosticListener, ApplicationBuiltEventName, app);
+        }
+
+        return diagnosticListener;
+    }
+
+    // Remove when https://github.com/dotnet/runtime/pull/78532 is merged and consumed by the used SDK.
+#if NET7_0
+        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+            Justification = "DiagnosticSource is used here to pass objects in-memory to code using HostFactoryResolver. This won't require creating new generic types.")]
+#endif
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
+        Justification = "The values being passed into Write are being consumed by the application already.")]
+    private static void Write<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        DiagnosticListener diagnosticSource,
+        string name,
+        T value)
+    {
+        diagnosticSource.Write(name, value);
     }
 }
