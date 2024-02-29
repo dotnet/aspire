@@ -32,6 +32,7 @@ public static class MySqlBuilderExtensions
         return builder.AddResource(resource)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
+                      .WithDefaultGeneratedPasswordAnnotation()
                       .WithEnvironment(context =>
                       {
                           if (context.ExecutionContext.IsPublishMode)
@@ -99,6 +100,6 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> PublishAsContainer(this IResourceBuilder<MySqlServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifestAsync);
+        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 }

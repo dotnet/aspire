@@ -30,6 +30,7 @@ public static class SqlServerBuilderExtensions
         return builder.AddResource(sqlServer)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
+                      .WithDefaultGeneratedPasswordAnnotation()
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
@@ -52,7 +53,7 @@ public static class SqlServerBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<SqlServerServerResource> PublishAsContainer(this IResourceBuilder<SqlServerServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifestAsync);
+        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 
     /// <summary>

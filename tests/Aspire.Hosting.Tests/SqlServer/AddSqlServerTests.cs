@@ -128,11 +128,45 @@ public class AddSqlServerTests
         var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        Assert.Equal("container.v0", serverManifest["type"]?.ToString());
-        Assert.Equal(sqlServer.Resource.ConnectionStringExpression, serverManifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true",
+              "image": "mcr.microsoft.com/mssql/server:2022-latest",
+              "env": {
+                "ACCEPT_EULA": "Y",
+                "MSSQL_SA_PASSWORD": "{sqlserver.inputs.password}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 1433
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
 
-        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
-        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{sqlserver.connectionString};Database=db"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
     [Fact]
