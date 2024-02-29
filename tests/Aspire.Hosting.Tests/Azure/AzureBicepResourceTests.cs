@@ -406,6 +406,21 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public void AddAzureSearch()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var search = builder.AddAzureSearch("search");
+
+        search.Resource.Outputs["connectionString"] = "mysearchconnectionstring";
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.search.bicep", search.Resource.TemplateResourceName);
+        Assert.Equal("search", search.Resource.Name);
+        Assert.Equal("mysearchconnectionstring", search.Resource.GetConnectionString());
+        Assert.Equal("{search.outputs.connectionString}", search.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
     public void PublishAsConnectionString()
     {
         var builder = DistributedApplication.CreateBuilder();
