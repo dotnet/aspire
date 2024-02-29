@@ -21,6 +21,7 @@ parameters:
 steps:
   - script: ${{ parameters.buildScript }}
             -restore -build
+            -pack
             -configuration ${{ parameters.buildConfig }}
             /p:ArchiveTests=true
             /bl:${{ parameters.repoLogPath }}/build.binlog
@@ -42,10 +43,22 @@ steps:
       displayName: Publish non-helix TestResults
       condition: always()
 
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      # E2E tests are disabled on windows for now
+      - script: ${{ parameters.dotnetScript }}
+                build
+                -restore
+                -p:ContinuousIntegrationBuild=true
+                -p:Configuration=${{ parameters.buildConfig }}
+                -t:InstallWorkloadUsingArtifacts
+                -bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
+                $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
+        displayName: Install sdk+workload for testing
+
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
-        HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+        HelixProjectArguments: /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
