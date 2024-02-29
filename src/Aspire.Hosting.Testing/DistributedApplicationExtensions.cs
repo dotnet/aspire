@@ -19,47 +19,10 @@ public static class DistributedApplicationExtensions
     /// <returns>The <see cref="HttpClient"/>.</returns>
     public static HttpClient CreateHttpClient(this DistributedApplication app, string resourceName, string? endpointName = default)
     {
-        var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var resources = applicationModel.Resources;
-        var resource = resources.FirstOrDefault(r => string.Equals(r.Name, resourceName, StringComparison.OrdinalIgnoreCase));
-
-        if (resource is null)
-        {
-            throw new ArgumentException($"Resource '{resourceName}' not found", nameof(resourceName));
-        }
-
-        if (!resource.TryGetAllocatedEndPoints(out var endpoints))
-        {
-            throw new InvalidOperationException($"Cannot create a client for resource '{resourceName}' because it has no allocated endpoints.");
-        }
-
-        AllocatedEndpointAnnotation? endpoint = null;
-
-        if (!string.IsNullOrEmpty(endpointName))
-        {
-            endpoint = endpoints.FirstOrDefault(e => string.Equals(e.Name, endpointName, StringComparison.OrdinalIgnoreCase));
-
-            if (endpoint is null)
-            {
-                throw new ArgumentException($"Endpoint '{endpointName}' for resource '{resourceName}' not found", nameof(endpointName));
-            }
-        }
-        else
-        {
-            endpoint = endpoints.FirstOrDefault(e =>
-                string.Equals(e.UriScheme, "http", StringComparison.OrdinalIgnoreCase) || string.Equals(e.UriScheme, "https", StringComparison.OrdinalIgnoreCase));
-
-            if (endpoint is null)
-            {
-                throw new InvalidOperationException($"Cannot create a client for resource '{resourceName}' because it has no allocated HTTP endpoints.");
-            }
-        }
-
+        var baseUri = GetEndpointUriStringCore(app, resourceName, endpointName);
         var clientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
-
         var client = clientFactory.CreateClient();
-        client.BaseAddress = new(endpoint.UriString);
+        client.BaseAddress = new(baseUri);
 
         return client;
     }
@@ -73,14 +36,7 @@ public static class DistributedApplicationExtensions
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
     public static string? GetConnectionString(this DistributedApplication app, string resourceName)
     {
-        var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var resource = applicationModel.Resources.FirstOrDefault(r => string.Equals(r.Name, resourceName, StringComparison.OrdinalIgnoreCase));
-
-        if (resource is null)
-        {
-            throw new ArgumentException($"Resource '{resourceName}' not found.", nameof(resourceName));
-        }
-
+        var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithConnectionString resourceWithConnectionString)
         {
             throw new ArgumentException($"Resource '{resourceName}' does not expose a connection string.", nameof(resourceName));
@@ -98,44 +54,57 @@ public static class DistributedApplicationExtensions
     /// <returns>A URI representation of the endpoint.</returns>
     /// <exception cref="ArgumentException">The resource was not found, no matching endpoint was found, or multiple endpoints were found.</exception>
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
-    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default)
+    public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default) => new(GetEndpointUriStringCore(app, resourceName, endpointName));
+
+    private static IResource GetResource(DistributedApplication app, string resourceName)
     {
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var resources = applicationModel.Resources;
-        var resource = resources.FirstOrDefault(r => string.Equals(r.Name, resourceName, StringComparison.OrdinalIgnoreCase));
+        var resource = resources.SingleOrDefault(r => string.Equals(r.Name, resourceName, StringComparison.OrdinalIgnoreCase));
 
         if (resource is null)
         {
-            throw new ArgumentException($"Resource '{resourceName}' not found", nameof(resourceName));
+            throw new ArgumentException($"Resource '{resourceName}' not found.", nameof(resourceName));
         }
 
+        return resource;
+    }
+
+    private static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default)
+    {
+        var resource = GetResource(app, resourceName);
         if (!resource.TryGetAllocatedEndPoints(out var endpoints))
         {
             throw new InvalidOperationException($"Resource '{resourceName}' has no allocated endpoints.");
         }
 
-        AllocatedEndpointAnnotation? endpoint = null;
-        var endpointList = endpoints.ToList();
+        AllocatedEndpointAnnotation? endpoint;
         if (!string.IsNullOrEmpty(endpointName))
         {
-            endpoint = endpointList.FirstOrDefault(e => string.Equals(e.Name, endpointName, StringComparison.OrdinalIgnoreCase));
-
-            if (endpoint is null)
-            {
-                throw new ArgumentException($"Resource '{resourceName}' does not have an endpoint named '{endpointName}'.", nameof(endpointName));
-            }
+            endpoint = GetEndpointOrDefault(endpoints, resourceName, endpointName);
         }
         else
         {
-            if (endpointList.Count > 1)
-            {
-                throw new ArgumentException($"Resource '{resourceName}' has multiple endpoints but no endpoint name was specified.", nameof(endpointName));
-            }
-
-            endpoint = endpointList[0];
+            endpoint = GetEndpointOrDefault(endpoints, resourceName, "http") ?? GetEndpointOrDefault(endpoints, resourceName, "https");
         }
 
-        return new(endpoint.UriString);
+        if (endpoint is null)
+        {
+            throw new ArgumentException($"Endpoint '{endpointName}' for resource '{resourceName}' not found.", nameof(endpointName));
+        }
+
+        return endpoint.UriString;
+    }
+
+    static AllocatedEndpointAnnotation? GetEndpointOrDefault(IEnumerable<AllocatedEndpointAnnotation> endpoints, string resourceName, string? endpointName)
+    {
+        var filteredEndpoints = endpoints.Where(e => string.Equals(e.Name, endpointName, StringComparison.OrdinalIgnoreCase)).ToList();
+        return filteredEndpoints.Count switch
+        {
+            0 => null,
+            1 => filteredEndpoints[0],
+            _ => throw new InvalidOperationException($"Resource '{resourceName}' has multiple endpoints named '{endpointName}'."),
+        };
     }
 }

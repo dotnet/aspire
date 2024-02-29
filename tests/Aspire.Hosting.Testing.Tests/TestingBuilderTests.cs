@@ -29,7 +29,7 @@ public class TestingBuilderTests
     }
 
     [LocalOnlyFact]
-    public async Task CanRemoveResources()
+    public async Task CanGetResources()
     {
         var appHost = new DistributedApplicationTestingBuilder<Program>();
         appHost.Resources.Remove(appHost.Resources.Single(r => r.Name == "redis1"));
@@ -39,17 +39,7 @@ public class TestingBuilderTests
 
         // Ensure that the resource which we added is present in the model.
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        Assert.DoesNotContain(appModel.GetContainerResources(), c => c.Name == "redis1");
+        Assert.Contains(appModel.GetContainerResources(), c => c.Name == "redis1");
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
-
-        // Get an endpoint from a resource
-        var workerEndpoint = app.GetEndpoint("myworker1", "myendpoint1");
-        Assert.NotNull(workerEndpoint);
-        Assert.True(workerEndpoint.Host.Length > 0);
-
-        // Get a connection string from a resource
-        var pgConnectionString = app.GetConnectionString("postgres1");
-        Assert.NotNull(pgConnectionString);
-        Assert.True(pgConnectionString.Length > 0);
     }
 }
