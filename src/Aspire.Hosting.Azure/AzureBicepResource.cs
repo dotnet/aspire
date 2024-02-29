@@ -42,6 +42,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     public Dictionary<string, string?> SecretOutputs { get; } = [];
 
     /// <summary>
+    /// The task completion source for the provisioning operation.
+    /// </summary>
+    public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
+
+    /// <summary>
     /// Gets the path to the bicep file. If the template is a string or embedded resource, it will be written to a temporary file.
     /// </summary>
     /// <param name="directory">The directory where the bicep file will be written to (if it's a temporary file)</param>

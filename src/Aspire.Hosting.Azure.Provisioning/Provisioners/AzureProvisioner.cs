@@ -29,7 +29,9 @@ internal sealed class AzureProvisioner(
     IHostEnvironment environment,
     ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
-    IEnumerable<IAzureResourceEnumerator> resourceEnumerators) : IDistributedApplicationLifecycleHook
+    IEnumerable<IAzureResourceEnumerator> resourceEnumerators,
+    ResourceNotificationService notificationService,
+    ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
@@ -52,21 +54,29 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
         if (executionContext.IsPublishMode)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>();
         if (!azureResources.OfType<IAzureResource>().Any())
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        await ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken).ConfigureAwait(false);
+        foreach (var r in azureResources)
+        {
+            r.ProvisioningTaskCompletionSource = new();
+        }
+
+        // This is fuly async so we can just fire and forget
+        _ = Task.Run(() => ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken), cancellationToken);
+
+        return Task.CompletedTask;
     }
 
     private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
@@ -86,7 +96,7 @@ internal sealed class AzureProvisioner(
             return new ArmClient(credential, subscriptionId);
         });
 
-        var subscriptionLazy = new Lazy<Task<SubscriptionResource>>(async () =>
+        var subscriptionLazy = new Lazy<Task<(SubscriptionResource, TenantResource)>>(async () =>
         {
             logger.LogInformation("Getting default subscription...");
 
@@ -94,7 +104,18 @@ internal sealed class AzureProvisioner(
 
             logger.LogInformation("Default subscription: {name} ({subscriptionId})", value.Data.DisplayName, value.Id);
 
-            return value;
+            logger.LogInformation("Getting tenant...");
+
+            await foreach (var tenant in armClientLazy.Value.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                if (tenant.Data.TenantId == value.Data.TenantId)
+                {
+                    logger.LogInformation("Tenant: {tenantId}", tenant.Data.TenantId);
+                    return (value, tenant);
+                }
+            }
+
+            throw new InvalidOperationException($"Could not find tenant id {value.Data.TenantId} for subscription {value.Data.DisplayName}.");
         });
 
         Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
@@ -112,7 +133,7 @@ internal sealed class AzureProvisioner(
                 string rg => (rg, _options.AllowResourceGroupCreation ?? false)
             };
 
-            var subscription = await subscriptionLazy.Value.ConfigureAwait(false);
+            var (subscription, _) = await subscriptionLazy.Value.ConfigureAwait(false);
 
             var resourceGroups = subscription.GetResourceGroups();
             ResourceGroupResource? resourceGroup = null;
@@ -185,6 +206,7 @@ internal sealed class AzureProvisioner(
 
         ResourceGroupResource? resourceGroup = null;
         SubscriptionResource? subscription = null;
+        TenantResource? tenant = null;
         Dictionary<string, ArmResource>? resourceMap = null;
         UserPrincipal? principal = null;
         ProvisioningContext? provisioningContext = null;
@@ -219,26 +241,45 @@ internal sealed class AzureProvisioner(
 
             var provisioner = SelectProvisioner(resource);
 
+            var resourceLogger = loggerService.GetLogger(resource);
+
             if (provisioner is null)
             {
+                resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
+
+                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
+
                 logger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
                 continue;
             }
 
             if (!provisioner.ShouldProvision(configuration, resource))
             {
+                resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
+
+                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
+
                 logger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
                 continue;
             }
 
-            if (provisioner.ConfigureResource(configuration, resource))
+            if (await provisioner.ConfigureResourceAsync(configuration, resource, cancellationToken).ConfigureAwait(false))
             {
+                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
+
+                resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
+
                 logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
 
                 continue;
             }
 
-            subscription ??= await subscriptionLazy.Value.ConfigureAwait(false);
+            resourceLogger.LogInformation("Provisioning {resourceName}...", resource.Name);
+
+            if (subscription is null || tenant is null)
+            {
+                (subscription, tenant) = await subscriptionLazy.Value.ConfigureAwait(false);
+            }
 
             AzureLocation location = default;
 
@@ -249,7 +290,7 @@ internal sealed class AzureProvisioner(
 
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
             principal ??= await principalLazy.Value.ConfigureAwait(false);
-            provisioningContext ??= new ProvisioningContext(credential, armClientLazy.Value, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
+            provisioningContext ??= new ProvisioningContext(credential, armClientLazy.Value, subscription, resourceGroup, tenant, resourceMap, location, principal, userSecrets);
 
             var task = provisioner.GetOrCreateResourceAsync(
                     resource,
@@ -258,13 +299,18 @@ internal sealed class AzureProvisioner(
 
             tasks.Add(task);
         }
-
         if (tasks.Count > 0)
         {
             var task = Task.WhenAll(tasks);
 
             // Suppress throwing so that we can save the user secrets even if the task fails
             await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+            // Set the completion source for all resources
+            foreach (var resource in azureResources)
+            {
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+            }
 
             // If we created any resources then save the user secrets
             if (userSecretsPath is not null)
@@ -278,6 +324,14 @@ internal sealed class AzureProvisioner(
 
             // Throw if any of the tasks failed, but after we've saved to user secrets
             await task.ConfigureAwait(false);
+        }
+        else
+        {
+            // Set the completion source for all resources
+            foreach (var resource in azureResources)
+            {
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+            }
         }
 
         // Do this in the background to avoid blocking startup

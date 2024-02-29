@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Lifecycle;
 public interface IDistributedApplicationLifecycleHook
 {
     /// <summary>
-    /// Executes before the distributed application starts.
+    /// Executes before the distributed application starts. This is the last place to make changes to the application model before it is processed.
     /// </summary>
     /// <param name="appModel">The distributed application model.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
