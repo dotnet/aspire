@@ -141,11 +141,14 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
         context.Writer.WriteString("command", executable.Command);
 
         var args = new List<string>(executable.Args ?? []);
-        if (executable.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+
+        if (executable.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
         {
+            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, context.CancellationToken);
+
             foreach (var callback in argsCallback)
             {
-                callback.Callback(args);
+                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
             }
         }
 

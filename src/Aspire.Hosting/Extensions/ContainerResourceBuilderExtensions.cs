@@ -76,7 +76,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>    
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
     {
-        var annotation = new ExecutableArgsCallbackAnnotation(updatedArgs =>
+        var annotation = new CommandLineArgsCallbackAnnotation(updatedArgs =>
         {
             updatedArgs.AddRange(args);
         });

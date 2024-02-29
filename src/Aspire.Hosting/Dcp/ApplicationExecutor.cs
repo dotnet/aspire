@@ -529,11 +529,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 spec.Args ??= new();
 
-                if (er.ModelResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var exeArgsCallbacks))
+                if (er.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
                 {
+                    var commandLineContext = new CommandLineArgsCallbackContext(spec.Args, cancellationToken);
+
                     foreach (var exeArgsCallback in exeArgsCallbacks)
                     {
-                        exeArgsCallback.Callback(spec.Args);
+                        await exeArgsCallback.Callback(commandLineContext).ConfigureAwait(false);
                     }
                 }
 
@@ -802,12 +804,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                 }
 
-                if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+                if (modelContainerResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
                 {
                     dcpContainerResource.Spec.Args ??= [];
+
+                    var commandLineArgsContext = new CommandLineArgsCallbackContext(dcpContainerResource.Spec.Args, cancellationToken);
+
                     foreach (var callback in argsCallback)
                     {
-                        callback.Callback(dcpContainerResource.Spec.Args);
+                        await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
                     }
                 }
 

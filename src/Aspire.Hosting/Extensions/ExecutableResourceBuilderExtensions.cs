@@ -61,7 +61,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ExecutableResource
     {
-        var annotation = new ExecutableArgsCallbackAnnotation(updatedArgs =>
+        var annotation = new CommandLineArgsCallbackAnnotation(updatedArgs =>
         {
             updatedArgs.AddRange(args);
         });

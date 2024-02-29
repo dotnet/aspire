@@ -81,12 +81,15 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             Writer.WriteString("entrypoint", container.Entrypoint);
         }
 
-        if (container.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+        if (container.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
         {
             var args = new List<string>();
+
+            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, CancellationToken);
+
             foreach (var callback in argsCallback)
             {
-                callback.Callback(args);
+                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
             }
 
             if (args.Count > 0)
