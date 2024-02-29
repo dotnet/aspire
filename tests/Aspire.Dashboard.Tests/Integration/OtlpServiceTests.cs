@@ -3,7 +3,6 @@
 
 using System.Security.Cryptography.X509Certificates;
 using Grpc.Core;
-using Grpc.Net.Client;
 using Microsoft.AspNetCore.InternalTesting;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
@@ -27,7 +26,7 @@ public class OtlpServiceTests
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor().EndPoint}");
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
@@ -46,17 +45,13 @@ public class OtlpServiceTests
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"https://{app.BrowserEndPointAccessor().EndPoint}", new()
-        {
-            HttpHandler = new HttpClientHandler
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel(
+            $"https://{app.BrowserEndPointAccessor().EndPoint}",
+            _testOutputHelper,
+            validationCallback: cert =>
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
-                {
-                    clientCallbackCert = cert;
-                    return true;
-                }
-            }
-        });
+                clientCallbackCert = cert;
+            });
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
