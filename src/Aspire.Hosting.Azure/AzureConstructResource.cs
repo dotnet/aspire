@@ -22,10 +22,12 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
-        var resourceModuleConstruct = new ResourceModuleConstruct(this);
+        var configuration = new Configuration()
+        {
+            UsePromptMode = true
+        };
 
-        var locationParameter = new Parameter("location", defaultValue: "West US 3");
-        resourceModuleConstruct.AddParameter(locationParameter);
+        var resourceModuleConstruct = new ResourceModuleConstruct(this, configuration);
 
         foreach (var aspireParameter in this.Parameters)
         {
@@ -130,7 +132,8 @@ public class ResourceModuleConstruct : Infrastructure
     /// 
     /// </summary>
     /// <param name="resource"></param>
-    public ResourceModuleConstruct(AzureConstructResource resource) : base(constructScope: ConstructScope.ResourceGroup, tenantId: Guid.Empty, subscriptionId: Guid.Empty, envName: "temp", useAnonymousResourceGroup: true)
+    /// <param name="configuration"></param>
+    public ResourceModuleConstruct(AzureConstructResource resource, Configuration configuration) : base(constructScope: ConstructScope.ResourceGroup, tenantId: Guid.Empty, subscriptionId: Guid.Empty, envName: "temp", configuration: configuration)
     {
         Resource = resource;
         LocationParameter = new Parameter("location", "West US 3");

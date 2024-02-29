@@ -7,9 +7,9 @@ builder.AddServiceDefaults();
 
 var app = builder.Build();
 
-app.MapGet("/", () =>
+app.MapGet("/", (IConfiguration config) =>
 {
-    return "Hello, Azure!";
+    return $"TABLE_URI is: {config["TABLE_URI"]}";
 });
 
 app.Run();

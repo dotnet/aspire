@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 
@@ -12,24 +11,12 @@ var sku = builder.AddParameter("storagesku");
 
 var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
 {
-
-    // Create a storage account and set its SKU and location. The
-    // sku is bound from an app model parameter.
     var account = construct.AddStorageAccount(
         name: "bob",
         kind: StorageKind.BlobStorage,
         sku: StorageSkuName.StandardLrs
         );
 
-    // HACK: Doing this to get a deterministic unique name for the storage
-    //       account. This creates a parameter with a function embedded in
-    //       the default value and then assigns that parameter to the name
-    //       so that the emitted Bicep is in the final format we want.
-    var storageNameParameter = new Parameter("storageName", defaultValue: "bob${uniqueString(resourceGroup().id)}");
-    construct.AddParameter(storageNameParameter);
-    account.AssignParameter(a => a.Name, storageNameParameter);
-
-    account.AssignParameter(a => a.Location, construct.LocationParameter);
     account.AssignParameter(a => a.Sku.Name, construct.AddParameter(sku));
 
     account.AddOutput(data => data.PrimaryEndpoints.TableUri, "tableUri", isSecure: true);
