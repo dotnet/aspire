@@ -1,94 +1,111 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.InteropServices;
 using Xunit;
+using Xunit.Abstractions;
+using Xunit.Sdk;
+using Aspire.TestProject;
+using Aspire.Workload.Tests;
 
 namespace Aspire.EndToEnd.Tests;
 
 public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture>
 {
     private readonly IntegrationServicesFixture _integrationServicesFixture;
+    private readonly TestOutputWrapper _testOutput;
 
-    public IntegrationServicesTests(IntegrationServicesFixture integrationServicesFixture)
+    public IntegrationServicesTests(ITestOutputHelper testOutput, IntegrationServicesFixture integrationServicesFixture)
     {
         _integrationServicesFixture = integrationServicesFixture;
+        _testOutput = new TestOutputWrapper(testOutput);
     }
 
-    [LocalOnlyTheory]
-    [InlineData("cosmos")]
-    [InlineData("mongodb")]
-    [InlineData("mysql")]
-    [InlineData("pomelo")]
-    [InlineData("oracledatabase")]
-    [InlineData("postgres")]
-    [InlineData("rabbitmq")]
-    [InlineData("redis")]
-    [InlineData("sqlserver")]
-    public async Task VerifyComponentWorks(string component)
+    [Theory]
+    [InlineData(TestResourceNames.mongodb)]
+    [InlineData(TestResourceNames.mysql)]
+    [InlineData(TestResourceNames.pomelo)]
+    [InlineData(TestResourceNames.postgres)]
+    [InlineData(TestResourceNames.rabbitmq)]
+    [InlineData(TestResourceNames.redis)]
+    [InlineData(TestResourceNames.sqlserver)]
+    public async Task VerifyComponentWorks(TestResourceNames resourceName)
     {
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{component}/verify");
-        var responseContent = await response.Content.ReadAsStringAsync();
+        _integrationServicesFixture.EnsureAppHostRunning();
 
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [LocalOnlyFact]
-    public async Task KafkaComponentCanProduceAndConsume()
-    {
-        string topic = $"topic-{Guid.NewGuid()}";
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
-        var responseContent = await response.Content.ReadAsStringAsync();
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-
-        response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}");
-        responseContent = await response.Content.ReadAsStringAsync();
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [LocalOnlyFact]
-    public async Task VerifyHealthyOnIntegrationServiceA()
-    {
-        // We wait until timeout for the /health endpoint to return successfully. We assume
-        // that components wired up into this project have health checks enabled.
-        await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http");
-    }
-}
-
-// TODO: remove these attributes when the above tests are running in CI
-
-public class LocalOnlyFactAttribute : FactAttribute
-{
-    public override string Skip
-    {
-        get
+        try
         {
-            // BUILD_BUILDID is defined by Azure Dev Ops
+            var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
+            var responseContent = await response.Content.ReadAsStringAsync();
 
-            if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-            {
-                return "LocalOnlyFactAttribute tests are not run as part of CI.";
-            }
+            Assert.True(response.IsSuccessStatusCode, responseContent);
+        }
+        catch
+        {
+            _testOutput.WriteLine ($"[{DateTime.Now}] <<<< FAILED VerifyComponentWorks for {resourceName} --");
+            await _integrationServicesFixture.DumpComponentLogsAsync(resourceName.ToString().ToLowerInvariant(), _testOutput);
+            await _integrationServicesFixture.DumpDockerInfoAsync();
 
-            return null!;
+            throw;
         }
     }
-}
 
-public class LocalOnlyTheoryAttribute : TheoryAttribute
-{
-    public override string Skip
+    // FIXME: open issue
+    [ConditionalTheory]
+    [SkipOnCI("not working on CI yet")]
+    [InlineData(TestResourceNames.cosmos)]
+    [InlineData(TestResourceNames.oracledatabase)]
+    public Task VerifyComponentWorksDisabledOnCI(TestResourceNames resourceName)
     {
-        get
+        if (resourceName == TestResourceNames.cosmos && RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            // BUILD_BUILDID is defined by Azure Dev Ops
+            throw new SkipException($"Skipping '{resourceName}' test because the emulator isn't supported on macOS ARM64.");
+        }
 
-            if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-            {
-                return "LocalOnlyTheoryAttribute tests are not run as part of CI.";
-            }
+        return VerifyComponentWorks(resourceName);
+    }
 
-            return null!;
+    [Fact]
+    public async Task KafkaComponentCanProduceAndConsume()
+    {
+        try
+        {
+            _integrationServicesFixture.EnsureAppHostRunning();
+
+            string topic = $"topic-{Guid.NewGuid()}";
+
+            var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Assert.True(response.IsSuccessStatusCode, responseContent);
+
+            response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}");
+            responseContent = await response.Content.ReadAsStringAsync();
+            Assert.True(response.IsSuccessStatusCode, responseContent);
+        }
+        catch
+        {
+            _testOutput.WriteLine($"[{DateTime.Now}] <<<< FAILED KafkaComponentCanProduceAndConsume --");
+            await _integrationServicesFixture.DumpDockerInfoAsync();
+            throw;
+        }
+    }
+
+    [Fact]
+    public async Task VerifyHealthyOnIntegrationServiceA()
+    {
+        try
+        {
+            _integrationServicesFixture.EnsureAppHostRunning();
+
+            // We wait until timeout for the /health endpoint to return successfully. We assume
+            // that components wired up into this project have health checks enabled.
+            await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http");
+        }
+        catch
+        {
+            _testOutput.WriteLine($"[{DateTime.Now}] <<<< FAILED VerifyHealthyOnIntegrationServiceA --");
+            await _integrationServicesFixture.DumpDockerInfoAsync();
+            throw;
         }
     }
 }
