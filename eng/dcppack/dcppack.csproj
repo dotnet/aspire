@@ -39,8 +39,16 @@
 
   <Target Name="Build" />
 
+  <Target Name="AddPackageFiles" BeforeTargets="_GetPackageFiles">
+    <ItemGroup>
+      <DcpFiles Include="$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/**/*" />
+      <None Include="@(DcpFiles)" Pack="true" PackagePath="tools/" />
+    </ItemGroup>
+
+    <Error Condition="@(DcpFiles->Count()) == 0" Text="No dcp files found in :$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools" />
+  </Target>
+
   <ItemGroup>
-    <None Include="$(NuGetPackageRoot)Microsoft.DeveloperControlPlane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/**/*" Pack="true" PackagePath="tools/" />
     <None Include="Sdk.props" Pack="true" PackagePath="Sdk/" />
     <None Include="Sdk.in.targets" PerformTextReplacement="True" Pack="true" PackagePath="Sdk/" />
     <None Include="Aspire.Hosting.Orchestration.props" pack="true" PackagePath="build/$(PackageId).props" />
