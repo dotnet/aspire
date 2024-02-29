@@ -387,13 +387,13 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task VerifyDockerWithVolumeMountWorksWithName()
+    public async Task VerifyDockerWithVolumeWorksWithName()
     {
         using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithVolumeMount("test-volume-name", $"/path-here");
+            .WithVolume("test-volume-name", $"/path-here");
 
         await using var app = testProgram.Build();
 
