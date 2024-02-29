@@ -37,6 +37,21 @@ public class PostgresServerResource(string name, string password) : ContainerRes
     /// <summary>
     /// Gets the connection string for the PostgreSQL server.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>A connection string for the PostgreSQL server in the form "Host=host;Port=port;Username=postgres;Password=password".</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
+        }
+
+        return new(GetConnectionString());
+    }
+
+    /// <summary>
+    /// Gets the connection string for the PostgreSQL server.
+    /// </summary>
     /// <returns>A connection string for the PostgreSQL server in the form "Host=host;Port=port;Username=postgres;Password=password".</returns>
     public string? GetConnectionString()
     {
@@ -68,9 +83,9 @@ public class PostgresServerResource(string name, string password) : ContainerRes
         _databases.TryAdd(name, databaseName);
     }
 
-    internal void WriteToManifest(ManifestPublishingContext context)
+    internal async Task WriteToManifestAsync(ManifestPublishingContext context)
     {
-        context.WriteContainer(this);
+        await context.WriteContainerAsync(this).ConfigureAwait(false);
 
         context.Writer.WriteStartObject("inputs");      // "inputs": {
         context.Writer.WriteStartObject("password");    //   "password": {

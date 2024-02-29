@@ -122,14 +122,14 @@ public class AddMongoDBTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var mongo = appBuilder.AddMongoDB("mongo");
         var db = mongo.AddDatabase("mydb");
 
-        var mongoManifest = ManifestUtils.GetManifest(mongo.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        var mongoManifest = await ManifestUtils.GetManifest(mongo.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
         
         Assert.Equal("container.v0", mongoManifest["type"]?.ToString());
         Assert.Equal(mongo.Resource.ConnectionStringExpression, mongoManifest["connectionString"]?.ToString());

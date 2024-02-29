@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Tests.MySql;
 public class AddMySqlTests
 {
     [Fact]
-    public void AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
+    public async Task AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql");
@@ -50,7 +50,7 @@ public class AddMySqlTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -62,7 +62,7 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public void AddMySqlAddsAnnotationMetadata()
+    public async Task AddMySqlAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql", 1234, "pass");
@@ -99,7 +99,7 @@ public class AddMySqlTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -162,14 +162,14 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var mysql = appBuilder.AddMySql("mysql");
         var db = mysql.AddDatabase("db");
 
-        var mySqlManifest = ManifestUtils.GetManifest(mysql.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        var mySqlManifest = await ManifestUtils.GetManifest(mysql.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
         Assert.Equal("container.v0", mySqlManifest["type"]?.ToString());
         Assert.Equal(mysql.Resource.ConnectionStringExpression, mySqlManifest["connectionString"]?.ToString());
@@ -212,7 +212,7 @@ public class AddMySqlTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Equal("host.docker.internal:5001", context.EnvironmentVariables["PMA_HOST"]);

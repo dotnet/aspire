@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Tests.Postgres;
 public class AddPostgresTests
 {
     [Fact]
-    public void AddPostgresWithDefaultsAddsAnnotationMetadata()
+    public async Task AddPostgresWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("myPostgres");
@@ -50,7 +50,7 @@ public class AddPostgresTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+           await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -72,7 +72,7 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public void AddPostgresAddsAnnotationMetadata()
+    public async Task AddPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("myPostgres", 1234, "pass");
@@ -109,7 +109,7 @@ public class AddPostgresTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+           await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -176,7 +176,7 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public void AddDatabaseToPostgresAddsAnnotationMetadata()
+    public async Task AddDatabaseToPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("postgres", 1234, "pass").AddDatabase("db");
@@ -214,7 +214,7 @@ public class AddPostgresTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -236,14 +236,14 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var pgServer = appBuilder.AddPostgres("pg");
         var db = pgServer.AddDatabase("db");
 
-        var serverManifest = ManifestUtils.GetManifest(pgServer.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        var serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
         Assert.Equal("container.v0", serverManifest["type"]?.ToString());
         Assert.Equal(pgServer.Resource.ConnectionStringExpression, serverManifest["connectionString"]?.ToString());

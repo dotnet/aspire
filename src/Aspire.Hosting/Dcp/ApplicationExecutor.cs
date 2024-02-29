@@ -529,16 +529,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 spec.Args ??= new();
 
-                if (er.ModelResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var exeArgsCallbacks))
+                if (er.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
                 {
+                    var commandLineContext = new CommandLineArgsCallbackContext(spec.Args, cancellationToken);
+
                     foreach (var exeArgsCallback in exeArgsCallbacks)
                     {
-                        exeArgsCallback.Callback(spec.Args);
+                        await exeArgsCallback.Callback(commandLineContext).ConfigureAwait(false);
                     }
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext(_executionContext, config);
+                var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -570,7 +572,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     foreach (var ann in envVarAnnotations)
                     {
-                        ann.Callback(context);
+                        await ann.Callback(context).ConfigureAwait(false);
                     }
                 }
 
@@ -789,11 +791,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var context = new EnvironmentCallbackContext(_executionContext, config);
+                    var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
 
                     foreach (var v in containerEnvironmentVariables)
                     {
-                        v.Callback(context);
+                        await v.Callback(context).ConfigureAwait(false);
                     }
                 }
 
@@ -802,12 +804,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                 }
 
-                if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+                if (modelContainerResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
                 {
                     dcpContainerResource.Spec.Args ??= [];
+
+                    var commandLineArgsContext = new CommandLineArgsCallbackContext(dcpContainerResource.Spec.Args, cancellationToken);
+
                     foreach (var callback in argsCallback)
                     {
-                        callback.Callback(dcpContainerResource.Spec.Args);
+                        await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
                     }
                 }
 

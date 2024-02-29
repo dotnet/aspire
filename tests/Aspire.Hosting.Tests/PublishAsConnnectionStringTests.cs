@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Tests;
 public class PublishAsConnnectionStringTests
 {
     [Fact]
-    public void PublishAsConnectionStringConfiguresManifestAsParameter()
+    public async Task PublishAsConnectionStringConfiguresManifestAsParameter()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -18,7 +18,7 @@ public class PublishAsConnnectionStringTests
 
         Assert.True(redis.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var annotation));
 
-        var manifest = GetManifest(annotation.Callback!);
+        var manifest = await GetManifest(annotation.Callback!);
 
         Assert.NotNull(manifest);
         Assert.Equal("parameter.v0", manifest?["type"]?.ToString());
@@ -26,13 +26,13 @@ public class PublishAsConnnectionStringTests
         Assert.Equal("{redis.inputs.value}", manifest?["value"]?.ToString());
     }
 
-    private static JsonNode GetManifest(Action<ManifestPublishingContext> writeManifest)
+    private static async Task<JsonNode> GetManifest(Func<ManifestPublishingContext, Task> writeManifest)
     {
         using var ms = new MemoryStream();
         var writer = new Utf8JsonWriter(ms);
         writer.WriteStartObject();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        writeManifest(new ManifestPublishingContext(executionContext, Environment.CurrentDirectory, writer));
+        await writeManifest(new ManifestPublishingContext(executionContext, Environment.CurrentDirectory, writer)).ConfigureAwait(false);
         writer.WriteEndObject();
         writer.Flush();
         ms.Position = 0;

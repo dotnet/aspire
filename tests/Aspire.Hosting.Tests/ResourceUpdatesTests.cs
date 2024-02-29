@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Tests;
 public class ResourceUpdatesTests
 {
     [Fact]
-    public void CreatePopulatesStateFromResource()
+    public async Task CreatePopulatesStateFromResource()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -21,7 +21,7 @@ public class ResourceUpdatesTests
 
         Assert.NotNull(annotation);
 
-        var state = annotation.GetInitialSnapshot();
+        var state = await annotation.GetInitialSnapshotAsync();
 
         Assert.Equal("Custom", state.ResourceType);
 
@@ -44,7 +44,7 @@ public class ResourceUpdatesTests
     }
 
     [Fact]
-    public void InitialStateCanBeSpecified()
+    public async Task InitialStateCanBeSpecified()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -61,7 +61,7 @@ public class ResourceUpdatesTests
 
         Assert.NotNull(annotation);
 
-        var state = annotation.GetInitialSnapshot();
+        var state = await annotation.GetInitialSnapshotAsync();
 
         Assert.Equal("MyResource", state.ResourceType);
         Assert.Empty(state.EnvironmentVariables);
@@ -100,7 +100,7 @@ public class ResourceUpdatesTests
 
         var enumerableTask = GetValuesAsync();
 
-        var state = annotation.GetInitialSnapshot();
+        var state = await annotation.GetInitialSnapshotAsync();
 
         state = state with { Properties = state.Properties.Add(("A", "value")) };
 

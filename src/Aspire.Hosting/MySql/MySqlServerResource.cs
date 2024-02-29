@@ -53,9 +53,9 @@ public class MySqlServerResource(string name, string password) : ContainerResour
         _databases.TryAdd(name, databaseName);
     }
 
-    internal void WriteToManifest(ManifestPublishingContext context)
+    internal async Task WriteToManifestAsync(ManifestPublishingContext context)
     {
-        context.WriteContainer(this);
+        await context.WriteContainerAsync(this).ConfigureAwait(false);
 
         context.Writer.WriteStartObject("inputs");      // "inputs": {
         context.Writer.WriteStartObject("password");    //   "password": {
