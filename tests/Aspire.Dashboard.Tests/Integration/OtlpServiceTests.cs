@@ -27,7 +27,7 @@ public class OtlpServiceTests
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor()}");
+        using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor().EndPoint}");
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
@@ -46,7 +46,7 @@ public class OtlpServiceTests
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"https://{app.BrowserEndPointAccessor()}", new()
+        using var channel = GrpcChannel.ForAddress($"https://{app.BrowserEndPointAccessor().EndPoint}", new()
         {
             HttpHandler = new HttpClientHandler
             {

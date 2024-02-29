@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="innerResource">The <see cref="SqlServerServerResource"/> that this resource wraps.</param>
 public class AzureSqlServerResource(SqlServerServerResource innerResource) :
-    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.sql.bicep"),
+    AzureBicepResource(innerResource.Name, templateResourceName: "Aspire.Hosting.Azure.Bicep.sql.bicep"),
     IResourceWithConnectionString
 {
     /// <summary>

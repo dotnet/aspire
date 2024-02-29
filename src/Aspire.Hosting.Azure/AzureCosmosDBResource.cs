@@ -12,7 +12,7 @@ namespace Aspire.Hosting;
 /// A resource that represents an Azure Cosmos DB.
 /// </summary>
 public class AzureCosmosDBResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.cosmosdb.bicep"),
+    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.cosmosdb.bicep"),
     IResourceWithConnectionString
 {
     internal List<string> Databases { get; } = [];

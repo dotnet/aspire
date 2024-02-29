@@ -4,13 +4,14 @@
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
 public static class IntegrationTestHelpers
 {
-    public static DashboardWebApplication CreateDashboardWebApplication(ITestOutputHelper testOutputHelper)
+    public static DashboardWebApplication CreateDashboardWebApplication(ITestOutputHelper testOutputHelper, ITestSink? testSink = null)
     {
         var config = new ConfigurationManager()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -26,6 +27,10 @@ public static class IntegrationTestHelpers
             builder.Configuration.AddConfiguration(config);
             builder.Logging.AddXunit(testOutputHelper);
             builder.Logging.SetMinimumLevel(LogLevel.Trace);
+            if (testSink != null)
+            {
+                builder.Logging.AddProvider(new TestLoggerProvider(testSink));
+            }
         });
 
         return dashboardWebApplication;
