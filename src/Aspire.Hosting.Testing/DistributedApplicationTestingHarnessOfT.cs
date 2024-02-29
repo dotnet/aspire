@@ -23,71 +23,11 @@ namespace Aspire.Hosting.Testing;
 public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IAsyncDisposable where TEntryPoint : class
 {
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly Task<DistributedApplication> _appTask;
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly object _lockObj = new();
+    private Task<DistributedApplication>? _appTask;
     private DistributedApplication? _app;
     private IHostApplicationLifetime? _hostApplicationLifetime;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/> class.
-    /// </summary>
-    public DistributedApplicationTestingHarness()
-    {
-        EnsureDepsFile();
-
-        // This helper call does the hard work to determine if we can fallback to diagnostic source events to get the application instance
-        var factory = DistributedApplicationEntryPointInvoker.ResolveEntryPoint(
-            typeof(TEntryPoint).Assembly,
-            onConstructing: OnBuilderCreatingCore,
-            onConstructed: OnBuilderCreatedCore,
-            onBuilding: OnBuildingCore,
-            entryPointCompleted: OnEntryPointExit);
-
-        if (factory is null)
-        {
-            throw new InvalidOperationException(
-                $"Could not intercept application builder instance. Ensure that {typeof(TEntryPoint)} is a type in an executable assembly, that the entrypoint creates an {typeof(DistributedApplicationBuilder)}, and that the resulting {typeof(DistributedApplication)} is being started.");
-        }
-
-        _appTask = ResolveApp(factory);
-    }
-
-    private void OnEntryPointExit(Exception? exception)
-    {
-        if (exception is not null)
-        {
-            _exitTcs.TrySetException(exception);
-        }
-        else
-        {
-            _exitTcs.TrySetResult();
-        }
-    }
-
-    private async Task<DistributedApplication> ResolveApp(Func<string[], CancellationToken, Task<DistributedApplication>> factory)
-    {
-        using var cts = new CancellationTokenSource(GetConfiguredTimeout());
-        var app = await factory([], cts.Token).ConfigureAwait(false);
-        _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
-            ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
-        return app;
-
-        static TimeSpan GetConfiguredTimeout()
-        {
-            const string TimeoutEnvironmentKey = "DOTNET_HOST_FACTORY_RESOLVER_DEFAULT_TIMEOUT_IN_SECONDS";
-            if (Debugger.IsAttached)
-            {
-                return Timeout.InfiniteTimeSpan;
-            }
-
-            if (uint.TryParse(Environment.GetEnvironmentVariable(TimeoutEnvironmentKey), out var timeoutInSeconds))
-            {
-                return TimeSpan.FromSeconds((int)timeoutInSeconds);
-            }
-
-            return TimeSpan.FromMinutes(5);
-        }
-    }
 
     /// <summary>
     /// Gets the distributed application associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
@@ -240,7 +180,72 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
             return;
         }
 
+        EnsureDepsFile();
+
+        if (_appTask is null)
+        {
+            lock (_lockObj)
+            {
+                if (_appTask is null)
+                {
+                    // This helper launches the target assembly's entry point and hooks into the lifecycle
+                    // so we can intercept execution at key stages.
+                    var factory = DistributedApplicationEntryPointInvoker.ResolveEntryPoint(
+                        typeof(TEntryPoint).Assembly,
+                        onConstructing: OnBuilderCreatingCore,
+                        onConstructed: OnBuilderCreatedCore,
+                        onBuilding: OnBuildingCore,
+                        entryPointCompleted: OnEntryPointExit);
+
+                    if (factory is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Could not intercept application builder instance. Ensure that {typeof(TEntryPoint)} is a type in an executable assembly, that the entrypoint creates an {typeof(DistributedApplicationBuilder)}, and that the resulting {typeof(DistributedApplication)} is being started.");
+                    }
+
+                    _appTask = ResolveApp(factory);
+                }
+            }
+        }
+
         _app = _appTask.GetAwaiter().GetResult();
+    }
+
+    private void OnEntryPointExit(Exception? exception)
+    {
+        if (exception is not null)
+        {
+            _exitTcs.TrySetException(exception);
+        }
+        else
+        {
+            _exitTcs.TrySetResult();
+        }
+    }
+
+    private async Task<DistributedApplication> ResolveApp(Func<string[], CancellationToken, Task<DistributedApplication>> factory)
+    {
+        using var cts = new CancellationTokenSource(GetConfiguredTimeout());
+        var app = await factory([], cts.Token).ConfigureAwait(false);
+        _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
+            ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
+        return app;
+
+        static TimeSpan GetConfiguredTimeout()
+        {
+            const string TimeoutEnvironmentKey = "DOTNET_HOST_FACTORY_RESOLVER_DEFAULT_TIMEOUT_IN_SECONDS";
+            if (Debugger.IsAttached)
+            {
+                return Timeout.InfiniteTimeSpan;
+            }
+
+            if (uint.TryParse(Environment.GetEnvironmentVariable(TimeoutEnvironmentKey), out var timeoutInSeconds))
+            {
+                return TimeSpan.FromSeconds((int)timeoutInSeconds);
+            }
+
+            return TimeSpan.FromMinutes(5);
+        }
     }
 
     private void ThrowIfNotInitialized()
