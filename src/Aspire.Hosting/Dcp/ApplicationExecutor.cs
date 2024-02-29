@@ -98,6 +98,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
+
+            foreach (var lifecycleHook in _lifecycleHooks)
+            {
+                await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {

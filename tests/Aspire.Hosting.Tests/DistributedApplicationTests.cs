@@ -663,6 +663,47 @@ public class DistributedApplicationTests
         Assert.Equal("Service 'redis' needs to specify a port for endpoint 'tcp' since it isn't using a proxy.", ex.Message);
     }
 
+    [LocalOnlyFact("docker")]
+    public async Task AfterResourcesCreatedLifecycleHookWorks()
+    {
+        var builder = DistributedApplication.CreateBuilder(
+            new DistributedApplicationOptions { DisableDashboard = true, AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName });
+
+        builder.AddRedis("redis");
+        builder.Services.TryAddLifecycleHook<KubernetesTestLifecycleHook>();
+
+        var app = builder.Build();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
+        var kubernetesLifecycle = (KubernetesTestLifecycleHook)lifecycles.Where(l => l.GetType() == typeof(KubernetesTestLifecycleHook)).First();
+        kubernetesLifecycle.KubernetesService = s;
+
+        await app.StartAsync();
+
+        await kubernetesLifecycle.HooksCompleted;
+    }
+
+    private sealed class KubernetesTestLifecycleHook : IDistributedApplicationLifecycleHook
+    {
+        private readonly TaskCompletionSource _tcs = new();
+
+        public IKubernetesService? KubernetesService { get; set; }
+
+        public Task HooksCompleted => _tcs.Task;
+
+        public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        {
+            Assert.Empty(await KubernetesService!.ListAsync<Container>(cancellationToken: cancellationToken));
+        }
+
+        public async Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        {
+            Assert.NotEmpty(await KubernetesService!.ListAsync<Container>(cancellationToken: cancellationToken));
+            _tcs.SetResult();
+        }
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
         TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices: includeIntegrationServices, includeNodeApp: includeNodeApp);
 }
