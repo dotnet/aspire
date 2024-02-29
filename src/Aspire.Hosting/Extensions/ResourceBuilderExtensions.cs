@@ -54,6 +54,18 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Allows for the population of environment variables on a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
+    /// <returns>A resource configured with the environment variable callback.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Func<EnvironmentCallbackContext, Task> callback) where T : IResourceWithEnvironment
+    {
+        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
+    }
+
+    /// <summary>
     /// Adds an environment variable to the resource with the endpoint for <paramref name="endpointReference"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
