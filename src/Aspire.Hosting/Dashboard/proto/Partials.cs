@@ -61,6 +61,30 @@ partial class Resource
             resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value });
         }
 
+        // REMOVE THIS BEFORE MREGING
+        if (Random.Shared.Next(2) == 0)
+        {
+            resource.Commands.Add(new ResourceCommand()
+            {
+                CommandType = "start",
+                DisplayName = "Start",
+                ConfirmationMessage = "Are you sure you want to start this resource?"
+            });
+
+            resource.Commands.Add(new ResourceCommand()
+            {
+                CommandType = "stop",
+                DisplayName = "Stop"
+            });
+
+            resource.Commands.Add(new ResourceCommand()
+            {
+                CommandType = "restart",
+                DisplayName = "Restart",
+                ConfirmationMessage = "Are you sure you want to restart this resource?"
+            });
+        }
+
         return resource;
     }
 }

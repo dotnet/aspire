@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pl" original="../Resources.resx">
     <body>
+      <trans-unit id="ResourceCommandFailed">
+        <source>"{0}" command failed</source>
+        <target state="new">"{0}" command failed</target>
+        <note>{0} is the display name of the command that failed</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandSuccess">
+        <source>"{0}" command succeeded</source>
+        <target state="new">"{0}" command succeeded</target>
+        <note>{0} is the display name of the command that succeeded</note>
+      </trans-unit>
+      <trans-unit id="ResourceCommandToastViewLogs">
+        <source>View Logs</source>
+        <target state="new">View Logs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
         <source>Endpoint URL</source>
         <target state="new">Endpoint URL</target>

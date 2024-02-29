@@ -26,3 +26,12 @@
 ::deep .error-counter-badge {
     padding: 1px;
 }
+
+::deep fluent-data-grid,
+::deep fluent-data-grid-row {
+    min-width: min-content;
+}
+
+::deep fluent-data-grid {
+    overflow-x: clip;
+}
