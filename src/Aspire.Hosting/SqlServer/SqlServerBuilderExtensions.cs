@@ -30,7 +30,7 @@ public static class SqlServerBuilderExtensions
         return builder.AddResource(sqlServer)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
-                      .WithDefaultGeneratedPasswordAnnotation()
+                      .WithDefaultPassword()
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {

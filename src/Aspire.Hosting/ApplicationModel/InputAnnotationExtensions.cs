@@ -8,8 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 internal static class InputAnnotationExtensions
 {
-    internal static T WithDefaultGeneratedPasswordAnnotation<T>(this T builder)
-        where T : IResourceBuilder<ContainerResource>
+    internal static IResourceBuilder<T> WithDefaultPassword<T>(this IResourceBuilder<T> builder) where T : IResource
     {
         builder.WithAnnotation(new InputAnnotation("password", secret: true)
         {

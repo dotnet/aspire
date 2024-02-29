@@ -27,7 +27,7 @@ public static class RabbitMQBuilderExtensions
         return builder.AddResource(rabbitMq)
                        .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
-                       .WithDefaultGeneratedPasswordAnnotation()
+                       .WithDefaultPassword()
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment(context =>
                        {

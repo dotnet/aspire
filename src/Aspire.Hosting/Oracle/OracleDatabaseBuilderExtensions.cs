@@ -30,7 +30,7 @@ public static class OracleDatabaseBuilderExtensions
         return builder.AddResource(oracleDatabaseServer)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
-                      .WithDefaultGeneratedPasswordAnnotation()
+                      .WithDefaultPassword()
                       .WithEnvironment(context =>
                       {
                           if (context.ExecutionContext.IsPublishMode)
