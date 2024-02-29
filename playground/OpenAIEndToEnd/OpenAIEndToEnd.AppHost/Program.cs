@@ -3,7 +3,9 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var openai = builder.AddConnectionString("openai");
+builder.AddAzureProvisioning();
+
+var openai = builder.AddAzureOpenAI("openai");
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
        .WithReference(openai);

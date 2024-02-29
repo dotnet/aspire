@@ -15,7 +15,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\OpenAIEndToEnd.WebStory\OpenAIEndToEnd.WebStory.csproj" />
   </ItemGroup>
 

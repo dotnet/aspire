@@ -444,4 +444,24 @@ public class AzureBicepResourceTests
         Assert.Equal("{ai.connectionString}", serviceManifest["env"]?["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.ToString());
         Assert.Equal("{servicebus.connectionString}", serviceManifest["env"]?["ConnectionStrings__servicebus"]?.ToString());
     }
+
+    [Fact]
+    public void AddAzureOpenAI()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var openai = builder.AddAzureOpenAI("openai");
+        openai.AddDeployment("mymodel");
+
+        openai.Resource.Outputs["connectionString"] = "myopenaiconnectionstring";
+
+        var deployments = openai.Resource.Parameters["deployments"] as IEnumerable<string>;
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.openai.bicep", openai.Resource.TemplateResourceName);
+        Assert.Equal("openai", openai.Resource.Name);
+        Assert.NotNull(deployments);
+        Assert.Equal(["mymodel"], deployments);
+        Assert.Equal("myopenaiconnectionstring", openai.Resource.GetConnectionString());
+        Assert.Equal("{openai.outputs.connectionString}", openai.Resource.ConnectionStringExpression);
+    }
 }
