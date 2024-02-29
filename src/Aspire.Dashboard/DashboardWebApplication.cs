@@ -23,15 +23,15 @@ public class DashboardWebApplication : IAsyncDisposable
     private const string DashboardUrlDefaultValue = "http://localhost:18888";
 
     private readonly WebApplication _app;
-    private Func<IPEndPoint>? _browserEndPointAccessor;
-    private Func<IPEndPoint>? _otlpServiceEndPointAccessor;
+    private Func<EndpointInfo>? _browserEndPointAccessor;
+    private Func<EndpointInfo>? _otlpServiceEndPointAccessor;
 
-    public Func<IPEndPoint> BrowserEndPointAccessor
+    public Func<EndpointInfo> BrowserEndPointAccessor
     {
         get => _browserEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
 
-    public Func<IPEndPoint> OtlpServiceEndPointAccessor
+    public Func<EndpointInfo> OtlpServiceEndPointAccessor
     {
         get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
@@ -67,16 +67,16 @@ public class DashboardWebApplication : IAsyncDisposable
 
         builder.WebHost.ConfigureKestrel(kestrelOptions =>
         {
-            ConfigureListenAddresses(kestrelOptions, dashboardUris, options =>
+            ConfigureListenAddresses(kestrelOptions, dashboardUris, (options, isHttps) =>
             {
-                _browserEndPointAccessor = CreateEndPointAccessor(options);
+                _browserEndPointAccessor ??= CreateEndPointAccessor(options, isHttps);
             });
-            ConfigureListenAddresses(kestrelOptions, otlpUris, options =>
+            ConfigureListenAddresses(kestrelOptions, otlpUris, (options, isHttps) =>
             {
                 options.Protocols = HttpProtocols.Http2;
                 options.UseOtlpConnection();
 
-                _otlpServiceEndPointAccessor = CreateEndPointAccessor(options);
+                _otlpServiceEndPointAccessor ??= CreateEndPointAccessor(options, isHttps);
             });
         });
 
@@ -111,6 +111,8 @@ public class DashboardWebApplication : IAsyncDisposable
 
         _app = builder.Build();
 
+        var logger = _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
+
         // this needs to be explicitly enumerated for each supported language
         // our language list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
         var supportedLanguages = new[]
@@ -122,8 +124,6 @@ public class DashboardWebApplication : IAsyncDisposable
             .AddSupportedCultures(supportedLanguages)
             .AddSupportedUICultures(supportedLanguages));
 
-        var logger = _app.Logger;
-
         if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
         {
             // Write version at info level so it's written to the console by default. Help us debug user issues.
@@ -131,17 +131,22 @@ public class DashboardWebApplication : IAsyncDisposable
             logger.LogInformation("Aspire version: {Version}", informationalVersion);
         }
 
-        if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
+        _app.Lifetime.ApplicationStarted.Register(() =>
         {
-            // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709
-            logger.LogInformation("Now listening on: {DashboardUri}", reportedDashboardUri.AbsoluteUri.TrimEnd('/'));
-        }
+            if (_browserEndPointAccessor != null)
+            {
+                // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709
+                logger.LogInformation("Now listening on: {DashboardUri}", GetEndpointUrl(_browserEndPointAccessor()));
+            }
 
-        if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
-        {
-            // This isn't used by dotnet watch but still useful to have for debugging
-            logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
-        }
+            if (_otlpServiceEndPointAccessor != null)
+            {
+                // This isn't used by dotnet watch but still useful to have for debugging
+                logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", GetEndpointUrl(_otlpServiceEndPointAccessor()));
+            }
+
+            static string GetEndpointUrl(EndpointInfo info) => $"{(info.isHttps ? "https" : "http")}://{info.EndPoint}";
+        });
 
         // Redirect browser directly to /structuredlogs address if the dashboard is running without a resource service.
         // This is done to avoid immediately navigating in the Blazor app.
@@ -203,14 +208,14 @@ public class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
 
-        static Func<IPEndPoint> CreateEndPointAccessor(ListenOptions options)
+        static Func<EndpointInfo> CreateEndPointAccessor(ListenOptions options, bool isHttps)
         {
             // We want to provide a way for someone to get the IP address of an endpoint.
             // However, if a dynamic port is used, the port is not known until the server is started.
             // Instead of returning the ListenOption's endpoint directly, we provide a func that returns the endpoint.
             // The endpoint on ListenOptions is updated after binding, so accessing it via the func after the server
             // has started returns the resolved port.
-            return () => options.IPEndPoint!;
+            return () => new EndpointInfo(options.IPEndPoint!, isHttps);
         }
     }
 
@@ -225,7 +230,7 @@ public class DashboardWebApplication : IAsyncDisposable
         return _app.DisposeAsync();
     }
 
-    private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, Action<ListenOptions>? configureListenOptions = null)
+    private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, Action<ListenOptions, bool>? configureListenOptions = null)
     {
         foreach (var uri in uris)
         {
@@ -240,14 +245,17 @@ public class DashboardWebApplication : IAsyncDisposable
 
             void ConfigureListenOptions(ListenOptions options)
             {
-                if (IsHttps(uri))
+                var isHttps = IsHttps(uri);
+                if (isHttps)
                 {
                     options.UseHttps();
                 }
-                configureListenOptions?.Invoke(options);
+                configureListenOptions?.Invoke(options, isHttps);
             }
         }
     }
 
     private static bool IsHttps(Uri uri) => string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 }
+
+public record EndpointInfo(IPEndPoint EndPoint, bool isHttps);
