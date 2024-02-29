@@ -48,7 +48,7 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
     protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used.");
-        var context = new ManifestPublishingContext(_executionContext, manifestPath, jsonWriter);
+        var context = new ManifestPublishingContext(_executionContext, manifestPath, jsonWriter, cancellationToken);
 
         jsonWriter.WriteStartObject();
         await WriteResources(model, context).ConfigureAwait(false);

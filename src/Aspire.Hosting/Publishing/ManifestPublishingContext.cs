@@ -13,7 +13,8 @@ namespace Aspire.Hosting.Publishing;
 /// <param name="executionContext">Global contextual information for this invocation of the AppHost.</param>
 /// <param name="manifestPath">Manifest path passed in for this invocation of the AppHost.</param>
 /// <param name="writer">JSON writer used to writing the manifest.</param>
-public sealed class ManifestPublishingContext(DistributedApplicationExecutionContext executionContext, string manifestPath, Utf8JsonWriter writer)
+/// <param name="cancellationToken">Cancellation token for this operation.</param>
+public sealed class ManifestPublishingContext(DistributedApplicationExecutionContext executionContext, string manifestPath, Utf8JsonWriter writer, CancellationToken cancellationToken = default)
 {
     /// <summary>
     /// Gets execution context for this invocation of the AppHost.
@@ -29,6 +30,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// Gets JSON writer for writing manifest entries.
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
+
+    /// <summary>
+    /// Gets cancellation token for this operation.
+    /// </summary>
+    public CancellationToken CancellationToken { get; } = cancellationToken;
 
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
@@ -153,7 +159,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         var config = new Dictionary<string, string>();
 
-        var envContext = new EnvironmentCallbackContext(ExecutionContext, config);
+        var envContext = new EnvironmentCallbackContext(ExecutionContext, config, CancellationToken);
 
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {

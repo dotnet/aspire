@@ -228,7 +228,7 @@ public static class ResourceBuilderExtensions
                 return;
             }
 
-            var connectionString = await resource.GetConnectionStringAsync().ConfigureAwait(false);
+            var connectionString = await resource.GetConnectionStringAsync(context.CancellationToken).ConfigureAwait(false);
 
             if (string.IsNullOrEmpty(connectionString))
             {

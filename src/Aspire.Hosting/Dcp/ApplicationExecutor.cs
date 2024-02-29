@@ -538,7 +538,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext(_executionContext, config);
+                var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -789,7 +789,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var context = new EnvironmentCallbackContext(_executionContext, config);
+                    var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
 
                     foreach (var v in containerEnvironmentVariables)
                     {

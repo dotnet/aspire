@@ -114,8 +114,9 @@ public sealed record CustomResourceSnapshot
     /// Creates a new <see cref="CustomResourceSnapshot"/> for a resource using the well known annotations.
     /// </summary>
     /// <param name="resource">The resource.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The new <see cref="CustomResourceSnapshot"/>.</returns>
-    public static async ValueTask<CustomResourceSnapshot> CreateAsync(IResource resource)
+    public static async ValueTask<CustomResourceSnapshot> CreateAsync(IResource resource, CancellationToken cancellationToken = default)
     {
         ImmutableArray<string> urls = [];
 
@@ -131,7 +132,7 @@ public sealed record CustomResourceSnapshot
 
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
         {
-            var envContext = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            var envContext = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run), cancellationToken: cancellationToken);
             foreach (var annotation in environmentCallbacks)
             {
                 await annotation.Callback(envContext).ConfigureAwait(false);
