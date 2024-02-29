@@ -49,7 +49,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
     {
-        return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResource(context, builder.Resource));
+        return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResourceAsync(context, builder.Resource));
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public static class ExecutableResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
-    private static async Task WriteExecutableAsDockerfileResource(ManifestPublishingContext context, ExecutableResource executable)
+    private static async Task WriteExecutableAsDockerfileResourceAsync(ManifestPublishingContext context, ExecutableResource executable)
     {
         context.Writer.WriteString("type", "dockerfile.v0");
 
