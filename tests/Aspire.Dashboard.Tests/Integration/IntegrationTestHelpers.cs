@@ -7,6 +7,7 @@ using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit.Abstractions;
@@ -28,6 +29,10 @@ public static class IntegrationTestHelpers
 
         var dashboardWebApplication = new DashboardWebApplication(builder =>
         {
+            builder.Services.Configure<LoggerFilterOptions>(o =>
+            {
+                o.Rules.Clear();
+            });
             builder.Configuration.AddConfiguration(config);
             builder.Logging.AddXunit(testOutputHelper);
             builder.Logging.SetMinimumLevel(LogLevel.Trace);
