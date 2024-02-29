@@ -45,7 +45,7 @@ public static class IntegrationTestHelpers
         return dashboardWebApplication;
     }
 
-    public static GrpcChannel CreateGrpcChannel(string address, ITestOutputHelper testOutputHelper, Action<X509Certificate2?>? validationCallback = null, int? retryCount = 3)
+    public static GrpcChannel CreateGrpcChannel(string address, ITestOutputHelper testOutputHelper, Action<X509Certificate2?>? validationCallback = null, int? retryCount = null)
     {
         ServiceConfig? serviceConfig = null;
         if (retryCount > 0)
