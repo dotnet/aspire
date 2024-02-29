@@ -1,0 +1,4 @@
+<Project>
+  <Import Project="Directory.Build.Helix.targets" Condition="'$(TestsRunningOutOfTree)' == 'true'" />
+  <Import Project="..\Directory.Build.targets" Condition="'$(TestsRunningOutOfTree)' != 'true'" />
+</Project>

@@ -10,21 +10,27 @@
 
   <ItemGroup>
     <Using Include="Confluent.Kafka" />
+
+    <Compile Include="..\Common\TestResourceNames.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <ComponentReferenceForTests Include="Aspire.Confluent.Kafka" />
+    <ComponentReferenceForTests Include="Aspire.Microsoft.Azure.Cosmos" />
+    <ComponentReferenceForTests Include="Aspire.Microsoft.Data.SqlClient" />
+    <ComponentReferenceForTests Include="Aspire.MongoDB.Driver" />
+    <ComponentReferenceForTests Include="Aspire.MySqlConnector" />
+    <ComponentReferenceForTests Include="Aspire.Npgsql" />
+    <ComponentReferenceForTests Include="Aspire.Oracle.EntityFrameworkCore" />
+    <ComponentReferenceForTests Include="Aspire.Pomelo.EntityFrameworkCore.MySql" />
+    <ComponentReferenceForTests Include="Aspire.RabbitMQ.Client" />
+    <ComponentReferenceForTests Include="Aspire.StackExchange.Redis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Condition="'$(TestsRunningOutOfTree)' != 'true'" Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
+    <PackageReference Condition="'$(TestsRunningOutOfTree)' == 'true'" Include="@(ComponentReferenceForTests)" />
     <PackageReference Include="Polly" />
-    
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Confluent.Kafka\Aspire.Confluent.Kafka.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Azure.Cosmos\Aspire.Microsoft.Azure.Cosmos.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Npgsql\Aspire.Npgsql.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Pomelo.EntityFrameworkCore.MySql\Aspire.Pomelo.EntityFrameworkCore.MySql.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
   </ItemGroup>
 
 </Project>
