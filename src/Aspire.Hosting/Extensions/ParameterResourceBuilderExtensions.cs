@@ -50,12 +50,14 @@ public static class ParameterResourceBuilderExtensions
 
                           try
                           {
-                              return state with { Properties = [.. state.Properties, ("Value", callback())] };
+                              state = state with { Properties = [.. state.Properties, ("Value", callback())] };
                           }
                           catch (DistributedApplicationException ex)
                           {
-                              return state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
+                              state = state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
                           }
+
+                          return ValueTask.FromResult(state);
                       })
                       .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource, connectionString));
     }

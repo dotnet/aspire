@@ -135,7 +135,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddApplicationInsights()
+    public async Task AddApplicationInsights()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -150,14 +150,14 @@ public class AzureBicepResourceTests
         Assert.Equal("myinstrumentationkey", appInsights.Resource.GetConnectionString());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression);
 
-        var appInsightsManifest = ManifestUtils.GetManifest(appInsights.Resource);
+        var appInsightsManifest = await ManifestUtils.GetManifest(appInsights.Resource);
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsightsManifest["connectionString"]?.ToString());
         Assert.Equal("azure.bicep.v0", appInsightsManifest["type"]?.ToString());
         Assert.Equal("aspire.hosting.azure.bicep.appinsights.bicep", appInsightsManifest["path"]?.ToString());
     }
 
     [Fact]
-    public void WithReferenceAppInsightsSetsEnvironmentVariable()
+    public async Task WithReferenceAppInsightsSetsEnvironmentVariable()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -177,7 +177,7 @@ public class AzureBicepResourceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.True(config.ContainsKey("APPLICATIONINSIGHTS_CONNECTION_STRING"));
@@ -185,7 +185,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void PublishAsRedisPublishesRedisAsAzureRedis()
+    public async Task PublishAsRedisPublishesRedisAsAzureRedis()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -197,7 +197,7 @@ public class AzureBicepResourceTests
 
         Assert.Equal("localhost:12455", redis.Resource.GetConnectionString());
 
-        var manifest = ManifestUtils.GetManifest(redis.Resource);
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
 
         Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
         Assert.Equal("{cache.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
@@ -289,7 +289,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void PublishAsAzurePostgresFlexibleServer()
+    public async Task PublishAsAzurePostgresFlexibleServer()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -330,7 +330,7 @@ public class AzureBicepResourceTests
 
         Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
 
-        var manifest = ManifestUtils.GetManifest(postgres.Resource);
+        var manifest = await ManifestUtils.GetManifest(postgres.Resource);
 
         Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
         Assert.Equal("{postgres.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
@@ -370,7 +370,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddAzureStorage()
+    public async Task AddAzureStorage()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -395,13 +395,13 @@ public class AzureBicepResourceTests
         Assert.Equal("{storage.outputs.queueEndpoint}", queue.Resource.ConnectionStringExpression);
         Assert.Equal("{storage.outputs.tableEndpoint}", table.Resource.ConnectionStringExpression);
 
-        var blobManifest = ManifestUtils.GetManifest(blob.Resource);
+        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
         Assert.Equal("{storage.outputs.blobEndpoint}", blobManifest["connectionString"]?.ToString());
 
-        var queueManifest = ManifestUtils.GetManifest(queue.Resource);
+        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
         Assert.Equal("{storage.outputs.queueEndpoint}", queueManifest["connectionString"]?.ToString());
 
-        var tableManifest = ManifestUtils.GetManifest(table.Resource);
+        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
         Assert.Equal("{storage.outputs.tableEndpoint}", tableManifest["connectionString"]?.ToString());
     }
 
@@ -421,7 +421,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void PublishAsConnectionString()
+    public async Task PublishAsConnectionString()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -432,15 +432,15 @@ public class AzureBicepResourceTests
             .WithReference(ai)
             .WithReference(serviceBus);
 
-        var aiManifest = ManifestUtils.GetManifest(ai.Resource);
+        var aiManifest = await ManifestUtils.GetManifest(ai.Resource);
         Assert.Equal("{ai.value}", aiManifest["connectionString"]?.ToString());
         Assert.Equal("parameter.v0", aiManifest["type"]?.ToString());
 
-        var serviceBusManifest = ManifestUtils.GetManifest(serviceBus.Resource);
+        var serviceBusManifest = await ManifestUtils.GetManifest(serviceBus.Resource);
         Assert.Equal("{servicebus.value}", serviceBusManifest["connectionString"]?.ToString());
         Assert.Equal("parameter.v0", serviceBusManifest["type"]?.ToString());
 
-        var serviceManifest = ManifestUtils.GetManifest(serviceA.Resource);
+        var serviceManifest = await ManifestUtils.GetManifest(serviceA.Resource);
         Assert.Equal("{ai.connectionString}", serviceManifest["env"]?["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.ToString());
         Assert.Equal("{servicebus.connectionString}", serviceManifest["env"]?["ConnectionStrings__servicebus"]?.ToString());
     }

@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Tests.SqlServer;
 public class AddSqlServerTests
 {
     [Fact]
-    public void AddSqlServerContainerWithDefaultsAddsAnnotationMetadata()
+    public async Task AddSqlServerContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -49,7 +49,7 @@ public class AddSqlServerTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -119,14 +119,14 @@ public class AddSqlServerTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var sqlServer = appBuilder.AddSqlServer("sqlserver");
         var db = sqlServer.AddDatabase("db");
 
-        var serverManifest = ManifestUtils.GetManifest(sqlServer.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
         Assert.Equal("container.v0", serverManifest["type"]?.ToString());
         Assert.Equal(sqlServer.Resource.ConnectionStringExpression, serverManifest["connectionString"]?.ToString());

@@ -570,7 +570,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     foreach (var ann in envVarAnnotations)
                     {
-                        ann.Callback(context);
+                        await ann.Callback(context).ConfigureAwait(false);
                     }
                 }
 
@@ -793,7 +793,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                     foreach (var v in containerEnvironmentVariables)
                     {
-                        v.Callback(context);
+                        await v.Callback(context).ConfigureAwait(false);
                     }
                 }
 

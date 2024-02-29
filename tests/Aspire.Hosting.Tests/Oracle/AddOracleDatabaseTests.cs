@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Tests.Oracle;
 public class AddOracleDatabaseTests
 {
     [Fact]
-    public void AddOracleDatabaseWithDefaultsAddsAnnotationMetadata()
+    public async Task AddOracleDatabaseWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("orcl");
@@ -48,7 +48,7 @@ public class AddOracleDatabaseTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+           await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -60,7 +60,7 @@ public class AddOracleDatabaseTests
     }
 
     [Fact]
-    public void AddOracleDatabaseAddsAnnotationMetadata()
+    public async Task AddOracleDatabaseAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("orcl", 1234, "pass");
@@ -97,7 +97,7 @@ public class AddOracleDatabaseTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+           await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -161,7 +161,7 @@ public class AddOracleDatabaseTests
     }
 
     [Fact]
-    public void AddDatabaseToOracleDatabaseAddsAnnotationMetadata()
+    public async Task AddDatabaseToOracleDatabaseAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("oracle", 1234, "pass").AddDatabase("db");
@@ -199,7 +199,7 @@ public class AddOracleDatabaseTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -211,14 +211,14 @@ public class AddOracleDatabaseTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var oracleServer = appBuilder.AddOracleDatabase("oracle");
         var db = oracleServer.AddDatabase("db");
 
-        var serverManifest = ManifestUtils.GetManifest(oracleServer.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
         Assert.Equal("container.v0", serverManifest["type"]?.ToString());
         Assert.Equal(oracleServer.Resource.ConnectionStringExpression, serverManifest["connectionString"]?.ToString());

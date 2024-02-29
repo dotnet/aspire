@@ -201,7 +201,7 @@ internal sealed class DcpDataSource
         {
             // We have a dashboard annotation, so we want to create a snapshot for the resource
             // and update data immediately. We also want to watch for changes to the dashboard state.
-            var state = resourceUpdates.GetInitialSnapshot();
+            var state = await resourceUpdates.GetInitialSnapshotAsync().ConfigureAwait(false);
             var creationTimestamp = DateTime.UtcNow;
 
             var snapshot = CreateResourceSnapshot(resource, creationTimestamp, state);

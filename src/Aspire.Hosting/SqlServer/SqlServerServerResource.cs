@@ -37,6 +37,21 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
     /// <summary>
     /// Gets the connection string for the SQL Server.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>A connection string for the SQL Server in the form "Server=host,port;User ID=sa;Password=password;TrustServerCertificate=true".</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
+        }
+
+        return new(GetConnectionString());
+    }
+
+    /// <summary>
+    /// Gets the connection string for the SQL Server.
+    /// </summary>
     /// <returns>A connection string for the SQL Server in the form "Server=host,port;User ID=sa;Password=password;TrustServerCertificate=true".</returns>
     public string? GetConnectionString()
     {
@@ -69,9 +84,9 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
         _databases.TryAdd(name, databaseName);
     }
 
-    internal void WriteToManifest(ManifestPublishingContext context)
+    internal async Task WriteToManifest(ManifestPublishingContext context)
     {
-        context.WriteContainer(this);
+        await context.WriteContainer(this).ConfigureAwait(false);
 
         context.Writer.WriteStartObject("inputs");      // "inputs": {
         context.Writer.WriteStartObject("password");    //   "password": {

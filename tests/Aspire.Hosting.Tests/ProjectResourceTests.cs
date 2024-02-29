@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Tests;
 public class ProjectResourceTests
 {
     [Fact]
-    public void AddProjectAddsEnvironmentVariablesAndServiceMetadata()
+    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
         var appBuilder = CreateBuilder();
 
@@ -36,7 +36,7 @@ public class ProjectResourceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+           await annotation.Callback(context);
         }
 
         Assert.Collection(config,

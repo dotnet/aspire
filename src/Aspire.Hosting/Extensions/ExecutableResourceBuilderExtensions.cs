@@ -68,7 +68,7 @@ public static class ExecutableResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
-    private static void WriteExecutableAsDockerfileResource(ManifestPublishingContext context, ExecutableResource executable)
+    private static async Task WriteExecutableAsDockerfileResource(ManifestPublishingContext context, ExecutableResource executable)
     {
         context.Writer.WriteString("type", "dockerfile.v0");
 
@@ -79,7 +79,7 @@ public static class ExecutableResourceBuilderExtensions
         var manifestFileRelativePathToContextDirectory = context.GetManifestRelativePath(executable.WorkingDirectory);
         context.Writer.WriteString("context", manifestFileRelativePathToContextDirectory);
 
-        context.WriteEnvironmentVariables(executable);
+        await context.WriteEnvironmentVariables(executable).ConfigureAwait(false);
         context.WriteBindings(executable, emitContainerPort: true);
     }
 }

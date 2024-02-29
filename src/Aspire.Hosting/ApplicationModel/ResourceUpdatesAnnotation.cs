@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// The annotation that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public sealed class ResourceUpdatesAnnotation(Func<CustomResourceSnapshot> initialSnapshotFactory) : IResourceAnnotation
+public sealed class ResourceUpdatesAnnotation(Func<ValueTask<CustomResourceSnapshot>> initialSnapshotFactory) : IResourceAnnotation
 {
     private readonly CancellationTokenSource _streamClosedCts = new();
 
@@ -24,7 +24,7 @@ public sealed class ResourceUpdatesAnnotation(Func<CustomResourceSnapshot> initi
     /// <summary>
     /// Gets the initial snapshot of the dashboard state for this resource.
     /// </summary>
-    public CustomResourceSnapshot GetInitialSnapshot() => initialSnapshotFactory();
+    public ValueTask<CustomResourceSnapshot> GetInitialSnapshotAsync() => initialSnapshotFactory();
 
     /// <summary>
     /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
@@ -115,7 +115,7 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     /// <param name="resource">The resource.</param>
     /// <returns>The new <see cref="CustomResourceSnapshot"/>.</returns>
-    public static CustomResourceSnapshot Create(IResource resource)
+    public static async ValueTask<CustomResourceSnapshot> CreateAsync(IResource resource)
     {
         ImmutableArray<string> urls = [];
 
@@ -134,7 +134,7 @@ public sealed record CustomResourceSnapshot
             var envContext = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
             foreach (var annotation in environmentCallbacks)
             {
-                annotation.Callback(envContext);
+                await annotation.Callback(envContext).ConfigureAwait(false);
             }
 
             environmentVariables = [.. envContext.EnvironmentVariables.Select(e => (e.Key, e.Value))];

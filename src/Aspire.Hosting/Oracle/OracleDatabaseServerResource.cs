@@ -53,9 +53,9 @@ public class OracleDatabaseServerResource(string name, string password) : Contai
         _databases.TryAdd(name, databaseName);
     }
 
-    internal void WriteToManifest(ManifestPublishingContext context)
+    internal async Task WriteToManifest(ManifestPublishingContext context)
     {
-        context.WriteContainer(this);
+        await context.WriteContainer(this).ConfigureAwait(false);
 
         context.Writer.WriteStartObject("inputs");      // "inputs": {
         context.Writer.WriteStartObject("password");    //   "password": {

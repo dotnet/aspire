@@ -67,12 +67,12 @@ public class AddKafkaTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var kafka = appBuilder.AddKafka("kafka");
 
-        var manifest = ManifestUtils.GetManifest(kafka.Resource);
+        var manifest = await ManifestUtils.GetManifest(kafka.Resource);
 
         Assert.Equal("container.v0", manifest["type"]?.ToString());
         Assert.Equal(kafka.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());

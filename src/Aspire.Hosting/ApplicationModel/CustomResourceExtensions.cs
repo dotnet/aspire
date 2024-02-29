@@ -17,10 +17,10 @@ public static class CustomResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="initialSnapshotFactory">The factory to create the initial <see cref="CustomResourceSnapshot"/> for this resource.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<TResource> WithResourceUpdates<TResource>(this IResourceBuilder<TResource> builder, Func<CustomResourceSnapshot>? initialSnapshotFactory = null)
+    public static IResourceBuilder<TResource> WithResourceUpdates<TResource>(this IResourceBuilder<TResource> builder, Func<ValueTask<CustomResourceSnapshot>>? initialSnapshotFactory = null)
         where TResource : IResource
     {
-        initialSnapshotFactory ??= () => CustomResourceSnapshot.Create(builder.Resource);
+        initialSnapshotFactory ??= () => CustomResourceSnapshot.CreateAsync(builder.Resource);
 
         return builder.WithAnnotation(new ResourceUpdatesAnnotation(initialSnapshotFactory), ResourceAnnotationMutationBehavior.Replace);
     }

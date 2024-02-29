@@ -13,7 +13,7 @@ static class TestResourceExtensions
 
         var rb = builder.AddResource(new TestResource(name))
                       .WithResourceLogger()
-                      .WithResourceUpdates(() => new()
+                      .WithResourceUpdates(() => ValueTask.FromResult<CustomResourceSnapshot>(new()
                       {
                           ResourceType = "Test Resource",
                           State = "Starting",
@@ -21,7 +21,7 @@ static class TestResourceExtensions
                               ("P1", "P2"),
                               (CustomResourceKnownProperties.Source, "Custom")
                           ]
-                      })
+                      }))
                       .ExcludeFromManifest();
 
         return rb;
@@ -44,7 +44,7 @@ internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecyc
                 Task.Run(async () =>
                 {
                     // Simulate custom resource state changes
-                    var state = resourceUpdates.GetInitialSnapshot();
+                    var state = await resourceUpdates.GetInitialSnapshotAsync();
                     var seconds = Random.Shared.Next(2, 12);
 
                     state = state with
