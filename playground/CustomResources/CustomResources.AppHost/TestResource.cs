@@ -13,7 +13,7 @@ static class TestResourceExtensions
 
         var rb = builder.AddResource(new TestResource(name))
                       .WithResourceLogger()
-                      .WithResourceUpdates(() => ValueTask.FromResult<CustomResourceSnapshot>(new()
+                      .WithResourceUpdates(() => new()
                       {
                           ResourceType = "Test Resource",
                           State = "Starting",
@@ -21,7 +21,7 @@ static class TestResourceExtensions
                               ("P1", "P2"),
                               (CustomResourceKnownProperties.Source, "Custom")
                           ]
-                      }))
+                      })
                       .ExcludeFromManifest();
 
         return rb;

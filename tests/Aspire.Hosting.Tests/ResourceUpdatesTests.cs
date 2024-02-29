@@ -51,11 +51,11 @@ public class ResourceUpdatesTests
         var custom = builder.AddResource(new CustomResource("myResource"))
             .WithEndpoint(name: "ep", scheme: "http", hostPort: 8080)
             .WithEnvironment("x", "1000")
-            .WithResourceUpdates(() => ValueTask.FromResult<CustomResourceSnapshot>(new()
+            .WithResourceUpdates(() => new()
             {
                 ResourceType = "MyResource",
                 Properties = [("A", "B")],
-            }));
+            });
 
         var annotation = custom.Resource.Annotations.OfType<ResourceUpdatesAnnotation>().SingleOrDefault();
 
