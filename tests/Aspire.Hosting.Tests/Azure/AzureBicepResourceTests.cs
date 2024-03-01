@@ -187,7 +187,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddAzureConstructGenertesCorrectManifestEntry()
+    public async Task AddAzureConstructGenertesCorrectManifestEntry()
     {
         var builder = DistributedApplication.CreateBuilder();
         var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
@@ -199,7 +199,7 @@ public class AzureBicepResourceTests
             storage.AddOutput(sa => sa.Name, "storageAccountName");
         });
 
-        var manifest = ManifestUtils.GetManifest(construct1.Resource);
+        var manifest = await ManifestUtils.GetManifest(construct1.Resource);
         Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
         Assert.Equal("construct1.module.bicep", manifest["path"]?.ToString());
     }
@@ -235,7 +235,7 @@ public class AzureBicepResourceTests
     //}
 
     [Fact]
-    public void PublishAsRedisPublishesRedisAsAzureRedis()
+    public async Task PublishAsRedisPublishesRedisAsAzureRedis()
     {
         var builder = DistributedApplication.CreateBuilder();
 
