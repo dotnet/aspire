@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 
@@ -39,7 +40,7 @@ public static class AzureStorageExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="configureResource">Callback to configure the storage account.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstructStorage(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, StorageAccount>? configureResource = null)
+    public static IResourceBuilder<AzureStorageConstructResource> AddAzureConstructStorage(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, StorageAccount>? configureResource = null)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -48,6 +49,22 @@ public static class AzureStorageExtensions
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardGrs
                 );
+
+            // TODO: Role assignment support is currenty blocked by two bugs:
+            // 1. All role assignments for the same resource in the same construct
+            //    get the same Bicep identifier (and same name) leading to the Bicep
+            //    being invalid if you use more than one.
+            // 2. Role assignments are using the wrong API version so ARM deployments
+            //    are being rejected.
+
+            //var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
+            //blobRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+
+            //var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
+            //tableRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+
+            //var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
+            //queueRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             storageAccount.AddOutput(sa => sa.PrimaryEndpoints.BlobUri, "blobEndpoint");
             storageAccount.AddOutput(sa => sa.PrimaryEndpoints.QueueUri, "queueEndpoint");
@@ -62,8 +79,8 @@ public static class AzureStorageExtensions
 
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
-                      //.WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      //.WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

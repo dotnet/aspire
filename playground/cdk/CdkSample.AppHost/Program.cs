@@ -26,8 +26,10 @@ var storage = builder.AddAzureConstructStorage("cdkstorage", (_, account) =>
     account.AssignParameter(sa => sa.Sku.Name, sku);
 });
 
+var blobs = AzureStorageExtensions.AddBlobs(storage, "blobs");
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
-       .WithEnvironment("TABLE_URI", construct1.GetOutput("tableUri"));
+       .WithReference(blobs);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
