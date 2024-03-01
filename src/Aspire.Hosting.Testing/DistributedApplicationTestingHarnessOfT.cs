@@ -188,8 +188,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
             return;
         }
 
-        Start();
-
+        StartEntryPoint();
         _builder = _builderTcs.Task.GetAwaiter().GetResult();
     }
 
@@ -201,13 +200,12 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
             return;
         }
 
-        Start();
-
+        StartEntryPoint();
         _app = _appTask.GetAwaiter().GetResult();
     }
 
     [MemberNotNull(nameof(_appTask))]
-    private void Start()
+    private void StartEntryPoint()
     {
         EnsureDepsFile();
 
@@ -238,18 +236,6 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
         }
     }
 
-    private void OnEntryPointExit(Exception? exception)
-    {
-        if (exception is not null)
-        {
-            _exitTcs.TrySetException(exception);
-        }
-        else
-        {
-            _exitTcs.TrySetResult();
-        }
-    }
-
     private async Task<DistributedApplication> ResolveApp(Func<string[], CancellationToken, Task<DistributedApplication>> factory)
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
@@ -273,6 +259,18 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
             }
 
             return TimeSpan.FromMinutes(5);
+        }
+    }
+
+    private void OnEntryPointExit(Exception? exception)
+    {
+        if (exception is not null)
+        {
+            _exitTcs.TrySetException(exception);
+        }
+        else
+        {
+            _exitTcs.TrySetResult();
         }
     }
 
