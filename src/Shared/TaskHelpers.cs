@@ -35,6 +35,7 @@ internal static class TaskHelpers
         catch (Exception ex) when (logger is not null)
         {
             logger.LogError(ex, logMessage ?? "Unexpected error.");
+            throw;
         }
     }
 }
