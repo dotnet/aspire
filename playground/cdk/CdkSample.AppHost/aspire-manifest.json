@@ -1,0 +1,41 @@
+{
+  "resources": {
+    "storagesku": {
+      "type": "parameter.v0",
+      "value": "{storagesku.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "construct1": {
+      "type": "azure.bicep.v0",
+      "path": "construct1.module.bicep",
+      "params": {
+        "storagesku": "{storagesku.value}"
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "TABLE_URI": "{construct1.outputs.tableUri}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

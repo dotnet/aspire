@@ -70,17 +70,7 @@ public static class ParameterResourceBuilderExtensions
         }
 
         context.Writer.WriteString("value", $"{{{resource.Name}.inputs.value}}");
-        context.Writer.WriteStartObject("inputs");
-        context.Writer.WriteStartObject("value");
-        context.Writer.WriteString("type", "string");
-
-        if (resource.Secret)
-        {
-            context.Writer.WriteBoolean("secret", resource.Secret);
-        }
-
-        context.Writer.WriteEndObject();
-        context.Writer.WriteEndObject();
+        context.WriteInputs(resource);
     }
 
     /// <summary>

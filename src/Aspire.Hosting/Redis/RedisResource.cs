@@ -28,6 +28,21 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <summary>
     /// Gets the connection string for the Redis server.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>A connection string for the redis server in the form "host:port".</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
+        }
+
+        return new(GetConnectionString());
+    }
+
+    /// <summary>
+    /// Gets the connection string for the Redis server.
+    /// </summary>
     /// <returns>A connection string for the redis server in the form "host:port".</returns>
     public string? GetConnectionString()
     {
