@@ -243,19 +243,21 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     ? endpointReferenceAnnotation.Resource.Annotations.OfType<EndpointAnnotation>().Select(sb => sb.Name)
                     : endpointReferenceAnnotation.EndpointNames;
 
-                var endpointAnnotationsGroupedByScheme = endpointReferenceAnnotation.Resource.Annotations
+                var endpointAnnotationsGroupedByName = endpointReferenceAnnotation.Resource.Annotations
                     .OfType<EndpointAnnotation>()
                     .Where(sba => endpointNames.Contains(sba.Name, StringComparers.EndpointAnnotationName))
-                    .GroupBy(sba => sba.UriScheme);
+                    .GroupBy(sba => sba.Name);
 
-                var i = 0;
-                foreach (var endpointAnnotationGroupedByScheme in endpointAnnotationsGroupedByScheme)
+                var serviceName = endpointReferenceAnnotation.Resource.Name;
+                foreach (var group in endpointAnnotationsGroupedByName)
                 {
-                    // HACK: For November we are only going to support a single endpoint annotation
-                    //       per URI scheme per service reference.
-                    var binding = endpointAnnotationGroupedByScheme.Single();
-
-                    Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
+                    var i = 0;
+                    foreach (var endpointAnnotation in group)
+                    {
+                        Writer.WriteString(
+                            $"services__{serviceName}__{endpointAnnotation.Name}__{i++}",
+                            $"{{{serviceName}.bindings.{endpointAnnotation.Name}.url}}");
+                    }
                 }
             }
         }

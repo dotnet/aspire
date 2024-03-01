@@ -65,11 +65,6 @@ public class AllocatedEndpointAnnotation : IResourceAnnotation
     public string EndPointString => $"{Address}:{Port}";
 
     /// <summary>
-    /// URI in string representation specially formatted to be processed by service discovery without ambiguity.
-    /// </summary>
-    public string EndpointNameQualifiedUriString => $"{Name}://{EndPointString}";
-
-    /// <summary>
     /// URI in string representation.
     /// </summary>
     public string UriString => $"{UriScheme}://{EndPointString}";
