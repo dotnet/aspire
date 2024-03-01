@@ -228,8 +228,17 @@ public class AzureBicepResourceTests
         Assert.NotNull(moduleConstruct);
         var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
         Assert.True(constructParameters.ContainsKey("skuName"));
-        Assert.Equal(skuName, construct1.Resource.Parameters["skuName"]);
-        Assert.Equal("{skuName.value}", manifest["params"]?["skuName"]?.ToString());
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "path": "construct1.module.bicep",
+              "params": {
+                "skuName": "{skuName.value}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -256,8 +265,17 @@ public class AzureBicepResourceTests
         Assert.NotNull(moduleConstruct);
         var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
         Assert.True(constructParameters.ContainsKey("sku"));
-        Assert.Equal(skuName, construct1.Resource.Parameters["sku"]);
-        Assert.Equal("{skuName.value}", manifest["params"]?["sku"]?.ToString());
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "path": "construct1.module.bicep",
+              "params": {
+                "sku": "{skuName.value}"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
