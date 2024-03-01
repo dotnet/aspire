@@ -12,7 +12,7 @@
 
     <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
     <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
-    <DefineConstants Condition="'$(TestsRunningOutOfTree)' == 'true'">TESTS_RUNNING_OUT_OF_TREE;$(DefineConstants)</DefineConstants>
+    <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
   </PropertyGroup>
@@ -53,7 +53,7 @@
 
   <Import Project="..\Shared\Aspire.Workload.Testing.targets" />
 
-  <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutOfTree)' == 'true'">
+  <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
     <Error Condition="'$(SdkWithWorkloadForTestingPath)' == '' or !Exists($(SdkWithWorkloadForTestingPath))"
       Text="Could not find %24(SdkWithWorkloadForTestingPath)=$(SdkWithWorkloadForTestingPath) . Prepare it by following:
       1. .\build.cmd -pack

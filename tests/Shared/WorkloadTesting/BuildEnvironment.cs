@@ -73,7 +73,7 @@ public class BuildEnvironment
 
             BuiltNuGetsPath = Path.Combine(solutionRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
 
-            // this is the only difference for local run but out-of-tree
+            // this is the only difference for local run but outside-of-repo
             if (expectSdkWithWorkload)
             {
                 TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");

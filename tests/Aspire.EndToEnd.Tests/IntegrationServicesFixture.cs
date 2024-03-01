@@ -21,10 +21,10 @@ namespace Aspire.EndToEnd.Tests;
 /// </summary>
 public sealed class IntegrationServicesFixture : IAsyncLifetime
 {
-#if TESTS_RUNNING_OUT_OF_TREE
-    public static bool TestsRunningOutOfTree = true;
+#if TESTS_RUNNING_OUTSIDE_OF_REPO
+    public static bool TestsRunningOutsideOfRepo = true;
 #else
-    public static bool TestsRunningOutOfTree;
+    public static bool TestsRunningOutsideOfRepo;
 #endif
 
     public Dictionary<string, ProjectInfo> Projects => _projects!;
@@ -41,26 +41,26 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        BuildEnvironment = new(TestsRunningOutOfTree, (probePath, solutionRoot) =>
+        BuildEnvironment = new(TestsRunningOutsideOfRepo, (probePath, solutionRoot) =>
         {
             throw new InvalidProgramException(
-                    $"Running out-of-tree: Could not find {probePath} computed from solutionRoot={solutionRoot}. " +
+                    $"Running outside-of-repo: Could not find {probePath} computed from solutionRoot={solutionRoot}. " +
                     $"Build all the packages with `./build -pack`. And install the sdk+workload 'dotnet build tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.csproj /t:InstallWorkloadUsingArtifacts /p:Configuration=<config>");
         });
         if (BuildEnvironment.HasSdkWithWorkload)
         {
-            BuildEnvironment.EnvVars["TestsRunningOutOfTree"] = "true";
+            BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
         }
     }
 
     public async Task InitializeAsync()
     {
         var appHostDirectory = Path.Combine(BuildEnvironment.TestProjectPath, "TestProject.AppHost");
-        if (TestsRunningOutOfTree)
+        if (TestsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
             _testOutput.WriteLine($"****************************************");
-            _testOutput.WriteLine($"   Running tests out-of-tree");
+            _testOutput.WriteLine($"   Running tests outside-of-repo");
             _testOutput.WriteLine($"   TestProject: {appHostDirectory}");
             _testOutput.WriteLine($"   Using dotnet: {BuildEnvironment.DotNet}");
             _testOutput.WriteLine($"****************************************");
