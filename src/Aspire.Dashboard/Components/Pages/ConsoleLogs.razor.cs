@@ -319,16 +319,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         await StopWatchingLogsAsync();
 
-        if (_resourceSubscriptionTask is { } resourceSubscriptionTask)
-        {
-            try
-            {
-                await resourceSubscriptionTask;
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
+        await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
 
         if (_logViewer is { } logViewer)
         {
