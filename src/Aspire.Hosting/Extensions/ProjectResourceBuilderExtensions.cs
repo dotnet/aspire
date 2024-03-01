@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Properties;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
@@ -26,8 +28,8 @@ public static class ProjectResourceBuilderExtensions
     {
         var project = new ProjectResource(name);
         return builder.AddResource(project)
-                      .WithProjectDefaults()
-                      .WithAnnotation(new TProject());
+                      .WithAnnotation(new TProject())
+                      .WithProjectDefaults();
     }
 
     /// <summary>
@@ -44,8 +46,8 @@ public static class ProjectResourceBuilderExtensions
         projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
 
         return builder.AddResource(project)
-                      .WithProjectDefaults()
-                      .WithAnnotation(new ProjectMetadata(projectPath));
+                      .WithAnnotation(new ProjectMetadata(projectPath))
+                      .WithProjectDefaults();
     }
 
     private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder)
@@ -56,6 +58,80 @@ public static class ProjectResourceBuilderExtensions
         builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
+
+        var projectResource = builder.Resource;
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // Automatically add EndpointAnnotation to project resources based on ApplicationUrl set in the launch profile.
+            var launchProfile = projectResource.GetEffectiveLaunchProfile();
+            if (launchProfile is null)
+            {
+                return builder;
+            }
+
+            var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';') ?? [];
+            foreach (var url in urlsFromApplicationUrl)
+            {
+                var uri = new Uri(url);
+
+                var endpointAnnotations = projectResource.Annotations.OfType<EndpointAnnotation>().Where(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName));
+                if (endpointAnnotations.Any(sb => sb.IsProxied))
+                {
+                    // If someone uses WithEndpoint in the dev host to register a endpoint with the name
+                    // http or https this exception will be thrown.
+                    throw new DistributedApplicationException($"Endpoint with name '{uri.Scheme}' already exists.");
+                }
+
+                if (endpointAnnotations.Any())
+                {
+                    // We have a non-proxied endpoint with the same name as the 'url', don't add another endpoint for the same name
+                    continue;
+                }
+
+                var generatedEndpointAnnotation = new EndpointAnnotation(
+                    ProtocolType.Tcp,
+                    uriScheme: uri.Scheme,
+                    port: uri.Port,
+                    source: "launchSettings"
+                    );
+
+                projectResource.Annotations.Add(generatedEndpointAnnotation);
+            }
+        }
+        else
+        {
+            var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
+
+            // If we aren't a web project we don't automatically add bindings.
+            if (!IsWebProject(projectResource))
+            {
+                return builder;
+            }
+
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || string.Equals(sb.Name, "http", StringComparisons.EndpointAnnotationName)))
+            {
+                var httpBinding = new EndpointAnnotation(
+                    ProtocolType.Tcp,
+                    uriScheme: "http",
+                    source: "project"
+                    );
+                projectResource.Annotations.Add(httpBinding);
+                httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
+            }
+
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || string.Equals(sb.Name, "https", StringComparisons.EndpointAnnotationName)))
+            {
+                var httpsBinding = new EndpointAnnotation(
+                    ProtocolType.Tcp,
+                    uriScheme: "https",
+                    source: "project"
+                    );
+                projectResource.Annotations.Add(httpsBinding);
+                httpsBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpsBinding.Transport;
+            }
+        }
+
         return builder;
     }
 
@@ -119,5 +195,28 @@ public static class ProjectResourceBuilderExtensions
     {
         builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
         return builder;
+    }
+
+    private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
+    {
+        var projectMetadata = projectResource.GetProjectMetadata();
+
+        var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
+        var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+        var appSettingsEnvironmentPath = Path.Combine(projectDirectoryPath, $"appsettings.{env}.json");
+
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddJsonFile(appSettingsPath, optional: true);
+        configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
+        var config = configBuilder.Build();
+        var protocol = config["Kestrel:EndpointDefaults:Protocols"];
+        return protocol == "Http2";
+    }
+
+    private static bool IsWebProject(ProjectResource projectResource)
+    {
+        var launchProfile = projectResource.GetEffectiveLaunchProfile();
+        return launchProfile?.ApplicationUrl != null;
     }
 }

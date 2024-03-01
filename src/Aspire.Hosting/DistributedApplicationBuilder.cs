@@ -89,7 +89,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
 
         // DCP stuff
-        _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
+        //_innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
         _innerBuilder.Services.AddSingleton<IDashboardAvailability, HttpPingDashboardAvailability>();
@@ -102,7 +102,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         ConfigurePublishingOptions(options);
-        _innerBuilder.Services.AddLifecycleHook<AutomaticManifestPublisherBindingInjectionHook>();
+        //_innerBuilder.Services.AddLifecycleHook<AutomaticManifestPublisherBindingInjectionHook>();
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>("dcp");
