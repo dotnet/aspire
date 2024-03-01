@@ -68,13 +68,13 @@ internal sealed class DashboardClient : IDashboardClient
         if (address is null)
         {
             _state = StateDisabled;
-            _logger.LogInformation($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
+            _logger.LogDebug($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
             _cts.Cancel();
             _whenConnected.TrySetCanceled();
             return;
         }
 
-        _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
+        _logger.LogDebug("Dashboard configured to connect to: {Address}", address);
 
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
