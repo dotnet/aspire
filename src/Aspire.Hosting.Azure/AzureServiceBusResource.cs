@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class AzureServiceBusResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.servicebus.bicep"),
+    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.servicebus.bicep"),
     IResourceWithConnectionString
 {
     internal List<string> Queues { get; } = [];

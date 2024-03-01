@@ -15,6 +15,13 @@ public interface IResourceWithConnectionString : IResource
     public string? GetConnectionString();
 
     /// <summary>
+    /// Gets the connection string associated with the resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string associated with the resource, when one is available.</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default) => new(GetConnectionString());
+
+    /// <summary>
     /// Describes the connection string format string used for this resource in the manifest.
     /// </summary>
     public string? ConnectionStringExpression => null;

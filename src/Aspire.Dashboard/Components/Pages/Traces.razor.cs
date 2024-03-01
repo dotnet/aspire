@@ -39,7 +39,15 @@ public partial class Traces
     [Inject]
     public required IDialogService DialogService { get; set; }
 
-    private string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
+    private string GetNameTooltip(OtlpTrace trace)
+    {
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);
+        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTraceId)], trace.TraceId);
+
+        return tooltip;
+    }
+
+    private string GetSpansTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
     {
         var count = applicationSpans.Count();
         var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);

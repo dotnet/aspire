@@ -70,6 +70,18 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
+        if (_dcpOptions.DeleteResourcesOnShutdown is true)
+        {
+            try
+            {
+                await _appExecutor.DeleteResourcesAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting application resources.");
+            }
+        }
+
         _shutdownCts.Cancel();
         if (_logProcessorTask is { } task)
         {

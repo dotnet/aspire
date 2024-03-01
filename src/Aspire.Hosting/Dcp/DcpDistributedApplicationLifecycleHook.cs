@@ -3,11 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Options;
 using System.Net.Sockets;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<DcpOptions> options, DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -19,7 +20,7 @@ internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicat
         return Task.CompletedTask;
     }
 
-    private static void PrepareServices(DistributedApplicationModel model)
+    private void PrepareServices(DistributedApplicationModel model)
     {
         // Automatically add EndpointAnnotation to project resources based on ApplicationUrl set in the launch profile.
         foreach (var projectResource in model.Resources.OfType<ProjectResource>())
@@ -49,10 +50,11 @@ internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicat
                     continue;
                 }
 
+                int? port = options.Value.RandomizePorts is true ? null : uri.Port;
                 var generatedEndpointAnnotation = new EndpointAnnotation(
                     ProtocolType.Tcp,
                     uriScheme: uri.Scheme,
-                    port: uri.Port
+                    port: port
                     );
 
                 projectResource.Annotations.Add(generatedEndpointAnnotation);

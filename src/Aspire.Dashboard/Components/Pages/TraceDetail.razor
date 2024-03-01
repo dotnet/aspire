@@ -181,6 +181,6 @@
 else
 {
     <div class="empty-content">
-        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)]
+        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @string.Format(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)], TraceId)
     </div>
 }

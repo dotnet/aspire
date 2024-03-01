@@ -10,13 +10,13 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class AzureSearchResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.search.bicep"),
+    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.search.bicep"),
     IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets the "connectionString" reference from the secret outputs of the Azure Search resource.
+    /// Gets the "connectionString" output reference from the Azure Search resource.
     /// </summary>
-    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+    public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.

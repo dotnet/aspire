@@ -180,7 +180,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             }
 
             daprCli.Annotations.Add(
-                new ExecutableArgsCallbackAnnotation(
+                new CommandLineArgsCallbackAnnotation(
                     updatedArgs =>
                     {
                         AllocatedEndpointAnnotation? httpEndPoint = null;

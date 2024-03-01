@@ -98,6 +98,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
+
+            foreach (var lifecycleHook in _lifecycleHooks)
+            {
+                await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -529,16 +534,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 spec.Args ??= new();
 
-                if (er.ModelResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var exeArgsCallbacks))
+                if (er.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
                 {
+                    var commandLineContext = new CommandLineArgsCallbackContext(spec.Args, cancellationToken);
+
                     foreach (var exeArgsCallback in exeArgsCallbacks)
                     {
-                        exeArgsCallback.Callback(spec.Args);
+                        await exeArgsCallback.Callback(commandLineContext).ConfigureAwait(false);
                     }
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext(_executionContext, config);
+                var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -570,7 +577,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     foreach (var ann in envVarAnnotations)
                     {
-                        ann.Callback(context);
+                        await ann.Callback(context).ConfigureAwait(false);
                     }
                 }
 
@@ -686,7 +693,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var ctr = Container.Create(container.Name, containerImageName);
+            var ctr = Container.Create(GetObjectNameForResource(container), containerImageName);
 
             ctr.Annotate(Container.ResourceNameAnnotation, container.Name);
             ctr.Annotate(Container.OtelServiceNameAnnotation, container.Name);
@@ -789,11 +796,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var context = new EnvironmentCallbackContext(_executionContext, config);
+                    var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
 
                     foreach (var v in containerEnvironmentVariables)
                     {
-                        v.Callback(context);
+                        await v.Callback(context).ConfigureAwait(false);
                     }
                 }
 
@@ -802,12 +809,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                 }
 
-                if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+                if (modelContainerResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
                 {
                     dcpContainerResource.Spec.Args ??= [];
+
+                    var commandLineArgsContext = new CommandLineArgsCallbackContext(dcpContainerResource.Spec.Args, cancellationToken);
+
                     foreach (var callback in argsCallback)
                     {
-                        callback.Callback(dcpContainerResource.Spec.Args);
+                        await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
                     }
                 }
 
@@ -891,10 +901,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static string GetObjectNameForResource(IResource resource, string suffix = "")
+    private string GetObjectNameForResource(IResource resource, string suffix = "")
     {
-        string maybeWithSuffix(string s) => string.IsNullOrWhiteSpace(suffix) ? s : $"{s}_{suffix}";
-        return maybeWithSuffix(resource.Name);
+        static string maybeWithSuffix(string s, string localSuffix, string? globalSuffix)
+            => (string.IsNullOrWhiteSpace(localSuffix), string.IsNullOrWhiteSpace(globalSuffix)) switch
+            {
+                (true, true) => s,
+                (false, true) => $"{s}_{localSuffix}",
+                (true, false) => $"{s}_{globalSuffix}",
+                (false, false) => $"{s}_{localSuffix}_{globalSuffix}"
+            };
+        return maybeWithSuffix(resource.Name, suffix, _options.Value.ResourceNameSuffix);
     }
 
     private static string GenerateUniqueServiceName(HashSet<string> serviceNames, string candidateName)
@@ -925,5 +942,43 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             UriScheme: "http" or "https",
             EnvironmentVariable: null or { Length: 0 }
         };
+    }
+
+    public async Task DeleteResourcesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            AspireEventSource.Instance.DcpModelCleanupStart();
+            await DeleteResourcesAsync<ExecutableReplicaSet>("project", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Executable>("project", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Container>("container", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Service>("service", cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            AspireEventSource.Instance.DcpModelCleanupStop();
+            _appResources.Clear();
+        }
+    }
+
+    private async Task DeleteResourcesAsync<RT>(string resourceType, CancellationToken cancellationToken) where RT : CustomResource
+    {
+        var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
+        if (!resourcesToDelete.Any())
+        {
+            return;
+        }
+
+        foreach (var res in resourcesToDelete)
+        {
+            try
+            {
+                await kubernetesService.DeleteAsync<RT>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
+            }
+        }
     }
 }

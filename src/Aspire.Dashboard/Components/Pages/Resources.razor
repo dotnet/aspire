@@ -28,9 +28,9 @@
                         ShowIndeterminate="false"
                         ThreeStateOrderUncheckToIntermediate="true"
                         @bind-CheckState="AreAllTypesVisible" />
-                    @foreach (var resourceType in _allResourceTypes)
+                    @foreach (var (resourceType, _) in _allResourceTypes)
                     {
-                        var isChecked = _visibleResourceTypes.Contains(resourceType);
+                        var isChecked = _visibleResourceTypes.ContainsKey(resourceType);
                         <FluentCheckbox
                             Label="@resourceType"
                             @bind-Value:get="isChecked"
