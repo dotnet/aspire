@@ -240,11 +240,8 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             resource.Parameters.Remove(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
         }
 
-        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.Location, out var location) && location is null)
-        {
-            // Always specify the location
-            resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
-        }
+        // Always specify the location
+        resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
     }
 
     private static async Task<bool> ExecuteCommand(ProcessSpec processSpec)
