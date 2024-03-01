@@ -24,10 +24,17 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
 {
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly object _lockObj = new();
     private Task<DistributedApplication>? _appTask;
+    private DistributedApplicationBuilder? _builder;
     private DistributedApplication? _app;
     private IHostApplicationLifetime? _hostApplicationLifetime;
+
+    /// <summary>
+    /// Gets the distributed application builder associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
+    /// </summary>
+    public DistributedApplicationBuilder DistributedApplicationBuilder { get { EnsureBuilder(); return _builder; } }
 
     /// <summary>
     /// Gets the distributed application associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
@@ -169,7 +176,21 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
 
         InterceptHostCreation(applicationBuilder);
 
+        _builderTcs.TrySetResult(applicationBuilder);
         OnBuilding(applicationBuilder);
+    }
+
+    [MemberNotNull(nameof(_builder))]
+    private void EnsureBuilder()
+    {
+        if (_builder is not null)
+        {
+            return;
+        }
+
+        Start();
+
+        _builder = _builderTcs.Task.GetAwaiter().GetResult();
     }
 
     [MemberNotNull(nameof(_app))]
@@ -180,6 +201,14 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
             return;
         }
 
+        Start();
+
+        _app = _appTask.GetAwaiter().GetResult();
+    }
+
+    [MemberNotNull(nameof(_appTask))]
+    private void Start()
+    {
         EnsureDepsFile();
 
         if (_appTask is null)
@@ -207,8 +236,6 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
                 }
             }
         }
-
-        _app = _appTask.GetAwaiter().GetResult();
     }
 
     private void OnEntryPointExit(Exception? exception)
@@ -275,11 +302,12 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     /// <inheritdoc/>
     public virtual void Dispose()
     {
+        _builderTcs.TrySetCanceled();
+        _startedTcs.TrySetCanceled();
         if (_app is null || _hostApplicationLifetime is null)
         {
             return;
         }
-
         _hostApplicationLifetime?.StopApplication();
         _app?.Dispose();
     }
@@ -287,6 +315,8 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     /// <inheritdoc/>
     public virtual async ValueTask DisposeAsync()
     {
+        _builderTcs.TrySetCanceled();
+        _startedTcs.TrySetCanceled();
         if (_app is null)
         {
             return;

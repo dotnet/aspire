@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Testing;
 public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistributedApplicationBuilder where TEntryPoint : class
 {
     private readonly SuspendingDistributedApplicationFactory _factory;
-    private readonly DistributedApplicationBuilder _applicationBuilder;
+    private readonly DistributedApplicationBuilder _builder;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationTestingBuilder{TEntryPoint}"/> class.
@@ -31,32 +31,32 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
     public DistributedApplicationTestingBuilder(Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
     {
         _factory = new(configureBuilder);
-        _applicationBuilder = _factory.DistributedApplicationBuilder.Result;
+        _builder = _factory.DistributedApplicationBuilder;
     }
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Configuration" />
-    public ConfigurationManager Configuration => _applicationBuilder.Configuration;
+    public ConfigurationManager Configuration => _builder.Configuration;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Environment" />
-    public string AppHostDirectory => _applicationBuilder.AppHostDirectory;
+    public string AppHostDirectory => _builder.AppHostDirectory;
 
     /// <inheritdoc cref="HostApplicationBuilder.Environment" />
-    public IHostEnvironment Environment => _applicationBuilder.Environment;
+    public IHostEnvironment Environment => _builder.Environment;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Services" />
-    public IServiceCollection Services => _applicationBuilder.Services;
+    public IServiceCollection Services => _builder.Services;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.ExecutionContext" />
-    public DistributedApplicationExecutionContext ExecutionContext => _applicationBuilder.ExecutionContext;
+    public DistributedApplicationExecutionContext ExecutionContext => _builder.ExecutionContext;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Resources" />
-    public IResourceCollection Resources => _applicationBuilder.Resources;
+    public IResourceCollection Resources => _builder.Resources;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.AddResource{T}(T)" />
-    public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _applicationBuilder.AddResource(resource);
+    public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _builder.AddResource(resource);
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.CreateResourceBuilder{T}(T)" />
-    public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource => _applicationBuilder.CreateResourceBuilder(resource);
+    public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource => _builder.CreateResourceBuilder(resource);
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Build" />
     public DistributedApplication Build()
@@ -69,11 +69,8 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
         : DistributedApplicationTestingHarness<TEntryPoint>
     {
         private readonly SemaphoreSlim _continueBuilding = new(0);
-        private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public new DistributedApplication DistributedApplication => base.DistributedApplication;
-
-        public Task<DistributedApplicationBuilder> DistributedApplicationBuilder => _builderTcs.Task;
 
         protected override void OnBuilderCreating(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostOptions)
         {
@@ -89,7 +86,6 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
         protected override void OnBuilding(DistributedApplicationBuilder applicationBuilder)
         {
             base.OnBuilding(applicationBuilder);
-            _builderTcs.TrySetResult(applicationBuilder);
 
             // Wait until the owner signals that building can continue by calling Build().
             _continueBuilding.Wait();
@@ -103,14 +99,12 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
         public override async ValueTask DisposeAsync()
         {
             _continueBuilding.Release();
-            _builderTcs.TrySetCanceled();
             await base.DisposeAsync().ConfigureAwait(false);
         }
 
         public override void Dispose()
         {
             _continueBuilding.Release();
-            _builderTcs.TrySetCanceled();
             base.Dispose();
         }
     }

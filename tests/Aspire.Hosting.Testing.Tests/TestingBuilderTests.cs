@@ -33,8 +33,6 @@ public class TestingBuilderTests
     public async Task CanGetResources()
     {
         var appHost = new DistributedApplicationTestingBuilder<Program>();
-        appHost.Resources.Remove(appHost.Resources.Single(r => r.Name == "redis1"));
-
         await using var app = appHost.Build();
         await app.StartAsync();
 
