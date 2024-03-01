@@ -51,6 +51,6 @@ public class ApplicationNameTests : TestContext
         public string ApplicationName => "<marquee>An HTML title!</marquee>";
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public ResourceViewModelSubscription SubscribeResources() => throw new NotImplementedException();
+        public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 }

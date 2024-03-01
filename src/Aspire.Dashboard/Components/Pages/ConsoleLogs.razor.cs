@@ -61,7 +61,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         var loadingTcs = new TaskCompletionSource();
 
-        TrackResourceSnapshots();
+        await TrackResourceSnapshotsAsync();
 
         // Wait for resource to be selected. If selected resource isn't available after a few seconds then stop waiting.
         try
@@ -74,14 +74,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
         }
 
-        void TrackResourceSnapshots()
+        async Task TrackResourceSnapshotsAsync()
         {
             if (!DashboardClient.IsEnabled)
             {
                 return;
             }
 
-            var (snapshot, subscription) = DashboardClient.SubscribeResources();
+            var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_resourceSubscriptionCancellation.Token);
 
             Logger.LogDebug("Received initial resource snapshot with {ResourceCount} resources.", snapshot.Length);
 

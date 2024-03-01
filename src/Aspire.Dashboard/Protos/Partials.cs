@@ -21,7 +21,7 @@ partial class Resource
             ResourceType = ValidateNotNull(ResourceType),
             DisplayName = ValidateNotNull(DisplayName),
             Uid = ValidateNotNull(Uid),
-            CreationTimeStamp = CreatedAt.ToDateTime(),
+            CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
             Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
             Endpoints = GetEndpoints(),
             Environment = GetEnvironment(),

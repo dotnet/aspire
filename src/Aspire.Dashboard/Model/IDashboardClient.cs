@@ -37,7 +37,7 @@ public interface IDashboardClient : IAsyncDisposable
     /// Callers are required to manage the lifetime of the subscription,
     /// using cancellation during enumeration.
     /// </remarks>
-    ResourceViewModelSubscription SubscribeResources();
+    Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets a stream of console log messages for the specified resource.

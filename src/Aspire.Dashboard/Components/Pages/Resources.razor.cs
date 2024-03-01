@@ -100,13 +100,13 @@ public partial class Resources : ComponentBase, IDisposable
     private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
     private readonly GridSort<ResourceViewModel> _startTimeSort = GridSort<ResourceViewModel>.ByDescending(p => p.CreationTimeStamp);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
         {
-            SubscribeResources();
+            await SubscribeResourcesAsync();
         }
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
@@ -115,9 +115,9 @@ public partial class Resources : ComponentBase, IDisposable
             await InvokeAsync(StateHasChanged);
         });
 
-        void SubscribeResources()
+        async Task SubscribeResourcesAsync()
         {
-            var (snapshot, subscription) = DashboardClient.SubscribeResources();
+            var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
             // Apply snapshot.
             foreach (var resource in snapshot)
