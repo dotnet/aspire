@@ -29,26 +29,22 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
     [InlineData(TestResourceNames.sqlserver)]
-    public async Task VerifyComponentWorks(TestResourceNames resourceName)
-    {
-        _integrationServicesFixture.EnsureAppHostRunning();
-
-        try
+    public Task VerifyComponentWorks(TestResourceNames resourceName)
+        => RunTestAsync(async () =>
         {
-            var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
-            var responseContent = await response.Content.ReadAsStringAsync();
+            try
+            {
+                var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
+                var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(response.IsSuccessStatusCode, responseContent);
-        }
-        catch
-        {
-            _testOutput.WriteLine ($"[{DateTime.Now}] <<<< FAILED VerifyComponentWorks for {resourceName} --");
-            await _integrationServicesFixture.DumpComponentLogsAsync(resourceName.ToString().ToLowerInvariant(), _testOutput);
-            await _integrationServicesFixture.DumpDockerInfoAsync();
-
-            throw;
-        }
-    }
+                Assert.True(response.IsSuccessStatusCode, responseContent);
+            }
+            catch
+            {
+                await _integrationServicesFixture.DumpComponentLogsAsync(resourceName.ToString().ToLowerInvariant(), _testOutput);
+                throw;
+            }
+        });
 
     // FIXME: open issue
     [ConditionalTheory]
@@ -66,12 +62,9 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Fact]
-    public async Task KafkaComponentCanProduceAndConsume()
-    {
-        try
+    public Task KafkaComponentCanProduceAndConsume()
+        => RunTestAsync(async() =>
         {
-            _integrationServicesFixture.EnsureAppHostRunning();
-
             string topic = $"topic-{Guid.NewGuid()}";
 
             var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
@@ -81,29 +74,26 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}");
             responseContent = await response.Content.ReadAsStringAsync();
             Assert.True(response.IsSuccessStatusCode, responseContent);
-        }
-        catch
-        {
-            _testOutput.WriteLine($"[{DateTime.Now}] <<<< FAILED KafkaComponentCanProduceAndConsume --");
-            await _integrationServicesFixture.DumpDockerInfoAsync();
-            throw;
-        }
-    }
+        });
 
     [Fact]
-    public async Task VerifyHealthyOnIntegrationServiceA()
-    {
-        try
+    public Task VerifyHealthyOnIntegrationServiceA()
+        => RunTestAsync(async () =>
         {
-            _integrationServicesFixture.EnsureAppHostRunning();
-
             // We wait until timeout for the /health endpoint to return successfully. We assume
             // that components wired up into this project have health checks enabled.
             await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http", _testOutput);
+        });
+
+    private async Task RunTestAsync(Func<Task> test)
+    {
+        _integrationServicesFixture.EnsureAppHostRunning();
+        try
+        {
+            await test();
         }
         catch
         {
-            _testOutput.WriteLine($"[{DateTime.Now}] <<<< FAILED VerifyHealthyOnIntegrationServiceA --");
             await _integrationServicesFixture.DumpDockerInfoAsync();
             throw;
         }
