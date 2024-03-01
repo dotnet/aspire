@@ -16,7 +16,6 @@ namespace Aspire.Hosting.Testing;
 public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistributedApplicationBuilder where TEntryPoint : class
 {
     private readonly SuspendingDistributedApplicationFactory _factory;
-    private readonly DistributedApplicationBuilder _builder;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationTestingBuilder{TEntryPoint}"/> class.
@@ -31,32 +30,31 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
     public DistributedApplicationTestingBuilder(Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
     {
         _factory = new(configureBuilder);
-        _builder = _factory.DistributedApplicationBuilder;
     }
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Configuration" />
-    public ConfigurationManager Configuration => _builder.Configuration;
+    public ConfigurationManager Configuration => _factory.Builder.Configuration;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Environment" />
-    public string AppHostDirectory => _builder.AppHostDirectory;
+    public string AppHostDirectory => _factory.Builder.AppHostDirectory;
 
     /// <inheritdoc cref="HostApplicationBuilder.Environment" />
-    public IHostEnvironment Environment => _builder.Environment;
+    public IHostEnvironment Environment => _factory.Builder.Environment;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Services" />
-    public IServiceCollection Services => _builder.Services;
+    public IServiceCollection Services => _factory.Builder.Services;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.ExecutionContext" />
-    public DistributedApplicationExecutionContext ExecutionContext => _builder.ExecutionContext;
+    public DistributedApplicationExecutionContext ExecutionContext => _factory.Builder.ExecutionContext;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Resources" />
-    public IResourceCollection Resources => _builder.Resources;
+    public IResourceCollection Resources => _factory.Builder.Resources;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.AddResource{T}(T)" />
-    public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _builder.AddResource(resource);
+    public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _factory.Builder.AddResource(resource);
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.CreateResourceBuilder{T}(T)" />
-    public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource => _builder.CreateResourceBuilder(resource);
+    public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource => _factory.Builder.CreateResourceBuilder(resource);
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Build" />
     public DistributedApplication Build()
@@ -70,7 +68,8 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
     {
         private readonly SemaphoreSlim _continueBuilding = new(0);
 
-        public new DistributedApplication DistributedApplication => base.DistributedApplication;
+        public new DistributedApplicationBuilder Builder => base.Builder;
+        public new DistributedApplication Application => base.Application;
 
         protected override void OnBuilderCreating(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostOptions)
         {

@@ -34,12 +34,12 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     /// <summary>
     /// Gets the distributed application builder associated with this instance.
     /// </summary>
-    public DistributedApplicationBuilder DistributedApplicationBuilder { get { EnsureBuilder(); return _builder; } }
+    protected DistributedApplicationBuilder Builder { get { EnsureBuilder(); return _builder; } }
 
     /// <summary>
     /// Gets the distributed application associated with this instance.
     /// </summary>
-    protected DistributedApplication DistributedApplication { get { EnsureApp(); return _app; } }
+    protected DistributedApplication Application { get { EnsureApp(); return _app; } }
 
     /// <summary>
     /// Initializes the application.
@@ -86,7 +86,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
         EnsureApp();
         ThrowIfNotInitialized();
 
-        return DistributedApplication.CreateHttpClient(resourceName, endpointName);
+        return Application.CreateHttpClient(resourceName, endpointName);
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
         EnsureApp();
         ThrowIfNotInitialized();
 
-        return DistributedApplication.GetConnectionString(resourceName);
+        return Application.GetConnectionString(resourceName);
     }
 
     /// <summary>
@@ -116,7 +116,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
         EnsureApp();
         ThrowIfNotInitialized();
 
-        return DistributedApplication.GetEndpoint(resourceName, endpointName);
+        return Application.GetEndpoint(resourceName, endpointName);
     }
 
     /// <summary>
