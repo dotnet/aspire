@@ -469,7 +469,7 @@ public class DistributedApplicationTests
             }
         }
 
-        await foreach(var resource in s.WatchAsync<Executable>(cancellationToken: token))
+        await foreach (var resource in s.WatchAsync<Executable>(cancellationToken: token))
         {
             Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Executable.ResourceNameAnnotation, out var value));
             if (expectedExeResources.Contains(value))
