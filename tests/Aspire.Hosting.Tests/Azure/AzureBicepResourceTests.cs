@@ -204,8 +204,8 @@ public class AzureBicepResourceTests
         Assert.Equal("construct1.module.bicep", manifest["path"]?.ToString());
     }
 
-   [Fact]
-    public async Task AddParameterOnResourceModuleConstructPopulatesParametersEverywhere()
+    [Fact]
+    public async Task AssignParameterPopulatesParametersEverywhere()
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.Configuration["Parameters:skuName"] = "Standard_ZRS";
@@ -230,6 +230,34 @@ public class AzureBicepResourceTests
         Assert.True(constructParameters.ContainsKey("skuName"));
         Assert.Equal(skuName, construct1.Resource.Parameters["skuName"]);
         Assert.Equal("{skuName.value}", manifest["params"]?["skuName"]?.ToString());
+    }
+
+    [Fact]
+    public async Task AssignParameterWithSpecifiedNamePopulatesParametersEverywhere()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.Configuration["Parameters:skuName"] = "Standard_ZRS";
+
+        var skuName = builder.AddParameter("skuName");
+
+        ResourceModuleConstruct? moduleConstruct = null;
+        var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
+        {
+            var storage = construct.AddStorageAccount(
+                kind: StorageKind.StorageV2,
+                sku: StorageSkuName.StandardLrs
+                );
+            storage.AssignParameter(sa => sa.Sku.Name, "sku", skuName);
+            moduleConstruct = construct;
+        });
+
+        var manifest = await ManifestUtils.GetManifest(construct1.Resource);
+
+        Assert.NotNull(moduleConstruct);
+        var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
+        Assert.True(constructParameters.ContainsKey("sku"));
+        Assert.Equal(skuName, construct1.Resource.Parameters["sku"]);
+        Assert.Equal("{skuName.value}", manifest["params"]?["sku"]?.ToString());
     }
 
     [Fact]
