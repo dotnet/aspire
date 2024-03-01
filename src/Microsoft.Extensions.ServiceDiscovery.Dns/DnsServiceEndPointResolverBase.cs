@@ -10,7 +10,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 /// <summary>
 /// A service end point resolver that uses DNS to resolve the service end points.
 /// </summary>
-internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPointResolver
+internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPointProvider
 {
     private readonly object _lock = new();
     private readonly ILogger _logger;

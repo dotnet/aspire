@@ -3,15 +3,16 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Options;
 using System.Net.Sockets;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<DcpOptions> options, DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (executionContext.Operation == DistributedApplicationOperation.Run)
+        if (executionContext.IsRunMode)
         {
             PrepareServices(appModel);
         }
@@ -19,7 +20,7 @@ internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicat
         return Task.CompletedTask;
     }
 
-    private static void PrepareServices(DistributedApplicationModel model)
+    private void PrepareServices(DistributedApplicationModel model)
     {
         // Automatically add EndpointAnnotation to project resources based on ApplicationUrl set in the launch profile.
         foreach (var projectResource in model.Resources.OfType<ProjectResource>())
@@ -35,17 +36,25 @@ internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicat
             {
                 var uri = new Uri(url);
 
-                if (projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName)))
+                var endpointAnnotations = projectResource.Annotations.OfType<EndpointAnnotation>().Where(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName));
+                if (endpointAnnotations.Any(sb => sb.IsProxied))
                 {
                     // If someone uses WithEndpoint in the dev host to register a endpoint with the name
                     // http or https this exception will be thrown.
                     throw new DistributedApplicationException($"Endpoint with name '{uri.Scheme}' already exists.");
                 }
 
+                if (endpointAnnotations.Any())
+                {
+                    // We have a non-proxied endpoint with the same name as the 'url', don't add another endpoint for the same name
+                    continue;
+                }
+
+                int? port = options.Value.RandomizePorts is true ? null : uri.Port;
                 var generatedEndpointAnnotation = new EndpointAnnotation(
                     ProtocolType.Tcp,
                     uriScheme: uri.Scheme,
-                    port: uri.Port
+                    port: port
                     );
 
                 projectResource.Annotations.Add(generatedEndpointAnnotation);

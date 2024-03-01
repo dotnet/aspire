@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Bicep;
 
 namespace Aspire.Hosting;
 
@@ -24,7 +23,7 @@ public static class AzureSqlExtensions
         var azureSqlDatabase = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                         .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
-                        .WithParameter("databases", () => builder.Resource.Databases);
+                        .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Value));
 
         if (callback != null)
         {
@@ -46,7 +45,7 @@ public static class AzureSqlExtensions
         var azureSqlDatabase = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                         .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
-                        .WithParameter("databases", () => builder.Resource.Databases);
+                        .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Value));
 
         // Used to hold a reference to the azure surrogate for use with the provisioner.
         builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));

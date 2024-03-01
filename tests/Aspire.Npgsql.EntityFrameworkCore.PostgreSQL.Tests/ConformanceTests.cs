@@ -62,7 +62,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
                 "PostgreSQL": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
                   "HealthChecks": false,
-                  "DbContextPooling": true,
                   "Tracing": true,
                   "Metrics": true
                 }

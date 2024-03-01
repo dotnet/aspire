@@ -56,7 +56,7 @@ internal sealed class DashboardServiceHost : IHostedService
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
-        if (!options.DashboardEnabled || executionContext.Operation == DistributedApplicationOperation.Publish)
+        if (!options.DashboardEnabled || executionContext.IsPublishMode)
         {
             _logger.LogDebug("Dashboard is not enabled so skipping hosting the resource service.");
             _resourceServiceUri.SetCanceled();

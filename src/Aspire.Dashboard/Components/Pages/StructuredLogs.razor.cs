@@ -27,7 +27,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
 
-    public string BasePath => "StructuredLogs";
+    public string BasePath => "structuredlogs";
     public string SessionStorageKey => "StructuredLogs_PageState";
     public StructuredLogsPageViewModel PageViewModel { get; set; } = null!;
 
@@ -92,7 +92,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
-            ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId  });
+            ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
         }
 
         _allApplication = new()
@@ -285,7 +285,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public UrlState GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
     {
-        var path = serializable.SelectedApplication is not null ? $"/StructuredLogs/{serializable.SelectedApplication}" : "/StructuredLogs";
+        var path = serializable.SelectedApplication is not null ? $"/structuredlogs/resource/{serializable.SelectedApplication}" : "/structuredlogs";
         var queryParameters = new Dictionary<string, string?>();
 
         if (serializable.LogLevelText is not null)

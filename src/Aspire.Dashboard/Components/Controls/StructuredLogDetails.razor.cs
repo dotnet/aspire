@@ -12,11 +12,11 @@ public partial class StructuredLogDetails
     [Parameter, EditorRequired]
     public required IEnumerable<LogEntryPropertyViewModel> Items { get; set; }
 
-    private IQueryable<LogEntryPropertyViewModel>? FilteredItems =>
-        Items?.Where(vm =>
+    private IQueryable<LogEntryPropertyViewModel> FilteredItems =>
+        Items.Where(vm =>
             vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
-        )?.AsQueryable();
+        ).AsQueryable();
 
     private string _filter = "";
 

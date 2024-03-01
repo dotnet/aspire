@@ -18,7 +18,7 @@ public class AddMongoDBTests
 
         appBuilder.AddMongoDB("mongodb");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -49,7 +49,7 @@ public class AddMongoDBTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMongoDB("mongodb", 9813);
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -89,7 +89,7 @@ public class AddMongoDBTests
             ))
             .AddDatabase("mydatabase");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -122,19 +122,96 @@ public class AddMongoDBTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var mongo = appBuilder.AddMongoDB("mongo");
         var db = mongo.AddDatabase("mydb");
 
-        var mongoManifest = ManifestUtils.GetManifest(mongo.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
-        
-        Assert.Equal("container.v0", mongoManifest["type"]?.ToString());
-        Assert.Equal(mongo.Resource.ConnectionStringExpression, mongoManifest["connectionString"]?.ToString());
+        var mongoManifest = await ManifestUtils.GetManifest(mongo.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
-        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
+              "image": "mongo:7.0.5",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 27017
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, mongoManifest.ToString());
+
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{mongo.connectionString}/mydb"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNames()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db = builder.AddMongoDB("mongo1");
+        db.AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddMongoDB("mongo1")
+            .AddDatabase("db");
+
+        var db = builder.AddMongoDB("mongo2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithDifferentNamesOnSingleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var mongo1 = builder.AddMongoDB("mongo1");
+
+        var db1 = mongo1.AddDatabase("db1", "customers1");
+        var db2 = mongo1.AddDatabase("db2", "customers2");
+
+        Assert.Equal("customers1", db1.Resource.DatabaseName);
+        Assert.Equal("customers2", db2.Resource.DatabaseName);
+
+        Assert.Equal("{mongo1.connectionString}/customers1", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{mongo1.connectionString}/customers2", db2.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithTheSameNameOnMultipleServers()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db1 = builder.AddMongoDB("mongo1")
+            .AddDatabase("db1", "imports");
+
+        var db2 = builder.AddMongoDB("mongo2")
+            .AddDatabase("db2", "imports");
+
+        Assert.Equal("imports", db1.Resource.DatabaseName);
+        Assert.Equal("imports", db2.Resource.DatabaseName);
+
+        Assert.Equal("{mongo1.connectionString}/imports", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{mongo2.connectionString}/imports", db2.Resource.ConnectionStringExpression);
     }
 }

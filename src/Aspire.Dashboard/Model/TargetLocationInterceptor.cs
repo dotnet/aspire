@@ -8,7 +8,7 @@ namespace Aspire.Dashboard.Model;
 internal static class TargetLocationInterceptor
 {
     public const string ResourcesPath = "/";
-    public const string StructuredLogsPath = "/StructuredLogs";
+    public const string StructuredLogsPath = "/structuredlogs";
 
     public static bool InterceptTargetLocation(string appBaseUri, string originalTargetLocation, [NotNullWhen(true)] out string? newTargetLocation)
     {

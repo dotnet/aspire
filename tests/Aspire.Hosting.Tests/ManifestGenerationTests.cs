@@ -14,7 +14,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureAddParameterWithSecretFalseDoesntEmitSecretField()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
         program.AppBuilder.AddParameter("x", secret: false);
         program.Build();
         var publisher = program.GetManifestPublisher();
@@ -31,7 +31,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureAddParameterWithSecretDefaultDoesntEmitSecretField()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
         program.AppBuilder.AddParameter("x");
         program.Build();
         var publisher = program.GetManifestPublisher();
@@ -48,7 +48,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureAddParameterWithSecretTrueDoesEmitSecretField()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
         program.AppBuilder.AddParameter("x", secret: true);
         program.Build();
         var publisher = program.GetManifestPublisher();
@@ -66,7 +66,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureWorkerProjectDoesNotGetBindingsGenerated()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -83,7 +83,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
+        using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
         program.NodeAppBuilder!.WithHttpsEndpoint(containerPort: 3000, env: "HTTPS_PORT")
             .PublishAsDockerFile();
 
@@ -116,7 +116,7 @@ public class ManifestGenerationTests
     [Fact]
     public void ExcludeLaunchProfileOmitsBindings()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
         program.ServiceABuilder.ExcludeLaunchProfile();
 
         program.Build();
@@ -134,7 +134,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureContainerWithEndpointsEmitsContainerPort()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("grafana", "grafana/grafana")
                           .WithHttpEndpoint(3000);
@@ -156,7 +156,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureContainerWithArgsEmitsContainerArgs()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("grafana", "grafana/grafana")
                           .WithArgs("test", "arg2", "more");
@@ -184,7 +184,7 @@ public class ManifestGenerationTests
     [InlineData(new string[] { "args1", "args2" }, new string[] { })]
     public void EnsureExecutableWithArgsEmitsExecutableArgs(string[] addExecutableArgs, string[] withArgsArgs)
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         var resourceBuilder = program.AppBuilder.AddExecutable("program", "run program", "c:/", addExecutableArgs);
         if (withArgsArgs.Length > 0)
@@ -220,7 +220,7 @@ public class ManifestGenerationTests
     [Fact]
     public void ExecutableManifestNotIncludeArgsWhenEmpty()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddExecutable("program", "run program", "c:/");
 
@@ -240,7 +240,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureContainerWithCustomEntrypointEmitsEntrypoint()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         var container = program.AppBuilder.AddContainer("grafana", "grafana/grafana");
         container.Resource.Entrypoint = "custom";
@@ -261,7 +261,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddRedis("rediscontainer");
 
@@ -280,7 +280,7 @@ public class ManifestGenerationTests
     [Fact]
     public void PublishingRedisResourceAsContainerResultsInConnectionStringProperty()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddRedis("rediscontainer");
 
@@ -301,7 +301,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureAllPostgresManifestTypesHaveVersion0Suffix()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddPostgres("postgrescontainer").AddDatabase("postgresdatabase");
 
@@ -323,7 +323,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddRabbitMQ("rabbitcontainer");
 
@@ -342,7 +342,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureAllKafkaManifestTypesHaveVersion0Suffix()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddKafka("kafkacontainer");
 
@@ -361,7 +361,7 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureAllAzureOpenAIManifestTypesHaveVersion0Suffix()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddAzureOpenAI("openai").AddDeployment("deployment");
 
@@ -383,7 +383,7 @@ public class ManifestGenerationTests
     [Fact]
     public void NodeAppIsExecutableResource()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
             .WithHttpEndpoint(hostPort: 5031, env: "PORT");
@@ -428,7 +428,7 @@ public class ManifestGenerationTests
     [Fact]
     public void MetadataPropertyNotEmittedWhenMetadataNotAdded()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("testresource", "testresource");
 
@@ -447,7 +447,7 @@ public class ManifestGenerationTests
     [Fact]
     public void MetadataPropertyEmittedWhenMetadataNotAdded()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("testresource", "testresource")
                           .WithMetadata("data", "value");
@@ -469,7 +469,7 @@ public class ManifestGenerationTests
     [Fact]
     public void MetadataPropertyCanEmitComplexObjects()
     {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("testresource", "testresource")
                           .WithMetadata("data", new

@@ -13,7 +13,7 @@ public class AsHttp2ServiceTests
     [Fact]
     public void Http2TransportIsNotSetWhenHttp2ServiceAnnotationIsNotApplied()
     {
-        var testProgram = CreateTestProgram(["--publisher", "manifest"]);
+        using var testProgram = CreateTestProgram(["--publisher", "manifest"]);
 
         // Block DCP from actually starting anything up as we don't need it for this test.
         testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
@@ -33,7 +33,7 @@ public class AsHttp2ServiceTests
     [Fact]
     public void Http2TransportIsSetWhenHttp2ServiceAnnotationIsApplied()
     {
-        var testProgram = CreateTestProgram(["--publisher", "manifest"]);
+        using var testProgram = CreateTestProgram(["--publisher", "manifest"]);
         testProgram.ServiceABuilder.AsHttp2Service();
 
         // Block DCP from actually starting anything up as we don't need it for this test.
@@ -50,7 +50,7 @@ public class AsHttp2ServiceTests
     [Fact]
     public void Http2TransportIsNotAppliedToNonHttpEndpoints()
     {
-        var testProgram = CreateTestProgram(["--publisher", "manifest"]);
+        using var testProgram = CreateTestProgram(["--publisher", "manifest"]);
         testProgram.ServiceABuilder.WithEndpoint(9999, scheme: "tcp");
         testProgram.ServiceABuilder.AsHttp2Service();
 

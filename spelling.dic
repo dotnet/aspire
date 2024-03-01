@@ -3,6 +3,7 @@ amqp
 apigateway
 apiserver
 appsettings
+azuresearch
 blazor
 brightblack
 brightblue
@@ -13,6 +14,7 @@ brightred
 brightwhite
 brightyellow
 chmod
+consolelogs
 csproj
 dbug
 dcpctrl
@@ -47,6 +49,7 @@ redis
 rediscommander
 runtimeconfig
 sqlserver
+structuredlogs
 trce
 uninstrumented
 unix

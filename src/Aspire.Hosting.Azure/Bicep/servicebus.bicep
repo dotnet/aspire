@@ -51,4 +51,4 @@ resource ServiceBusRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-output serviceBusEndpoint string = replace(serviceBusNamespace.properties.serviceBusEndpoint, 'https://', '')
+output serviceBusEndpoint string = serviceBusNamespace.properties.serviceBusEndpoint

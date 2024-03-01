@@ -23,7 +23,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
 
-    public string BasePath => "Metrics";
+    public string BasePath => "metrics";
     public string SessionStorageKey => "Metrics_PageState";
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
@@ -210,12 +210,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         if (serializable.ApplicationName is not null && serializable.MeterName is not null)
         {
             path = serializable.InstrumentName is not null
-                ? $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
-                : $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}";
+                ? $"/{BasePath}/resource/{serializable.ApplicationName}/meter/{serializable.MeterName}/instrument/{serializable.InstrumentName}"
+                : $"/{BasePath}/resource/{serializable.ApplicationName}/meter/{serializable.MeterName}";
         }
         else if (serializable.ApplicationName is not null)
         {
-            path = $"/{BasePath}/{serializable.ApplicationName}";
+            path = $"/{BasePath}/resource/{serializable.ApplicationName}";
         }
         else
         {

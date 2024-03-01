@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Lifecycle;
 
-public class TestProgram
+public class TestProgram : IDisposable
 {
     private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard)
     {
@@ -61,7 +61,7 @@ public class TestProgram
             var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
                 .AddDatabase(oracleDbName);
             var kafka = AppBuilder.AddKafka("kafka");
-            var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").UseEmulator();
+            var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserver)
@@ -108,11 +108,9 @@ public class TestProgram
         return App;
     }
 
-    public void Run()
-    {
-        Build();
-        App!.Run();
-    }
+    public void Run() => Build().Run();
+
+    public void Dispose() => App?.Dispose();
 
     /// <summary>
     /// Writes the allocated endpoints to the console in JSON format.

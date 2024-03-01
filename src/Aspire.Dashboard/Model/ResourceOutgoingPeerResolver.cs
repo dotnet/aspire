@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Utils;
 
 namespace Aspire.Dashboard.Model;
 
@@ -161,15 +162,6 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         _watchContainersTokenSource.Cancel();
         _watchContainersTokenSource.Dispose();
 
-        if (_watchTask is not null)
-        {
-            try
-            {
-                await _watchTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
+        await TaskHelpers.WaitIgnoreCancelAsync(_watchTask).ConfigureAwait(false);
     }
 }

@@ -12,13 +12,23 @@
                       slot="end" />
     </FluentToolbar>
     <div class="property-grid-container">
-        <PropertyGrid TItem="LogEntryPropertyViewModel"
-                      Items="@FilteredItems"
-                      GridTemplateColumns="1fr 2fr"
-                      NameColumnValue="(vm) => vm.Name"
-                      ValueColumnValue="(vm) => vm.Value"
-                      NameSort="_nameSort"
-                      ValueSort="_valueSort"
-                      HighlightText="@_filter" />
+        <FluentAccordion>
+            <FluentAccordionItem Heading="Properties" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredItems.Count()
+                    </FluentBadge>
+                </div>
+                <PropertyGrid TItem="LogEntryPropertyViewModel"
+                              Items="@FilteredItems"
+                              GridTemplateColumns="1fr 2fr"
+                              NameColumnValue="(vm) => vm.Name"
+                              ValueColumnValue="(vm) => vm.Value"
+                              NameSort="_nameSort"
+                              ValueSort="_valueSort"
+                              HighlightText="@_filter" />
+            </FluentAccordionItem>
+        </FluentAccordion>
     </div>
 </div>

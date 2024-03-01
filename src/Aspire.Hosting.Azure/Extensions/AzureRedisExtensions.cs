@@ -3,8 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Bicep;
-using Aspire.Hosting.Azure.Redis;
 
 namespace Aspire.Hosting;
 

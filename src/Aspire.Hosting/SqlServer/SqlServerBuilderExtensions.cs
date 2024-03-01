@@ -30,10 +30,11 @@ public static class SqlServerBuilderExtensions
         return builder.AddResource(sqlServer)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
+                      .WithDefaultPassword()
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+                          if (context.ExecutionContext.IsPublishMode)
                           {
                               context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", $"{{{sqlServer.Name}.inputs.password}}");
                           }
@@ -52,7 +53,7 @@ public static class SqlServerBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<SqlServerServerResource> PublishAsContainer(this IResourceBuilder<SqlServerServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
+        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 
     /// <summary>
@@ -60,11 +61,15 @@ public static class SqlServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The SQL Server resource builders.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, string name)
+    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerServerResource> builder, string name, string? databaseName = null)
     {
-        builder.Resource.AddDatabase(name);
-        var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
                                          .WithManifestPublishingCallback(sqlServerDatabase.WriteToManifest);
     }

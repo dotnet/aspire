@@ -51,4 +51,17 @@ public static class AzureResourceExtensions
         context.Writer.WriteString("type", "azure.openai.deployment.v0");
         context.Writer.WriteString("parent", resource.Parent.Name);
     }
+
+    /// <summary>
+    /// Changes the resource to be published as a connection string reference in the manifest.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The configured <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> PublishAsConnectionString<T>(this IResourceBuilder<T> builder)
+        where T : IAzureResource, IResourceWithConnectionString
+    {
+        ParameterResourceBuilderExtensions.ConfigureConnectionStringManifestPublisher((IResourceBuilder<IResourceWithConnectionString>)builder);
+        return builder;
+    }
 }

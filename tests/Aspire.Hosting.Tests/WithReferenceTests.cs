@@ -9,9 +9,9 @@ namespace Aspire.Hosting.Tests;
 public class WithReferenceTests
 {
     [Fact]
-    public void ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables()
+    public async Task ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
@@ -36,7 +36,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
@@ -46,9 +46,9 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ResourceWithConflictingEndpointsProducesFullyScopedEnvironmentVariables()
+    public async Task ResourceWithConflictingEndpointsProducesFullyScopedEnvironmentVariables()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
@@ -86,7 +86,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
@@ -96,9 +96,9 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ResourceWithNonConflictingEndpointsProducesAllVariantsOfEnvironmentVariables()
+    public async Task ResourceWithNonConflictingEndpointsProducesAllVariantsOfEnvironmentVariables()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
@@ -136,7 +136,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+           await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
@@ -148,9 +148,9 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ResourceWithConflictingEndpointsProducesAllEnvironmentVariables()
+    public async Task ResourceWithConflictingEndpointsProducesAllEnvironmentVariables()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
@@ -184,7 +184,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+           await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
@@ -194,9 +194,9 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ResourceWithEndpointsProducesAllEnvironmentVariables()
+    public async Task ResourceWithEndpointsProducesAllEnvironmentVariables()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
@@ -230,7 +230,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+           await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
@@ -242,9 +242,9 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ConnectionStringResourceThrowsWhenMissingConnectionString()
+    public async Task ConnectionStringResourceThrowsWhenMissingConnectionString()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource"));
@@ -258,19 +258,19 @@ public class WithReferenceTests
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var context = new EnvironmentCallbackContext(executionContext, config);
 
-        Assert.Throws<DistributedApplicationException>(() =>
+        await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
             foreach (var annotation in annotations)
             {
-                annotation.Callback(context);
+                await annotation.Callback(context);
             }
         });
     }
 
     [Fact]
-    public void ConnectionStringResourceOptionalWithMissingConnectionString()
+    public async Task ConnectionStringResourceOptionalWithMissingConnectionString()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource"));
@@ -286,7 +286,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
@@ -294,9 +294,9 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ParameterAsConnectionStringResourceThrowsWhenConnectionStringSectionMissing()
+    public async Task ParameterAsConnectionStringResourceThrowsWhenConnectionStringSectionMissing()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var missingResource = testProgram.AppBuilder.AddConnectionString("missingresource");
@@ -310,11 +310,11 @@ public class WithReferenceTests
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var context = new EnvironmentCallbackContext(executionContext, config);
 
-        var exception = Assert.Throws<DistributedApplicationException>(() =>
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
             foreach (var annotation in annotations)
             {
-                annotation.Callback(context);
+                await annotation.Callback(context);
             }
         });
 
@@ -322,9 +322,9 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ParameterAsConnectionStringResourceInjectsConnectionStringWhenPresent()
+    public async Task ParameterAsConnectionStringResourceInjectsConnectionStringWhenPresent()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Configuration["ConnectionStrings:resource"] = "test connection string";
 
         // Get the service provider.
@@ -341,16 +341,16 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Equal("test connection string", config["ConnectionStrings__resource"]);
     }
 
     [Fact]
-    public void ParameterAsConnectionStringResourceInjectsExpressionWhenPublishingManifest()
+    public async Task ParameterAsConnectionStringResourceInjectsExpressionWhenPublishingManifest()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddConnectionString("resource");
@@ -366,16 +366,16 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Equal("{resource.connectionString}", config["ConnectionStrings__resource"]);
     }
 
     [Fact]
-    public void ParameterAsConnectionStringResourceInjectsCorrectEnvWhenPublishingManifest()
+    public async Task ParameterAsConnectionStringResourceInjectsCorrectEnvWhenPublishingManifest()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddConnectionString("resource", "MY_ENV");
@@ -391,16 +391,16 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Equal("{resource.connectionString}", config["MY_ENV"]);
     }
 
     [Fact]
-    public void ConnectionStringResourceWithConnectionString()
+    public async Task ConnectionStringResourceWithConnectionString()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource")
@@ -419,7 +419,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
@@ -428,9 +428,9 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ConnectionStringResourceWithConnectionStringOverwriteName()
+    public async Task ConnectionStringResourceWithConnectionStringOverwriteName()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource")
@@ -449,7 +449,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
@@ -460,7 +460,7 @@ public class WithReferenceTests
     [Fact]
     public void WithReferenceHttpRelativeUriThrowsException()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         Assert.Throws<InvalidOperationException>(() => testProgram.ServiceABuilder.WithReference("petstore", new Uri("petstore.swagger.io", UriKind.Relative)));
     }
@@ -468,15 +468,15 @@ public class WithReferenceTests
     [Fact]
     public void WithReferenceHttpUriThrowsException()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         Assert.Throws<InvalidOperationException>(() => testProgram.ServiceABuilder.WithReference("petstore", new Uri("https://petstore.swagger.io/v2")));
     }
 
     [Fact]
-    public void WithReferenceHttpProduceEnvironmentVariables()
+    public async Task WithReferenceHttpProduceEnvironmentVariables()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         testProgram.ServiceABuilder.WithReference("petstore", new Uri("https://petstore.swagger.io/"));
 
@@ -489,7 +489,7 @@ public class WithReferenceTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
@@ -505,7 +505,7 @@ public class WithReferenceTests
 
         public string? ConnectionString { get; set; }
 
-        public ResourceMetadataCollection Annotations => throw new NotImplementedException();
+        public ResourceAnnotationCollection Annotations => throw new NotImplementedException();
 
         public string? GetConnectionString()
         {

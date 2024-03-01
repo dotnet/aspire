@@ -27,10 +27,11 @@ public static class RabbitMQBuilderExtensions
         return builder.AddResource(rabbitMq)
                        .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
+                       .WithDefaultPassword()
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment(context =>
                        {
-                           if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+                           if (context.ExecutionContext.IsPublishMode)
                            {
                                context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", $"{{{rabbitMq.Name}.inputs.password}}");
                            }
@@ -49,6 +50,6 @@ public static class RabbitMQBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> PublishAsContainer(this IResourceBuilder<RabbitMQServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
+        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 }

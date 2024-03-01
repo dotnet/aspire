@@ -9,9 +9,9 @@ namespace Aspire.Hosting.Tests;
 public class WithEnvironmentTests
 {
     [Fact]
-    public void EnvironmentReferencingEndpointPopulatesWithBindingUrl()
+    public async Task EnvironmentReferencingEndpointPopulatesWithBindingUrl()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
@@ -36,7 +36,7 @@ public class WithEnvironmentTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));
@@ -45,9 +45,9 @@ public class WithEnvironmentTests
     }
 
     [Fact]
-    public void SimpleEnvironmentWithNameAndValue()
+    public async Task SimpleEnvironmentWithNameAndValue()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         testProgram.ServiceABuilder.WithEnvironment("myName", "value");
 
@@ -62,7 +62,7 @@ public class WithEnvironmentTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));
@@ -71,9 +71,9 @@ public class WithEnvironmentTests
     }
 
     [Fact]
-    public void EnvironmentCallbackPopulatesValueWhenCalled()
+    public async Task EnvironmentCallbackPopulatesValueWhenCalled()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         var environmentValue = "value";
         testProgram.ServiceABuilder.WithEnvironment("myName", () => environmentValue);
@@ -90,7 +90,7 @@ public class WithEnvironmentTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));
@@ -99,9 +99,9 @@ public class WithEnvironmentTests
     }
 
     [Fact]
-    public void EnvironmentCallbackPopulatesValueWhenParameterResourceProvided()
+    public async Task EnvironmentCallbackPopulatesValueWhenParameterResourceProvided()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Configuration["Parameters:parameter"] = "MY_PARAMETER_VALUE";
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
@@ -117,16 +117,16 @@ public class WithEnvironmentTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Contains(config, kvp => kvp.Key == "MY_PARAMETER" && kvp.Value == "MY_PARAMETER_VALUE");
     }
 
     [Fact]
-    public void EnvironmentCallbackPopulatesWithExpressionPlaceholderWhenPublishingManifest()
+    public async Task EnvironmentCallbackPopulatesWithExpressionPlaceholderWhenPublishingManifest()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
         testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
@@ -141,16 +141,16 @@ public class WithEnvironmentTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Contains(config, kvp => kvp.Key == "MY_PARAMETER" && kvp.Value == "{parameter.value}");
     }
 
     [Fact]
-    public void EnvironmentCallbackThrowsWhenParameterValueMissingInDcpMode()
+    public async Task EnvironmentCallbackThrowsWhenParameterValueMissingInDcpMode()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
         testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
@@ -163,11 +163,11 @@ public class WithEnvironmentTests
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var context = new EnvironmentCallbackContext(executionContext, config);
 
-        var exception = Assert.Throws<DistributedApplicationException>(() =>
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
             foreach (var annotation in annotations)
             {
-                annotation.Callback(context);
+                await annotation.Callback(context);
             }
         });
 
@@ -175,9 +175,9 @@ public class WithEnvironmentTests
     }
 
     [Fact]
-    public void ComplexEnvironmentCallbackPopulatesValueWhenCalled()
+    public async Task ComplexEnvironmentCallbackPopulatesValueWhenCalled()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         var environmentValue = "value";
         testProgram.ServiceABuilder.WithEnvironment((context) =>
@@ -197,7 +197,7 @@ public class WithEnvironmentTests
 
         foreach (var annotation in annotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));

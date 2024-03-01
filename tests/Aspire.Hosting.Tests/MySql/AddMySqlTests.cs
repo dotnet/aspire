@@ -13,12 +13,12 @@ namespace Aspire.Hosting.Tests.MySql;
 public class AddMySqlTests
 {
     [Fact]
-    public void AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
+    public async Task AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -50,7 +50,7 @@ public class AddMySqlTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -62,12 +62,12 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public void AddMySqlAddsAnnotationMetadata()
+    public async Task AddMySqlAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql", 1234, "pass");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -99,7 +99,7 @@ public class AddMySqlTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Collection(config,
@@ -123,7 +123,7 @@ public class AddMySqlTests
             "https"
             ));
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -148,7 +148,7 @@ public class AddMySqlTests
             ))
             .AddDatabase("db");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -162,20 +162,53 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var mysql = appBuilder.AddMySql("mysql");
         var db = mysql.AddDatabase("db");
 
-        var mySqlManifest = ManifestUtils.GetManifest(mysql.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        var mySqlManifest = await ManifestUtils.GetManifest(mysql.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        Assert.Equal("container.v0", mySqlManifest["type"]?.ToString());
-        Assert.Equal(mysql.Resource.ConnectionStringExpression, mySqlManifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
+              "image": "mysql:8.3.0",
+              "env": {
+                "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 3306
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, mySqlManifest.ToString());
 
-        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
-        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{mysql.connectionString};Database=db"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
     [Fact]
@@ -193,7 +226,7 @@ public class AddMySqlTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var mysql = builder.AddMySql("mySql").WithPhpMyAdmin();
-        var app = builder.Build();
+        using var app = builder.Build();
 
         // Add fake allocated endpoints.
         mysql.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
@@ -212,7 +245,7 @@ public class AddMySqlTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Equal("host.docker.internal:5001", context.EnvironmentVariables["PMA_HOST"]);
@@ -247,7 +280,7 @@ public class AddMySqlTests
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        var app = builder.Build();
+        using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var hook = new PhpMyAdminConfigWriterHook();
@@ -263,5 +296,66 @@ public class AddMySqlTests
         Assert.True(match1.Success);
         Match match2 = Regex.Match(fileContents, pattern2);
         Assert.True(match2.Success);
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNames()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db = builder.AddMySql("mysql1");
+        db.AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddMySql("mysql1")
+            .AddDatabase("db");
+
+        var db = builder.AddMySql("mysql2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithDifferentNamesOnSingleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var mysql1 = builder.AddMySql("mysql1");
+
+        var db1 = mysql1.AddDatabase("db1", "customers1");
+        var db2 = mysql1.AddDatabase("db2", "customers2");
+
+        Assert.Equal(["db1", "db2"], mysql1.Resource.Databases.Keys);
+        Assert.Equal(["customers1", "customers2"], mysql1.Resource.Databases.Values);
+
+        Assert.Equal("customers1", db1.Resource.DatabaseName);
+        Assert.Equal("customers2", db2.Resource.DatabaseName);
+
+        Assert.Equal("{mysql1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{mysql1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithTheSameNameOnMultipleServers()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db1 = builder.AddMySql("mysql1")
+            .AddDatabase("db1", "imports");
+
+        var db2 = builder.AddMySql("mysql2")
+            .AddDatabase("db2", "imports");
+
+        Assert.Equal("imports", db1.Resource.DatabaseName);
+        Assert.Equal("imports", db2.Resource.DatabaseName);
+
+        Assert.Equal("{mysql1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{mysql2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression);
     }
 }

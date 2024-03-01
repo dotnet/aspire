@@ -4,7 +4,11 @@
 }
 
 ::deep fluent-toolbar > h1 {
-    padding-left: calc(var(--design-unit) * 1px);
+    padding-left: calc(var(--design-unit) * 1.5px);
+}
+
+::deep.content-layout-with-toolbar > fluent-toolbar {
+    padding: var(--layout-toolbar-padding);
 }
 
 ::deep .unread-logs-errors-link {

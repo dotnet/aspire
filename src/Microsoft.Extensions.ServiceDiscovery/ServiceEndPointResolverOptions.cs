@@ -6,7 +6,7 @@ using Microsoft.Extensions.Primitives;
 namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 /// <summary>
-/// Options for <see cref="ServiceEndPointResolver"/>.
+/// Options for service endpoint resolvers.
 /// </summary>
 public sealed class ServiceEndPointResolverOptions
 {

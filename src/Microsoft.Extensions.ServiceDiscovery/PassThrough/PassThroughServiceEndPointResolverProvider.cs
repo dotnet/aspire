@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.PassThrough;
 internal sealed class PassThroughServiceEndPointResolverProvider(ILogger<PassThroughServiceEndPointResolver> logger) : IServiceEndPointResolverProvider
 {
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointResolver? resolver)
+    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
         if (!ServiceNameParts.TryCreateEndPoint(serviceName, out var endPoint))
         {

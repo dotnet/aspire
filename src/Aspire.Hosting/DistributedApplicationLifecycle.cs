@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,9 +17,9 @@ internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplica
 
     public Task StartedAsync(CancellationToken cancellationToken)
     {
-        if (executionContext.Operation == DistributedApplicationOperation.Run)
+        if (executionContext.IsRunMode)
         {
-            logger.LogInformation("Distributed application started. Press CTRL-C to stop.");
+            logger.LogInformation("Distributed application started. Press Ctrl+C to shut down.");
         }
 
         return Task.CompletedTask;
@@ -26,7 +27,14 @@ internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplica
 
     public Task StartingAsync(CancellationToken cancellationToken)
     {
-        if (executionContext.Operation == DistributedApplicationOperation.Run)
+        if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
+        {
+            // Write version at info level so it's written to the console by default. Help us debug user issues.
+            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
+            logger.LogInformation("Aspire version: {Version}", informationalVersion);
+        }
+
+        if (executionContext.IsRunMode)
         {
             logger.LogInformation("Distributed application starting.");
             logger.LogInformation("Application host directory is: {AppHostDirectory}", configuration["AppHost:Directory"]);

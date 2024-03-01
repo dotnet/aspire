@@ -98,6 +98,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
+
+            foreach (var lifecycleHook in _lifecycleHooks)
+            {
+                await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -272,7 +277,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 var srvResource = needAddressAllocated.Where(sr => sr.Service.Metadata.Name == updated.Metadata.Name).FirstOrDefault();
                 if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
 
-                if (updated.HasCompleteAddress)
+                if (updated.HasCompleteAddress || updated.Spec.AddressAllocationMode == AddressAllocationModes.Proxyless)
                 {
                     srvResource.Service.ApplyAddressInfoFrom(updated);
                     needAddressAllocated.Remove(srvResource);
@@ -311,16 +316,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             foreach (var sp in appResource.ServicesProduced)
             {
                 var svc = (Service)sp.DcpResource;
-                if (!svc.HasCompleteAddress)
+
+                if (!svc.HasCompleteAddress && sp.EndpointAnnotation.IsProxied)
                 {
                     // This should never happen; if it does, we have a bug without a workaround for th the user.
                     throw new InvalidDataException($"Service {svc.Metadata.Name} should have valid address at this point");
                 }
 
+                if (!sp.EndpointAnnotation.IsProxied && svc.AllocatedPort is null)
+                {
+                    throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
+                }
+
                 var a = new AllocatedEndpointAnnotation(
                     sp.EndpointAnnotation.Name,
                     PortProtocol.ToProtocolType(svc.Spec.Protocol),
-                    svc.AllocatedAddress!,
+                    sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
                     (int)svc.AllocatedPort!,
                     sp.EndpointAnnotation.UriScheme
                     );
@@ -344,7 +355,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
             svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
-            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
+            svc.Spec.AddressAllocationMode = sba.IsProxied ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
             _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
         }
 
@@ -523,16 +534,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 spec.Args ??= new();
 
-                if (er.ModelResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var exeArgsCallbacks))
+                if (er.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
                 {
+                    var commandLineContext = new CommandLineArgsCallbackContext(spec.Args, cancellationToken);
+
                     foreach (var exeArgsCallback in exeArgsCallbacks)
                     {
-                        exeArgsCallback.Callback(spec.Args);
+                        await exeArgsCallback.Callback(commandLineContext).ConfigureAwait(false);
                     }
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext(_executionContext, config);
+                var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -564,7 +577,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     foreach (var ann in envVarAnnotations)
                     {
-                        ann.Callback(context);
+                        await ann.Callback(context).ConfigureAwait(false);
                     }
                 }
 
@@ -680,7 +693,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var ctr = Container.Create(container.Name, containerImageName);
+            var ctr = Container.Create(GetObjectNameForResource(container), containerImageName);
 
             ctr.Annotate(Container.ResourceNameAnnotation, container.Name);
             ctr.Annotate(Container.OtelServiceNameAnnotation, container.Name);
@@ -750,6 +763,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                             ContainerPort = sp.DcpServiceProducerAnnotation.Port,
                         };
 
+                        if (!sp.EndpointAnnotation.IsProxied)
+                        {
+                            // When DCP isn't proxying the container we need to set the host port that the containers internal port will be mapped to
+                            portSpec.HostPort = sp.EndpointAnnotation.Port;
+                        }
+
                         if (!string.IsNullOrEmpty(sp.DcpServiceProducerAnnotation.Address))
                         {
                             portSpec.HostIP = sp.DcpServiceProducerAnnotation.Address;
@@ -777,11 +796,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var context = new EnvironmentCallbackContext(_executionContext, config);
+                    var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
 
                     foreach (var v in containerEnvironmentVariables)
                     {
-                        v.Callback(context);
+                        await v.Callback(context).ConfigureAwait(false);
                     }
                 }
 
@@ -790,12 +809,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                 }
 
-                if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+                if (modelContainerResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
                 {
                     dcpContainerResource.Spec.Args ??= [];
+
+                    var commandLineArgsContext = new CommandLineArgsCallbackContext(dcpContainerResource.Spec.Args, cancellationToken);
+
                     foreach (var callback in argsCallback)
                     {
-                        callback.Callback(dcpContainerResource.Spec.Args);
+                        await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
                     }
                 }
 
@@ -825,7 +847,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
-            // Projects/Executables have their ports auto-allocated; the the port specified by the EndpointAnnotation
+            // Projects/Executables have their ports auto-allocated; the port specified by the EndpointAnnotation
             // is applied to the Service objects and used by clients.
             // Containers use the port from the EndpointAnnotation directly.
 
@@ -837,6 +859,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.ContainerPort;
+            }
+            else if (!sp.EndpointAnnotation.IsProxied)
+            {
+                if (appResource.DcpResource is ExecutableReplicaSet ers && ers.Spec.Replicas > 1)
+                {
+                    throw new InvalidOperationException($"'{modelResourceName}' specifies multiple replicas and at least one proxyless endpoint. These features do not work together.");
+                }
+
+                // DCP will not allocate a port for this proxyless service
+                // so we need to specify what the port is so DCP is aware of it.
+                sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.Port;
             }
 
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, sp.DcpServiceProducerAnnotation);
@@ -868,10 +901,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static string GetObjectNameForResource(IResource resource, string suffix = "")
+    private string GetObjectNameForResource(IResource resource, string suffix = "")
     {
-        string maybeWithSuffix(string s) => string.IsNullOrWhiteSpace(suffix) ? s : $"{s}_{suffix}";
-        return maybeWithSuffix(resource.Name);
+        static string maybeWithSuffix(string s, string localSuffix, string? globalSuffix)
+            => (string.IsNullOrWhiteSpace(localSuffix), string.IsNullOrWhiteSpace(globalSuffix)) switch
+            {
+                (true, true) => s,
+                (false, true) => $"{s}_{localSuffix}",
+                (true, false) => $"{s}_{globalSuffix}",
+                (false, false) => $"{s}_{localSuffix}_{globalSuffix}"
+            };
+        return maybeWithSuffix(resource.Name, suffix, _options.Value.ResourceNameSuffix);
     }
 
     private static string GenerateUniqueServiceName(HashSet<string> serviceNames, string candidateName)
@@ -902,5 +942,43 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             UriScheme: "http" or "https",
             EnvironmentVariable: null or { Length: 0 }
         };
+    }
+
+    public async Task DeleteResourcesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            AspireEventSource.Instance.DcpModelCleanupStart();
+            await DeleteResourcesAsync<ExecutableReplicaSet>("project", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Executable>("project", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Container>("container", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Service>("service", cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            AspireEventSource.Instance.DcpModelCleanupStop();
+            _appResources.Clear();
+        }
+    }
+
+    private async Task DeleteResourcesAsync<RT>(string resourceType, CancellationToken cancellationToken) where RT : CustomResource
+    {
+        var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
+        if (!resourcesToDelete.Any())
+        {
+            return;
+        }
+
+        foreach (var res in resourcesToDelete)
+        {
+            try
+            {
+                await kubernetesService.DeleteAsync<RT>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
+            }
+        }
     }
 }

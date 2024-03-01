@@ -37,6 +37,26 @@ public static class ParameterResourceBuilderExtensions
     {
         var resource = new ParameterResource(name, callback, secret);
         return builder.AddResource(resource)
+                      .WithResourceUpdates(() =>
+                      {
+                          var state = new CustomResourceSnapshot()
+                          {
+                              ResourceType = "Parameter",
+                              Properties = [
+                                ("Secret", secret.ToString()),
+                                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+                              ]
+                          };
+
+                          try
+                          {
+                              return state with { Properties = [.. state.Properties, ("Value", callback())] };
+                          }
+                          catch (DistributedApplicationException ex)
+                          {
+                              return state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
+                          }
+                      })
                       .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource, connectionString));
     }
 
@@ -50,24 +70,14 @@ public static class ParameterResourceBuilderExtensions
         }
 
         context.Writer.WriteString("value", $"{{{resource.Name}.inputs.value}}");
-        context.Writer.WriteStartObject("inputs");
-        context.Writer.WriteStartObject("value");
-        context.Writer.WriteString("type", "string");
-
-        if (resource.Secret)
-        {
-            context.Writer.WriteBoolean("secret", resource.Secret);
-        }
-
-        context.Writer.WriteEndObject();
-        context.Writer.WriteEndObject();
+        context.WriteInputs(resource);
     }
 
     /// <summary>
     /// Adds a parameter to the distributed application but wrapped in a resource with a connection string for use with <see cref="ResourceBuilderExtensions.WithReference{TDestination}(IResourceBuilder{TDestination}, IResourceBuilder{IResourceWithConnectionString}, string?, bool)"/>
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
-    /// <param name="name">Name of parameter resource</param>
+    /// <param name="name">Name of parameter resource. The value of the connection string is read from the "ConnectionStrings:{resourcename}" configuration section, for example in appsettings.json or user secrets</param>
     /// <param name="environmentVariableName">Environment variable name to set when WithReference is used.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>

@@ -139,7 +139,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 new EnvironmentCallbackAnnotation(
                     context =>
                     {
-                        if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+                        if (context.ExecutionContext.IsPublishMode)
                         {
                             return;
                         }
@@ -180,7 +180,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             }
 
             daprCli.Annotations.Add(
-                new ExecutableArgsCallbackAnnotation(
+                new CommandLineArgsCallbackAnnotation(
                     updatedArgs =>
                     {
                         AllocatedEndpointAnnotation? httpEndPoint = null;

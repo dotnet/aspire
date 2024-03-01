@@ -40,7 +40,8 @@ public class ApplicationExecutorTests
 
         var kubernetesService = new MockKubernetesService();
 
-        var distributedAppModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
 

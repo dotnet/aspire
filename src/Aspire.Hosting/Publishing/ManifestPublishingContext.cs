@@ -13,7 +13,8 @@ namespace Aspire.Hosting.Publishing;
 /// <param name="executionContext">Global contextual information for this invocation of the AppHost.</param>
 /// <param name="manifestPath">Manifest path passed in for this invocation of the AppHost.</param>
 /// <param name="writer">JSON writer used to writing the manifest.</param>
-public sealed class ManifestPublishingContext(DistributedApplicationExecutionContext executionContext, string manifestPath, Utf8JsonWriter writer)
+/// <param name="cancellationToken">Cancellation token for this operation.</param>
+public sealed class ManifestPublishingContext(DistributedApplicationExecutionContext executionContext, string manifestPath, Utf8JsonWriter writer, CancellationToken cancellationToken = default)
 {
     /// <summary>
     /// Gets execution context for this invocation of the AppHost.
@@ -29,6 +30,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// Gets JSON writer for writing manifest entries.
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
+
+    /// <summary>
+    /// Gets cancellation token for this operation.
+    /// </summary>
+    public CancellationToken CancellationToken { get; } = cancellationToken;
 
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
@@ -56,7 +62,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// </summary>
     /// <param name="container"></param>
     /// <exception cref="DistributedApplicationException"></exception>
-    public void WriteContainer(ContainerResource container)
+    public async Task WriteContainerAsync(ContainerResource container)
     {
         Writer.WriteString("type", "container.v0");
 
@@ -75,12 +81,15 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             Writer.WriteString("entrypoint", container.Entrypoint);
         }
 
-        if (container.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+        if (container.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
         {
             var args = new List<string>();
+
+            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, CancellationToken);
+
             foreach (var callback in argsCallback)
             {
-                callback.Callback(args);
+                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
             }
 
             if (args.Count > 0)
@@ -95,8 +104,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
         }
 
-        WriteEnvironmentVariables(container);
+        await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container, emitContainerPort: true);
+        WriteInputs(container);
     }
 
     /// <summary>
@@ -149,18 +159,18 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// TODO: Doc Comments
     /// </summary>
     /// <param name="resource"></param>
-    public void WriteEnvironmentVariables(IResource resource)
+    public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
         var config = new Dictionary<string, string>();
 
-        var envContext = new EnvironmentCallbackContext(ExecutionContext, config);
+        var envContext = new EnvironmentCallbackContext(ExecutionContext, config, CancellationToken);
 
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {
             Writer.WriteStartObject("env");
             foreach (var callback in callbacks)
             {
-                callback.Callback(envContext);
+                await callback.Callback(envContext).ConfigureAwait(false);
             }
 
             foreach (var (key, value) in config)
@@ -172,6 +182,38 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
             WritePortBindingEnvironmentVariables(resource);
 
+            Writer.WriteEndObject();
+        }
+    }
+
+    /// <summary>
+    /// Writes the "inputs" annotations for the underlying resource.
+    /// </summary>
+    /// <param name="resource">The resource to write inputs for.</param>
+    public void WriteInputs(IResource resource)
+    {
+        if (resource.TryGetAnnotationsOfType<InputAnnotation>(out var inputs))
+        {
+            Writer.WriteStartObject("inputs");
+            foreach (var input in inputs)
+            {
+                Writer.WriteStartObject(input.Name);
+                Writer.WriteString("type", input.Type);
+
+                if (input.Secret)
+                {
+                    Writer.WriteBoolean("secret", true);
+                }
+
+                if (input.Default is not null)
+                {
+                    Writer.WriteStartObject("default");
+                    input.Default.WriteToManifest(this);
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndObject();
+            }
             Writer.WriteEndObject();
         }
     }
@@ -206,7 +248,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                     Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
                 }
-
             }
         }
     }
