@@ -204,35 +204,33 @@ public class AzureBicepResourceTests
         Assert.Equal("construct1.module.bicep", manifest["path"]?.ToString());
     }
 
-    // TODO: This test to be reenabled once we figure out what is going on in CDK
-    //       around parameters being injected twice.
-    //[Fact]
-    //public void AddParameterOnResourceModuleConstructPopulatesParametersEverywhere()
-    //{
-    //    var builder = DistributedApplication.CreateBuilder();
-    //    builder.Configuration["Parameters:skuName"] = "Standard_ZRS";
+   [Fact]
+    public async Task AddParameterOnResourceModuleConstructPopulatesParametersEverywhere()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.Configuration["Parameters:skuName"] = "Standard_ZRS";
 
-    //    var skuName = builder.AddParameter("skuName");
+        var skuName = builder.AddParameter("skuName");
 
-    //    ResourceModuleConstruct? moduleConstruct = null;
-    //    var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
-    //    {
-    //        var storage = construct.AddStorageAccount(
-    //            kind: StorageKind.StorageV2,
-    //            sku: StorageSkuName.StandardLrs
-    //            );
-    //        storage.AssignParameter(sa => sa.Sku.Name, construct.AddParameter(skuName));
-    //        moduleConstruct = construct;
-    //    });
+        ResourceModuleConstruct? moduleConstruct = null;
+        var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
+        {
+            var storage = construct.AddStorageAccount(
+                kind: StorageKind.StorageV2,
+                sku: StorageSkuName.StandardLrs
+                );
+            storage.AssignParameter(sa => sa.Sku.Name, skuName);
+            moduleConstruct = construct;
+        });
 
-    //    var manifest = ManifestUtils.GetManifest(construct1.Resource);
+        var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
-    //    Assert.NotNull(moduleConstruct);
-    //    var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
-    //    Assert.True(constructParameters.ContainsKey("skuName"));
-    //    Assert.Equal(skuName.Resource, construct1.Resource.Parameters["skuName"]);
-    //    Assert.Equal("{skuName.value}", manifest["params"]?["skuName"]?.ToString());
-    //}
+        Assert.NotNull(moduleConstruct);
+        var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
+        Assert.True(constructParameters.ContainsKey("skuName"));
+        Assert.Equal(skuName, construct1.Resource.Parameters["skuName"]);
+        Assert.Equal("{skuName.value}", manifest["params"]?["skuName"]?.ToString());
+    }
 
     [Fact]
     public async Task PublishAsRedisPublishesRedisAsAzureRedis()

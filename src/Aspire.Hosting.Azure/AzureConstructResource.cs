@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Linq.Expressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -24,7 +25,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     {
         var configuration = new Configuration()
         {
-            UsePromptMode = true
+            UseInteractiveMode = true
         };
 
         var resourceModuleConstruct = new ResourceModuleConstruct(this, configuration);
@@ -68,58 +69,33 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
-    /// Adds a parameter to the Azure construct resource based on an Aspire parameter.
+    /// Assigns an Aspire parameter resource to an Azure construct resource.
     /// </summary>
-    /// <param name="resourceModuleConstruct">The Azure construct resource.</param>
-    /// <param name="parameterResourceBuilder">The Aspire parameter resource builder.</param>
-    /// <returns></returns>
-    public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, IResourceBuilder<ParameterResource> parameterResourceBuilder)
+    /// <typeparam name="T"></typeparam>
+    /// <param name="resource"></param>
+    /// <param name="propertySelector"></param>
+    /// <param name="parameterResourceBuilder"></param>
+    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder) where T: notnull
     {
-        return resourceModuleConstruct.AddParameter(parameterResourceBuilder.Resource.Name, parameterResourceBuilder);
-    }
+        if (resource.Scope is not ResourceModuleConstruct construct)
+        {
+            throw new ArgumentException("Cannot bind Aspire parameter resource to this construct.", nameof(resource));
+        }
 
-    /// <summary>
-    /// Adds a parameter to the Azure construct resource based on an Aspire parameter.
-    /// </summary>
-    /// <param name="resourceModuleConstruct">The Azure construct resource.</param>
-    /// <param name="name">The name to be used for the Azure construct parameter.</param>
-    /// <param name="parameterResourceBuilder">The Aspire parameter resource builder.</param>
-    /// <returns></returns>
-    public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, string name, IResourceBuilder<ParameterResource> parameterResourceBuilder)
-    {
-        // Ensure the parameter is added to the Aspire resource.
-        resourceModuleConstruct.Resource.Parameters.Add(name, parameterResourceBuilder);
+        var parameterResourceName = parameterResourceBuilder.Resource.Name;
 
-        var parameter = new Parameter(name, isSecure: parameterResourceBuilder.Resource.Secret);
-        resourceModuleConstruct.AddParameter(parameter);
-        return parameter;
-    }
+        construct.Resource.Parameters[parameterResourceName] = parameterResourceBuilder;
 
-    /// <summary>
-    /// Adds a parameter to the Azure construct resource based on an <see cref="BicepOutputReference"/>
-    /// </summary>
-    /// <param name="resourceModuleConstruct">The Azure construct resource.</param>
-    /// <param name="outputReference">The Aspire Bicep output reference.</param>
-    /// <returns></returns>
-    public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, BicepOutputReference outputReference)
-    {
-        return resourceModuleConstruct.AddParameter(outputReference.Name, outputReference);
-    }
-
-    /// <summary>
-    /// Adds a parameter to the Azure construct resource based on an <see cref="BicepOutputReference"/>
-    /// </summary>
-    /// <param name="resourceModuleConstruct">The Azure construct resource.</param>
-    /// <param name="name">The name to be used for the Azure construct parameter.</param>
-    /// <param name="outputReference">The Aspire Bicep output reference.</param>
-    /// <returns></returns>
-    public static Parameter AddParameter(this ResourceModuleConstruct resourceModuleConstruct, string name, BicepOutputReference outputReference)
-    {
-        resourceModuleConstruct.Resource.Parameters.Add(name, outputReference);
-
-        var parameter = new Parameter(name);
-        resourceModuleConstruct.AddParameter(parameter);
-        return parameter;
+        if (resource.Scope.GetParameters().Any(p => p.Name == parameterResourceName))
+        {
+            var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterResourceName);
+            resource.AssignParameter(propertySelector, parameter);
+        }
+        else
+        {
+            var parameter = new Parameter(parameterResourceName);
+            resource.AssignParameter(propertySelector, parameter);
+        }
     }
 }
 
