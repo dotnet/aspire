@@ -16,6 +16,13 @@
         "storagesku": "{storagesku.value}"
       }
     },
+    "cdkstorage": {
+      "type": "azure.bicep.v0",
+      "path": "cdkstorage.module.bicep",
+      "params": {
+        "storagesku": "{storagesku.value}"
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",

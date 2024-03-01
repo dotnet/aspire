@@ -21,6 +21,11 @@ var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
     account.AddOutput(data => data.PrimaryEndpoints.TableUri, "tableUri", isSecure: true);
 });
 
+var storage = builder.AddAzureConstructStorage("cdkstorage", (_, account) =>
+{
+    account.AssignParameter(sa => sa.Sku.Name, sku);
+});
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithEnvironment("TABLE_URI", construct1.GetOutput("tableUri"));
 
