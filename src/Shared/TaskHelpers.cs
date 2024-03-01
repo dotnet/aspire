@@ -19,7 +19,7 @@ internal static class TaskHelpers
 
     private static async Task WaitIgnoreCancelCoreAsync(Task? task, ILogger? logger = null, string? logMessage = null)
     {
-        if (task is null || task.IsCompletedSuccessfully)
+        if (task is null || task.IsCompletedSuccessfully || task.IsCanceled)
         {
             return;
         }
