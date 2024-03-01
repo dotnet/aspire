@@ -32,12 +32,12 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     private IHostApplicationLifetime? _hostApplicationLifetime;
 
     /// <summary>
-    /// Gets the distributed application builder associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
+    /// Gets the distributed application builder associated with this instance.
     /// </summary>
     public DistributedApplicationBuilder DistributedApplicationBuilder { get { EnsureBuilder(); return _builder; } }
 
     /// <summary>
-    /// Gets the distributed application associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
+    /// Gets the distributed application associated with this instance.
     /// </summary>
     protected DistributedApplication DistributedApplication { get { EnsureApp(); return _app; } }
 
@@ -53,7 +53,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     }
 
     /// <summary>
-    /// Gets the <see cref="IServiceProvider"/> created by the server associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
+    /// Gets the <see cref="IServiceProvider"/> created by the server associated with this instance.
     /// </summary>
     public virtual IServiceProvider Services
     {
@@ -65,7 +65,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     }
 
     /// <summary>
-    /// Gets the <see cref="DistributedApplicationModel"/> associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
+    /// Gets the <see cref="DistributedApplicationModel"/> associated with this instance.
     /// </summary>
     public DistributedApplicationModel ApplicationModel
     {
