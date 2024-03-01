@@ -193,6 +193,18 @@ public static class ProjectResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
     {
+        for (var i = 0; i < builder.Resource.Annotations.Count; i++)
+        {
+            if (builder.Resource.Annotations[i] is EndpointAnnotation ea)
+            {
+                if (ea.Source == "launchSettings" || ea.Source == "project")
+                {
+                    builder.Resource.Annotations.RemoveAt(i);
+                    i--;
+                }
+            }
+        }
+
         builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
         return builder;
     }

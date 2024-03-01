@@ -30,7 +30,7 @@ public static class MySqlBuilderExtensions
 
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306, source: "mysql")) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
                       .WithDefaultPassword()
                       .WithEnvironment(context =>

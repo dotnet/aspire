@@ -27,7 +27,7 @@ public static class MongoDBBuilderExtensions
 
         return builder
             .AddResource(mongoDBContainer)
-            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
+            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort, source: "mongodb")) // Internal port is always 27017.
             .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "7.0.5" })
             .PublishAsContainer();
     }
