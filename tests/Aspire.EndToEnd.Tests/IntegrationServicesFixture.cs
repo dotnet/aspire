@@ -37,9 +37,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
 
-    public IntegrationServicesFixture(IMessageSink messageSink)
+    public IntegrationServicesFixture(IMessageSink diagnosticMessageSink)
     {
-        _diagnosticMessageSink = messageSink;
+        _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
         BuildEnvironment = new(TestsRunningOutOfTree, (probePath, solutionRoot) =>
         {

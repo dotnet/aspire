@@ -99,7 +99,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
             // We wait until timeout for the /health endpoint to return successfully. We assume
             // that components wired up into this project have health checks enabled.
-            await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http");
+            await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http", _testOutput);
         }
         catch
         {
