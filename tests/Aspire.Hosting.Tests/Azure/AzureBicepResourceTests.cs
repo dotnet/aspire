@@ -247,7 +247,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, "sku", skuName);
+            storage.AssignParameter(sa => sa.Sku.Name, skuName, parameterName: "sku");
             moduleConstruct = construct;
         });
 

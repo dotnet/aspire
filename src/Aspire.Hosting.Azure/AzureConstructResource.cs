@@ -75,21 +75,11 @@ public static class AzureConstructResourceExtensions
     /// <param name="resource">The CDK resource.</param>
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
-    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder) where T : notnull
-    {
-        resource.AssignParameter(propertySelector, parameterResourceBuilder.Resource.Name, parameterResourceBuilder);
-    }
-
-    /// <summary>
-    /// Assigns an Aspire parameter resource to an Azure construct resource.
-    /// </summary>
-    /// <typeparam name="T">Type of the CDK resource.</typeparam>
-    /// <param name="resource">The CDK resource.</param>
-    /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
-    /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
-    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, string parameterName, IResourceBuilder<ParameterResource> parameterResourceBuilder) where T: notnull
+    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
     {
+        parameterName ??= parameterResourceBuilder.Resource.Name;
+
         if (resource.Scope is not ResourceModuleConstruct construct)
         {
             throw new ArgumentException("Cannot bind Aspire parameter resource to this construct.", nameof(resource));
@@ -115,22 +105,12 @@ public static class AzureConstructResourceExtensions
     /// <typeparam name="T">Type of the CDK resource.</typeparam>
     /// <param name="resource">The CDK resource.</param>
     /// <param name="propertySelector">Property selection expression.</param>
-    /// <param name="outputReference">Aspire parameter resource builder.</param>
-    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference) where T : notnull
-    {
-        resource.AssignParameter(propertySelector, outputReference.Name, outputReference);
-    }
-
-    /// <summary>
-    /// Assigns an Aspire Bicep output reference to an Azure construct resource.
-    /// </summary>
-    /// <typeparam name="T">Type of the CDK resource.</typeparam>
-    /// <param name="resource">The CDK resource.</param>
-    /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <param name="outputReference">Aspire parameter resource builder.</param>
-    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, string parameterName, BicepOutputReference outputReference) where T : notnull
+    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
     {
+        parameterName ??= outputReference.Resource.Name;
+
         if (resource.Scope is not ResourceModuleConstruct construct)
         {
             throw new ArgumentException("Cannot bind Aspire parameter resource to this construct.", nameof(resource));
