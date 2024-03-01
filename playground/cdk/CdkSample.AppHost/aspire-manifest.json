@@ -9,23 +9,25 @@
         }
       }
     },
-    "construct1": {
+    "cdkstorage1": {
       "type": "azure.bicep.v0",
-      "path": "construct1.module.bicep",
+      "path": "cdkstorage1.module.bicep",
       "params": {
         "storagesku": "{storagesku.value}"
       }
     },
-    "cdkstorage": {
+    "cdkstorage2": {
       "type": "azure.bicep.v0",
-      "path": "cdkstorage.module.bicep",
+      "path": "cdkstorage2.module.bicep",
       "params": {
+        "principalId": "",
+        "principalType": "",
         "storagesku": "{storagesku.value}"
       }
     },
-    "blobs": {
+    "tables": {
       "type": "value.v0",
-      "connectionString": "{cdkstorage.outputs.blobEndpoint}"
+      "connectionString": "{cdkstorage2.outputs.tableEndpoint}"
     },
     "api": {
       "type": "project.v0",
@@ -33,7 +35,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__blobs": "{blobs.connectionString}"
+        "ConnectionStrings__tables": "{tables.connectionString}"
       },
       "bindings": {
         "http": {

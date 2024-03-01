@@ -9,11 +9,11 @@ builder.AddAzureProvisioning();
 
 var sku = builder.AddParameter("storagesku");
 
-var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
+var cdkstorage1 = builder.AddAzureConstruct("cdkstorage1", (construct) =>
 {
     var account = construct.AddStorageAccount(
-        name: "bob",
-        kind: StorageKind.BlobStorage,
+        name: "cdkstorage1",
+        kind: StorageKind.Storage,
         sku: StorageSkuName.StandardLrs
         );
     account.AssignParameter(a => a.Sku.Name, sku);
@@ -21,12 +21,12 @@ var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
     account.AddOutput(data => data.PrimaryEndpoints.TableUri, "tableUri", isSecure: true);
 });
 
-var storage = builder.AddAzureConstructStorage("cdkstorage", (_, account) =>
+var cdkstorage2 = builder.AddAzureConstructStorage("cdkstorage2", (_, account) =>
 {
     account.AssignParameter(sa => sa.Sku.Name, sku);
 });
 
-var blobs = AzureStorageExtensions.AddBlobs(storage, "blobs");
+var blobs = cdkstorage2.AddBlobs("blobs");
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(blobs);

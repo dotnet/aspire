@@ -46,19 +46,30 @@ public static class AzureStorageExtensions
         {
             var storageAccount = construct.AddStorageAccount(
                 name: name,
-                kind: StorageKind.StorageV2,
+                kind: StorageKind.Storage,
                 sku: StorageSkuName.StandardGrs
                 );
 
-            // TODO: Role assignment support is currenty blocked by two bugs:
-            // 1. All role assignments for the same resource in the same construct
-            //    get the same Bicep identifier (and same name) leading to the Bicep
-            //    being invalid if you use more than one.
-            // 2. Role assignments are using the wrong API version so ARM deployments
-            //    are being rejected.
+            var blobService = new BlobService(construct);
 
-            //var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
-            //blobRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            // WARNING: This code currently produces invalid Bicep because all of the role
+            //          assignment Bicep resources have the same identifier and ARM name
+            //          which means they all produce the same GUID.
+            //
+            //          Additionally there is a bug with the ARM namespace that AssignRole
+            //          results in. A fix for this has been submitted here:
+            //
+            //            https://github.com/Azure/azure-sdk-for-net/pull/42320
+            //
+            //          As a result of this the table and queues role assignments
+            //          have been commented out. This code is checked in for review
+            //          but this has to be addressed before merge.
+            //
+            //          To successfully run this code as is you need a local build
+            //          of Azure.Provisioning with the other fix linked above.
+
+            var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
+            blobRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             //var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
             //tableRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
