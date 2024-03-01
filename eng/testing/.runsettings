@@ -5,6 +5,7 @@
     <TestSessionTimeout>300000</TestSessionTimeout>
     <!-- Filter out failing (wrong framework, platform, runtime or activeissue) tests -->
     <TestCaseFilter>category!=failing</TestCaseFilter>
+    <ReporterSwitch>verbose</ReporterSwitch>
   </RunConfiguration>
   <LoggerRunSettings>
     <Loggers>
