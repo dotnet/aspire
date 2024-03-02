@@ -11,11 +11,6 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed record CustomResourceSnapshot
 {
     /// <summary>
-    /// An empty <see cref="CustomResourceSnapshot"/>.
-    /// </summary>
-    public static readonly CustomResourceSnapshot Empty = new() { Properties = [], ResourceType = "" };
-
-    /// <summary>
     /// The type of the resource.
     /// </summary>
     public required string ResourceType { get; init; }

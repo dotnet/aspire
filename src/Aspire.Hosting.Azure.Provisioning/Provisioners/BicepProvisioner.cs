@@ -328,7 +328,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             ImmutableArray<(string, string)> properties = [
                 .. state.Properties,
-                    (CustomResourceKnownProperties.Source, deployment.Id.Name)
+                (CustomResourceKnownProperties.Source, deployment.Id.Name)
             ];
 
             // TODO: Add this when we get the ability to mask properties
