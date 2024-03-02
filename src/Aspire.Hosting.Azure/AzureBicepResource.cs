@@ -15,16 +15,16 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">Name of the resource. This will be the name of the deployment.</param>
 /// <param name="templateFile">The path to the bicep file.</param>
 /// <param name="templateString">A bicep snippet.</param>
-/// <param name="templateResouceName">The name of an embedded resource that represents the bicep file.</param>
-public class AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResouceName = null) :
+/// <param name="templateResourceName">The name of an embedded resource that represents the bicep file.</param>
+public class AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResourceName = null) :
     Resource(name),
     IAzureResource
 {
     internal string? TemplateFile { get; } = templateFile;
 
-    internal string? TemplateString { get; } = templateString;
+    internal string? TemplateString { get; set; } = templateString;
 
-    internal string? TemplateResourceName { get; } = templateResouceName;
+    internal string? TemplateResourceName { get; } = templateResourceName;
 
     /// <summary>
     /// Parameters that will be passed into the bicep template.
@@ -42,13 +42,18 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     public Dictionary<string, string?> SecretOutputs { get; } = [];
 
     /// <summary>
+    /// The task completion source for the provisioning operation.
+    /// </summary>
+    public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
+
+    /// <summary>
     /// Gets the path to the bicep file. If the template is a string or embedded resource, it will be written to a temporary file.
     /// </summary>
     /// <param name="directory">The directory where the bicep file will be written to (if it's a temporary file)</param>
     /// <param name="deleteTemporaryFileOnDispose">A boolean that determines if the file should be deleted on disposal of the <see cref="BicepTemplateFile"/>.</param>
     /// <returns>A <see cref="BicepTemplateFile"/> that represents the bicep file.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
+    public virtual BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
         // Throw if multiple template sources are specified
         if (TemplateFile is not null && (TemplateString is not null || TemplateResourceName is not null))
@@ -251,6 +256,20 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
     /// <summary>
     /// The value of the output.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        if (Resource.ProvisioningTaskCompletionSource is not null)
+        {
+            await Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return Value;
+    }
+
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
     public string? Value
     {
         get
@@ -285,6 +304,20 @@ public class BicepOutputReference(string name, AzureBicepResource resource)
     /// The instance of the bicep resource.
     /// </summary>
     public AzureBicepResource Resource { get; } = resource;
+
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        if (Resource.ProvisioningTaskCompletionSource is not null)
+        {
+            await Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return Value;
+    }
 
     /// <summary>
     /// The value of the output.

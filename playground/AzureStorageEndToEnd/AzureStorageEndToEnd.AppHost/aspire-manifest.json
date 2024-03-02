@@ -1,32 +1,25 @@
 {
   "resources": {
-    "db": {
-      "type": "parameter.v0",
-      "value": "{db.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true
-        }
+    "storage": {
+      "type": "azure.bicep.v0",
+      "path": "aspire.hosting.azure.bicep.storage.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "storageName": "storage"
       }
     },
-    "insertionrows": {
-      "type": "parameter.v0",
-      "value": "{insertionrows.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string"
-        }
-      }
+    "blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
     },
     "api": {
       "type": "project.v0",
-      "path": "../ParameterEndToEnd.ApiService/ParameterEndToEnd.ApiService.csproj",
+      "path": "../AzureStorageEndToEnd.ApiService/AzureStorageEndToEnd.ApiService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "InsertionRows": "{insertionrows.value}",
-        "ConnectionStrings__db": "{db.value}"
+        "ConnectionStrings__blobs": "{blobs.connectionString}"
       },
       "bindings": {
         "http": {

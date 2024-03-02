@@ -6,7 +6,7 @@ using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
-public sealed partial class ServiceEndPointResolver
+partial class ServiceEndPointWatcher
 {
     private sealed partial class Log
     {
@@ -28,7 +28,7 @@ public sealed partial class ServiceEndPointResolver
 
             static string GetEndPointString(ServiceEndPoint ep)
             {
-                if (ep.Features.Get<IServiceEndPointResolver>() is { } resolver)
+                if (ep.Features.Get<IServiceEndPointProvider>() is { } resolver)
                 {
                     return $"{ep.GetEndPointString()} ({resolver})";
                 }

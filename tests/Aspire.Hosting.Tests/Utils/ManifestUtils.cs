@@ -25,13 +25,13 @@ internal sealed class ManifestUtils
         return obj;
     }
 
-    public static JsonNode GetManifest(IResource resource)
+    public static async Task<JsonNode> GetManifest(IResource resource)
     {
         using var ms = new MemoryStream();
         var writer = new Utf8JsonWriter(ms);
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
         writer.WriteStartObject();
-        ManifestPublisher.WriteResource(resource, new ManifestPublishingContext(executionContext, Environment.CurrentDirectory, writer));
+        await ManifestPublisher.WriteResourceAsync(resource, new ManifestPublishingContext(executionContext, Environment.CurrentDirectory, writer));
         writer.WriteEndObject();
         writer.Flush();
         ms.Position = 0;

@@ -1,0 +1,57 @@
+{
+  "resources": {
+    "mysql": {
+      "type": "container.v0",
+      "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
+      "image": "mysql:8.3.0",
+      "env": {
+        "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}",
+        "MYSQL_DATABASE": "catalog"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 3306
+        }
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "catalog": {
+      "type": "value.v0",
+      "connectionString": "{mysql.connectionString};Database=catalog"
+    },
+    "apiservice": {
+      "type": "project.v0",
+      "path": "../MySql.ApiService/MySql.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__catalog": "{catalog.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

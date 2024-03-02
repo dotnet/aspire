@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text.Json;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
@@ -23,7 +24,9 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DcpDataSource
 {
     private readonly IKubernetesService _kubernetesService;
-    private readonly DistributedApplicationModel _applicationModel;
+    private readonly ResourceNotificationService _notificationService;
+    private readonly IReadOnlyDictionary<string, IResource> _applicationModel;
+    private readonly ConcurrentDictionary<string, ResourceSnapshot> _placeHolderResources = [];
     private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
 
@@ -35,14 +38,16 @@ internal sealed class DcpDataSource
 
     public DcpDataSource(
         IKubernetesService kubernetesService,
-        DistributedApplicationModel applicationModel,
+        ResourceNotificationService notificationService,
+        IReadOnlyDictionary<string, IResource> applicationModelMap,
         IConfiguration configuration,
         ILoggerFactory loggerFactory,
         Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
-        _applicationModel = applicationModel;
+        _notificationService = notificationService;
+        _applicationModel = applicationModelMap;
         _onResourceChanged = onResourceChanged;
 
         _logger = loggerFactory.CreateLogger<DcpDataSource>();
@@ -52,6 +57,18 @@ internal sealed class DcpDataSource
         Task.Run(
             async () =>
             {
+                // Show all resources initially and allow updates from DCP (for the relevant resources)
+                foreach (var (_, resource) in _applicationModel)
+                {
+                    if (resource.Name == KnownResourceNames.AspireDashboard &&
+                        configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is not true)
+                    {
+                        continue;
+                    }
+
+                    await ProcessInitialResourceAsync(resource, cancellationToken).ConfigureAwait(false);
+                }
+
                 using (semaphore)
                 {
                     await Task.WhenAll(
@@ -104,6 +121,89 @@ internal sealed class DcpDataSource
         }
     }
 
+    private Task ProcessInitialResourceAsync(IResource resource, CancellationToken cancellationToken)
+    {
+        // The initial snapshots are all generic resources until we get the real state from DCP (for projects, containers and executables).
+        if (resource.IsContainer())
+        {
+            var snapshot = CreateResourceSnapshot(resource, DateTime.UtcNow, new CustomResourceSnapshot
+            {
+                ResourceType = KnownResourceTypes.Container,
+                Properties = [],
+            });
+
+            _placeHolderResources.TryAdd(resource.Name, snapshot);
+        }
+        else if (resource is ProjectResource)
+        {
+            var snapshot = CreateResourceSnapshot(resource, DateTime.UtcNow, new CustomResourceSnapshot
+            {
+                ResourceType = KnownResourceTypes.Project,
+                Properties = [],
+            });
+
+            _placeHolderResources.TryAdd(resource.Name, snapshot);
+        }
+        else if (resource is ExecutableResource)
+        {
+            var snapshot = CreateResourceSnapshot(resource, DateTime.UtcNow, new CustomResourceSnapshot
+            {
+                ResourceType = KnownResourceTypes.Executable,
+                Properties = [],
+            });
+
+            _placeHolderResources.TryAdd(resource.Name, snapshot);
+        }
+
+        var creationTimestamp = DateTime.UtcNow;
+
+        _ = Task.Run(async () =>
+        {
+            await foreach (var state in _notificationService.WatchAsync(resource).WithCancellation(cancellationToken))
+            {
+                try
+                {
+                    var snapshot = CreateResourceSnapshot(resource, creationTimestamp, state);
+
+                    await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "Error updating resource snapshot for {Name}", resource.Name);
+                }
+            }
+
+        }, cancellationToken);
+
+        return Task.CompletedTask;
+    }
+
+    private static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, DateTime creationTimestamp, CustomResourceSnapshot snapshot)
+    {
+        ImmutableArray<EnvironmentVariableSnapshot> environmentVariables = [..
+            snapshot.EnvironmentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, false))];
+
+        ImmutableArray<ResourceServiceSnapshot> services = [..
+            snapshot.Urls.Select(u => new ResourceServiceSnapshot(u.Name, u.Url, null))];
+
+        ImmutableArray<EndpointSnapshot> endpoints = [..
+            snapshot.Urls.Select(u => new EndpointSnapshot(u.Url, u.Url))];
+
+        return new GenericResourceSnapshot(snapshot)
+        {
+            Uid = resource.Name,
+            CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
+            Name = resource.Name,
+            DisplayName = resource.Name,
+            Endpoints = endpoints,
+            Environment = environmentVariables,
+            ExitCode = null,
+            ExpectedEndpointsCount = endpoints.Length,
+            Services = services,
+            State = snapshot.State ?? "Running"
+        };
+    }
+
     private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, ConcurrentDictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceSnapshot> snapshotFactory) where T : CustomResource
     {
         if (ProcessResourceChange(resourceByName, watchEventType, resource))
@@ -116,6 +216,16 @@ internal sealed class DcpDataSource
                 WatchEventType.Deleted => ResourceSnapshotChangeType.Delete,
                 _ => throw new System.ComponentModel.InvalidEnumArgumentException($"Cannot convert {nameof(WatchEventType)} with value {watchEventType} into enum of type {nameof(ResourceSnapshotChangeType)}.")
             };
+
+            // Remove the placeholder resource if it exists since we're getting an update about the real resource
+            // from DCP.
+            string? resourceName = null;
+            resource.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
+
+            if (resourceName is not null && _placeHolderResources.TryRemove(resourceName, out var placeHolder))
+            {
+                await _onResourceChanged(placeHolder, ResourceSnapshotChangeType.Delete).ConfigureAwait(false);
+            }
 
             var snapshot = snapshotFactory(resource);
 
@@ -315,6 +425,8 @@ internal sealed class DcpDataSource
         var endpoints = ImmutableArray.CreateBuilder<EndpointSnapshot>();
         var services = ImmutableArray.CreateBuilder<ResourceServiceSnapshot>();
         var name = resource.Metadata.Name;
+        string? resourceName = null;
+        resource.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
 
         foreach (var endpoint in _endpointsMap.Values)
         {
@@ -332,7 +444,9 @@ internal sealed class DcpDataSource
 
                 // For project look into launch profile to append launch url
                 if (projectPath is not null
-                    && _applicationModel.TryGetProjectWithPath(name, projectPath, out var project)
+                    && resourceName is not null
+                    && _applicationModel.TryGetValue(resourceName, out var appModelResource)
+                    && appModelResource is ProjectResource project
                     && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
                     && launchProfile.LaunchUrl is string launchUrl)
                 {

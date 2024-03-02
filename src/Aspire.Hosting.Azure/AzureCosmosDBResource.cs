@@ -12,7 +12,7 @@ namespace Aspire.Hosting;
 /// A resource that represents an Azure Cosmos DB.
 /// </summary>
 public class AzureCosmosDBResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.cosmosdb.bicep"),
+    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.cosmosdb.bicep"),
     IResourceWithConnectionString
 {
     internal List<string> Databases { get; } = [];
@@ -31,6 +31,21 @@ public class AzureCosmosDBResource(string name) :
     /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
     /// </summary>
     public string ConnectionStringExpression => ConnectionString.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string to use for this database.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string to use for this database.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
 
     /// <summary>
     /// Gets the connection string to use for this database.

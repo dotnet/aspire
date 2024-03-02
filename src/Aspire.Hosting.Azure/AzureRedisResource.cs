@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="innerResource">The inner resource.</param>
 public class AzureRedisResource(RedisResource innerResource) :
-    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.redis.bicep"),
+    AzureBicepResource(innerResource.Name, templateResourceName: "Aspire.Hosting.Azure.Bicep.redis.bicep"),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -28,6 +28,21 @@ public class AzureRedisResource(RedisResource innerResource) :
     /// </summary>
     /// <returns>The connection string for the Azure Redis resource.</returns>
     public string? GetConnectionString() => ConnectionString.Value;
+
+    /// <summary>
+    /// Gets the connection string for the Azure Redis resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the Azure Redis resource.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
 
     /// <inheritdoc/>
     public override string Name => innerResource.Name;

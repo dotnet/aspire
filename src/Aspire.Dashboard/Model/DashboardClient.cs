@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -68,13 +69,13 @@ internal sealed class DashboardClient : IDashboardClient
         if (address is null)
         {
             _state = StateDisabled;
-            _logger.LogInformation($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
+            _logger.LogDebug($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
             _cts.Cancel();
             _whenConnected.TrySetCanceled();
             return;
         }
 
-        _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
+        _logger.LogDebug("Dashboard configured to connect to: {Address}", address);
 
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
@@ -385,21 +386,7 @@ internal sealed class DashboardClient : IDashboardClient
 
             _channel?.Dispose();
 
-            try
-            {
-                if (_connection is { IsCanceled: false })
-                {
-                    await _connection.ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore cancellation
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error from connection task.");
-            }
+            await TaskHelpers.WaitIgnoreCancelAsync(_connection, _logger, "Unexpected error from connection task.").ConfigureAwait(false);
         }
     }
 }

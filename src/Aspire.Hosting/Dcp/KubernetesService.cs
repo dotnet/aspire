@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
@@ -14,7 +15,8 @@ internal enum DcpApiOperationType
     Create = 1,
     List = 2,
     Delete = 3,
-    Watch = 4
+    Watch = 4,
+    GetLogSubresource = 5,
 }
 
 internal interface IKubernetesService
@@ -29,6 +31,11 @@ internal interface IKubernetesService
         string? namespaceParameter = null,
         CancellationToken cancellationToken = default)
         where T : CustomResource;
+    Task<Stream> GetLogStreamAsync<T>(
+        T obj,
+        string logStreamType,
+        bool? follow = true,
+        CancellationToken cancellationToken = default) where T : CustomResource;
 }
 
 internal sealed class KubernetesService(Locations locations) : IKubernetesService, IDisposable
@@ -36,9 +43,9 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
-    private Kubernetes? _kubernetes;
+    private DcpKubernetesClient? _kubernetes;
 
-    public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(20);
 
     public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource
@@ -165,6 +172,41 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
         }
     }
 
+    public Task<Stream> GetLogStreamAsync<T>(
+        T obj,
+        string logStreamType,
+        bool? follow = true,
+        CancellationToken cancellationToken = default) where T : CustomResource
+    {
+        var resourceType = GetResourceFor<T>();
+
+        ImmutableArray<(string name, string value)>? queryParams = [
+            (name: "follow", value: follow == true ? "true": "false"),
+            (name: "source", value: logStreamType)
+        ];
+
+        return ExecuteWithRetry(
+            DcpApiOperationType.GetLogSubresource,
+            resourceType,
+            async (kubernetes) =>
+            {
+                var response = await kubernetes.ReadSubResourceAsStreamAsync(
+                    GroupVersion.Group,
+                    GroupVersion.Version,
+                    resourceType,
+                    obj.Metadata.Name,
+                    Logs.SubResourceName,
+                    obj.Metadata.Namespace(),
+                    queryParams,
+                    cancellationToken
+                ).ConfigureAwait(false);
+
+                return response.Body;
+            },
+            cancellationToken
+        );
+    }
+
     public void Dispose()
     {
         _kubernetes?.Dispose();
@@ -180,12 +222,24 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
         return kindWithResource.Resource;
     }
 
-    private Task<TResult> ExecuteWithRetry<TResult>(DcpApiOperationType operationType, string resourceType, Func<IKubernetes, TResult> operation, CancellationToken cancellationToken)
+    private Task<TResult> ExecuteWithRetry<TResult>(
+        DcpApiOperationType operationType,
+        string resourceType,
+        Func<DcpKubernetesClient, TResult> operation,
+        CancellationToken cancellationToken)
     {
-        return ExecuteWithRetry<TResult>(operationType, resourceType, (IKubernetes kubernetes) => Task.FromResult(operation(kubernetes)), cancellationToken);
+        return ExecuteWithRetry<TResult>(
+            operationType,
+            resourceType,
+            (DcpKubernetesClient kubernetes) => Task.FromResult(operation(kubernetes)),
+            cancellationToken);
     }
 
-    private async Task<TResult> ExecuteWithRetry<TResult>(DcpApiOperationType operationType, string resourceType, Func<IKubernetes, Task<TResult>> operation, CancellationToken cancellationToken)
+    private async Task<TResult> ExecuteWithRetry<TResult>(
+        DcpApiOperationType operationType,
+        string resourceType,
+        Func<DcpKubernetesClient, Task<TResult>> operation,
+        CancellationToken cancellationToken)
     {
         var currentTimestamp = DateTime.UtcNow;
         var delay = s_initialRetryDelay;
@@ -232,7 +286,7 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
             if (_kubernetes != null) { return; }
 
             var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: locations.DcpKubeconfigPath, useRelativePaths: false);
-            _kubernetes = new Kubernetes(config);
+            _kubernetes = new DcpKubernetesClient(config);
         }
     }
 }

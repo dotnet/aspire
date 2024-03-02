@@ -16,6 +16,7 @@
 
 ::deep.logs-layout > fluent-toolbar {
     grid-area: toolbar;
+    padding: var(--layout-toolbar-padding);
 }
 
 ::deep.logs-layout > .summary-details-container {

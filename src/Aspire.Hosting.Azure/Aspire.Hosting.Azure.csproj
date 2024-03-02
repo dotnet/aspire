@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
     <PackageReference Include="System.IO.Hashing" />
+    <PackageReference Include="Azure.Provisioning" />
   </ItemGroup>
 
   <ItemGroup>

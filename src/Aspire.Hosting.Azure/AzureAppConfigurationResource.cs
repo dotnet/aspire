@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class AzureAppConfigurationResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.appconfig.bicep"),
+    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.appconfig.bicep"),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -28,4 +28,19 @@ public class AzureAppConfigurationResource(string name) :
     /// </summary>
     /// <returns>The connection string for the Azure App Configuration resource.</returns>
     public string? GetConnectionString() => Endpoint.Value;
+
+    /// <summary>
+    /// Gets the connection string for the Azure App Configuration resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the Azure App Configuration resource.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
 }

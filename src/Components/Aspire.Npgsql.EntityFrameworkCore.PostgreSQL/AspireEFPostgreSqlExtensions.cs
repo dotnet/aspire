@@ -47,6 +47,8 @@ public static partial class AspireEFPostgreSqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        builder.EnsureDbContextNotRegistered<TContext>();
+
         var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)
