@@ -500,6 +500,74 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task AddAzureConstructStorage()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var storagesku = builder.AddParameter("storagesku");
+        var storage = builder.AddAzureConstructStorage("storage", (_, sa) =>
+        {
+            sa.AssignParameter(x => x.Sku.Name, storagesku);
+        });
+
+        storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
+        storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
+        storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
+
+        // Check storage resource.
+        Assert.Equal("storage", storage.Resource.Name);
+        var expectedStorageManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "path": "storage.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": "",
+                "storagesku": "{storagesku.value}"
+              }
+            }
+            """;
+        var storageManifest = await ManifestUtils.GetManifest(storage.Resource);
+        Assert.Equal(expectedStorageManifest, storageManifest.ToString());
+
+        // Check blob resource.
+        var blob = storage.AddBlobs("blob");
+        Assert.Equal("https://myblob", blob.Resource.GetConnectionString());
+        var expectedBlobManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.blobEndpoint}"
+            }
+            """;
+        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
+        Assert.Equal(expectedBlobManifest, blobManifest.ToString());
+
+        // Check queue resource.
+        var queue = storage.AddQueues("queue");
+        Assert.Equal("https://myqueue", queue.Resource.GetConnectionString());
+        var expectedQueueManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.queueEndpoint}"
+            }
+            """;
+        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
+        Assert.Equal(expectedQueueManifest, queueManifest.ToString());
+
+        // Check table resource.
+        var table = storage.AddTables("table");
+        Assert.Equal("https://mytable", table.Resource.GetConnectionString());
+        var expectedTableManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.tableEndpoint}"
+            }
+            """;
+        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
+        Assert.Equal(expectedTableManifest, tableManifest.ToString());
+    }
+
+    [Fact]
     public void AddAzureSearch()
     {
         var builder = DistributedApplication.CreateBuilder();
