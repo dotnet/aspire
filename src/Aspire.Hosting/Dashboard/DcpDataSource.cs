@@ -217,10 +217,6 @@ internal sealed class DcpDataSource
                 _ => throw new System.ComponentModel.InvalidEnumArgumentException($"Cannot convert {nameof(WatchEventType)} with value {watchEventType} into enum of type {nameof(ResourceSnapshotChangeType)}.")
             };
 
-            var snapshot = snapshotFactory(resource);
-
-            await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
-
             // Remove the placeholder resource if it exists since we're getting an update about the real resource
             // from DCP.
             string? resourceName = null;
@@ -230,6 +226,10 @@ internal sealed class DcpDataSource
             {
                 await _onResourceChanged(placeHolder, ResourceSnapshotChangeType.Delete).ConfigureAwait(false);
             }
+
+            var snapshot = snapshotFactory(resource);
+
+            await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
         }
 
         void UpdateAssociatedServicesMap()
