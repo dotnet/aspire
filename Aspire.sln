@@ -322,6 +322,7 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CdkSample.AppHost", "playground\cdk\CdkSample.AppHost\CdkSample.AppHost.csproj", "{A357411A-5909-4A49-9519-12A935F84395}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CdkSample.ApiService", "playground\cdk\CdkSample.ApiService\CdkSample.ApiService.csproj", "{4601F5A2-E445-41B2-9C1F-2CE016642E62}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CustomResources", "CustomResources", "{867A00A7-AF8E-4396-9583-982FBB31762C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomResources.AppHost", "playground\CustomResources\CustomResources.AppHost\CustomResources.AppHost.csproj", "{4231B6F1-1110-4992-A727-8F1176A47440}"
@@ -832,6 +833,12 @@ Global
 		{5345A33F-B845-4F2D-A934-F9D73327B1CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5345A33F-B845-4F2D-A934-F9D73327B1CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5345A33F-B845-4F2D-A934-F9D73327B1CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE25EF01-58F6-49C8-A5ED-292489DD9E62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE25EF01-58F6-49C8-A5ED-292489DD9E62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D30ED884-BAB5-4FE7-9E78-C66411050F7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D30ED884-BAB5-4FE7-9E78-C66411050F7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E785C7A8-F8A3-49D6-9600-9D8E10FB5624}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E785C7A8-F8A3-49D6-9600-9D8E10FB5624}.Debug|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

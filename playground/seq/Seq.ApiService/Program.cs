@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Seq.ServiceDefaults.Extensions.AddServiceDefaults(builder);
+builder.AddSeqEndpoint("seq");
 
 var app = builder.Build();
 
