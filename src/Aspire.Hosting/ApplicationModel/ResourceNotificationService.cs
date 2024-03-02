@@ -25,7 +25,7 @@ public class ResourceNotificationService
         lock (notificationState)
         {
             // When watching a resource, make sure the initial snapshot is set.
-            notificationState.LastSnapshot = GetInitialSnapshot(resource, notificationState, createIfNotExists: false);
+            notificationState.LastSnapshot = GetInitialSnapshot(resource, notificationState);
         }
 
         return notificationState.WatchAsync();
@@ -64,7 +64,7 @@ public class ResourceNotificationService
         }
     }
 
-    private static CustomResourceSnapshot? GetInitialSnapshot(IResource resource, ResourceNotificationState notificationState, bool createIfNotExists = true)
+    private static CustomResourceSnapshot? GetInitialSnapshot(IResource resource, ResourceNotificationState notificationState)
     {
         var previousState = notificationState.LastSnapshot;
 
@@ -75,14 +75,12 @@ public class ResourceNotificationService
                 previousState = annotation.InitialSnapshot;
             }
 
-            if (createIfNotExists)
+            // If there is no initial snapshot, create an empty one.
+            previousState ??= new CustomResourceSnapshot()
             {
-                previousState ??= new CustomResourceSnapshot()
-                {
-                    ResourceType = resource.GetType().Name.Replace("Resource", ""),
-                    Properties = []
-                };
-            }
+                ResourceType = resource.GetType().Name,
+                Properties = []
+            };
         }
 
         return previousState;

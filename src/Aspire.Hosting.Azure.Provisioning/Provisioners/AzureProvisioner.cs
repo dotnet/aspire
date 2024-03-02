@@ -276,29 +276,45 @@ internal sealed class AzureProvisioner(
 
             resourceLogger.LogInformation("Provisioning {resourceName}...", resource.Name);
 
-            if (subscription is null || tenant is null)
+            try
             {
-                (subscription, tenant) = await subscriptionLazy.Value.ConfigureAwait(false);
+                if (subscription is null || tenant is null)
+                {
+                    (subscription, tenant) = await subscriptionLazy.Value.ConfigureAwait(false);
+                }
+
+                AzureLocation location = default;
+
+                if (resourceGroup is null)
+                {
+                    (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
+                }
+
+                resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
+                principal ??= await principalLazy.Value.ConfigureAwait(false);
+                provisioningContext ??= new ProvisioningContext(credential, armClientLazy.Value, subscription, resourceGroup, tenant, resourceMap, location, principal, userSecrets);
+
+                var task = provisioner.GetOrCreateResourceAsync(
+                        resource,
+                        provisioningContext,
+                        cancellationToken);
+
+                tasks.Add(task);
             }
-
-            AzureLocation location = default;
-
-            if (resourceGroup is null)
+            catch (Exception ex)
             {
-                (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
+                resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
+
+                resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve referenes from {resource.Name}"));
+
+                await notificationService.PublishUpdateAsync(resource, state => state with
+                {
+                    State = "FailedToStart"
+                })
+                .ConfigureAwait(false);
             }
-
-            resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
-            principal ??= await principalLazy.Value.ConfigureAwait(false);
-            provisioningContext ??= new ProvisioningContext(credential, armClientLazy.Value, subscription, resourceGroup, tenant, resourceMap, location, principal, userSecrets);
-
-            var task = provisioner.GetOrCreateResourceAsync(
-                    resource,
-                    provisioningContext,
-                    cancellationToken);
-
-            tasks.Add(task);
         }
+
         if (tasks.Count > 0)
         {
             var task = Task.WhenAll(tasks);
