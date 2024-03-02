@@ -305,7 +305,7 @@ internal sealed class AzureProvisioner(
             {
                 resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
 
-                resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve referenes from {resource.Name}"));
+                resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
 
                 await notificationService.PublishUpdateAsync(resource, state => state with
                 {
