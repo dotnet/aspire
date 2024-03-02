@@ -24,7 +24,7 @@ public static class RedisBuilderExtensions
     {
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379, source: "redis"))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "7.2.4" })
                       .PublishAsContainer();
     }

@@ -23,13 +23,14 @@ public static class ProjectResourceBuilderExtensions
     /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="excludeLaunchProfile"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, bool excludeLaunchProfile = false) where TProject : IProjectMetadata, new()
     {
         var project = new ProjectResource(name);
         return builder.AddResource(project)
                       .WithAnnotation(new TProject())
-                      .WithProjectDefaults();
+                      .WithProjectDefaults(excludeLaunchProfile);
     }
 
     /// <summary>
@@ -38,8 +39,9 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
     /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="excludeLaunchProfile"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, bool excludeLaunchProfile = false)
     {
         var project = new ProjectResource(name);
 
@@ -47,10 +49,10 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithProjectDefaults();
+                      .WithProjectDefaults(excludeLaunchProfile);
     }
 
-    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder)
+    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, bool excludeLaunchProfile)
     {
         // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
         // implements IDistributedApplicationResourceWithEnvironment.
@@ -58,6 +60,12 @@ public static class ProjectResourceBuilderExtensions
         builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
+
+        if (excludeLaunchProfile)
+        {
+            builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
+            return builder;
+        }
 
         var projectResource = builder.Resource;
 
@@ -92,8 +100,7 @@ public static class ProjectResourceBuilderExtensions
                 var generatedEndpointAnnotation = new EndpointAnnotation(
                     ProtocolType.Tcp,
                     uriScheme: uri.Scheme,
-                    port: uri.Port,
-                    source: "launchSettings"
+                    port: uri.Port
                     );
 
                 projectResource.Annotations.Add(generatedEndpointAnnotation);
@@ -113,8 +120,7 @@ public static class ProjectResourceBuilderExtensions
             {
                 var httpBinding = new EndpointAnnotation(
                     ProtocolType.Tcp,
-                    uriScheme: "http",
-                    source: "project"
+                    uriScheme: "http"
                     );
                 projectResource.Annotations.Add(httpBinding);
                 httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
@@ -124,8 +130,7 @@ public static class ProjectResourceBuilderExtensions
             {
                 var httpsBinding = new EndpointAnnotation(
                     ProtocolType.Tcp,
-                    uriScheme: "https",
-                    source: "project"
+                    uriScheme: "https"
                     );
                 projectResource.Annotations.Add(httpsBinding);
                 httpsBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpsBinding.Transport;
@@ -186,28 +191,16 @@ public static class ProjectResourceBuilderExtensions
         return builder.WithAnnotation(launchProfileAnnotation);
     }
 
-    /// <summary>
-    /// Configures the project to exclude launch profile settings when running.
-    /// </summary>
-    /// <param name="builder">The project resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
-    {
-        for (var i = 0; i < builder.Resource.Annotations.Count; i++)
-        {
-            if (builder.Resource.Annotations[i] is EndpointAnnotation ea)
-            {
-                if (ea.Source == "launchSettings" || ea.Source == "project")
-                {
-                    builder.Resource.Annotations.RemoveAt(i);
-                    i--;
-                }
-            }
-        }
-
-        builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
-        return builder;
-    }
+    ///// <summary>
+    ///// Configures the project to exclude launch profile settings when running.
+    ///// </summary>
+    ///// <param name="builder">The project resource builder.</param>
+    ///// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    //public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
+    //{
+    //    builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
+    //    return builder;
+    //}
 
     private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
     {

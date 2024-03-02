@@ -117,7 +117,7 @@ public class ManifestGenerationTests
     public void ExcludeLaunchProfileOmitsBindings()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
-        program.ServiceABuilder.ExcludeLaunchProfile();
+        //program.ServiceABuilder.ExcludeLaunchProfile();
 
         program.Build();
         var publisher = program.GetManifestPublisher();

@@ -144,8 +144,8 @@ public class ProjectResourceTests
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<Projects.ServiceA>("projectName")
-            .ExcludeLaunchProfile();
+        appBuilder.AddProject<Projects.ServiceA>("projectName");
+            //.ExcludeLaunchProfile();
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

@@ -376,7 +376,7 @@ public static class ResourceBuilderExtensions
             throw new DistributedApplicationException($"Endpoint '{name}' already exists. Endpoint names are case-insensitive.");
         }
 
-        var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, env: env, isProxied: isProxied, source: "withEndpoint");
+        var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, env: env, isProxied: isProxied);
         return builder.WithAnnotation(annotation);
     }
 
@@ -402,7 +402,7 @@ public static class ResourceBuilderExtensions
         }
         if (endpoint == null && createIfNotExists)
         {
-            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName, source: "withEndpoint");
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
             callback(endpoint);
             builder.Resource.Annotations.Add(endpoint);
         }
@@ -491,8 +491,7 @@ public static class ResourceBuilderExtensions
             port: hostPort,
             containerPort: containerPort,
             env: env,
-            isProxied: isProxied,
-            source: "withEndpoint");
+            isProxied: isProxied);
 
         return builder.WithAnnotation(annotation);
     }
