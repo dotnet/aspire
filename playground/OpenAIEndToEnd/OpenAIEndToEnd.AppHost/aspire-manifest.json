@@ -6,10 +6,26 @@
       "path": "aspire.hosting.azure.bicep.openai.bicep",
       "params": {
         "name": "openai",
-        "deployments": [],
+        "deployments": [
+          {
+            "name": "gpt-35-turbo",
+            "sku": {
+              "name": "Standard",
+              "capacity": 2
+            },
+            "model": {
+              "format": "OpenAI",
+              "name": "gpt-35-turbo",
+              "version": "0613"
+            }
+          }
+        ],
         "principalId": "",
         "principalType": ""
       }
+    },
+    "gpt-35-turbo": {
+      "error": "This resource does not support generation in the manifest."
     },
     "webstory": {
       "type": "project.v0",

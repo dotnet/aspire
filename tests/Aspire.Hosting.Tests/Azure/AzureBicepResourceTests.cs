@@ -451,17 +451,24 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         var openai = builder.AddAzureOpenAI("openai");
-        openai.AddDeployment("mymodel");
+        openai.AddDeployment("mymodel", "gpt-35-turbo", "0613", "Basic", 4);
 
         openai.Resource.Outputs["connectionString"] = "myopenaiconnectionstring";
 
-        var deployments = openai.Resource.Parameters["deployments"] as IEnumerable<string>;
+        var callback = openai.Resource.Parameters["deployments"] as Func<object?>;
+        var deployments = callback?.Invoke() as JsonArray;
+        var deployment = deployments?.FirstOrDefault();
 
         Assert.Equal("Aspire.Hosting.Azure.Bicep.openai.bicep", openai.Resource.TemplateResourceName);
         Assert.Equal("openai", openai.Resource.Name);
-        Assert.NotNull(deployments);
-        Assert.Equal(["mymodel"], deployments);
         Assert.Equal("myopenaiconnectionstring", openai.Resource.GetConnectionString());
         Assert.Equal("{openai.outputs.connectionString}", openai.Resource.ConnectionStringExpression);
+        Assert.NotNull(deployment);
+        Assert.Equal("mymodel", deployment["name"]?.ToString());
+        Assert.Equal("Basic", deployment["sku"]?["name"]?.ToString());
+        Assert.Equal(4, deployment["sku"]?["capacity"]?.GetValue<int>());
+        Assert.Equal("OpenAI", deployment["model"]?["format"]?.ToString());
+        Assert.Equal("gpt-35-turbo", deployment["model"]?["name"]?.ToString());
+        Assert.Equal("0613", deployment["model"]?["version"]?.ToString());
     }
 }

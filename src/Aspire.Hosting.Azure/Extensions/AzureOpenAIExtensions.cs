@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 
@@ -22,7 +23,7 @@ public static class AzureOpenAIExtensions
         var resource = new AzureOpenAIResource(name);
         return builder.AddResource(resource)
                       .WithParameter("name", resource.CreateBicepResourceName())
-                      .WithParameter("deployments", resource.Deployments.Select(x => x.Name))
+                      .WithParameter("deployments", () => new JsonArray(resource.Deployments.Select(x => x.ToJsonNode()).ToArray()))
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
@@ -33,10 +34,14 @@ public static class AzureOpenAIExtensions
     /// </summary>
     /// <param name="serverBuilder">The Azure SQL Server resource builder.</param>
     /// <param name="name">The name of the deployment.</param>
+    /// <param name="modelName">The model name.</param>
+    /// <param name="modelVersion">The model version.</param>
+    /// <param name="skuName">The sku name.</param>
+    /// <param name="skuCapacity">Teh sku capacity.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<AzureOpenAIDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name)
+    public static IResourceBuilder<AzureOpenAIDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name, string modelName, string modelVersion, string skuName = "Standard", int skuCapacity = 2)
     {
-        var resource = new AzureOpenAIDeploymentResource(name, serverBuilder.Resource);
+        var resource = new AzureOpenAIDeploymentResource(name, serverBuilder.Resource, modelName, modelVersion, skuName, skuCapacity);
         return serverBuilder.ApplicationBuilder.AddResource(resource);
     }
 }

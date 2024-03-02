@@ -363,7 +363,7 @@ public class ManifestGenerationTests
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddAzureOpenAI("openai").AddDeployment("deployment");
+        program.AppBuilder.AddAzureOpenAI("openai").AddDeployment("deployment", "gpt-35-turbo", "0613");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -374,10 +374,7 @@ public class ManifestGenerationTests
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
 
         var openai = resources.GetProperty("openai");
-        Assert.Equal("azure.openai.account.v0", openai.GetProperty("type").GetString());
-
-        var deployment = resources.GetProperty("deployment");
-        Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
+        Assert.Equal("azure.bicep.v0", openai.GetProperty("type").GetString());
     }
 
     [Fact]
