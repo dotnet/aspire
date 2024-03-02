@@ -27,9 +27,7 @@
   <Target Name="Build" />
 
   <Target Name="BeforeBuild" BeforeTargets="_GetPackageFiles">
-    <!-- separate restore step to allow targets from nugets to get imported in the publish step -->
-    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="restore" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime)" />
-    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime);_Some_unique_prop=$([System.Guid]::NewGuid())" />
+    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime)" />
 
     <!-- After publishing the project, we ensure that the published assets get packed in the nuspec. -->
     <ItemGroup>
