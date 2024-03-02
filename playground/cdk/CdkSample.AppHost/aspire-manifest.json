@@ -25,9 +25,9 @@
         "storagesku": "{storagesku.value}"
       }
     },
-    "tables": {
+    "blobs": {
       "type": "value.v0",
-      "connectionString": "{cdkstorage2.outputs.tableEndpoint}"
+      "connectionString": "{cdkstorage2.outputs.blobEndpoint}"
     },
     "api": {
       "type": "project.v0",
@@ -35,7 +35,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__tables": "{tables.connectionString}"
+        "ConnectionStrings__blobs": "{blobs.connectionString}"
       },
       "bindings": {
         "http": {

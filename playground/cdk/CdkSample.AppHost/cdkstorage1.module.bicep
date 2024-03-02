@@ -13,7 +13,7 @@ resource storageAccount_EMiEZBbox 'Microsoft.Storage/storageAccounts@2022-09-01'
   sku: {
     name: storagesku
   }
-  kind: 'StorageV2'
+  kind: 'Storage'
   properties: {
   }
 }

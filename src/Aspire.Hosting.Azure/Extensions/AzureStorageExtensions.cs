@@ -52,30 +52,14 @@ public static class AzureStorageExtensions
 
             var blobService = new BlobService(construct);
 
-            // WARNING: This code currently produces invalid Bicep because all of the role
-            //          assignment Bicep resources have the same identifier and ARM name
-            //          which means they all produce the same GUID.
-            //
-            //          Additionally there is a bug with the ARM namespace that AssignRole
-            //          results in. A fix for this has been submitted here:
-            //
-            //            https://github.com/Azure/azure-sdk-for-net/pull/42320
-            //
-            //          As a result of this the table and queues role assignments
-            //          have been commented out. This code is checked in for review
-            //          but this has to be addressed before merge.
-            //
-            //          To successfully run this code as is you need a local build
-            //          of Azure.Provisioning with the other fix linked above.
-
             var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
             blobRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
-            //var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
-            //tableRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
+            tableRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
-            //var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
-            //queueRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
+            queueRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             storageAccount.AddOutput(sa => sa.PrimaryEndpoints.BlobUri, "blobEndpoint");
             storageAccount.AddOutput(sa => sa.PrimaryEndpoints.QueueUri, "queueEndpoint");
