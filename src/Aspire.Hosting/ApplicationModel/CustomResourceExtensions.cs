@@ -11,29 +11,13 @@ namespace Aspire.Hosting;
 public static class CustomResourceExtensions
 {
     /// <summary>
-    /// Adds a callback to configure the dashboard context for a resource.
+    /// Initializes the resource with the initial snapshot.
     /// </summary>
     /// <typeparam name="TResource">The resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="initialSnapshotFactory">The factory to create the initial <see cref="CustomResourceSnapshot"/> for this resource.</param>
+    /// <param name="initialSnapshot">The factory to create the initial <see cref="CustomResourceSnapshot"/> for this resource.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<TResource> WithCustomResourceState<TResource>(this IResourceBuilder<TResource> builder, Func<CustomResourceSnapshot>? initialSnapshotFactory = null)
+    public static IResourceBuilder<TResource> WithInitialState<TResource>(this IResourceBuilder<TResource> builder, CustomResourceSnapshot initialSnapshot)
         where TResource : IResource
-    {
-        initialSnapshotFactory ??= () => CustomResourceSnapshot.Create(builder.Resource);
-
-        return builder.WithAnnotation(new CustomResourceAnnotation(initialSnapshotFactory), ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
-    /// Initializes the resource with a logger that writes to the log stream for the resource.
-    /// </summary>
-    /// <typeparam name="TResource">The resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<TResource> WithResourceLogger<TResource>(this IResourceBuilder<TResource> builder)
-        where TResource : IResource
-    {
-        return builder.WithAnnotation(new CustomResourceLoggerAnnotation(), ResourceAnnotationMutationBehavior.Replace);
-    }
+        => builder.WithAnnotation(new ResourceSnapshotAnnotation(initialSnapshot), ResourceAnnotationMutationBehavior.Replace);
 }

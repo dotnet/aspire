@@ -14,9 +14,9 @@ public class AzureSearchResource(string name) :
     IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets the "connectionString" reference from the secret outputs of the Azure Search resource.
+    /// Gets the "connectionString" output reference from the Azure Search resource.
     /// </summary>
-    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+    public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
@@ -24,9 +24,24 @@ public class AzureSearchResource(string name) :
     public string ConnectionStringExpression => ConnectionString.ValueExpression;
 
     /// <summary>
-    /// Gets the connection string for the resource.
+    /// Gets the connection string for the azure search resource.
     /// </summary>
     /// <returns>The connection string for the resource.</returns>
     public string? GetConnectionString() => ConnectionString.Value;
+
+    /// <summary>
+    /// Gets the connection string for the azure search resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the resource.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
 }
 

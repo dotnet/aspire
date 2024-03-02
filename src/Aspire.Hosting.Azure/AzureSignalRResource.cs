@@ -22,9 +22,25 @@ public class AzureSignalRResource(string name) :
     /// Gets the connection string template for the manifest for Azure SignalR.
     /// </summary>
     public string ConnectionStringExpression => $"Endpoint=https://{HostName.ValueExpression};AuthType=azure";
+
     /// <summary>
     /// Gets the connection string for Azure SignalR.
     /// </summary>
     /// <returns>The connection string for Azure SignalR.</returns>
     public string? GetConnectionString() => $"Endpoint=https://{HostName.Value};AuthType=azure";
+
+    /// <summary>
+    /// Gets the connection string for Azure SignalR.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for Azure SignalR.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
 }

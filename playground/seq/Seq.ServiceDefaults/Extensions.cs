@@ -17,11 +17,6 @@ public static class Extensions
 {
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
-        builder.AddSeqEndpoint("seq", s =>
-        {
-            s.HealthChecks = false;
-        });
-
         builder.ConfigureOpenTelemetry();
 
         builder.AddDefaultHealthChecks();

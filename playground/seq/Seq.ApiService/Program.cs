@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Seq.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Seq.ServiceDefaults.Extensions.AddServiceDefaults(builder);
+builder.AddSeqEndpoint("seq");
+builder.AddServiceDefaults();
 
 var app = builder.Build();
 

@@ -2,11 +2,12 @@
   "resources": {
     "search": {
       "type": "azure.bicep.v0",
-      "connectionString": "{search.secretOutputs.connectionString}",
+      "connectionString": "{search.outputs.connectionString}",
       "path": "aspire.hosting.azure.bicep.search.bicep",
       "params": {
         "name": "search",
-        "keyVaultName": ""
+        "principalId": "",
+        "principalType": ""
       }
     },
     "api": {

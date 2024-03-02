@@ -1,5 +1,6 @@
 param name string
-param keyVaultName string
+param principalId string
+param principalType string = 'ServicePrincipal'
 
 @description('Tags that will be applied to all resources')
 param tags object = {}
@@ -14,7 +15,7 @@ param tags object = {}
   'storage_optimized_l1'
   'storage_optimized_l2'
 ])
-param sku string = 'free'
+param sku string = 'basic'
 
 @description('Replicas distribute search workloads across the service. You need at least two replicas to support high availability of query workloads (not applicable to the free tier).')
 @minValue(1)
@@ -44,7 +45,7 @@ param location string = resourceGroup().location
 
 var resourceToken = uniqueString(resourceGroup().id)
 
-resource search 'Microsoft.Search/searchServices@2020-08-01' = {
+resource search 'Microsoft.Search/searchServices@2022-09-01' = {
   name: '${name}-${resourceToken}'
   location: location
   sku: {
@@ -54,21 +55,36 @@ resource search 'Microsoft.Search/searchServices@2020-08-01' = {
     replicaCount: replicaCount
     partitionCount: partitionCount
     hostingMode: hostingMode
+    disableLocalAuth: true
   }
   tags: tags
 }
 
-var primaryKey = search.listAdminKeys(search.apiVersion).primaryKey
-var searchServiceName = search.name
+// Find list of roles and GUIDs in https://learn.microsoft.com/azure/role-based-access-control/built-in-roles
 
-resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-    name: keyVaultName
-
-    resource secret 'secrets@2023-07-01' = {
-        name: 'connectionString'
-        properties: {
-            value: 'Endpoint=https://${searchServiceName}.search.windows.net;Key=${primaryKey}'
-        }
-    }
+// Search Service Contributor
+var searchServiceContributorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
+resource searchServiceContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(search.id, principalId, searchServiceContributorRole)
+  scope: search
+  properties: {
+    principalId: principalId
+    principalType: principalType
+    roleDefinitionId: searchServiceContributorRole
+  }
 }
 
+// Search Index Data Contributor
+var searchIndexDataContributorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
+resource searchIndexDataContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(search.id, principalId, searchIndexDataContributorRole)
+  scope: search
+  properties: {
+    principalId: principalId
+    principalType: principalType
+    roleDefinitionId: searchIndexDataContributorRole
+  }
+}
+
+// The resource provider doesn't expose the final endpoint url, so we construct it from the unique name
+output connectionString string = 'Endpoint=https://${search.name}.search.windows.net'
