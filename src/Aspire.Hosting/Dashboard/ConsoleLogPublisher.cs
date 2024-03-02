@@ -13,7 +13,7 @@ using LogsEnumerable = IAsyncEnumerable<IReadOnlyList<(string Content, bool IsEr
 
 internal sealed class ConsoleLogPublisher(
     ResourcePublisher resourcePublisher,
-    IReadOnlyDictionary<string, IResource> resourceMap,
+    ResourceLoggerService resourceLoggerService,
     IKubernetesService kubernetesService,
     ILoggerFactory loggerFactory,
     IConfiguration configuration)
@@ -33,7 +33,7 @@ internal sealed class ConsoleLogPublisher(
             {
                 ExecutableSnapshot executable => SubscribeExecutableResource(executable),
                 ContainerSnapshot container => SubscribeContainerResource(container),
-                GenericResourceSnapshot genericResource when resourceMap.TryGetValue(genericResource.Name, out var appModelResource) => SubscribeGenericResource(appModelResource),
+                GenericResourceSnapshot genericResource => resourceLoggerService.WatchAsync(genericResource.Name),
                 _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
             };
         }
@@ -43,7 +43,7 @@ internal sealed class ConsoleLogPublisher(
             {
                 ExecutableSnapshot executable => SubscribeExecutable(executable),
                 ContainerSnapshot container => SubscribeContainer(container),
-                GenericResourceSnapshot genericResource when resourceMap.TryGetValue(genericResource.Name, out var appModelResource) => SubscribeGenericResource(appModelResource),
+                GenericResourceSnapshot genericResource => resourceLoggerService.WatchAsync(genericResource.Name),
                 _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
             };
         }
@@ -79,22 +79,5 @@ internal sealed class ConsoleLogPublisher(
 
             return new DockerContainerLogSource(container.ContainerId);
         }
-    }
-
-    private static LogsEnumerable SubscribeGenericResource(IResource resource)
-    {
-        if (resource.TryGetLastAnnotation<ResourceLoggerAnnotation>(out var loggerAnnotation))
-        {
-            return loggerAnnotation.WatchAsync();
-        }
-
-        return NoLogsAvailableEnumerable();
-    }
-
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-    private static async LogsEnumerable NoLogsAvailableEnumerable()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-    {
-        yield return [("No logs available", false)];
     }
 }

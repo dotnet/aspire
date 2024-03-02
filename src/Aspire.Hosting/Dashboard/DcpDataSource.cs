@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text.Json;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
@@ -23,6 +24,7 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DcpDataSource
 {
     private readonly IKubernetesService _kubernetesService;
+    private readonly ResourceNotificationService _notificationService;
     private readonly IReadOnlyDictionary<string, IResource> _applicationModel;
     private readonly ConcurrentDictionary<string, ResourceSnapshot> _placeHolderResources = [];
     private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
@@ -36,14 +38,16 @@ internal sealed class DcpDataSource
 
     public DcpDataSource(
         IKubernetesService kubernetesService,
-        IReadOnlyDictionary<string, IResource> applicationModel,
+        ResourceNotificationService notificationService,
+        IReadOnlyDictionary<string, IResource> applicationModelMap,
         IConfiguration configuration,
         ILoggerFactory loggerFactory,
         Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
-        _applicationModel = applicationModel;
+        _notificationService = notificationService;
+        _applicationModel = applicationModelMap;
         _onResourceChanged = onResourceChanged;
 
         _logger = loggerFactory.CreateLogger<DcpDataSource>();
@@ -56,6 +60,12 @@ internal sealed class DcpDataSource
                 // Show all resources initially and allow updates from DCP (for the relevant resources)
                 foreach (var (_, resource) in _applicationModel)
                 {
+                    if (resource.Name == KnownResourceNames.AspireDashboard &&
+                        configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is not true)
+                    {
+                        continue;
+                    }
+
                     await ProcessInitialResourceAsync(resource, cancellationToken).ConfigureAwait(false);
                 }
 
@@ -111,143 +121,86 @@ internal sealed class DcpDataSource
         }
     }
 
-    private async Task ProcessInitialResourceAsync(IResource resource, CancellationToken cancellationToken)
+    private Task ProcessInitialResourceAsync(IResource resource, CancellationToken cancellationToken)
     {
-        // If the resource is a redirect, we want to create a snapshot for the resource it redirects to.
-        if (resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var redirectAnnotation))
+        // The initial snapshots are all generic resources until we get the real state from DCP (for projects, containers and executables).
+        if (resource.IsContainer())
         {
-            resource = redirectAnnotation.Resource;
-        }
-
-        if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
-        {
-            var snapshot = new ContainerSnapshot
+            var snapshot = CreateResourceSnapshot(resource, DateTime.UtcNow, new CustomResourceSnapshot
             {
-                Name = resource.Name,
-                DisplayName = resource.Name,
-                Uid = resource.Name,
-                CreationTimeStamp = DateTime.UtcNow,
-                Image = containerImageAnnotation.Image,
-                State = "Starting",
-                ContainerId = null,
-                ExitCode = null,
-                ExpectedEndpointsCount = null,
-                Environment = [],
-                Endpoints = [],
-                Services = [],
-                Command = null,
-                Args = [],
-                Ports = []
-            };
+                ResourceType = KnownResourceTypes.Container,
+                Properties = [],
+            });
 
             _placeHolderResources.TryAdd(resource.Name, snapshot);
-
-            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
-        else if (resource is ProjectResource p)
+        else if (resource is ProjectResource)
         {
-            var snapshot = new ProjectSnapshot
+            var snapshot = CreateResourceSnapshot(resource, DateTime.UtcNow, new CustomResourceSnapshot
             {
-                Name = p.Name,
-                DisplayName = p.Name,
-                Uid = p.Name,
-                CreationTimeStamp = DateTime.UtcNow,
-                ProjectPath = p.GetProjectMetadata().ProjectPath,
-                State = "Starting",
-                ExpectedEndpointsCount = null,
-                Environment = [],
-                Endpoints = [],
-                Services = [],
-                ExecutablePath = null,
-                ExitCode = null,
-                Arguments = null,
-                ProcessId = null,
-                StdErrFile = null,
-                StdOutFile = null,
-                WorkingDirectory = null
-            };
+                ResourceType = KnownResourceTypes.Project,
+                Properties = [],
+            });
 
             _placeHolderResources.TryAdd(resource.Name, snapshot);
-
-            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
-        else if (resource is ExecutableResource exe)
+        else if (resource is ExecutableResource)
         {
-            var snapshot = new ExecutableSnapshot
+            var snapshot = CreateResourceSnapshot(resource, DateTime.UtcNow, new CustomResourceSnapshot
             {
-                Name = exe.Name,
-                DisplayName = exe.Name,
-                Uid = exe.Name,
-                CreationTimeStamp = DateTime.UtcNow,
-                ExecutablePath = exe.Command,
-                WorkingDirectory = exe.WorkingDirectory,
-                Arguments = null,
-                State = "Starting",
-                ExitCode = null,
-                StdOutFile = null,
-                StdErrFile = null,
-                ProcessId = null,
-                ExpectedEndpointsCount = null,
-                Environment = [],
-                Endpoints = [],
-                Services = []
-            };
+                ResourceType = KnownResourceTypes.Executable,
+                Properties = [],
+            });
 
             _placeHolderResources.TryAdd(resource.Name, snapshot);
-
-            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
-        else if (resource.TryGetLastAnnotation<ResourceUpdatesAnnotation>(out var resourceUpdates))
+
+        var creationTimestamp = DateTime.UtcNow;
+
+        _ = Task.Run(async () =>
         {
-            // We have a dashboard annotation, so we want to create a snapshot for the resource
-            // and update data immediately. We also want to watch for changes to the dashboard state.
-            var state = await resourceUpdates.GetInitialSnapshotAsync(cancellationToken).ConfigureAwait(false);
-            var creationTimestamp = DateTime.UtcNow;
-
-            var snapshot = CreateResourceSnapshot(resource, creationTimestamp, state);
-
-            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-
-            _ = Task.Run(async () =>
+            await foreach (var state in _notificationService.WatchAsync(resource).WithCancellation(cancellationToken))
             {
-                await foreach (var state in resourceUpdates.WatchAsync().WithCancellation(cancellationToken))
+                try
                 {
-                    try
-                    {
-                        var snapshot = CreateResourceSnapshot(resource, creationTimestamp, state);
+                    var snapshot = CreateResourceSnapshot(resource, creationTimestamp, state);
 
-                        await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        _logger.LogError(ex, "Error updating resource snapshot for {Name}", resource.Name);
-                    }
+                    await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
                 }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "Error updating resource snapshot for {Name}", resource.Name);
+                }
+            }
 
-            }, cancellationToken);
-        }
+        }, cancellationToken);
+
+        return Task.CompletedTask;
     }
 
-    private static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, DateTime creationTimestamp, CustomResourceSnapshot dashboardState)
+    private static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, DateTime creationTimestamp, CustomResourceSnapshot snapshot)
     {
         ImmutableArray<EnvironmentVariableSnapshot> environmentVariables = [..
-            dashboardState.EnvironmentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, false))];
+            snapshot.EnvironmentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, false))];
+
+        ImmutableArray<ResourceServiceSnapshot> services = [..
+            snapshot.Urls.Select(u => new ResourceServiceSnapshot(u.Name, u.Url, null))];
 
         ImmutableArray<EndpointSnapshot> endpoints = [..
-            dashboardState.Urls.Select(u => new EndpointSnapshot(u, u))];
+            snapshot.Urls.Select(u => new EndpointSnapshot(u.Url, u.Url))];
 
-        return new GenericResourceSnapshot(dashboardState)
+        return new GenericResourceSnapshot(snapshot)
         {
             Uid = resource.Name,
-            CreationTimeStamp = creationTimestamp,
+            CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
             Name = resource.Name,
             DisplayName = resource.Name,
             Endpoints = endpoints,
             Environment = environmentVariables,
             ExitCode = null,
             ExpectedEndpointsCount = endpoints.Length,
-            Services = [],
-            State = dashboardState.State ?? "Running"
+            Services = services,
+            State = snapshot.State ?? "Running"
         };
     }
 
@@ -264,10 +217,6 @@ internal sealed class DcpDataSource
                 _ => throw new System.ComponentModel.InvalidEnumArgumentException($"Cannot convert {nameof(WatchEventType)} with value {watchEventType} into enum of type {nameof(ResourceSnapshotChangeType)}.")
             };
 
-            var snapshot = snapshotFactory(resource);
-
-            await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
-
             // Remove the placeholder resource if it exists since we're getting an update about the real resource
             // from DCP.
             string? resourceName = null;
@@ -277,6 +226,10 @@ internal sealed class DcpDataSource
             {
                 await _onResourceChanged(placeHolder, ResourceSnapshotChangeType.Delete).ConfigureAwait(false);
             }
+
+            var snapshot = snapshotFactory(resource);
+
+            await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
         }
 
         void UpdateAssociatedServicesMap()

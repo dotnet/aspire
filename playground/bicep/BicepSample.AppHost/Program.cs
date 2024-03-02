@@ -11,7 +11,7 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
                    .WithParameter("test", parameter)
                    .WithParameter("values", ["one", "two"]);
 
-var kv = builder.AddAzureKeyVault("kv");
+var kv = builder.AddAzureKeyVault("kv3");
 var appConfig = builder.AddAzureAppConfiguration("appConfig").WithParameter("sku", "standard");
 var storage = builder.AddAzureStorage("storage");
                     // .RunAsEmulator();

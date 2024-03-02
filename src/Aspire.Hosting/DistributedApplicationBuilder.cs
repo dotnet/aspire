@@ -80,6 +80,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
+        _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
+        _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
 
         // Dashboard
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();

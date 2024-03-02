@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -227,6 +228,8 @@ public static class ResourceBuilderExtensions
                 context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
                 return;
             }
+
+            context.Logger?.LogInformation("Retrieving connection string for '{Name}'.", resource.Name);
 
             var connectionString = await resource.GetConnectionStringAsync(context.CancellationToken).ConfigureAwait(false);
 

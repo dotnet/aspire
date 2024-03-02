@@ -31,6 +31,21 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     ///<returns> The connection string for the Azure Queue Storage resource.</returns>
     public string? GetConnectionString() => Parent.GetQueueConnectionString();
 
+    /// <summary>
+    /// Gets the connection string for the Azure Queue Storage resource.
+    ///</summary>
+    ///<param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    ///<returns> The connection string for the Azure Queue Storage resource.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (Parent.ProvisioningTaskCompletionSource is not null)
+        {
+            await Parent.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
+
     internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "value.v0");
