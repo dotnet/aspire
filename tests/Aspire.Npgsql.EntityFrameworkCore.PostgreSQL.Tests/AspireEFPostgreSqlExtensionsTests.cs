@@ -127,6 +127,7 @@ public class AspireEFPostgreSqlExtensionsTests
     [Fact]
     public void AddNpgsqlCanConfigureDbContextOptionsWithoutRetry()
     {
+        Console.WriteLine ($">>> AddNpgsqlCanConfigureDbContextOptionsWithoutRetry ENTER");
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString),
@@ -142,7 +143,9 @@ public class AspireEFPostgreSqlExtensionsTests
             });
         });
 
+        Console.WriteLine ("calling .Build");
         var host = builder.Build();
+        Console.WriteLine ("calling .GetRequiredService");
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -154,11 +157,13 @@ public class AspireEFPostgreSqlExtensionsTests
         Assert.Equal(123, extension.CommandTimeout);
 
         // ensure the connection string from config was respected
+        Console.WriteLine ("calling .GetDbConnection");
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
         Assert.Equal(ConnectionString, actualConnectionString);
 
         // ensure no retry strategy was registered
         Assert.Null(extension.ExecutionStrategyFactory);
+        Console.WriteLine ($"<<< AddNpgsqlCanConfigureDbContextOptionsWithoutRetry EXIT");
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
