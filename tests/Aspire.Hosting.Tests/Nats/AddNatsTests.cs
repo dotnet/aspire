@@ -62,10 +62,10 @@ public class AddNatsTests
         Assert.Equal("/tmp/dev-data", mountAnnotation.Source);
         Assert.Equal("/data", mountAnnotation.Target);
 
-        var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<ExecutableArgsCallbackAnnotation>());
+        var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>());
         Assert.NotNull(argsAnnotation.Callback);
         var args = new List<string>();
-        argsAnnotation.Callback(args);
+        argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         Assert.Equal("-js -sd /data".Split(' '), args);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -94,12 +94,12 @@ public class AddNatsTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var nats = appBuilder.AddNats("nats");
 
-        var manifest = ManifestUtils.GetManifest(nats.Resource);
+        var manifest = await ManifestUtils.GetManifest(nats.Resource);
 
         Assert.Equal("container.v0", manifest["type"]?.ToString());
         Assert.Equal(nats.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());

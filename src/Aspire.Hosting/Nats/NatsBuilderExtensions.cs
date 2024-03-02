@@ -35,31 +35,14 @@ public static class NatsBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> WithJetStream(this IResourceBuilder<NatsServerResource> builder, string? srcMountPath = null)
     {
-        builder.WithAnnotation(new ExecutableArgsCallbackAnnotation(updatedArgs =>
-        {
-            updatedArgs.Add("-js");
-            if (srcMountPath != null)
-            {
-                updatedArgs.Add("-sd");
-                updatedArgs.Add("/data");
-            }
-        }));
-
+        var args = new List<string> { "-js" };
         if (srcMountPath != null)
         {
-            builder.WithAnnotation(new ContainerMountAnnotation(srcMountPath, "/data", ContainerMountType.Bind, false));
+            args.Add("-sd");
+            args.Add("/data");
+            builder.WithBindMount(srcMountPath, "/data");
         }
 
-        return builder;
-    }
-
-    /// <summary>
-    /// Changes the NATS resource to be published as a container in the manifest.
-    /// </summary>
-    /// <param name="builder">Resource builder for <see cref="NatsServerResource"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NatsServerResource> PublishAsContainer(this IResourceBuilder<NatsServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainer(builder.Resource));
+        return builder.WithArgs(args.ToArray());
     }
 }
