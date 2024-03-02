@@ -226,4 +226,7 @@
   <data name="ResourceCommandToastViewLogs" xml:space="preserve">
     <value>View Logs</value>
   </data>
+  <data name="ResourcesCommandsColumnHeader" xml:space="preserve">
+    <value>Commands</value>
+  </data>
 </root>

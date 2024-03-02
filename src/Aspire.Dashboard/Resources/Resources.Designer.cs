@@ -106,6 +106,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Commands.
+        /// </summary>
+        public static string ResourcesCommandsColumnHeader {
+            get {
+                return ResourceManager.GetString("ResourcesCommandsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Details.
         /// </summary>
         public static string ResourcesDetailsColumnHeader {

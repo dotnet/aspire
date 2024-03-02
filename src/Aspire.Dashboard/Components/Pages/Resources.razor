@@ -82,7 +82,7 @@
                     </TemplateColumn>
                     @if (HasResourcesWithCommands)
                     {
-                        <TemplateColumn Title="Commands">
+                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
                             <ResourceCommands Commands="@context.Commands"
                                               CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)" />
                         </TemplateColumn>

@@ -27,6 +27,11 @@
         <target state="new">Proxy URL</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesCommandsColumnHeader">
+        <source>Commands</source>
+        <target state="new">Commands</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsColumnHeader">
         <source>Details</source>
         <target state="new">Details</target>
