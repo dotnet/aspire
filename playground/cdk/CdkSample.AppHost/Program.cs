@@ -8,6 +8,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
 
 var sku = builder.AddParameter("storagesku");
+var locationOverride = builder.AddParameter("locationOverride");
 
 var cdkstorage1 = builder.AddAzureConstruct("cdkstorage1", (construct) =>
 {
@@ -24,6 +25,7 @@ var cdkstorage1 = builder.AddAzureConstruct("cdkstorage1", (construct) =>
 var cdkstorage2 = builder.AddAzureConstructStorage("cdkstorage2", (_, account) =>
 {
     account.AssignParameter(sa => sa.Sku.Name, sku);
+    account.AssignParameter(sa => sa.Location, locationOverride);
 });
 
 var blobs = cdkstorage2.AddBlobs("blobs");

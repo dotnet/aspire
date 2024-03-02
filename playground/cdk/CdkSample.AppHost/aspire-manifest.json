@@ -9,6 +9,15 @@
         }
       }
     },
+    "locationOverride": {
+      "type": "parameter.v0",
+      "value": "{locationOverride.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "cdkstorage1": {
       "type": "azure.bicep.v0",
       "path": "cdkstorage1.module.bicep",
@@ -22,7 +31,8 @@
       "params": {
         "principalId": "",
         "principalType": "",
-        "storagesku": "{storagesku.value}"
+        "storagesku": "{storagesku.value}",
+        "locationOverride": "{locationOverride.value}"
       }
     },
     "blobs": {

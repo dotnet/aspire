@@ -7,6 +7,9 @@ param location string = resourceGroup().location
 param storagesku string
 
 @description('')
+param locationOverride string
+
+@description('')
 param principalId string
 
 @description('')
@@ -15,7 +18,7 @@ param principalType string
 
 resource storageAccount_Tn41yfrBn 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: toLower(take(concat('cdkstorage2', uniqueString(resourceGroup().id)), 24))
-  location: location
+  location: locationOverride
   sku: {
     name: storagesku
   }
