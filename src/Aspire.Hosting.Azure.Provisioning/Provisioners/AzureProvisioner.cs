@@ -304,6 +304,8 @@ internal sealed class AzureProvisioner(
                     try
                     {
                         await task.ConfigureAwait(false);
+
+                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
                     }
                     catch (Exception ex)
                     {
