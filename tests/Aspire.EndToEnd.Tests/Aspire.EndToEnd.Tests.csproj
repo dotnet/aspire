@@ -22,42 +22,10 @@
     <Compile Include="..\Shared\WorkloadTesting\*.cs" Link="WorkloadTestingCommon" />
 
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <!-- TODO: copy over the default, and poke in the extra bits -->
-    <None Include="..\nuget.helix.config" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(PatchedNuGetConfigPath)" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
 
-    <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
   </ItemGroup>
-
-  <Target Name="_AddPackageVersionsForUseWithHelix" AfterTargets="Build">
-    <PropertyGroup>
-      <_TestAssetsOutputDir>$(OutputPath)\testassets\</_TestAssetsOutputDir>
-
-      <_PackagePropsContents>
-<![CDATA[
-      <Project>
-        <PropertyGroup>
-          <PackageVersion>$(PackageVersion)</PackageVersion>
-          <MicrosoftExtensionsHostingAbstractionsPackageVersion>$(MicrosoftExtensionsHostingAbstractionsPackageVersion)</MicrosoftExtensionsHostingAbstractionsPackageVersion>
-          <MicrosoftExtensionsHostingPackageVersion>$(MicrosoftExtensionsHostingPackageVersion)</MicrosoftExtensionsHostingPackageVersion>
-        </PropertyGroup>
-      </Project>
-]]>
-      </_PackagePropsContents>
-    </PropertyGroup>
-
-    <WriteLinesToFile Lines="$(_PackagePropsContents)" File="$(_TestAssetsOutputDir)\testproject\Directory.Build.Helix.props" Overwrite="true" />
-  </Target>
-
-  <Import Project="..\Shared\Aspire.Workload.Testing.targets" />
-
-  <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
-    <Error Condition="'$(SdkWithWorkloadForTestingPath)' == '' or !Exists($(SdkWithWorkloadForTestingPath))"
-      Text="Could not find %24(SdkWithWorkloadForTestingPath)=$(SdkWithWorkloadForTestingPath) . Prepare it by following:
-      1. .\build.cmd -pack
-      2. dotnet build tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.csproj /t:InstallWorkloadUsingArtifacts /p:Configuration=$(Configuration)" />
-  </Target>
-
 </Project>

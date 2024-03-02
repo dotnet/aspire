@@ -21,4 +21,6 @@
                   DestinationFile="$([MSBuild]::NormalizePath('$(TestArchiveTestsDir)', '$(MSBuildProjectName).zip'))"
                   Overwrite="true" />
   </Target>
+
+  <Import Project="Shared\Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
 </Project>
