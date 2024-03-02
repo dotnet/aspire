@@ -145,4 +145,14 @@ public class ResourceModuleConstruct : Infrastructure
     /// The Azure cosntruct resource that this resource module construct represents.
     /// </summary>
     public AzureConstructResource Resource { get; }
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public Parameter PrincipalIdParameter => new Parameter("principalId");
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public Parameter PrincipalTypeParameter => new Parameter("principalType");
 }

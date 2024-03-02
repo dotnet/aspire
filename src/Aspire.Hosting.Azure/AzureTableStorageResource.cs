@@ -37,3 +37,35 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
         context.WriteConnectionString(this);
     }
 }
+
+/// <summary>
+/// Represents an Azure Table Storage resource.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="storage">The <see cref="AzureStorageResource"/> that the resource is stored in.</param>
+public class AzureTableStorageConstructResource(string name, AzureStorageConstructResource storage) : Resource(name),
+    IResourceWithConnectionString,
+    IResourceWithParent<AzureStorageConstructResource>
+{
+    /// <summary>
+    /// Gets the parent AzureStorageResource of this AzureTableStorageResource.
+    /// </summary>
+    public AzureStorageConstructResource Parent => storage;
+
+    /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Table Storage resource.
+    /// </summary>
+    public string ConnectionStringExpression => Parent.TableEndpoint.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string for the Azure Table Storage resource.
+    /// </summary>
+    /// <returns>The connection string for the Azure Table Storage resource.</returns>
+    public string? GetConnectionString() => Parent.GetTableConnectionString();
+
+    internal void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("type", "value.v0");
+        context.WriteConnectionString(this);
+    }
+}

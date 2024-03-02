@@ -8,12 +8,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
 
 var sku = builder.AddParameter("storagesku");
+var locationOverride = builder.AddParameter("locationOverride");
 
-var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
+var cdkstorage1 = builder.AddAzureConstruct("cdkstorage1", (construct) =>
 {
     var account = construct.AddStorageAccount(
-        name: "bob",
-        kind: StorageKind.BlobStorage,
+        name: "cdkstorage1",
+        kind: StorageKind.Storage,
         sku: StorageSkuName.StandardLrs
         );
     account.AssignParameter(a => a.Sku.Name, sku);
@@ -21,8 +22,16 @@ var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
     account.AddOutput(data => data.PrimaryEndpoints.TableUri, "tableUri", isSecure: true);
 });
 
+var cdkstorage2 = builder.AddAzureConstructStorage("cdkstorage2", (_, account) =>
+{
+    account.AssignParameter(sa => sa.Sku.Name, sku);
+    account.AssignParameter(sa => sa.Location, locationOverride);
+});
+
+var blobs = cdkstorage2.AddBlobs("blobs");
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
-       .WithEnvironment("TABLE_URI", construct1.GetOutput("tableUri"));
+       .WithReference(blobs);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
