@@ -45,11 +45,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
 
         var resourceIds = section.GetSection("ResourceIds");
 
-        if (!resourceIds.Exists())
-        {
-            return false;
-        }
-
         if (section["Outputs"] is string outputJson)
         {
             JsonNode? outputObj = null;

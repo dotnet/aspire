@@ -4,6 +4,7 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -76,9 +77,15 @@ public static class AzureBicepResourceExtensions
     {
         return builder.WithEnvironment(async ctx =>
         {
-            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.IsPublishMode
-                ? bicepOutputReference.ValueExpression
-                : (await bicepOutputReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false))!;
+            if (ctx.ExecutionContext.IsPublishMode)
+            {
+                ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
+                return;
+            }
+
+            ctx.Logger?.LogInformation("Getting bicep output {Name} from resource {ResourceName}", bicepOutputReference.Name, bicepOutputReference.Resource.Name);
+
+            ctx.EnvironmentVariables[name] = await bicepOutputReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? "";
         });
     }
 
@@ -95,9 +102,15 @@ public static class AzureBicepResourceExtensions
     {
         return builder.WithEnvironment(async ctx =>
         {
-            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.IsPublishMode
-                ? bicepOutputReference.ValueExpression
-                : (await bicepOutputReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false))!;
+            if (ctx.ExecutionContext.IsPublishMode)
+            {
+                ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
+                return;
+            }
+
+            ctx.Logger?.LogInformation("Getting bicep secret output {Name} from resource {ResourceName}", bicepOutputReference.Name, bicepOutputReference.Resource.Name);
+
+            ctx.EnvironmentVariables[name] = await bicepOutputReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? "";
         });
     }
 
