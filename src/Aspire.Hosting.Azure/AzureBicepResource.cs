@@ -256,6 +256,20 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
     /// <summary>
     /// The value of the output.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        if (Resource.ProvisioningTaskCompletionSource is not null)
+        {
+            await Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return Value;
+    }
+
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
     public string? Value
     {
         get
@@ -290,6 +304,20 @@ public class BicepOutputReference(string name, AzureBicepResource resource)
     /// The instance of the bicep resource.
     /// </summary>
     public AzureBicepResource Resource { get; } = resource;
+
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        if (Resource.ProvisioningTaskCompletionSource is not null)
+        {
+            await Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return Value;
+    }
 
     /// <summary>
     /// The value of the output.
