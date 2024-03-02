@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Azure;
+using Azure.ResourceManager;
 using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.KeyVault.Models;
 using Azure.ResourceManager.Resources;
@@ -38,6 +39,13 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         var configCheckSum = section["CheckSum"];
 
         if (currentCheckSum != configCheckSum)
+        {
+            return false;
+        }
+
+        var resourceIds = section.GetSection("ResourceIds");
+
+        if (!resourceIds.Exists())
         {
             return false;
         }
@@ -74,7 +82,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         }
 
         var portalUrls = new List<(string, string)>();
-        foreach (var pair in section.GetSection("ResourceIds").GetChildren())
+        foreach (var pair in resourceIds.GetChildren())
         {
             portalUrls.Add((pair.Key, $"https://portal.azure.com/#@{configuration["Azure:Tenant"]}/resource{pair.Value}/overview"));
         }
@@ -86,30 +94,16 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         //    portalUrls.Add(("deployment", $"https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id/resource{Uri.EscapeDataString(deploymentId)}"));
         //}
 
-        resource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-        //string? connectionString = null;
-        //if (resource is IResourceWithConnectionString resourceWithConnectionString)
-        //{
-        //    connectionString = await resourceWithConnectionString.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false);
-        //}
-
         await notificationService.PublishUpdateAsync(resource, state =>
         {
             ImmutableArray<(string, string)> props = [
                 .. state.Properties,
-                    ("azure.subscription.id", configuration["Azure:SubscriptionId"]!),
+                    ("azure.subscription.id", configuration["Azure:SubscriptionId"] ?? ""),
                     // ("azure.resource.group", configuration["Azure:ResourceGroup"]!),
-                    ("azure.tenant.domain", configuration["Azure:Tenant"]!),
-                    ("azure.location", configuration["Azure:Location"]!),
-                    (CustomResourceKnownProperties.Source, section["Id"]!)
+                    ("azure.tenant.domain", configuration["Azure:Tenant"] ?? ""),
+                    ("azure.location", configuration["Azure:Location"] ?? ""),
+                    (CustomResourceKnownProperties.Source, section["Id"] ?? "")
             ];
-
-            // TODO: Add this when we get the ability to mask properties
-            //if (connectionString is not null)
-            //{
-            //    props = props.Add((CustomResourceKnownProperties.ConnectionString, connectionString));
-            //}
 
             return state with
             {
@@ -221,7 +215,10 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         SetParameters(parameters, resource);
 
         var sw = Stopwatch.StartNew();
-        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Completed, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+
+        ArmOperation<ArmDeploymentResource> operation;
+
+        operation = await deployments.CreateOrUpdateAsync(WaitUntil.Completed, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
             Template = BinaryData.FromString(armTemplateContents.ToString()),
             Parameters = BinaryData.FromObjectAsJson(parameters),
@@ -256,6 +253,8 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
             .Prop("Azure")
             .Prop("Deployments")
             .Prop(resource.Name);
+
+        // TODO: Clear the entire section if the deployment
 
         // Save the deployment id to the configuration
         resourceConfig["Id"] = deployment.Id.ToString();
@@ -316,14 +315,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
             }
         }
 
-        resource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-        //string? connectionString = null;
-        //if (resource is IResourceWithConnectionString resourceWithConnectionString)
-        //{
-        //    connectionString = await resourceWithConnectionString.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false);
-        //}
-
         await notificationService.PublishUpdateAsync(resource, state =>
         {
             ImmutableArray<(string, string)> properties = [
@@ -331,15 +322,10 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                 (CustomResourceKnownProperties.Source, deployment.Id.Name)
             ];
 
-            // TODO: Add this when we get the ability to mask properties
-            //if (connectionString is not null)
-            //{
-            //    properties = properties.Add((CustomResourceKnownProperties.ConnectionString, connectionString ?? ""));
-            //}
-
             return state with
             {
                 State = "Running",
+                CreationTimeStamp = DateTime.UtcNow,
                 Properties = properties,
                 Urls = [.. portalUrls]
             };

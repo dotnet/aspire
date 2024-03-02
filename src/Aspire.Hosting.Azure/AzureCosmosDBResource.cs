@@ -41,10 +41,10 @@ public class AzureCosmosDBResource(string name) :
     {
         if (ProvisioningTaskCompletionSource is not null)
         {
-            await ProvisioningTaskCompletionSource.Task.ConfigureAwait(false);
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        return new(GetConnectionString());
+        return GetConnectionString();
     }
 
     /// <summary>

@@ -9,7 +9,7 @@ static class TestResourceExtensions
 {
     public static IResourceBuilder<TestResource> AddTestResource(this IDistributedApplicationBuilder builder, string name)
     {
-        builder.Services.AddLifecycleHook<TestResourceLifecycleHook>();
+        builder.Services.TryAddLifecycleHook<TestResourceLifecycleHook>();
 
         var rb = builder.AddResource(new TestResource(name))
                       .WithInitialState(new()

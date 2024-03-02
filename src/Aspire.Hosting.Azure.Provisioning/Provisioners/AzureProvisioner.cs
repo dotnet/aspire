@@ -62,8 +62,8 @@ internal sealed class AzureProvisioner(
             return Task.CompletedTask;
         }
 
-        var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>();
-        if (!azureResources.OfType<IAzureResource>().Any())
+        var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>().ToList();
+        if (azureResources.Count == 0)
         {
             return Task.CompletedTask;
         }
@@ -79,7 +79,7 @@ internal sealed class AzureProvisioner(
         return Task.CompletedTask;
     }
 
-    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
+    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IList<IAzureResource> azureResources, CancellationToken cancellationToken)
     {
         var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
         {
@@ -299,7 +299,27 @@ internal sealed class AzureProvisioner(
                         provisioningContext,
                         cancellationToken);
 
-                tasks.Add(task);
+                static async Task AfterProvision(ILogger resourceLogger, ResourceNotificationService ns, Task task, IAzureResource resource)
+                {
+                    try
+                    {
+                        await task.ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
+
+                        resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
+
+                        await ns.PublishUpdateAsync(resource, state => state with
+                        {
+                            State = "FailedToStart"
+                        })
+                        .ConfigureAwait(false);
+                    }
+                }
+
+                tasks.Add(AfterProvision(resourceLogger, notificationService, task, resource));
             }
             catch (Exception ex)
             {
@@ -322,12 +342,6 @@ internal sealed class AzureProvisioner(
             // Suppress throwing so that we can save the user secrets even if the task fails
             await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-            // Set the completion source for all resources
-            foreach (var resource in azureResources)
-            {
-                resource.ProvisioningTaskCompletionSource?.TrySetResult();
-            }
-
             // If we created any resources then save the user secrets
             if (userSecretsPath is not null)
             {
@@ -337,9 +351,6 @@ internal sealed class AzureProvisioner(
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }
-
-            // Throw if any of the tasks failed, but after we've saved to user secrets
-            await task.ConfigureAwait(false);
         }
         else
         {

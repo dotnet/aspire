@@ -21,6 +21,11 @@ public sealed record CustomResourceSnapshot
     public required ImmutableArray<(string Key, string Value)> Properties { get; init; }
 
     /// <summary>
+    /// The creation timestamp of the resource.
+    /// </summary>
+    public DateTime? CreationTimeStamp { get; init; }
+
+    /// <summary>
     /// Represents the state of the resource.
     /// </summary>
     public string? State { get; init; }

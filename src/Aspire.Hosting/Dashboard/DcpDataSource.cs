@@ -186,7 +186,7 @@ internal sealed class DcpDataSource
         return new GenericResourceSnapshot(snapshot)
         {
             Uid = resource.Name,
-            CreationTimeStamp = creationTimestamp,
+            CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
             Name = resource.Name,
             DisplayName = resource.Name,
             Endpoints = endpoints,
