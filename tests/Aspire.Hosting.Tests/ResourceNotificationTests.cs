@@ -65,8 +65,85 @@ public class ResourceNotificationTests
 
         var values = await enumerableTask;
 
-        Assert.Equal("value", values[0].Properties.Single(p => p.Key == "A").Value);
-        Assert.Equal("value", values[1].Properties.Single(p => p.Key == "B").Value);
+        // Watch returns an initial snapshot
+        Assert.Empty(values[0].Properties);
+        Assert.Equal("value", values[1].Properties.Single(p => p.Key == "A").Value);
+        Assert.Equal("value", values[2].Properties.Single(p => p.Key == "B").Value);
+    }
+
+    [Fact]
+    public async Task WatchReturnsAnInitialState()
+    {
+        var resource = new CustomResource("myResource");
+
+        var notificationService = new ResourceNotificationService();
+
+        async Task<List<CustomResourceSnapshot>> GetValuesAsync()
+        {
+            var values = new List<CustomResourceSnapshot>();
+
+            await foreach (var item in notificationService.WatchAsync(resource))
+            {
+                values.Add(item);
+            }
+
+            return values;
+        }
+
+        var enumerableTask = GetValuesAsync();
+
+        notificationService.Complete(resource);
+
+        var values = await enumerableTask;
+
+        // Watch returns an initial snapshot
+        var snapshot = Assert.Single(values);
+
+        Assert.Equal("CustomResource", snapshot.ResourceType);
+        Assert.Empty(snapshot.EnvironmentVariables);
+        Assert.Empty(snapshot.Properties);
+    }
+
+    [Fact]
+    public async Task WatchReturnsAnInitialStateIfCustomized()
+    {
+        var resource = new CustomResource("myResource");
+        resource.Annotations.Add(new ResourceSnapshotAnnotation(new CustomResourceSnapshot
+        {
+            ResourceType = "CustomResource1",
+            Properties = [("A", "B")],
+        }));
+
+        var notificationService = new ResourceNotificationService();
+
+        async Task<List<CustomResourceSnapshot>> GetValuesAsync()
+        {
+            var values = new List<CustomResourceSnapshot>();
+
+            await foreach (var item in notificationService.WatchAsync(resource))
+            {
+                values.Add(item);
+            }
+
+            return values;
+        }
+
+        var enumerableTask = GetValuesAsync();
+
+        notificationService.Complete(resource);
+
+        var values = await enumerableTask;
+
+        // Watch returns an initial snapshot
+        var snapshot = Assert.Single(values);
+
+        Assert.Equal("CustomResource1", snapshot.ResourceType);
+        Assert.Empty(snapshot.EnvironmentVariables);
+        Assert.Collection(snapshot.Properties, c =>
+        {
+            Assert.Equal("A", c.Key);
+            Assert.Equal("B", c.Value);
+        });
     }
 
     private sealed class CustomResource(string name) : Resource(name),
