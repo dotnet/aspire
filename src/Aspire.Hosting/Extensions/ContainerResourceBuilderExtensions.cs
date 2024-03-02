@@ -133,8 +133,15 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image) where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Image = image;
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.Image = image;
+            return builder;
+        }
+
+        // if the annotation doesn't exist, create it with the given image and add it to the collection
+        var containerImageAnnotation = new ContainerImageAnnotation() { Image = image };
+        builder.Resource.Annotations.Add(containerImageAnnotation);
         return builder;
     }
 
