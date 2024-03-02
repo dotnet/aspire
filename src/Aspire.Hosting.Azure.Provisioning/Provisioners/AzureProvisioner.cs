@@ -245,31 +245,33 @@ internal sealed class AzureProvisioner(
 
             if (provisioner is null)
             {
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+
                 resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
 
                 await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
 
-                logger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
                 continue;
             }
 
             if (!provisioner.ShouldProvision(configuration, resource))
             {
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+
                 resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
 
                 await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
 
-                logger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
                 continue;
             }
 
             if (await provisioner.ConfigureResourceAsync(configuration, resource, cancellationToken).ConfigureAwait(false))
             {
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+
                 await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
 
                 resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
-
-                logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
 
                 continue;
             }
@@ -366,8 +368,6 @@ internal sealed class AzureProvisioner(
         // Do this in the background to avoid blocking startup
         _ = Task.Run(async () =>
         {
-            logger.LogInformation("Cleaning up unused resources...");
-
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
 
             // Clean up any left over resources that are no longer in the model

@@ -532,7 +532,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 try
                 {
-                    await CreateExecutableAsync(cr, cancellationToken).ConfigureAwait(false);
+                    await CreateExecutableAsync(cr, logger, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -556,7 +556,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task CreateExecutableAsync(AppResource er, CancellationToken cancellationToken)
+    private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
@@ -588,7 +588,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
+        var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken)
+        {
+            Logger = resourceLogger
+        };
 
         // Need to apply configuration settings manually; see PrepareExecutables() for details.
         if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
