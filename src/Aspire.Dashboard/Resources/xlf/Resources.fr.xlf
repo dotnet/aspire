@@ -17,11 +17,6 @@
         <target state="new">Details</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesDetailsConnectionStringProperty">
-        <source>Connection string</source>
-        <target state="new">Connection string</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
         <target state="new">Container arguments</target>

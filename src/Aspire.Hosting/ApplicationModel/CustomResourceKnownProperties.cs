@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
@@ -14,9 +14,4 @@ public static class CustomResourceKnownProperties
     /// The source of the resource
     /// </summary>
     public static string Source { get; } = KnownProperties.Resource.Source;
-
-    /// <summary>
-    /// The connection string for the resource
-    /// </summary>
-    public static string ConnectionString { get; } = KnownProperties.Resource.ConnectionString;
 }

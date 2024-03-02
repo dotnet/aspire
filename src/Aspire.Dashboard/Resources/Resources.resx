@@ -215,7 +215,4 @@
   <data name="ResourcesDetailsStateProperty" xml:space="preserve">
     <value>State</value>
   </data>
-  <data name="ResourcesDetailsConnectionStringProperty" xml:space="preserve">
-    <value>Connection string</value>
-  </data>
 </root>

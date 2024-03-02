@@ -88,15 +88,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Connection string.
-        /// </summary>
-        public static string ResourcesDetailsConnectionStringProperty {
-            get {
-                return ResourceManager.GetString("ResourcesDetailsConnectionStringProperty", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Container arguments.
         /// </summary>
         public static string ResourcesDetailsContainerArgumentsProperty {
