@@ -49,6 +49,10 @@
     <PropertyGroup>
       <_CombinedProps>@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')</_CombinedProps>
     </PropertyGroup>
+    <!-- FIXME:
+      Explicitly invoke Build on these two projects so the GenerateTextReplacementFiles target gets triggered.
+      This can be removed once the workloadtesting targets support a custom list of targets to invoke
+    -->
     <MSBuild Projects="$(RepoRoot)eng/dcppack/dcppack.csproj"
               Properties="$(_CombinedProps)"
               Targets="Restore;Build" />
