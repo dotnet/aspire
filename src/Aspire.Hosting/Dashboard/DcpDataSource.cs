@@ -60,6 +60,12 @@ internal sealed class DcpDataSource
                 // Show all resources initially and allow updates from DCP (for the relevant resources)
                 foreach (var (_, resource) in _applicationModel)
                 {
+                    if (resource.Name == KnownResourceNames.AspireDashboard &&
+                        configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is not true)
+                    {
+                        continue;
+                    }
+
                     await ProcessInitialResourceAsync(resource, cancellationToken).ConfigureAwait(false);
                 }
 
