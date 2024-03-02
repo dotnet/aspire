@@ -11,7 +11,7 @@ public class AzureResourceExtensionsTests
     public void AzureStorageUserEmulatorCallbackWithUsePersistenceResultsInVolumeAnnotation()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var storage = builder.AddAzureStorage("storage").UseEmulator(configureContainer: builder =>
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             builder.UsePersistence("mydata");
         });
@@ -28,7 +28,7 @@ public class AzureResourceExtensionsTests
     public void AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var storage = builder.AddAzureStorage("storage").UseEmulator(configureContainer: builder =>
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             builder.UseBlobPort(9001);
             builder.UseQueuePort(9002);
@@ -52,7 +52,7 @@ public class AzureResourceExtensionsTests
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
-        cosmos.UseEmulator(container =>
+        cosmos.RunAsEmulator(container =>
         {
             container.UseGatewayPort(port);
         });
@@ -73,7 +73,7 @@ public class AzureResourceExtensionsTests
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
-        cosmos.UseEmulator(container =>
+        cosmos.RunAsEmulator(container =>
         {
             container.WithImageTag(imageTag);
         });

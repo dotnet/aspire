@@ -90,7 +90,7 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
         ServiceEndPoint CreateEndPoint(EndPoint endPoint)
         {
             var serviceEndPoint = ServiceEndPoint.Create(endPoint);
-            serviceEndPoint.Features.Set<IServiceEndPointResolver>(this);
+            serviceEndPoint.Features.Set<IServiceEndPointProvider>(this);
             if (options.CurrentValue.ApplyHostNameMetadata(serviceEndPoint))
             {
                 serviceEndPoint.Features.Set<IHostNameFeature>(this);

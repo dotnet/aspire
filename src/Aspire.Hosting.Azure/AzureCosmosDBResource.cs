@@ -12,7 +12,7 @@ namespace Aspire.Hosting;
 /// A resource that represents an Azure Cosmos DB.
 /// </summary>
 public class AzureCosmosDBResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.cosmosdb.bicep"),
+    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.cosmosdb.bicep"),
     IResourceWithConnectionString
 {
     internal List<string> Databases { get; } = [];
@@ -31,6 +31,21 @@ public class AzureCosmosDBResource(string name) :
     /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
     /// </summary>
     public string ConnectionStringExpression => ConnectionString.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string to use for this database.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string to use for this database.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
 
     /// <summary>
     /// Gets the connection string to use for this database.
@@ -86,7 +101,7 @@ public static class AzureCosmosExtensions
     /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
     /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
     /// </remarks>
-    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
+    public static IResourceBuilder<AzureCosmosDBResource> RunAsEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
     {
         builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", containerPort: 8081))
                .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
@@ -99,6 +114,23 @@ public static class AzureCosmosExtensions
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
+    /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
+    /// </summary>
+    /// <param name="builder">The Azure Cosmos DB resource builder.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
+    /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
+    /// </remarks>
+    [Obsolete("Renamed to RunAsEmulator. Will be removed in next preview")]
+    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
+    {
+        return builder.RunAsEmulator(configureContainer);
     }
 
     /// <summary>

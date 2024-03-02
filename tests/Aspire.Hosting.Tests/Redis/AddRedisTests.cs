@@ -97,15 +97,29 @@ public class AddRedisTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var redis = appBuilder.AddRedis("redis");
 
-        var manifest = ManifestUtils.GetManifest(redis.Resource);
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
 
-        Assert.Equal("container.v0", manifest["type"]?.ToString());
-        Assert.Equal(redis.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+              "image": "redis:7.2.4",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -142,7 +156,7 @@ public class AddRedisTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Equal("myredis1:host.docker.internal:5001:0", context.EnvironmentVariables["REDIS_HOSTS"]);
@@ -174,7 +188,7 @@ public class AddRedisTests
 
         foreach (var annotation in envAnnotations)
         {
-            annotation.Callback(context);
+            await annotation.Callback(context);
         }
 
         Assert.Equal("myredis1:host.docker.internal:5001:0,myredis2:host.docker.internal:5002:0", context.EnvironmentVariables["REDIS_HOSTS"]);

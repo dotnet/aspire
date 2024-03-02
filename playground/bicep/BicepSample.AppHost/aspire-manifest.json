@@ -128,17 +128,13 @@
         "keyVaultName": ""
       }
     },
-    "db3": {
-      "type": "azure.bicep.v0",
-      "connectionString": "{cosmos.connectionString}",
-      "parent": "cosmos"
-    },
     "ai": {
       "type": "azure.bicep.v0",
       "connectionString": "{ai.outputs.appInsightsConnectionString}",
       "path": "aspire.hosting.azure.bicep.appinsights.bicep",
       "params": {
-        "appInsightsName": "ai"
+        "appInsightsName": "ai",
+        "logAnalyticsWorkspaceId": ""
       }
     },
     "redis": {
@@ -158,11 +154,23 @@
         "serviceBusNamespaceName": "sb",
         "principalId": "",
         "principalType": "",
-        "topics": [
-          "topic1"
-        ],
         "queues": [
           "queue1"
+        ],
+        "topics": [
+          {
+            "name": "topic1",
+            "subscriptions": [
+              "subscription1",
+              "subscription2"
+            ]
+          },
+          {
+            "name": "topic2",
+            "subscriptions": [
+              "subscription1"
+            ]
+          }
         ]
       }
     },
@@ -184,7 +192,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__db": "{db.connectionString}",
         "ConnectionStrings__db2": "{db2.connectionString}",
-        "ConnectionStrings__db3": "{db3.connectionString}",
+        "ConnectionStrings__cosmos": "{cosmos.connectionString}",
         "ConnectionStrings__blob": "{blob.connectionString}",
         "ConnectionStrings__table": "{table.connectionString}",
         "ConnectionStrings__queue": "{queue.connectionString}",

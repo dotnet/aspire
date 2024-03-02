@@ -2,14 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class SummaryDetailsView
+public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 {
     [Parameter]
     public RenderFragment? Summary { get; set; }
@@ -35,6 +39,9 @@ public partial class SummaryDetailsView
     [Parameter]
     public bool RememberOrientation { get; set; } = true;
 
+    [Parameter, EditorRequired]
+    public T? SelectedValue { get; set; }
+
     /// <summary>
     /// Overrides the default key used to store the splitter size and orientation in local storage.
     /// By default, the key is based on the current URL. If you have multiple instances of this control
@@ -52,12 +59,27 @@ public partial class SummaryDetailsView
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
+    [Inject]
+    public required IJSRuntime JS { get; set; }
+
+    [Inject]
+    public required ShortcutManager ShortcutManager { get; set; }
+
     private readonly Icon _splitHorizontalIcon = new Icons.Regular.Size16.SplitHorizontal();
     private readonly Icon _splitVerticalIcon = new Icons.Regular.Size16.SplitVertical();
 
     private string _panel1Size { get; set; } = "1fr";
     private string _panel2Size { get; set; } = "1fr";
     private bool _internalShowDetails;
+    private FluentSplitter? _splitterRef;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            ShortcutManager.AddGlobalKeydownListener(this);
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -143,8 +165,13 @@ public partial class SummaryDetailsView
 
         if (RememberSize)
         {
-            await ProtectedLocalStore.SetAsync(GetSizeStorageKey(), panel1Fraction);
+            await SaveSizeToStorage(panel1Fraction);
         }
+    }
+
+    private async Task SaveSizeToStorage(float panel1Fraction)
+    {
+        await ProtectedLocalStore.SetAsync(GetSizeStorageKey(), panel1Fraction);
     }
 
     private void ResetPanelSizes()
@@ -160,6 +187,90 @@ public partial class SummaryDetailsView
         _panel2Size = string.Create(CultureInfo.InvariantCulture, $"{(1 - panel1Fraction):F3}fr");
     }
 
+    public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (_splitterRef is null || !args.OnlyShiftPressed())
+        {
+            return;
+        }
+
+        var key = args.Key.ToLower();
+
+        if (key is "t")
+        {
+            await HandleToggleOrientation();
+            return;
+        }
+
+        if (key is "x" && SelectedValue is not null)
+        {
+            await HandleDismissAsync();
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var hasChanged = false;
+
+        if (key is "r")
+        {
+            ResetPanelSizes();
+            hasChanged = true;
+        }
+
+        GetPanelSizes(_splitterRef.Panel1Size, _splitterRef.Panel2Size, out var panel1Size, out var panel2Size, out var panel1Fraction);
+
+        if (panel1Size is null || panel2Size is null || panel1Fraction is null)
+        {
+            return;
+        }
+
+        if (key is "+")
+        {
+            SetPanelSizes(panel1Fraction.Value - 0.05f);
+            hasChanged = true;
+        }
+        else if (key is "-" or "_")
+        {
+            SetPanelSizes(panel1Fraction.Value + 0.05f);
+            hasChanged = true;
+        }
+
+        GetPanelSizes(_splitterRef.Panel1Size, _splitterRef.Panel2Size, out _, out _, out var newPanel1Fraction);
+
+        if (newPanel1Fraction is null || !hasChanged)
+        {
+            return;
+        }
+
+        await SaveSizeToStorage(newPanel1Fraction.Value);
+        await InvokeAsync(StateHasChanged);
+
+        return;
+
+        static void GetPanelSizes(
+            string? panel1SizeString,
+            string? panel2SizeString,
+            out float? panel1Size,
+            out float? panel2Size,
+            out float? panel1Fraction)
+        {
+            if (panel1SizeString is null || !panel1SizeString.EndsWith("fr")
+                || panel2SizeString is null || !panel2SizeString.EndsWith("fr"))
+            {
+                panel1Size = null;
+                panel2Size = null;
+                panel1Fraction = null;
+                return;
+            }
+
+            panel1Size = (float)Convert.ToDouble(panel1SizeString[..^2], CultureInfo.InvariantCulture);
+            panel2Size = (float)Convert.ToDouble(panel2SizeString[..^2], CultureInfo.InvariantCulture);
+
+            var newTotalSize = (float)(panel1Size + panel2Size);
+            panel1Fraction = panel1Size.Value / newTotalSize;
+        }
+    }
+
     private string GetSizeStorageKey()
     {
         var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
@@ -170,5 +281,10 @@ public partial class SummaryDetailsView
     {
         var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         return $"SplitterOrientation_{viewKey}";
+    }
+
+    public void Dispose()
+    {
+        ShortcutManager.RemoveGlobalKeydownListener(this);
     }
 }

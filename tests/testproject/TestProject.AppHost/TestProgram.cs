@@ -61,7 +61,7 @@ public class TestProgram : IDisposable
             var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
                 .AddDatabase(oracleDbName);
             var kafka = AppBuilder.AddKafka("kafka");
-            var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").UseEmulator();
+            var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserver)

@@ -3,10 +3,12 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
 
+[DebuggerDisplay("Name = {Name}, ResourceType = {ResourceType}, State = {State}, Properties = {Properties.Count}")]
 public sealed class ResourceViewModel
 {
     public required string Name { get; init; }

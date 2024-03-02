@@ -34,6 +34,14 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.SourcesDirectory)/artifacts/TestResults'
+        PublishLocation: Container
+        ArtifactName: 'TestResults_NonHelix_$(Agent.Os)_$(Agent.JobName)'
+      displayName: Publish non-helix TestResults
+      condition: always()
+
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'

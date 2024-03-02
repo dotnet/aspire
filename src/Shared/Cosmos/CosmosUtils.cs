@@ -16,7 +16,11 @@ internal static class CosmosUtils
 
         var builder = new DbConnectionStringBuilder();
         builder.ConnectionString = connectionString;
-        var accountKeyFromConnectionString = builder["AccountKey"].ToString();
+        if (!builder.TryGetValue("AccountKey", out var v))
+        {
+            return false;
+        }
+        var accountKeyFromConnectionString = v.ToString();
         return accountKeyFromConnectionString == CosmosConstants.EmulatorAccountKey;
     }
 }

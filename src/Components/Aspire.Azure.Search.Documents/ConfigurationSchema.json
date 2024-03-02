@@ -1,0 +1,135 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Azure": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Azure-Search-Documents": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Azure.Core": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Azure.Identity": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Azure": {
+          "type": "object",
+          "properties": {
+            "Search": {
+              "type": "object",
+              "properties": {
+                "Documents": {
+                  "type": "object",
+                  "properties": {
+                    "ClientOptions": {
+                      "type": "object",
+                      "properties": {
+                        "Diagnostics": {
+                          "type": "object",
+                          "properties": {
+                            "ApplicationId": {
+                              "type": "string",
+                              "description": "Gets or sets the value sent as the first part of \"User-Agent\" headers for all requests issues by this client. Defaults to 'Azure.Core.DiagnosticsOptions.DefaultApplicationId'."
+                            },
+                            "DefaultApplicationId": {
+                              "type": "string",
+                              "description": "Gets or sets the default application id. Default application id would be set on all instances."
+                            },
+                            "IsDistributedTracingEnabled": {
+                              "type": "boolean",
+                              "description": "Gets or sets value indicating whether distributed tracing activities ( 'System.Diagnostics.Activity' ) are going to be created for the clients methods calls and HTTP calls."
+                            },
+                            "IsLoggingContentEnabled": {
+                              "type": "boolean",
+                              "description": "Gets or sets value indicating if request or response content should be logged."
+                            },
+                            "IsLoggingEnabled": {
+                              "type": "boolean",
+                              "description": "Get or sets value indicating whether HTTP pipeline logging is enabled."
+                            },
+                            "IsTelemetryEnabled": {
+                              "type": "boolean",
+                              "description": "Gets or sets value indicating whether the \"User-Agent\" header containing 'Azure.Core.DiagnosticsOptions.ApplicationId' , client library package name and version, 'System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription' and 'System.Runtime.InteropServices.RuntimeInformation.OSDescription' should be sent.\nThe default value can be controlled process wide by setting AZURE_TELEMETRY_DISABLED to true , false , 1 or 0."
+                            },
+                            "LoggedContentSizeLimit": {
+                              "type": "integer",
+                              "description": "Gets or sets value indicating maximum size of content to log in bytes. Defaults to 4096."
+                            }
+                          },
+                          "description": "Gets the client diagnostic options."
+                        },
+                        "Retry": {
+                          "type": "object",
+                          "properties": {
+                            "Delay": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach.\nIf the service provides a Retry-After response header, the next retry will be delayed by the duration specified by the header value."
+                            },
+                            "MaxDelay": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The maximum permissible delay between retry attempts when the service does not provide a Retry-After response header.\nIf the service provides a Retry-After response header, the next retry will be delayed by the duration specified by the header value."
+                            },
+                            "MaxRetries": {
+                              "type": "integer",
+                              "description": "The maximum number of retry attempts before giving up."
+                            },
+                            "Mode": {
+                              "enum": [
+                                "Fixed",
+                                "Exponential"
+                              ],
+                              "description": "The approach to use for calculating retry delays."
+                            },
+                            "NetworkTimeout": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The timeout applied to an individual network operations."
+                            }
+                          },
+                          "description": "Gets the client retry options."
+                        }
+                      },
+                      "description": "Provides the client configuration options for connecting to Azure\nCognitive Search."
+                    },
+                    "Endpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Gets or sets a 'System.Uri' referencing the Azure Search endpoint.\nThis is likely to be similar to \"https://{search_service}.search.windows.net\"."
+                    },
+                    "HealthChecks": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the Azure Search health check is enabled or not.",
+                      "default": true
+                    },
+                    "Key": {
+                      "type": "string",
+                      "description": "Gets or sets the key to use to authenticate to the Azure Search endpoint."
+                    },
+                    "Tracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                      "default": true
+                    }
+                  },
+                  "description": "Provides the client configuration settings for connecting to Azure Search."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object"
+}

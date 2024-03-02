@@ -1,8 +1,8 @@
 {
   "resources": {
     "postgres": {
-      "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}",
       "type": "container.v0",
+      "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
@@ -30,12 +30,12 @@
       }
     },
     "catalogdb": {
-      "connectionString": "{postgres.connectionString};Database=catalogdb",
-      "type": "value.v0"
+      "type": "value.v0",
+      "connectionString": "{postgres.connectionString};Database=catalogdb"
     },
     "basketcache": {
-      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}",
       "type": "container.v0",
+      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}",
       "image": "redis:7.2.4",
       "bindings": {
         "tcp": {
@@ -68,8 +68,8 @@
       }
     },
     "messaging": {
-      "connectionString": "amqp://guest:{messaging.inputs.password}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
       "type": "container.v0",
+      "connectionString": "amqp://guest:{messaging.inputs.password}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
       "image": "rabbitmq:3",
       "env": {
         "RABBITMQ_DEFAULT_USER": "guest",

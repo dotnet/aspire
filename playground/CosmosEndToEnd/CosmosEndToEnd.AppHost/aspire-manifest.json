@@ -7,7 +7,7 @@
       "params": {
         "databaseAccountName": "cosmos",
         "databases": [
-          "db"
+          "db2"
         ],
         "keyVaultName": ""
       }

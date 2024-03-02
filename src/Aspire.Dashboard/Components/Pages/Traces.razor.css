@@ -38,6 +38,7 @@
 
 ::deep.traces-layout > fluent-toolbar {
     grid-area: toolbar;
+    padding: var(--layout-toolbar-padding);
 }
 
 ::deep.traces-layout > .datagrid-overflow-area {
@@ -46,7 +47,6 @@
 
 ::deep.traces-layout > .total-items-footer {
     grid-area: foot;
-    padding-bottom: calc(var(--design-unit) * 2px);
 }
 
 ::deep fluent-progress-ring::part(background) {

@@ -77,6 +77,53 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         Assert.Equal("test2", actualConnectionString);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { EnvironmentName = Environments.Development });
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", ConnectionString)
+        ]);
+
+        if (useServiceType)
+        {
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseCosmos(ConnectionString, "databaseName"));
+        }
+        else
+        {
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseCosmos(ConnectionString, "databaseName"));
+        }
+
+        var exception = Assert.Throws<InvalidOperationException>(() => builder.AddCosmosDbContext<TestDbContext>("cosmos", "databaseName"));
+        Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddCosmosDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void DoesntThrowWhenDbContextIsRegisteredBeforeAspireComponentProduction(bool useServiceType)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { EnvironmentName = Environments.Production });
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", ConnectionString)
+        ]);
+
+        if (useServiceType)
+        {
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseCosmos(ConnectionString, "databaseName"));
+        }
+        else
+        {
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseCosmos(ConnectionString, "databaseName"));
+        }
+
+        var exception = Record.Exception(() => builder.AddCosmosDbContext<TestDbContext>("cosmos", "databaseName"));
+
+        Assert.Null(exception);
+    }
+
     public class TestDbContext2 : DbContext
     {
         public TestDbContext2(DbContextOptions<TestDbContext2> options) : base(options)

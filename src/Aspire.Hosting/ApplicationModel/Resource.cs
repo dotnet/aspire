@@ -19,7 +19,7 @@ public abstract class Resource : IResource
     /// <summary>
     /// Gets the annotations associated with the resource.
     /// </summary>
-    public virtual ResourceMetadataCollection Annotations { get; } = new();
+    public virtual ResourceAnnotationCollection Annotations { get; } = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Resource"/> class.

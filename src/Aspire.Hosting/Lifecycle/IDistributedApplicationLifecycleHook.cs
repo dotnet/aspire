@@ -31,4 +31,18 @@ public interface IDistributedApplicationLifecycleHook
     {
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Executes arfter the orchestrator has created the resources in the application model.
+    /// </summary>
+    /// <remarks>
+    /// There is no guarantee that the resources have fully started or are in a working state when this method is called.
+    /// </remarks>
+    /// <param name="appModel"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
 }

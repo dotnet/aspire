@@ -210,6 +210,21 @@
       "type": "value.v0",
       "connectionString": "{pg6.connectionString};Database=db8"
     },
+    "pg10": {
+      "type": "parameter.v0",
+      "connectionString": "{pg10.value}",
+      "value": "{pg10.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "db10": {
+      "type": "value.v0",
+      "connectionString": "{pg10.connectionString};Database=db10"
+    },
     "api": {
       "type": "project.v0",
       "path": "../PostgresEndToEnd.ApiService/PostgresEndToEnd.ApiService.csproj",
@@ -224,7 +239,8 @@
         "ConnectionStrings__db6": "{db6.connectionString}",
         "ConnectionStrings__db7": "{db7.connectionString}",
         "ConnectionStrings__db8": "{db8.connectionString}",
-        "ConnectionStrings__db9": "{db9.connectionString}"
+        "ConnectionStrings__db9": "{db9.connectionString}",
+        "ConnectionStrings__db10": "{db10.connectionString}"
       },
       "bindings": {
         "http": {

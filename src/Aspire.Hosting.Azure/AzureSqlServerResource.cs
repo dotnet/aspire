@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="innerResource">The <see cref="SqlServerServerResource"/> that this resource wraps.</param>
 public class AzureSqlServerResource(SqlServerServerResource innerResource) :
-    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.sql.bicep"),
+    AzureBicepResource(innerResource.Name, templateResourceName: "Aspire.Hosting.Azure.Bicep.sql.bicep"),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -33,9 +33,24 @@ public class AzureSqlServerResource(SqlServerServerResource innerResource) :
         return $"Server=tcp:{FullyQualifiedDomainName.Value},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
     }
 
+    /// <summary>
+    /// Gets the connection string for the Azure SQL Server resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the Azure SQL Server resource.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
+
     /// <inheritdoc/>
     public override string Name => innerResource.Name;
 
     /// <inheritdoc />
-    public override ResourceMetadataCollection Annotations => innerResource.Annotations;
+    public override ResourceAnnotationCollection Annotations => innerResource.Annotations;
 }

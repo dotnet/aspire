@@ -1,0 +1,10 @@
+::deep.endpoint-list {
+    margin: 0;
+    padding: 0;
+}
+
+::deep.endpoint-list li {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

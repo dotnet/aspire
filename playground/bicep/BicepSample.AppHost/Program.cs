@@ -1,5 +1,3 @@
-using Aspire.Hosting.Azure;
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -13,10 +11,10 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
                    .WithParameter("test", parameter)
                    .WithParameter("values", ["one", "two"]);
 
-var kv = builder.AddAzureKeyVault("kv");
+var kv = builder.AddAzureKeyVault("kv3");
 var appConfig = builder.AddAzureAppConfiguration("appConfig").WithParameter("sku", "standard");
 var storage = builder.AddAzureStorage("storage");
-                    // .UseEmulator();
+                    // .RunAsEmulator();
 
 var blobs = storage.AddBlobs("blob");
 var tables = storage.AddTables("table");
