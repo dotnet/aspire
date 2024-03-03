@@ -12,6 +12,7 @@ var storage = builder.AddAzureConstructStorage("storage", (_, account) =>
     account.AssignParameter(sa => sa.Sku.Name, sku);
     account.AssignParameter(sa => sa.Location, locationOverride);
 });
+
 var blobs = storage.AddBlobs("blobs");
 
 var sqldb = builder.AddSqlServer("sql").PublishAsAzureSqlDatabaseConstruct().AddDatabase("sqldb");
