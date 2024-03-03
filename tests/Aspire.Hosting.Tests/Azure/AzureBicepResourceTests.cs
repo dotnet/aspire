@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.Sql;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Xunit;
@@ -339,6 +340,44 @@ public class AzureBicepResourceTests
         Assert.Equal(["dbName"], databases);
         Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.GetConnectionString());
         Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public async void AsAzureSqlDatabaseConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        global::Azure.Provisioning.Sql.SqlServer? cdkSqlServer = null;
+        AzureSqlServerConstructResource? azureSql = null;
+        List<SqlDatabase>? cdkSqlDatabases = null;
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct((construct, sqlServer, databases) =>
+        {
+            azureSql = construct.Resource as AzureSqlServerConstructResource;
+            cdkSqlServer = sqlServer;
+            cdkSqlDatabases = databases.ToList();
+        });
+        sql.AddDatabase("db", "dbName");
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+              "path": "sql.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalName": "",
+                "principalType": ""
+              }
+            }
+            """;
+        var manifest = await ManifestUtils.GetManifest(sql.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.NotNull(cdkSqlServer);
+        Assert.NotNull(azureSql);
+        Assert.NotNull(cdkSqlDatabases);
+        Assert.Equal("dbName", cdkSqlDatabases[0].Name);
+        Assert.Equal("sql", sql.Resource.Name);
     }
 
     [Fact]
