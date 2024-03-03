@@ -8,7 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Azure;
-using Azure.ResourceManager;
+using Azure.Core;
 using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.KeyVault.Models;
 using Azure.ResourceManager.Resources;
@@ -77,17 +77,13 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         }
 
         var portalUrls = new List<(string, string)>();
-        foreach (var pair in resourceIds.GetChildren())
-        {
-            portalUrls.Add((pair.Key, $"https://portal.azure.com/#@{configuration["Azure:Tenant"]}/resource{pair.Value}/overview"));
-        }
 
-        // TODO: Figure out how to show the deployment in the portal
-        //var deploymentId = section["Id"];
-        //if (deploymentId is not null)
-        //{
-        //    portalUrls.Add(("deployment", $"https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id/resource{Uri.EscapeDataString(deploymentId)}"));
-        //}
+        if (section["Id"] is string deploymentId &&
+            ResourceIdentifier.TryParse(deploymentId, out var id) &&
+            id is not null)
+        {
+            portalUrls.Add(("deployment", GetDeploymentUrl(id)));
+        }
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
@@ -211,15 +207,29 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
 
         var sw = Stopwatch.StartNew();
 
-        ArmOperation<ArmDeploymentResource> operation;
-
-        operation = await deployments.CreateOrUpdateAsync(WaitUntil.Completed, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
             Template = BinaryData.FromString(armTemplateContents.ToString()),
             Parameters = BinaryData.FromObjectAsJson(parameters),
             DebugSettingDetailLevel = "RequestContent, ResponseContent",
         }),
         cancellationToken).ConfigureAwait(false);
+
+        // Resolve the deployment URL before waiting for the operation to complete
+        var url = GetDeploymentUrl(context, resource.Name);
+
+        resourceLogger.LogInformation("Deployment started: {Url}", url);
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                Urls = [.. state.Urls, ("deployment", url)],
+            };
+        })
+        .ConfigureAwait(false);
+
+        await operation.WaitForCompletionAsync(cancellationToken).ConfigureAwait(false);
 
         sw.Stop();
         resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, context.ResourceGroup.Data.Name, sw.Elapsed);
@@ -249,7 +259,8 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
             .Prop("Deployments")
             .Prop(resource.Name);
 
-        // TODO: Clear the entire section if the deployment
+        // Clear the entire section
+        resourceConfig.AsObject().Clear();
 
         // Save the deployment id to the configuration
         resourceConfig["Id"] = deployment.Id.ToString();
@@ -265,19 +276,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
 
         // Save the checksum to the configuration
         resourceConfig["CheckSum"] = GetChecksum(resource, parameters);
-
-        // Save the resource ids created
-        var resourceIdConfig = resourceConfig.Prop("ResourceIds");
-        var portalUrls = new List<(string, string)>();
-
-        foreach (var item in deployment.Data.Properties.OutputResources)
-        {
-            resourceIdConfig[item.Id.Name] = item.Id.ToString();
-            portalUrls.Add((item.Id.Name, $"https://portal.azure.com/#@{context.Tenant.Data.DefaultDomain}/resource{item.Id}/overview"));
-        }
-
-        // TODO: Figure out how to show the deployment in the portal
-        // portalUrls.Add(("deployment", $"https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id/resource{deployment.Id}"));
 
         if (outputObj is not null)
         {
@@ -321,8 +319,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
             {
                 State = "Running",
                 CreationTimeStamp = DateTime.UtcNow,
-                Properties = properties,
-                Urls = [.. portalUrls]
+                Properties = properties
             };
         })
         .ConfigureAwait(false);
@@ -486,4 +483,25 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
             };
         }
     }
+
+    private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";
+
+    private static string GetDeploymentUrl(ProvisioningContext provisioningContext, string deploymentName)
+    {
+        var prefix = PortalDeploymentOverviewUrl;
+
+        var subId = provisioningContext.Subscription.Data.Id.ToString();
+        var rgName = provisioningContext.ResourceGroup.Data.Name;
+        var subAndRg = $"{subId}/resourceGroups/{rgName}";
+
+        var deployId = deploymentName;
+
+        var path = $"{subAndRg}/providers/Microsoft.Resources/deployments/{deployId}";
+        var encodedPath = Uri.EscapeDataString(path);
+
+        return $"{prefix}/{encodedPath}";
+    }
+
+    public static string GetDeploymentUrl(ResourceIdentifier deploymentId) =>
+        $"{PortalDeploymentOverviewUrl}/{Uri.EscapeDataString(deploymentId.ToString())}";
 }
