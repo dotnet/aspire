@@ -80,7 +80,7 @@ public class AddRedisTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis")
             .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
+            new AllocatedEndpointAnnotation(RedisResource.PrimaryEndpointName,
             ProtocolType.Tcp,
             "localhost",
             2000,
@@ -93,7 +93,7 @@ public class AddRedisTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = connectionStringResource.GetConnectionString();
-        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("{myRedis.bindings.primary.host}:{myRedis.bindings.primary.port}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("localhost:2000", connectionString);
     }
 

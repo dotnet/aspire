@@ -360,8 +360,8 @@ public class AzureBicepResourceTests
         Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
         Assert.Equal("postgres", postgres.Resource.Name);
         Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
-        Assert.Same(usr, azurePostgres.Resource.Parameters["administratorLogin"]);
-        Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.Same(usr.Resource, azurePostgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd.Resource, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
         Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
         Assert.NotNull(databases);
         Assert.Equal(["dbName"], databases);
@@ -400,8 +400,8 @@ public class AzureBicepResourceTests
         Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
         Assert.Equal("postgres", postgres.Resource.Name);
         Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
-        Assert.Same(usr, azurePostgres.Resource.Parameters["administratorLogin"]);
-        Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.Same(usr.Resource, azurePostgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd.Resource, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
         Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
         Assert.NotNull(databases);
         Assert.Equal(["db"], databases);

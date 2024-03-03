@@ -27,7 +27,7 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(GetValue());
 
     /// <summary>
-    /// Gets the expression used in the manifest to reference the value of the endpoint.
+    /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
     /// </summary>
     public string GetValueExpression(EndpointProperty property = EndpointProperty.Url)
     {
@@ -44,7 +44,7 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     }
 
     /// <summary>
-    /// Gets the URI string for the endpoint reference.
+    /// Gets the specified property value of the endpoint. Defaults to the URL if no property is specified.
     /// </summary>
     public string GetValue(EndpointProperty property = EndpointProperty.Url)
     {
@@ -68,7 +68,7 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     /// <summary>
     /// Gets the URI string for the endpoint reference.
     /// </summary>
-    [Obsolete("Use Value instead.")]
+    [Obsolete("Use GetValue instead.")]
     public string UriString
     {
         get
