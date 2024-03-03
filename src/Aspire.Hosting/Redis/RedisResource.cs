@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
-    internal const string PrimaryEndpointName = "primary";
+    internal const string PrimaryEndpointName = "tcp";
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
