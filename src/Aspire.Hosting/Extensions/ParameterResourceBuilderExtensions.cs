@@ -36,27 +36,27 @@ public static class ParameterResourceBuilderExtensions
                                                                      bool connectionString = false)
     {
         var resource = new ParameterResource(name, callback, secret);
-        return builder.AddResource(resource)
-                      .WithResourceUpdates(() =>
-                      {
-                          var state = new CustomResourceSnapshot()
-                          {
-                              ResourceType = "Parameter",
-                              Properties = [
-                                ("Secret", secret.ToString()),
-                                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
-                              ]
-                          };
 
-                          try
-                          {
-                              return state with { Properties = [.. state.Properties, ("Value", callback())] };
-                          }
-                          catch (DistributedApplicationException ex)
-                          {
-                              return state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
-                          }
-                      })
+        var state = new CustomResourceSnapshot()
+        {
+            ResourceType = "Parameter",
+            Properties = [
+                ("parameter.secret", secret.ToString()),
+                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+            ]
+        };
+
+        try
+        {
+            state = state with { Properties = [.. state.Properties, ("Value", callback())] };
+        }
+        catch (DistributedApplicationException ex)
+        {
+            state = state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
+        }
+
+        return builder.AddResource(resource)
+                      .WithInitialState(state)
                       .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource, connectionString));
     }
 

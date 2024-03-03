@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -26,6 +28,11 @@ public class EnvironmentCallbackContext(DistributedApplicationExecutionContext e
     /// Gets the CancellationToken associated with the callback context.
     /// </summary>
     public CancellationToken CancellationToken { get; } = cancellationToken;
+
+    /// <summary>
+    /// An optional logger to use for logging.
+    /// </summary>
+    public ILogger? Logger { get; set; }
 
     /// <summary>
     /// Gets the execution context associated with this invocation of the AppHost.

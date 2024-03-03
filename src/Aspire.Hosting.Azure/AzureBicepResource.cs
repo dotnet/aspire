@@ -42,6 +42,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     public Dictionary<string, string?> SecretOutputs { get; } = [];
 
     /// <summary>
+    /// The task completion source for the provisioning operation.
+    /// </summary>
+    public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
+
+    /// <summary>
     /// Gets the path to the bicep file. If the template is a string or embedded resource, it will be written to a temporary file.
     /// </summary>
     /// <param name="directory">The directory where the bicep file will be written to (if it's a temporary file)</param>
@@ -251,6 +256,20 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
     /// <summary>
     /// The value of the output.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        if (Resource.ProvisioningTaskCompletionSource is not null)
+        {
+            await Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return Value;
+    }
+
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
     public string? Value
     {
         get
@@ -285,6 +304,20 @@ public class BicepOutputReference(string name, AzureBicepResource resource)
     /// The instance of the bicep resource.
     /// </summary>
     public AzureBicepResource Resource { get; } = resource;
+
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        if (Resource.ProvisioningTaskCompletionSource is not null)
+        {
+            await Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return Value;
+    }
 
     /// <summary>
     /// The value of the output.

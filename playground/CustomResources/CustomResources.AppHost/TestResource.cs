@@ -9,11 +9,10 @@ static class TestResourceExtensions
 {
     public static IResourceBuilder<TestResource> AddTestResource(this IDistributedApplicationBuilder builder, string name)
     {
-        builder.Services.AddLifecycleHook<TestResourceLifecycleHook>();
+        builder.Services.TryAddLifecycleHook<TestResourceLifecycleHook>();
 
         var rb = builder.AddResource(new TestResource(name))
-                      .WithResourceLogger()
-                      .WithResourceUpdates(() => new()
+                      .WithInitialState(new()
                       {
                           ResourceType = "Test Resource",
                           State = "Starting",
@@ -28,53 +27,44 @@ static class TestResourceExtensions
     }
 }
 
-internal sealed class TestResourceLifecycleHook : IDistributedApplicationLifecycleHook, IAsyncDisposable
+internal sealed class TestResourceLifecycleHook(ResourceNotificationService notificationService, ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook, IAsyncDisposable
 {
     private readonly CancellationTokenSource _tokenSource = new();
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        foreach (var item in appModel.Resources.OfType<TestResource>())
+        foreach (var resource in appModel.Resources.OfType<TestResource>())
         {
-            if (item.TryGetLastAnnotation<ResourceUpdatesAnnotation>(out var resourceUpdates) &&
-                item.TryGetLastAnnotation<ResourceLoggerAnnotation>(out var loggerAnnotation))
+            var states = new[] { "Starting", "Running", "Finished" };
+
+            var logger = loggerService.GetLogger(resource);
+
+            Task.Run(async () =>
             {
-                var states = new[] { "Starting", "Running", "Finished" };
+                var seconds = Random.Shared.Next(2, 12);
 
-                Task.Run(async () =>
+                logger.LogInformation("Starting test resource {ResourceName} with update interval {Interval} seconds", resource.Name, seconds);
+
+                await notificationService.PublishUpdateAsync(resource, state => state with
                 {
-                    // Simulate custom resource state changes
-                    var state = await resourceUpdates.GetInitialSnapshotAsync(_tokenSource.Token);
-                    var seconds = Random.Shared.Next(2, 12);
+                    Properties = [.. state.Properties, ("Interval", seconds.ToString(CultureInfo.InvariantCulture))]
+                });
 
-                    state = state with
+                using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds));
+
+                while (await timer.WaitForNextTickAsync(_tokenSource.Token))
+                {
+                    var randomState = states[Random.Shared.Next(0, states.Length)];
+
+                    await notificationService.PublishUpdateAsync(resource, state => state with
                     {
-                        Properties = [.. state.Properties, ("Interval", seconds.ToString(CultureInfo.InvariantCulture))]
-                    };
+                        State = randomState
+                    });
 
-                    loggerAnnotation.Logger.LogInformation("Starting test resource {ResourceName} with update interval {Interval} seconds", item.Name, seconds);
-
-                    // This might run before the dashboard is ready to receive updates, but it will be queued.
-                    await resourceUpdates.UpdateStateAsync(state);
-
-                    using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds));
-
-                    while (await timer.WaitForNextTickAsync(_tokenSource.Token))
-                    {
-                        var randomState = states[Random.Shared.Next(0, states.Length)];
-
-                        state = state with
-                        {
-                            State = randomState
-                        };
-
-                        loggerAnnotation.Logger.LogInformation("Test resource {ResourceName} is now in state {State}", item.Name, randomState);
-
-                        await resourceUpdates.UpdateStateAsync(state);
-                    }
-                },
-                cancellationToken);
-            }
+                    logger.LogInformation("Test resource {ResourceName} is now in state {State}", resource.Name, randomState);
+                }
+            },
+            cancellationToken);
         }
 
         return Task.CompletedTask;

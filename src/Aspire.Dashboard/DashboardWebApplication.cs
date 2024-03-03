@@ -103,7 +103,7 @@ public class DashboardWebApplication : IAsyncDisposable
 
         builder.Services.AddFluentUIComponents();
 
-        builder.Services.AddSingleton<ThemeManager>();
+        builder.Services.AddScoped<ThemeManager>();
         // ShortcutManager is scoped because we want shortcuts to apply one browser window.
         builder.Services.AddScoped<ShortcutManager>();
 
