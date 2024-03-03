@@ -2,16 +2,29 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.Storage.Blobs;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
 builder.AddAzureBlobService("blobs");
+builder.AddSqlServerDbContext<SqlContext>("sqldb");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext context) =>
+{
+    return new
+    {
+        blobFiles = await TestBlobStorageAsync(bsc),
+        sqlRows = await TestSqlServerAsync(context)
+    };
+});
+
+app.Run();
+
+static async Task<List<string>> TestBlobStorageAsync(BlobServiceClient bsc)
 {
     var container = bsc.GetBlobContainerClient("mycontainer");
     await container.CreateIfNotExistsAsync();
@@ -29,6 +42,25 @@ app.MapGet("/", async (BlobServiceClient bsc) =>
     }
 
     return blobNames;
-});
+}
 
-app.Run();
+static async Task<List<Entry>> TestSqlServerAsync(SqlContext context)
+{
+    await context.Database.EnsureCreatedAsync();
+
+    var entry = new Entry();
+    await context.Entries.AddAsync(entry);
+    await context.SaveChangesAsync();
+
+    var entries = await context.Entries.ToListAsync();
+    return entries;
+}
+
+public class SqlContext(DbContextOptions<SqlContext> options) : DbContext(options)
+{
+    public DbSet<Entry> Entries { get; set; }
+}
+public class Entry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+}

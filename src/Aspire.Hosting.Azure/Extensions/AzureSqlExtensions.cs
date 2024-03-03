@@ -66,13 +66,14 @@ public static class AzureSqlExtensions
         return builder;
     }
 
-    /// <summary>
-    /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
-    /// </summary>
-    /// <param name="builder">The builder for the SQL Server resource.</param>
-    /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabaseConstruct(this IResourceBuilder<SqlServerServerResource> builder, Action<ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null)
+    private static IResourceBuilder<AzureSqlServerResource> ConfigureDefaults(this IResourceBuilder<AzureSqlServerResource> builder)
+    {
+        var resource = builder.Resource;
+        return builder.WithManifestPublishingCallback(resource.WriteToManifest)
+                      .WithParameter("serverName", resource.CreateBicepResourceName());
+    }
+
+    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabaseConstruct(this IResourceBuilder<SqlServerServerResource> builder, Action<ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null, bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -82,12 +83,31 @@ public static class AzureSqlExtensions
             sqlServer.AssignProperty(x => x.Administrators.IsAzureADOnlyAuthenticationEnabled, "true");
             sqlServer.AssignParameter(x => x.Administrators.Sid, construct.PrincipalIdParameter);
             sqlServer.AssignParameter(x => x.Administrators.Login, construct.PrincipalName);
-            sqlServer.AssignParameter(x => x.Administrators.PrincipalType, construct.PrincipalTypeParameter);
             sqlServer.AssignProperty(x => x.Administrators.TenantId, "subscription().tenantId");
 
-            var sqlFirewall = new SqlFirewallRule(construct);
-            sqlFirewall.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
-            sqlFirewall.AssignProperty(x => x.EndIPAddress, "'255.255.255.255'");
+            // TODO: This specially named firewall rule allows access to this database from all other
+            //       Azure services. There is a problem here. The constructor of SqlFirewall does not
+            //       take a parent object so it infers which SQL instance we are using from the
+            //       construct. if we have two sql instances in the construct that would be a problem
+            //       (although it is OK in this scenario).
+            var azureServicesFirewallRule = new SqlFirewallRule(construct, "AllowAllWindowsAzureIps");
+            azureServicesFirewallRule.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
+            azureServicesFirewallRule.AssignProperty(x => x.EndIPAddress, "'0.0.0.0'");
+
+            if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+            {
+                // When in run mode we inject the users identity and we need to specify
+                // the principalType.
+                sqlServer.AssignParameter(x => x.Administrators.PrincipalType, construct.PrincipalTypeParameter);
+
+                // TODO: When in run mode we want to grant access through the firewall. We should
+                //       figure out what we want to do here as this isn't the best option. We could
+                //       make this fail by default so that users have to opt themselves into this
+                //       behavior ... but 100% of AsAzureSqlDatabase(...) users would need to do it.
+                var sqlFirewall = new SqlFirewallRule(construct);
+                sqlFirewall.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
+                sqlFirewall.AssignProperty(x => x.EndIPAddress, "'255.255.255.255'");
+            }
 
             List<SqlDatabase> sqlDatabases = new List<SqlDatabase>();
             foreach (var databaseNames in builder.Resource.Databases)
@@ -111,26 +131,48 @@ public static class AzureSqlExtensions
         var azureSqlDatabase = builder.ApplicationBuilder.CreateResourceBuilder(resource);
         azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                         .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
-                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                         .WithManifestPublishingCallback(resource.WriteToManifest);
 
-        // Used to hold a reference to the azure surrogate for use with the provisioner.
-        builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
-        builder.WithConnectionStringRedirection(resource);
-
-        // Remove the container annotation so that DCP doesn't do anything with it.
-        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault() is { } containerAnnotation)
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            builder.Resource.Annotations.Remove(containerAnnotation);
+            azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
+        }
+
+        if (useProvisioner)
+        {
+            // Used to hold a reference to the azure surrogate for use with the provisioner.
+            builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
+            builder.WithConnectionStringRedirection(resource);
+
+            // Remove the container annotation so that DCP doesn't do anything with it.
+            if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault() is { } containerAnnotation)
+            {
+                builder.Resource.Annotations.Remove(containerAnnotation);
+            }
         }
 
         return builder;
     }
 
-    private static IResourceBuilder<AzureSqlServerResource> ConfigureDefaults(this IResourceBuilder<AzureSqlServerResource> builder)
+    /// <summary>
+    /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
+    /// </summary>
+    /// <param name="builder">The builder for the SQL Server resource.</param>
+    /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabaseConstruct(this IResourceBuilder<SqlServerServerResource> builder, Action<ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null)
     {
-        var resource = builder.Resource;
-        return builder.WithManifestPublishingCallback(resource.WriteToManifest)
-                      .WithParameter("serverName", resource.CreateBicepResourceName());
+        return builder.PublishAsAzureSqlDatabaseConstruct(configureResource, useProvisioner: false);
+    }
+
+    /// <summary>
+    /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
+    /// </summary>
+    /// <param name="builder">The builder for the SQL Server resource.</param>
+    /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabaseConstruct(this IResourceBuilder<SqlServerServerResource> builder, Action<ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null)
+    {
+        return builder.PublishAsAzureSqlDatabaseConstruct(configureResource, useProvisioner: true);
     }
 }

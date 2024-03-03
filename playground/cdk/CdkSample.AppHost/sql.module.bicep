@@ -9,9 +9,6 @@ param principalId string
 @description('')
 param principalName string
 
-@description('')
-param principalType string
-
 
 resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2022-08-01-preview' = {
   name: toLower(take(concat('sql', uniqueString(resourceGroup().id)), 24))
@@ -22,7 +19,6 @@ resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2022-08-01-preview' = {
     publicNetworkAccess: 'Enabled'
     administrators: {
       administratorType: 'ActiveDirectory'
-      principalType: principalType
       login: principalName
       sid: principalId
       tenantId: subscription().tenantId
@@ -31,21 +27,20 @@ resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2022-08-01-preview' = {
   }
 }
 
-resource sqlFirewallRule_fA0ew2DcB 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+resource sqlFirewallRule_Zjpl1WAet 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
   parent: sqlServer_l5O9GRsSn
-  name: 'fw'
+  name: 'AllowAllWindowsAzureIps'
   properties: {
     startIpAddress: '0.0.0.0'
-    endIpAddress: '255.255.255.255'
+    endIpAddress: '0.0.0.0'
   }
 }
 
-resource sqlDatabase_A20agRiP6 'Microsoft.Sql/servers/databases@2022-08-01-preview' = {
+resource sqlDatabase_nUUkbFiVl 'Microsoft.Sql/servers/databases@2022-08-01-preview' = {
   parent: sqlServer_l5O9GRsSn
-  name: 'db'
+  name: 'sqldb'
   location: location
   properties: {
-    maxSizeBytes: 100000000
   }
 }
 
