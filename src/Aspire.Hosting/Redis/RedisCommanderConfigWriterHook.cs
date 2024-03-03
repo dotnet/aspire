@@ -29,11 +29,9 @@ internal class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycle
 
         foreach (var redisInstance in redisInstances)
         {
-            if (redisInstance.TryGetAllocatedEndPoints(out var allocatedEndpoints))
+            if (redisInstance.PrimaryEndpoint.IsAllocated)
             {
-                var endpoint = allocatedEndpoints.Where(ae => ae.Name == "tcp").Single();
-
-                var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:host.docker.internal:{endpoint.Port}:0";
+                var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:host.docker.internal:{redisInstance.PrimaryEndpoint.Port}:0";
                 hostsVariableBuilder.Append(hostString);
             }
         }

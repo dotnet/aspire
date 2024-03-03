@@ -11,10 +11,12 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
 {
     internal const string PrimaryEndpointName = "tcp";
 
+    private EndpointReference? _primaryEndpoint;
+
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
-    public EndpointReference PrimaryEndpoint => new(this, PrimaryEndpointName);
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
     /// Gets the connection string expression for the Redis server for the manifest.
@@ -28,7 +30,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"{PrimaryEndpoint.GetValueExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetValueExpression(EndpointProperty.Port)}";
+            return $"{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
         }
     }
 
@@ -58,6 +60,6 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             return connectionStringAnnotation.Resource.GetConnectionString();
         }
 
-        return $"{PrimaryEndpoint.GetValue(EndpointProperty.Host)}:{PrimaryEndpoint.GetValue(EndpointProperty.Port)}";
+        return $"{PrimaryEndpoint.Host}:{PrimaryEndpoint.Port}";
     }
 }

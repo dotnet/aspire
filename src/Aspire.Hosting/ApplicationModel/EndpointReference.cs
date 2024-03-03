@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -22,14 +20,19 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     /// </summary>
     public string EndpointName { get; } = endpointName;
 
-    string IManifestExpressionProvider.ValueExpression => GetValueExpression();
+    /// <summary>
+    /// Gets a value indicating whether the endpoint is allocated.
+    /// </summary>
+    public bool IsAllocated => Owner.Annotations.OfType<AllocatedEndpointAnnotation>().Any(a => a.Name == EndpointName);
 
-    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(GetValue());
+    string IManifestExpressionProvider.ValueExpression => GetExpression();
+
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Url);
 
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
     /// </summary>
-    public string GetValueExpression(EndpointProperty property = EndpointProperty.Url)
+    public string GetExpression(EndpointProperty property = EndpointProperty.Url)
     {
         var prop = property switch
         {
@@ -44,38 +47,31 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     }
 
     /// <summary>
-    /// Gets the specified property value of the endpoint. Defaults to the URL if no property is specified.
+    /// Gets the port for this endpoint.
     /// </summary>
-    public string GetValue(EndpointProperty property = EndpointProperty.Url)
-    {
-        var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName);
-
-        if (allocatedEndpoint is null)
-        {
-            throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
-        }
-
-        return property switch
-        {
-            EndpointProperty.Url => allocatedEndpoint.UriString,
-            EndpointProperty.Host => allocatedEndpoint.Address ?? "localhost",
-            EndpointProperty.Port => allocatedEndpoint.Port.ToString(CultureInfo.InvariantCulture),
-            EndpointProperty.Scheme => allocatedEndpoint.UriScheme,
-            _ => throw new InvalidOperationException($"The property `{property}` is not supported for the endpoint `{EndpointName}`.")
-        };
-    }
+    public int Port => GetAllocatedEndpoint().Port;
 
     /// <summary>
-    /// Gets the URI string for the endpoint reference.
+    /// Gets the host for this endpoint.
     /// </summary>
-    [Obsolete("Use GetValue instead.")]
-    public string UriString
+    public string Host => GetAllocatedEndpoint().Address ?? "localhost";
+
+    /// <summary>
+    /// Gets the scheme for this endpoint.
+    /// </summary>
+    public string Scheme => GetAllocatedEndpoint().UriScheme;
+
+    /// <summary>
+    /// Gets the URL for this endpoint.
+    /// </summary>
+    public string Url => GetAllocatedEndpoint().UriString;
+
+    private AllocatedEndpointAnnotation GetAllocatedEndpoint()
     {
-        get
-        {
-            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName);
-            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{EndpointName}.url}}";
-        }
+        var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName) ??
+            throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
+
+        return allocatedEndpoint;
     }
 }
 

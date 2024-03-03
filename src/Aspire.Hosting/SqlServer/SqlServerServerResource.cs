@@ -12,6 +12,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="password">The SQL Sever password.</param>
 public class SqlServerServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "tcp";
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the primary endpoint for the Redis server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
     /// <summary>
     /// Gets the password for the SQL Server container resource.
     /// </summary>
@@ -29,7 +38,7 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"Server={{{Name}.bindings.tcp.host}},{{{Name}.bindings.tcp.port}};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
+            return $"Server={PrimaryEndpoint.GetExpression(EndpointProperty.Host)},{PrimaryEndpoint.GetExpression(EndpointProperty.Port)};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
         }
     }
 
@@ -59,19 +68,12 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
             return connectionStringAnnotation.Resource.GetConnectionString();
         }
 
-        if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException("Expected allocated endpoints!");
-        }
-
-        var endpoint = allocatedEndpoints.Single();
-
         // HACK: Use the 127.0.0.1 address because localhost is resolving to [::1] following
         //       up with DCP on this issue.
-        return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true";
+        return $"Server=127.0.0.1,{PrimaryEndpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true";
     }
 
-    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
+    private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
