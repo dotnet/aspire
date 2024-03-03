@@ -99,7 +99,7 @@ public class AddMySqlTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql")
             .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
+            new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
             "localhost",
             2000,
@@ -123,7 +123,7 @@ public class AddMySqlTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql")
             .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
+            new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
             "localhost",
             2000,
@@ -212,7 +212,7 @@ public class AddMySqlTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        mysql.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        mysql.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new PhpMyAdminConfigWriterHook();
@@ -248,8 +248,8 @@ public class AddMySqlTests
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(8081);
 
         // Add fake allocated endpoints.
-        mysql1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        mysql2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        mysql1.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        mysql2.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();

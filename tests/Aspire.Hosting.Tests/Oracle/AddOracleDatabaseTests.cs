@@ -97,7 +97,7 @@ public class AddOracleDatabaseTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("orcl")
             .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
+            new AllocatedEndpointAnnotation(OracleDatabaseServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
             "localhost",
             2000,

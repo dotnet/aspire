@@ -48,7 +48,7 @@ public class AddKafkaTests
         appBuilder
             .AddKafka("kafka")
             .WithAnnotation(
-                new AllocatedEndpointAnnotation("mybinding",
+                new AllocatedEndpointAnnotation(KafkaServerResource.PrimaryEndpointName,
                 ProtocolType.Tcp,
                 "localhost",
                 27017,

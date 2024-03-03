@@ -137,7 +137,7 @@ public class AddPostgresTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("postgres")
             .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
+            new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
             "localhost",
             2000,

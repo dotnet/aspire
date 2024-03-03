@@ -65,7 +65,7 @@ public class AddSqlServerTests
         appBuilder
             .AddSqlServer("sqlserver")
             .WithAnnotation(
-                    new AllocatedEndpointAnnotation("mybinding",
+                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
                     ProtocolType.Tcp,
                     "localhost",
                     1433,
@@ -91,7 +91,7 @@ public class AddSqlServerTests
         appBuilder
             .AddSqlServer("sqlserver")
             .WithAnnotation(
-                    new AllocatedEndpointAnnotation("mybinding",
+                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
                     ProtocolType.Tcp,
                     "localhost",
                     1433,
