@@ -633,8 +633,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var value = c.Value switch
             {
                 string s => s,
-                IValueProvider valueProvider => await GetValue(c.Key, valueProvider, resourceLogger, cancellationToken).ConfigureAwait(false),
-                null => "",
+                IValueProvider valueProvider => await GetValue(c.Key, valueProvider, resourceLogger, isContainer: false, cancellationToken).ConfigureAwait(false),
+                null => null,
                 _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{c.Key}\".")
             };
 
@@ -662,7 +662,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static async Task<string?> GetValue(string key, IValueProvider valueProvider, ILogger logger, CancellationToken cancellationToken)
+    private async Task<string?> GetValue(string key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
     {
         var task = valueProvider.GetValueAsync(cancellationToken);
 
@@ -682,7 +682,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        return await task.ConfigureAwait(false);
+        var value = await task.ConfigureAwait(false);
+
+        if (value is not null && isContainer && valueProvider is ConnectionStringReference or EndpointReference)
+        {
+            // If the value is a connection string or endpoint reference, we need to replace localhost with the container host.
+            return HostNameResolver.ReplaceLocalhostWithContainerHost(value, configuration);
+        }
+
+        return value;
     }
 
     private static void ApplyLaunchProfile(AppResource executableResource, Dictionary<string, object> config, string launchProfileName, LaunchSettings launchSettings)
@@ -919,15 +927,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var value = kvp.Value switch
             {
                 string s => s,
-                IValueProvider valueProvider => await GetValue(kvp.Key, valueProvider, resourceLogger, cancellationToken).ConfigureAwait(false),
-                null => "",
+                IValueProvider valueProvider => await GetValue(kvp.Key, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
+                null => null,
                 _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{kvp.Key}\".")
             };
 
             if (value is not null)
             {
-                value = HostNameResolver.ReplaceLocalhostWithContainerHost(value, configuration);
-
                 dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = value });
             }
         }
