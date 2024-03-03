@@ -105,7 +105,6 @@ public static class AzureSqlExtensions
             {
                 var databaseName = databaseNames.Value;
                 var sqlDatabase = new SqlDatabase(construct, sqlServer, databaseName);
-
                 sqlDatabases.Add(sqlDatabase);
             }
 
