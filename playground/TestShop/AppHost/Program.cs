@@ -21,9 +21,8 @@ builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
        .WithReference(catalogService.GetEndpoint("http"));
 
-builder.AddProject<Projects.OrderProcessor>("orderprocessor")
-       .WithReference(messaging)
-       .WithLaunchProfile("OrderProcessor");
+builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
+       .WithReference(messaging);
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(basketService)
