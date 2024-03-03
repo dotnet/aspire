@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -22,7 +21,7 @@ public static class NatsBuilderExtensions
     {
         var nats = new NatsServerResource(name);
         return builder.AddResource(nats)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 4222))
+                      .WithEndpoint(containerPort: 4222, hostPort: port)
                       .WithAnnotation(new ContainerImageAnnotation { Image = "nats", Tag = "2" })
                       .PublishAsContainer();
     }
