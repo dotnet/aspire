@@ -15,6 +15,7 @@ resource storageAccount_EMiEZBbox 'Microsoft.Storage/storageAccounts@2022-09-01'
   }
   kind: 'Storage'
   properties: {
+    accessTier: 'Hot'
   }
 }
 

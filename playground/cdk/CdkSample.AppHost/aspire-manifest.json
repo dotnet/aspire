@@ -35,6 +35,20 @@
         "locationOverride": "{locationOverride.value}"
       }
     },
+    "sql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "sql.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalName": "",
+        "principalType": ""
+      }
+    },
+    "db": {
+      "type": "value.v0",
+      "connectionString": "{sql.connectionString};Database=db"
+    },
     "blobs": {
       "type": "value.v0",
       "connectionString": "{cdkstorage2.outputs.blobEndpoint}"
@@ -45,7 +59,8 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__blobs": "{blobs.connectionString}"
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "ConnectionStrings__db": "{db.connectionString}"
       },
       "bindings": {
         "http": {

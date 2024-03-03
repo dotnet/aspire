@@ -24,10 +24,11 @@ resource storageAccount_Tn41yfrBn 'Microsoft.Storage/storageAccounts@2022-09-01'
   }
   kind: 'Storage'
   properties: {
+    accessTier: 'Hot'
   }
 }
 
-resource blobService_L4VtbX3sf 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
+resource blobService_tj6ALS6Cn 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
   parent: storageAccount_Tn41yfrBn
   name: 'default'
   properties: {

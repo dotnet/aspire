@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.Sql;
 
 namespace Aspire.Hosting;
 
@@ -60,6 +61,67 @@ public static class AzureSqlExtensions
         if (callback != null)
         {
             callback(azureSqlDatabase);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
+    /// </summary>
+    /// <param name="builder">The builder for the SQL Server resource.</param>
+    /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabaseConstruct(this IResourceBuilder<SqlServerServerResource> builder, Action<ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null)
+    {
+        var configureConstruct = (ResourceModuleConstruct construct) =>
+        {
+            var sqlServer = new SqlServer(construct, builder.Resource.Name);
+
+            sqlServer.AssignProperty(x => x.Administrators.AdministratorType, "'ActiveDirectory'");
+            sqlServer.AssignProperty(x => x.Administrators.IsAzureADOnlyAuthenticationEnabled, "true");
+            sqlServer.AssignParameter(x => x.Administrators.Sid, construct.PrincipalIdParameter);
+            sqlServer.AssignParameter(x => x.Administrators.Login, construct.PrincipalName);
+            sqlServer.AssignParameter(x => x.Administrators.PrincipalType, construct.PrincipalTypeParameter);
+            sqlServer.AssignProperty(x => x.Administrators.TenantId, "subscription().tenantId");
+
+            var sqlFirewall = new SqlFirewallRule(construct);
+            sqlFirewall.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
+            sqlFirewall.AssignProperty(x => x.EndIPAddress, "'255.255.255.255'");
+
+            List<SqlDatabase> sqlDatabases = new List<SqlDatabase>();
+            foreach (var databaseNames in builder.Resource.Databases)
+            {
+                var databaseName = databaseNames.Value;
+                var sqlDatabase = new SqlDatabase(construct, sqlServer, databaseName);
+                sqlDatabase.AssignProperty(x => x.Location, "location"); // HACK
+
+                sqlDatabases.Add(sqlDatabase);
+            }
+
+            sqlServer.AddOutput(x => x.FullyQualifiedDomainName, "sqlServerFqdn");
+
+            if (configureResource != null)
+            {
+                configureResource(construct, sqlServer, sqlDatabases);
+            }
+        };
+
+        var resource = new AzureSqlServerConstructResource(builder.Resource, configureConstruct);
+        var azureSqlDatabase = builder.ApplicationBuilder.CreateResourceBuilder(resource);
+        azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
+                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                        .WithManifestPublishingCallback(resource.WriteToManifest);
+
+        // Used to hold a reference to the azure surrogate for use with the provisioner.
+        builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
+        builder.WithConnectionStringRedirection(resource);
+
+        // Remove the container annotation so that DCP doesn't do anything with it.
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault() is { } containerAnnotation)
+        {
+            builder.Resource.Annotations.Remove(containerAnnotation);
         }
 
         return builder;

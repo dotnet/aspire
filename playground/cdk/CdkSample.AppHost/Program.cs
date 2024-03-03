@@ -28,10 +28,13 @@ var cdkstorage2 = builder.AddAzureConstructStorage("cdkstorage2", (_, account) =
     account.AssignParameter(sa => sa.Location, locationOverride);
 });
 
+var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct().AddDatabase("db");
+
 var blobs = cdkstorage2.AddBlobs("blobs");
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
-       .WithReference(blobs);
+       .WithReference(blobs)
+       .WithReference(sqldb);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
