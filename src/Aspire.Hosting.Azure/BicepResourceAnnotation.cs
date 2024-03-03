@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.Bicep;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Used to annotate resources as being potentially deployable by the Azure Provisioner.

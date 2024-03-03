@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -26,6 +25,11 @@ public class AzureOpenAIResource(string name) : Resource(name), IAzureResource, 
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
     public IReadOnlyList<AzureOpenAIDeploymentResource> Deployments => _deployments;
+
+    /// <summary>
+    /// Set by the AzureProvisioner to indicate the task that is provisioning the resource.
+    /// </summary>
+    public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 
     internal void AddDeployment(AzureOpenAIDeploymentResource deployment)
     {

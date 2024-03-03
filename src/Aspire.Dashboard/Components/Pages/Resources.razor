@@ -28,9 +28,9 @@
                         ShowIndeterminate="false"
                         ThreeStateOrderUncheckToIntermediate="true"
                         @bind-CheckState="AreAllTypesVisible" />
-                    @foreach (var resourceType in _allResourceTypes)
+                    @foreach (var (resourceType, _) in _allResourceTypes)
                     {
-                        var isChecked = _visibleResourceTypes.Contains(resourceType);
+                        var isChecked = _visibleResourceTypes.ContainsKey(resourceType);
                         <FluentCheckbox
                             Label="@resourceType"
                             @bind-Value:get="isChecked"
@@ -48,6 +48,7 @@
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"
                         OnDismiss="() => ClearSelectedResource()"
+                        SelectedValue="@SelectedResource"
                         ViewKey="ResourcesList">
         <Summary>
             <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">

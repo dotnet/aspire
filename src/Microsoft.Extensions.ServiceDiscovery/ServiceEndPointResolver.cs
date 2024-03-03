@@ -1,298 +1,106 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.ExceptionServices;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
-/// Resolves endpoints for a specified service.
+/// Resolves service names to collections of endpoints.
 /// </summary>
-public sealed partial class ServiceEndPointResolver(
-    IServiceEndPointResolver[] resolvers,
-    ILogger logger,
-    string serviceName,
-    TimeProvider timeProvider,
-    IOptions<ServiceEndPointResolverOptions> options) : IAsyncDisposable
+public sealed class ServiceEndPointResolver : IAsyncDisposable
 {
-    private static readonly TimerCallback s_pollingAction = static state => _ = ((ServiceEndPointResolver)state!).RefreshAsync(force: true);
+    private static readonly TimerCallback s_cleanupCallback = s => ((ServiceEndPointResolver)s!).CleanupResolvers();
+    private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
-    private readonly ILogger _logger = logger;
-    private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly ServiceEndPointResolverOptions _options = options.Value;
-    private readonly IServiceEndPointResolver[] _resolvers = resolvers;
-    private readonly CancellationTokenSource _disposalCancellation = new();
-    private ITimer? _pollingTimer;
-    private ServiceEndPointCollection? _cachedEndPoints;
-    private Task _refreshTask = Task.CompletedTask;
-    private volatile CacheStatus _cacheState;
+    private readonly ServiceEndPointResolverFactory _resolverProvider;
+    private readonly TimeProvider _timeProvider;
+    private readonly ConcurrentDictionary<string, ResolverEntry> _resolvers = new();
+    private ITimer? _cleanupTimer;
+    private Task? _cleanupTask;
+    private bool _disposed;
 
     /// <summary>
-    /// Gets the service name.
+    /// Initializes a new instance of the <see cref="ServiceEndPointResolver"/> class.
     /// </summary>
-    public string ServiceName { get; } = serviceName;
-
-    /// <summary>
-    /// Gets or sets the action called when endpoints are updated.
-    /// </summary>
-    public Action<ServiceEndPointResolverResult>? OnEndPointsUpdated { get; set; }
-
-    /// <summary>
-    /// Starts the endpoint resolver.
-    /// </summary>
-    public void Start()
+    /// <param name="resolverProvider">The resolver factory.</param>
+    /// <param name="timeProvider">The time provider.</param>
+    internal ServiceEndPointResolver(ServiceEndPointResolverFactory resolverProvider, TimeProvider timeProvider)
     {
-        ThrowIfNoResolvers();
-        _ = RefreshAsync(force: false);
+        _resolverProvider = resolverProvider;
+        _timeProvider = timeProvider;
     }
 
     /// <summary>
-    /// Returns a collection of resolved endpoints for the service.
+    /// Resolves and returns service endpoints for the specified service.
     /// </summary>
+    /// <param name="serviceName">The service name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A collection of resolved endpoints for the service.</returns>
-    public ValueTask<ServiceEndPointCollection> GetEndPointsAsync(CancellationToken cancellationToken = default)
+    /// <returns>The resolved service endpoints.</returns>
+    public async ValueTask<ServiceEndPointCollection> GetEndPointsAsync(string serviceName, CancellationToken cancellationToken)
     {
-        ThrowIfNoResolvers();
+        ArgumentNullException.ThrowIfNull(serviceName);
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
-        // If the cache is valid, return the cached value.
-        if (_cachedEndPoints is { ChangeToken.HasChanged: false } cached)
-        {
-            return new ValueTask<ServiceEndPointCollection>(cached);
-        }
+        EnsureCleanupTimerStarted();
 
-        // Otherwise, ensure the cache is being refreshed
-        // Wait for the cache refresh to complete and return the cached value.
-        return GetEndPointsInternal(cancellationToken);
-
-        async ValueTask<ServiceEndPointCollection> GetEndPointsInternal(CancellationToken cancellationToken)
-        {
-            ServiceEndPointCollection? result;
-            do
-            {
-                await RefreshAsync(force: false).WaitAsync(cancellationToken).ConfigureAwait(false);
-                result = _cachedEndPoints;
-            } while (result is null);
-            return result;
-        }
-    }
-
-    // Ensures that there is a refresh operation running, if needed, and returns the task which represents the completion of the operation
-    private Task RefreshAsync(bool force)
-    {
-        lock (_lock)
-        {
-            // If the cache is invalid or needs invalidation, refresh the cache.
-            if (_refreshTask.IsCompleted && (_cacheState == CacheStatus.Invalid || _cachedEndPoints is null or { ChangeToken.HasChanged: true } || force))
-            {
-                // Indicate that the cache is being updated and start a new refresh task.
-                _cacheState = CacheStatus.Refreshing;
-
-                // Don't capture the current ExecutionContext and its AsyncLocals onto the callback.
-                var restoreFlow = false;
-                try
-                {
-                    if (!ExecutionContext.IsFlowSuppressed())
-                    {
-                        ExecutionContext.SuppressFlow();
-                        restoreFlow = true;
-                    }
-
-                    _refreshTask = RefreshAsyncInternal();
-                }
-                finally
-                {
-                    if (restoreFlow)
-                    {
-                        ExecutionContext.RestoreFlow();
-                    }
-                }
-            }
-
-            return _refreshTask;
-        }
-    }
-
-    private async Task RefreshAsyncInternal()
-    {
-        await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-        var cancellationToken = _disposalCancellation.Token;
-        Exception? error = null;
-        ServiceEndPointCollection? newEndPoints = null;
-        CacheStatus newCacheState;
-        ResolutionStatus status = ResolutionStatus.Success;
         while (true)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var resolver = _resolvers.GetOrAdd(
+                serviceName,
+                static (name, self) => self.CreateResolver(name),
+                this);
+
+            var (valid, result) = await resolver.GetEndPointsAsync(cancellationToken).ConfigureAwait(false);
+            if (valid)
+            {
+                if (result is null)
+                {
+                    throw new InvalidOperationException($"Unable to resolve endpoints for service {resolver.ServiceName}");
+                }
+
+                return result;
+            }
+        }
+    }
+
+    private void EnsureCleanupTimerStarted()
+    {
+        if (_cleanupTimer is not null)
+        {
+            return;
+        }
+
+        lock (_lock)
+        {
+            if (_cleanupTimer is not null)
+            {
+                return;
+            }
+
+            // Don't capture the current ExecutionContext and its AsyncLocals onto the timer
+            var restoreFlow = false;
             try
             {
-                var collection = new ServiceEndPointCollectionSource(ServiceName, new FeatureCollection());
-                status = ResolutionStatus.Success;
-                Log.ResolvingEndPoints(_logger, ServiceName);
-                foreach (var resolver in _resolvers)
+                if (!ExecutionContext.IsFlowSuppressed())
                 {
-                    var resolverStatus = await resolver.ResolveAsync(collection, cancellationToken).ConfigureAwait(false);
-                    status = CombineStatus(status, resolverStatus);
+                    ExecutionContext.SuppressFlow();
+                    restoreFlow = true;
                 }
 
-                var endPoints = ServiceEndPointCollectionSource.CreateServiceEndPointCollection(collection);
-                var statusCode = status.StatusCode;
-                if (statusCode != ResolutionStatusCode.Success)
+                _cleanupTimer = _timeProvider.CreateTimer(s_cleanupCallback, this, s_cleanupPeriod, s_cleanupPeriod);
+            }
+            finally
+            {
+                // Restore the current ExecutionContext
+                if (restoreFlow)
                 {
-                    if (statusCode is ResolutionStatusCode.Pending)
-                    {
-                        // Wait until a timeout or the collection's ChangeToken.HasChange becomes true and try again.
-                        Log.ResolutionPending(_logger, ServiceName);
-                        await WaitForPendingChangeToken(endPoints.ChangeToken, _options.PendingStatusRefreshPeriod, cancellationToken).ConfigureAwait(false);
-                        continue;
-                    }
-                    else if (statusCode is ResolutionStatusCode.Cancelled)
-                    {
-                        newCacheState = CacheStatus.Invalid;
-                        error = status.Exception ?? new OperationCanceledException();
-                        break;
-                    }
-                    else if (statusCode is ResolutionStatusCode.Error)
-                    {
-                        newCacheState = CacheStatus.Invalid;
-                        error = status.Exception;
-                        break;
-                    }
+                    ExecutionContext.RestoreFlow();
                 }
-
-                lock (_lock)
-                {
-                    // Check if we need to poll for updates or if we can register for change notification callbacks.
-                    if (endPoints.ChangeToken.ActiveChangeCallbacks)
-                    {
-                        // Initiate a background refresh, if necessary.
-                        endPoints.ChangeToken.RegisterChangeCallback(static state => _ = ((ServiceEndPointResolver)state!).RefreshAsync(force: false), this);
-                        if (_pollingTimer is { } timer)
-                        {
-                            _pollingTimer = null;
-                            timer.Dispose();
-                        }
-                    }
-                    else
-                    {
-                        SchedulePollingTimer();
-                    }
-
-                    // The cache is valid
-                    newEndPoints = endPoints;
-                    newCacheState = CacheStatus.Valid;
-                    break;
-                }
-            }
-            catch (Exception exception)
-            {
-                error = exception;
-                newCacheState = CacheStatus.Invalid;
-                SchedulePollingTimer();
-                status = CombineStatus(status, ResolutionStatus.FromException(exception));
-                break;
-            }
-        }
-
-        // If there was an error, the cache must be invalid.
-        Debug.Assert(error is null || newCacheState is CacheStatus.Invalid);
-
-        // To ensure coherence between the value returned by calls made to GetEndPointsAsync and value passed to the callback,
-        // we invalidate the cache before invoking the callback. This causes callers to wait on the refresh task
-        // before receiving the updated value. An alternative approach is to lock access to _cachedEndPoints, but
-        // that will have more overhead in the common case.
-        if (newCacheState is CacheStatus.Valid)
-        {
-            Interlocked.Exchange(ref _cachedEndPoints, null);
-        }
-
-        if (OnEndPointsUpdated is { } callback)
-        {
-            callback(new(newEndPoints, status));
-        }
-
-        lock (_lock)
-        {
-            if (newCacheState is CacheStatus.Valid)
-            {
-                Debug.Assert(newEndPoints is not null);
-                _cachedEndPoints = newEndPoints;
-            }
-
-            _cacheState = newCacheState;
-        }
-
-        if (error is not null)
-        {
-            Log.ResolutionFailed(_logger, error, ServiceName);
-            ExceptionDispatchInfo.Throw(error);
-        }
-        else if (newEndPoints is not null)
-        {
-            Log.ResolutionSucceeded(_logger, ServiceName, newEndPoints);
-        }
-    }
-
-    private void SchedulePollingTimer()
-    {
-        lock (_lock)
-        {
-            if (_pollingTimer is null)
-            {
-                _pollingTimer = _timeProvider.CreateTimer(s_pollingAction, this, _options.RefreshPeriod, TimeSpan.Zero);
-            }
-            else
-            {
-                _pollingTimer.Change(_options.RefreshPeriod, TimeSpan.Zero);
-            }
-        }
-    }
-
-    private static ResolutionStatus CombineStatus(ResolutionStatus existing, ResolutionStatus newStatus)
-    {
-        if (existing.StatusCode > newStatus.StatusCode)
-        {
-            return existing;
-        }
-
-        var code = (ResolutionStatusCode)Math.Max((int)existing.StatusCode, (int)newStatus.StatusCode);
-        Exception? exception;
-        if (existing.Exception is not null && newStatus.Exception is not null)
-        {
-            List<Exception> exceptions = new();
-            AddExceptions(existing.Exception, exceptions);
-            AddExceptions(newStatus.Exception, exceptions);
-            exception = new AggregateException(exceptions);
-        }
-        else
-        {
-            exception = existing.Exception ?? newStatus.Exception;
-        }
-
-        var message = code switch
-        {
-            ResolutionStatusCode.Error => exception!.Message ?? "Error",
-            _ => code.ToString(),
-        };
-
-        return new ResolutionStatus(code, exception, message);
-
-        static void AddExceptions(Exception? exception, List<Exception> exceptions)
-        {
-            if (exception is AggregateException ae)
-            {
-                exceptions.AddRange(ae.InnerExceptions);
-            }
-            else if (exception is not null)
-            {
-                exceptions.Add(exception);
             }
         }
     }
@@ -302,82 +110,141 @@ public sealed partial class ServiceEndPointResolver(
     {
         lock (_lock)
         {
-            if (_pollingTimer is { } timer)
-            {
-                _pollingTimer = null;
-                timer.Dispose();
-            }
-        }
-
-        _disposalCancellation.Cancel();
-        if (_refreshTask is { } task)
-        {
-            await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            _disposed = true;
+            _cleanupTimer?.Dispose();
+            _cleanupTimer = null;
         }
 
         foreach (var resolver in _resolvers)
         {
-            await resolver.DisposeAsync().ConfigureAwait(false);
+            await resolver.Value.DisposeAsync().ConfigureAwait(false);
+        }
+
+        _resolvers.Clear();
+        if (_cleanupTask is not null)
+        {
+            await _cleanupTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }
 
-    private enum CacheStatus
+    private void CleanupResolvers()
     {
-        Invalid,
-        Refreshing,
-        Valid
-    }
-
-    private static async Task WaitForPendingChangeToken(IChangeToken changeToken, TimeSpan pollPeriod, CancellationToken cancellationToken)
-    {
-        if (changeToken.HasChanged)
+        lock (_lock)
         {
-            return;
-        }
-
-        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        IDisposable? changeTokenRegistration = null;
-        IDisposable? cancellationRegistration = null;
-        IDisposable? pollPeriodRegistration = null;
-        CancellationTokenSource? timerCancellation = null;
-
-        try
-        {
-            // Either wait for a callback or poll externally.
-            if (changeToken.ActiveChangeCallbacks)
+            if (_cleanupTask is null or { IsCompleted: true })
             {
-                changeTokenRegistration = changeToken.RegisterChangeCallback(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
+                _cleanupTask = CleanupResolversAsyncCore();
+            }
+        }
+    }
+
+    private async Task CleanupResolversAsyncCore()
+    {
+        List<Task>? cleanupTasks = null;
+        foreach (var (name, resolver) in _resolvers)
+        {
+            if (resolver.CanExpire() && _resolvers.TryRemove(name, out var _))
+            {
+                cleanupTasks ??= new();
+                cleanupTasks.Add(resolver.DisposeAsync().AsTask());
+            }
+        }
+        if (cleanupTasks is not null)
+        {
+            await Task.WhenAll(cleanupTasks).ConfigureAwait(false);
+        }
+    }
+
+    private ResolverEntry CreateResolver(string serviceName)
+    {
+        var resolver = _resolverProvider.CreateResolver(serviceName);
+        resolver.Start();
+        return new ResolverEntry(resolver);
+    }
+
+    private sealed class ResolverEntry(ServiceEndPointWatcher resolver) : IAsyncDisposable
+    {
+        private readonly ServiceEndPointWatcher _resolver = resolver;
+        private const ulong CountMask = ~(RecentUseFlag | DisposingFlag);
+        private const ulong RecentUseFlag = 1UL << 62;
+        private const ulong DisposingFlag = 1UL << 63;
+        private ulong _status;
+        private TaskCompletionSource? _onDisposed;
+
+        public string ServiceName => _resolver.ServiceName;
+
+        public bool CanExpire()
+        {
+            // Read the status, clearing the recent use flag in the process.
+            var status = Interlocked.And(ref _status, ~RecentUseFlag);
+
+            // The instance can be expired if there are no concurrent callers and the recent use flag was not set.
+            return (status & (CountMask | RecentUseFlag)) == 0;
+        }
+
+        public async ValueTask<(bool Valid, ServiceEndPointCollection? EndPoints)> GetEndPointsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var status = Interlocked.Increment(ref _status);
+                if ((status & DisposingFlag) == 0)
+                {
+                    // If the resolver is valid, resolve.
+                    // We ensure that it will not be disposed while we are resolving.
+                    var endPoints = await _resolver.GetEndPointsAsync(cancellationToken).ConfigureAwait(false);
+                    return (true, endPoints);
+                }
+                else
+                {
+                    return (false, default);
+                }
+            }
+            finally
+            {
+                // Set the recent use flag to prevent the instance from being disposed.
+                Interlocked.Or(ref _status, RecentUseFlag);
+
+                // If we are the last concurrent request to complete and the Disposing flag has been set,
+                // dispose the resolver now. DisposeAsync was prevented by concurrent requests.
+                var status = Interlocked.Decrement(ref _status);
+                if ((status & DisposingFlag) == DisposingFlag && (status & CountMask) == 0)
+                {
+                    await DisposeAsyncCore().ConfigureAwait(false);
+                }
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_onDisposed is null)
+            {
+                Interlocked.CompareExchange(ref _onDisposed, new(TaskCreationOptions.RunContinuationsAsynchronously), null);
+            }
+
+            var status = Interlocked.Or(ref _status, DisposingFlag);
+            if ((status & DisposingFlag) != DisposingFlag && (status & CountMask) == 0)
+            {
+                // If we are the one who flipped the Disposing flag and there are no concurrent requests,
+                // dispose the instance now. Concurrent requests are prevented from starting by the Disposing flag.
+                await DisposeAsyncCore().ConfigureAwait(false);
             }
             else
             {
-                timerCancellation = new(pollPeriod);
-                pollPeriodRegistration = timerCancellation.Token.UnsafeRegister(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
+                await _onDisposed.Task.ConfigureAwait(false);
             }
+        }
 
-            if (cancellationToken.CanBeCanceled)
+        private async Task DisposeAsyncCore()
+        {
+            try
             {
-                cancellationRegistration = cancellationToken.UnsafeRegister(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
+                await _resolver.DisposeAsync().ConfigureAwait(false);
             }
-
-            await completion.Task.ConfigureAwait(false);
-        }
-        finally
-        {
-            changeTokenRegistration?.Dispose();
-            cancellationRegistration?.Dispose();
-            pollPeriodRegistration?.Dispose();
-            timerCancellation?.Dispose();
+            finally
+            {
+                Debug.Assert(_onDisposed is not null);
+                _onDisposed.SetResult();
+            }
         }
     }
-
-    private void ThrowIfNoResolvers()
-    {
-        if (_resolvers.Length == 0)
-        {
-            ThrowNoResolversConfigured();
-        }
-    }
-
-    [DoesNotReturn]
-    private static void ThrowNoResolversConfigured() => throw new InvalidOperationException("No service endpoint resolvers are configured.");
 }

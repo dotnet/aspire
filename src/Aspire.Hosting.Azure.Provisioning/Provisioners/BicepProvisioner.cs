@@ -1,27 +1,32 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO.Hashing;
 using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Azure;
-using Azure.ResourceManager.KeyVault.Models;
+using Azure.ResourceManager;
 using Azure.ResourceManager.KeyVault;
+using Azure.ResourceManager.KeyVault.Models;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Azure.Security.KeyVault.Secrets;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : AzureResourceProvisioner<AzureBicepResource>
+internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
+    ResourceNotificationService notificationService,
+    ResourceLoggerService loggerService) : AzureResourceProvisioner<AzureBicepResource>
 {
     public override bool ShouldProvision(IConfiguration configuration, AzureBicepResource resource)
         => !resource.IsContainer();
 
-    public override bool ConfigureResource(IConfiguration configuration, AzureBicepResource resource)
+    public override async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
     {
         var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");
 
@@ -30,20 +35,40 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             return false;
         }
 
-        // TODO: Cache contents by their checksum so we don't reuse changed outputs from potentially changed templates
+        var currentCheckSum = GetCurrentChecksum(resource, section);
+        var configCheckSum = section["CheckSum"];
 
-        //var checkSum = resource.GetChecksum();
-
-        //var checkSumSection = section.GetSection(checkSum);
-
-        //if (!checkSumSection.Exists())
-        //{
-        //    return false;
-        //}
-
-        foreach (var item in section.GetSection("Outputs").GetChildren())
+        if (currentCheckSum != configCheckSum)
         {
-            resource.Outputs[item.Key] = item.Value;
+            return false;
+        }
+
+        var resourceIds = section.GetSection("ResourceIds");
+
+        if (section["Outputs"] is string outputJson)
+        {
+            JsonNode? outputObj = null;
+            try
+            {
+                outputObj = JsonNode.Parse(outputJson);
+
+                if (outputObj is null)
+                {
+                    return false;
+                }
+            }
+            catch
+            {
+                // Unable to parse the JSON, to treat it as not existing
+                return false;
+            }
+
+            foreach (var item in outputObj.AsObject())
+            {
+                // TODO: Handle complex output types
+                // Populate the resource outputs
+                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+            }
         }
 
         foreach (var item in section.GetSection("SecretOutputs").GetChildren())
@@ -51,11 +76,57 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             resource.SecretOutputs[item.Key] = item.Value;
         }
 
+        var portalUrls = new List<(string, string)>();
+        foreach (var pair in resourceIds.GetChildren())
+        {
+            portalUrls.Add((pair.Key, $"https://portal.azure.com/#@{configuration["Azure:Tenant"]}/resource{pair.Value}/overview"));
+        }
+
+        // TODO: Figure out how to show the deployment in the portal
+        //var deploymentId = section["Id"];
+        //if (deploymentId is not null)
+        //{
+        //    portalUrls.Add(("deployment", $"https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id/resource{Uri.EscapeDataString(deploymentId)}"));
+        //}
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            ImmutableArray<(string, string)> props = [
+                .. state.Properties,
+                    ("azure.subscription.id", configuration["Azure:SubscriptionId"] ?? ""),
+                    // ("azure.resource.group", configuration["Azure:ResourceGroup"]!),
+                    ("azure.tenant.domain", configuration["Azure:Tenant"] ?? ""),
+                    ("azure.location", configuration["Azure:Location"] ?? ""),
+                    (CustomResourceKnownProperties.Source, section["Id"] ?? "")
+            ];
+
+            return state with
+            {
+                State = "Running",
+                Urls = [.. portalUrls],
+                Properties = props
+            };
+        }).ConfigureAwait(false);
+
         return true;
     }
 
     public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
+        await notificationService.PublishUpdateAsync(resource, state => state with
+        {
+            ResourceType = resource.GetType().Name,
+            State = "Starting",
+            Properties = [
+                ("azure.subscription.id", context.Subscription.Id.Name),
+                ("azure.resource.group", context.ResourceGroup.Id.Name),
+                ("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
+                ("azure.location", context.Location.ToString()),
+            ]
+        }).ConfigureAwait(false);
+
+        var resourceLogger = loggerService.GetLogger(resource);
+
         PopulateWellKnownParameters(resource, context);
 
         var azPath = FindFullPathFromPath("az") ??
@@ -78,7 +149,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             {
                 if (kv.Data.Tags.TryGetValue("aspire-secret-store", out var secretStore) && secretStore == resource.Name)
                 {
-                    logger.LogInformation("Found key vault {vaultName} for resource {resource} in {location}...", kv.Data.Name, resource.Name, context.Location);
+                    resourceLogger.LogInformation("Found key vault {vaultName} for resource {resource} in {location}...", kv.Data.Name, resource.Name, context.Location);
 
                     keyVault = kv;
                     break;
@@ -91,7 +162,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
                 // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
                 var vaultName = $"v{Guid.NewGuid().ToString("N")[0..20]}";
 
-                logger.LogInformation("Creating key vault {vaultName} for resource {resource} in {location}...", vaultName, resource.Name, context.Location);
+                resourceLogger.LogInformation("Creating key vault {vaultName} for resource {resource} in {location}...", vaultName, resource.Name, context.Location);
 
                 var properties = new KeyVaultProperties(context.Subscription.Data.TenantId!.Value, new KeyVaultSku(KeyVaultSkuFamily.A, KeyVaultSkuName.Standard))
                 {
@@ -104,7 +175,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
                 var kvOperation = await keyVaults.CreateOrUpdateAsync(WaitUntil.Completed, vaultName, kvParameters, cancellationToken).ConfigureAwait(false);
                 keyVault = kvOperation.Value;
 
-                logger.LogInformation("Key vault {vaultName} created.", keyVault.Data.Name);
+                resourceLogger.LogInformation("Key vault {vaultName} created.", keyVault.Data.Name);
 
                 // Key Vault Administrator
                 // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#key-vault-administrator
@@ -132,36 +203,17 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
 
         var deployments = context.ResourceGroup.GetArmDeployments();
 
-        logger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, context.ResourceGroup.Data.Name);
+        resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, context.ResourceGroup.Data.Name);
 
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
-        foreach (var parameter in resource.Parameters)
-        {
-            // Execute parameter values which are deferred.
-            object? parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
-
-            parameters[parameter.Key] = new JsonObject()
-            {
-                ["value"] = parameterValue switch
-                {
-                    string s => s,
-                    IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
-                    int i => i,
-                    bool b => b,
-                    JsonNode node => node,
-                    IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
-                    IResourceBuilder<ParameterResource> p => p.Resource.Value,
-                    // TODO: Support this
-                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
-                    object o => o.ToString()!,
-                    null => null,
-                }
-            };
-        }
+        SetParameters(parameters, resource);
 
         var sw = Stopwatch.StartNew();
-        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Completed, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+
+        ArmOperation<ArmDeploymentResource> operation;
+
+        operation = await deployments.CreateOrUpdateAsync(WaitUntil.Completed, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
             Template = BinaryData.FromString(armTemplateContents.ToString()),
             Parameters = BinaryData.FromObjectAsJson(parameters),
@@ -170,7 +222,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         cancellationToken).ConfigureAwait(false);
 
         sw.Stop();
-        logger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, context.ResourceGroup.Data.Name, sw.Elapsed);
+        resourceLogger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, context.ResourceGroup.Data.Name, sw.Elapsed);
 
         var deployment = operation.Value;
 
@@ -189,42 +241,58 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
 
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
+        var az = context.UserSecrets.Prop("Azure");
+        az["Tenant"] = context.Tenant.Data.DefaultDomain;
+
+        var resourceConfig = context.UserSecrets
+            .Prop("Azure")
+            .Prop("Deployments")
+            .Prop(resource.Name);
+
+        // TODO: Clear the entire section if the deployment
+
+        // Save the deployment id to the configuration
+        resourceConfig["Id"] = deployment.Id.ToString();
+
+        // Stash all parameters as a single JSON string
+        resourceConfig["Parameters"] = parameters.ToJsonString();
+
         if (outputObj is not null)
         {
-            // TODO: Make this more robust
-            // Cache contents by their checksum so we don't reuse changed outputs from potentially changed templates
-            // var checkSum = resource.GetChecksum();
+            // Same for outputs
+            resourceConfig["Outputs"] = outputObj.ToJsonString();
+        }
 
-            var configOutputs = context.UserSecrets
-                .Prop("Azure")
-                .Prop("Deployments")
-                .Prop(resource.Name)
-                // .Prop(checkSum)
-                .Prop("Outputs");
+        // Save the checksum to the configuration
+        resourceConfig["CheckSum"] = GetChecksum(resource, parameters);
 
+        // Save the resource ids created
+        var resourceIdConfig = resourceConfig.Prop("ResourceIds");
+        var portalUrls = new List<(string, string)>();
+
+        foreach (var item in deployment.Data.Properties.OutputResources)
+        {
+            resourceIdConfig[item.Id.Name] = item.Id.ToString();
+            portalUrls.Add((item.Id.Name, $"https://portal.azure.com/#@{context.Tenant.Data.DefaultDomain}/resource{item.Id}/overview"));
+        }
+
+        // TODO: Figure out how to show the deployment in the portal
+        // portalUrls.Add(("deployment", $"https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id/resource{deployment.Id}"));
+
+        if (outputObj is not null)
+        {
             foreach (var item in outputObj.AsObject())
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
                 resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
             }
-
-            foreach (var item in resource.Outputs)
-            {
-                // Save them to configuration
-                configOutputs[item.Key] = resource.Outputs[item.Key];
-            }
         }
 
         // Populate secret outputs from key vault (if any)
         if (keyVault is not null)
         {
-            var configOutputs = context.UserSecrets
-                .Prop("Azure")
-                .Prop("Deployments")
-                .Prop(resource.Name)
-                // .Prop(checkSum)
-                .Prop("SecretOutputs");
+            var configOutputs = resourceConfig.Prop("SecretOutputs");
 
             var client = new SecretClient(keyVault.Data.Properties.VaultUri, context.Credential);
 
@@ -241,6 +309,23 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
                 configOutputs[item.Key] = resource.SecretOutputs[item.Key];
             }
         }
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            ImmutableArray<(string, string)> properties = [
+                .. state.Properties,
+                (CustomResourceKnownProperties.Source, deployment.Id.Name)
+            ];
+
+            return state with
+            {
+                State = "Running",
+                CreationTimeStamp = DateTime.UtcNow,
+                Properties = properties,
+                Urls = [.. portalUrls]
+            };
+        })
+        .ConfigureAwait(false);
     }
 
     private static void PopulateWellKnownParameters(AzureBicepResource resource, ProvisioningContext context)
@@ -259,6 +344,15 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         {
             resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = "User";
         }
+
+        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, out var logAnalyticsWorkspaceId) && logAnalyticsWorkspaceId is null)
+        {
+            // We don't have a log analytics workspace for environments so we will just let the bicep file create one
+            resource.Parameters.Remove(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+        }
+
+        // Always specify the location
+        resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
     }
 
     private static async Task<bool> ExecuteCommand(ProcessSpec processSpec)
@@ -301,5 +395,95 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         }
 
         return null;
+    }
+
+    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters)
+    {
+        // TODO: PERF Inefficient
+
+        // Combine the parameter values with the bicep template to create a unique value
+        var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
+
+        // Hash the contents
+        var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
+
+        // Convert the hash to a string
+        return Convert.ToHexString(hashedContents).ToLowerInvariant();
+    }
+
+    internal static string? GetCurrentChecksum(AzureBicepResource resource, IConfiguration section)
+    {
+        // Fill in parameters from configuration
+        if (section["Parameters"] is not string jsonString)
+        {
+            return null;
+        }
+
+        try
+        {
+            var parameters = JsonNode.Parse(jsonString)?.AsObject();
+
+            if (parameters is null)
+            {
+                return null;
+            }
+
+            // Now overwite with live object values skipping known values.
+            // This is important because the provisioner will fill in the known values
+            SetParameters(parameters, resource, skipKnownValues: true);
+
+            // Get the checksum of the new values
+            return GetChecksum(resource, parameters);
+        }
+        catch
+        {
+            // Unable to parse the JSON, to treat it as not existing
+            return null;
+        }
+    }
+
+    // Known values since they will be filled in by the provisioner
+    private static readonly string[] s_knownParameterNames =
+    [
+        AzureBicepResource.KnownParameters.PrincipalName,
+        AzureBicepResource.KnownParameters.PrincipalId,
+        AzureBicepResource.KnownParameters.PrincipalType,
+        AzureBicepResource.KnownParameters.KeyVaultName,
+        AzureBicepResource.KnownParameters.Location,
+        AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId,
+    ];
+
+    // Converts the parameters to a JSON object compatible with the ARM template
+    internal static void SetParameters(JsonObject parameters, AzureBicepResource resource, bool skipKnownValues = false)
+    {
+        // Convert the parameters to a JSON object
+        foreach (var parameter in resource.Parameters)
+        {
+            if (skipKnownValues && s_knownParameterNames.Contains(parameter.Key))
+            {
+                continue;
+            }
+
+            // Execute parameter values which are deferred.
+            var parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
+
+            parameters[parameter.Key] = new JsonObject()
+            {
+                ["value"] = parameterValue switch
+                {
+                    string s => s,
+                    IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
+                    int i => i,
+                    bool b => b,
+                    JsonNode node => node,
+                    IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
+                    IResourceBuilder<ParameterResource> p => p.Resource.Value,
+                    // TODO: Support this
+                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
+                    object o => o.ToString()!,
+                    null => null,
+                }
+            };
+        }
     }
 }

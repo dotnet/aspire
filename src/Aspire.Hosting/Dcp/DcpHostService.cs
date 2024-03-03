@@ -6,6 +6,7 @@ using System.Collections;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -70,21 +71,21 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        _shutdownCts.Cancel();
-        if (_logProcessorTask is { } task)
+        if (_dcpOptions.DeleteResourcesOnShutdown is true)
         {
             try
             {
-                await task.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
+                await _appExecutor.DeleteResourcesAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in logging socket processor.");
+                _logger.LogError(ex, "Error deleting application resources.");
             }
         }
+
+        _shutdownCts.Cancel();
+
+        await TaskHelpers.WaitIgnoreCancelAsync(_logProcessorTask, _logger, "Error in logging socket processor.").ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()

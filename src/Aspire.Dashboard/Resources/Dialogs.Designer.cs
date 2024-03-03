@@ -114,6 +114,159 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Site-wide navigation.
+        /// </summary>
+        public static string HelpDialogCategoryNavigation {
+            get {
+                return ResourceManager.GetString("HelpDialogCategoryNavigation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Page navigation.
+        /// </summary>
+        public static string HelpDialogCategoryPageNavigation {
+            get {
+                return ResourceManager.GetString("HelpDialogCategoryPageNavigation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Panels.
+        /// </summary>
+        public static string HelpDialogCategoryPanels {
+            get {
+                return ResourceManager.GetString("HelpDialogCategoryPanels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Decrease panel size.
+        /// </summary>
+        public static string HelpDialogDecreasePanelSize {
+            get {
+                return ResourceManager.GetString("HelpDialogDecreasePanelSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Microsoft Learn documentation.
+        /// </summary>
+        public static string HelpDialogGetHelpLinkText {
+            get {
+                return ResourceManager.GetString("HelpDialogGetHelpLinkText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Console Logs.
+        /// </summary>
+        public static string HelpDialogGoToConsoleLogs {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToConsoleLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Help.
+        /// </summary>
+        public static string HelpDialogGoToHelp {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToHelp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Metrics.
+        /// </summary>
+        public static string HelpDialogGoToMetrics {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToMetrics", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Resources.
+        /// </summary>
+        public static string HelpDialogGoToResources {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToResources", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Settings.
+        /// </summary>
+        public static string HelpDialogGoToSettings {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Structured Logs.
+        /// </summary>
+        public static string HelpDialogGoToStructuredLogs {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToStructuredLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Go to Traces.
+        /// </summary>
+        public static string HelpDialogGoToTraces {
+            get {
+                return ResourceManager.GetString("HelpDialogGoToTraces", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Increase panel size.
+        /// </summary>
+        public static string HelpDialogIncreasePanelSize {
+            get {
+                return ResourceManager.GetString("HelpDialogIncreasePanelSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Keyboard Shortcuts.
+        /// </summary>
+        public static string HelpDialogKeyboardShortcutsTitle {
+            get {
+                return ResourceManager.GetString("HelpDialogKeyboardShortcutsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reset panel sizes.
+        /// </summary>
+        public static string HelpDialogResetPanelSize {
+            get {
+                return ResourceManager.GetString("HelpDialogResetPanelSize", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Close panel.
+        /// </summary>
+        public static string HelpDialogTogglePanelOpen {
+            get {
+                return ResourceManager.GetString("HelpDialogTogglePanelOpen", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Toggle panel orientation.
+        /// </summary>
+        public static string HelpDialogTogglePanelOrientation {
+            get {
+                return ResourceManager.GetString("HelpDialogTogglePanelOrientation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Dark.
         /// </summary>
         public static string SettingsDialogDarkTheme {

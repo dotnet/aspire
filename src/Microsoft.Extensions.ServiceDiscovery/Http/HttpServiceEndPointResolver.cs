@@ -10,13 +10,13 @@ namespace Microsoft.Extensions.ServiceDiscovery.Http;
 /// <summary>
 /// Resolves endpoints for HTTP requests.
 /// </summary>
-public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolverProvider, IServiceEndPointSelectorProvider selectorProvider, TimeProvider timeProvider) : IAsyncDisposable
+public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolverFactory, IServiceEndPointSelectorProvider selectorProvider, TimeProvider timeProvider) : IAsyncDisposable
 {
     private static readonly TimerCallback s_cleanupCallback = s => ((HttpServiceEndPointResolver)s!).CleanupResolvers();
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
-    private readonly ServiceEndPointResolverFactory _resolverProvider = resolverProvider;
+    private readonly ServiceEndPointResolverFactory _resolverFactory = resolverFactory;
     private readonly IServiceEndPointSelectorProvider _selectorProvider = selectorProvider;
     private readonly ConcurrentDictionary<string, ResolverEntry> _resolvers = new();
     private ITimer? _cleanupTimer;
@@ -148,7 +148,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
 
     private ResolverEntry CreateResolver(string serviceName)
     {
-        var resolver = _resolverProvider.CreateResolver(serviceName);
+        var resolver = _resolverFactory.CreateResolver(serviceName);
         var selector = _selectorProvider.CreateSelector();
         var result = new ResolverEntry(resolver, selector);
         resolver.Start();
@@ -157,7 +157,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
 
     private sealed class ResolverEntry : IAsyncDisposable
     {
-        private readonly ServiceEndPointResolver _resolver;
+        private readonly ServiceEndPointWatcher _resolver;
         private readonly IServiceEndPointSelector _selector;
         private const ulong CountMask = ~(RecentUseFlag | DisposingFlag);
         private const ulong RecentUseFlag = 1UL << 62;
@@ -165,7 +165,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
         private ulong _status;
         private TaskCompletionSource? _onDisposed;
 
-        public ResolverEntry(ServiceEndPointResolver resolver, IServiceEndPointSelector selector)
+        public ResolverEntry(ServiceEndPointWatcher resolver, IServiceEndPointSelector selector)
         {
             _resolver = resolver;
             _selector = selector;

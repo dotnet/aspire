@@ -40,6 +40,8 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        builder.EnsureDbContextNotRegistered<TContext>();
+
         var settings = builder.GetDbContextSettings<TContext, MicrosoftEntityFrameworkCoreSqlServerSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)

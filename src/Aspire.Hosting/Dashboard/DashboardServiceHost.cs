@@ -52,7 +52,9 @@ internal sealed class DashboardServiceHost : IHostedService
         IConfiguration configuration,
         DistributedApplicationExecutionContext executionContext,
         ILoggerFactory loggerFactory,
-        IConfigureOptions<LoggerFilterOptions> loggerOptions)
+        IConfigureOptions<LoggerFilterOptions> loggerOptions,
+        ResourceNotificationService resourceNotificationService,
+        ResourceLoggerService resourceLoggerService)
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
@@ -82,6 +84,8 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services.AddSingleton(applicationModel);
             builder.Services.AddSingleton(kubernetesService);
             builder.Services.AddSingleton<DashboardServiceData>();
+            builder.Services.AddSingleton(resourceNotificationService);
+            builder.Services.AddSingleton(resourceLoggerService);
 
             builder.WebHost.ConfigureKestrel(ConfigureKestrel);
 

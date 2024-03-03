@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.Bicep;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
 using Azure;
@@ -30,7 +29,9 @@ internal sealed class AzureProvisioner(
     IHostEnvironment environment,
     ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
-    IEnumerable<IAzureResourceEnumerator> resourceEnumerators) : IDistributedApplicationLifecycleHook
+    IEnumerable<IAzureResourceEnumerator> resourceEnumerators,
+    ResourceNotificationService notificationService,
+    ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
@@ -53,31 +54,32 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
         if (executionContext.IsPublishMode)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>();
-        if (!azureResources.OfType<IAzureResource>().Any())
+        var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>().ToList();
+        if (azureResources.Count == 0)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        try
+        foreach (var r in azureResources)
         {
-            await ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken).ConfigureAwait(false);
+            r.ProvisioningTaskCompletionSource = new();
         }
-        catch (MissingConfigurationException ex)
-        {
-            logger.LogWarning(ex, "Required configuration is missing.");
-        }
+
+        // This is fuly async so we can just fire and forget
+        _ = Task.Run(() => ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken), cancellationToken);
+
+        return Task.CompletedTask;
     }
 
-    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
+    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IList<IAzureResource> azureResources, CancellationToken cancellationToken)
     {
         var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
         {
@@ -87,37 +89,51 @@ internal sealed class AzureProvisioner(
             CredentialProcessTimeout = TimeSpan.FromSeconds(15)
         });
 
-        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
-        var location = _options.Location switch
+        var armClientLazy = new Lazy<ArmClient>(() =>
         {
-            null => throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value."),
-            string loc => new AzureLocation(loc)
-        };
+            var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
-        var armClient = new ArmClient(credential, subscriptionId);
+            return new ArmClient(credential, subscriptionId);
+        });
 
-        var subscriptionLazy = new Lazy<Task<SubscriptionResource>>(async () =>
+        var subscriptionLazy = new Lazy<Task<(SubscriptionResource, TenantResource)>>(async () =>
         {
             logger.LogInformation("Getting default subscription...");
 
-            var value = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
+            var value = await armClientLazy.Value.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Default subscription: {name} ({subscriptionId})", value.Data.DisplayName, value.Id);
 
-            return value;
+            logger.LogInformation("Getting tenant...");
+
+            await foreach (var tenant in armClientLazy.Value.GetTenants().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                if (tenant.Data.TenantId == value.Data.TenantId)
+                {
+                    logger.LogInformation("Tenant: {tenantId}", tenant.Data.TenantId);
+                    return (value, tenant);
+                }
+            }
+
+            throw new InvalidOperationException($"Could not find tenant id {value.Data.TenantId} for subscription {value.Data.DisplayName}.");
         });
 
         Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
         {
+            if (string.IsNullOrEmpty(_options.Location))
+            {
+                throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
+            }
+
             var unique = $"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}";
             // Name of the resource group to create based on the machine name and application name
             var (resourceGroupName, createIfAbsent) = _options.ResourceGroup switch
             {
-                null => ($"rg-aspire-{unique}", true),
+                null or { Length: 0 } => ($"rg-aspire-{unique}", true),
                 string rg => (rg, _options.AllowResourceGroupCreation ?? false)
             };
 
-            var subscription = await subscriptionLazy.Value.ConfigureAwait(false);
+            var (subscription, _) = await subscriptionLazy.Value.ConfigureAwait(false);
 
             var resourceGroups = subscription.GetResourceGroups();
             ResourceGroupResource? resourceGroup = null;
@@ -190,6 +206,7 @@ internal sealed class AzureProvisioner(
 
         ResourceGroupResource? resourceGroup = null;
         SubscriptionResource? subscription = null;
+        TenantResource? tenant = null;
         Dictionary<string, ArmResource>? resourceMap = null;
         UserPrincipal? principal = null;
         ProvisioningContext? provisioningContext = null;
@@ -224,42 +241,102 @@ internal sealed class AzureProvisioner(
 
             var provisioner = SelectProvisioner(resource);
 
+            var resourceLogger = loggerService.GetLogger(resource);
+
             if (provisioner is null)
             {
-                logger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+
+                resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
+
+                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
+
                 continue;
             }
 
             if (!provisioner.ShouldProvision(configuration, resource))
             {
-                logger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
-                continue;
-            }
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
 
-            if (provisioner.ConfigureResource(configuration, resource))
-            {
-                logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
+                resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
+
+                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
 
                 continue;
             }
 
-            subscription ??= await subscriptionLazy.Value.ConfigureAwait(false);
-
-            if (resourceGroup is null)
+            if (await provisioner.ConfigureResourceAsync(configuration, resource, cancellationToken).ConfigureAwait(false))
             {
-                (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+
+                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
+
+                resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
+
+                continue;
             }
 
-            resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
-            principal ??= await principalLazy.Value.ConfigureAwait(false);
-            provisioningContext ??= new ProvisioningContext(credential, armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
+            resourceLogger.LogInformation("Provisioning {resourceName}...", resource.Name);
 
-            var task = provisioner.GetOrCreateResourceAsync(
-                    resource,
-                    provisioningContext,
-                    cancellationToken);
+            try
+            {
+                if (subscription is null || tenant is null)
+                {
+                    (subscription, tenant) = await subscriptionLazy.Value.ConfigureAwait(false);
+                }
 
-            tasks.Add(task);
+                AzureLocation location = default;
+
+                if (resourceGroup is null)
+                {
+                    (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
+                }
+
+                resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
+                principal ??= await principalLazy.Value.ConfigureAwait(false);
+                provisioningContext ??= new ProvisioningContext(credential, armClientLazy.Value, subscription, resourceGroup, tenant, resourceMap, location, principal, userSecrets);
+
+                var task = provisioner.GetOrCreateResourceAsync(
+                        resource,
+                        provisioningContext,
+                        cancellationToken);
+
+                static async Task AfterProvision(ILogger resourceLogger, ResourceNotificationService ns, Task task, IAzureResource resource)
+                {
+                    try
+                    {
+                        await task.ConfigureAwait(false);
+
+                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
+
+                        resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
+
+                        await ns.PublishUpdateAsync(resource, state => state with
+                        {
+                            State = "FailedToStart"
+                        })
+                        .ConfigureAwait(false);
+                    }
+                }
+
+                tasks.Add(AfterProvision(resourceLogger, notificationService, task, resource));
+            }
+            catch (Exception ex)
+            {
+                resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
+
+                resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
+
+                await notificationService.PublishUpdateAsync(resource, state => state with
+                {
+                    State = "FailedToStart"
+                })
+                .ConfigureAwait(false);
+            }
         }
 
         if (tasks.Count > 0)
@@ -278,16 +355,19 @@ internal sealed class AzureProvisioner(
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }
-
-            // Throw if any of the tasks failed, but after we've saved to user secrets
-            await task.ConfigureAwait(false);
+        }
+        else
+        {
+            // Set the completion source for all resources
+            foreach (var resource in azureResources)
+            {
+                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+            }
         }
 
         // Do this in the background to avoid blocking startup
         _ = Task.Run(async () =>
         {
-            logger.LogInformation("Cleaning up unused resources...");
-
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
 
             // Clean up any left over resources that are no longer in the model
@@ -298,7 +378,7 @@ internal sealed class AzureProvisioner(
                     continue;
                 }
 
-                var response = await armClient.GetGenericResources().GetAsync(sa.Id, cancellationToken).ConfigureAwait(false);
+                var response = await armClientLazy.Value.GetGenericResources().GetAsync(sa.Id, cancellationToken).ConfigureAwait(false);
 
                 logger.LogInformation("Deleting unused resource {keyVaultName} which maps to resource name {name}.", sa.Id, name);
 
