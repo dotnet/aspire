@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Redis;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -148,18 +149,9 @@ public class AddRedisTests
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
-        var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            await annotation.Callback(context);
-        }
-
-        Assert.Equal("myredis1:host.docker.internal:5001:0", context.EnvironmentVariables["REDIS_HOSTS"]);
+        Assert.Equal("myredis1:host.docker.internal:5001:0", config["REDIS_HOSTS"]);
     }
 
     [Fact]
@@ -180,17 +172,8 @@ public class AddRedisTests
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
-        var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            await annotation.Callback(context);
-        }
-
-        Assert.Equal("myredis1:host.docker.internal:5001:0,myredis2:host.docker.internal:5002:0", context.EnvironmentVariables["REDIS_HOSTS"]);
+        Assert.Equal("myredis1:host.docker.internal:5001:0,myredis2:host.docker.internal:5002:0", config["REDIS_HOSTS"]);
     }
 }

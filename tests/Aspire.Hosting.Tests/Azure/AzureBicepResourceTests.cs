@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
@@ -170,17 +171,7 @@ public class AzureBicepResourceTests
         var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
             .WithReference(appInsights);
 
-        // Call environment variable callbacks.
-        var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(serviceA.Resource);
 
         Assert.True(config.ContainsKey("APPLICATIONINSIGHTS_CONNECTION_STRING"));
         Assert.Equal("myinstrumentationkey", config["APPLICATIONINSIGHTS_CONNECTION_STRING"]);

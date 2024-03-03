@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Sockets;
@@ -41,16 +42,7 @@ public class AddSqlServerTests
         Assert.Equal("mssql/server", containerAnnotation.Image);
         Assert.Equal("mcr.microsoft.com", containerAnnotation.Registry);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>

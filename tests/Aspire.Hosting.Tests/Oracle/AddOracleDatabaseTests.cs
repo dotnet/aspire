@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -40,16 +41,7 @@ public class AddOracleDatabaseTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-           await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>
@@ -89,16 +81,7 @@ public class AddOracleDatabaseTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-           await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>
@@ -191,16 +174,7 @@ public class AddOracleDatabaseTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>

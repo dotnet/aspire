@@ -587,7 +587,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        var config = new Dictionary<string, string>();
+        var config = new Dictionary<string, object>();
         var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken)
         {
             Logger = resourceLogger
@@ -630,7 +630,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         spec.Env = [];
         foreach (var c in config)
         {
-            spec.Env.Add(new EnvVar { Name = c.Key, Value = c.Value });
+            var value = c.Value switch
+            {
+                string s => s,
+                IValueProvider valueProvider => await GetValue(c.Key, valueProvider, resourceLogger, cancellationToken).ConfigureAwait(false),
+                null => "",
+                _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{c.Key}\".")
+            };
+
+            if (value is not null)
+            {
+                spec.Env.Add(new EnvVar { Name = c.Key, Value = value });
+            }
         }
 
         await createResource().ConfigureAwait(false);
@@ -651,7 +662,30 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static void ApplyLaunchProfile(AppResource executableResource, Dictionary<string, string> config, string launchProfileName, LaunchSettings launchSettings)
+    private static async Task<string?> GetValue(string key, IValueProvider valueProvider, ILogger logger, CancellationToken cancellationToken)
+    {
+        var task = valueProvider.GetValueAsync(cancellationToken);
+
+        if (!task.IsCompleted)
+        {
+            if (valueProvider is IResource resource)
+            {
+                logger.LogInformation("Waiting for value for environment variable value '{Name}' from resource '{ResourceName}'", key, resource.Name);
+            }
+            else if (valueProvider is ConnectionStringReference { Resource: var cs })
+            {
+                logger.LogInformation("Waiting for value for connection string from resource '{ResourceName}'", cs.Name);
+            }
+            else
+            {
+                logger.LogInformation("Waiting for value for environment variable value '{Name}' from {Name}.", key, valueProvider.ToString());
+            }
+        }
+
+        return await task.ConfigureAwait(false);
+    }
+
+    private static void ApplyLaunchProfile(AppResource executableResource, Dictionary<string, object> config, string launchProfileName, LaunchSettings launchSettings)
     {
         // Populate DOTNET_LAUNCH_PROFILE environment variable for consistency with "dotnet run" and "dotnet watch".
         config.Add("DOTNET_LAUNCH_PROFILE", launchProfileName);
@@ -684,7 +718,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static void InjectPortEnvVars(AppResource executableResource, Dictionary<string, string> config)
+    private static void InjectPortEnvVars(AppResource executableResource, Dictionary<string, object> config)
     {
         ServiceAppResource? httpsServiceAppResource = null;
         // Inject environment variables for services produced by this executable.
@@ -795,7 +829,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 try
                 {
-                    await CreateContainerAsync(cr, cancellationToken).ConfigureAwait(false);
+                    await CreateContainerAsync(cr, logger, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -819,12 +853,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task CreateContainerAsync(AppResource cr, CancellationToken cancellationToken)
+    private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 
-        var config = new Dictionary<string, string>();
+        var config = new Dictionary<string, object>();
 
         dcpContainerResource.Spec.Env = [];
 
@@ -882,7 +916,20 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var kvp in config)
         {
-            dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
+            var value = kvp.Value switch
+            {
+                string s => s,
+                IValueProvider valueProvider => await GetValue(kvp.Key, valueProvider, resourceLogger, cancellationToken).ConfigureAwait(false),
+                null => "",
+                _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{kvp.Key}\".")
+            };
+
+            if (value is not null)
+            {
+                value = HostNameResolver.ReplaceLocalhostWithContainerHost(value, configuration);
+
+                dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = value });
+            }
         }
 
         if (modelContainerResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
