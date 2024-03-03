@@ -1,11 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Properties;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 
@@ -23,14 +21,13 @@ public static class ProjectResourceBuilderExtensions
     /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
-    /// <param name="excludeLaunchProfile"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, bool excludeLaunchProfile = false) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
     {
         var project = new ProjectResource(name);
         return builder.AddResource(project)
                       .WithAnnotation(new TProject())
-                      .WithProjectDefaults(excludeLaunchProfile);
+                      .WithProjectDefaults(excludeLaunchProfile: false, launchProfileName: null);
     }
 
     /// <summary>
@@ -39,9 +36,8 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
     /// <param name="projectPath">The path to the project file.</param>
-    /// <param name="excludeLaunchProfile"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, bool excludeLaunchProfile = false)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
     {
         var project = new ProjectResource(name);
 
@@ -49,10 +45,46 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithProjectDefaults(excludeLaunchProfile);
+                      .WithProjectDefaults(excludeLaunchProfile: false, launchProfileName: null);
     }
 
-    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, bool excludeLaunchProfile)
+    /// <summary>
+    /// Adds a .NET project to the application model. By default, this will exist in a Projects namespace. e.g. Projects.MyProject.
+    /// If the project is not in a Projects namespace, make sure a project reference is added from the AppHost project to the target project.
+    /// </summary>
+    /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="launchProfileName">The launch profile to use. If <c>null</c> then no launch profile will be used.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, string? launchProfileName) where TProject : IProjectMetadata, new()
+    {
+        var project = new ProjectResource(name);
+        return builder.AddResource(project)
+                      .WithAnnotation(new TProject())
+                      .WithProjectDefaults(excludeLaunchProfile: launchProfileName is null, launchProfileName);
+    }
+
+    /// <summary>
+    /// Adds a .NET project to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="launchProfileName">The launch profile to use. If <c>null</c> then no launch profile will be used.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName)
+    {
+        var project = new ProjectResource(name);
+
+        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
+
+        return builder.AddResource(project)
+                      .WithAnnotation(new ProjectMetadata(projectPath))
+                      .WithProjectDefaults(excludeLaunchProfile: launchProfileName is null, launchProfileName);
+    }
+
+    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, bool excludeLaunchProfile, string? launchProfileName)
     {
         // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
         // implements IDistributedApplicationResourceWithEnvironment.
@@ -65,6 +97,11 @@ public static class ProjectResourceBuilderExtensions
         {
             builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
             return builder;
+        }
+
+        if (!string.IsNullOrEmpty(launchProfileName))
+        {
+            builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
         }
 
         var projectResource = builder.Resource;
@@ -170,37 +207,22 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">The project resource builder.</param>
     /// <param name="launchProfileName">The name of the launch profile to use for execution.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName.")]
     public static IResourceBuilder<ProjectResource> WithLaunchProfile(this IResourceBuilder<ProjectResource> builder, string launchProfileName)
     {
-        ArgumentException.ThrowIfNullOrEmpty(launchProfileName);
-
-        var launchSettings = builder.Resource.GetLaunchSettings();
-
-        if (launchSettings == null)
-        {
-            throw new DistributedApplicationException(Resources.LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage);
-        }
-
-        if (!launchSettings.Profiles.TryGetValue(launchProfileName, out _))
-        {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
-            throw new DistributedApplicationException(message);
-        }
-
-        var launchProfileAnnotation = new LaunchProfileAnnotation(launchProfileName);
-        return builder.WithAnnotation(launchProfileAnnotation);
+        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName.");
     }
 
-    ///// <summary>
-    ///// Configures the project to exclude launch profile settings when running.
-    ///// </summary>
-    ///// <param name="builder">The project resource builder.</param>
-    ///// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    //public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
-    //{
-    //    builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
-    //    return builder;
-    //}
+    /// <summary>
+    /// Configures the project to exclude launch profile settings when running.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile.")]
+    public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
+    {
+        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile.");
+    }
 
     private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
     {

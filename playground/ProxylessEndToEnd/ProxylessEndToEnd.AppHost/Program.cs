@@ -16,7 +16,7 @@ builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api")
     })
     .WithReference(redis);
 
-builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api2", excludeLaunchProfile: true)
+builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api2", launchProfileName: null)
     .WithEndpoint(13456, "http")
     .WithReference(redis);
 
