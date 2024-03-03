@@ -22,7 +22,8 @@ public static class NatsBuilderExtensions
         var nats = new NatsServerResource(name);
         return builder.AddResource(nats)
                       .WithEndpoint(containerPort: 4222, hostPort: port)
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "nats", Tag = "2" })
+                      .WithImage("nats")
+                      .WithImageTag("2")
                       .PublishAsContainer();
     }
 

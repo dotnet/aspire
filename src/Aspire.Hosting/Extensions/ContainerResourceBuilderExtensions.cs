@@ -73,7 +73,7 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="args">The arguments to be passed to the container when it is started.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>    
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
     {
         var annotation = new CommandLineArgsCallbackAnnotation(updatedArgs =>
@@ -133,8 +133,16 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image) where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Image = image;
+        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault();
+        if (containerImageAnnotation != null)
+        {
+            containerImageAnnotation.Image = image;
+        }
+        else
+        {
+            containerImageAnnotation = new ContainerImageAnnotation { Image = image };
+            builder.Resource.Annotations.Add(containerImageAnnotation);
+        }
         return builder;
     }
 
