@@ -134,6 +134,9 @@ public static class ProjectResourceBuilderExtensions
                     continue;
                 }
 
+                // TODO:
+                //int? port = options.Value.RandomizePorts is true ? null : uri.Port;
+
                 var generatedEndpointAnnotation = new EndpointAnnotation(
                     ProtocolType.Tcp,
                     uriScheme: uri.Scheme,
