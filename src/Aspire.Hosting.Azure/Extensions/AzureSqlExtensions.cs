@@ -85,12 +85,7 @@ public static class AzureSqlExtensions
             sqlServer.AssignParameter(x => x.Administrators.Login, construct.PrincipalName);
             sqlServer.AssignProperty(x => x.Administrators.TenantId, "subscription().tenantId");
 
-            // TODO: This specially named firewall rule allows access to this database from all other
-            //       Azure services. There is a problem here. The constructor of SqlFirewall does not
-            //       take a parent object so it infers which SQL instance we are using from the
-            //       construct. if we have two sql instances in the construct that would be a problem
-            //       (although it is OK in this scenario).
-            var azureServicesFirewallRule = new SqlFirewallRule(construct, "AllowAllWindowsAzureIps");
+            var azureServicesFirewallRule = new SqlFirewallRule(construct, sqlServer, "AllowAllWindowsAzureIps");
             azureServicesFirewallRule.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
             azureServicesFirewallRule.AssignProperty(x => x.EndIPAddress, "'0.0.0.0'");
 
@@ -100,10 +95,6 @@ public static class AzureSqlExtensions
                 // the principalType.
                 sqlServer.AssignParameter(x => x.Administrators.PrincipalType, construct.PrincipalTypeParameter);
 
-                // TODO: When in run mode we want to grant access through the firewall. We should
-                //       figure out what we want to do here as this isn't the best option. We could
-                //       make this fail by default so that users have to opt themselves into this
-                //       behavior ... but 100% of AsAzureSqlDatabase(...) users would need to do it.
                 var sqlFirewall = new SqlFirewallRule(construct);
                 sqlFirewall.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
                 sqlFirewall.AssignProperty(x => x.EndIPAddress, "'255.255.255.255'");
@@ -114,7 +105,6 @@ public static class AzureSqlExtensions
             {
                 var databaseName = databaseNames.Value;
                 var sqlDatabase = new SqlDatabase(construct, sqlServer, databaseName);
-                sqlDatabase.AssignProperty(x => x.Location, "location"); // HACK
 
                 sqlDatabases.Add(sqlDatabase);
             }
