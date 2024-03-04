@@ -32,7 +32,7 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     /// Initializes a new instance of the <see cref="EnvironmentCallbackAnnotation"/> class with the specified callback action.
     /// </summary>
     /// <param name="callback">The callback action to be executed.</param>
-    public EnvironmentCallbackAnnotation(Action<Dictionary<string, string>> callback)
+    public EnvironmentCallbackAnnotation(Action<Dictionary<string, object>> callback)
     {
         Callback = (c) =>
         {

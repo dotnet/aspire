@@ -85,7 +85,7 @@ public static class AzureConstructResourceExtensions
             throw new ArgumentException("Cannot bind Aspire parameter resource to this construct.", nameof(resource));
         }
 
-        construct.Resource.Parameters[parameterName] = parameterResourceBuilder;
+        construct.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
 
         if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
         {
@@ -155,4 +155,9 @@ public class ResourceModuleConstruct : Infrastructure
     /// TODO:
     /// </summary>
     public Parameter PrincipalTypeParameter => new Parameter("principalType");
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public Parameter PrincipalName => new Parameter("principalName");
 }

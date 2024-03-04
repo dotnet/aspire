@@ -12,6 +12,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="password">The Oracle Database server password.</param>
 public class OracleDatabaseServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "tcp";
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the primary endpoint for the Redis server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
     /// <summary>
     /// Gets the Oracle Database server password.
     /// </summary>
@@ -21,7 +30,7 @@ public class OracleDatabaseServerResource(string name, string password) : Contai
     /// Gets the connection string expression for the Oracle Database server.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"user id=system;password={{{Name}.inputs.password}};data source={{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}};";
+        $"user id=system;password={{{Name}.inputs.password}};data source={PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)};";
 
     /// <summary>
     /// Gets the connection string for the Oracle Database server.
@@ -29,18 +38,10 @@ public class OracleDatabaseServerResource(string name, string password) : Contai
     /// <returns>A connection string for the Oracle Database server in the form "user id=system;password=password;data source=host:port".</returns>
     public string? GetConnectionString()
     {
-        if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException("Expected allocated endpoints!");
-        }
-
-        var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Oracle.
-
-        var connectionString = $"user id=system;password={PasswordUtil.EscapePassword(Password)};data source={allocatedEndpoint.Address}:{allocatedEndpoint.Port}";
-        return connectionString;
+        return $"user id=system;password={PasswordUtil.EscapePassword(Password)};data source={PrimaryEndpoint.Host}:{PrimaryEndpoint.Port}";
     }
 
-    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
+    private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.

@@ -35,7 +35,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
             return false;
         }
 
-        var currentCheckSum = GetCurrentChecksum(resource, section);
+        var currentCheckSum = await GetCurrentChecksumAsync(resource, section, cancellationToken).ConfigureAwait(false);
         var configCheckSum = section["CheckSum"];
 
         if (currentCheckSum != configCheckSum)
@@ -203,7 +203,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
 
         // Convert the parameters to a JSON object
         var parameters = new JsonObject();
-        SetParameters(parameters, resource);
+        await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var sw = Stopwatch.StartNew();
 
@@ -408,7 +408,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         return Convert.ToHexString(hashedContents).ToLowerInvariant();
     }
 
-    internal static string? GetCurrentChecksum(AzureBicepResource resource, IConfiguration section)
+    internal static async ValueTask<string?> GetCurrentChecksumAsync(AzureBicepResource resource, IConfiguration section, CancellationToken cancellationToken = default)
     {
         // Fill in parameters from configuration
         if (section["Parameters"] is not string jsonString)
@@ -427,7 +427,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
 
             // Now overwite with live object values skipping known values.
             // This is important because the provisioner will fill in the known values
-            SetParameters(parameters, resource, skipKnownValues: true);
+            await SetParametersAsync(parameters, resource, skipKnownValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             // Get the checksum of the new values
             return GetChecksum(resource, parameters);
@@ -451,7 +451,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
     ];
 
     // Converts the parameters to a JSON object compatible with the ARM template
-    internal static void SetParameters(JsonObject parameters, AzureBicepResource resource, bool skipKnownValues = false)
+    internal static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipKnownValues = false, CancellationToken cancellationToken = default)
     {
         // Convert the parameters to a JSON object
         foreach (var parameter in resource.Parameters)
@@ -472,13 +472,14 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                     IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
                     int i => i,
                     bool b => b,
+                    Guid g => g.ToString(),
                     JsonNode node => node,
-                    IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
-                    IResourceBuilder<ParameterResource> p => p.Resource.Value,
                     // TODO: Support this
+                    AzureBicepResource bicepResource => throw new NotSupportedException("Referencing bicep resources is not supported"),
                     BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
-                    object o => o.ToString()!,
+                    IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     null => null,
+                    _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")
                 }
             };
         }
