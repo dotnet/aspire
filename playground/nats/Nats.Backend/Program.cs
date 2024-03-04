@@ -17,7 +17,7 @@ var app = builder.Build();
 
 app.Run();
 
-public class AppEventsBackendService(INatsConnection nats) : IHostedService
+public class AppEventsBackendService(INatsConnection nats,  ILogger<AppEventsBackendService> logger) : IHostedService
 {
     private readonly CancellationTokenSource _cts = new();
     private Task? _subscription;
@@ -28,7 +28,7 @@ public class AppEventsBackendService(INatsConnection nats) : IHostedService
         {
             await foreach (var msg in nats.SubscribeAsync<AppEvent>("events.>", cancellationToken: _cts.Token).ConfigureAwait(false))
             {
-                Console.WriteLine($"Processing event: {msg.Data}");
+                logger.LogInformation("Processing event: {Data}", msg.Data);
             }
         }, cancellationToken);
         return Task.CompletedTask;

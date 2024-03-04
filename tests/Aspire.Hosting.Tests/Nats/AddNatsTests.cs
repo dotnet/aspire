@@ -101,7 +101,21 @@ public class AddNatsTests
 
         var manifest = await ManifestUtils.GetManifest(nats.Resource);
 
-        Assert.Equal("container.v0", manifest["type"]?.ToString());
-        Assert.Equal(nats.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "nats://{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
+              "image": "nats:2",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 4222
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 }
