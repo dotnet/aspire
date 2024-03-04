@@ -376,7 +376,7 @@ public class AzureBicepResourceTests
         Assert.NotNull(cdkSqlServer);
         Assert.NotNull(azureSql);
         Assert.NotNull(cdkSqlDatabases);
-        Assert.Equal("dbName", cdkSqlDatabases[0].Name);
+        Assert.Equal("dbName", cdkSqlDatabases[0].Properties.Name);
         Assert.Equal("sql", sql.Resource.Name);
     }
 
