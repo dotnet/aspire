@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,19 +11,27 @@ builder.AddServiceDefaults();
 
 builder.AddAzureBlobService("blobs");
 builder.AddSqlServerDbContext<SqlContext>("sqldb");
+builder.AddAzureKeyVaultSecrets("mykv");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc, SqlContext context) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext context, SecretClient sc) =>
 {
     return new
     {
+        secretChecked = await TestSecretAsync(sc),
         blobFiles = await TestBlobStorageAsync(bsc),
         sqlRows = await TestSqlServerAsync(context)
     };
 });
 
 app.Run();
+
+static async Task<bool> TestSecretAsync(SecretClient secretClient)
+{
+    KeyVaultSecret s = await secretClient.GetSecretAsync("mysecret");
+    return s.Value == "open sesame";
+}
 
 static async Task<List<string>> TestBlobStorageAsync(BlobServiceClient bsc)
 {

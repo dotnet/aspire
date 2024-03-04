@@ -159,5 +159,5 @@ public class ResourceModuleConstruct : Infrastructure
     /// <summary>
     /// TODO:
     /// </summary>
-    public Parameter PrincipalName => new Parameter("principalName");
+    public Parameter PrincipalNameParameter => new Parameter("principalName");
 }
