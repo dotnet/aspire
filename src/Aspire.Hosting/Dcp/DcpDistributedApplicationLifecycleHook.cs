@@ -36,7 +36,7 @@ internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<DcpOptions
             {
                 var uri = new Uri(url);
 
-                var endpointAnnotations = projectResource.Annotations.OfType<EndpointAnnotation>().Where(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName));
+                var endpointAnnotations = projectResource.Annotations.OfType<EndpointAnnotation>().Where(sb => StringComparers.EndpointAnnotationName.Equals(sb.Name, uri.Scheme));
                 if (endpointAnnotations.Any(sb => sb.IsProxied))
                 {
                     // If someone uses WithEndpoint in the dev host to register a endpoint with the name

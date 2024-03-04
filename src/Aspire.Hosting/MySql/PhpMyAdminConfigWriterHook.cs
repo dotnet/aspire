@@ -31,7 +31,7 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
             var singleInstance = mySqlInstances.Single();
             if (singleInstance.TryGetAllocatedEndPoints(out var allocatedEndPoints))
             {
-                var endpoint = allocatedEndPoints.Where(ae => ae.Name == "tcp").Single();
+                var endpoint = allocatedEndPoints.Where(ae => StringComparers.EndpointAnnotationName.Equals(ae.Name, "tcp")).Single();
                 myAdminResource.Annotations.Add(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
                 {
                     context.EnvironmentVariables.Add("PMA_HOST", $"host.docker.internal:{endpoint.Port}");
@@ -53,7 +53,7 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
             {
                 if (mySqlInstance.TryGetAllocatedEndPoints(out var allocatedEndpoints))
                 {
-                    var endpoint = allocatedEndpoints.Where(ae => ae.Name == "tcp").Single();
+                    var endpoint = allocatedEndpoints.Where(ae => StringComparers.EndpointAnnotationName.Equals(ae.Name, "tcp")).Single();
                     writer.WriteLine("$i++;");
                     writer.WriteLine($"$cfg['Servers'][$i]['host'] = 'host.docker.internal:{endpoint.Port}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");

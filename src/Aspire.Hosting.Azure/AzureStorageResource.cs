@@ -61,7 +61,7 @@ public class AzureStorageConstructResource(string name, Action<ResourceModuleCon
     private int GetEmulatorPort(string endpointName) =>
         Annotations
             .OfType<AllocatedEndpointAnnotation>()
-            .FirstOrDefault(x => x.Name == endpointName)
+            .FirstOrDefault(x => StringComparers.EndpointAnnotationName.Equals(x.Name, endpointName))
             ?.Port
         ?? throw new DistributedApplicationException($"Azure storage resource does not have endpoint annotation with name '{endpointName}'.");
 }
@@ -108,7 +108,7 @@ public class AzureStorageResource(string name) :
     private int GetEmulatorPort(string endpointName) =>
         Annotations
             .OfType<AllocatedEndpointAnnotation>()
-            .FirstOrDefault(x => x.Name == endpointName)
+            .FirstOrDefault(x => StringComparers.EndpointAnnotationName.Equals(x.Name, endpointName))
             ?.Port
         ?? throw new DistributedApplicationException($"Azure storage resource does not have endpoint annotation with name '{endpointName}'.");
 }

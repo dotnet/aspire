@@ -30,7 +30,7 @@ internal class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
         {
             if (postgresInstance.TryGetAllocatedEndPoints(out var allocatedEndpoints))
             {
-                var endpoint = allocatedEndpoints.Where(ae => ae.Name == "tcp").Single();
+                var endpoint = allocatedEndpoints.Where(ae => StringComparers.EndpointAnnotationName.Equals(ae.Name, "tcp")).Single();
 
                 writer.WriteStartObject($"{serverIndex}");
                 writer.WriteString("Name", postgresInstance.Name);

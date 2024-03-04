@@ -328,7 +328,7 @@ public static class ResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
     {
-        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => StringComparers.EndpointAnnotationName.Equals(sb.Name, name)))
         {
             throw new DistributedApplicationException($"Endpoint '{name}' already exists. Endpoint names are case-insensitive.");
         }
@@ -436,7 +436,7 @@ public static class ResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
     {
-        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => StringComparers.EndpointAnnotationName.Equals(sb.Name, name)))
         {
             throw new DistributedApplicationException($"Endpoint with name '{name}' already exists");
         }

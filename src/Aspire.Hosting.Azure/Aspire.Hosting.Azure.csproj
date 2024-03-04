@@ -14,6 +14,7 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
     <Compile Include="..\Shared\ValueStopwatch\ValueStopwatch.cs" Link="Provisioning\ValueStopwatch.cs" />
+    <Compile Include="..\Shared\StringComparers.cs" Link="Shared\StringComparers.cs" />
   </ItemGroup>
 
   <ItemGroup>

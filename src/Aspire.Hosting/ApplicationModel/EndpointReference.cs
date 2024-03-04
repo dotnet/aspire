@@ -23,7 +23,8 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     /// <summary>
     /// Gets a value indicating whether the endpoint is allocated.
     /// </summary>
-    public bool IsAllocated => Owner.Annotations.OfType<AllocatedEndpointAnnotation>().Any(a => a.Name == EndpointName);
+    public bool IsAllocated => Owner.Annotations.OfType<AllocatedEndpointAnnotation>()
+        .Any(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
 
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
@@ -68,7 +69,8 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
 
     private AllocatedEndpointAnnotation GetAllocatedEndpoint()
     {
-        var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName) ??
+        var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>()
+            .SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName)) ??
             throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
 
         return allocatedEndpoint;

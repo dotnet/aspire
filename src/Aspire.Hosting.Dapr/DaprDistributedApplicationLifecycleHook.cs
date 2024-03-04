@@ -186,7 +186,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         AllocatedEndpointAnnotation? httpEndPoint = null;
                         if (resource.TryGetAllocatedEndPoints(out var projectEndPoints))
                         {
-                            httpEndPoint = projectEndPoints.FirstOrDefault(endPoint => endPoint.Name == "http");
+                            httpEndPoint = projectEndPoints.FirstOrDefault(endPoint => StringComparers.EndpointAnnotationName.Equals(endPoint.Name, "http"));
 
                             if (httpEndPoint is not null && sidecarOptions?.AppPort is null)
                             {

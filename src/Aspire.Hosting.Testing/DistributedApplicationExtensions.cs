@@ -99,7 +99,7 @@ public static class DistributedApplicationExtensions
 
     static AllocatedEndpointAnnotation? GetEndpointOrDefault(IEnumerable<AllocatedEndpointAnnotation> endpoints, string resourceName, string? endpointName)
     {
-        var filteredEndpoints = endpoints.Where(e => string.Equals(e.Name, endpointName, StringComparison.OrdinalIgnoreCase)).ToList();
+        var filteredEndpoints = endpoints.Where(e => StringComparers.EndpointAnnotationName.Equals(e.Name, endpointName)).ToList();
         return filteredEndpoints.Count switch
         {
             0 => null,
