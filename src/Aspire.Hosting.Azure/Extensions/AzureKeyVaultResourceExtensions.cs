@@ -41,23 +41,9 @@ public static class AzureKeyVaultResourceExtensions
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var keyVault = construct.AddKeyVault(name: construct.Resource.Name);
+            keyVault.AddOutput(x => x.Properties.VaultUri, "vaultUri");
 
-            // HACK: Can be removed when this bug is fixed in CDK:
-            //       https://github.com/Azure/azure-sdk-for-net/issues/42351
-            keyVault.AssignProperty(x => x.Name, $"toLower(take(concat('{construct.Resource.Name}', uniqueString(resourceGroup().id)), 24))");
-
-            // HACK: This AddOutput is commented out because the CDK already does it,
-            //       but these base building block types should not automatically
-            //       add outputs:
-            //
-            //         https://github.com/Azure/azure-sdk-for-net/issues/42357
-            //
-            // keyVault.AddOutput(x => x.Properties.VaultUri, "vaultUri");
-
-            // HACK: KeyVault administrator role.
-            //       https://github.com/Azure/azure-sdk-for-net/issues/42352
-            var keyVaultAdministrator = new RoleDefinition("00482a5a-887f-4fb3-b363-3b7fe8e74483");
-            var keyVaultAdministratorRoleAssignment = keyVault.AssignRole(keyVaultAdministrator);
+            var keyVaultAdministratorRoleAssignment = keyVault.AssignRole(RoleDefinition.KeyVaultAdministrator);
             keyVaultAdministratorRoleAssignment.AssignParameter(x => x.PrincipalId, construct.PrincipalIdParameter);
             keyVaultAdministratorRoleAssignment.AssignParameter(x => x.PrincipalType, construct.PrincipalTypeParameter);
 
