@@ -472,6 +472,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                     IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
                     int i => i,
                     bool b => b,
+                    Guid g => g.ToString(),
                     JsonNode node => node,
                     // TODO: Support this
                     AzureBicepResource bicepResource => throw new NotSupportedException("Referencing bicep resources is not supported"),
