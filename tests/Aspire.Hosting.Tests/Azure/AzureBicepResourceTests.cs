@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.Sql;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Xunit;
@@ -217,8 +218,9 @@ public class AzureBicepResourceTests
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
-        Assert.True(constructParameters.ContainsKey("skuName"));
+        var constructParameters = moduleConstruct.GetParameters(false).DistinctBy(x => x.Name);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.Name);
+        Assert.True(constructParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
             {
@@ -254,8 +256,9 @@ public class AzureBicepResourceTests
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
-        Assert.True(constructParameters.ContainsKey("sku"));
+        var constructParameters = moduleConstruct.GetParameters(false).DistinctBy(x => x.Name);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.Name);
+        Assert.True(constructParametersLookup.ContainsKey("sku"));
 
         var expectedManifest = """
             {
@@ -330,6 +333,44 @@ public class AzureBicepResourceTests
         Assert.Equal(["dbName"], databases);
         Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.GetConnectionString());
         Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public async void AsAzureSqlDatabaseConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        global::Azure.Provisioning.Sql.SqlServer? cdkSqlServer = null;
+        AzureSqlServerConstructResource? azureSql = null;
+        List<SqlDatabase>? cdkSqlDatabases = null;
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct((construct, sqlServer, databases) =>
+        {
+            azureSql = construct.Resource as AzureSqlServerConstructResource;
+            cdkSqlServer = sqlServer;
+            cdkSqlDatabases = databases.ToList();
+        });
+        sql.AddDatabase("db", "dbName");
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+              "path": "sql.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalName": "",
+                "principalType": ""
+              }
+            }
+            """;
+        var manifest = await ManifestUtils.GetManifest(sql.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.NotNull(cdkSqlServer);
+        Assert.NotNull(azureSql);
+        Assert.NotNull(cdkSqlDatabases);
+        Assert.Equal("dbName", cdkSqlDatabases[0].Properties.Name);
+        Assert.Equal("sql", sql.Resource.Name);
     }
 
     [Fact]

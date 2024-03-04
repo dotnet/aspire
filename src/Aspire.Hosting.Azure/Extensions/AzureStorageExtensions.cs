@@ -46,7 +46,7 @@ public static class AzureStorageExtensions
         {
             var storageAccount = construct.AddStorageAccount(
                 name: name,
-                kind: StorageKind.Storage,
+                kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardGrs
                 );
 
