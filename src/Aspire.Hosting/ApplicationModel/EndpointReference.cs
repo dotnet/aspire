@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
 /// <param name="endpointName">The name of the endpoint.</param>
-public sealed class EndpointReference(IResourceWithEndpoints owner, string endpointName)
+public sealed class EndpointReference(IResourceWithEndpoints owner, string endpointName) : IManifestExpressionProvider, IValueProvider
 {
     /// <summary>
     /// Gets the owner of the endpoint reference.
@@ -21,34 +21,79 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     public string EndpointName { get; } = endpointName;
 
     /// <summary>
-    /// Gets the expression used in the manifest to reference the value of the endpoint.
+    /// Gets a value indicating whether the endpoint is allocated.
     /// </summary>
-    public string ValueExpression => $"{{{Owner.Name}.bindings.{EndpointName}.url}}";
+    public bool IsAllocated => Owner.Annotations.OfType<AllocatedEndpointAnnotation>().Any(a => a.Name == EndpointName);
+
+    string IManifestExpressionProvider.ValueExpression => GetExpression();
+
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Url);
 
     /// <summary>
-    /// Gets the URI string for the endpoint reference.
+    /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
     /// </summary>
-    public string Value
+    public string GetExpression(EndpointProperty property = EndpointProperty.Url)
     {
-        get
+        var prop = property switch
         {
-            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName);
+            EndpointProperty.Url => "url",
+            EndpointProperty.Host => "host",
+            EndpointProperty.Port => "port",
+            EndpointProperty.Scheme => "scheme",
+            _ => throw new InvalidOperationException($"The property `{property}` is not supported for the endpoint `{EndpointName}`.")
+        };
 
-            return allocatedEndpoint?.UriString ??
-                throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
-        }
+        return $"{{{Owner.Name}.bindings.{EndpointName}.{prop}}}";
     }
 
     /// <summary>
-    /// Gets the URI string for the endpoint reference.
+    /// Gets the port for this endpoint.
     /// </summary>
-    [Obsolete("Use Value instead.")]
-    public string UriString
+    public int Port => GetAllocatedEndpoint().Port;
+
+    /// <summary>
+    /// Gets the host for this endpoint.
+    /// </summary>
+    public string Host => GetAllocatedEndpoint().Address ?? "localhost";
+
+    /// <summary>
+    /// Gets the scheme for this endpoint.
+    /// </summary>
+    public string Scheme => GetAllocatedEndpoint().UriScheme;
+
+    /// <summary>
+    /// Gets the URL for this endpoint.
+    /// </summary>
+    public string Url => GetAllocatedEndpoint().UriString;
+
+    private AllocatedEndpointAnnotation GetAllocatedEndpoint()
     {
-        get
-        {
-            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName);
-            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{EndpointName}.url}}";
-        }
+        var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName) ??
+            throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
+
+        return allocatedEndpoint;
     }
+}
+
+/// <summary>
+/// Represents the properties of an endpoint that can be referenced.
+/// </summary>
+public enum EndpointProperty
+{
+    /// <summary>
+    /// The entire URL of the endpoint.
+    /// </summary>
+    Url,
+    /// <summary>
+    /// The host of the endpoint.
+    /// </summary>
+    Host,
+    /// <summary>
+    /// The port of the endpoint.
+    /// </summary>
+    Port,
+    /// <summary>
+    /// The scheme of the endpoint.
+    /// </summary>
+    Scheme
 }

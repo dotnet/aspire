@@ -1,28 +1,25 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.Provisioning.Storage;
-using Azure.ResourceManager.Storage.Models;
-
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
 
 var sku = builder.AddParameter("storagesku");
+var locationOverride = builder.AddParameter("locationOverride");
 
-var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
+var storage = builder.AddAzureConstructStorage("storage", (_, account) =>
 {
-    var account = construct.AddStorageAccount(
-        name: "bob",
-        kind: StorageKind.BlobStorage,
-        sku: StorageSkuName.StandardLrs
-        );
-    account.AssignParameter(a => a.Sku.Name, sku);
-
-    account.AddOutput(data => data.PrimaryEndpoints.TableUri, "tableUri", isSecure: true);
+    account.AssignParameter(sa => sa.Sku.Name, sku);
+    account.AssignParameter(sa => sa.Location, locationOverride);
 });
 
+var blobs = storage.AddBlobs("blobs");
+
+var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct().AddDatabase("sqldb");
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
-       .WithEnvironment("TABLE_URI", construct1.GetOutput("tableUri"));
+       .WithReference(blobs)
+       .WithReference(sqldb);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

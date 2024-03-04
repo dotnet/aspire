@@ -29,6 +29,21 @@ public class AzurePostgresResource(PostgresServerResource innerResource) :
     /// <returns>The connection string.</returns>
     public string? GetConnectionString() => ConnectionString.Value;
 
+    /// <summary>
+    /// Gets the connection string for the Azure Postgres Flexible Server.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
+
     /// <inheritdoc/>
     public override string Name => innerResource.Name;
 

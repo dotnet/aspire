@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
@@ -30,7 +29,7 @@ public static class PostgresBuilderExtensions
 
         var postgresServer = new PostgresServerResource(name, password);
         return builder.AddResource(postgresServer)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
+                      .WithEndpoint(hostPort: port, containerPort: 5432, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "16.2" })
                       .WithDefaultPassword()
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")

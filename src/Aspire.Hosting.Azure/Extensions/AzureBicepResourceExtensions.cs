@@ -76,9 +76,7 @@ public static class AzureBicepResourceExtensions
     {
         return builder.WithEnvironment(ctx =>
         {
-            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.IsPublishMode
-                ? bicepOutputReference.ValueExpression
-                : bicepOutputReference.Value!;
+            ctx.EnvironmentVariables[name] = bicepOutputReference;
         });
     }
 
@@ -95,9 +93,7 @@ public static class AzureBicepResourceExtensions
     {
         return builder.WithEnvironment(ctx =>
         {
-            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.IsPublishMode
-                ? bicepOutputReference.ValueExpression
-                : bicepOutputReference.Value!;
+            ctx.EnvironmentVariables[name] = bicepOutputReference;
         });
     }
 
@@ -186,7 +182,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value)
         where T : AzureBicepResource
     {
-        builder.Resource.Parameters[name] = value;
+        builder.Resource.Parameters[name] = value.Resource;
         return builder;
     }
 
@@ -201,7 +197,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<IResourceWithConnectionString> value)
         where T : AzureBicepResource
     {
-        builder.Resource.Parameters[name] = value;
+        builder.Resource.Parameters[name] = value.Resource;
         return builder;
     }
 
