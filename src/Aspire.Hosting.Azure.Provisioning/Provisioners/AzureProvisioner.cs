@@ -68,27 +68,12 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        static IAzureResource? SelectParentAzureResource(IResource resource)
+        static IAzureResource? SelectParentAzureResource(IResource resource) => resource switch
         {
-            while (resource is not null)
-            {
-                if (resource is IAzureResource ar)
-                {
-                    return ar;
-                }
-
-                if (resource is IResourceWithParent rp)
-                {
-                    resource = rp.Parent;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            return null;
-        }
+            IAzureResource ar => ar,
+            IResourceWithParent rp => SelectParentAzureResource(rp.Parent),
+            _ => null
+        };
 
         // parent -> children lookup
         var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
