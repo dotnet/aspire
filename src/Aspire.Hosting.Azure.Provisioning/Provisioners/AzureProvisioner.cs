@@ -68,10 +68,15 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        // TODO: Handle multiple levels of nesting
+        bool IsParentAzureResource(IResource resource)
+        {
+            return resource is IAzureResource ||
+                   resource is IResourceWithParent rp && IsParentAzureResource(rp.Parent);
+        }
+
         // parent -> children lookup
         var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
-                                                  .Where(r => r.Parent is IAzureResource)
+                                                  .Where(IsParentAzureResource)
                                                   .ToLookup(r => (IAzureResource)r.Parent);
 
         // Sets the state of the resource and all of its children
