@@ -54,32 +54,93 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
         if (executionContext.IsPublishMode)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>().ToList();
         if (azureResources.Count == 0)
         {
-            return Task.CompletedTask;
+            return;
         }
 
+        static IAzureResource? SelectParentAzureResource(IResource resource) => resource switch
+        {
+            IAzureResource ar => ar,
+            IResourceWithParent rp => SelectParentAzureResource(rp.Parent),
+            _ => null
+        };
+
+        // parent -> children lookup
+        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
+                                                  .Select(x => (Child: x, Root: SelectParentAzureResource(x.Parent)))
+                                                  .Where(x => x.Root is not null)
+                                                  .ToLookup(x => x.Root, x => x.Child);
+
+        // Sets the state of the resource and all of its children
+        async Task SetStateAsync(IAzureResource resource, string state)
+        {
+            await notificationService.PublishUpdateAsync(resource, s => s with
+            {
+                State = state
+            })
+            .ConfigureAwait(false);
+
+            foreach (var child in parentChildLookup[resource])
+            {
+                await notificationService.PublishUpdateAsync(child, s => s with
+                {
+                    State = state
+                })
+                .ConfigureAwait(false);
+            }
+        }
+
+        // After the resource is provisioned, set its state
+        async Task AfterProvisionAsync(IAzureResource resource)
+        {
+            try
+            {
+                await resource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
+
+                await SetStateAsync(resource, "Running").ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                await SetStateAsync(resource, "FailedToStart").ConfigureAwait(false);
+            }
+        }
+
+        // Mark all resources as starting
         foreach (var r in azureResources)
         {
             r.ProvisioningTaskCompletionSource = new();
+
+            await SetStateAsync(r, "Starting").ConfigureAwait(false);
+
+            // After the resource is provisioned, set its state
+            _ = AfterProvisionAsync(r);
         }
 
         // This is fuly async so we can just fire and forget
-        _ = Task.Run(() => ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken), cancellationToken);
-
-        return Task.CompletedTask;
+        _ = Task.Run(() => ProvisionAzureResources(
+            configuration,
+            environment,
+            logger,
+            azureResources,
+            cancellationToken), cancellationToken);
     }
 
-    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IList<IAzureResource> azureResources, CancellationToken cancellationToken)
+    private async Task ProvisionAzureResources(
+        IConfiguration configuration,
+        IHostEnvironment environment,
+        ILogger<AzureProvisioner> logger,
+        IList<IAzureResource> azureResources,
+        CancellationToken cancellationToken)
     {
         var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
         {
@@ -249,8 +310,6 @@ internal sealed class AzureProvisioner(
 
                 resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
 
-                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
-
                 continue;
             }
 
@@ -260,16 +319,12 @@ internal sealed class AzureProvisioner(
 
                 resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
 
-                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
-
                 continue;
             }
 
             if (await provisioner.ConfigureResourceAsync(configuration, resource, cancellationToken).ConfigureAwait(false))
             {
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-                await notificationService.PublishUpdateAsync(resource, state => state with { State = "Running" }).ConfigureAwait(false);
 
                 resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
 
@@ -314,12 +369,6 @@ internal sealed class AzureProvisioner(
                         resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
 
                         resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
-
-                        await ns.PublishUpdateAsync(resource, state => state with
-                        {
-                            State = "FailedToStart"
-                        })
-                        .ConfigureAwait(false);
                     }
                 }
 
@@ -330,12 +379,6 @@ internal sealed class AzureProvisioner(
                 resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
-
-                await notificationService.PublishUpdateAsync(resource, state => state with
-                {
-                    State = "FailedToStart"
-                })
-                .ConfigureAwait(false);
             }
         }
 
@@ -356,13 +399,11 @@ internal sealed class AzureProvisioner(
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }
         }
-        else
+
+        // Set the completion source for all resources
+        foreach (var resource in azureResources)
         {
-            // Set the completion source for all resources
-            foreach (var resource in azureResources)
-            {
-                resource.ProvisioningTaskCompletionSource?.TrySetResult();
-            }
+            resource.ProvisioningTaskCompletionSource?.TrySetResult();
         }
 
         // Do this in the background to avoid blocking startup

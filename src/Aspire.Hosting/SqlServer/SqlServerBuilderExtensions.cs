@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
@@ -28,7 +27,7 @@ public static class SqlServerBuilderExtensions
         var sqlServer = new SqlServerServerResource(name, password);
 
         return builder.AddResource(sqlServer)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
+                      .WithEndpoint(hostPort: port, containerPort: 1433, name: MySqlServerResource.PrimaryEndpointName)
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithDefaultPassword()
                       .WithEnvironment("ACCEPT_EULA", "Y")

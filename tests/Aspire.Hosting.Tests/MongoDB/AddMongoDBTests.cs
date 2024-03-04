@@ -81,7 +81,7 @@ public class AddMongoDBTests
         appBuilder
             .AddMongoDB("mongodb")
             .WithAnnotation(
-                new AllocatedEndpointAnnotation("mybinding",
+                new AllocatedEndpointAnnotation("tcp",
                 ProtocolType.Tcp,
                 "localhost",
                 27017,

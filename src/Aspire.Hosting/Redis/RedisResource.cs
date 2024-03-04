@@ -9,6 +9,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "tcp";
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the primary endpoint for the Redis server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
     /// <summary>
     /// Gets the connection string expression for the Redis server for the manifest.
     /// </summary>
@@ -21,7 +30,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+            return $"{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
         }
     }
 
@@ -51,13 +60,6 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             return connectionStringAnnotation.Resource.GetConnectionString();
         }
 
-        if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException("Redis resource does not have endpoint annotation.");
-        }
-
-        // We should only have one endpoint for Redis for local scenarios.
-        var endpoint = allocatedEndpoints.Single();
-        return endpoint.EndPointString;
+        return $"{PrimaryEndpoint.Host}:{PrimaryEndpoint.Port}";
     }
 }
