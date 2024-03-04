@@ -360,6 +360,17 @@ public class AzureBicepResourceTests
                 "principalId": "",
                 "principalName": "",
                 "principalType": ""
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
               }
             }
             """;
@@ -458,8 +469,151 @@ public class AzureBicepResourceTests
 
         var manifest = await ManifestUtils.GetManifest(postgres.Resource);
 
-        Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
-        Assert.Equal("{postgres.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "params": {
+                "serverName": "postgres",
+                "keyVaultName": "",
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "databases": [
+                  "db"
+                ]
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task PublishAsAzurePostgresFlexibleServerNoUserPassParams()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var postgres = builder.AddPostgres("postgres1")
+            .PublishAsAzurePostgresFlexibleServer();
+
+        var manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres1.secretOutputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "params": {
+                "serverName": "postgres1",
+                "keyVaultName": "",
+                "administratorLogin": "{postgres1.inputs.username}",
+                "administratorLoginPassword": "{postgres1.inputs.password}",
+                "databases": []
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                },
+                "username": {
+                  "type": "string",
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        var param = builder.AddParameter("param");
+
+        postgres = builder.AddPostgres("postgres2")
+            .PublishAsAzurePostgresFlexibleServer(administratorLogin: param);
+
+        manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres2.secretOutputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "params": {
+                "serverName": "postgres2",
+                "keyVaultName": "",
+                "administratorLogin": "{param.value}",
+                "administratorLoginPassword": "{postgres2.inputs.password}",
+                "databases": []
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        postgres = builder.AddPostgres("postgres3")
+            .PublishAsAzurePostgresFlexibleServer(administratorLoginPassword: param);
+
+        manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres3.secretOutputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "params": {
+                "serverName": "postgres3",
+                "keyVaultName": "",
+                "administratorLogin": "{postgres3.inputs.username}",
+                "administratorLoginPassword": "{param.value}",
+                "databases": []
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                },
+                "username": {
+                  "type": "string",
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
