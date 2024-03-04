@@ -23,13 +23,13 @@ public static class KafkaBuilderExtensions
     {
         var kafka = new KafkaServerResource(name);
         return builder.AddResource(kafka)
-            .WithEndpoint(containerPort: KafkaBrokerPort, hostPort: port)
+            .WithEndpoint(containerPort: KafkaBrokerPort, hostPort: port, name: KafkaServerResource.PrimaryEndpointName)
             .WithAnnotation(new ContainerImageAnnotation { Image = "confluentinc/confluent-local", Tag = "7.6.0" })
             .WithEnvironment(context => ConfigureKafkaContainer(context, kafka))
             .PublishAsContainer();
     }
 
-    private static void ConfigureKafkaContainer(EnvironmentCallbackContext context, IResource resource)
+    private static void ConfigureKafkaContainer(EnvironmentCallbackContext context, KafkaServerResource resource)
     {
         // confluentinc/confluent-local is a docker image that contains a Kafka broker started with KRaft to avoid pulling a separate image for ZooKeeper.
         // See https://github.com/confluentinc/kafka-images/blob/master/local/README.md.
@@ -38,19 +38,8 @@ public static class KafkaBuilderExtensions
 
         var hostPort = context.ExecutionContext.IsPublishMode
             ? KafkaBrokerPort
-            : GetResourcePort(resource);
+            : resource.PrimaryEndpoint.Port;
         context.EnvironmentVariables.Add("KAFKA_ADVERTISED_LISTENERS",
             $"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{hostPort}");
-
-        static int GetResourcePort(IResource resource)
-        {
-            if (!resource.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-            {
-                throw new DistributedApplicationException(
-                    $"Kafka resource \"{resource.Name}\" does not have endpoint annotation.");
-            }
-
-            return allocatedEndpoints.Single().Port;
-        }
     }
 }

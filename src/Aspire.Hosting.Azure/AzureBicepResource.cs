@@ -162,9 +162,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
                 var value = input.Value switch
                 {
-                    IResourceBuilder<ParameterResource> p => p.Resource.ValueExpression,
-                    IResourceBuilder<IResourceWithConnectionString> p => p.Resource.ConnectionStringReferenceExpression,
-                    BicepOutputReference output => output.ValueExpression,
+                    IManifestExpressionProvider output => output.ValueExpression,
                     object obj => obj.ToString(),
                     null => ""
                 };
@@ -241,7 +239,7 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 /// </summary>
 /// <param name="name">The name of the secret output.</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepSecretOutputReference(string name, AzureBicepResource resource)
+public class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider
 {
     /// <summary>
     /// Name of the output.
@@ -293,7 +291,7 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
 /// </summary>
 /// <param name="name">The name of the output</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepOutputReference(string name, AzureBicepResource resource)
+public class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider
 {
     /// <summary>
     /// Name of the output.

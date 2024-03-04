@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
@@ -25,7 +24,7 @@ public static class RabbitMQBuilderExtensions
 
         var rabbitMq = new RabbitMQServerResource(name, password);
         return builder.AddResource(rabbitMq)
-                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
+                       .WithEndpoint(hostPort: port, containerPort: 5672, name: MySqlServerResource.PrimaryEndpointName)
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
                        .WithDefaultPassword()
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")

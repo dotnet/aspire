@@ -11,11 +11,20 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "tcp";
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the primary endpoint for the MongoDB server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"mongodb://{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+        $"mongodb://{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
 
     /// <summary>
     /// Gets the connection string for the MongoDB server.
@@ -23,16 +32,9 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <returns>A connection string for the MongoDB server in the form "mongodb://host:port".</returns>
     public string? GetConnectionString()
     {
-        if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException("Expected allocated endpoints!");
-        }
-
-        var allocatedEndpoint = allocatedEndpoints.Single();
-
         return new MongoDBConnectionStringBuilder()
-            .WithServer(allocatedEndpoint.Address)
-            .WithPort(allocatedEndpoint.Port)
+            .WithServer(PrimaryEndpoint.Host)
+            .WithPort(PrimaryEndpoint.Port)
             .Build();
     }
 

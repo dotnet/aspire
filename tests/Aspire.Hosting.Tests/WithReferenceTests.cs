@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Hosting.Tests.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -28,16 +29,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(2, servicesKeysCount);
@@ -78,16 +70,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(2, servicesKeysCount);
@@ -128,16 +111,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-           await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(4, servicesKeysCount);
@@ -176,16 +150,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-           await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(2, servicesKeysCount);
@@ -222,16 +187,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-           await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(4, servicesKeysCount);
@@ -252,18 +208,9 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
         await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
-            foreach (var annotation in annotations)
-            {
-                await annotation.Callback(context);
-            }
+            await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
         });
     }
 
@@ -277,17 +224,7 @@ public class WithReferenceTests
         testProgram.ServiceBBuilder.WithReference(resource, optional: true);
         testProgram.Build();
 
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(0, servicesKeysCount);
@@ -304,18 +241,9 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
-            foreach (var annotation in annotations)
-            {
-                await annotation.Callback(context);
-            }
+            var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
         });
 
         Assert.Equal("Connection string parameter resource could not be used because connection string `missingresource` is missing.", exception.Message);
@@ -333,16 +261,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         Assert.Equal("test connection string", config["ConnectionStrings__resource"]);
     }
@@ -358,16 +277,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource, DistributedApplicationOperation.Publish);
 
         Assert.Equal("{resource.connectionString}", config["ConnectionStrings__resource"]);
     }
@@ -383,16 +293,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource, DistributedApplicationOperation.Publish);
 
         Assert.Equal("{resource.connectionString}", config["MY_ENV"]);
     }
@@ -411,16 +312,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
@@ -441,16 +333,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
@@ -481,16 +364,7 @@ public class WithReferenceTests
         testProgram.ServiceABuilder.WithReference("petstore", new Uri("https://petstore.swagger.io/"));
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);

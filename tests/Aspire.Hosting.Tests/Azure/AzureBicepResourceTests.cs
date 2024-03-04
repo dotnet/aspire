@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
@@ -170,17 +171,7 @@ public class AzureBicepResourceTests
         var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
             .WithReference(appInsights);
 
-        // Call environment variable callbacks.
-        var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(serviceA.Resource);
 
         Assert.True(config.ContainsKey("APPLICATIONINSIGHTS_CONNECTION_STRING"));
         Assert.Equal("myinstrumentationkey", config["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
@@ -369,8 +360,8 @@ public class AzureBicepResourceTests
         Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
         Assert.Equal("postgres", postgres.Resource.Name);
         Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
-        Assert.Same(usr, azurePostgres.Resource.Parameters["administratorLogin"]);
-        Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.Same(usr.Resource, azurePostgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd.Resource, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
         Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
         Assert.NotNull(databases);
         Assert.Equal(["dbName"], databases);
@@ -409,15 +400,15 @@ public class AzureBicepResourceTests
         Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
         Assert.Equal("postgres", postgres.Resource.Name);
         Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
-        Assert.Same(usr, azurePostgres.Resource.Parameters["administratorLogin"]);
-        Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.Same(usr.Resource, azurePostgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd.Resource, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
         Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
         Assert.NotNull(databases);
         Assert.Equal(["db"], databases);
 
         // Verify that when PublishAs variant is used, connection string acquisition
         // still uses the local endpoint.
-        var endpointAnnotation = new AllocatedEndpointAnnotation("dummy", System.Net.Sockets.ProtocolType.Tcp, "localhost", 1234, "tcp");
+        var endpointAnnotation = new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName, System.Net.Sockets.ProtocolType.Tcp, "localhost", 1234, "tcp");
         postgres.WithAnnotation(endpointAnnotation);
         var expectedConnectionString = $"Host={endpointAnnotation.Address};Port={endpointAnnotation.Port};Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
         Assert.Equal(expectedConnectionString, postgres.Resource.GetConnectionString());

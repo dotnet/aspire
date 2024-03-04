@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 
@@ -12,6 +11,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class MongoDBBuilderExtensions
 {
+    // Internal port is always 27017.
     private const int DefaultContainerPort = 27017;
 
     /// <summary>
@@ -27,7 +27,7 @@ public static class MongoDBBuilderExtensions
 
         return builder
             .AddResource(mongoDBContainer)
-            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
+            .WithEndpoint(hostPort: port, containerPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
             .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "7.0.5" })
             .PublishAsContainer();
     }
@@ -73,22 +73,9 @@ public static class MongoDBBuilderExtensions
         return builder;
     }
 
-    private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, IResource resource)
+    private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
-        var hostPort = GetResourcePort(resource);
-        
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://host.docker.internal:{hostPort}/?directConnection=true");
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://host.docker.internal:{resource.PrimaryEndpoint.Port}/?directConnection=true");
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
-
-        static int GetResourcePort(IResource resource)
-        {
-            if (!resource.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-            {
-                throw new DistributedApplicationException(
-                    $"MongoDB resource \"{resource.Name}\" does not have endpoint annotation.");
-            }
-
-            return allocatedEndpoints.Single().Port;
-        }
     }
 }
