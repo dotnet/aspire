@@ -142,21 +142,4 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             }
         }
     }
-
-    // REMOVE THIS BEFORE MERGING
-
-    public override Task<ResourceCommandResponse> ExecuteResourceCommand(ResourceCommandRequest request, ServerCallContext context)
-    {
-        ResourceCommandResponse response;
-        if (request.CommandType == "restart")
-        {
-            response = new ResourceCommandResponse { Kind = ResourceCommandResponseKind.Succeeded };
-        }
-        else
-        {
-            response = new ResourceCommandResponse { Kind = ResourceCommandResponseKind.Failed, ErrorMessage = "Command not implemented" };
-        }
-
-        return Task.FromResult(response);
-    }
 }
