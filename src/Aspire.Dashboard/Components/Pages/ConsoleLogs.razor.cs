@@ -51,7 +51,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
-    public string BasePath => "consolelogs";
+    public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => "ConsoleLogs_PageState";
 
     protected override async Task OnInitializedAsync()
@@ -360,14 +360,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    public UrlState GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
+    public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
     {
-        if (serializable.SelectedResource is { } selectedOption)
-        {
-            return new UrlState($"{BasePath}/resource/{selectedOption}", null);
-        }
-
-        return new UrlState($"/{BasePath}", null);
+        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource);
     }
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()

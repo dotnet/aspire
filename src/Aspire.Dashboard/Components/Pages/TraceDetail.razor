@@ -37,7 +37,7 @@
             <div>
                 @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@_trace.Spans.Count</strong>
             </div>
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/structuredlogs?traceId={_trace.TraceId}")">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: _trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
         </FluentToolbar>
 
         <SummaryDetailsView
