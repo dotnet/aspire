@@ -38,13 +38,25 @@ public class AzureStorageConstructResource(string name, Action<ResourceModuleCon
         ? AzureStorageEmulatorConnectionString.Create(tablePort: GetEmulatorPort("table"))
         : TableEndpoint.Value;
 
+    internal async ValueTask<string?> GetTableConnectionStringAsync(CancellationToken cancellationToken = default) => IsEmulator
+        ? AzureStorageEmulatorConnectionString.Create(tablePort: GetEmulatorPort("table"))
+        : await TableEndpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
     internal string? GetQueueConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(queuePort: GetEmulatorPort("queue"))
         : QueueEndpoint.Value;
 
+    internal async ValueTask<string?> GetQueueConnectionStringAsync(CancellationToken cancellationToken = default) => IsEmulator
+        ? AzureStorageEmulatorConnectionString.Create(queuePort: GetEmulatorPort("queue"))
+        : await QueueEndpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
     internal string? GetBlobConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(blobPort: GetEmulatorPort("blob"))
         : BlobEndpoint.Value;
+
+    internal async ValueTask<string?> GetBlobConnectionStringAsync(CancellationToken cancellationToken = default) => IsEmulator
+        ? AzureStorageEmulatorConnectionString.Create(blobPort: GetEmulatorPort("blob"))
+        : await BlobEndpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
     private int GetEmulatorPort(string endpointName) =>
         Annotations
