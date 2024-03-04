@@ -90,12 +90,13 @@ public static class AzurePostgresExtensions
     {
         if (administratorLogin is null)
         {
+            const string usernameInput = "username";
             // generate a username since a parameter was not provided
-            var usernameInput = new InputAnnotation("username")
+            builder.WithAnnotation(new InputAnnotation(usernameInput)
             {
                 Default = new GenerateInputDefault { MinLength = 10 }
-            };
-            builder.WithAnnotation(usernameInput);
+            });
+
             builder.WithParameter("administratorLogin", new InputReference(builder.Resource, usernameInput));
         }
         else
@@ -106,12 +107,7 @@ public static class AzurePostgresExtensions
         if (administratorLoginPassword is null)
         {
             // generate a password since a parameter was not provided. Use the existing "password" input from the underlying PostgresServerResource
-            if (!(builder.Resource.Annotations.OfType<InputAnnotation>().SingleOrDefault(x => x.Name == "password") is { } passwordInput))
-            {
-                throw new DistributedApplicationException($"Could not find a 'password' InputAnnotation for resource '{builder.Resource.Name}'");
-            }
-
-            builder.WithParameter("administratorLoginPassword", new InputReference(builder.Resource, passwordInput));
+            builder.WithParameter("administratorLoginPassword", new InputReference(builder.Resource, "password"));
         }
         else
         {

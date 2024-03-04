@@ -7,8 +7,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an input reference for a resource with inputs.
 /// </summary>
 /// <param name="owner">The resource with inputs that owns the input.</param>
-/// <param name="input">The <see cref="InputAnnotation"/>.</param>
-public sealed class InputReference(IResource owner, InputAnnotation input) : IManifestExpressionProvider
+/// <param name="inputName">The name of the input.</param>
+public sealed class InputReference(IResource owner, string inputName) : IManifestExpressionProvider
 {
     /// <summary>
     /// Gets the owner of the input.
@@ -16,17 +16,25 @@ public sealed class InputReference(IResource owner, InputAnnotation input) : IMa
     public IResource Owner { get; } = owner;
 
     /// <summary>
-    /// The instance of the input resource.
+    /// Gets the instance of the input annotation.
     /// </summary>
-    public InputAnnotation Input { get; } = input;
+    public InputAnnotation Input => GetInputAnnotation();
 
     /// <summary>
     /// Gets the name of the input associated with the input reference.
     /// </summary>
-    public string InputName => Input.Name;
+    public string InputName => inputName;
 
     /// <summary>
     /// Gets the expression used in the manifest to reference the value of the input.
     /// </summary>
     public string ValueExpression => $"{{{Owner.Name}.inputs.{InputName}}}";
+
+    private InputAnnotation GetInputAnnotation()
+    {
+        var input = Owner.Annotations.OfType<InputAnnotation>().SingleOrDefault(a => a.Name == InputName) ??
+            throw new InvalidOperationException($"The InputAnnotation `{InputName}` was not found for the resource `{Owner.Name}`.");
+
+        return input;
+    }
 }
