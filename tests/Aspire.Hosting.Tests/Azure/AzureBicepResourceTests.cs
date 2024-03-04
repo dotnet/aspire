@@ -644,8 +644,8 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var openai = builder.AddAzureOpenAI("openai");
-        openai.AddDeployment("mymodel", "gpt-35-turbo", "0613", "Basic", 4);
+        var openai = builder.AddAzureOpenAI("openai")
+            .WithDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 2));
 
         openai.Resource.Outputs["connectionString"] = "myopenaiconnectionstring";
 

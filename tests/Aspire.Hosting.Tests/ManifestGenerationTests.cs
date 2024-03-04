@@ -363,8 +363,8 @@ public class ManifestGenerationTests
     public async Task VerifyOpenAIManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var openai = appBuilder.AddAzureOpenAI("openai");
-        openai.AddDeployment("deployment", "gpt-35-turbo", "0613");
+        var openai = appBuilder.AddAzureOpenAI("openai")
+            .WithDeployment(new(name: "deployment", modelName: "gpt-35-turbo", modelVersion: "0613"));
 
         var openaiManifest = await ManifestUtils.GetManifest(openai.Resource);
 

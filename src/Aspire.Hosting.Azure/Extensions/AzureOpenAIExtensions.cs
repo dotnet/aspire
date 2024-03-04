@@ -17,13 +17,13 @@ public static class AzureOpenAIExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureOpenAIResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureOpenAIResource(name);
         return builder.AddResource(resource)
                       .WithParameter("name", resource.CreateBicepResourceName())
-                      .WithParameter("deployments", () => new JsonArray(resource.Deployments.Select(x => x.ToJsonNode()).ToArray()))
+                      .WithParameter("deployments", () => GetDeploymentsAsJson(resource))
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
@@ -32,16 +32,32 @@ public static class AzureOpenAIExtensions
     /// <summary>
     /// Adds an Azure OpenAI Deployment resource to the application model. This resource requires an <see cref="AzureOpenAIResource"/> to be added to the application model.
     /// </summary>
-    /// <param name="serverBuilder">The Azure SQL Server resource builder.</param>
-    /// <param name="name">The name of the deployment.</param>
-    /// <param name="modelName">The model name.</param>
-    /// <param name="modelVersion">The model version.</param>
-    /// <param name="skuName">The sku name.</param>
-    /// <param name="skuCapacity">Teh sku capacity.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<AzureOpenAIDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name, string modelName, string modelVersion, string skuName = "Standard", int skuCapacity = 2)
+    /// <param name="builder">The Azure OpenAI resource builder.</param>
+    /// <param name="deployment">The deployment to add.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureOpenAIResource> WithDeployment(this IResourceBuilder<AzureOpenAIResource> builder, AzureOpenAIDeployment deployment)
     {
-        var resource = new AzureOpenAIDeploymentResource(name, serverBuilder.Resource, modelName, modelVersion, skuName, skuCapacity);
-        return serverBuilder.ApplicationBuilder.AddResource(resource);
+        builder.Resource.AddDeployment(deployment);
+        return builder;
+    }
+
+    internal static JsonArray GetDeploymentsAsJson(AzureOpenAIResource resource)
+    {
+        return new JsonArray(
+            resource.Deployments.Select(deployment => new JsonObject
+            {
+                ["name"] = deployment.Name,
+                ["sku"] = new JsonObject
+                {
+                    ["name"] = deployment.SkuName,
+                    ["capacity"] = deployment.SkuCapacity
+                },
+                ["model"] = new JsonObject
+                {
+                    ["format"] = "OpenAI",
+                    ["name"] = deployment.ModelName,
+                    ["version"] = deployment.ModelVersion
+                }
+            }).ToArray());
     }
 }

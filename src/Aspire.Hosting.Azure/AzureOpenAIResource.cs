@@ -12,7 +12,7 @@ public class AzureOpenAIResource(string name) :
     AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.openai.bicep"),
     IResourceWithConnectionString
 {
-    private readonly List<AzureOpenAIDeploymentResource> _deployments = [];
+    private readonly List<AzureOpenAIDeployment> _deployments = [];
 
     /// <summary>
     /// Gets the "connectionString" output reference from the Azure OpenAI resource.
@@ -33,14 +33,12 @@ public class AzureOpenAIResource(string name) :
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
-    public IReadOnlyList<AzureOpenAIDeploymentResource> Deployments => _deployments;
+    public IReadOnlyList<AzureOpenAIDeployment> Deployments => _deployments;
 
-    internal void AddDeployment(AzureOpenAIDeploymentResource deployment)
+    internal void AddDeployment(AzureOpenAIDeployment deployment)
     {
-        if (deployment.Parent != this)
-        {
-            throw new ArgumentException("Deployment belongs to another resource", nameof(deployment));
-        }
+        ArgumentNullException.ThrowIfNull(deployment);
+
         _deployments.Add(deployment);
     }
 }
