@@ -227,8 +227,9 @@ public class AzureBicepResourceTests
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
-        Assert.True(constructParameters.ContainsKey("skuName"));
+        var constructParameters = moduleConstruct.GetParameters(false).DistinctBy(x => x.Name);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.Name);
+        Assert.True(constructParametersLookup.ContainsKey("skuName"));
 
         var expectedManifest = """
             {
@@ -264,8 +265,9 @@ public class AzureBicepResourceTests
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
 
         Assert.NotNull(moduleConstruct);
-        var constructParameters = moduleConstruct.GetParameters(false).ToDictionary(p => p.Name);
-        Assert.True(constructParameters.ContainsKey("sku"));
+        var constructParameters = moduleConstruct.GetParameters(false).DistinctBy(x => x.Name);
+        var constructParametersLookup = constructParameters.ToDictionary(p => p.Name);
+        Assert.True(constructParametersLookup.ContainsKey("sku"));
 
         var expectedManifest = """
             {

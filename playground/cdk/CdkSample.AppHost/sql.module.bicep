@@ -27,9 +27,9 @@ resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2022-08-01-preview' = {
   }
 }
 
-resource sqlFirewallRule_Zjpl1WAet 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+resource sqlFirewallRule_Kr30BcxQt 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
   parent: sqlServer_l5O9GRsSn
-  name: 'AllowAllWindowsAzureIps'
+  name: 'AllowAllAzureIps'
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
