@@ -54,10 +54,13 @@ The payload is best explained using an example:
 
 ```jsonc
 {
-    "project_path": "(Path to C# project file for the program. Required.)",
-
-    // Whether the program should be running under the debugger. Optional.
-    "debug": true, 
+    "launch_configurations": [
+        {
+            "type": "csharp",
+            "project_path": "(Path to C# project file for the program)",
+            // ... other launch configuration properties
+        }
+    ]
 
     // Environment variable settings (added on top of those inherited from IDE/user environment,
     // and those read from the launch profile). Optional.
@@ -71,13 +74,7 @@ The payload is best explained using an example:
     "args": [
         "-v",
         "1"
-    ],
-
-    "launch_profile": "(Name of the launch profile to use for the program. Optional.)",
-
-    // If set to true, the project will be launched without a launch profile 
-    // and the value of "launch_profile" parameter is disregarded. Optional.
-    "disable_launch_profile": false,
+    ]
 }
 ```
 
@@ -87,6 +84,27 @@ If the execution session is created successfully, the return status code should 
 `Location: http://localhost:<IDE endpoint port>/run_session/<new run ID>`
 
 If the session cannot be created, appropriate 4xx or 5xx status code should be returned. The response might also return a description of the problem as part of the status line, or in the response body.
+
+### Launch configurations
+
+The run session creation request contains one or more launch configurations for the session. 
+
+The following launch configuration types are recognized by Visual Studio IDE:
+
+**CSharp launch configuration** <br/>
+
+CSharp launch configuration contains details for launching programs written in C# language.
+
+| Property | Description | Required? |
+| --- | --------- | --- |
+| `type` | Launch configuration type indicator; must be `csharp`. | Required |
+| `project_path` | Path to the C# project file for the program that is being launched. | Required |
+| `debug` | Whether the program should be running under the debugger. | Optional, defaults to true. |
+| `launch_profile` | Invocation arguments for the program (modeled as array of strings). | Optional |
+| `disable_launch_profile` | If set to true, the project will be launched without a launch profile and the value of "launch_profile" parameter is disregarded. | Optional |
+
+> In Aspire version 1 release only a single launch configuration instance, of type `csharp`, can be used as part of a run session request issued to Visual Studio. Other types of launch configurations may be added in future releases.
+
 
 ### Stop session request
 
@@ -161,3 +179,39 @@ The log notification is emitted when the service program writes something to sta
 | `notification_type` | Must be `serviceLogs` | `string` |
 | `is_std_err` | True if the output comes from standard error stream, otherwise false (implying standard output stream). | `boolean` |
 | `log_message` | The text written by the service program. | `string` |
+
+## Error reporting
+
+When the IDE encounters an error during request processing, the request response should include a body in JSON format, with a single property named "error", for example:
+
+```jsonc
+{
+    "error": {
+        // An "error detail" object
+        "code": "ProjectNotFound",
+        "message": "The project 'C:\nonexistent\path\frontend.csproj' was not found",
+        "details": []
+    }
+}
+```
+
+The value of the `error` property is an `ErrorDetail` object with the following properties:
+
+| Property | Description | Required? |
+| --- | --------- | --- |
+| `code` | A machine-readable code that corresponds to distinctive error condition. If the cause of an error can be narrowed down reliably (e.g. file referenced by launch configuration was not found, or the request body does not parse as valid JSON), the corresponding error should be unique. <br/><br/> There will be cases when the cause for the error cannot be pinpointed, and in these cases it is OK to return a catch-all error code e.g. `UnexpectedError`. | Required |
+| `message` | A human-readable message explaining the nature of the error, and providing suggestions for resolution. DCP will display this message as part of the Aspire application host execution log. | Required |
+| `details` | An array of `ErrorDetail` objects providing additional information about the error. | Optional |
+
+## Request versioning
+
+When making a request to the IDE, DCP will include an `api-version` parameter to indicate the version of the protocol used, for example: 
+
+`PUT /run_session?api-version=2024-03-03`
+
+The version always follows `YYYY-mm-dd` format and allows for older/equal/newer comparison.
+
+If the protocol version is old (no longer supported by the IDE), the IDE should return a 400 Bad Request response with the message indicating that the developer should consider upgrading the Aspire libraries and tooling used by their application.
+
+If the protocol version is newer than the latest the IDE supports, the IDE should make an attempt to parse the request according to its latest supported version. If that fails, it should return 400 Bad Request error.
+
