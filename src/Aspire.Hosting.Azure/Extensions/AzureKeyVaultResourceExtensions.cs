@@ -45,7 +45,14 @@ public static class AzureKeyVaultResourceExtensions
             // HACK: Can be removed when this bug is fixed in CDK:
             //       https://github.com/Azure/azure-sdk-for-net/issues/42351
             keyVault.AssignProperty(x => x.Name, $"toLower(take(concat('{construct.Resource.Name}', uniqueString(resourceGroup().id)), 24))");
-            keyVault.AddOutput(x => x.Properties.VaultUri, "vaultUri");
+
+            // HACK: This AddOutput is commented out because the CDK already does it,
+            //       but these base building block types should not automatically
+            //       add outputs:
+            //
+            //         https://github.com/Azure/azure-sdk-for-net/issues/42357
+            //
+            // keyVault.AddOutput(x => x.Properties.VaultUri, "vaultUri");
 
             // HACK: KeyVault administrator role.
             //       https://github.com/Azure/azure-sdk-for-net/issues/42352
