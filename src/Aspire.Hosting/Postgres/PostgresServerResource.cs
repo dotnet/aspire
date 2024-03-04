@@ -10,9 +10,14 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The PostgreSQL server password.</param>
-public class PostgresServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
+public class PostgresServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString, IResourceWithDataDirectory, IResourceWithInitDirectory
 {
     internal const string PrimaryEndpointName = "tcp";
+
+    /// <inheritdoc/>
+    public static string DataDirectory => "/var/lib/postgresql/data";
+    /// <inheritdoc/>
+    public static string InitDirectory => "/docker-entrypoint-initdb.d";
 
     private EndpointReference? _primaryEndpoint;
 
