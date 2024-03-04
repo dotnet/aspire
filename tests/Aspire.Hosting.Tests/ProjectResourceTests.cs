@@ -128,6 +128,15 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public void SpecificLaunchProfileFailsIfProfileDoesNotExist()
+    {
+        var appBuilder = CreateBuilder();
+
+        var ex = Assert.Throws<DistributedApplicationException>(() => appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: "not-exist"));
+        Assert.Equal("Launch settings file does not contain 'not-exist' profile.", ex.Message);
+    }
+
+    [Fact]
     public void ExcludeLaunchProfileAddsAnnotationToProject()
     {
         var appBuilder = CreateBuilder();

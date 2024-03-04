@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -109,7 +108,7 @@ public static class ProjectResourceBuilderExtensions
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
             // Automatically add EndpointAnnotation to project resources based on ApplicationUrl set in the launch profile.
-            var launchProfile = projectResource.GetEffectiveLaunchProfile();
+            var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
             if (launchProfile is null)
             {
                 return builder;
@@ -137,13 +136,11 @@ public static class ProjectResourceBuilderExtensions
                 // TODO:
                 //int? port = options.Value.RandomizePorts is true ? null : uri.Port;
 
-                var generatedEndpointAnnotation = new EndpointAnnotation(
-                    ProtocolType.Tcp,
-                    uriScheme: uri.Scheme,
-                    port: uri.Port
-                    );
-
-                projectResource.Annotations.Add(generatedEndpointAnnotation);
+                builder.WithEndpoint(uri.Scheme, e =>
+                {
+                    e.Port = uri.Port;
+                    e.UriScheme = uri.Scheme;
+                }, createIfNotExists: true);
             }
         }
         else
@@ -158,22 +155,21 @@ public static class ProjectResourceBuilderExtensions
 
             if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || string.Equals(sb.Name, "http", StringComparisons.EndpointAnnotationName)))
             {
-                var httpBinding = new EndpointAnnotation(
-                    ProtocolType.Tcp,
-                    uriScheme: "http"
-                    );
-                projectResource.Annotations.Add(httpBinding);
-                httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
+                builder.WithEndpoint("http", e =>
+                {
+                    e.UriScheme = "http";
+                    e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
+                }, createIfNotExists: true);
             }
 
             if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || string.Equals(sb.Name, "https", StringComparisons.EndpointAnnotationName)))
             {
-                var httpsBinding = new EndpointAnnotation(
-                    ProtocolType.Tcp,
-                    uriScheme: "https"
-                    );
-                projectResource.Annotations.Add(httpsBinding);
-                httpsBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpsBinding.Transport;
+                builder.WithEndpoint("https", e =>
+                {
+                    e.UriScheme = "https";
+                    e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
+
+                }, createIfNotExists: true);
             }
         }
 
@@ -246,7 +242,7 @@ public static class ProjectResourceBuilderExtensions
 
     private static bool IsWebProject(ProjectResource projectResource)
     {
-        var launchProfile = projectResource.GetEffectiveLaunchProfile();
+        var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
         return launchProfile?.ApplicationUrl != null;
     }
 }
