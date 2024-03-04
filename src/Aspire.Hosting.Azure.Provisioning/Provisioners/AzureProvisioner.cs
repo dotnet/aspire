@@ -68,16 +68,33 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        bool IsParentAzureResource(IResource resource)
+        static IAzureResource? SelectParentAzureResource(IResource resource)
         {
-            return resource is IAzureResource ||
-                   resource is IResourceWithParent rp && IsParentAzureResource(rp.Parent);
+            while (resource is not null)
+            {
+                if (resource is IAzureResource ar)
+                {
+                    return ar;
+                }
+
+                if (resource is IResourceWithParent rp)
+                {
+                    resource = rp.Parent;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return null;
         }
 
         // parent -> children lookup
         var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
-                                                  .Where(IsParentAzureResource)
-                                                  .ToLookup(r => (IAzureResource)r.Parent);
+                                                  .Select(x => (Child: x, Root: SelectParentAzureResource(x.Parent)))
+                                                  .Where(x => x.Root is not null)
+                                                  .ToLookup(x => x.Root, x => x.Child);
 
         // Sets the state of the resource and all of its children
         async Task SetStateAsync(IAzureResource resource, string state)
