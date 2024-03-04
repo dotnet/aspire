@@ -85,7 +85,7 @@ public static class AzureSqlExtensions
             sqlServer.AssignParameter(x => x.Administrators.Login, construct.PrincipalName);
             sqlServer.AssignProperty(x => x.Administrators.TenantId, "subscription().tenantId");
 
-            var azureServicesFirewallRule = new SqlFirewallRule(construct, sqlServer, "AllowAllWindowsAzureIps");
+            var azureServicesFirewallRule = new SqlFirewallRule(construct, sqlServer, "AllowAllAzureIps");
             azureServicesFirewallRule.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
             azureServicesFirewallRule.AssignProperty(x => x.EndIPAddress, "'0.0.0.0'");
 
