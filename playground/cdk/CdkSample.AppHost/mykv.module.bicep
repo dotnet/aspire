@@ -4,6 +4,12 @@ targetScope = 'resourceGroup'
 param location string = resourceGroup().location
 
 @description('')
+param principalId string
+
+@description('')
+param principalType string
+
+@description('')
 param signaturesecret string
 
 
@@ -17,6 +23,16 @@ resource keyVault_OlyAsQ0DX 'Microsoft.KeyVault/vaults@2023-02-01' = {
       family: 'A'
     }
     enableRbacAuthorization: true
+  }
+}
+
+resource roleAssignment_Nu9msjS3H 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: keyVault_OlyAsQ0DX
+  name: guid(keyVault_OlyAsQ0DX.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
+    principalId: principalId
+    principalType: principalType
   }
 }
 

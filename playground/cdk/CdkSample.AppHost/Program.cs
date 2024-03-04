@@ -28,7 +28,8 @@ var keyvault = builder.AddAzureKeyVaultConstruct("mykv", (construct, keyVault) =
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(blobs)
-       .WithReference(sqldb);
+       .WithReference(sqldb)
+       .WithReference(keyvault);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

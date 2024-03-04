@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.KeyVaults;
 
 namespace Aspire.Hosting;
@@ -44,6 +45,14 @@ public static class AzureKeyVaultResourceExtensions
             // HACK: Can be removed when this bug is fixed in CDK:
             //       https://github.com/Azure/azure-sdk-for-net/issues/42351
             keyVault.AssignProperty(x => x.Name, $"toLower(take(concat('{construct.Resource.Name}', uniqueString(resourceGroup().id)), 24))");
+            keyVault.AddOutput(x => x.Properties.VaultUri, "vaultUri");
+
+            // HACK: KeyVault administrator role.
+            //       https://github.com/Azure/azure-sdk-for-net/issues/42352
+            var keyVaultAdministrator = new RoleDefinition("00482a5a-887f-4fb3-b363-3b7fe8e74483");
+            var keyVaultAdministratorRoleAssignment = keyVault.AssignRole(keyVaultAdministrator);
+            keyVaultAdministratorRoleAssignment.AssignParameter(x => x.PrincipalId, construct.PrincipalIdParameter);
+            keyVaultAdministratorRoleAssignment.AssignParameter(x => x.PrincipalType, construct.PrincipalTypeParameter);
 
             if (configureResource != null)
             {
