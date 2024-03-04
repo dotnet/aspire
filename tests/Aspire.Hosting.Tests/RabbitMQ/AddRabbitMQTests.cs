@@ -49,7 +49,7 @@ public class AddRabbitMQTests
         appBuilder
             .AddRabbitMQ("rabbit")
             .WithAnnotation(
-                new AllocatedEndpointAnnotation("mybinding",
+                new AllocatedEndpointAnnotation(RabbitMQServerResource.PrimaryEndpointName,
                 ProtocolType.Tcp,
                 "localhost",
                 27011,
