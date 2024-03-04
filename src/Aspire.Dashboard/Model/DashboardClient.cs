@@ -384,9 +384,9 @@ internal sealed class DashboardClient : IDashboardClient
 
             await _cts.CancelAsync().ConfigureAwait(false);
 
-            _channel?.Dispose();
-
             _cts.Dispose();
+
+            _channel?.Dispose();
 
             await TaskHelpers.WaitIgnoreCancelAsync(_connection, _logger, "Unexpected error from connection task.").ConfigureAwait(false);
         }
