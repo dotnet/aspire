@@ -35,6 +35,21 @@ public class AzureCosmosDBResource(string name) :
     /// <summary>
     /// Gets the connection string to use for this database.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string to use for this database.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
+
+    /// <summary>
+    /// Gets the connection string to use for this database.
+    /// </summary>
     /// <returns>The connection string to use for this database.</returns>
     public string? GetConnectionString()
     {

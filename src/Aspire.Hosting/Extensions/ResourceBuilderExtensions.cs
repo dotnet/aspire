@@ -54,6 +54,18 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Allows for the population of environment variables on a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
+    /// <returns>A resource configured with the environment variable callback.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Func<EnvironmentCallbackContext, Task> callback) where T : IResourceWithEnvironment
+    {
+        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
+    }
+
+    /// <summary>
     /// Adds an environment variable to the resource with the endpoint for <paramref name="endpointReference"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -65,17 +77,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[name] = endpointReference.ValueExpression;
-                return;
-            }
-
-            var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
-
-            context.EnvironmentVariables[name] = replaceLocalhostWithContainerHost
-            ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.Value, builder.ApplicationBuilder.Configuration)
-            : endpointReference.Value;
+            context.EnvironmentVariables[name] = endpointReference;
         });
     }
 
@@ -91,13 +93,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[name] = parameter.Resource.ValueExpression;
-                return;
-            }
-
-            context.EnvironmentVariables[name] = parameter.Resource.Value;
+            context.EnvironmentVariables[name] = parameter.Resource;
         });
     }
 
@@ -109,6 +105,19 @@ public static class ResourceBuilderExtensions
     /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Action<ManifestPublishingContext> callback) where T : IResource
+    {
+        // You can only ever have one manifest publishing callback, so it must be a replace operation.
+        return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Registers an async callback which is invoked when manifest is generated for the app model.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Func<ManifestPublishingContext, Task> callback) where T : IResource
     {
         // You can only ever have one manifest publishing callback, so it must be a replace operation.
         return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
@@ -197,31 +206,7 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
-                return;
-            }
-
-            var connectionString = resource.GetConnectionString();
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                if (optional)
-                {
-                    // This is an optional connection string, so we can just return.
-                    return;
-                }
-
-                throw new DistributedApplicationException($"A connection string for '{resource.Name}' could not be retrieved.");
-            }
-
-            if (builder.Resource is ContainerResource)
-            {
-                connectionString = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionString, builder.ApplicationBuilder.Configuration);
-            }
-
-            context.EnvironmentVariables[connectionStringName] = connectionString;
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
         });
     }
 

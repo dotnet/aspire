@@ -12,28 +12,63 @@ internal static class ResourceEndpointHelpers
     /// </summary>
     public static List<DisplayedEndpoint> GetEndpoints(ILogger logger, ResourceViewModel resource, bool excludeServices = false, bool includeEndpointUrl = false)
     {
+        var isKnownResourceType = resource.IsContainer() || resource.IsExecutable(allowSubtypes: false) || resource.IsProject();
+
         var displayedEndpoints = new List<DisplayedEndpoint>();
 
-        if (!excludeServices)
+        if (isKnownResourceType)
         {
-            foreach (var service in resource.Services)
+            if (!excludeServices)
             {
-                displayedEndpoints.Add(new DisplayedEndpoint
+                foreach (var service in resource.Services)
                 {
-                    Name = service.Name,
-                    Text = service.AddressAndPort,
-                    Address = service.AllocatedAddress,
-                    Port = service.AllocatedPort
-                });
+                    displayedEndpoints.Add(new DisplayedEndpoint
+                    {
+                        Name = service.Name,
+                        Text = service.AddressAndPort,
+                        Address = service.AllocatedAddress,
+                        Port = service.AllocatedPort
+                    });
+                }
+            }
+
+            foreach (var endpoint in resource.Endpoints)
+            {
+                ProcessUrl(logger, resource, displayedEndpoints, endpoint.ProxyUrl, "ProxyUrl");
+                if (includeEndpointUrl)
+                {
+                    ProcessUrl(logger, resource, displayedEndpoints, endpoint.EndpointUrl, "EndpointUrl");
+                }
             }
         }
-
-        foreach (var endpoint in resource.Endpoints)
+        else
         {
-            ProcessUrl(logger, resource, displayedEndpoints, endpoint.ProxyUrl, "ProxyUrl");
-            if (includeEndpointUrl)
+            // Look for services with an address (which might be a URL) and use that to match up with endpoints.
+            // otherwise, just display the endpoints.
+            var addressLookup = resource.Services.Where(s => s.AllocatedAddress is not null)
+                                                 .ToDictionary(s => s.AllocatedAddress!);
+
+            foreach (var endpoint in resource.Endpoints)
             {
-                ProcessUrl(logger, resource, displayedEndpoints, endpoint.EndpointUrl, "EndpointUrl");
+                if (addressLookup.TryGetValue(endpoint.EndpointUrl, out var service))
+                {
+                    displayedEndpoints.Add(new DisplayedEndpoint
+                    {
+                        Name = service.Name,
+                        Url = endpoint.EndpointUrl,
+                        Text = service.Name,
+                        Address = service.AllocatedAddress,
+                        Port = service.AllocatedPort
+                    });
+                }
+                else
+                {
+                    displayedEndpoints.Add(new DisplayedEndpoint
+                    {
+                        Name = endpoint.EndpointUrl,
+                        Text = endpoint.EndpointUrl
+                    });
+                }
             }
         }
 

@@ -7,13 +7,14 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Tests.Utils;
 
 namespace Aspire.Hosting.Tests.MySql;
 
 public class AddMySqlTests
 {
     [Fact]
-    public void AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
+    public async Task AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql");
@@ -42,16 +43,7 @@ public class AddMySqlTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>
@@ -62,7 +54,7 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public void AddMySqlAddsAnnotationMetadata()
+    public async Task AddMySqlAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql", 1234, "pass");
@@ -91,16 +83,7 @@ public class AddMySqlTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>
@@ -116,7 +99,7 @@ public class AddMySqlTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql")
             .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
+            new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
             "localhost",
             2000,
@@ -140,7 +123,7 @@ public class AddMySqlTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql")
             .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
+            new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
             "localhost",
             2000,
@@ -162,20 +145,53 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var mysql = appBuilder.AddMySql("mysql");
         var db = mysql.AddDatabase("db");
 
-        var mySqlManifest = ManifestUtils.GetManifest(mysql.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        var mySqlManifest = await ManifestUtils.GetManifest(mysql.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        Assert.Equal("container.v0", mySqlManifest["type"]?.ToString());
-        Assert.Equal(mysql.Resource.ConnectionStringExpression, mySqlManifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
+              "image": "mysql:8.3.0",
+              "env": {
+                "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 3306
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, mySqlManifest.ToString());
 
-        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
-        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{mysql.connectionString};Database=db"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
     [Fact]
@@ -196,7 +212,7 @@ public class AddMySqlTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        mysql.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        mysql.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new PhpMyAdminConfigWriterHook();
@@ -204,20 +220,11 @@ public class AddMySqlTests
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
 
-        var envAnnotations = myAdmin.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin);
 
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            annotation.Callback(context);
-        }
-
-        Assert.Equal("host.docker.internal:5001", context.EnvironmentVariables["PMA_HOST"]);
-        Assert.NotNull(context.EnvironmentVariables["PMA_USER"]);
-        Assert.NotNull(context.EnvironmentVariables["PMA_PASSWORD"]);
+        Assert.Equal("host.docker.internal:5001", config["PMA_HOST"]);
+        Assert.NotNull(config["PMA_USER"]);
+        Assert.NotNull(config["PMA_PASSWORD"]);
     }
 
     [Fact]
@@ -241,8 +248,8 @@ public class AddMySqlTests
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(8081);
 
         // Add fake allocated endpoints.
-        mysql1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        mysql2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        mysql1.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        mysql2.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();

@@ -36,27 +36,27 @@ public static class ParameterResourceBuilderExtensions
                                                                      bool connectionString = false)
     {
         var resource = new ParameterResource(name, callback, secret);
-        return builder.AddResource(resource)
-                      .WithResourceUpdates(() =>
-                      {
-                          var state = new CustomResourceSnapshot()
-                          {
-                              ResourceType = "Parameter",
-                              Properties = [
-                                ("Secret", secret.ToString()),
-                                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
-                              ]
-                          };
 
-                          try
-                          {
-                              return state with { Properties = [.. state.Properties, ("Value", callback())] };
-                          }
-                          catch (DistributedApplicationException ex)
-                          {
-                              return state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
-                          }
-                      })
+        var state = new CustomResourceSnapshot()
+        {
+            ResourceType = "Parameter",
+            Properties = [
+                ("parameter.secret", secret.ToString()),
+                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+            ]
+        };
+
+        try
+        {
+            state = state with { Properties = [.. state.Properties, ("Value", callback())] };
+        }
+        catch (DistributedApplicationException ex)
+        {
+            state = state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
+        }
+
+        return builder.AddResource(resource)
+                      .WithInitialState(state)
                       .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource, connectionString));
     }
 
@@ -70,17 +70,7 @@ public static class ParameterResourceBuilderExtensions
         }
 
         context.Writer.WriteString("value", $"{{{resource.Name}.inputs.value}}");
-        context.Writer.WriteStartObject("inputs");
-        context.Writer.WriteStartObject("value");
-        context.Writer.WriteString("type", "string");
-
-        if (resource.Secret)
-        {
-            context.Writer.WriteBoolean("secret", resource.Secret);
-        }
-
-        context.Writer.WriteEndObject();
-        context.Writer.WriteEndObject();
+        context.WriteInputs(resource);
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Sockets;
@@ -11,7 +12,7 @@ namespace Aspire.Hosting.Tests.SqlServer;
 public class AddSqlServerTests
 {
     [Fact]
-    public void AddSqlServerContainerWithDefaultsAddsAnnotationMetadata()
+    public async Task AddSqlServerContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -41,16 +42,7 @@ public class AddSqlServerTests
         Assert.Equal("mssql/server", containerAnnotation.Image);
         Assert.Equal("mcr.microsoft.com", containerAnnotation.Registry);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>
@@ -73,7 +65,7 @@ public class AddSqlServerTests
         appBuilder
             .AddSqlServer("sqlserver")
             .WithAnnotation(
-                    new AllocatedEndpointAnnotation("mybinding",
+                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
                     ProtocolType.Tcp,
                     "localhost",
                     1433,
@@ -99,7 +91,7 @@ public class AddSqlServerTests
         appBuilder
             .AddSqlServer("sqlserver")
             .WithAnnotation(
-                    new AllocatedEndpointAnnotation("mybinding",
+                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
                     ProtocolType.Tcp,
                     "localhost",
                     1433,
@@ -119,20 +111,54 @@ public class AddSqlServerTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var sqlServer = appBuilder.AddSqlServer("sqlserver");
         var db = sqlServer.AddDatabase("db");
 
-        var serverManifest = ManifestUtils.GetManifest(sqlServer.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        Assert.Equal("container.v0", serverManifest["type"]?.ToString());
-        Assert.Equal(sqlServer.Resource.ConnectionStringExpression, serverManifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true",
+              "image": "mcr.microsoft.com/mssql/server:2022-latest",
+              "env": {
+                "ACCEPT_EULA": "Y",
+                "MSSQL_SA_PASSWORD": "{sqlserver.inputs.password}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 1433
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
 
-        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
-        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{sqlserver.connectionString};Database=db"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
     [Fact]

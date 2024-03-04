@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -11,7 +12,7 @@ namespace Aspire.Hosting.Tests;
 public class ProjectResourceTests
 {
     [Fact]
-    public void AddProjectAddsEnvironmentVariablesAndServiceMetadata()
+    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
         var appBuilder = CreateBuilder();
 
@@ -28,16 +29,7 @@ public class ProjectResourceTests
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
 
-        var annotations = resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
         Assert.Collection(config,
             env =>

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -13,6 +12,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="password">The SQL Sever password.</param>
 public class SqlServerServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "tcp";
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the primary endpoint for the Redis server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
     /// <summary>
     /// Gets the password for the SQL Server container resource.
     /// </summary>
@@ -30,8 +38,23 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"Server={{{Name}.bindings.tcp.host}},{{{Name}.bindings.tcp.port}};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
+            return $"Server={PrimaryEndpoint.GetExpression(EndpointProperty.Host)},{PrimaryEndpoint.GetExpression(EndpointProperty.Port)};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
         }
+    }
+
+    /// <summary>
+    /// Gets the connection string for the SQL Server.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>A connection string for the SQL Server in the form "Server=host,port;User ID=sa;Password=password;TrustServerCertificate=true".</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
+        }
+
+        return new(GetConnectionString());
     }
 
     /// <summary>
@@ -45,19 +68,12 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
             return connectionStringAnnotation.Resource.GetConnectionString();
         }
 
-        if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException("Expected allocated endpoints!");
-        }
-
-        var endpoint = allocatedEndpoints.Single();
-
         // HACK: Use the 127.0.0.1 address because localhost is resolving to [::1] following
         //       up with DCP on this issue.
-        return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true";
+        return $"Server=127.0.0.1,{PrimaryEndpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true";
     }
 
-    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
+    private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
@@ -67,22 +83,5 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
     internal void AddDatabase(string name, string databaseName)
     {
         _databases.TryAdd(name, databaseName);
-    }
-
-    internal void WriteToManifest(ManifestPublishingContext context)
-    {
-        context.WriteContainer(this);
-
-        context.Writer.WriteStartObject("inputs");      // "inputs": {
-        context.Writer.WriteStartObject("password");    //   "password": {
-        context.Writer.WriteString("type", "string");   //     "type": "string",
-        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
-        context.Writer.WriteStartObject("default");     //     "default": {
-        context.Writer.WriteStartObject("generate");    //       "generate": {
-        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
-        context.Writer.WriteEndObject();                //       }
-        context.Writer.WriteEndObject();                //     }
-        context.Writer.WriteEndObject();                //   }
-        context.Writer.WriteEndObject();                // }
     }
 }

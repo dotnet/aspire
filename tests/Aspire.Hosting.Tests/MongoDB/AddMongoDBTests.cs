@@ -81,7 +81,7 @@ public class AddMongoDBTests
         appBuilder
             .AddMongoDB("mongodb")
             .WithAnnotation(
-                new AllocatedEndpointAnnotation("mybinding",
+                new AllocatedEndpointAnnotation("tcp",
                 ProtocolType.Tcp,
                 "localhost",
                 27017,
@@ -122,20 +122,39 @@ public class AddMongoDBTests
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var mongo = appBuilder.AddMongoDB("mongo");
         var db = mongo.AddDatabase("mydb");
 
-        var mongoManifest = ManifestUtils.GetManifest(mongo.Resource);
-        var dbManifest = ManifestUtils.GetManifest(db.Resource);
-        
-        Assert.Equal("container.v0", mongoManifest["type"]?.ToString());
-        Assert.Equal(mongo.Resource.ConnectionStringExpression, mongoManifest["connectionString"]?.ToString());
+        var mongoManifest = await ManifestUtils.GetManifest(mongo.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
-        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
+              "image": "mongo:7.0.5",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 27017
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, mongoManifest.ToString());
+
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{mongo.connectionString}/mydb"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
     [Fact]

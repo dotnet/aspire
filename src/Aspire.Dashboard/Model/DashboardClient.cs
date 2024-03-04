@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -35,6 +36,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
+    private readonly CancellationToken _clientCancellationToken;
     private readonly TaskCompletionSource _whenConnected = new();
     private readonly object _lock = new();
 
@@ -61,6 +63,9 @@ internal sealed class DashboardClient : IDashboardClient
         _loggerFactory = loggerFactory;
         _configuration = configuration;
 
+        // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
+        _clientCancellationToken = _cts.Token;
+
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
         var address = configuration.GetUri(ResourceServiceUrlVariableName);
@@ -68,13 +73,13 @@ internal sealed class DashboardClient : IDashboardClient
         if (address is null)
         {
             _state = StateDisabled;
-            _logger.LogInformation($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
+            _logger.LogDebug($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
             _cts.Cancel();
             _whenConnected.TrySetCanceled();
             return;
         }
 
-        _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
+        _logger.LogDebug("Dashboard configured to connect to: {Address}", address);
 
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
@@ -141,7 +146,7 @@ internal sealed class DashboardClient : IDashboardClient
             return;
         }
 
-        _connection = Task.Run(() => ConnectAndWatchResourcesAsync(_cts.Token), _cts.Token);
+        _connection = Task.Run(() => ConnectAndWatchResourcesAsync(_clientCancellationToken), _clientCancellationToken);
 
         return;
 
@@ -315,8 +320,6 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        var clientCancellationToken = _cts.Token;
-
         lock (_lock)
         {
             // There are two types of channel in this class. This is not a gRPC channel.
@@ -335,7 +338,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 try
                 {
-                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(clientCancellationToken, enumeratorCancellationToken);
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, enumeratorCancellationToken);
 
                     await foreach (var batch in channel.Reader.ReadAllAsync(cts.Token).ConfigureAwait(false))
                     {
@@ -354,7 +357,7 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
@@ -385,21 +388,7 @@ internal sealed class DashboardClient : IDashboardClient
 
             _channel?.Dispose();
 
-            try
-            {
-                if (_connection is { IsCanceled: false })
-                {
-                    await _connection.ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Ignore cancellation
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error from connection task.");
-            }
+            await TaskHelpers.WaitIgnoreCancelAsync(_connection, _logger, "Unexpected error from connection task.").ConfigureAwait(false);
         }
     }
 }

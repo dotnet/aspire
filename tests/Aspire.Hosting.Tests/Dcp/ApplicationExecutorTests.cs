@@ -72,7 +72,9 @@ public class ApplicationExecutorTests
             }),
             new MockDashboardEndpointProvider(),
             new MockDashboardAvailability(),
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new ResourceNotificationService(),
+            new ResourceLoggerService()
             );
     }
 }
