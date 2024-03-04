@@ -18,6 +18,15 @@
         }
       }
     },
+    "signaturesecret": {
+      "type": "parameter.v0",
+      "value": "{signaturesecret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "storage": {
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
@@ -44,6 +53,16 @@
     "sqldb": {
       "type": "value.v0",
       "connectionString": "{sql.connectionString};Database=sqldb"
+    },
+    "mykv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{mykv.outputs.vaultUri}",
+      "path": "mykv.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "signaturesecret": "{signaturesecret.value}"
+      }
     },
     "api": {
       "type": "project.v0",

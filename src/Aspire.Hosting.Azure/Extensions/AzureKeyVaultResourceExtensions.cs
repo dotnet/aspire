@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.KeyVaults;
 
 namespace Aspire.Hosting;
 
@@ -26,4 +27,36 @@ public static class AzureKeyVaultResourceExtensions
                     .WithParameter("vaultName", resource.CreateBicepResourceName())
                     .WithManifestPublishingCallback(resource.WriteToManifest);
     }
+
+    /// <summary>
+    /// Adds an Azure Key Vault resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="configureResource"></param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureKeyVaultConstructResource> AddAzureKeyVaultConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, KeyVault>? configureResource = null)
+    {
+        var configureConstruct = (ResourceModuleConstruct construct) =>
+        {
+            var keyVault = construct.AddKeyVault(name: construct.Resource.Name);
+
+            // HACK: Can be removed when this bug is fixed in CDK:
+            //       https://github.com/Azure/azure-sdk-for-net/issues/42351
+            keyVault.AssignProperty(x => x.Name, $"toLower(take(concat('{construct.Resource.Name}', uniqueString(resourceGroup().id)), 24))");
+
+            if (configureResource != null)
+            {
+                configureResource(construct, keyVault);
+            }
+        };
+        var resource = new AzureKeyVaultConstructResource(name, configureConstruct);
+
+        return builder.AddResource(resource)
+                      // These ambient parameters are only available in development time.
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
 }
