@@ -15,11 +15,14 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
     internal const string PrimaryEndpointName = "tcp";
 
     private EndpointReference? _primaryEndpoint;
+    private InputReference? _passwordInput;
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
 
     /// <summary>
     /// Gets the password for the SQL Server container resource.
@@ -38,7 +41,7 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"Server={PrimaryEndpoint.GetExpression(EndpointProperty.Host)},{PrimaryEndpoint.GetExpression(EndpointProperty.Port)};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
+            return $"Server={PrimaryEndpoint.GetExpression(EndpointProperty.Host)},{PrimaryEndpoint.GetExpression(EndpointProperty.Port)};User ID=sa;Password={PasswordInput.ValueExpression};TrustServerCertificate=true";
         }
     }
 

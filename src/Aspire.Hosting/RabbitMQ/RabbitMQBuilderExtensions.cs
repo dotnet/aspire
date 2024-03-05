@@ -32,7 +32,7 @@ public static class RabbitMQBuilderExtensions
                        {
                            if (context.ExecutionContext.IsPublishMode)
                            {
-                               context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", $"{{{rabbitMq.Name}.inputs.password}}");
+                               context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", rabbitMq.PasswordInput.ValueExpression);
                            }
                            else
                            {

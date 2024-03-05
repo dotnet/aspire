@@ -35,7 +35,7 @@ public static class SqlServerBuilderExtensions
                       {
                           if (context.ExecutionContext.IsPublishMode)
                           {
-                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", $"{{{sqlServer.Name}.inputs.password}}");
+                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", sqlServer.PasswordInput.ValueExpression);
                           }
                           else
                           {

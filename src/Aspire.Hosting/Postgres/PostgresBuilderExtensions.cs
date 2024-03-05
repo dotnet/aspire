@@ -38,7 +38,7 @@ public static class PostgresBuilderExtensions
                       {
                           if (context.ExecutionContext.IsPublishMode)
                           {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{postgresServer.Name}.inputs.password}}");
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, postgresServer.PasswordInput.ValueExpression);
                           }
                           else
                           {

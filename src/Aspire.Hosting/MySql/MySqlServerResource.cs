@@ -15,11 +15,14 @@ public class MySqlServerResource(string name, string password) : ContainerResour
     internal static string PrimaryEndpointName => "tcp";
 
     private EndpointReference? _primaryEndpoint;
+    private InputReference? _passwordInput;
 
     /// <summary>
     /// Gets the primary endpoint for the MySQL server.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
 
     /// <summary>
     /// Gets the MySQL server root password.
@@ -30,7 +33,7 @@ public class MySqlServerResource(string name, string password) : ContainerResour
     /// Gets the connection string expression for the MySQL server.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"Server={PrimaryEndpoint.GetExpression(EndpointProperty.Host)};Port={PrimaryEndpoint.GetExpression(EndpointProperty.Port)};User ID=root;Password={{{Name}.inputs.password}}";
+        $"Server={PrimaryEndpoint.GetExpression(EndpointProperty.Host)};Port={PrimaryEndpoint.GetExpression(EndpointProperty.Port)};User ID=root;Password={PasswordInput.ValueExpression}";
 
     /// <summary>
     /// Gets the connection string for the MySQL server.

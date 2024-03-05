@@ -34,7 +34,7 @@ public static class OracleDatabaseBuilderExtensions
                       {
                           if (context.ExecutionContext.IsPublishMode)
                           {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, oracleDatabaseServer.PasswordInput.ValueExpression);
                           }
                           else
                           {

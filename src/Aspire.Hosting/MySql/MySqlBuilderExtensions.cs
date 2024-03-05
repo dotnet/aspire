@@ -36,7 +36,7 @@ public static class MySqlBuilderExtensions
                       {
                           if (context.ExecutionContext.IsPublishMode)
                           {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{resource.Name}.inputs.password}}");
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, resource.PasswordInput.ValueExpression);
                           }
                           else
                           {
