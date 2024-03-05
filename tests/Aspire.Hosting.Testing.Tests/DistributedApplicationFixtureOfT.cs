@@ -1,10 +1,19 @@
 using Microsoft.Extensions.Hosting;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Aspire.Hosting.Testing.Tests;
 
 public sealed class DistributedApplicationFixture<TEntryPoint> : DistributedApplicationFactory<TEntryPoint>, IAsyncLifetime where TEntryPoint : class
 {
+    public DistributedApplicationFixture()
+    {
+        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
+        {
+            throw new SkipException("These tests can only run in local environments.");
+        }
+    }
+
     protected override void OnBuilderCreating(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostOptions)
     {
         base.OnBuilderCreating(applicationOptions, hostOptions);

@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-// Only run this test when not in CI. [LocalOnlyFact] is insufficient because the fixture is created and initialized unconditionally.
-#if !BUILD_BUILDID
-
 using System.Net.Http.Json;
 using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,4 +48,3 @@ public class TestingFactoryTests(DistributedApplicationFixture<Program> fixture)
         public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
     }
 }
-#endif
