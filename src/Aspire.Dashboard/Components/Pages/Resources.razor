@@ -51,7 +51,10 @@
                         SelectedValue="@SelectedResource"
                         ViewKey="ResourcesList">
         <Summary>
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
+            @{
+                var gridTemplateColumns = HasResourcesWithCommands ? "1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr 1fr" : "1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr";
+            }
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="@gridTemplateColumns" RowClass="GetRowClass">
                 <ChildContent>
                     <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" />
                     <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort">
@@ -77,6 +80,13 @@
                                       Title="@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]"
                                       OnClick="() => ShowResourceDetails(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
+                    @if (HasResourcesWithCommands)
+                    {
+                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
+                            <ResourceCommands Commands="@context.Commands"
+                                              CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)" />
+                        </TemplateColumn>
+                    }
                 </ChildContent>
                 <EmptyContent>
                     <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;@Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)]

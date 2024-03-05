@@ -342,3 +342,11 @@ fluent-switch.table-switch::part(label) {
     padding-left: calc(var(--design-unit) * 2.5px);
     padding-bottom: calc(var(--design-unit) * 2.5px);
 }
+
+/* Align the toast with the top of the body/bottom of the header
+   and the right edge of the filter box
+*/
+.layout .fluent-toast-provider.position-topright {
+    top: 50px;
+    right: calc(var(--design-unit) * 1.5px);
+}

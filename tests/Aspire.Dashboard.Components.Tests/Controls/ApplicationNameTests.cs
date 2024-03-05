@@ -50,6 +50,7 @@ public class ApplicationNameTests : TestContext
         public Task WhenConnected => Task.CompletedTask;
         public string ApplicationName => "<marquee>An HTML title!</marquee>";
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public ResourceViewModelSubscription SubscribeResources() => throw new NotImplementedException();
     }

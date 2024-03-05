@@ -376,6 +376,40 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
+    public async Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken)
+    {
+        EnsureInitialized();
+
+        var request = new ResourceCommandRequest()
+        {
+            CommandType = command.CommandType,
+            Parameter = command.Parameter,
+            ResourceName = resourceName,
+            ResourceType = resourceType
+        };
+
+        try
+        {
+            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+
+            var response = await _client!.ExecuteResourceCommandAsync(request, cancellationToken: combinedTokens.Token);
+
+            return response.ToViewModel();
+        }
+        catch (RpcException ex)
+        {
+            _logger.LogError(ex, "Error executing command \"{CommandType}\" on resource \"{ResourceName}\": {StatusCode}", command.CommandType, resourceName, ex.StatusCode);
+
+            var errorMessage = ex.StatusCode == StatusCode.Unimplemented ? "Command not implemented" : "Unknown error. See logs for details";
+
+            return new ResourceCommandResponseViewModel()
+            {
+                Kind = ResourceCommandResponseKind.Failed,
+                ErrorMessage = errorMessage
+            };
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _state, StateDisposed) is not StateDisposed)

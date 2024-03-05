@@ -27,7 +27,8 @@ partial class Resource
             Environment = GetEnvironment(),
             ExpectedEndpointsCount = ExpectedEndpointsCount,
             Services = GetServices(),
-            State = HasState ? State : null
+            State = HasState ? State : null,
+            Commands = GetCommands()
         };
 
         ImmutableArray<ResourceServiceViewModel> GetServices()
@@ -51,6 +52,13 @@ partial class Resource
                 .ToImmutableArray();
         }
 
+        ImmutableArray<CommandViewModel> GetCommands()
+        {
+            return Commands
+                .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.ConfirmationMessage, c.Parameter))
+                .ToImmutableArray();
+        }
+
         T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
         {
             if (value is null)
@@ -60,5 +68,17 @@ partial class Resource
 
             return value;
         }
+    }
+}
+
+partial class ResourceCommandResponse
+{
+    public ResourceCommandResponseViewModel ToViewModel()
+    {
+        return new ResourceCommandResponseViewModel()
+        {
+            ErrorMessage = ErrorMessage,
+            Kind = (Dashboard.Model.ResourceCommandResponseKind)Kind
+        };
     }
 }
