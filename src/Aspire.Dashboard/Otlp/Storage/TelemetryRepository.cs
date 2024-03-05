@@ -211,7 +211,7 @@ public class TelemetryRepository
             {
                 subscriptions.Remove(subscription!);
             }
-        });
+        }, ExecutionContext.Capture());
 
         lock (_lock)
         {
