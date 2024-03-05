@@ -24,7 +24,7 @@ public static class RabbitMQBuilderExtensions
 
         var rabbitMq = new RabbitMQServerResource(name, password);
         return builder.AddResource(rabbitMq)
-                       .WithEndpoint(hostPort: port, containerPort: 5672, name: MySqlServerResource.PrimaryEndpointName)
+                       .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
                        .WithDefaultPassword()
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")

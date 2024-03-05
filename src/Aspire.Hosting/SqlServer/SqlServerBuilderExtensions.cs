@@ -27,7 +27,7 @@ public static class SqlServerBuilderExtensions
         var sqlServer = new SqlServerServerResource(name, password);
 
         return builder.AddResource(sqlServer)
-                      .WithEndpoint(hostPort: port, containerPort: 1433, name: MySqlServerResource.PrimaryEndpointName)
+                      .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithDefaultPassword()
                       .WithEnvironment("ACCEPT_EULA", "Y")
