@@ -12,8 +12,8 @@ var signaturesecret = builder.AddParameter("signaturesecret");
 
 var storage = builder.AddAzureConstructStorage("storage", (_, account) =>
 {
-    account.AssignParameter(sa => sa.Sku.Name, sku);
-    account.AssignParameter(sa => sa.Location, locationOverride);
+    account.AssignProperty(sa => sa.Sku.Name, sku);
+    account.AssignProperty(sa => sa.Location, locationOverride);
 });
 
 var blobs = storage.AddBlobs("blobs");
@@ -23,13 +23,16 @@ var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct().AddDatabas
 var keyvault = builder.AddAzureKeyVaultConstruct("mykv", (construct, keyVault) =>
 {
     var secret = new KeyVaultSecret(construct, name: "mysecret");
-    secret.AssignParameter(x => x.Properties.Value, signaturesecret);
+    secret.AssignProperty(x => x.Properties.Value, signaturesecret);
 });
+
+var cache = builder.AddRedis("cache").AsAzureRedisConstruct();
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(blobs)
        .WithReference(sqldb)
-       .WithReference(keyvault);
+       .WithReference(keyvault)
+       .WithReference(cache);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

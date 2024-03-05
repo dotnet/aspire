@@ -76,7 +76,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
-    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
+    public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
     {
         parameterName ??= parameterResourceBuilder.Resource.Name;
 
@@ -90,12 +90,12 @@ public static class AzureConstructResourceExtensions
         if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
         {
             var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterName);
-            resource.AssignParameter(propertySelector, parameter);
+            resource.AssignProperty(propertySelector, parameter.Name);
         }
         else
         {
             var parameter = new Parameter(parameterName, isSecure: parameterResourceBuilder.Resource.Secret);
-            resource.AssignParameter(propertySelector, parameter);
+            resource.AssignProperty(propertySelector, parameter);
         }
     }
 
@@ -107,7 +107,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <param name="outputReference">Aspire parameter resource builder.</param>
-    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
+    public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
     {
         parameterName ??= outputReference.Resource.Name;
 
@@ -121,12 +121,12 @@ public static class AzureConstructResourceExtensions
         if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
         {
             var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterName);
-            resource.AssignParameter(propertySelector, parameter);
+            resource.AssignProperty(propertySelector, parameter);
         }
         else
         {
             var parameter = new Parameter(parameterName);
-            resource.AssignParameter(propertySelector, parameter);
+            resource.AssignProperty(propertySelector, parameter);
         }
     }
 }

@@ -211,7 +211,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, skuName);
+            storage.AssignProperty(sa => sa.Sku.Name, skuName);
             moduleConstruct = construct;
         });
 
@@ -249,7 +249,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, skuName, parameterName: "sku");
+            storage.AssignProperty(sa => sa.Sku.Name, skuName, parameterName: "sku");
             moduleConstruct = construct;
         });
 
@@ -569,7 +569,7 @@ public class AzureBicepResourceTests
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureConstructStorage("storage", (_, sa) =>
         {
-            sa.AssignParameter(x => x.Sku.Name, storagesku);
+            sa.AssignProperty(x => x.Sku.Name, storagesku);
         });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
