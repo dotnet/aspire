@@ -119,23 +119,6 @@ public static class ProjectResourceBuilderExtensions
             {
                 var uri = new Uri(url);
 
-                var endpointAnnotations = projectResource.Annotations.OfType<EndpointAnnotation>().Where(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName));
-                if (endpointAnnotations.Any(sb => sb.IsProxied))
-                {
-                    // If someone uses WithEndpoint in the dev host to register a endpoint with the name
-                    // http or https this exception will be thrown.
-                    throw new DistributedApplicationException($"Endpoint with name '{uri.Scheme}' already exists.");
-                }
-
-                if (endpointAnnotations.Any())
-                {
-                    // We have a non-proxied endpoint with the same name as the 'url', don't add another endpoint for the same name
-                    continue;
-                }
-
-                // TODO:
-                //int? port = options.Value.RandomizePorts is true ? null : uri.Port;
-
                 builder.WithEndpoint(uri.Scheme, e =>
                 {
                     e.Port = uri.Port;
@@ -206,10 +189,10 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">The project resource builder.</param>
     /// <param name="launchProfileName">The name of the launch profile to use for execution.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName.")]
+    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName. Method will be removed by GA.")]
     public static IResourceBuilder<ProjectResource> WithLaunchProfile(this IResourceBuilder<ProjectResource> builder, string launchProfileName)
     {
-        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName.");
+        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Method will be removed by GA.");
     }
 
     /// <summary>
@@ -217,10 +200,10 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The project resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile.")]
+    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile. Method will be removed by GA.")]
     public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
     {
-        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile.");
+        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile. Method will be removed by GA.");
     }
 
     private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)

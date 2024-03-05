@@ -375,7 +375,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 var uniqueServiceName = GenerateUniqueServiceName(serviceNames, candidateServiceName);
                 var svc = Service.Create(uniqueServiceName);
 
-                svc.Spec.Port = sba.Port;
+                int? port = _options.Value.RandomizePorts is true && sba.IsProxied ? null : sba.Port;
+                svc.Spec.Port = port;
 
                 addServiceAppResource(svc, sp.ModelResource, sba);
             }
