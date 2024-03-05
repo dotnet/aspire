@@ -10,6 +10,26 @@ namespace Aspire.Dashboard.Components;
 
 public partial class LogMessageColumnDisplay
 {
+    private IJSObjectReference? _onclickReference;
+    private bool _hasErrorInfo;
+    private string? _errorInfo;
+    private readonly string _copyButtonId = Guid.NewGuid().ToString();
+
+    protected override void OnInitialized()
+    {
+       _hasErrorInfo = TryGetErrorInformation(out _errorInfo);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        _onclickReference = await JS.InvokeAsync<IJSObjectReference>("window.addOnCopyButtonClickedListener", _copyButtonId, _errorInfo, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString());
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await JS.InvokeVoidAsync("window.removeOnCopyButtonClickedListener", _onclickReference);
+    }
+
     private bool TryGetErrorInformation([NotNullWhen(true)] out string? errorInfo)
     {
         // exception.stacktrace includes the exception message and type.
@@ -39,8 +59,4 @@ public partial class LogMessageColumnDisplay
             return LogEntry.Properties.GetValue(propertyName);
         }
     }
-
-    private async Task CopyTextToClipboardAsync(string? text, string id)
-        => await JS.InvokeVoidAsync("copyTextToClipboard", id, text, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString());
-
 }

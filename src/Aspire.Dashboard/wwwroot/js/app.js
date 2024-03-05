@@ -53,10 +53,15 @@ function isScrolledToBottom(container) {
 }
 
 window.addOnCopyButtonClickedListener = function (id, text, precopy, postcopy) {
+    const element = document.getElementById(id);
+    // element could be null if the button was rendered in a tooltip that hasn't yet been opened
+    if (!element) return {};
+
     function onClick() {
         copyTextToClipboard(id, text, precopy, postcopy);
     }
-    document.getElementById(id).addEventListener("click", onClick);
+
+    element.addEventListener("click", onClick);
 
     return {
         id: id,
@@ -65,7 +70,12 @@ window.addOnCopyButtonClickedListener = function (id, text, precopy, postcopy) {
 }
 
 window.removeOnCopyButtonClickedListener = function (obj) {
-    document.getElementById(obj.id).removeEventListener("click", obj.listener);
+    if (!obj || !obj.id) return;
+    const element = document.getElementById(obj.id);
+    // element could be null if the button was rendered in a tooltip that hasn't yet been opened
+    if (!element) return;
+
+    element.removeEventListener("click", obj.listener);
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
