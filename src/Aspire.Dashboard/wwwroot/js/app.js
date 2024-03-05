@@ -52,6 +52,22 @@ function isScrolledToBottom(container) {
     return container.scrollHeight - container.clientHeight <= container.scrollTop + marginOfError;
 }
 
+window.addOnCopyButtonClickedListener = function (id, text, precopy, postcopy) {
+    function onClick() {
+        copyTextToClipboard(id, text, precopy, postcopy);
+    }
+    document.getElementById(id).addEventListener("click", onClick);
+
+    return {
+        id: id,
+        listener: onClick
+    }
+}
+
+window.removeOnCopyButtonClickedListener = function (obj) {
+    document.getElementById(obj.id).removeEventListener("click", obj.listener);
+}
+
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
     const button = document.getElementById(id);
 
