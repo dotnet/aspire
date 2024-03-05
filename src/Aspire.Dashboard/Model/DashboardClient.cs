@@ -324,7 +324,7 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         // Wait for initial data to be received from the server. This allows initial data to be returned with subscription when client is starting.
         await _initialDataReceivedTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
@@ -355,6 +355,7 @@ internal sealed class DashboardClient : IDashboardClient
             }
             finally
             {
+                cts.Dispose();
                 ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
             }
         }
