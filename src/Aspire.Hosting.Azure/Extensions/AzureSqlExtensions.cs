@@ -82,7 +82,7 @@ public static class AzureSqlExtensions
             sqlServer.AssignProperty(x => x.Administrators.AdministratorType, "'ActiveDirectory'");
             sqlServer.AssignProperty(x => x.Administrators.IsAzureADOnlyAuthenticationEnabled, "true");
             sqlServer.AssignParameter(x => x.Administrators.Sid, construct.PrincipalIdParameter);
-            sqlServer.AssignParameter(x => x.Administrators.Login, construct.PrincipalName);
+            sqlServer.AssignParameter(x => x.Administrators.Login, construct.PrincipalNameParameter);
             sqlServer.AssignProperty(x => x.Administrators.TenantId, "subscription().tenantId");
 
             var azureServicesFirewallRule = new SqlFirewallRule(construct, sqlServer, "AllowAllAzureIps");

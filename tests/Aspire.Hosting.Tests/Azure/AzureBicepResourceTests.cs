@@ -308,6 +308,36 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task AddKeyVaultConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        global::Azure.Provisioning.KeyVaults.KeyVault? cdkKeyVault = null;
+        var mykv = builder.AddAzureKeyVaultConstruct("mykv", (construct, cdkResource) =>
+        {
+            cdkKeyVault = cdkResource;
+        });
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{mykv.outputs.vaultUri}",
+              "path": "mykv.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        Assert.Equal("mykv", mykv.Resource.Name);
+        var manifest = await ManifestUtils.GetManifest(mykv.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.NotNull(cdkKeyVault);
+    }
+
+    [Fact]
     public void AsAzureSqlDatabase()
     {
         var builder = DistributedApplication.CreateBuilder();
