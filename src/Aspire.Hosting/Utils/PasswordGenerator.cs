@@ -54,15 +54,14 @@ internal static class PasswordGenerator
     /// <summary>
     /// Creates a random string of upper and lower case letters.
     /// </summary>
-    public static string GenerateRandomLettersValue(int minLength)
+    public static string GenerateRandomLettersValue(int length)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(minLength);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(minLength, 128);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, 128);
 
-        Span<char> chars = stackalloc char[minLength];
+        Span<char> chars = stackalloc char[length];
 
         RandomNumberGenerator.GetItems(LettersChars, chars);
-        RandomNumberGenerator.Shuffle(chars);
 
         return new string(chars);
     }
