@@ -109,7 +109,6 @@ Project launch configuration contains details for launching programs that have p
 
 > In Aspire version 1 release only a single launch configuration instance, of type `project`, can be used as part of a run session request issued to Visual Studio. Other types of launch configurations may be added in future releases.
 
-
 ### Stop session request
 
 Used to stop an in-progress run session
@@ -220,4 +219,3 @@ The version always follows `YYYY-mm-dd` format and allows for older/equal/newer 
 If the protocol version is old (no longer supported by the IDE), the IDE should return a 400 Bad Request response with the message indicating that the developer should consider upgrading the Aspire libraries and tooling used by their application.
 
 If the protocol version is newer than the latest the IDE supports, the IDE should make an attempt to parse the request according to its latest supported version. If that fails, it should return 400 Bad Request error.
-
