@@ -3,12 +3,13 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Web;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
-using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 
@@ -19,15 +20,21 @@ public abstract class ChartBase : ComponentBase
     private const int GraphPointCount = 30;
 
     private TimeSpan _tickDuration;
-    private DateTime _lastUpdateTime;
-    private DateTime _currentDataStartTime;
+    private DateTimeOffset _lastUpdateTime;
+    private DateTimeOffset _currentDataStartTime;
     private List<KeyValuePair<string, string>[]>? _renderedDimensionAttributes;
     private OtlpInstrumentKey? _renderedInstrument;
     private string? _renderedTheme;
     private bool _renderedShowCount;
 
     [Inject]
-    public required IStringLocalizer<ControlsStrings> Loc { get; set; }
+    public required IStringLocalizer<ControlsStrings> Loc { get; init; }
+
+    [Inject]
+    public required IInstrumentUnitResolver InstrumentUnitResolver { get; init; }
+
+    [Inject]
+    public required TimeProvider TimeProvider { get; init; }
 
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }
@@ -68,10 +75,10 @@ public abstract class ChartBase : ComponentBase
             _renderedShowCount = InstrumentViewModel.ShowCount;
             await UpdateChart(tickUpdate: false, inProgressDataTime).ConfigureAwait(false);
         }
-        else if (_lastUpdateTime.Add(TimeSpan.FromSeconds(0.2)) < DateTime.UtcNow)
+        else if (_lastUpdateTime.Add(TimeSpan.FromSeconds(0.2)) < TimeProvider.GetUtcNow())
         {
             // Throttle how often the chart is updated.
-            _lastUpdateTime = DateTime.UtcNow;
+            _lastUpdateTime = TimeProvider.GetUtcNow();
             await UpdateChart(tickUpdate: true, inProgressDataTime).ConfigureAwait(false);
         }
     }
@@ -86,7 +93,7 @@ public abstract class ChartBase : ComponentBase
         return InvokeAsync(StateHasChanged);
     }
 
-    private (List<ChartTrace> Y, List<DateTime> X) CalculateHistogramValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTime inProgressDataTime, string yLabel)
+    private (List<ChartTrace> Y, List<DateTimeOffset> X) CalculateHistogramValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTimeOffset inProgressDataTime, string yLabel)
     {
         var pointDuration = Duration / pointCount;
         var traces = new Dictionary<int, ChartTrace>
@@ -95,9 +102,9 @@ public abstract class ChartBase : ComponentBase
             [90] = new() { Name = $"P90 {yLabel}", Percentile = 90 },
             [99] = new() { Name = $"P99 {yLabel}", Percentile = 99 }
         };
-        var xValues = new List<DateTime>();
+        var xValues = new List<DateTimeOffset>();
         var startDate = _currentDataStartTime;
-        DateTime? firstPointEndTime = null;
+        DateTimeOffset? firstPointEndTime = null;
 
         // Generate the points in reverse order so that the chart is drawn from right to left.
         // Add a couple of extra points to the end so that the chart is drawn all the way to the right edge.
@@ -157,9 +164,9 @@ public abstract class ChartBase : ComponentBase
         return (traces.Select(kvp => kvp.Value).ToList(), xValues);
     }
 
-    private string FormatTooltip(string name, double yValue, DateTime xValue)
+    private string FormatTooltip(string name, double yValue, DateTimeOffset xValue)
     {
-        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(xValue)}";
+        return $"<b>{HttpUtility.HtmlEncode(InstrumentViewModel.Instrument?.Name)}</b><br />{HttpUtility.HtmlEncode(name)}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(TimeProvider.ToLocal(xValue))}";
     }
 
     private static HistogramValue GetHistogramValue(MetricValueBase metric)
@@ -172,7 +179,7 @@ public abstract class ChartBase : ComponentBase
         throw new InvalidOperationException("Unexpected metric type: " + metric.GetType());
     }
 
-    internal static bool TryCalculateHistogramPoints(List<DimensionScope> dimensions, DateTime start, DateTime end, Dictionary<int, ChartTrace> traces)
+    internal static bool TryCalculateHistogramPoints(List<DimensionScope> dimensions, DateTimeOffset start, DateTimeOffset end, Dictionary<int, ChartTrace> traces)
     {
         var hasValue = false;
 
@@ -280,13 +287,13 @@ public abstract class ChartBase : ComponentBase
         return explicitBounds[explicitBounds.Length - 1];
     }
 
-    private (List<ChartTrace> Y, List<DateTime> X) CalculateChartValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTime inProgressDataTime, string yLabel)
+    private (List<ChartTrace> Y, List<DateTimeOffset> X) CalculateChartValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTimeOffset inProgressDataTime, string yLabel)
     {
         var pointDuration = Duration / pointCount;
         var yValues = new List<double?>();
-        var xValues = new List<DateTime>();
+        var xValues = new List<DateTimeOffset>();
         var startDate = _currentDataStartTime;
-        DateTime? firstPointEndTime = null;
+        DateTimeOffset? firstPointEndTime = null;
 
         // Generate the points in reverse order so that the chart is drawn from right to left.
         // Add a couple of extra points to the end so that the chart is drawn all the way to the right edge.
@@ -319,7 +326,7 @@ public abstract class ChartBase : ComponentBase
 
         var trace = new ChartTrace
         {
-            Name = yLabel
+            Name = HttpUtility.HtmlEncode(yLabel)
         };
 
         for (var i = 0; i < xValues.Count; i++)
@@ -339,7 +346,7 @@ public abstract class ChartBase : ComponentBase
         return ([trace], xValues);
     }
 
-    private static bool TryCalculatePoint(List<DimensionScope> dimensions, DateTime start, DateTime end, out double pointValue)
+    private static bool TryCalculatePoint(List<DimensionScope> dimensions, DateTimeOffset start, DateTimeOffset end, out double pointValue)
     {
         var hasValue = false;
         pointValue = 0d;
@@ -379,12 +386,12 @@ public abstract class ChartBase : ComponentBase
         return hasValue;
     }
 
-    private static DateTime CalcOffset(int pointIndex, DateTime now, TimeSpan pointDuration)
+    private static DateTimeOffset CalcOffset(int pointIndex, DateTimeOffset now, TimeSpan pointDuration)
     {
         return now.Subtract(pointDuration * pointIndex);
     }
 
-    private async Task UpdateChart(bool tickUpdate, DateTime inProgressDataTime)
+    private async Task UpdateChart(bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
         // Unit comes from the instrument and they're not localized.
         // The hardcoded "Count" label isn't localized for consistency.
@@ -398,7 +405,7 @@ public abstract class ChartBase : ComponentBase
             : CountUnit;
 
         List<ChartTrace> traces;
-        List<DateTime> xValues;
+        List<DateTimeOffset> xValues;
         if (InstrumentViewModel.Instrument?.Type != OtlpInstrumentType.Histogram || InstrumentViewModel.ShowCount)
         {
             (traces, xValues) = CalculateChartValues(InstrumentViewModel.MatchedDimensions, GraphPointCount, tickUpdate, inProgressDataTime, unit);
@@ -411,34 +418,15 @@ public abstract class ChartBase : ComponentBase
         await OnChartUpdated(traces, xValues, tickUpdate, inProgressDataTime);
     }
 
-    private static DateTime GetCurrentDataTime()
+    private DateTimeOffset GetCurrentDataTime()
     {
-        return DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from sevices.;
+        return TimeProvider.GetUtcNow().Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from services.
     }
 
     private string GetDisplayedUnit(OtlpInstrument instrument)
     {
-        if (!string.IsNullOrEmpty(instrument.Unit))
-        {
-            var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
-            return unit.Pluralize().Titleize();
-        }
-
-        // Hard code for instrument names that don't have units
-        // but have a descriptive name that lets us infer the unit.
-        if (instrument.Name.EndsWith(".count"))
-        {
-            return Loc[nameof(ControlsStrings.PlotlyChartCount)];
-        }
-        else if (instrument.Name.EndsWith(".length"))
-        {
-            return Loc[nameof(ControlsStrings.PlotlyChartLength)];
-        }
-        else
-        {
-            return Loc[nameof(ControlsStrings.PlotlyChartValue)];
-        }
+        return InstrumentUnitResolver.ResolveDisplayedUnit(instrument);
     }
 
-    protected abstract Task OnChartUpdated(List<ChartTrace> traces, List<DateTime> xValues, bool tickUpdate, DateTime inProgressDataTime);
+    protected abstract Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime);
 }

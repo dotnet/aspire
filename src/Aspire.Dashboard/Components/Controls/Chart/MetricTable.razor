@@ -15,8 +15,8 @@
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px; max-width:1200px;">
     <FluentDataGrid Items="@_metricsView" ItemSize="35" Virtualize="true" GridTemplateColumns="@string.Join(" ", Enumerable.Repeat("1fr", columnCount))">
         <ChildContent>
-            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.DateTime, false, CultureInfo.CurrentCulture))" Tooltip="true">
-                @FormatHelpers.FormatTimeWithOptionalDate(context.DateTime)
+            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.DateTime.LocalDateTime, false, CultureInfo.CurrentCulture))" Tooltip="true">
+                @FormatHelpers.FormatTimeWithOptionalDate(context.DateTime.LocalDateTime)
             </TemplateColumn>
 
             @if (ShowPercentiles())
