@@ -83,6 +83,21 @@ public class AzureBlobStorageConstructResource(string name, AzureStorageConstruc
     public string? GetConnectionString() => Parent.GetBlobConnectionString();
 
     /// <summary>
+    /// Gets the connection string for the Azure Blob Storage resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the Azure Blob Storage resource.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (Parent.ProvisioningTaskCompletionSource is not null)
+        {
+            await Parent.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
+
+    /// <summary>
     /// Called by manifest publisher to write manifest resource.
     /// </summary>
     /// <param name="context">The context for the manifest publishing operation.</param>

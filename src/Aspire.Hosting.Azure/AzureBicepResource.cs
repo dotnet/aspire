@@ -171,6 +171,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             }
             context.Writer.WriteEndObject();
         }
+
+        context.WriteInputs(this);
     }
 
     /// <summary>

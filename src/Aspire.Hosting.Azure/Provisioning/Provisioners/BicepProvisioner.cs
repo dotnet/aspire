@@ -425,9 +425,10 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                 return null;
             }
 
-            // Now overwite with live object values skipping known values.
-            // This is important because the provisioner will fill in the known values
-            await SetParametersAsync(parameters, resource, skipKnownValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            // Now overwrite with live object values skipping known and generated values.
+            // This is important because the provisioner will fill in the known values and
+            // generated values would change every time, so they can't be part of the checksum.
+            await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             // Get the checksum of the new values
             return GetChecksum(resource, parameters);
@@ -451,12 +452,13 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
     ];
 
     // Converts the parameters to a JSON object compatible with the ARM template
-    internal static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipKnownValues = false, CancellationToken cancellationToken = default)
+    internal static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipDynamicValues = false, CancellationToken cancellationToken = default)
     {
         // Convert the parameters to a JSON object
         foreach (var parameter in resource.Parameters)
         {
-            if (skipKnownValues && s_knownParameterNames.Contains(parameter.Key))
+            if (skipDynamicValues &&
+                (s_knownParameterNames.Contains(parameter.Key) || parameter.Value is InputReference))
             {
                 continue;
             }
@@ -474,6 +476,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                     bool b => b,
                     Guid g => g.ToString(),
                     JsonNode node => node,
+                    InputReference reference => reference.Input.GenerateDefaultValue(),
                     // TODO: Support this
                     AzureBicepResource bicepResource => throw new NotSupportedException("Referencing bicep resources is not supported"),
                     BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),

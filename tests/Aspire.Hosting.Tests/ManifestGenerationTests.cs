@@ -116,11 +116,15 @@ public class ManifestGenerationTests
     [Fact]
     public void ExcludeLaunchProfileOmitsBindings()
     {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-        program.ServiceABuilder.ExcludeLaunchProfile();
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        { Args = GetManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
 
-        program.Build();
-        var publisher = program.GetManifestPublisher();
+        appBuilder.AddProject<Projects.ServiceA>("servicea", launchProfileName: null);
+
+        appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+
+        var program = appBuilder.Build();
+        var publisher = program.Services.GetManifestPublisher();
 
         program.Run();
 
@@ -507,9 +511,14 @@ public class ManifestGenerationTests
 
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
-        var manifestPath = Path.GetTempFileName();
-        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath], includeNodeApp: includeNodeApp);
+        var program = TestProgram.Create<ManifestGenerationTests>(GetManifestArgs(), includeNodeApp: includeNodeApp);
         program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         return program;
+    }
+
+    private static string[] GetManifestArgs()
+    {
+        var manifestPath = Path.GetTempFileName();
+        return ["--publisher", "manifest", "--output-path", manifestPath];
     }
 }

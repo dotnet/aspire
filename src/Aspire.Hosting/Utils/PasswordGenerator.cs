@@ -14,6 +14,7 @@ internal static class PasswordGenerator
 
     internal const string LowerCaseChars = "abcdefghjkmnpqrstuvwxyz"; // exclude i,l,o
     internal const string UpperCaseChars = "ABCDEFGHJKMNPQRSTUVWXYZ"; // exclude I,L,O
+    internal const string LettersChars = LowerCaseChars + UpperCaseChars;
     internal const string DigitChars = "0123456789";
     internal const string SpecialChars = "-_.{}~()*+!"; // exclude &<>=;,`'^%$#@/:[]
 
@@ -46,6 +47,21 @@ internal static class PasswordGenerator
         RandomNumberGenerator.GetItems(DigitChars, chars.Slice(lowerCase + upperCase, digit));
         RandomNumberGenerator.GetItems(SpecialChars, chars.Slice(lowerCase + upperCase + digit, special));
         RandomNumberGenerator.Shuffle(chars);
+
+        return new string(chars);
+    }
+
+    /// <summary>
+    /// Creates a random string of upper and lower case letters.
+    /// </summary>
+    public static string GenerateRandomLettersValue(int length)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, 128);
+
+        Span<char> chars = stackalloc char[length];
+
+        RandomNumberGenerator.GetItems(LettersChars, chars);
 
         return new string(chars);
     }

@@ -19,12 +19,15 @@ public static class AzurePostgresExtensions
     /// <param name="administratorLoginPassword">Parameter containing the administrator password for the server that will be provisioned in Azure.</param>
     /// <param name="callback">Callback to customize the Azure resources that will be provisioned in Azure.</param>
     /// <returns></returns>
-    public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> administratorLogin, IResourceBuilder<ParameterResource> administratorLoginPassword, Action<IResourceBuilder<AzurePostgresResource>>? callback = null)
+    public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
+        this IResourceBuilder<PostgresServerResource> builder,
+        IResourceBuilder<ParameterResource>? administratorLogin = null,
+        IResourceBuilder<ParameterResource>? administratorLoginPassword = null,
+        Action<IResourceBuilder<AzurePostgresResource>>? callback = null)
     {
         var resource = new AzurePostgresResource(builder.Resource);
         var azurePostgres = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
-        azurePostgres.WithParameter("administratorLogin", administratorLogin)
-                     .WithParameter("administratorLoginPassword", administratorLoginPassword)
+        azurePostgres.WithLoginAndPassword(administratorLogin, administratorLoginPassword)
                      .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Value));
 
         if (callback != null)
@@ -43,12 +46,15 @@ public static class AzurePostgresExtensions
     /// <param name="administratorLoginPassword">Parameter containing the administrator password for the server that will be provisioned in Azure.</param>
     /// <param name="callback">Callback to customize the Azure resources that will be provisioned in Azure.</param>
     /// <returns></returns>
-    public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> administratorLogin, IResourceBuilder<ParameterResource> administratorLoginPassword, Action<IResourceBuilder<AzurePostgresResource>>? callback = null)
+    public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
+        this IResourceBuilder<PostgresServerResource> builder,
+        IResourceBuilder<ParameterResource>? administratorLogin = null,
+        IResourceBuilder<ParameterResource>? administratorLoginPassword = null,
+        Action<IResourceBuilder<AzurePostgresResource>>? callback = null)
     {
         var resource = new AzurePostgresResource(builder.Resource);
         var azurePostgres = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
-        azurePostgres.WithParameter("administratorLogin", administratorLogin)
-                     .WithParameter("administratorLoginPassword", administratorLoginPassword)
+        azurePostgres.WithLoginAndPassword(administratorLogin, administratorLoginPassword)
                      .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Value));
 
         // Used to hold a reference to the azure surrogate for use with the provisioner.
@@ -75,5 +81,39 @@ public static class AzurePostgresExtensions
         return builder.WithManifestPublishingCallback(resource.WriteToManifest)
                       .WithParameter("serverName", resource.CreateBicepResourceName())
                       .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName);
+    }
+
+    private static IResourceBuilder<AzurePostgresResource> WithLoginAndPassword(
+        this IResourceBuilder<AzurePostgresResource> builder,
+        IResourceBuilder<ParameterResource>? administratorLogin,
+        IResourceBuilder<ParameterResource>? administratorLoginPassword)
+    {
+        if (administratorLogin is null)
+        {
+            const string usernameInput = "username";
+            // generate a username since a parameter was not provided
+            builder.WithAnnotation(new InputAnnotation(usernameInput)
+            {
+                Default = new GenerateInputDefault { MinLength = 10 }
+            });
+
+            builder.WithParameter("administratorLogin", new InputReference(builder.Resource, usernameInput));
+        }
+        else
+        {
+            builder.WithParameter("administratorLogin", administratorLogin);
+        }
+
+        if (administratorLoginPassword is null)
+        {
+            // generate a password since a parameter was not provided. Use the existing "password" input from the underlying PostgresServerResource
+            builder.WithParameter("administratorLoginPassword", new InputReference(builder.Resource, "password"));
+        }
+        else
+        {
+            builder.WithParameter("administratorLoginPassword", administratorLoginPassword);
+        }
+
+        return builder;
     }
 }

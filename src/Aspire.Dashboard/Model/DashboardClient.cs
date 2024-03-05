@@ -36,6 +36,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
+    private readonly CancellationToken _clientCancellationToken;
     private readonly TaskCompletionSource _whenConnected = new();
     private readonly object _lock = new();
 
@@ -61,6 +62,9 @@ internal sealed class DashboardClient : IDashboardClient
     {
         _loggerFactory = loggerFactory;
         _configuration = configuration;
+
+        // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
+        _clientCancellationToken = _cts.Token;
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
@@ -142,7 +146,7 @@ internal sealed class DashboardClient : IDashboardClient
             return;
         }
 
-        _connection = Task.Run(() => ConnectAndWatchResourcesAsync(_cts.Token), _cts.Token);
+        _connection = Task.Run(() => ConnectAndWatchResourcesAsync(_clientCancellationToken), _clientCancellationToken);
 
         return;
 
@@ -316,8 +320,6 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        var clientCancellationToken = _cts.Token;
-
         lock (_lock)
         {
             // There are two types of channel in this class. This is not a gRPC channel.
@@ -336,7 +338,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 try
                 {
-                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(clientCancellationToken, enumeratorCancellationToken);
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, enumeratorCancellationToken);
 
                     await foreach (var batch in channel.Reader.ReadAllAsync(cts.Token).ConfigureAwait(false))
                     {
@@ -355,7 +357,7 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },

@@ -16,7 +16,7 @@ public class ProjectResourceTests
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<TestProject>("projectName");
+        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -24,7 +24,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
-        Assert.Equal(5, resource.Annotations.Count);
+        Assert.Equal(6, resource.Annotations.Count);
 
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
@@ -79,7 +79,7 @@ public class ProjectResourceTests
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<TestProject>("projectName")
+        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null)
             .WithReplicas(5);
         using var app = appBuilder.Build();
 
@@ -98,8 +98,7 @@ public class ProjectResourceTests
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<Projects.ServiceA>("projectName")
-            .WithLaunchProfile("http");
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: "http");
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -112,23 +111,21 @@ public class ProjectResourceTests
     }
 
     [Fact]
-    public void WithLaunchProfileFailsIfProfileDoesNotExist()
+    public void AddProjectFailsIfFileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
 
-        var project = appBuilder.AddProject<Projects.ServiceA>("projectName");
-        var ex = Assert.Throws<DistributedApplicationException>(() => project.WithLaunchProfile("not-exist"));
-        Assert.Equal("Launch settings file does not contain 'not-exist' profile.", ex.Message);
+        var ex = Assert.Throws<DistributedApplicationException>(() => appBuilder.AddProject<TestProject>("projectName"));
+        Assert.Equal("Project file 'another-path' was not found.", ex.Message);
     }
 
     [Fact]
-    public void WithLaunchProfileFailsIfFileDoesNotExist()
+    public void SpecificLaunchProfileFailsIfProfileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
 
-        var project = appBuilder.AddProject<TestProject>("projectName");
-        var ex = Assert.Throws<DistributedApplicationException>(() => project.WithLaunchProfile("not-exist"));
-        Assert.Equal("Project file 'another-path' was not found.", ex.Message);
+        var ex = Assert.Throws<DistributedApplicationException>(() => appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: "not-exist"));
+        Assert.Equal("Launch settings file does not contain 'not-exist' profile.", ex.Message);
     }
 
     [Fact]
@@ -136,8 +133,7 @@ public class ProjectResourceTests
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<Projects.ServiceA>("projectName")
-            .ExcludeLaunchProfile();
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -147,18 +143,6 @@ public class ProjectResourceTests
         var resource = Assert.Single(projectResources);
         // ExcludeLaunchProfileAnnotation isn't public, so we just check the type name
         Assert.Contains(resource.Annotations, a => a.GetType().Name == "ExcludeLaunchProfileAnnotation");
-    }
-
-    [Fact]
-    public void ProjectWithoutServiceMetadataFailsWithLaunchProfile()
-    {
-        var appBuilder = CreateBuilder();
-
-        var project = new ProjectResource("projectName");
-        var projectResource = appBuilder.AddResource(project);
-
-        var ex = Assert.Throws<DistributedApplicationException>(() => projectResource.WithLaunchProfile("not-exist"));
-        Assert.Equal("Project does not contain project metadata.", ex.Message);
     }
 
     private static IDistributedApplicationBuilder CreateBuilder()
