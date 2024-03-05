@@ -9,7 +9,7 @@ public class ConfigurationTests
 {
     [Fact]
     public void ConnectionStringIsNullByDefault()
-    => Assert.Null(new NatsClientSettings().ConnectionString);
+        => Assert.Null(new NatsClientSettings().ConnectionString);
 
     [Fact]
     public void HealthCheckIsEnabledByDefault()
