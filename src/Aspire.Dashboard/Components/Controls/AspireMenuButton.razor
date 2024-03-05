@@ -17,7 +17,7 @@
         }
     </FluentButton>
 
-     <FluentMenu Anchor="@_buttonId" aria-labelledby="button" @bind-Open="@_visible">
+    <FluentMenu Anchor="@_buttonId" aria-labelledby="button" @bind-Open="@_visible">
         @foreach (TItem command in Items)
         {
             <FluentMenuItem OnClick="() => HandleItemClicked(command)">@ItemText(command)</FluentMenuItem>

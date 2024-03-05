@@ -390,7 +390,9 @@ internal sealed class DashboardClient : IDashboardClient
 
         try
         {
-            var response = await _client!.ExecuteResourceCommandAsync(request, cancellationToken: cancellationToken);
+            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+
+            var response = await _client!.ExecuteResourceCommandAsync(request, cancellationToken: combinedTokens.Token);
 
             return response.ToViewModel();
         }

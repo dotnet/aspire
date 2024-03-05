@@ -12,7 +12,7 @@ public partial class AspireMenuButton<TItem> : FluentComponentBase
     private static readonly Icon s_defaultIcon = new Icons.Regular.Size24.ChevronDown();
 
     private bool _visible;
-    private Icon? _icon { get; set; }
+    private Icon? _icon;
 
     private readonly string _buttonId = Identifier.NewId();
 
