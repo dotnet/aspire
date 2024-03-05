@@ -11,14 +11,9 @@ using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class TestingFactoryTests : IClassFixture<DistributedApplicationFixture<Program>>
+public class TestingFactoryTests(DistributedApplicationFixture<Program> fixture) : IClassFixture<DistributedApplicationFixture<Program>>
 {
-    private readonly DistributedApplication _app;
-
-    public TestingFactoryTests(DistributedApplicationFixture<Program> fixture)
-    {
-        _app = fixture.Application;
-    }
+    private readonly DistributedApplication _app = fixture.Application;
 
     [LocalOnlyFact]
     public void HasEndPoints()
