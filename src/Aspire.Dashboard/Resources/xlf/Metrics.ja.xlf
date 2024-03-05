@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="MetricsLastOneMinute">
         <source>Last 1 minute</source>
-        <target state="new">Last 1 minute</target>
+        <target state="translated">過去 1 分</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastSixHours">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
-        <target state="new">No metrics for the selected resource</target>
+        <target state="translated">選択したリソースのメトリックがありません</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsPageTitle">
@@ -79,12 +79,12 @@
       </trans-unit>
       <trans-unit id="MetricsSelectAResource">
         <source>Select a resource to view metrics</source>
-        <target state="new">Select a resource to view metrics</target>
+        <target state="translated">メトリックを表示するリソースを選択します</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsSelectInstrument">
         <source>Select instrument.</source>
-        <target state="new">Select instrument.</target>
+        <target state="translated">インストルメントを選択します。</target>
         <note />
       </trans-unit>
     </body>

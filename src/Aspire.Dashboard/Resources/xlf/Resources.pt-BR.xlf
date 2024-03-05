@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerCommandProperty">
         <source>Container command</source>
-        <target state="new">Container command</target>
+        <target state="translated">Comando de contêiner</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerIdProperty">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
         <source>Container ports</source>
-        <target state="new">Container ports</target>
+        <target state="translated">Portas de contêiner</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsDisplayNameProperty">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutableArgumentsProperty">
         <source>Executable arguments</source>
-        <target state="new">Executable arguments</target>
+        <target state="translated">Argumentos executáveis</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutablePathProperty">
@@ -139,7 +139,7 @@
       </trans-unit>
       <trans-unit id="ResourcesEnvironmentVariablesHeader">
         <source>Environment variables for {0}</source>
-        <target state="new">Environment variables for {0}</target>
+        <target state="translated">Variáveis de ambiente para {0}</target>
         <note>{0} is a resource</note>
       </trans-unit>
       <trans-unit id="ResourcesHeader">
@@ -174,12 +174,12 @@
       </trans-unit>
       <trans-unit id="ResourcesTypeFilterAllVisible">
         <source>Type filter: All types visible</source>
-        <target state="new">Type filter: All types visible</target>
+        <target state="translated">Filtro de tipo: todos os tipos visíveis</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeFiltered">
         <source>Type filter: Filtered</source>
-        <target state="new">Type filter: Filtered</target>
+        <target state="translated">Filtro de tipo: Filtrado</target>
         <note />
       </trans-unit>
     </body>

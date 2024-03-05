@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="FilterDialogConditionSelectLabel">
         <source>Select a filter condition</source>
-        <target state="new">Select a filter condition</target>
+        <target state="translated">Wybierz warunek filtru</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
         <source>Site-wide navigation</source>
-        <target state="new">Site-wide navigation</target>
+        <target state="translated">Nawigacja w całej witrynie</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryPageNavigation">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="HelpDialogDecreasePanelSize">
         <source>Decrease panel size</source>
-        <target state="new">Decrease panel size</target>
+        <target state="translated">Zmniejsz rozmiar panelu</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGetHelpLinkText">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="HelpDialogGoToConsoleLogs">
         <source>Go to Console Logs</source>
-        <target state="new">Go to Console Logs</target>
+        <target state="translated">Przejdź do dzienników konsoli</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToHelp">
@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="HelpDialogGoToResources">
         <source>Go to Resources</source>
-        <target state="new">Go to Resources</target>
+        <target state="translated">Przejdź do zasobów</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToSettings">
@@ -84,17 +84,17 @@
       </trans-unit>
       <trans-unit id="HelpDialogGoToStructuredLogs">
         <source>Go to Structured Logs</source>
-        <target state="new">Go to Structured Logs</target>
+        <target state="translated">Przejdź do dzienników strukturalnych</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogGoToTraces">
         <source>Go to Traces</source>
-        <target state="new">Go to Traces</target>
+        <target state="translated">Przejdź do obszaru Ślady</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogIncreasePanelSize">
         <source>Increase panel size</source>
-        <target state="new">Increase panel size</target>
+        <target state="translated">Zwiększ rozmiar panelu</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogKeyboardShortcutsTitle">
@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="HelpDialogResetPanelSize">
         <source>Reset panel sizes</source>
-        <target state="new">Reset panel sizes</target>
+        <target state="translated">Resetuj rozmiary paneli</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogTogglePanelOpen">
@@ -114,7 +114,7 @@
       </trans-unit>
       <trans-unit id="HelpDialogTogglePanelOrientation">
         <source>Toggle panel orientation</source>
-        <target state="new">Toggle panel orientation</target>
+        <target state="translated">Przełącz orientację panelu</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">

@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>.NET Aspire repo</source>
-        <target state="new">.NET Aspire repo</target>
+        <target state="translated">Repositório do .NET( 2013)</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
