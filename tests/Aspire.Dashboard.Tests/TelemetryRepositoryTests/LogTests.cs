@@ -518,10 +518,10 @@ public class LogTests
 
         var repository = CreateRepository();
 
-        string? callbackValue = null;
+        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var subscription = repository.OnNewApplications(() =>
         {
-            callbackValue = asyncLocal.Value;
+            tcs.SetResult(asyncLocal.Value);
             return Task.CompletedTask;
         });
 
@@ -553,6 +553,7 @@ public class LogTests
         await task;
 
         // Assert
+        var callbackValue = await tcs.Task;
         Assert.Equal("CustomValue", callbackValue);
     }
 }
