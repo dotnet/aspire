@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -75,8 +74,6 @@ internal static partial class FormatHelpers
     public static string FormatTimeWithOptionalDate(DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
     {
         var local = value.ToLocalTime();
-
-        Debug.WriteLine(CultureInfo.CurrentCulture.Name);
 
         // If the date is today then only return time, otherwise return entire date time text.
         if (local.Date == DateTime.Now.Date)
