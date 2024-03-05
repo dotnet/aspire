@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 
@@ -28,14 +27,7 @@ internal sealed class CloudFormationLifecycleHook(
 
         foreach (CloudFormationResource cloudFormationResource in appModel.Resources.OfType<CloudFormationResource>())
         {
-            var state = new CustomResourceSnapshot
-            {
-                ResourceType = cloudFormationResource.GetType().Name,
-                State = Constants.ResourceStateStarting,
-                Properties = ImmutableArray.Create<(string, string)>()
-            };
-
-            await notificationService.PublishUpdateAsync(cloudFormationResource, (s) => state).ConfigureAwait(false);
+            await notificationService.PublishUpdateAsync(cloudFormationResource, (state) => state with { State = Constants.ResourceStateStarting}).ConfigureAwait(false);
             cloudFormationResource.ProvisioningTaskCompletionSource = new();
         }
 
