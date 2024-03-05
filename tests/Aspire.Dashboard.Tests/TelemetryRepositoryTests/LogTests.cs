@@ -526,13 +526,14 @@ public class LogTests
         });
 
         // Act
-        var suppressed = ExecutionContext.SuppressFlow();
-
-        var task = Task.Run(() =>
+        Task task;
+        using (ExecutionContext.SuppressFlow())
         {
-            var addContext = new AddContext();
-            repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+            task = Task.Run(() =>
             {
+                var addContext = new AddContext();
+                repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+                {
                 new ResourceLogs
                 {
                     Resource = CreateResource(),
@@ -545,10 +546,9 @@ public class LogTests
                         }
                     }
                 }
+                });
             });
-        });
-
-        suppressed.Dispose();
+        }
 
         await task;
 
