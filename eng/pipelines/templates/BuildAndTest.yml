@@ -50,7 +50,7 @@ steps:
                 -p:Configuration=${{ parameters.buildConfig }}
                 -p:TriggerInstallWorkloadForTesting=true
                 -bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
-                --project $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
+                --projects $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
         displayName: Install sdk+workload for testing
 
     - template: /eng/pipelines/templates/send-to-helix.yml
