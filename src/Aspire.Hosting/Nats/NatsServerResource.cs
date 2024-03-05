@@ -10,10 +10,20 @@ namespace Aspire.Hosting.ApplicationModel;
 
 public class NatsServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "tcp";
+    internal const string PrimaryNatsSchemeName = "nats";
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the primary endpoint for the NATS server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
     /// <summary>
     /// Gets the connection string expression for the NATS server for the manifest.
     /// </summary>
-    public string? ConnectionStringExpression => $"nats://{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+    public string? ConnectionStringExpression => $"{PrimaryNatsSchemeName}://{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
 
     /// <summary>
     /// Gets the connection string (NATS_URL) for the NATS server.
@@ -22,11 +32,6 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
 
     public string GetConnectionString()
     {
-        if (!this.TryGetAllocatedEndPoints(out var endpoints))
-        {
-            throw new DistributedApplicationException("Expected allocated endpoints!");
-        }
-
-        return string.Join(",", endpoints.Select(e => $"nats://{e.EndPointString}"));
+        return $"{PrimaryNatsSchemeName}://{PrimaryEndpoint.Host}:{PrimaryEndpoint.Port}";
     }
 }
