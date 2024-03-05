@@ -380,7 +380,7 @@ public class ManifestGenerationTests
                     "name": "deployment",
                     "sku": {
                       "name": "Standard",
-                      "capacity": 2
+                      "capacity": 1
                     },
                     "model": {
                       "format": "OpenAI",

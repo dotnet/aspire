@@ -11,7 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="modelVersion">The version of the model.</param>
 /// <param name="skuName">The name of the SKU.</param>
 /// <param name="skuCapacity">The capacity of the SKU.</param>
-public class AzureOpenAIDeployment(string name, string modelName, string modelVersion, string skuName = "Standard", int skuCapacity = 2)
+public class AzureOpenAIDeployment(string name, string modelName, string modelVersion, string skuName = "Standard", int skuCapacity = 1)
 {
     /// <summary>
     /// Gets the name of the deployment.

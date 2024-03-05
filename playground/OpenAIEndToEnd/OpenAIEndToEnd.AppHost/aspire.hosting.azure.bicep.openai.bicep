@@ -52,10 +52,7 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01
   properties: {
     model: deployment.model
   }
-  sku: contains(deployment, 'sku') ? deployment.sku : {
-    name: 'Standard'
-    capacity: 20
-  }
+  sku: deployment.sku
 }]
 
 // Find list of roles and GUIDs in https://learn.microsoft.com/azure/role-based-access-control/built-in-roles
@@ -71,5 +68,8 @@ resource cognitiveServiceContributorRoleAssignment 'Microsoft.Authorization/role
     roleDefinitionId: contributorRole
   }
 }
+
+output connectionString string = 'Endpoint=${account.properties.endpoint}'
+
 
 output connectionString string = 'Endpoint=${account.properties.endpoint}'

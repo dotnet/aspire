@@ -11,7 +11,7 @@
             "name": "gpt-35-turbo",
             "sku": {
               "name": "Standard",
-              "capacity": 2
+              "capacity": 1
             },
             "model": {
               "format": "OpenAI",
@@ -23,9 +23,6 @@
         "principalId": "",
         "principalType": ""
       }
-    },
-    "gpt-35-turbo": {
-      "error": "This resource does not support generation in the manifest."
     },
     "webstory": {
       "type": "project.v0",
