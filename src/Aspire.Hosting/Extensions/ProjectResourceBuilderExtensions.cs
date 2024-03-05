@@ -128,13 +128,13 @@ public static class ProjectResourceBuilderExtensions
         }
         else
         {
-            var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
-
             // If we aren't a web project we don't automatically add bindings.
             if (!IsWebProject(projectResource))
             {
                 return builder;
             }
+
+            var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
 
             if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || string.Equals(sb.Name, "http", StringComparisons.EndpointAnnotationName)))
             {
