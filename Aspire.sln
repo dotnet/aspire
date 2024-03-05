@@ -163,7 +163,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nats", "nats", "{91F22EEA-E
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nats.ApiService", "playground\nats\Nats.ApiService\Nats.ApiService.csproj", "{74F89D52-645B-4283-98AF-D04DA794EE37}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nats.AppHosting", "playground\nats\Nats.AppHosting\Nats.AppHosting.csproj", "{A0BB6F6B-9543-4525-81D6-95DC07BD3D02}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nats.AppHost", "playground\nats\Nats.AppHost\Nats.AppHost.csproj", "{A0BB6F6B-9543-4525-81D6-95DC07BD3D02}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Nats.Client", "src\Components\Aspire.Nats.Client\Aspire.Nats.Client.csproj", "{303E6308-740C-4673-96D2-0E81934C9E69}"
 EndProject
