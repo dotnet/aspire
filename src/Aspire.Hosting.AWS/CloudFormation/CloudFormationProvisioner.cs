@@ -138,8 +138,8 @@ internal sealed class CloudFormationProvisioner(
                     resourceLogger.LogInformation("Create CloudFormation stack {StackName}", cloudFormationResource.Name);
                     try
                     {
-                        await cfClient.CreateStackAsync(createStackRequest, cancellationToken).ConfigureAwait(false);
                         stackChanged = true;
+                        await cfClient.CreateStackAsync(createStackRequest, cancellationToken).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -165,7 +165,7 @@ internal sealed class CloudFormationProvisioner(
                     var tags = stack.Tags;
 
                     var shaTag = tags.FirstOrDefault(x => string.Equals(x.Key, SHA256_TAG, StringComparison.Ordinal));
-                    if (shaTag != null && string.Equals(templateSha256, shaTag.Value, StringComparison.Ordinal))
+                    if (shaTag != null && string.Equals(templateSha256, shaTag.Value, StringComparison.Ordinal) && !IsStackInErrorState(stack))
                     {
                         resourceLogger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", cloudFormationResource.Name);
                     }
@@ -192,8 +192,8 @@ internal sealed class CloudFormationProvisioner(
                         resourceLogger.LogInformation("Updating CloudFormation stack {StackName}", cloudFormationResource.Name);
                         try
                         {
-                            await cfClient.UpdateStackAsync(updateStackRequest, cancellationToken).ConfigureAwait(false);
                             stackChanged = true;
+                            await cfClient.UpdateStackAsync(updateStackRequest, cancellationToken).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -219,7 +219,7 @@ internal sealed class CloudFormationProvisioner(
                 }
 
                 var stateEnum = Constants.ResourceStateRunning;
-                if (stackChanged && (stack.StackStatus.ToString(CultureInfo.InvariantCulture).EndsWith("FAILED", StringComparison.OrdinalIgnoreCase) || stack.StackStatus == StackStatus.UPDATE_ROLLBACK_COMPLETE))
+                if (stackChanged && IsStackInErrorState(stack))
                 {
                     stateEnum = Constants.ResourceStateFailedToStart;
                 }
@@ -234,7 +234,15 @@ internal sealed class CloudFormationProvisioner(
                 // allows projects that have a reference to the stack have the output parameters applied to the
                 // projects IConfiguration.
                 cloudFormationResource.Outputs = stack.Outputs;
-                cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
+
+                if(stateEnum ==  Constants.ResourceStateFailedToStart)
+                {
+                    cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetException(new AWSProvisioningException("Failed to apply CloudFormation template", null));
+                }
+                else
+                {
+                    cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
+                }
             }
             catch (Exception ex)
             {
@@ -248,13 +256,23 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
+    private static bool IsStackInErrorState(Stack stack)
+    {
+        if(stack.StackStatus.ToString(CultureInfo.InvariantCulture).EndsWith("FAILED", StringComparison.OrdinalIgnoreCase) || stack.StackStatus.ToString(CultureInfo.InvariantCulture).EndsWith("ROLLBACK_COMPLETE", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, CustomResourceSnapshot state)
     {
-        await notificationService.PublishUpdateAsync(resource, state).ConfigureAwait(false);
+        await notificationService.PublishUpdateAsync(resource, (s) => state).ConfigureAwait(false);
         foreach (var reference in resource.References)
         {
             CustomResourceSnapshot refState = state with { ResourceType = reference.GetType().Name };
-            await notificationService.PublishUpdateAsync(reference, refState).ConfigureAwait(false);
+            await notificationService.PublishUpdateAsync(reference, (s) => refState).ConfigureAwait(false);
 
             if(refState.State == Constants.ResourceStateRunning)
             {

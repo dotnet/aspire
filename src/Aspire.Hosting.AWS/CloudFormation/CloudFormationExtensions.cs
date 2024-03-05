@@ -104,14 +104,17 @@ public static class CloudFormationExtensions
             impl.References.Add(referenceResource.Resource);
         }
 
-        builder.WithEnvironment(context =>
+        builder.WithEnvironment(async context =>
         {
             if (context.ExecutionContext.IsPublishMode)
             {
                 return;
             }
 
-            cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource?.Task.Wait();
+            if (cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource is not null)
+            {
+                await cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+            }
 
             if (cloudFormationResourceBuilder.Resource.Outputs == null)
             {

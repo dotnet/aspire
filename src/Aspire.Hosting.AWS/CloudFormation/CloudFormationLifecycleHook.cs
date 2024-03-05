@@ -1,40 +1,45 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
 /// <summary>
 /// The lifecycle hook that handles deploying the CloudFormation template to a CloudFormation stack.
 /// </summary>
-/// <param name="publishingOptions"></param>
+/// <param name="executionContext"></param>
 /// <param name="notificationService"></param>
 /// <param name="loggerService"></param>
 internal sealed class CloudFormationLifecycleHook(
-    IOptions<PublishingOptions> publishingOptions,
+    DistributedApplicationExecutionContext executionContext,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
 {
 
-    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (publishingOptions.Value.Publisher == "manifest")
+        if (executionContext.IsPublishMode)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         foreach (CloudFormationResource cloudFormationResource in appModel.Resources.OfType<CloudFormationResource>())
         {
+            var state = new CustomResourceSnapshot
+            {
+                ResourceType = cloudFormationResource.GetType().Name,
+                State = Constants.ResourceStateStarting,
+                Properties = ImmutableArray.Create<(string, string)>()
+            };
+
+            await notificationService.PublishUpdateAsync(cloudFormationResource, (s) => state).ConfigureAwait(false);
             cloudFormationResource.ProvisioningTaskCompletionSource = new();
         }
 
         _ = Task.Run(() => new CloudFormationProvisioner(appModel, notificationService, loggerService).ConfigureCloudFormation(), cancellationToken);
-
-        return Task.CompletedTask;
     }
 }
 
