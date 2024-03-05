@@ -71,7 +71,8 @@ internal static class DashboardUrls
         }
         if (filters != null)
         {
-            url = QueryHelpers.AddQueryString(url, "filters", filters);
+            // Filters should already be escaped.
+            url += (!url.Contains('?')) ? $"?filters={filters}" : $"&filters={filters}";
         }
         if (traceId != null)
         {
