@@ -4,52 +4,52 @@
     <body>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</source>
-        <target state="new">Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</target>
+        <target state="translated">No se encontró el '{0}' de tiempo de ejecución del contenedor. El error de la comprobación en tiempo de ejecución del contenedor fue: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="new">Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</target>
+        <target state="translated">Se encontró el '{0}' de tiempo de ejecución del contenedor, pero parece que está en mal estado. Se {1} el error de la comprobación en tiempo de ejecución del contenedor.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
         <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="new">Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</target>
+        <target state="translated">Se encontró el '{0}' de tiempo de ejecución del contenedor, pero parece que no responde. El '{0}' de comandos no se devolvió después de {1} segundos.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="new">Application orchestrator dependency check had an unexpected error {0}.</target>
+        <target state="translated">Error inesperado en la comprobación de dependencias del orquestador de aplicaciones {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckFailedMessage">
         <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="new">The application orchestrator version could not be determined. Continuing.</target>
+        <target state="translated">No se pudo determinar la versión del orquestador de la aplicación. Continuar.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooHighMessage">
         <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
-        <target state="new">Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</target>
+        <target state="translated">Se encontró una versión incompatible de la carga de trabajo de .NET Workload (se necesita la versión del orquestador de aplicaciones {0} para ejecutar la aplicación).</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
-        <target state="new">Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</target>
+        <target state="translated">Se requiere una versión más reciente de la carga de trabajo de .NET Para ejecutar la aplicación. Ejecute "dotnet workload update" para obtenerla.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
         <source>Launch profile is specified but launch settings file is not present.</source>
-        <target state="new">Launch profile is specified but launch settings file is not present.</target>
+        <target state="translated">Se especificó el perfil de inicio, pero el archivo de configuración de inicio no está presente.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">
         <source>Launch settings file does not contain '{0}' profile.</source>
-        <target state="new">Launch settings file does not contain '{0}' profile.</target>
+        <target state="translated">El archivo de configuración de inicio no contiene '{0}' perfil.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectDoesNotContainMetadataExceptionMessage">
         <source>Project does not contain project metadata.</source>
-        <target state="new">Project does not contain project metadata.</target>
+        <target state="translated">El proyecto no contiene metadatos de proyecto.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotFoundExceptionMessage">

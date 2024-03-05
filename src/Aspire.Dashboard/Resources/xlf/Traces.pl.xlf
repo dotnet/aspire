@@ -19,27 +19,27 @@
       </trans-unit>
       <trans-unit id="TracesNoTraces">
         <source>No traces found</source>
-        <target state="new">No traces found</target>
+        <target state="translated">Nie znaleziono śladów</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesPageTitle">
         <source>{0} traces</source>
-        <target state="new">{0} traces</target>
+        <target state="translated">ślady {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TracesResourceSpans">
         <source>{0} spans</source>
-        <target state="new">{0} spans</target>
+        <target state="translated">{0} zakresy</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="new">Spans</target>
+        <target state="translated">Obejmuje</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
         <source>Errored: {0}</source>
-        <target state="new">Errored: {0}</target>
+        <target state="translated">Błąd: {0}</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="TracesTraceId">
         <source>Trace Id: {0}</source>
-        <target state="new">Trace Id: {0}</target>
+        <target state="translated">Identyfikator śledzenia: {0}</target>
         <note />
       </trans-unit>
     </body>
