@@ -58,7 +58,7 @@ public class TestProgram : IDisposable
             var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
             var mongodb = AppBuilder.AddMongoDB("mongodb")
                 .AddDatabase(mongoDbName);
-            var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
+            var oracleDatabase = AppBuilder.AddOracle("oracledatabase")
                 .AddDatabase(oracleDbName);
             var kafka = AppBuilder.AddKafka("kafka");
             var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();

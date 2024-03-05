@@ -106,7 +106,7 @@ or
  In your AppHost project, register an Oracle container and consume the connection using the following methods: 
   
  ```csharp 
- var freepdb1 = builder.AddOracleDatabase("oracle").AddDatabase("freepdb1");
+ var freepdb1 = builder.AddOracle("oracle").AddDatabase("freepdb1");
   
  var myService = builder.AddProject<Projects.MyService>() 
                         .WithReference(freepdb1); 
