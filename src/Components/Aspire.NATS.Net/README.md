@@ -1,4 +1,4 @@
-# Aspire.Nats.Client library
+# Aspire.NATS.Net library
 
 Registers [INatsConnection](https://nats-io.github.io/nats.net.v2/api/NATS.Client.Core.INatsConnection.html) in the DI container for connecting NATS server. Enables corresponding health check, metrics, logging and telemetry.
 
@@ -13,7 +13,7 @@ Registers [INatsConnection](https://nats-io.github.io/nats.net.v2/api/NATS.Clien
 Install the .NET Aspire NATS library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Nats.Client
+dotnet add package Aspire.NATS.Net
 ```
 
 ## Usage example

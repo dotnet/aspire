@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NATS.Client.Core;
 
-namespace Aspire.Nats.Client.Tests;
+namespace Aspire.NATS.Net.Tests;
 
 public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSettings>
 {

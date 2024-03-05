@@ -165,7 +165,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nats.ApiService", "playgrou
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nats.AppHost", "playground\nats\Nats.AppHost\Nats.AppHost.csproj", "{A0BB6F6B-9543-4525-81D6-95DC07BD3D02}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Nats.Client", "src\Components\Aspire.Nats.Client\Aspire.Nats.Client.csproj", "{303E6308-740C-4673-96D2-0E81934C9E69}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.NATS.Net", "src\Components\Aspire.NATS.Net\Aspire.NATS.Net.csproj", "{303E6308-740C-4673-96D2-0E81934C9E69}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{2136E31D-2CBB-41BB-8618-716FF8E46E9E}"
 EndProject
@@ -273,7 +273,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureStorageEndToEnd.AppHos
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureStorageEndToEnd.ApiService", "playground\AzureStorageEndToEnd\AzureStorageEndToEnd.ApiService\AzureStorageEndToEnd.ApiService.csproj", "{921CB408-5E37-4354-B4CF-EAE517F633DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Nats.Client.Tests", "tests\Aspire.Nats.Client.Tests\Aspire.Nats.Client.Tests.csproj", "{C774BE00-EE93-4148-B866-8F0F2BA1E473}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.NATS.Net.Tests", "tests\Aspire.NATS.Net.Tests\Aspire.NATS.Net.Tests.csproj", "{C774BE00-EE93-4148-B866-8F0F2BA1E473}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Dashboard.Components.Tests", "tests\Aspire.Dashboard.Components.Tests\Aspire.Dashboard.Components.Tests.csproj", "{0870A667-FB0C-4758-AEAF-9E5F092AD7C1}"
 EndProject

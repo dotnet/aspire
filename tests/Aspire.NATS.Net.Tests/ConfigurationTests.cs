@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.Nats.Client.Tests;
+namespace Aspire.NATS.Net.Tests;
 
 public class ConfigurationTests
 {

@@ -2,7 +2,7 @@
   "definitions": {
     "logLevel": {
       "properties": {
-        "NATS.Client": {
+        "NATS.Net": {
           "$ref": "#/definitions/logLevelThreshold"
         }
       }
