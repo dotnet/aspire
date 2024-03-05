@@ -341,16 +341,14 @@ internal sealed class DashboardClient : IDashboardClient
 
             return new ResourceViewModelSubscription(
                 InitialState: _resourceByName.Values.ToImmutableArray(),
-                Subscription: StreamUpdatesAsync(cancellationToken));
+                Subscription: StreamUpdatesAsync(cts.Token));
         }
 
         async IAsyncEnumerable<ResourceViewModelChange> StreamUpdatesAsync([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
         {
             try
             {
-                using var streamCts = CancellationTokenSource.CreateLinkedTokenSource(clientCancellationToken, enumeratorCancellationToken);
-
-                await foreach (var batch in channel.Reader.ReadAllAsync(streamCts.Token).ConfigureAwait(false))
+                await foreach (var batch in channel.Reader.ReadAllAsync(enumeratorCancellationToken).ConfigureAwait(false))
                 {
                     yield return batch;
                 }
