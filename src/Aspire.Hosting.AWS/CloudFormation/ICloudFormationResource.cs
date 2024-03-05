@@ -27,4 +27,9 @@ public interface ICloudFormationResource : IResource
     /// The output parameters of the CloudFormation stack.
     /// </summary>
     List<Output>? Outputs { get; }
+
+    /// <summary>
+    /// The task completion source for the provisioning operation.
+    /// </summary>
+    TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 }

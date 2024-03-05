@@ -20,7 +20,7 @@ var awsResources = builder.AddAWSCloudFormationTemplate("AspireSampleDevResource
 //var awsExistingResource = builder.AddAWSCloudFormationStack("ExistingStackName")
 //                        .WithReference(awsConfig);
 
-builder.AddProject<Projects.Frontend>("frontend")
+builder.AddProject<Projects.Frontend>("Frontend")
         // Reference the CloudFormation resource to project. The output parameters will added to the IConfiguration of the project.
         .WithReference(awsResources)
         // Assign the SDK config to the project. The service clients created in the project relying on environment config

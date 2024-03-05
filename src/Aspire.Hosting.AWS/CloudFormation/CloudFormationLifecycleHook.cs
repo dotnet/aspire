@@ -27,6 +27,11 @@ internal sealed class CloudFormationLifecycleHook(
             return Task.CompletedTask;
         }
 
+        foreach (CloudFormationResource cloudFormationResource in appModel.Resources.OfType<CloudFormationResource>())
+        {
+            cloudFormationResource.ProvisioningTaskCompletionSource = new();
+        }
+
         _ = Task.Run(() => new CloudFormationProvisioner(appModel, notificationService, loggerService).ConfigureCloudFormation(), cancellationToken);
 
         return Task.CompletedTask;

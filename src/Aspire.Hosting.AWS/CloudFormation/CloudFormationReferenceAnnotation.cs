@@ -10,6 +10,9 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// </summary>
 /// <param name="cloudFormationResource"></param>
 /// <param name="targetResource"></param>
-internal sealed class CloudFormationReferenceResource(ICloudFormationResource cloudFormationResource, IResource targetResource) : Resource($"{targetResource.Name}-{cloudFormationResource.Name}-cloudformation")
+internal sealed class CloudFormationReferenceResource(ICloudFormationResource cloudFormationResource, IResource targetResource) : Resource($"{targetResource.Name}-{cloudFormationResource.Name}-ref"), IResourceWithEnvironment
 {
+    internal string TargetResourceName { get; } = targetResource.Name;
+
+    internal string StackName { get; } = cloudFormationResource.Name;
 }

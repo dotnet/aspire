@@ -11,11 +11,10 @@ using Amazon.CloudFormation;
 using Amazon.Runtime;
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.AWS.CloudFormation;
 
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.AWS;
+namespace Aspire.Hosting.AWS.CloudFormation;
 internal sealed class CloudFormationProvisioner(
     DistributedApplicationModel appModel,
     ResourceNotificationService notificationService,
@@ -38,7 +37,7 @@ internal sealed class CloudFormationProvisioner(
 
     private async Task ProcessCloudFormationStackResourceAsync(CancellationToken cancellationToken = default)
     {
-        foreach (CloudFormationStackResource cloudFormationResource in appModel.Resources.OfType<CloudFormationStackResource>())
+        foreach (var cloudFormationResource in appModel.Resources.OfType<CloudFormationStackResource>())
         {
             var resourceLogger = loggerService.GetLogger(cloudFormationResource);
 
@@ -49,7 +48,7 @@ internal sealed class CloudFormationProvisioner(
                 Properties = ImmutableArray.Create<(string, string)>()
             };
 
-            await notificationService.PublishUpdateAsync(cloudFormationResource, state).ConfigureAwait(false);
+            await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state).ConfigureAwait(false);
 
             try
             {
@@ -66,14 +65,16 @@ internal sealed class CloudFormationProvisioner(
                 // projects IConfiguration.
                 cloudFormationResource.Outputs = stack!.Outputs;
 
-                await notificationService.PublishUpdateAsync(cloudFormationResource, state => state with
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state with
                 {
                     State = Constants.ResourceStateRunning
                 }).ConfigureAwait(false);
+
+                cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                if(e is AmazonCloudFormationException ce && string.Equals(ce.ErrorCode, "ValidationError"))
+                if (e is AmazonCloudFormationException ce && string.Equals(ce.ErrorCode, "ValidationError"))
                 {
                     resourceLogger.LogError("Stack {StackName} does not exists to add as a resource.", cloudFormationResource.Name);
                 }
@@ -82,17 +83,18 @@ internal sealed class CloudFormationProvisioner(
                     resourceLogger.LogError(e, "Error reading {StackName}.", cloudFormationResource.Name);
                 }
 
-                await notificationService.PublishUpdateAsync(cloudFormationResource, state => state with
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state with
                 {
                     State = Constants.ResourceStateFailedToStart
                 }).ConfigureAwait(false);
+                cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetException(e);
             }
         }
     }
 
     private async Task ProcessCloudFormationTemplateResourceAsync(CancellationToken cancellationToken = default)
     {
-        foreach (CloudFormationTemplateResource cloudFormationResource in appModel.Resources.OfType<CloudFormationTemplateResource>())
+        foreach (var cloudFormationResource in appModel.Resources.OfType<CloudFormationTemplateResource>())
         {
             var resourceLogger = loggerService.GetLogger(cloudFormationResource);
             var state = new CustomResourceSnapshot
@@ -104,7 +106,7 @@ internal sealed class CloudFormationProvisioner(
 
             try
             {
-                await notificationService.PublishUpdateAsync(cloudFormationResource, state).ConfigureAwait(false);
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state).ConfigureAwait(false);
 
                 using var cfClient = GetCloudFormationClient(cloudFormationResource);
 
@@ -143,7 +145,7 @@ internal sealed class CloudFormationProvisioner(
                     {
                         resourceLogger.LogError(ex, "Error creating CloudFormation stack {StackName}", cloudFormationResource.Name);
 
-                        await notificationService.PublishUpdateAsync(cloudFormationResource, state => state with
+                        await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state with
                         {
                             State = Constants.ResourceStateFailedToStart
                         }).ConfigureAwait(false);
@@ -196,7 +198,7 @@ internal sealed class CloudFormationProvisioner(
                         catch (Exception ex)
                         {
                             resourceLogger.LogError(ex, "Error updating CloudFormation stack {StackName}", cloudFormationResource.Name);
-                            await notificationService.PublishUpdateAsync(cloudFormationResource, state => state with
+                            await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state with
                             {
                                 State = Constants.ResourceStateFailedToStart
                             }).ConfigureAwait(false);
@@ -222,7 +224,7 @@ internal sealed class CloudFormationProvisioner(
                     stateEnum = Constants.ResourceStateFailedToStart;
                 }
 
-                await notificationService.PublishUpdateAsync(cloudFormationResource, state => state with
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state with
                 {
                     State = stateEnum,
                     Properties = ConvertOutputToProperties(stack)
@@ -232,14 +234,31 @@ internal sealed class CloudFormationProvisioner(
                 // allows projects that have a reference to the stack have the output parameters applied to the
                 // projects IConfiguration.
                 cloudFormationResource.Outputs = stack.Outputs;
+                cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 resourceLogger.LogError(ex, "Error provisioning {ResourceName} CloudFormation resource", cloudFormationResource.Name);
-                await notificationService.PublishUpdateAsync(cloudFormationResource, state => state with
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state with
                 {
                     State = Constants.ResourceStateFailedToStart
                 }).ConfigureAwait(false);
+                cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+            }
+        }
+    }
+
+    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, CustomResourceSnapshot state)
+    {
+        await notificationService.PublishUpdateAsync(resource, state).ConfigureAwait(false);
+        foreach (var reference in resource.References)
+        {
+            CustomResourceSnapshot refState = state with { ResourceType = reference.GetType().Name };
+            await notificationService.PublishUpdateAsync(reference, refState).ConfigureAwait(false);
+
+            if(refState.State == Constants.ResourceStateRunning)
+            {
+                loggerService.GetLogger(reference).LogInformation("Resource {Project} is referencing the output variables of CloudFormation Stack {Stack}", reference.TargetResourceName, reference.StackName);
             }
         }
     }
@@ -253,7 +272,7 @@ internal sealed class CloudFormationProvisioner(
             list.Add((output.OutputKey, output.OutputValue));
         }
 
-        return ImmutableArray.Create<(string, string)>(list.ToArray());
+        return ImmutableArray.Create(list.ToArray());
     }
 
     private static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)
@@ -296,7 +315,7 @@ internal sealed class CloudFormationProvisioner(
         const int TIMESTAMP_WIDTH = 20;
         const int LOGICAL_RESOURCE_WIDTH = 40;
         const int RESOURCE_STATUS = 40;
-        string mostRecentEventId = string.Empty;
+        var mostRecentEventId = string.Empty;
 
         var minTimeStampForEvents = DateTimeOffset.Now;
         resourceLogger.LogInformation("Waiting for CloudFormation stack {StackName} to be ready", stackName);
@@ -304,9 +323,9 @@ internal sealed class CloudFormationProvisioner(
         Stack stack;
         do
         {
-            await Task.Delay(this.StackPollingDelay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(StackPollingDelay, cancellationToken).ConfigureAwait(false);
 
-            await notificationService.PublishUpdateAsync(cloudFormationResource, state).ConfigureAwait(false);
+            await PublishCloudFormationUpdateStateAsync(cloudFormationResource, state).ConfigureAwait(false);
 
             // If we are in the WaitStackToCompleteAsync then we already know the stack exists.
             stack = (await FindExistingStackAsync(cfClient, stackName).ConfigureAwait(false))!;
@@ -317,9 +336,9 @@ internal sealed class CloudFormationProvisioner(
                 mostRecentEventId = events[0].EventId;
             }
 
-            for (int i = events.Count - 1; i >= 0; i--)
+            for (var i = events.Count - 1; i >= 0; i--)
             {
-                string line =
+                var line =
                     events[i].Timestamp.ToString("g", CultureInfo.InvariantCulture).PadRight(TIMESTAMP_WIDTH) + " " +
                     events[i].LogicalResourceId.PadRight(LOGICAL_RESOURCE_WIDTH) + " " +
                     events[i].ResourceStatus.ToString(CultureInfo.InvariantCulture).PadRight(RESOURCE_STATUS);

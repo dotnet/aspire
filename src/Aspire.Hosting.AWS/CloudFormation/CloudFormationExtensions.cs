@@ -99,21 +99,34 @@ public static class CloudFormationExtensions
         var referenceResource = builder.ApplicationBuilder.AddResource(new CloudFormationReferenceResource(cloudFormationResourceBuilder.Resource, builder.Resource));
         referenceResource.WithManifestPublishingCallback(context => WriteCloudFormationReference(context, cloudFormationResourceBuilder.Resource, builder.Resource));
 
+        if(cloudFormationResourceBuilder.Resource is CloudFormationResource impl)
+        {
+            impl.References.Add(referenceResource.Resource);
+        }
+
         builder.WithEnvironment(context =>
         {
-            if (context.ExecutionContext.IsPublishMode || cloudFormationResourceBuilder.Resource.Outputs == null)
+            if (context.ExecutionContext.IsPublishMode)
+            {
+                return;
+            }
+
+            cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource?.Task.Wait();
+
+            if (cloudFormationResourceBuilder.Resource.Outputs == null)
             {
                 return;
             }
 
             configSection = configSection.Replace(':', '_');
 
-            foreach(var output in cloudFormationResourceBuilder.Resource.Outputs)
+            foreach (var output in cloudFormationResourceBuilder.Resource.Outputs)
             {
                 var envName = $"{configSection}__{output.OutputKey}";
                 context.EnvironmentVariables[envName] = output.OutputValue;
             }
         });
+
         return builder;
     }
 
