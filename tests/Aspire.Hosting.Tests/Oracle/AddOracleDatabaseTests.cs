@@ -9,13 +9,13 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests.Oracle;
 
-public class AddOracleDatabaseTests
+public class AddOracleTests
 {
     [Fact]
-    public async Task AddOracleDatabaseWithDefaultsAddsAnnotationMetadata()
+    public async Task AddOracleWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabase("orcl");
+        appBuilder.AddOracle("orcl");
 
         using var app = appBuilder.Build();
 
@@ -52,10 +52,10 @@ public class AddOracleDatabaseTests
     }
 
     [Fact]
-    public async Task AddOracleDatabaseAddsAnnotationMetadata()
+    public async Task AddOracleAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabase("orcl", 1234, "pass");
+        appBuilder.AddOracle("orcl", 1234, "pass");
 
         using var app = appBuilder.Build();
 
@@ -95,7 +95,7 @@ public class AddOracleDatabaseTests
     public void OracleCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabase("orcl")
+        appBuilder.AddOracle("orcl")
             .WithAnnotation(
             new AllocatedEndpointAnnotation(OracleDatabaseServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
@@ -120,7 +120,7 @@ public class AddOracleDatabaseTests
     public void OracleCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabase("orcl")
+        appBuilder.AddOracle("orcl")
             .WithAnnotation(
             new AllocatedEndpointAnnotation(OracleDatabaseServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
@@ -147,7 +147,7 @@ public class AddOracleDatabaseTests
     public async Task AddDatabaseToOracleDatabaseAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabase("oracle", 1234, "pass").AddDatabase("db");
+        appBuilder.AddOracle("oracle", 1234, "pass").AddDatabase("db");
 
         using var app = appBuilder.Build();
 
@@ -188,7 +188,7 @@ public class AddOracleDatabaseTests
     public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var oracleServer = appBuilder.AddOracleDatabase("oracle");
+        var oracleServer = appBuilder.AddOracle("oracle");
         var db = oracleServer.AddDatabase("db");
 
         var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
@@ -239,7 +239,7 @@ public class AddOracleDatabaseTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var db = builder.AddOracleDatabase("oracle1");
+        var db = builder.AddOracle("oracle1");
         db.AddDatabase("db");
 
         Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
@@ -250,10 +250,10 @@ public class AddOracleDatabaseTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        builder.AddOracleDatabase("oracle1")
+        builder.AddOracle("oracle1")
             .AddDatabase("db");
 
-        var db = builder.AddOracleDatabase("oracle2");
+        var db = builder.AddOracle("oracle2");
         Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
@@ -262,7 +262,7 @@ public class AddOracleDatabaseTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var oracle1 = builder.AddOracleDatabase("oracle1");
+        var oracle1 = builder.AddOracle("oracle1");
 
         var db1 = oracle1.AddDatabase("db1", "customers1");
         var db2 = oracle1.AddDatabase("db2", "customers2");
@@ -279,10 +279,10 @@ public class AddOracleDatabaseTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var db1 = builder.AddOracleDatabase("oracle1")
+        var db1 = builder.AddOracle("oracle1")
             .AddDatabase("db1", "imports");
 
-        var db2 = builder.AddOracleDatabase("oracle2")
+        var db2 = builder.AddOracle("oracle2")
             .AddDatabase("db2", "imports");
 
         Assert.Equal("imports", db1.Resource.DatabaseName);
