@@ -299,9 +299,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
     }
 
-    private static IList<string> GetResourcesToSkip()
+    private static ISet<string> GetResourcesToSkip()
     {
-        List<string> resourcesToSkip = new();
+        HashSet<string> resourcesToSkip = new();
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
             resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
