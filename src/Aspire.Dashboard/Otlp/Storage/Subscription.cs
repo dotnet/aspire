@@ -23,25 +23,26 @@ public sealed class Subscription : IDisposable
 
     public async Task ExecuteAsync()
     {
-        if (_executionContext != null)
+        // Set the execution context to the one captured when the subscription was created.
+        // This ensures that the callback runs in the same context as the subscription was created.
+        // For example, the request culture is used to format content in the callback.
+
+        var current = ExecutionContext.Capture();
+        try
         {
-            var current = ExecutionContext.Capture();
-            try
+            if (_executionContext != null)
             {
                 ExecutionContext.Restore(_executionContext);
-                await _callback().ConfigureAwait(false);
             }
-            finally
-            {
-                if (current != null)
-                {
-                    ExecutionContext.Restore(current);
-                }
-            }
-        }
-        else
-        {
+
             await _callback().ConfigureAwait(false);
+        }
+        finally
+        {
+            if (current != null)
+            {
+                ExecutionContext.Restore(current);
+            }
         }
     }
 

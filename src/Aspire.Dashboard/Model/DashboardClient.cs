@@ -320,14 +320,14 @@ internal sealed class DashboardClient : IDashboardClient
             ?? "Aspire";
     }
 
-    Task<ResourceViewModelSubscription> IDashboardClient.SubscribeResourcesAsync(CancellationToken cancellationToken)
+    async Task<ResourceViewModelSubscription> IDashboardClient.SubscribeResourcesAsync(CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         // Wait for initial data to be received from the server. This allows initial data to be returned with subscription when client is starting.
-        //await _initialDataReceivedTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+        await _initialDataReceivedTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
 
         // There are two types of channel in this class. This is not a gRPC channel.
         // It's a producer-consumer queue channel, used to push updates to subscribers
@@ -339,9 +339,9 @@ internal sealed class DashboardClient : IDashboardClient
         {
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
-            return Task.FromResult(new ResourceViewModelSubscription(
+            return new ResourceViewModelSubscription(
                 InitialState: _resourceByName.Values.ToImmutableArray(),
-                Subscription: StreamUpdatesAsync(cts.Token)));
+                Subscription: StreamUpdatesAsync(cts.Token));
         }
 
         async IAsyncEnumerable<ResourceViewModelChange> StreamUpdatesAsync([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)

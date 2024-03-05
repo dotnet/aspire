@@ -15,14 +15,6 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-//public class Dispatcher
-//{
-//    public async Task DispatchAsync(Func<Task> action)
-//    {
-//        await action();
-//    }
-//}
-
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
