@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -108,7 +109,7 @@ public partial class Traces
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigationManager.NavigateTo($"/traces/resource/{_selectedApplication.Name}");
+        NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: _selectedApplication.Name));
         _applicationChanged = true;
 
         return Task.CompletedTask;

@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div class="span-details-layout">
@@ -16,7 +17,7 @@
         <div>
             @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, DurationFormatter.FormatDuration(ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime)))
         </div>
-        <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/structuredlogs?spanId={ViewModel.Span.SpanId}")">@Loc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+        <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(spanId: ViewModel.Span.SpanId)">@Loc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
                       Immediate="true"
