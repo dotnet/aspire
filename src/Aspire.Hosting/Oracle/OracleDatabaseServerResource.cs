@@ -15,11 +15,14 @@ public class OracleDatabaseServerResource(string name, string password) : Contai
     internal const string PrimaryEndpointName = "tcp";
 
     private EndpointReference? _primaryEndpoint;
+    private InputReference? _passwordInput;
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
 
     /// <summary>
     /// Gets the Oracle Database server password.
@@ -30,7 +33,7 @@ public class OracleDatabaseServerResource(string name, string password) : Contai
     /// Gets the connection string expression for the Oracle Database server.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"user id=system;password={{{Name}.inputs.password}};data source={PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)};";
+        $"user id=system;password={PasswordInput.ValueExpression};data source={PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)};";
 
     /// <summary>
     /// Gets the connection string for the Oracle Database server.

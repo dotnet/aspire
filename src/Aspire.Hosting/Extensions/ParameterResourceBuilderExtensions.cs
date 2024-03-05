@@ -66,10 +66,10 @@ public static class ParameterResourceBuilderExtensions
 
         if (connectionString)
         {
-            context.Writer.WriteString("connectionString", $"{{{resource.Name}.value}}");
+            context.Writer.WriteString("connectionString", resource.ValueExpression);
         }
 
-        context.Writer.WriteString("value", $"{{{resource.Name}.inputs.value}}");
+        context.Writer.WriteString("value", resource.ValueInput.ValueExpression);
         context.WriteInputs(resource);
     }
 

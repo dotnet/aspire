@@ -34,14 +34,9 @@ public static class MySqlBuilderExtensions
                       .WithDefaultPassword()
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishMode)
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{resource.Name}.inputs.password}}");
-                          }
-                          else
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, resource.Password);
-                          }
+                          context.EnvironmentVariables[PasswordEnvVarName] = context.ExecutionContext.IsPublishMode
+                              ? resource.PasswordInput
+                              : resource.Password;
                       })
                       .PublishAsContainer();
     }
@@ -88,7 +83,7 @@ public static class MySqlBuilderExtensions
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
                                   .ExcludeFromManifest();
-        
+
         return builder;
     }
 

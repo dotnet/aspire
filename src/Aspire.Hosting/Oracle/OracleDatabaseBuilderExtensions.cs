@@ -46,14 +46,9 @@ public static class OracleDatabaseBuilderExtensions
                       .WithDefaultPassword()
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishMode)
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
-                          }
-                          else
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, oracleDatabaseServer.Password);
-                          }
+                          context.EnvironmentVariables[PasswordEnvVarName] = context.ExecutionContext.IsPublishMode
+                              ? oracleDatabaseServer.PasswordInput
+                              : oracleDatabaseServer.Password;
                       })
                       .PublishAsContainer();
     }

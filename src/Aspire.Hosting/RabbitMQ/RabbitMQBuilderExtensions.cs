@@ -30,14 +30,9 @@ public static class RabbitMQBuilderExtensions
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment(context =>
                        {
-                           if (context.ExecutionContext.IsPublishMode)
-                           {
-                               context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", $"{{{rabbitMq.Name}.inputs.password}}");
-                           }
-                           else
-                           {
-                               context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", rabbitMq.Password);
-                           }
+                           context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = context.ExecutionContext.IsPublishMode
+                               ? rabbitMq.PasswordInput
+                               : rabbitMq.Password;
                        })
                        .PublishAsContainer();
     }

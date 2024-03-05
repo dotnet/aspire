@@ -25,9 +25,7 @@ public sealed class InputReference(IResource owner, string inputName) : IManifes
     /// </summary>
     public string InputName => inputName;
 
-    /// <summary>
-    /// Gets the expression used in the manifest to reference the value of the input.
-    /// </summary>
+    /// <inheritdoc/>
     public string ValueExpression => $"{{{Owner.Name}.inputs.{InputName}}}";
 
     private InputAnnotation GetInputAnnotation()
