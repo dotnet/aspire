@@ -206,10 +206,10 @@ public class AddSqlServerTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var db1 = builder.AddPostgres("sqlserver1")
+        var db1 = builder.AddSqlServer("sqlserver1")
             .AddDatabase("db1", "imports");
 
-        var db2 = builder.AddPostgres("sqlserver2")
+        var db2 = builder.AddSqlServer("sqlserver2")
             .AddDatabase("db2", "imports");
 
         Assert.Equal("imports", db1.Resource.DatabaseName);
