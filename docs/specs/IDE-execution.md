@@ -56,8 +56,12 @@ The payload is best explained using an example:
 {
     "launch_configurations": [
         {
-            "type": "csharp",
-            "project_path": "(Path to C# project file for the program)",
+            // Indicates the type of the launch configuration. 
+            // This is a required property for all kinds of launch configurations.
+            "type": "project",
+
+            "project_path": "(Path to Visual Studio project file for the program)",
+            
             // ... other launch configuration properties
         }
     ]
@@ -91,19 +95,19 @@ The run session creation request contains one or more launch configurations for 
 
 The following launch configuration types are recognized by Visual Studio IDE:
 
-**CSharp launch configuration** <br/>
+**Project launch configuration** <br/>
 
-CSharp launch configuration contains details for launching programs written in C# language.
+Project launch configuration contains details for launching programs that have project files compatible with Visual Studio IDE.
 
 | Property | Description | Required? |
 | --- | --------- | --- |
-| `type` | Launch configuration type indicator; must be `csharp`. | Required |
-| `project_path` | Path to the C# project file for the program that is being launched. | Required |
-| `debug` | Whether the program should be running under the debugger. | Optional, defaults to true. |
+| `type` | Launch configuration type indicator; must be `project`. | Required |
+| `project_path` | Path to the project file for the program that is being launched. | Required |
+| `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
 | `launch_profile` | Invocation arguments for the program (modeled as array of strings). | Optional |
 | `disable_launch_profile` | If set to true, the project will be launched without a launch profile and the value of "launch_profile" parameter is disregarded. | Optional |
 
-> In Aspire version 1 release only a single launch configuration instance, of type `csharp`, can be used as part of a run session request issued to Visual Studio. Other types of launch configurations may be added in future releases.
+> In Aspire version 1 release only a single launch configuration instance, of type `project`, can be used as part of a run session request issued to Visual Studio. Other types of launch configurations may be added in future releases.
 
 
 ### Stop session request
@@ -160,6 +164,8 @@ The process (re)started notification in emitted when the run is started, and whe
 | --- | --------- | --- |
 | `notification_type` | Must be `processRestarted` | `string` |
 | `pid` | The process ID of the service process associated with the run session. | `number` (representing unsigned 32-bit integer) |
+
+This notification may be omitted if the PID associated with the run session is unknown.
 
 ### Session terminated notification
 
