@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
-        <target state="new">Finished watching logs</target>
+        <target state="translated">로그 보기 완료</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsHeader">
@@ -19,17 +19,17 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsInitializingLogViewer">
         <source>Initializing log viewer...</source>
-        <target state="new">Initializing log viewer...</target>
+        <target state="translated">로그 뷰어를 초기화하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
         <source>Loading resources ...</source>
-        <target state="new">Loading resources ...</target>
+        <target state="translated">리소스를 로드하는 중 ...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLogsNotYetAvailable">
         <source>Logs not yet available</source>
-        <target state="new">Logs not yet available</target>
+        <target state="translated">로그를 아직 사용할 수 없음</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsNoResourceSelected">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
-        <target state="new">{0} console logs</target>
+        <target state="translated">콘솔 로그 {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
-        <target state="new">Watching logs...</target>
+        <target state="translated">로그를 보는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
-        <target state="new">Service log status</target>
+        <target state="translated">서비스 로그 상태</target>
         <note />
       </trans-unit>
     </body>

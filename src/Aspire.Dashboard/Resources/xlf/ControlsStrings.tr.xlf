@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="All">
         <source>All</source>
-        <target state="new">All</target>
+        <target state="translated">Tümü</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerFilteredTags">
         <source>Filtered tags</source>
-        <target state="new">Filtered tags</target>
+        <target state="translated">Filtrelenmiş etiketler</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerFiltersHeader">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="new">Graph. For an accessible view please navigate to the Table tab</target>
+        <target state="translated">Grafik. Erişilebilir bir görünüm için lütfen Tablo sekmesine gidin</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
-        <target state="new">Show count</target>
+        <target state="translated">S sayımı göster</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
         <source>Unable to display chart</source>
-        <target state="new">Unable to display chart</target>
+        <target state="translated">Grafik görüntülenemiyor</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">Süre</target>
         <note />
       </trans-unit>
       <trans-unit id="EventColumnHeader">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
         <source>Show spec only</source>
-        <target state="new">Show spec only</target>
+        <target state="translated">Yalnızca belirtimi göster</target>
         <note>Spec means from the resource specification</note>
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
-        <target state="new">Loading...</target>
+        <target state="translated">Yükleniyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
@@ -134,12 +134,12 @@
       </trans-unit>
       <trans-unit id="MetricTableShowLatestValues">
         <source>Show latest 10 values</source>
-        <target state="new">Show latest 10 values</target>
+        <target state="translated">En son 10 değeri göster</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowOnlyValueChanges">
         <source>Only show value updates</source>
-        <target state="new">Only show value updates</target>
+        <target state="translated">Yalnızca değer güncelleştirmelerini göster</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableStartColumnHeader">
@@ -149,22 +149,22 @@
       </trans-unit>
       <trans-unit id="MetricTableValueDecreased">
         <source>Value decreased</source>
-        <target state="new">Value decreased</target>
+        <target state="translated">Değer azaltıldı</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueIncreased">
         <source>Value increased</source>
-        <target state="new">Value increased</target>
+        <target state="translated">Değer artırıldı</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueNoChange">
         <source>Value did not change</source>
-        <target state="new">Value did not change</target>
+        <target state="translated">Değer değiştirmedi</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
-        <target state="new">Name</target>
+        <target state="translated">Ad</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -194,17 +194,17 @@
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
         <source>{0} (replica of {1})</source>
-        <target state="new">{0} (replica of {1})</target>
+        <target state="translated">{0} (çoğaltma {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
       <trans-unit id="SelectAResource">
         <source>Select a resource</source>
-        <target state="new">Select a resource</target>
+        <target state="translated">Kaynak seçin</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
-        <target state="new">Select an application</target>
+        <target state="translated">Uygulama seçin</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -229,12 +229,12 @@
       </trans-unit>
       <trans-unit id="TimestampColumnHeader">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">Zaman damgası</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">
         <source>View</source>
-        <target state="new">View</target>
+        <target state="translated">Görüntüle</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewLogsLink">
@@ -249,17 +249,17 @@
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitHorizontal">
         <source>Split horizontal</source>
-        <target state="new">Split horizontal</target>
+        <target state="translated">Yatay böl</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
-        <target state="new">Split vertical</target>
+        <target state="translated">Dikey böl</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
         <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
-        <target state="new">Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</target>
+        <target state="translated">Toplam: &lt;strong&gt;{0} sonuç&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>

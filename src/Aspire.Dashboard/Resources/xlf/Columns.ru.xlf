@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
         <source>Container ID: {0}</source>
-        <target state="new">Container ID: {0}</target>
+        <target state="translated">Идентификатор контейнера: {0}</target>
         <note>{0} is an alphanumeric id</note>
       </trans-unit>
       <trans-unit id="ResourceNameDisplayCopyContainerIdText">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>
-        <target state="new">Container args</target>
+        <target state="translated">Аргументы контейнера</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommand">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommandTitle">
         <source>Container command</source>
-        <target state="new">Container command</target>
+        <target state="translated">Команда контейнера</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
         <source>Copy image name and tag to clipboard</source>
-        <target state="new">Copy image name and tag to clipboard</target>
+        <target state="translated">Копировать имя и тег изображения в буфер обмена</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
@@ -79,22 +79,22 @@
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
         <source>{0} is no longer running</source>
-        <target state="new">{0} is no longer running</target>
+        <target state="translated">{0} больше не выполняется</target>
         <note>{0} is a resource type</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExitedUnexpectedly">
         <source>{0} exited unexpectedly with exit code {1}</source>
-        <target state="new">{0} exited unexpectedly with exit code {1}</target>
+        <target state="translated">{0} неожиданно завершил работу с кодом завершения {1}</target>
         <note>{0} is a resource type, {1} is a number</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLogs">
         <source>{0} error logs</source>
-        <target state="new">{0} error logs</target>
+        <target state="translated">{0} журналы ошибок</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeOneErrorLog">
         <source>1 error log</source>
-        <target state="new">1 error log</target>
+        <target state="translated">1 журнал ошибок</target>
         <note />
       </trans-unit>
     </body>

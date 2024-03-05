@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
-        <target state="new">Finished watching logs</target>
+        <target state="translated">Günlükleri izleme işlemi tamamlandı</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsHeader">
@@ -19,17 +19,17 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsInitializingLogViewer">
         <source>Initializing log viewer...</source>
-        <target state="new">Initializing log viewer...</target>
+        <target state="translated">Günlük görüntüleyicisi başlatılıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
         <source>Loading resources ...</source>
-        <target state="new">Loading resources ...</target>
+        <target state="translated">Kaynaklar yükleniyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLogsNotYetAvailable">
         <source>Logs not yet available</source>
-        <target state="new">Logs not yet available</target>
+        <target state="translated">Günlükler henüz kullanılamıyor</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsNoResourceSelected">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
-        <target state="new">{0} console logs</target>
+        <target state="translated">{0} günlüklerini görüntüle</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
-        <target state="new">Watching logs...</target>
+        <target state="translated">Günlükler izleniyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
-        <target state="new">Service log status</target>
+        <target state="translated">Hizmet günlüğü durumu</target>
         <note />
       </trans-unit>
     </body>
