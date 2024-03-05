@@ -67,14 +67,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             _testOutput.WriteLine("");
         }
 
-        {
-            using var cmd = new DotNetCommand(BuildEnvironment, _testOutput, label: "build")
-                .WithWorkingDirectory(appHostDirectory);
+        await BuildProjectAsync();
 
-            (await cmd.ExecuteAsync(CancellationToken.None, $"build -bl:{Path.Combine(BuildEnvironment.LogRootPath, "testproject-build.binlog")} -v m"))
-                .EnsureSuccessful();
-        }
-
+        // Run project
         var output = new StringBuilder();
         var projectsParsed = new TaskCompletionSource();
         var appRunning = new TaskCompletionSource();
@@ -186,6 +181,15 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         foreach (var project in Projects.Values)
         {
             project.Client = client;
+        }
+
+        async Task BuildProjectAsync()
+        {
+            using var cmd = new DotNetCommand(BuildEnvironment, _testOutput, label: "build")
+                .WithWorkingDirectory(appHostDirectory);
+
+            (await cmd.ExecuteAsync(CancellationToken.None, $"build -bl:{Path.Combine(BuildEnvironment.LogRootPath, "testproject-build.binlog")} -v m"))
+                .EnsureSuccessful();
         }
     }
 
