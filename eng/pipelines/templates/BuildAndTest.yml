@@ -45,14 +45,12 @@ steps:
 
     - ${{ if ne(parameters.isWindows, 'true') }}:
       # E2E tests are disabled on windows for now
-      - script: ${{ parameters.dotnetScript }}
-                build
-                -restore
+      - script: ${{ parameters.buildScript }}
                 -p:ContinuousIntegrationBuild=true
                 -p:Configuration=${{ parameters.buildConfig }}
-                -t:InstallWorkloadUsingArtifacts
+                -p:TriggerInstallWorkloadForTesting=true
                 -bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
-                $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
+                --project $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
         displayName: Install sdk+workload for testing
 
     - template: /eng/pipelines/templates/send-to-helix.yml

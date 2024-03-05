@@ -7,8 +7,9 @@
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
-    <TestUsingWorkloads>true</TestUsingWorkloads>
-    <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
+    <!-- no docker support on helix/windows yet -->
+    <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
+    <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
 
     <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
     <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
