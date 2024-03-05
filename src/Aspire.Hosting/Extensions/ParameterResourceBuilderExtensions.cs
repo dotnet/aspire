@@ -25,7 +25,7 @@ public static class ParameterResourceBuilderExtensions
         return builder.AddParameter(name, () =>
         {
             var configurationKey = $"Parameters:{name}";
-            return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key `{configurationKey}` is missing.");
+            return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing.");
         }, secret: secret);
     }
 
@@ -85,7 +85,7 @@ public static class ParameterResourceBuilderExtensions
     {
         var parameterBuilder = builder.AddParameter(name, () =>
         {
-            return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string `{name}` is missing.");
+            return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing.");
         },
         secret: true,
         connectionString: true);

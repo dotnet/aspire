@@ -31,7 +31,7 @@ public sealed class InputReference(IResource owner, string inputName) : IManifes
     private InputAnnotation GetInputAnnotation()
     {
         var input = Owner.Annotations.OfType<InputAnnotation>().SingleOrDefault(a => a.Name == InputName) ??
-            throw new InvalidOperationException($"The InputAnnotation `{InputName}` was not found for the resource `{Owner.Name}`.");
+            throw new InvalidOperationException($"The InputAnnotation '{InputName}' was not found for the resource '{Owner.Name}'.");
 
         return input;
     }
