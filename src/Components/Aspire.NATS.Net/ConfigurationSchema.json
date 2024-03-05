@@ -2,7 +2,7 @@
   "definitions": {
     "logLevel": {
       "properties": {
-        "NATS.Net": {
+        "NATS": {
           "$ref": "#/definitions/logLevelThreshold"
         }
       }
@@ -12,10 +12,10 @@
     "Aspire": {
       "type": "object",
       "properties": {
-        "Nats": {
+        "NATS": {
           "type": "object",
           "properties": {
-            "Client": {
+            "Net": {
               "type": "object",
               "properties": {
                 "ConnectionString": {

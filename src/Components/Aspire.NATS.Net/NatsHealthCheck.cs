@@ -1,13 +1,12 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using NATS.Client.Core;
 
 namespace Aspire.NATS.Net;
 
-internal class NatsHealthCheck(INatsConnection connection) : IHealthCheck
+internal sealed class NatsHealthCheck(INatsConnection connection) : IHealthCheck
 {
     public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {

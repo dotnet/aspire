@@ -41,7 +41,7 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
     }
 
     protected override void SetHealthCheck(NatsClientSettings options, bool enabled)
-        => throw new NotImplementedException();
+        => options.HealthChecks = enabled;
 
     protected override void SetTracing(NatsClientSettings options, bool enabled)
         => throw new NotImplementedException();
