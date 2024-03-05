@@ -137,7 +137,7 @@
     <PrepareNuGetConfigForWorkloadTesting TemplateNuGetConfigPath="$(RepoRoot)NuGet.config" OutputFile="$(PatchedNuGetConfigPath)" AddBuiltNuGetSource="true" />
   </Target>
 
-  <Target Name="_AddPackageVersionsForUseWithHelix" AfterTargets="Build">
+  <Target Name="_AddPackageVersionsForUseWithHelix" BeforeTargets="ZipTestArchive">
     <PropertyGroup>
       <_TestAssetsOutputDir>$(OutputPath)\testassets\</_TestAssetsOutputDir>
 
