@@ -24,16 +24,16 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             return;
         }
 
-        var (snapshot, subscription) = resourceService.SubscribeResources();
-
-        foreach (var resource in snapshot)
-        {
-            var added = _resourceByName.TryAdd(resource.Name, resource);
-            Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
-        }
-
         _watchTask = Task.Run(async () =>
         {
+            var (snapshot, subscription) = await resourceService.SubscribeResourcesAsync(_watchContainersTokenSource.Token).ConfigureAwait(false);
+
+            foreach (var resource in snapshot)
+            {
+                var added = _resourceByName.TryAdd(resource.Name, resource);
+                Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
+            }
+
             await foreach (var (changeType, resource) in subscription.WithCancellation(_watchContainersTokenSource.Token))
             {
                 if (changeType == ResourceViewModelChangeType.Upsert)

@@ -184,7 +184,8 @@ public sealed class ResourceEndpointHelpersTests
             Services = services,
             ExpectedEndpointsCount = 0,
             Properties = FrozenDictionary<string, Value>.Empty,
-            State = null
+            State = null,
+            Commands = []
         };
     }
 }

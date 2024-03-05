@@ -103,7 +103,7 @@ public class TestProgram : IDisposable
             if (!resourcesToSkip.Contains(TestResourceNames.oracledatabase))
             {
                 var oracleDbName = "freepdb1";
-                var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
+                var oracleDatabase = AppBuilder.AddOracle("oracledatabase")
                     .AddDatabase(oracleDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
             }

@@ -94,7 +94,7 @@
                 </TemplateColumn>
 
                 <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
-                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/traces/detail/{context.TraceId}")">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
+                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
                 </TemplateColumn>
             </ChildContent>
             <EmptyContent>

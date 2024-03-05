@@ -18,7 +18,8 @@ public class WithEndpointTests
             endpoint.Port = 2000;
         });
 
-        var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>().Single();
+        var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Where(e => string.Equals(e.Name, "mybinding", StringComparisons.EndpointAnnotationName)).Single();
         Assert.Equal(2000, endpoint.Port);
     }
 
@@ -35,7 +36,8 @@ public class WithEndpointTests
         createIfNotExists: false);
 
         Assert.False(executed);
-        Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
+        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var annotations));
+        Assert.DoesNotContain(annotations, e => string.Equals(e.Name, "mybinding", StringComparisons.EndpointAnnotationName));
     }
 
     [Fact]

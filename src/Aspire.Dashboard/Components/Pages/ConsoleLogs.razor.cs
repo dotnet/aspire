@@ -51,7 +51,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
-    public string BasePath => "consolelogs";
+    public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => "ConsoleLogs_PageState";
 
     protected override async Task OnInitializedAsync()
@@ -61,7 +61,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         var loadingTcs = new TaskCompletionSource();
 
-        TrackResourceSnapshots();
+        await TrackResourceSnapshotsAsync();
 
         // Wait for resource to be selected. If selected resource isn't available after a few seconds then stop waiting.
         try
@@ -74,14 +74,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
         }
 
-        void TrackResourceSnapshots()
+        async Task TrackResourceSnapshotsAsync()
         {
             if (!DashboardClient.IsEnabled)
             {
                 return;
             }
 
-            var (snapshot, subscription) = DashboardClient.SubscribeResources();
+            var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_resourceSubscriptionCancellation.Token);
 
             Logger.LogDebug("Received initial resource snapshot with {ResourceCount} resources.", snapshot.Length);
 
@@ -360,14 +360,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    public UrlState GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
+    public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
     {
-        if (serializable.SelectedResource is { } selectedOption)
-        {
-            return new UrlState($"{BasePath}/resource/{selectedOption}", null);
-        }
-
-        return new UrlState($"/{BasePath}", null);
+        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource);
     }
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
