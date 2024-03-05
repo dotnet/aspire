@@ -534,18 +534,18 @@ public class LogTests
                 var addContext = new AddContext();
                 repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
                 {
-                new ResourceLogs
-                {
-                    Resource = CreateResource(),
-                    ScopeLogs =
+                    new ResourceLogs
                     {
-                        new ScopeLogs
+                        Resource = CreateResource(),
+                        ScopeLogs =
                         {
-                            Scope = CreateScope("TestLogger"),
-                            LogRecords = { CreateLogRecord() }
+                            new ScopeLogs
+                            {
+                                Scope = CreateScope("TestLogger"),
+                                LogRecords = { CreateLogRecord() }
+                            }
                         }
                     }
-                }
                 });
             });
         }
