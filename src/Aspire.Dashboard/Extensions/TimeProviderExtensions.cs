@@ -7,6 +7,9 @@ internal static class TimeProviderExtensions
 {
     public static DateTime ToLocal(this TimeProvider timeProvider, DateTimeOffset utcDateTimeOffset)
     {
-        return TimeZoneInfo.ConvertTimeFromUtc(utcDateTimeOffset.UtcDateTime, timeProvider.LocalTimeZone);
+        var dateTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTimeOffset.UtcDateTime, timeProvider.LocalTimeZone);
+        dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Local);
+
+        return dateTime;
     }
 }
