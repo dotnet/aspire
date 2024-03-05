@@ -309,7 +309,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         if (BuildEnvironment.IsRunningOnCI)
         {
             resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
-            resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
+            // resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
         }
 
         resourcesToSkip.Add(nameof(TestResourceNames.dashboard));
