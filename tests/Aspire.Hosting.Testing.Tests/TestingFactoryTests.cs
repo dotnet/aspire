@@ -8,36 +8,28 @@ using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class TestingBuilderTests
+public class TestingFactoryTests(DistributedApplicationFixture<Program> fixture) : IClassFixture<DistributedApplicationFixture<Program>>
 {
+    private readonly DistributedApplication _app = fixture.Application;
+
     [LocalOnlyFact]
-    public async Task HasEndPoints()
+    public void HasEndPoints()
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
-        await using var app = await appHost.BuildAsync();
-
-        await app.StartAsync();
-
         // Get an endpoint from a resource
-        var workerEndpoint = app.GetEndpoint("myworker1", "myendpoint1");
+        var workerEndpoint = _app.GetEndpoint("myworker1", "myendpoint1");
         Assert.NotNull(workerEndpoint);
         Assert.True(workerEndpoint.Host.Length > 0);
 
         // Get a connection string from a resource
-        var pgConnectionString = app.GetConnectionString("postgres1");
+        var pgConnectionString = _app.GetConnectionString("postgres1");
         Assert.NotNull(pgConnectionString);
         Assert.True(pgConnectionString.Length > 0);
     }
 
     [LocalOnlyFact]
-    public async Task CanGetResources()
+    public void CanGetResources()
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
-        await using var app = await appHost.BuildAsync();
-        await app.StartAsync();
-
-        // Ensure that the resource which we added is present in the model.
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appModel = _app.Services.GetRequiredService<DistributedApplicationModel>();
         Assert.Contains(appModel.GetContainerResources(), c => c.Name == "redis1");
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
@@ -45,11 +37,7 @@ public class TestingBuilderTests
     [LocalOnlyFact]
     public async Task HttpClientGetTest()
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
-        await using var app = await appHost.BuildAsync();
-        await app.StartAsync();
-
-        var httpClient = app.CreateHttpClient("mywebapp1");
+        var httpClient = _app.CreateHttpClient("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);

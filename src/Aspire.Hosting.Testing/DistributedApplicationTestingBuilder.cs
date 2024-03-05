@@ -8,72 +8,35 @@ using Microsoft.Extensions.Hosting;
 namespace Aspire.Hosting.Testing;
 
 /// <summary>
-/// Harness for running a distributed application for testing.
+/// Methods for creating distributed application instances for testing purposes.
 /// </summary>
-/// <typeparam name="TEntryPoint">
-/// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
-/// </typeparam>
-public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistributedApplicationBuilder where TEntryPoint : class
+public static class DistributedApplicationTestingBuilder
 {
-    private readonly SuspendingDistributedApplicationFactory _factory;
-    private readonly DistributedApplicationBuilder _applicationBuilder;
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="DistributedApplicationTestingBuilder{TEntryPoint}"/> class.
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
     /// </summary>
-    public DistributedApplicationTestingBuilder() : this((_, __) => { })
-    { }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DistributedApplicationTestingBuilder{TEntryPoint}"/> class.
-    /// </summary>
-    /// <param name="configureBuilder">The delegate used to configure the creation of the builder.</param>
-    public DistributedApplicationTestingBuilder(Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
+    /// <typeparam name="TEntryPoint">
+    /// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
+    /// </typeparam>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync<TEntryPoint>(CancellationToken cancellationToken = default) where TEntryPoint : class
     {
-        _factory = new(configureBuilder);
-        _applicationBuilder = _factory.DistributedApplicationBuilder.Result;
+        var factory = new SuspendingDistributedApplicationFactory<TEntryPoint>((_, __) => { });
+        return await factory.CreateBuilderAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    /// <inheritdoc cref="IDistributedApplicationBuilder.Configuration" />
-    public ConfigurationManager Configuration => _applicationBuilder.Configuration;
-
-    /// <inheritdoc cref="IDistributedApplicationBuilder.Environment" />
-    public string AppHostDirectory => _applicationBuilder.AppHostDirectory;
-
-    /// <inheritdoc cref="HostApplicationBuilder.Environment" />
-    public IHostEnvironment Environment => _applicationBuilder.Environment;
-
-    /// <inheritdoc cref="IDistributedApplicationBuilder.Services" />
-    public IServiceCollection Services => _applicationBuilder.Services;
-
-    /// <inheritdoc cref="IDistributedApplicationBuilder.ExecutionContext" />
-    public DistributedApplicationExecutionContext ExecutionContext => _applicationBuilder.ExecutionContext;
-
-    /// <inheritdoc cref="IDistributedApplicationBuilder.Resources" />
-    public IResourceCollection Resources => _applicationBuilder.Resources;
-
-    /// <inheritdoc cref="IDistributedApplicationBuilder.AddResource{T}(T)" />
-    public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _applicationBuilder.AddResource(resource);
-
-    /// <inheritdoc cref="IDistributedApplicationBuilder.CreateResourceBuilder{T}(T)" />
-    public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource => _applicationBuilder.CreateResourceBuilder(resource);
-
-    /// <inheritdoc cref="IDistributedApplicationBuilder.Build" />
-    public DistributedApplication Build()
-    {
-        _factory.Build();
-        return new DelegatedDistributedApplication(new DelegatedHost(_factory));
-    }
-
-    private sealed class SuspendingDistributedApplicationFactory(Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
-        : DistributedApplicationTestingHarness<TEntryPoint>
+    private sealed class SuspendingDistributedApplicationFactory<TEntryPoint>(Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
+        : DistributedApplicationFactory<TEntryPoint> where TEntryPoint : class
     {
         private readonly SemaphoreSlim _continueBuilding = new(0);
-        private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public new DistributedApplication DistributedApplication => base.DistributedApplication;
-
-        public Task<DistributedApplicationBuilder> DistributedApplicationBuilder => _builderTcs.Task;
+        public async Task<IDistributedApplicationTestingBuilder> CreateBuilderAsync(CancellationToken cancellationToken)
+        {
+            var innerBuilder = await ResolveBuilderAsync(cancellationToken).ConfigureAwait(false);
+            return new Builder(this, innerBuilder);
+        }
 
         protected override void OnBuilderCreating(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostOptions)
         {
@@ -89,78 +52,157 @@ public sealed class DistributedApplicationTestingBuilder<TEntryPoint> : IDistrib
         protected override void OnBuilding(DistributedApplicationBuilder applicationBuilder)
         {
             base.OnBuilding(applicationBuilder);
-            _builderTcs.TrySetResult(applicationBuilder);
 
-            // Wait until the owner signals that building can continue by calling Build().
+            // Wait until the owner signals that building can continue by calling BuildAsync().
             _continueBuilding.Wait();
         }
 
-        public void Build()
+        public async Task<DistributedApplication> BuildAsync(CancellationToken cancellationToken)
         {
             _continueBuilding.Release();
+            return await ResolveApplicationAsync(cancellationToken).ConfigureAwait(false);
         }
 
         public override async ValueTask DisposeAsync()
         {
             _continueBuilding.Release();
-            _builderTcs.TrySetCanceled();
             await base.DisposeAsync().ConfigureAwait(false);
         }
 
         public override void Dispose()
         {
             _continueBuilding.Release();
-            _builderTcs.TrySetCanceled();
             base.Dispose();
         }
+
+        private sealed class Builder(SuspendingDistributedApplicationFactory<TEntryPoint> factory, DistributedApplicationBuilder innerBuilder) : IDistributedApplicationTestingBuilder
+        {
+            public ConfigurationManager Configuration => innerBuilder.Configuration;
+
+            public string AppHostDirectory => innerBuilder.AppHostDirectory;
+
+            public IHostEnvironment Environment => innerBuilder.Environment;
+
+            public IServiceCollection Services => innerBuilder.Services;
+
+            public DistributedApplicationExecutionContext ExecutionContext => innerBuilder.ExecutionContext;
+
+            public IResourceCollection Resources => innerBuilder.Resources;
+
+            public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
+
+            public async Task<DistributedApplication> BuildAsync(CancellationToken cancellationToken)
+            {
+                var innerApp = await factory.BuildAsync(cancellationToken).ConfigureAwait(false);
+                return new DelegatedDistributedApplication(new DelegatedHost(factory, innerApp));
+            }
+
+            public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource => innerBuilder.CreateResourceBuilder(resource);
+        }
+
+        private sealed class DelegatedDistributedApplication(DelegatedHost host) : DistributedApplication(host)
+        {
+            private readonly DelegatedHost _host = host;
+
+            public override async Task RunAsync(CancellationToken cancellationToken)
+            {
+                // Avoid calling the base here, since it will execute the pre-start hooks
+                // before calling the corresponding host method, which also executes the same pre-start hooks.
+                await _host.RunAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            public override async Task StartAsync(CancellationToken cancellationToken)
+            {
+                // Avoid calling the base here, since it will execute the pre-start hooks
+                // before calling the corresponding host method, which also executes the same pre-start hooks.
+                await _host.StartAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            public override async Task StopAsync(CancellationToken cancellationToken)
+            {
+                await _host.StopAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        private sealed class DelegatedHost(SuspendingDistributedApplicationFactory<TEntryPoint> appFactory, DistributedApplication innerApp) : IHost, IAsyncDisposable
+        {
+            public IServiceProvider Services => innerApp.Services;
+
+            public void Dispose()
+            {
+                appFactory.Dispose();
+            }
+
+            public async ValueTask DisposeAsync()
+            {
+                await appFactory.DisposeAsync().ConfigureAwait(false);
+            }
+
+            public async Task StartAsync(CancellationToken cancellationToken)
+            {
+                await appFactory.StartAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            public async Task StopAsync(CancellationToken cancellationToken)
+            {
+                await appFactory.DisposeAsync().ConfigureAwait(false);
+            }
+        }
     }
+}
 
-    private sealed class DelegatedDistributedApplication(DelegatedHost host) : DistributedApplication(host)
-    {
-        private readonly DelegatedHost _host = host;
+/// <summary>
+/// A builder for creating instances of <see cref="DistributedApplication"/> for testing purposes.
+/// </summary>
+public interface IDistributedApplicationTestingBuilder
+{
+    /// <inheritdoc cref="HostApplicationBuilder.Configuration" />
+    ConfigurationManager Configuration { get; }
 
-        public override async Task RunAsync(CancellationToken cancellationToken)
-        {
-            // Avoid calling the base here, since it will execute the pre-start hooks
-            // before calling the corresponding host method, which also executes the same pre-start hooks.
-            await _host.RunAsync(cancellationToken).ConfigureAwait(false);
-        }
+    /// <summary>
+    /// Directory of the project where the app host is located. Defaults to the content root if there's no project.
+    /// </summary>
+    string AppHostDirectory { get; }
 
-        public override async Task StartAsync(CancellationToken cancellationToken)
-        {
-            // Avoid calling the base here, since it will execute the pre-start hooks
-            // before calling the corresponding host method, which also executes the same pre-start hooks.
-            await _host.StartAsync(cancellationToken).ConfigureAwait(false);
-        }
+    /// <inheritdoc cref="HostApplicationBuilder.Environment" />
+    IHostEnvironment Environment { get; }
 
-        public override async Task StopAsync(CancellationToken cancellationToken)
-        {
-            await _host.StopAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
+    /// <inheritdoc cref="HostApplicationBuilder.Services" />
+    IServiceCollection Services { get; }
 
-    private sealed class DelegatedHost(SuspendingDistributedApplicationFactory appFactory) : IHost, IAsyncDisposable
-    {
-        public IServiceProvider Services => appFactory.Services;
+    /// <summary>
+    /// Execution context for this invocation of the AppHost.
+    /// </summary>
+    DistributedApplicationExecutionContext ExecutionContext { get; }
 
-        public void Dispose()
-        {
-            appFactory.Dispose();
-        }
+    /// <summary>
+    /// Gets the collection of resources for the distributed application.
+    /// </summary>
+    /// <remarks>
+    /// This can be mutated by adding more resources, which will update its current view.
+    /// </remarks>
+    IResourceCollection Resources { get; }
 
-        public async ValueTask DisposeAsync()
-        {
-            await appFactory.DisposeAsync().ConfigureAwait(false);
-        }
+    /// <summary>
+    /// Adds a resource of type <typeparamref name="T"/> to the distributed application.
+    /// </summary>
+    /// <typeparam name="T">The type of resource to add.</typeparam>
+    /// <param name="resource">The resource to add.</param>
+    /// <returns>A innerBuilder for configuring the added resource.</returns>
+    /// <exception cref="DistributedApplicationException">Thrown when a resource with the same name already exists.</exception>
+    IResourceBuilder<T> AddResource<T>(T resource) where T : IResource;
 
-        public async Task StartAsync(CancellationToken cancellationToken)
-        {
-            await appFactory.InitializeAsync(cancellationToken).ConfigureAwait(false);
-        }
+    /// <summary>
+    /// Creates a new resource innerBuilder based on an existing resource.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="resource">An existing resource.</param>
+    /// <returns>A resource innerBuilder.</returns>
+    IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource;
 
-        public async Task StopAsync(CancellationToken cancellationToken)
-        {
-            await appFactory.DisposeAsync().ConfigureAwait(false);
-        }
-    }
+    /// <summary>
+    /// Builds and returns a new <see cref="DistributedApplication"/> instance. This can only be called once.
+    /// </summary>
+    /// <returns>A new <see cref="DistributedApplication"/> instance.</returns>
+    Task<DistributedApplication> BuildAsync(CancellationToken cancellationToken = default);
 }
