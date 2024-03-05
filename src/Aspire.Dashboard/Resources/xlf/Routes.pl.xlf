@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="RoutesNotFoundDescription">
         <source>Sorry, there's nothing at this address.</source>
-        <target state="new">Sorry, there's nothing at this address.</target>
+        <target state="translated">Niestety, pod tym adresem nic nie ma.</target>
         <note />
       </trans-unit>
       <trans-unit id="RoutesPageTitle">

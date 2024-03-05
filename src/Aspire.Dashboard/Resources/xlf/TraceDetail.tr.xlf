@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} Traces</source>
-        <target state="new">{0} Traces</target>
+        <target state="translated">{0} İzlemeleri</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
         <source>Total spans</source>
-        <target state="new">Total spans</target>
+        <target state="translated">Toplam yayılma sayısı</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTraceNotFound">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailTraceStartHeader">
         <source>Trace detail</source>
-        <target state="new">Trace detail</target>
+        <target state="translated">İzleme ayrıntısı</target>
         <note />
       </trans-unit>
     </body>
