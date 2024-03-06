@@ -17,5 +17,6 @@
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
   </ItemGroup>
 </Project>
