@@ -3,9 +3,7 @@
 
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
-using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -25,8 +23,8 @@ public partial class ResourceSelect
     [Parameter]
     public EventCallback<SelectViewModel<ResourceTypeDetails>> SelectedResourceChanged { get; set; }
 
-    [Inject]
-    private IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; set; } = default!;
+    [Parameter]
+    public string? AriaLabel { get; set; }
 
     [Inject]
     private IJSRuntime Js { get; set; } = default!;

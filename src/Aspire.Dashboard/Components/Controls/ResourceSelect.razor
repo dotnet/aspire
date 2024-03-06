@@ -4,8 +4,9 @@
               Items="Resources"
               OptionValue="@(c => c!.Id?.InstanceId)"
               OptionDisabled="@(c => c!.Id?.Type is Otlp.Model.OtlpApplicationType.ReplicaSet)"
-              @bind-SelectedOption="SelectedResource"
-              AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"
+              SelectedOption="SelectedResource"
+              SelectedOptionChanged="SelectedResourceChanged"
+              AriaLabel="@AriaLabel"
               Height="@GetPopupHeight()">
     <OptionTemplate>
         <ResourceSelectOptionTemplate ViewModel="@context" />
