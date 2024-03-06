@@ -78,11 +78,11 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
     {
         if (key is null)
         {
-            builder.AddAzureQueueService("queue", ConfigureCredentials);
+            builder.AddAzureQueueServiceClient("queue", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureQueueService(key, ConfigureCredentials);
+            builder.AddKeyedAzureQueueServiceClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureStorageQueuesSettings settings)

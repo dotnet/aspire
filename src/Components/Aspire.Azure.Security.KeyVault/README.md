@@ -38,10 +38,10 @@ public ProductsController(IConfiguration configuration)
 
 ### Use SecretClient
 
-Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the _Program.cs_ file of your project, call the `AddAzureKeyVaultSecrets` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
+Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the _Program.cs_ file of your project, call the `AddAzureKeyVaultSecretsClient` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureKeyVaultSecrets("secrets");
+builder.AddAzureKeyVaultSecretsClient("secrets");
 ```
 
 You can then retrieve the `SecretClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -108,13 +108,13 @@ The .NET Aspire Azure Key Vault library supports [Microsoft.Extensions.Configura
 You can also pass the `Action<AzureSecurityKeyVaultSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddAzureKeyVaultSecrets("secrets", settings => settings.HealthChecks = false);
+builder.AddAzureKeyVaultSecrets("secrets", settings => settings.HealthChecks = false);
 ```
 
 You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using the optional `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>> configureClientBuilder` parameter of the `AddAzureKeyVaultSecrets` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```csharp
-    builder.AddAzureKeyVaultSecrets("secrets", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+builder.AddAzureKeyVaultSecrets("secrets", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
 ## AppHost extensions
@@ -137,7 +137,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddAzureKeyVault` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:secrets` config key. The `WithReference` method passes that connection information into a connection string named `secrets` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.Configuration.AddKeyVaultSecrets("secrets");
+builder.AddKeyVaultSecretsClient("secrets");
 ```
 
 ## Additional documentation

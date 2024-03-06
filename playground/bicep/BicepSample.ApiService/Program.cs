@@ -16,12 +16,12 @@ builder.AddServiceDefaults();
 
 builder.AddSqlServerDbContext<MyDbContext>("db");
 builder.AddNpgsqlDbContext<MyPgDbContext>("db2");
-builder.AddAzureCosmosDB("cosmos");
-builder.AddRedis("redis");
-builder.AddAzureBlobService("blob");
-builder.AddAzureTableService("table");
-builder.AddAzureQueueService("queue");
-builder.AddAzureServiceBus("sb");
+builder.AddAzureCosmosDbClient("cosmos");
+builder.AddRedisClient("redis");
+builder.AddAzureBlobServiceClient("blob");
+builder.AddAzureTableServiceClient("table");
+builder.AddAzureQueueServiceClient("queue");
+builder.AddAzureServiceBusClient("sb");
 
 var app = builder.Build();
 

@@ -25,11 +25,11 @@ public class AspireBlobStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureBlobService("blob");
+            builder.AddKeyedAzureBlobServiceClient("blob");
         }
         else
         {
-            builder.AddAzureBlobService("blob");
+            builder.AddAzureBlobServiceClient("blob");
         }
 
         var host = builder.Build();
@@ -52,11 +52,11 @@ public class AspireBlobStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureBlobService("blob", settings => settings.ConnectionString = ConnectionString);
+            builder.AddKeyedAzureBlobServiceClient("blob", settings => settings.ConnectionString = ConnectionString);
         }
         else
         {
-            builder.AddAzureBlobService("blob", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureBlobServiceClient("blob", settings => settings.ConnectionString = ConnectionString);
         }
 
         var host = builder.Build();
@@ -82,11 +82,11 @@ public class AspireBlobStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureBlobService("blob");
+            builder.AddKeyedAzureBlobServiceClient("blob");
         }
         else
         {
-            builder.AddAzureBlobService("blob");
+            builder.AddAzureBlobServiceClient("blob");
         }
 
         var host = builder.Build();
@@ -110,11 +110,11 @@ public class AspireBlobStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureBlobService("blob");
+            builder.AddKeyedAzureBlobServiceClient("blob");
         }
         else
         {
-            builder.AddAzureBlobService("blob");
+            builder.AddAzureBlobServiceClient("blob");
         }
 
         var host = builder.Build();

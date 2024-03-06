@@ -26,11 +26,11 @@ public class AspireAzureSearchExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureSearch("search");
+            builder.AddKeyedAzureSearchClient("search");
         }
         else
         {
-            builder.AddAzureSearch("search");
+            builder.AddAzureSearchClient("search");
         }
 
         var host = builder.Build();
@@ -53,11 +53,11 @@ public class AspireAzureSearchExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureSearch("search", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
+            builder.AddKeyedAzureSearchClient("search", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
         }
         else
         {
-            builder.AddAzureSearch("search", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
+            builder.AddAzureSearchClient("search", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
         }
 
         var host = builder.Build();
