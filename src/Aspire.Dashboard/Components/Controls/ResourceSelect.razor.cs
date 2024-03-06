@@ -13,7 +13,7 @@ public partial class ResourceSelect
 {
     private const int ResourceOptionPixelHeight = 32;
     private const int MaxVisibleResourceOptions = 15;
-    private const int SelectPadding = 4; // 2px top + 2px bottom
+    private const int SelectPadding = 8; // 4px top + 4px bottom
 
     [Parameter]
     public IEnumerable<SelectViewModel<ResourceTypeDetails>> Resources { get; set; } = default!;
