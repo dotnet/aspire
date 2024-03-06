@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
 var resourcesToSkip = !string.IsNullOrEmpty(skipResourcesValue)
                         ? TestResourceNamesExtensions.Parse(skipResourcesValue.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                        : [];
+                        : new HashSet<TestResourceNames>();
 
 if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 {

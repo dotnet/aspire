@@ -18,9 +18,9 @@ public enum TestResourceNames
 
 public static class TestResourceNamesExtensions
 {
-    public static IList<TestResourceNames> Parse(IEnumerable<string> resourceNames)
+    public static ISet<TestResourceNames> Parse(IEnumerable<string> resourceNames)
     {
-        List<TestResourceNames> resourcesToSkip = new();
+        HashSet<TestResourceNames> resourcesToSkip = new();
         foreach (var resourceName in resourceNames)
         {
             if (Enum.TryParse<TestResourceNames>(resourceName, ignoreCase: true, out var name))

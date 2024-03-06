@@ -11,7 +11,7 @@ public class TestProgram : IDisposable
 {
     private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard)
     {
-        IList<TestResourceNames> resourcesToSkip = [];
+        ISet<TestResourceNames>? resourcesToSkip = null;
         for (int i = 0; i < args.Length; i++)
         {
             if (args[i].StartsWith("--skip-resources", StringComparison.InvariantCultureIgnoreCase))
@@ -27,6 +27,7 @@ public class TestProgram : IDisposable
                 }
             }
         }
+        resourcesToSkip ??= new HashSet<TestResourceNames>();
         if (resourcesToSkip.Contains(TestResourceNames.dashboard))
         {
             disableDashboard = true;
