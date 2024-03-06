@@ -71,11 +71,11 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
     {
         if (key is null)
         {
-            builder.AddAzureKeyVaultSecretsClient("secrets", ConfigureCredentials);
+            builder.AddAzureKeyVaultClient("secrets", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureKeyVaultSecretsClient(key, ConfigureCredentials);
+            builder.AddKeyedAzureKeyVaultClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureSecurityKeyVaultSettings settings)

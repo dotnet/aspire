@@ -76,11 +76,11 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
     {
         if (key is null)
         {
-            builder.AddAzureTableServiceClient("tables", ConfigureCredentials);
+            builder.AddAzureTableClient("tables", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureTableServiceClient(key, ConfigureCredentials);
+            builder.AddKeyedAzureTableClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureDataTablesSettings settings)

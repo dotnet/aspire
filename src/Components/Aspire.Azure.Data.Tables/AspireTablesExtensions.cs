@@ -31,13 +31,13 @@ public static class AspireTablesExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Data:Tables" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureTableServiceClient)} instead.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureTableClient)} instead.")]
     public static void AddAzureTableService(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureDataTablesSettings>? configureSettings = null,
         Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null)
-        => AddAzureTableServiceClient(builder, connectionName, configureSettings, configureClientBuilder);
+        => AddAzureTableClient(builder, connectionName, configureSettings, configureClientBuilder);
 
     /// <summary>
     /// Registers <see cref="TableServiceClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -49,7 +49,7 @@ public static class AspireTablesExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Data:Tables" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
-    public static void AddAzureTableServiceClient(
+    public static void AddAzureTableClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureDataTablesSettings>? configureSettings = null,
@@ -68,13 +68,13 @@ public static class AspireTablesExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Data:Tables:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedAzureTableServiceClient)} instead.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedAzureTableClient)} instead.")]
     public static void AddKeyedAzureTableService(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureDataTablesSettings>? configureSettings = null,
         Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null)
-        => AddKeyedAzureTableServiceClient(builder, name, configureSettings, configureClientBuilder);
+        => AddKeyedAzureTableClient(builder, name, configureSettings, configureClientBuilder);
 
     /// <summary>
     /// Registers <see cref="TableServiceClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -86,7 +86,7 @@ public static class AspireTablesExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Data:Tables:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
-    public static void AddKeyedAzureTableServiceClient(
+    public static void AddKeyedAzureTableClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureDataTablesSettings>? configureSettings = null,

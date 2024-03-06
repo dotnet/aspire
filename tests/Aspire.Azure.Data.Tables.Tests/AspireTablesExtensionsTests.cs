@@ -25,11 +25,11 @@ public class AspireTablesExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureTableServiceClient("tables");
+            builder.AddKeyedAzureTableClient("tables");
         }
         else
         {
-            builder.AddAzureTableServiceClient("tables");
+            builder.AddAzureTableClient("tables");
         }
 
         var host = builder.Build();
@@ -52,11 +52,11 @@ public class AspireTablesExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureTableServiceClient("tables", settings => settings.ConnectionString = ConnectionString);
+            builder.AddKeyedAzureTableClient("tables", settings => settings.ConnectionString = ConnectionString);
         }
         else
         {
-            builder.AddAzureTableServiceClient("tables", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureTableClient("tables", settings => settings.ConnectionString = ConnectionString);
         }
 
         var host = builder.Build();
@@ -82,11 +82,11 @@ public class AspireTablesExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureTableServiceClient("tables");
+            builder.AddKeyedAzureTableClient("tables");
         }
         else
         {
-            builder.AddAzureTableServiceClient("tables");
+            builder.AddAzureTableClient("tables");
         }
 
         var host = builder.Build();
@@ -110,11 +110,11 @@ public class AspireTablesExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureTableServiceClient("tables");
+            builder.AddKeyedAzureTableClient("tables");
         }
         else
         {
-            builder.AddAzureTableServiceClient("tables");
+            builder.AddAzureTableClient("tables");
         }
 
         var host = builder.Build();

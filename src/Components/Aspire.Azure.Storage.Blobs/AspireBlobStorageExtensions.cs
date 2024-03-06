@@ -31,13 +31,13 @@ public static class AspireBlobStorageExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Blobs" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageBlobsSettings.ConnectionString"/> nor <see cref="AzureStorageBlobsSettings.ServiceUri"/> is provided.</exception>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureBlobServiceClient)} instead.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureBlobClient)} instead.")]
     public static void AddAzureBlobService(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureStorageBlobsSettings>? configureSettings = null,
         Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
-        => AddAzureBlobServiceClient(builder, connectionName, configureSettings, configureClientBuilder);
+        => AddAzureBlobClient(builder, connectionName, configureSettings, configureClientBuilder);
 
     /// <summary>
     /// Registers <see cref="BlobServiceClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -49,7 +49,7 @@ public static class AspireBlobStorageExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Blobs" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageBlobsSettings.ConnectionString"/> nor <see cref="AzureStorageBlobsSettings.ServiceUri"/> is provided.</exception>
-    public static void AddAzureBlobServiceClient(
+    public static void AddAzureBlobClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureStorageBlobsSettings>? configureSettings = null,
@@ -68,13 +68,13 @@ public static class AspireBlobStorageExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Blobs:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageBlobsSettings.ConnectionString"/> nor <see cref="AzureStorageBlobsSettings.ServiceUri"/> is provided.</exception>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedAzureBlobServiceClient)} instead.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedAzureBlobClient)} instead.")]
     public static void AddKeyedAzureBlobService(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureStorageBlobsSettings>? configureSettings = null,
         Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
-        => AddKeyedAzureBlobServiceClient(builder, name, configureSettings, configureClientBuilder);
+        => AddKeyedAzureBlobClient(builder, name, configureSettings, configureClientBuilder);
 
     /// <summary>
     /// Registers <see cref="BlobServiceClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -86,7 +86,7 @@ public static class AspireBlobStorageExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Blobs:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageBlobsSettings.ConnectionString"/> nor <see cref="AzureStorageBlobsSettings.ServiceUri"/> is provided.</exception>
-    public static void AddKeyedAzureBlobServiceClient(
+    public static void AddKeyedAzureBlobClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureStorageBlobsSettings>? configureSettings = null,

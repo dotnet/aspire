@@ -19,10 +19,10 @@ dotnet add package Aspire.Azure.Storage.Queues
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureQueueServiceClient` extension method to register a `QueueServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddAzureQueueClient` extension method to register a `QueueServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureQueueServiceClient("queue");
+builder.AddAzureQueueClient("queue");
 ```
 
 You can then retrieve the `QueueServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -134,7 +134,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddQueues` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:queue` config key. The `WithReference` method passes that connection information into a connection string named `queue` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureQueueServiceClient("queue");
+builder.AddAzureQueueClient("queue");
 ```
 
 ## Additional documentation

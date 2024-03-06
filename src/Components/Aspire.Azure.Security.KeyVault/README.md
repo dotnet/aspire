@@ -38,10 +38,10 @@ public ProductsController(IConfiguration configuration)
 
 ### Use SecretClient
 
-Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the _Program.cs_ file of your project, call the `AddAzureKeyVaultSecretsClient` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
+Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the _Program.cs_ file of your project, call the `AddAzureKeyVaultClient` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureKeyVaultSecretsClient("secrets");
+builder.AddAzureKeyVaultClient("secrets");
 ```
 
 You can then retrieve the `SecretClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:

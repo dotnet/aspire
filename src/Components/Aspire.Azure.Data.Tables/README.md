@@ -19,10 +19,10 @@ dotnet add package Aspire.Azure.Data.Tables
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureTableServiceClient` extension method to register a `TableServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddAzureTableClient` extension method to register a `TableServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureTableServiceClient("tables");
+builder.AddAzureTableClient("tables");
 ```
 
 You can then retrieve the `TableServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -134,7 +134,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddTables` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:tables` config key. The `WithReference` method passes that connection information into a connection string named `tables` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureTableServiceClient("tables");
+builder.AddAzureTableClient("tables");
 ```
 
 ## Additional documentation

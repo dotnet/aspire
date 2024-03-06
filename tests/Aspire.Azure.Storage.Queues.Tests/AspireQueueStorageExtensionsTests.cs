@@ -25,11 +25,11 @@ public class AspireQueueStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureQueueServiceClient("queue");
+            builder.AddKeyedAzureQueueClient("queue");
         }
         else
         {
-            builder.AddAzureQueueServiceClient("queue");
+            builder.AddAzureQueueClient("queue");
         }
 
         var host = builder.Build();
@@ -52,11 +52,11 @@ public class AspireQueueStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureQueueServiceClient("queue", settings => settings.ConnectionString = ConnectionString);
+            builder.AddKeyedAzureQueueClient("queue", settings => settings.ConnectionString = ConnectionString);
         }
         else
         {
-            builder.AddAzureQueueServiceClient("queue", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureQueueClient("queue", settings => settings.ConnectionString = ConnectionString);
         }
 
         var host = builder.Build();
@@ -82,11 +82,11 @@ public class AspireQueueStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureQueueServiceClient("queue");
+            builder.AddKeyedAzureQueueClient("queue");
         }
         else
         {
-            builder.AddAzureQueueServiceClient("queue");
+            builder.AddAzureQueueClient("queue");
         }
 
         var host = builder.Build();
@@ -110,11 +110,11 @@ public class AspireQueueStorageExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureQueueServiceClient("queue");
+            builder.AddKeyedAzureQueueClient("queue");
         }
         else
         {
-            builder.AddAzureQueueServiceClient("queue");
+            builder.AddAzureQueueClient("queue");
         }
 
         var host = builder.Build();

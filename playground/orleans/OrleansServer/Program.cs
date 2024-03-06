@@ -3,8 +3,8 @@ using Orleans.Runtime;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddKeyedAzureTableServiceClient("clustering");
-builder.AddKeyedAzureBlobServiceClient("grainstate");
+builder.AddKeyedAzureTableClient("clustering");
+builder.AddKeyedAzureBlobClient("grainstate");
 builder.UseOrleans();
 
 var app = builder.Build();
