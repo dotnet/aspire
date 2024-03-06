@@ -19,14 +19,26 @@ parameters:
     default: false
 
 steps:
-  - script: ${{ parameters.buildScript }}
-            -restore -build
-            -pack
-            -configuration ${{ parameters.buildConfig }}
-            /p:ArchiveTests=true
-            /bl:${{ parameters.repoLogPath }}/build.binlog
-            $(_OfficialBuildIdArgs)
-    displayName: Build
+  - ${{ if eq(parameters.isWindows, 'true') }}:
+    - script: ${{ parameters.buildScript }}
+              -restore -build
+              -configuration ${{ parameters.buildConfig }}
+              /p:ArchiveTests=true
+              /bl:${{ parameters.repoLogPath }}/build.binlog
+              $(_OfficialBuildIdArgs)
+      displayName: Build
+  - ${{ if ne(parameters.isWindows, 'true') }}:
+    # temporary: Use -pack for linux as it is required for workload testing
+    # Issue: https://github.com/dotnet/aspire/issues/2687
+    - script: ${{ parameters.buildScript }}
+              -restore -build
+              -pack
+              -configuration ${{ parameters.buildConfig }}
+              /p:ArchiveTests=true
+              /bl:${{ parameters.repoLogPath }}/build.binlog
+              $(extraBuildArgs)
+              $(_OfficialBuildIdArgs)
+      displayName: Build
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
