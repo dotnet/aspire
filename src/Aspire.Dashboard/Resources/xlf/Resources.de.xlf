@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
         <source>Endpoint URL</source>
-        <target state="new">Endpoint URL</target>
+        <target state="translated">Endpunkt-URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsProxyUrl">
         <source>Proxy URL</source>
-        <target state="new">Proxy URL</target>
+        <target state="translated">Proxy-URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesCommandsColumnHeader">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">Details</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
-        <target state="new">Container arguments</target>
+        <target state="translated">Containerargumente</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerCommandProperty">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerIdProperty">
         <source>Container ID</source>
-        <target state="new">Container ID</target>
+        <target state="translated">Container-ID</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerImageProperty">
         <source>Container image</source>
-        <target state="new">Container image</target>
+        <target state="translated">Containerimage</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsDisplayNameProperty">
         <source>Display name</source>
-        <target state="new">Display name</target>
+        <target state="translated">Anzeigename</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutableArgumentsProperty">
@@ -74,67 +74,67 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutablePathProperty">
         <source>Executable path</source>
-        <target state="new">Executable path</target>
+        <target state="translated">Pfad der ausführbaren Datei</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutableProcessIdProperty">
         <source>Process ID</source>
-        <target state="new">Process ID</target>
+        <target state="translated">Prozess-ID</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutableWorkingDirectoryProperty">
         <source>Working directory</source>
-        <target state="new">Working directory</target>
+        <target state="translated">Arbeitsverzeichnis</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExitCodeProperty">
         <source>Exit code</source>
-        <target state="new">Exit code</target>
+        <target state="translated">Exitcode</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
-        <target state="new">Project path</target>
+        <target state="translated">Projektpfad</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
         <source>Start time</source>
-        <target state="new">Start time</target>
+        <target state="translated">Startzeit</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStateProperty">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">Status</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">Endpunkte</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
-        <target state="new">Environment</target>
+        <target state="translated">Umgebung</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesLogsColumnHeader">
         <source>Logs</source>
-        <target state="new">Logs</target>
+        <target state="translated">Protokolle</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
         <source>Source</source>
-        <target state="new">Source</target>
+        <target state="translated">Quelle</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesStartTimeColumnHeader">
         <source>Start time</source>
-        <target state="new">Start time</target>
+        <target state="translated">Startzeit</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesStateColumnHeader">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">Status</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEnvironmentVariablesHeader">
@@ -144,32 +144,32 @@
       </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">Ressourcen</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoEnvironmentVariables">
         <source>No environment variables</source>
-        <target state="new">No environment variables</target>
+        <target state="translated">Keine Umgebungsvariablen</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">
         <source>No resources found</source>
-        <target state="new">No resources found</target>
+        <target state="translated">Keine Ressourcen gefunden</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesPageTitle">
         <source>{0} resources</source>
-        <target state="new">{0} resources</target>
+        <target state="translated">{0} Ressourcen</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ResourcesResourceTypesHeader">
         <source>Resource types</source>
-        <target state="new">Resource types</target>
+        <target state="translated">Ressourcentypen</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">Typ</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeFilterAllVisible">
