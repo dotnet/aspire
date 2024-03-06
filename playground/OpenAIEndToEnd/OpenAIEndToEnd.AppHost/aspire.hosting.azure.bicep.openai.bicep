@@ -70,6 +70,3 @@ resource cognitiveServiceContributorRoleAssignment 'Microsoft.Authorization/role
 }
 
 output connectionString string = 'Endpoint=${account.properties.endpoint}'
-
-
-output connectionString string = 'Endpoint=${account.properties.endpoint}'
