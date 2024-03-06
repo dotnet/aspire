@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="ResourceCommandFailed">
         <source>"{0}" command failed</source>
-        <target state="new">"{0}" command failed</target>
+        <target state="translated">Befehl "{0}" fehlgeschlagen</target>
         <note>{0} is the display name of the command that failed</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
         <source>"{0}" command succeeded</source>
-        <target state="new">"{0}" command succeeded</target>
+        <target state="translated">Ausführen des Befehls "{0}" erfolgreich</target>
         <note>{0} is the display name of the command that succeeded</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View Logs</source>
-        <target state="new">View Logs</target>
+        <target state="translated">Protokolle anzeigen</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourcesCommandsColumnHeader">
         <source>Commands</source>
-        <target state="new">Commands</target>
+        <target state="translated">Befehle</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsColumnHeader">
