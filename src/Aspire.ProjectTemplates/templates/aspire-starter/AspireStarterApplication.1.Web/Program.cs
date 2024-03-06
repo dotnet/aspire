@@ -17,12 +17,16 @@ builder.Services.AddRazorComponents()
 builder.Services.AddOutputCache();
 
 #endif
+#if (HasHttpsProfile)
 builder.Services.AddHttpClient<WeatherApiClient>(client =>
     {
         // This URL uses "https+http://" to indicate HTTPS is preferred over HTTP.
         // Learn more about service discovery scheme resolution at https://aka.ms/dotnet/sdschemes.
         client.BaseAddress = new("https+http://apiservice");
     });
+#else
+builder.Services.AddHttpClient<WeatherApiClient>(client => client.BaseAddress = new("http://apiservice"));
+#endif
 
 var app = builder.Build();
 
