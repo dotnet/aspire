@@ -27,7 +27,7 @@ public partial class ResourceSelect
     public string? AriaLabel { get; set; }
 
     [Inject]
-    private IJSRuntime Js { get; set; } = default!;
+    public required IJSRuntime JSRuntime { get; init; }
 
     private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
 
@@ -37,12 +37,12 @@ public partial class ResourceSelect
     /// </summary>
     public ValueTask UpdateDisplayValueAsync()
     {
-        if (Js is null || _resourceSelectComponent is null)
+        if (JSRuntime is null || _resourceSelectComponent is null)
         {
             return ValueTask.CompletedTask;
         }
 
-        return Js.InvokeVoidAsync("updateSelectDisplayValue", _resourceSelectComponent.Element);
+        return JSRuntime.InvokeVoidAsync("updateSelectDisplayValue", _resourceSelectComponent.Element);
     }
 
     private string? GetPopupHeight()
