@@ -211,7 +211,7 @@ public class TelemetryRepository
             {
                 subscriptions.Remove(subscription!);
             }
-        }, ExecutionContext.Capture());
+        }, ExecutionContext.Capture(), _logger);
 
         lock (_lock)
         {
@@ -227,17 +227,7 @@ public class TelemetryRepository
         {
             foreach (var subscription in subscriptions)
             {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await subscription.ExecuteAsync().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error in subscription callback");
-                    }
-                });
+                subscription.Execute();
             }
         }
     }
