@@ -25,6 +25,7 @@
     <ComponentReferenceForTests Include="Aspire.Pomelo.EntityFrameworkCore.MySql" />
     <ComponentReferenceForTests Include="Aspire.RabbitMQ.Client" />
     <ComponentReferenceForTests Include="Aspire.StackExchange.Redis" />
+    <ComponentReferenceForTests Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
   <ItemGroup>
