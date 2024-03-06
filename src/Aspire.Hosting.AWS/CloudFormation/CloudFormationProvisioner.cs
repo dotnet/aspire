@@ -196,7 +196,7 @@ internal sealed class CloudFormationProvisioner(
                     stateEnum = Constants.ResourceStateFailedToStart;
                 }
 
-                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, stateEnum, ConvertOutputToProperties(stack)).ConfigureAwait(false);
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, stateEnum, ConvertOutputToProperties(stack, cloudFormationResource.TemplatePath)).ConfigureAwait(false);
 
                 // Capture the CloudFormation stack output parameters on to the Aspire CloudFormation resource. This
                 // allows projects that have a reference to the stack have the output parameters applied to the
@@ -250,13 +250,20 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private static ImmutableArray<(string, string)> ConvertOutputToProperties(Stack stack)
+    private static ImmutableArray<(string, string)> ConvertOutputToProperties(Stack stack, string? templateFile = null)
     {
         var list = new List<(string, string)>();
 
         foreach (var output in stack.Outputs)
         {
-            list.Add((output.OutputKey, output.OutputValue));
+            list.Add(("aws.cloudformation.output." + output.OutputKey, output.OutputValue));
+        }
+
+        list.Add((CustomResourceKnownProperties.Source, stack.StackId));
+
+        if (!string.IsNullOrEmpty(templateFile))
+        {
+            list.Add(("aws.cloudformation.template", templateFile));
         }
 
         return ImmutableArray.Create(list.ToArray());
