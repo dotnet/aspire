@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="TraceDetailDepthHeader">
         <source>Depth</source>
-        <target state="new">Depth</target>
+        <target state="translated">Глубина</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailDurationHeader">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">Длительность</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} Traces</source>
-        <target state="translated">{0} трассировок</target>
+        <target state="translated">Трассировок: {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">Ресурсы</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="TraceDetailTraceNotFound">
         <source>Trace "{0}" not found</source>
-        <target state="new">Trace "{0}" not found</target>
+        <target state="translated">Трассировка "{0}" не найдена</target>
         <note>{0} is an identifier</note>
       </trans-unit>
       <trans-unit id="TraceDetailTraceStartHeader">
         <source>Trace detail</source>
-        <target state="translated">Сведения о трассировке</target>
+        <target state="translated">Детали трассировки</target>
         <note />
       </trans-unit>
     </body>

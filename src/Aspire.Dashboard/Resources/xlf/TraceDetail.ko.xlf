@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="TraceDetailDepthHeader">
         <source>Depth</source>
-        <target state="new">Depth</target>
+        <target state="translated">깊이</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailDurationHeader">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">기간</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} Traces</source>
-        <target state="translated">추적 {0}</target>
+        <target state="translated">{0} 추적</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">리소스</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailTraceNotFound">
         <source>Trace "{0}" not found</source>
-        <target state="new">Trace "{0}" not found</target>
+        <target state="translated">추적 "{0}"을(를) 찾을 수 없음</target>
         <note>{0} is an identifier</note>
       </trans-unit>
       <trans-unit id="TraceDetailTraceStartHeader">
