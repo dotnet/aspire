@@ -123,7 +123,8 @@ public static class ProjectResourceBuilderExtensions
                 {
                     e.Port = uri.Port;
                     e.UriScheme = uri.Scheme;
-                }, createIfNotExists: true);
+                },
+                createIfNotExists: true);
             }
         }
         else
@@ -142,7 +143,8 @@ public static class ProjectResourceBuilderExtensions
                 {
                     e.UriScheme = "http";
                     e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
-                }, createIfNotExists: true);
+                },
+                createIfNotExists: true);
             }
 
             if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || string.Equals(sb.Name, "https", StringComparisons.EndpointAnnotationName)))
@@ -151,8 +153,8 @@ public static class ProjectResourceBuilderExtensions
                 {
                     e.UriScheme = "https";
                     e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
-
-                }, createIfNotExists: true);
+                },
+                createIfNotExists: true);
             }
         }
 

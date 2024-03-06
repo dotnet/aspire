@@ -1,0 +1,38 @@
+targetScope = 'resourceGroup'
+
+@description('')
+param principalId string
+
+@description('')
+param keyVaultName string
+
+@description('')
+param location string = resourceGroup().location
+
+
+resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
+  name: keyVaultName
+}
+
+resource redisCache_p9fE6TK3F 'Microsoft.Cache/Redis@2020-06-01' = {
+  name: toLower(take(concat('cache', uniqueString(resourceGroup().id)), 24))
+  location: location
+  properties: {
+    enableNonSslPort: false
+    minimumTlsVersion: '1.2'
+    sku: {
+      name: 'Basic'
+      family: 'C'
+      capacity: 1
+    }
+  }
+}
+
+resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault_IeF8jZvXV
+  name: 'connectionString'
+  location: location
+  properties: {
+    value: '${redisCache_p9fE6TK3F.properties.hostName},ssl=true,password=${redisCache_p9fE6TK3F.listKeys(redisCache_p9fE6TK3F.apiVersion).primaryKey}'
+  }
+}

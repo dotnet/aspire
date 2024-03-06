@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
+internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService) : AzureResourceProvisioner<AzureBicepResource>
 {
@@ -189,7 +189,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             Arguments = $"bicep build --file \"{path}\" --stdout",
             OnOutputData = data => armTemplateContents.AppendLine(data),
-            OnErrorData = data => logger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
+            OnErrorData = data => resourceLogger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
         if (!await ExecuteCommand(templateSpec).ConfigureAwait(false))

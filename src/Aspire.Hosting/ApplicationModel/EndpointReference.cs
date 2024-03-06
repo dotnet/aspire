@@ -40,7 +40,7 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
             EndpointProperty.Host => "host",
             EndpointProperty.Port => "port",
             EndpointProperty.Scheme => "scheme",
-            _ => throw new InvalidOperationException($"The property `{property}` is not supported for the endpoint `{EndpointName}`.")
+            _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
         return $"{{{Owner.Name}.bindings.{EndpointName}.{prop}}}";
@@ -69,7 +69,7 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     private AllocatedEndpointAnnotation GetAllocatedEndpoint()
     {
         var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName) ??
-            throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
+            throw new InvalidOperationException($"The endpoint '{EndpointName}' is not allocated for the resource '{Owner.Name}'.");
 
         return allocatedEndpoint;
     }

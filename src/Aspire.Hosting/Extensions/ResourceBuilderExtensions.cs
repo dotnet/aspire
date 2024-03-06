@@ -355,8 +355,8 @@ public static class ResourceBuilderExtensions
         if (endpoint != null)
         {
             callback(endpoint);
-
         }
+
         if (endpoint == null && createIfNotExists)
         {
             endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
