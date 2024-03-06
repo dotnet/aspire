@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Threading.Channels;
+using Aspire.Dashboard.Utils;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests;
@@ -30,13 +31,7 @@ public class ChannelExtensionsTests
         });
 
         // Assert
-        try
-        {
-            await readTask;
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
     }
 
     [Fact]
@@ -60,13 +55,7 @@ public class ChannelExtensionsTests
         });
 
         // Assert
-        try
-        {
-            await readTask;
-        }
-        catch (OperationCanceledException)
-        {
-        }
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
     }
 
     [Fact]
@@ -83,9 +72,16 @@ public class ChannelExtensionsTests
         // Act
         var readTask = Task.Run(async () =>
         {
-            await foreach (var batch in channel.GetBatchesAsync(minReadInterval).WithCancellation(cts.Token))
+            try
             {
-                resultChannel.Writer.TryWrite(batch);
+                await foreach (var batch in channel.GetBatchesAsync(minReadInterval).WithCancellation(cts.Token))
+                {
+                    resultChannel.Writer.TryWrite(batch);
+                }
+            }
+            finally
+            {
+                resultChannel.Writer.Complete();
             }
         });
 
@@ -100,6 +96,59 @@ public class ChannelExtensionsTests
         Assert.Equal(["d", "e", "f"], read2.Single());
 
         var elapsed = stopwatch.Elapsed;
-        Assert.True(elapsed >= minReadInterval, $"Elapsed time {elapsed} should be greater than min read interval {minReadInterval}.");
+        Assert.True(elapsed >= minReadInterval, $"Elapsed time {elapsed} should be greater than min read interval {minReadInterval} on read.");
+
+        channel.Writer.Complete();
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
+    }
+
+    [Fact]
+    public async Task GetBatchesAsync_MinReadInterval_WithCancellation_Exit()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        var channel = Channel.CreateUnbounded<IReadOnlyList<string>>();
+        var resultChannel = Channel.CreateUnbounded<IReadOnlyList<IReadOnlyList<string>>>();
+        var minReadInterval = TimeSpan.FromMilliseconds(50000);
+
+        channel.Writer.TryWrite(["a", "b", "c"]);
+
+        // Act
+        var readTask = Task.Run(async () =>
+        {
+            try
+            {
+                await foreach (var batch in channel.GetBatchesAsync(minReadInterval).WithCancellation(cts.Token))
+                {
+                    resultChannel.Writer.TryWrite(batch);
+                }
+            }
+            finally
+            {
+                resultChannel.Writer.Complete();
+            }
+        });
+
+        // Assert
+        var stopwatch = Stopwatch.StartNew();
+        var read1 = await resultChannel.Reader.ReadAsync();
+        Assert.Equal(["a", "b", "c"], read1.Single());
+
+        channel.Writer.TryWrite(["d", "e", "f"]);
+
+        var read2Task = resultChannel.Reader.ReadAsync();
+        cts.Cancel();
+
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
+        try
+        {
+            await read2Task;
+        }
+        catch (ChannelClosedException)
+        {
+        }
+
+        var elapsed = stopwatch.Elapsed;
+        Assert.True(elapsed <= minReadInterval, $"Elapsed time {elapsed} should be less than min read interval {minReadInterval} on cancellation.");
     }
 }
