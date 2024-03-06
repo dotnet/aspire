@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="EndpointsColumnDisplayNone">
         <source>None</source>
-        <target state="new">None</target>
+        <target state="translated">Nenhum</target>
         <note />
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
         <source>Starting...</source>
-        <target state="new">Starting...</target>
+        <target state="translated">Iniciando...</target>
         <note />
       </trans-unit>
       <trans-unit id="LogMessageColumnExceptionDetailsTitle">
         <source>Exception details</source>
-        <target state="new">Exception details</target>
+        <target state="translated">Detalhes da exceção</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -24,22 +24,22 @@
       </trans-unit>
       <trans-unit id="ResourceNameDisplayCopyContainerIdText">
         <source>Copy container ID to clipboard</source>
-        <target state="new">Copy container ID to clipboard</target>
+        <target state="translated">Copiar a ID do contêiner para a área de transferência</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayProcessIdText">
         <source>Process ID: {0}</source>
-        <target state="new">Process ID: {0}</target>
+        <target state="translated">ID do processo: {0}</target>
         <note>{0} is a numeric id</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>
-        <target state="translated">Argumentos do contêiner</target>
+        <target state="translated">Argumentos de contêiner</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommand">
         <source>Command: {0}</source>
-        <target state="new">Command: {0}</target>
+        <target state="translated">Comando: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommandTitle">
@@ -49,37 +49,37 @@
       </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
-        <target state="new">Copy full command to clipboard</target>
+        <target state="translated">Copiar o comando completo para a área de transferência</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayPort">
         <source>Port: {0}</source>
-        <target state="new">Port: {0}</target>
+        <target state="translated">Porta: {0}</target>
         <note>{0} is a port number</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayPorts">
         <source>Ports: {0}</source>
-        <target state="new">Ports: {0}</target>
+        <target state="translated">Portas: {0}</target>
         <note>{0} is a list of ports</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayWorkingDirectory">
         <source>Working directory: {0}</source>
-        <target state="new">Working directory: {0}</target>
+        <target state="translated">Diretório de trabalho: {0}</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
         <source>Copy image name and tag to clipboard</source>
-        <target state="translated">Copiar nome e marca da imagem para a área de transferência</target>
+        <target state="translated">Copie o nome e a marca da imagem para a área de transferência</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
         <source>Copy file path to clipboard</source>
-        <target state="new">Copy file path to clipboard</target>
+        <target state="translated">Copiar caminho do arquivo para a área de transferência</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
         <source>{0} is no longer running</source>
-        <target state="translated">{0} está mais em execução</target>
+        <target state="translated">{0} não está mais em execução</target>
         <note>{0} is a resource type</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExitedUnexpectedly">
@@ -89,12 +89,12 @@
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLogs">
         <source>{0} error logs</source>
-        <target state="translated">{0} de erros</target>
+        <target state="translated">{0} log de erros</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeOneErrorLog">
         <source>1 error log</source>
-        <target state="translated">1 log de erros</target>
+        <target state="translated">1 log de erro</target>
         <note />
       </trans-unit>
     </body>

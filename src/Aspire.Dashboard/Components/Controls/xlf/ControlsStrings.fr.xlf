@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ChartContainerUnableToDisplay">
         <source>Unable to display chart.</source>
-        <target state="translated">Impossible d’afficher le graphique.</target>
+        <target state="translated">Désolé... Nous ne pouvons pas afficher le graphique.</target>
         <note />
       </trans-unit>
     </body>

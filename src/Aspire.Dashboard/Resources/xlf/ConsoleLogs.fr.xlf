@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConsoleLogsFailedToInitialize">
         <source>Failed to initialize</source>
-        <target state="new">Failed to initialize</target>
+        <target state="translated">Impossible d’effectuer l’initialisation</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
@@ -14,47 +14,47 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">Journaux de console</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsInitializingLogViewer">
         <source>Initializing log viewer...</source>
-        <target state="translated">Initialisation de la visionneuse du journal...</target>
+        <target state="translated">Initialisation en cours de la visionneuse du journal... Merci de patienter.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
         <source>Loading resources ...</source>
-        <target state="translated">Chargement des ressources...</target>
+        <target state="translated">Chargement en cours des ressources... Merci de patienter.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLogsNotYetAvailable">
         <source>Logs not yet available</source>
-        <target state="translated">Les journaux ne sont pas encore disponibles</target>
+        <target state="translated">Journaux non disponibles pour le moment</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsNoResourceSelected">
         <source>No resource selected</source>
-        <target state="new">No resource selected</target>
+        <target state="translated">Aucune ressource sélectionnée</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
-        <target state="translated">journaux de la console {0}</target>
+        <target state="translated">Journaux de console {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
-        <target state="new">Unknown state</target>
+        <target state="translated">État inconnu</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
-        <target state="translated">Regarder les journaux...</target>
+        <target state="translated">Surveillance en cours des journaux... Merci de patienter.</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
-        <target state="translated">Status du journal de service</target>
+        <target state="translated">État du journal de service</target>
         <note />
       </trans-unit>
     </body>
