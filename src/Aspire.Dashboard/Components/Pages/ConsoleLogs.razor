@@ -11,7 +11,11 @@
 <div class="resource-logs-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <ResourceSelect @ref="_resourceSelectComponent" Resources="_resources" @bind-SelectedResource="PageViewModel.SelectedOption" @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
+        <ResourceSelect @ref="_resourceSelectComponent"
+                        Resources="_resources"
+                        AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"
+                        @bind-SelectedResource="PageViewModel.SelectedOption"
+                        @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
         <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />
