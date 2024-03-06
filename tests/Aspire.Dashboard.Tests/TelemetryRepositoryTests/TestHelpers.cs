@@ -192,7 +192,8 @@ internal static class TestHelpers
         int? metricsCountLimit = null,
         int? attributeCountLimit = null,
         int? attributeLengthLimit = null,
-        int? spanEventCountLimit = null)
+        int? spanEventCountLimit = null,
+        TimeSpan? subscriptionMinExecuteInterval = null)
     {
         var inMemorySettings = new Dictionary<string, string?>();
         if (metricsCountLimit != null)
@@ -216,7 +217,12 @@ internal static class TestHelpers
             .AddInMemoryCollection(inMemorySettings)
             .Build();
 
-        return new TelemetryRepository(configuration, NullLoggerFactory.Instance);
+        var repository = new TelemetryRepository(configuration, NullLoggerFactory.Instance);
+        if (subscriptionMinExecuteInterval != null)
+        {
+            repository._subscriptionMinExecuteInterval = subscriptionMinExecuteInterval.Value;
+        }
+        return repository;
     }
 
     public static ulong DateTimeToUnixNanoseconds(DateTime dateTime)
