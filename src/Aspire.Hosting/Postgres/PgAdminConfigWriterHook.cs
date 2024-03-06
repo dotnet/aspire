@@ -22,12 +22,13 @@ internal class PgAdminConfigWriterHook(IConfiguration configuration) : IDistribu
 
         using var stream = new FileStream(serverFileMount.Source!, FileMode.Create);
         using var writer = new Utf8JsonWriter(stream);
-        var serverIndex = 1;
 
         var containerHostName = HostNameResolver.ReplaceLocalhostWithContainerHost("localhost", configuration);
 
         writer.WriteStartObject();
         writer.WriteStartObject("Servers");
+
+        var serverIndex = 1;
 
         foreach (var postgresInstance in postgresInstances)
         {
