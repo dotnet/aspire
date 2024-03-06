@@ -14,18 +14,19 @@ namespace Aspire.Hosting.ApplicationModel;
 /// This class is used to specify generated passwords, usernames, etc.
 /// </remarks>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
-public sealed class InputAnnotation : IResourceAnnotation
+public sealed class InputAnnotation : IResourceAnnotation, IValueProvider
 {
+    private string? _value;
+    private bool _hasValue;
+
     /// <summary>
     /// Initializes a new instance of <see cref="InputAnnotation"/>.
     /// </summary>
     /// <param name="name">The name of the input.</param>
-    /// <param name="type">An optional type name of the input. "string" is the default, if not specified.</param>
     /// <param name="secret">A flag indicating whether the input is secret.</param>
-    public InputAnnotation(string name, string? type = null, bool secret = false)
+    public InputAnnotation(string name, bool secret = false)
     {
         Name = name;
-        Type = type ?? "string";
         Secret = secret;
     }
 
@@ -33,11 +34,6 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// Name of the input.
     /// </summary>
     public string Name { get; set; }
-
-    /// <summary>
-    /// The type of the input.
-    /// </summary>
-    public string Type { get; set; }
 
     /// <summary>
     /// Indicates if the input is a secret.
@@ -49,11 +45,25 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// </summary>
     public InputDefault? Default { get; set; }
 
-    /// <summary>
-    /// The value of the input.
-    /// </summary>
-    public string GenerateDefaultValue()
+    internal Func<string>? ValueGetter { get; set; }
+
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
+        if (!_hasValue)
+        {
+            _value = GenerateValue();
+            _hasValue = true;
+        }
+        return new(_value);
+    }
+
+    private string GenerateValue()
+    {
+        if (ValueGetter is not null)
+        {
+            return ValueGetter();
+        }
+
         if (Default is null)
         {
             throw new InvalidOperationException("The input does not have a default value.");

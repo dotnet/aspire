@@ -8,8 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
 {
-    private readonly Func<string> _callback;
-    private InputReference? _valueInput;
+    private readonly InputAnnotation _valueInput;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterResource"/>.
@@ -19,23 +18,24 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     /// <param name="secret">A flag indicating whether the parameter is secret.</param>
     public ParameterResource(string name, Func<string> callback, bool secret = false) : base(name)
     {
-        _callback = callback;
-        Secret = secret;
+        _valueInput = new InputAnnotation("value", secret);
+        _valueInput.ValueGetter = callback;
+        Annotations.Add(_valueInput);
 
-        Annotations.Add(new InputAnnotation("value", secret: secret));
+        ValueInputReference = new InputReference(this, "value");
     }
 
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
-    public string Value => _callback();
+    public string Value => _valueInput.ValueGetter!();
 
     /// <summary>
     /// Gets a value indicating whether the parameter is secret.
     /// </summary>
-    public bool Secret { get; }
+    public bool Secret => _valueInput.Secret;
 
-    internal InputReference ValueInput => _valueInput ??= new(this, "value");
+    internal InputReference ValueInputReference { get; }
 
     /// <summary>
     /// Gets the expression used in the manifest to reference the value of the parameter.

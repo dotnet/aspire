@@ -69,7 +69,7 @@ public static class ParameterResourceBuilderExtensions
             context.Writer.WriteString("connectionString", resource.ValueExpression);
         }
 
-        context.Writer.WriteString("value", resource.ValueInput.ValueExpression);
+        context.Writer.WriteString("value", resource.ValueInputReference.ValueExpression);
         context.WriteInputs(resource);
     }
 
