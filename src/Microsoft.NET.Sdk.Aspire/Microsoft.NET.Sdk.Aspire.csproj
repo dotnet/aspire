@@ -6,8 +6,15 @@
     <PackageId>$(PackageId).Manifest-$(DotNetAspireManifestVersionBand)</PackageId>
     <Description>.NET Aspire workload manifest</Description>
 
-    <!-- this allows installing the manifest as a nuget, which is useful for testing -->
-    <PackageType />
+    <!--
+      the workload testing targets from dotnet/runtime install the manifest nuget with nuget-restore, which fails
+      for this manifest package because PackageType='dotnetplatform'.
+
+      As a temporary workaround, set `PackageType=''` but only for Linux/CI or local runs
+      Because the official workload packages are generated on windows, they will not be
+      affected by this workaround
+    -->
+    <PackageType Condition="'$(ContinuousIntegrationBuild)' != 'true' or ('$(OS)' != 'Windows_NT' and '$(ArchiveTests)' == 'true')" />
   </PropertyGroup>
 
   <ItemGroup>
