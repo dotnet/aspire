@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">Nome: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Rastreamentos</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">Filtro de nome</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="translated">Abrange</target>
+        <target state="translated">Intervalos</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">Total: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">
         <source>Trace Id: {0}</source>
-        <target state="translated">ID de Rastreamento: {0}</target>
+        <target state="translated">ID de rastreamento: {0}</target>
         <note />
       </trans-unit>
     </body>
