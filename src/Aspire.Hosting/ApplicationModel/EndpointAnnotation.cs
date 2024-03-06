@@ -15,6 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class EndpointAnnotation : IResourceAnnotation
 {
+    private string? _transport;
     /// <summary>
     /// Initializes a new instance of <see cref="EndpointAnnotation"/>.
     /// </summary>
@@ -41,7 +42,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
 
         Protocol = protocol;
         UriScheme = uriScheme;
-        Transport = transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
+        _transport = transport;
         Name = name;
         Port = port;
         ContainerPort = containerPort ?? port;
@@ -81,7 +82,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Transport that is being used (e.g. http, http2, http3 etc).
     /// </summary>
-    public string Transport { get; set; }
+    public string Transport
+    {
+        get => _transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
+        set => _transport = value;
+    }
 
     /// <summary>
     /// Indicates that this endpoint should be exposed externally at publish time.
