@@ -55,7 +55,7 @@ internal sealed class CloudFormationProvisioner(
                 // projects IConfiguration.
                 cloudFormationResource.Outputs = stack!.Outputs;
 
-                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning).ConfigureAwait(false);
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack)).ConfigureAwait(false);
 
                 cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
