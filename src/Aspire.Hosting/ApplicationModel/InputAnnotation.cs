@@ -18,6 +18,7 @@ public sealed class InputAnnotation : IResourceAnnotation, IValueProvider
 {
     private string? _value;
     private bool _hasValue;
+    private Func<string>? _valueGetter;
 
     /// <summary>
     /// Initializes a new instance of <see cref="InputAnnotation"/>.
@@ -45,23 +46,28 @@ public sealed class InputAnnotation : IResourceAnnotation, IValueProvider
     /// </summary>
     public InputDefault? Default { get; set; }
 
-    internal Func<string>? ValueGetter { get; set; }
-
-    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
+    internal string? Value
     {
-        if (!_hasValue)
+        get
         {
-            _value = GenerateValue();
-            _hasValue = true;
+            if (!_hasValue)
+            {
+                _value = GenerateValue();
+                _hasValue = true;
+            }
+            return _value;
         }
-        return new(_value);
     }
+
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Value);
+
+    internal void SetValueGetter(Func<string> valueGetter) => _valueGetter = valueGetter;
 
     private string GenerateValue()
     {
-        if (ValueGetter is not null)
+        if (_valueGetter is not null)
         {
-            return ValueGetter();
+            return _valueGetter();
         }
 
         if (Default is null)

@@ -19,7 +19,8 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     public ParameterResource(string name, Func<string> callback, bool secret = false) : base(name)
     {
         _valueInput = new InputAnnotation("value", secret);
-        _valueInput.ValueGetter = callback;
+        _valueInput.SetValueGetter(callback);
+
         Annotations.Add(_valueInput);
 
         ValueInputReference = new InputReference(this, "value");
@@ -28,7 +29,7 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
-    public string Value => _valueInput.ValueGetter!();
+    public string Value => _valueInput.Value ?? throw new InvalidOperationException("A Parameter's value cannot be null.");
 
     /// <summary>
     /// Gets a value indicating whether the parameter is secret.
