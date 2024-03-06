@@ -112,6 +112,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 await foreach (var changes in subscription.WithCancellation(_resourceSubscriptionCancellation.Token))
                 {
                     // TODO: This could be updated to be more efficent.
+                    // It should apply on the resource changes in a batch and then update the UI.
                     foreach (var (changeType, resource) in changes)
                     {
                         await OnResourceChanged(changeType, resource);
