@@ -32,6 +32,11 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
 
         ConfigureConstruct(resourceModuleConstruct);
 
+        // WARNING: GetParameters currently returns more than one instance of the same
+        //          parameter. Its the only API that gives us what we need (a list of
+        //          parameters. Here we find all the distinct parameters by name and
+        //          put them into a dictionary for quick lookup so we don't need to scan
+        //          through the parameter enumerable each time.
         var constructParameters = resourceModuleConstruct.GetParameters();
         var distinctConstructParameters = constructParameters.DistinctBy(p => p.Name);
         var distinctConstructParametersLookup = distinctConstructParameters.ToDictionary(p => p.Name);

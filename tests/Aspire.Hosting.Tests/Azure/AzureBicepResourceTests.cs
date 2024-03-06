@@ -292,6 +292,36 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task PublishAsRedisPublishesRedisAsAzureRedisConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var redis = builder.AddRedis("cache")
+            .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
+            .PublishAsAzureRedisConstruct(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
+
+        Assert.True(redis.Resource.IsContainer());
+
+        Assert.Equal("localhost:12455", redis.Resource.GetConnectionString());
+
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{cache.secretOutputs.connectionString}",
+              "path": "cache.module.bicep",
+              "params": {
+                "principalId": "",
+                "keyVaultName": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
     public void AddBicepKeyVault()
     {
         var builder = DistributedApplication.CreateBuilder();
