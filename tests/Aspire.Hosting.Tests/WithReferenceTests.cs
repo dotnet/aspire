@@ -246,7 +246,7 @@ public class WithReferenceTests
             var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
         });
 
-        Assert.Equal("Connection string parameter resource could not be used because connection string `missingresource` is missing.", exception.Message);
+        Assert.Equal("Connection string parameter resource could not be used because connection string 'missingresource' is missing.", exception.Message);
     }
 
     [Fact]
