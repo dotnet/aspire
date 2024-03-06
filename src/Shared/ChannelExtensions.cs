@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire;
 
@@ -37,7 +38,7 @@ internal static class ChannelExtensions
             {
                 if (minReadInterval != null && lastRead != null)
                 {
-                    var s = DateTime.UtcNow.Add(minReadInterval.Value) - lastRead.Value;
+                    var s = lastRead.Value.Add(minReadInterval.Value) - DateTime.UtcNow;
                     if (s > TimeSpan.Zero)
                     {
                         await Task.Delay(s, cancellationToken).ConfigureAwait(false);
