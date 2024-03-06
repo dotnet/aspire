@@ -36,12 +36,12 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "tcp"
+          "transport": "http"
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "tcp"
+          "transport": "http"
         }
       }
     }
