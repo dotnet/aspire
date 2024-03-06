@@ -1,4 +1,4 @@
- // Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Amazon;
@@ -25,12 +25,12 @@ public interface IAWSSDKConfig
     {
         var config = new T();
 
-        if(!string.IsNullOrEmpty(Profile))
+        if (!string.IsNullOrEmpty(Profile))
         {
             config.Profile = new Profile(Profile);
         }
 
-        if(Region != null)
+        if (Region != null)
         {
             config.RegionEndpoint = Region;
         }

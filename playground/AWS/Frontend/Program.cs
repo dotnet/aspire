@@ -17,7 +17,7 @@ builder.Services.AddAWSMessageBus(messageBuilder =>
 {
     // Get the SQS queue URL that was created from AppHost and assigned to the project.
     var chatTopicArn = builder.Configuration["AWS:Resources:ChatTopicArn"];
-    if (chatTopicArn != null )
+    if (chatTopicArn != null)
     {
         messageBuilder.AddSNSPublisher<Frontend.Models.ChatMessage>(chatTopicArn);
     }

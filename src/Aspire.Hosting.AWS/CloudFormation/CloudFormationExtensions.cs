@@ -99,7 +99,7 @@ public static class CloudFormationExtensions
         var referenceResource = builder.ApplicationBuilder.AddResource(new CloudFormationReferenceResource(cloudFormationResourceBuilder.Resource, builder.Resource));
         referenceResource.WithManifestPublishingCallback(context => WriteCloudFormationReference(context, cloudFormationResourceBuilder.Resource, builder.Resource));
 
-        if(cloudFormationResourceBuilder.Resource is CloudFormationResource impl)
+        if (cloudFormationResourceBuilder.Resource is CloudFormationResource impl)
         {
             impl.References.Add(referenceResource.Resource);
         }

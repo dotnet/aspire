@@ -5,13 +5,10 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-
-using Amazon.CloudFormation.Model;
 using Amazon.CloudFormation;
+using Amazon.CloudFormation.Model;
 using Amazon.Runtime;
-
 using Aspire.Hosting.ApplicationModel;
-
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
@@ -206,7 +203,7 @@ internal sealed class CloudFormationProvisioner(
                 // projects IConfiguration.
                 cloudFormationResource.Outputs = stack.Outputs;
 
-                if(stateEnum ==  Constants.ResourceStateFailedToStart)
+                if (stateEnum == Constants.ResourceStateFailedToStart)
                 {
                     cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetException(new AWSProvisioningException("Failed to apply CloudFormation template", null));
                 }
@@ -226,7 +223,7 @@ internal sealed class CloudFormationProvisioner(
 
     private static bool IsStackInErrorState(Stack stack)
     {
-        if(stack.StackStatus.ToString(CultureInfo.InvariantCulture).EndsWith("FAILED", StringComparison.OrdinalIgnoreCase) || stack.StackStatus.ToString(CultureInfo.InvariantCulture).EndsWith("ROLLBACK_COMPLETE", StringComparison.OrdinalIgnoreCase))
+        if (stack.StackStatus.ToString(CultureInfo.InvariantCulture).EndsWith("FAILED", StringComparison.OrdinalIgnoreCase) || stack.StackStatus.ToString(CultureInfo.InvariantCulture).EndsWith("ROLLBACK_COMPLETE", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
@@ -236,17 +233,17 @@ internal sealed class CloudFormationProvisioner(
 
     private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<(string, string)>? properties = null)
     {
-        if(properties == null)
+        if (properties == null)
         {
             properties = ImmutableArray.Create<(string, string)>();
         }
 
-        await notificationService.PublishUpdateAsync(resource, state => state with { State = status, Properties = state.Properties.AddRange(properties)}).ConfigureAwait(false);
+        await notificationService.PublishUpdateAsync(resource, state => state with { State = status, Properties = state.Properties.AddRange(properties) }).ConfigureAwait(false);
         foreach (var reference in resource.References)
         {
             await notificationService.PublishUpdateAsync(reference, state => state with { State = status, Properties = state.Properties.AddRange(properties) }).ConfigureAwait(false);
 
-            if(status == Constants.ResourceStateRunning)
+            if (status == Constants.ResourceStateRunning)
             {
                 loggerService.GetLogger(reference).LogInformation("Resource {Project} is referencing the output variables of CloudFormation Stack {Stack}", reference.TargetResourceName, reference.StackName);
             }
