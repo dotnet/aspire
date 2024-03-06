@@ -10,6 +10,18 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="password">The RabbitMQ server password.</param>
 public class RabbitMQServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString, IResourceWithEnvironment
 {
+    internal const string PrimaryEndpointName = "tcp";
+
+    private EndpointReference? _primaryEndpoint;
+    private InputReference? _passwordInput;
+
+    /// <summary>
+    /// Gets the primary endpoint for the Redis server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
+
     /// <summary>
     /// The RabbitMQ server password.
     /// </summary>
@@ -19,7 +31,7 @@ public class RabbitMQServerResource(string name, string password) : ContainerRes
     /// Gets the connection string expression for the RabbitMQ server for the manifest.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"amqp://guest:{{{Name}.inputs.password}}@{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+        $"amqp://guest:{PasswordInput.ValueExpression}@{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
 
     /// <summary>
     /// Gets the connection string for the RabbitMQ server.
@@ -27,12 +39,6 @@ public class RabbitMQServerResource(string name, string password) : ContainerRes
     /// <returns>A connection string for the RabbitMQ server in the form "amqp://user:password@host:port".</returns>
     public string? GetConnectionString()
     {
-        if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException($"RabbitMQ resource \"{Name}\" does not have endpoint annotation.");
-        }
-
-        var endpoint = allocatedEndpoints.Where(a => a.Name != "management").Single();
-        return $"amqp://guest:{Password}@{endpoint.EndPointString}";
+        return $"amqp://guest:{Password}@{PrimaryEndpoint.Host}:{PrimaryEndpoint.Port}";
     }
 }

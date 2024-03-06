@@ -4,7 +4,6 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -75,17 +74,9 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, BicepOutputReference bicepOutputReference)
         where T : IResourceWithEnvironment
     {
-        return builder.WithEnvironment(async ctx =>
+        return builder.WithEnvironment(ctx =>
         {
-            if (ctx.ExecutionContext.IsPublishMode)
-            {
-                ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
-                return;
-            }
-
-            ctx.Logger?.LogInformation("Getting bicep output {Name} from resource {ResourceName}", bicepOutputReference.Name, bicepOutputReference.Resource.Name);
-
-            ctx.EnvironmentVariables[name] = await bicepOutputReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? "";
+            ctx.EnvironmentVariables[name] = bicepOutputReference;
         });
     }
 
@@ -100,17 +91,9 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, BicepSecretOutputReference bicepOutputReference)
         where T : IResourceWithEnvironment
     {
-        return builder.WithEnvironment(async ctx =>
+        return builder.WithEnvironment(ctx =>
         {
-            if (ctx.ExecutionContext.IsPublishMode)
-            {
-                ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
-                return;
-            }
-
-            ctx.Logger?.LogInformation("Getting bicep secret output {Name} from resource {ResourceName}", bicepOutputReference.Name, bicepOutputReference.Resource.Name);
-
-            ctx.EnvironmentVariables[name] = await bicepOutputReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? "";
+            ctx.EnvironmentVariables[name] = bicepOutputReference;
         });
     }
 
@@ -199,7 +182,7 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value)
         where T : AzureBicepResource
     {
-        builder.Resource.Parameters[name] = value;
+        builder.Resource.Parameters[name] = value.Resource;
         return builder;
     }
 
@@ -212,6 +195,21 @@ public static class AzureBicepResourceExtensions
     /// <param name="value">The value of the parameter.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<IResourceWithConnectionString> value)
+        where T : AzureBicepResource
+    {
+        builder.Resource.Parameters[name] = value.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, InputReference value)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = value;

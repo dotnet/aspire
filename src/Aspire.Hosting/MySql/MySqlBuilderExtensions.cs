@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
@@ -30,19 +29,14 @@ public static class MySqlBuilderExtensions
 
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
+                      .WithEndpoint(hostPort: port, containerPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
                       .WithDefaultPassword()
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishMode)
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{resource.Name}.inputs.password}}");
-                          }
-                          else
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, resource.Password);
-                          }
+                          context.EnvironmentVariables[PasswordEnvVarName] = context.ExecutionContext.IsPublishMode
+                              ? resource.PasswordInput
+                              : resource.Password;
                       })
                       .PublishAsContainer();
     }
@@ -89,7 +83,7 @@ public static class MySqlBuilderExtensions
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
                                   .ExcludeFromManifest();
-        
+
         return builder;
     }
 

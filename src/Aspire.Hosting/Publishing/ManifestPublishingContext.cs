@@ -161,7 +161,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource"></param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
-        var config = new Dictionary<string, string>();
+        var config = new Dictionary<string, object>();
 
         var envContext = new EnvironmentCallbackContext(ExecutionContext, config, CancellationToken);
 
@@ -175,7 +175,14 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
             foreach (var (key, value) in config)
             {
-                Writer.WriteString(key, value);
+                var valueString = value switch
+                {
+                    string stringValue => stringValue,
+                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                    _ => throw new DistributedApplicationException($"The value of the environment variable '{key}' is not supported.")
+                };
+
+                Writer.WriteString(key, valueString);
             }
 
             WriteServiceDiscoveryEnvironmentVariables(resource);

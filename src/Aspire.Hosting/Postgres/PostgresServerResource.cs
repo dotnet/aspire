@@ -12,6 +12,18 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="password">The PostgreSQL server password.</param>
 public class PostgresServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "tcp";
+
+    private EndpointReference? _primaryEndpoint;
+    private InputReference? _passwordInput;
+
+    /// <summary>
+    /// Gets the primary endpoint for the Redis server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
+
     /// <summary>
     /// Gets the PostgreSQL server password.
     /// </summary>
@@ -29,7 +41,7 @@ public class PostgresServerResource(string name, string password) : ContainerRes
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"Host={{{Name}.bindings.tcp.host}};Port={{{Name}.bindings.tcp.port}};Username=postgres;Password={{{Name}.inputs.password}}";
+            return $"Host={PrimaryEndpoint.GetExpression(EndpointProperty.Host)};Port={PrimaryEndpoint.GetExpression(EndpointProperty.Port)};Username=postgres;Password={PasswordInput.ValueExpression}";
         }
     }
 
@@ -59,15 +71,7 @@ public class PostgresServerResource(string name, string password) : ContainerRes
             return connectionStringAnnotation.Resource.GetConnectionString();
         }
 
-        if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException("Expected allocated endpoints!");
-        }
-
-        var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Postgres.
-
-        var connectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={PasswordUtil.EscapePassword(Password)}";
-        return connectionString;
+        return $"Host={PrimaryEndpoint.Host};Port={PrimaryEndpoint.Port};Username=postgres;Password={PasswordUtil.EscapePassword(Password)}";
     }
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);

@@ -1,14 +1,27 @@
 {
   "resources": {
     "openai": {
-      "type": "parameter.v0",
-      "connectionString": "{openai.value}",
-      "value": "{openai.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true
-        }
+      "type": "azure.bicep.v0",
+      "connectionString": "{openai.outputs.connectionString}",
+      "path": "aspire.hosting.azure.bicep.openai.bicep",
+      "params": {
+        "name": "openai",
+        "deployments": [
+          {
+            "name": "gpt-35-turbo",
+            "sku": {
+              "name": "Standard",
+              "capacity": 1
+            },
+            "model": {
+              "format": "OpenAI",
+              "name": "gpt-35-turbo",
+              "version": "0613"
+            }
+          }
+        ],
+        "principalId": "",
+        "principalType": ""
       }
     },
     "webstory": {

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
@@ -28,20 +27,15 @@ public static class SqlServerBuilderExtensions
         var sqlServer = new SqlServerServerResource(name, password);
 
         return builder.AddResource(sqlServer)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
+                      .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithDefaultPassword()
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishMode)
-                          {
-                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", $"{{{sqlServer.Name}.inputs.password}}");
-                          }
-                          else
-                          {
-                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", sqlServer.Password);
-                          }
+                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = context.ExecutionContext.IsPublishMode
+                              ? sqlServer.PasswordInput
+                              : sqlServer.Password;
                       })
                       .PublishAsContainer();
     }

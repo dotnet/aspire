@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -116,11 +117,15 @@ public class ManifestGenerationTests
     [Fact]
     public void ExcludeLaunchProfileOmitsBindings()
     {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-        program.ServiceABuilder.ExcludeLaunchProfile();
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        { Args = GetManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
 
-        program.Build();
-        var publisher = program.GetManifestPublisher();
+        appBuilder.AddProject<Projects.ServiceA>("servicea", launchProfileName: null);
+
+        appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+
+        var program = appBuilder.Build();
+        var publisher = program.Services.GetManifestPublisher();
 
         program.Run();
 
@@ -359,25 +364,42 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllAzureOpenAIManifestTypesHaveVersion0Suffix()
+    public async Task VerifyOpenAIManifest()
     {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var openai = appBuilder.AddAzureOpenAI("openai")
+            .WithDeployment(new(name: "deployment", modelName: "gpt-35-turbo", modelVersion: "0613"));
 
-        program.AppBuilder.AddAzureOpenAI("openai").AddDeployment("deployment");
+        var openaiManifest = await ManifestUtils.GetManifest(openai.Resource);
 
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{openai.outputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.openai.bicep",
+              "params": {
+                "name": "openai",
+                "deployments": [
+                  {
+                    "name": "deployment",
+                    "sku": {
+                      "name": "Standard",
+                      "capacity": 1
+                    },
+                    "model": {
+                      "format": "OpenAI",
+                      "name": "gpt-35-turbo",
+                      "version": "0613"
+                    }
+                  }
+                ],
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
 
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var openai = resources.GetProperty("openai");
-        Assert.Equal("azure.openai.account.v0", openai.GetProperty("type").GetString());
-
-        var deployment = resources.GetProperty("deployment");
-        Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
+        Assert.Equal(expectedManifest, openaiManifest.ToString());
     }
 
     [Fact]
@@ -507,9 +529,14 @@ public class ManifestGenerationTests
 
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
-        var manifestPath = Path.GetTempFileName();
-        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath], includeNodeApp: includeNodeApp);
+        var program = TestProgram.Create<ManifestGenerationTests>(GetManifestArgs(), includeNodeApp: includeNodeApp);
         program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         return program;
+    }
+
+    private static string[] GetManifestArgs()
+    {
+        var manifestPath = Path.GetTempFileName();
+        return ["--publisher", "manifest", "--output-path", manifestPath];
     }
 }

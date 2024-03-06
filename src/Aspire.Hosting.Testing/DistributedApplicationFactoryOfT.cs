@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
@@ -15,59 +13,48 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Testing;
 
 /// <summary>
-/// Harness for running a distributed application for testing.
+/// Factory for creating a distributed application for testing.
 /// </summary>
 /// <typeparam name="TEntryPoint">
 /// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
 /// </typeparam>
-public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IAsyncDisposable where TEntryPoint : class
+public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDisposable where TEntryPoint : class
 {
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<DistributedApplication> _appTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly object _lockObj = new();
-    private Task<DistributedApplication>? _appTask;
-    private DistributedApplication? _app;
+    private bool _entryPointStarted;
     private IHostApplicationLifetime? _hostApplicationLifetime;
 
     /// <summary>
-    /// Gets the distributed application associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
+    /// Gets the distributed application associated with this instance.
     /// </summary>
-    protected DistributedApplication DistributedApplication { get { EnsureApp(); return _app; } }
+    internal async Task<DistributedApplicationBuilder> ResolveBuilderAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureEntryPointStarted();
+        return await _builderTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the distributed application associated with this instance.
+    /// </summary>
+    internal async Task<DistributedApplication> ResolveApplicationAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureEntryPointStarted();
+        return await _appTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Initializes the application.
     /// </summary>
     /// <param name="cancellationToken">A token used to signal cancellation.</param>
     /// <returns>A <see cref="Task"/> representing the completion of the operation.</returns>
-    public Task InitializeAsync(CancellationToken cancellationToken = default)
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        EnsureApp();
-        return _startedTcs.Task.WaitAsync(cancellationToken);
-    }
-
-    /// <summary>
-    /// Gets the <see cref="IServiceProvider"/> created by the server associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
-    /// </summary>
-    public virtual IServiceProvider Services
-    {
-        get
-        {
-            EnsureApp();
-            return _app.Services;
-        }
-    }
-
-    /// <summary>
-    /// Gets the <see cref="DistributedApplicationModel"/> associated with this <see cref="DistributedApplicationTestingHarness{TEntryPoint}"/>.
-    /// </summary>
-    public DistributedApplicationModel ApplicationModel
-    {
-        get
-        {
-            EnsureApp();
-            ThrowIfNotInitialized();
-            return _app.Services.GetRequiredService<DistributedApplicationModel>();
-        }
+        EnsureEntryPointStarted();
+        await _startedTcs.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -76,10 +63,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     /// <returns>The <see cref="HttpClient"/>.</returns>
     public HttpClient CreateHttpClient(string resourceName, string? endpointName = default)
     {
-        EnsureApp();
-        ThrowIfNotInitialized();
-
-        return DistributedApplication.CreateHttpClient(resourceName, endpointName);
+        return GetStartedApplication().CreateHttpClient(resourceName, endpointName);
     }
 
     /// <summary>
@@ -90,10 +74,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
     public string? GetConnectionString(string resourceName)
     {
-        EnsureApp();
-        ThrowIfNotInitialized();
-
-        return DistributedApplication.GetConnectionString(resourceName);
+        return GetStartedApplication().GetConnectionString(resourceName);
     }
 
     /// <summary>
@@ -106,10 +87,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
     public Uri GetEndpoint(string resourceName, string? endpointName = default)
     {
-        EnsureApp();
-        ThrowIfNotInitialized();
-
-        return DistributedApplication.GetEndpoint(resourceName, endpointName);
+        return GetStartedApplication().GetEndpoint(resourceName, endpointName);
     }
 
     /// <summary>
@@ -135,6 +113,20 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
     /// <param name="applicationBuilder">The application builder.</param>
     protected virtual void OnBuilding(DistributedApplicationBuilder applicationBuilder)
     {
+    }
+
+    /// <summary>
+    /// Called when the application has been built.
+    /// </summary>
+    /// <param name="application">The application.</param>
+    protected virtual void OnBuilt(DistributedApplication application)
+    {
+    }
+
+    private void OnBuiltCore(DistributedApplication application)
+    {
+        _appTcs.TrySetResult(application);
+        OnBuilt(application);
     }
 
     private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
@@ -169,25 +161,20 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
 
         InterceptHostCreation(applicationBuilder);
 
+        _builderTcs.TrySetResult(applicationBuilder);
         OnBuilding(applicationBuilder);
     }
 
-    [MemberNotNull(nameof(_app))]
-    private void EnsureApp()
+    private void EnsureEntryPointStarted()
     {
-        if (_app is not null)
-        {
-            return;
-        }
-
-        EnsureDepsFile();
-
-        if (_appTask is null)
+        if (!_entryPointStarted)
         {
             lock (_lockObj)
             {
-                if (_appTask is null)
+                if (!_entryPointStarted)
                 {
+                    EnsureDepsFile();
+
                     // This helper launches the target assembly's entry point and hooks into the lifecycle
                     // so we can intercept execution at key stages.
                     var factory = DistributedApplicationEntryPointInvoker.ResolveEntryPoint(
@@ -203,34 +190,28 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
                             $"Could not intercept application builder instance. Ensure that {typeof(TEntryPoint)} is a type in an executable assembly, that the entrypoint creates an {typeof(DistributedApplicationBuilder)}, and that the resulting {typeof(DistributedApplication)} is being started.");
                     }
 
-                    _appTask = ResolveApp(factory);
+                    _ = InvokeEntryPoint(factory);
+                    _entryPointStarted = true;
                 }
             }
         }
-
-        _app = _appTask.GetAwaiter().GetResult();
     }
 
-    private void OnEntryPointExit(Exception? exception)
-    {
-        if (exception is not null)
-        {
-            _exitTcs.TrySetException(exception);
-        }
-        else
-        {
-            _exitTcs.TrySetResult();
-        }
-    }
-
-    private async Task<DistributedApplication> ResolveApp(Func<string[], CancellationToken, Task<DistributedApplication>> factory)
+    private async Task InvokeEntryPoint(Func<string[], CancellationToken, Task<DistributedApplication>> factory)
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-        using var cts = new CancellationTokenSource(GetConfiguredTimeout());
-        var app = await factory([], cts.Token).ConfigureAwait(false);
-        _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
-            ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
-        return app;
+        try
+        {
+            using var cts = new CancellationTokenSource(GetConfiguredTimeout());
+            var app = await factory([], cts.Token).ConfigureAwait(false);
+            _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
+                ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
+            OnBuiltCore(app);
+        }
+        catch (Exception exception)
+        {
+            _appTcs.TrySetException(exception);
+        }
 
         static TimeSpan GetConfiguredTimeout()
         {
@@ -249,9 +230,21 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
         }
     }
 
+    private void OnEntryPointExit(Exception? exception)
+    {
+        if (exception is not null)
+        {
+            _exitTcs.TrySetException(exception);
+        }
+        else
+        {
+            _exitTcs.TrySetResult();
+        }
+    }
+
     private void ThrowIfNotInitialized()
     {
-        if (!_startedTcs.Task.IsCompleted)
+        if (!_startedTcs.Task.IsCompletedSuccessfully)
         {
             throw new InvalidOperationException("The application has not been initialized.");
         }
@@ -272,22 +265,32 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
         }
     }
 
+    private DistributedApplication GetStartedApplication()
+    {
+        ThrowIfNotInitialized();
+        return _appTcs.Task.GetAwaiter().GetResult();
+    }
+
     /// <inheritdoc/>
     public virtual void Dispose()
     {
-        if (_app is null || _hostApplicationLifetime is null)
+        _builderTcs.TrySetCanceled();
+        _startedTcs.TrySetCanceled();
+        if (_hostApplicationLifetime is null || _appTcs.Task is not { IsCompletedSuccessfully: true } appTask)
         {
             return;
         }
 
         _hostApplicationLifetime?.StopApplication();
-        _app?.Dispose();
+        appTask.GetAwaiter().GetResult()?.Dispose();
     }
 
     /// <inheritdoc/>
     public virtual async ValueTask DisposeAsync()
     {
-        if (_app is null)
+        _builderTcs.TrySetCanceled();
+        _startedTcs.TrySetCanceled();
+        if (_appTcs.Task is not { IsCompletedSuccessfully: true } appTask)
         {
             return;
         }
@@ -304,7 +307,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
 
         await _exitTcs.Task.ConfigureAwait(false);
 
-        if (_app is IAsyncDisposable asyncDisposable)
+        if (appTask.GetAwaiter().GetResult() is IAsyncDisposable asyncDisposable)
         {
             await asyncDisposable.DisposeAsync().ConfigureAwait(false);
         }
@@ -331,7 +334,7 @@ public class DistributedApplicationTestingHarness<TEntryPoint> : IDisposable, IA
         applicationBuilder.Services.AddSingleton<IHost>(sp => new ObservedHost(sp.GetRequiredKeyedService<IHost>(this), this));
     }
 
-    private sealed class ObservedHost(IHost innerHost, DistributedApplicationTestingHarness<TEntryPoint> appFactory) : IHost, IAsyncDisposable
+    private sealed class ObservedHost(IHost innerHost, DistributedApplicationFactory<TEntryPoint> appFactory) : IHost, IAsyncDisposable
     {
         private bool _disposing;
 

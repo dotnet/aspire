@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 
@@ -12,10 +11,11 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class MongoDBBuilderExtensions
 {
+    // Internal port is always 27017.
     private const int DefaultContainerPort = 27017;
 
     /// <summary>
-    /// Adds a MongoDB resource to the application model. A container is used for local development.Adds a Kafka resource to the application. A container is used for local development.  This version the package defaults to the 7.0.5 tag of the mongo container image
+    /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.5 tag of the mongo container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -27,7 +27,7 @@ public static class MongoDBBuilderExtensions
 
         return builder
             .AddResource(mongoDBContainer)
-            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
+            .WithEndpoint(hostPort: port, containerPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
             .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "7.0.5" })
             .PublishAsContainer();
     }
@@ -73,22 +73,9 @@ public static class MongoDBBuilderExtensions
         return builder;
     }
 
-    private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, IResource resource)
+    private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
-        var hostPort = GetResourcePort(resource);
-        
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://host.docker.internal:{hostPort}/?directConnection=true");
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://host.docker.internal:{resource.PrimaryEndpoint.Port}/?directConnection=true");
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
-
-        static int GetResourcePort(IResource resource)
-        {
-            if (!resource.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-            {
-                throw new DistributedApplicationException(
-                    $"MongoDB resource \"{resource.Name}\" does not have endpoint annotation.");
-            }
-
-            return allocatedEndpoints.Single().Port;
-        }
     }
 }

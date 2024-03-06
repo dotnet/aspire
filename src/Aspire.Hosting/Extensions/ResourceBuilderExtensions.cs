@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -78,17 +77,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[name] = endpointReference.ValueExpression;
-                return;
-            }
-
-            var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
-
-            context.EnvironmentVariables[name] = replaceLocalhostWithContainerHost
-            ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.Value, builder.ApplicationBuilder.Configuration)
-            : endpointReference.Value;
+            context.EnvironmentVariables[name] = endpointReference;
         });
     }
 
@@ -104,13 +93,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[name] = parameter.Resource.ValueExpression;
-                return;
-            }
-
-            context.EnvironmentVariables[name] = parameter.Resource.Value;
+            context.EnvironmentVariables[name] = parameter.Resource;
         });
     }
 
@@ -219,37 +202,11 @@ public static class ResourceBuilderExtensions
         var resource = source.Resource;
         connectionName ??= resource.Name;
 
-        return builder.WithEnvironment(async context =>
+        return builder.WithEnvironment(context =>
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
-                return;
-            }
-
-            context.Logger?.LogInformation("Retrieving connection string for '{Name}'.", resource.Name);
-
-            var connectionString = await resource.GetConnectionStringAsync(context.CancellationToken).ConfigureAwait(false);
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                if (optional)
-                {
-                    // This is an optional connection string, so we can just return.
-                    return;
-                }
-
-                throw new DistributedApplicationException($"A connection string for '{resource.Name}' could not be retrieved.");
-            }
-
-            if (builder.Resource is ContainerResource)
-            {
-                connectionString = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionString, builder.ApplicationBuilder.Configuration);
-            }
-
-            context.EnvironmentVariables[connectionStringName] = connectionString;
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
         });
     }
 
@@ -398,8 +355,8 @@ public static class ResourceBuilderExtensions
         if (endpoint != null)
         {
             callback(endpoint);
-
         }
+
         if (endpoint == null && createIfNotExists)
         {
             endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);

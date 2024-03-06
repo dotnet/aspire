@@ -506,6 +506,7 @@ public class DistributedApplicationTests
         var testProgram = CreateTestProgram();
         testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
         {
+            endpoint.Port = null;
             endpoint.IsProxied = false;
         });
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
@@ -528,7 +529,12 @@ public class DistributedApplicationTests
                 b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
             });
 
-        testProgram.ServiceABuilder.WithEndpoint(1234, "http", isProxied: false);
+        testProgram.ServiceABuilder
+            .WithEndpoint("http", e =>
+            {
+                e.Port = 1234;
+                e.IsProxied = false;
+            });
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
@@ -569,9 +575,16 @@ public class DistributedApplicationTests
             });
 
         testProgram.ServiceABuilder
-            .ExcludeLaunchProfile()
-            .WithEndpoint(1234, "http", isProxied: false)
-            .WithEndpoint(1543, "https");
+            .WithEndpoint("http", e =>
+            {
+                e.Port = 1234;
+                e.IsProxied = false;
+            }, createIfNotExists: false)
+            .WithEndpoint("https", e =>
+            {
+                e.UriScheme = "https";
+                e.Port = 1543;
+            }, createIfNotExists: true);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 

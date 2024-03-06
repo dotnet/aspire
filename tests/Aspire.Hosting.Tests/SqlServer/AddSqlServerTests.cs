@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Sockets;
@@ -41,16 +42,7 @@ public class AddSqlServerTests
         Assert.Equal("mssql/server", containerAnnotation.Image);
         Assert.Equal("mcr.microsoft.com", containerAnnotation.Registry);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>
@@ -73,7 +65,7 @@ public class AddSqlServerTests
         appBuilder
             .AddSqlServer("sqlserver")
             .WithAnnotation(
-                    new AllocatedEndpointAnnotation("mybinding",
+                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
                     ProtocolType.Tcp,
                     "localhost",
                     1433,
@@ -99,7 +91,7 @@ public class AddSqlServerTests
         appBuilder
             .AddSqlServer("sqlserver")
             .WithAnnotation(
-                    new AllocatedEndpointAnnotation("mybinding",
+                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
                     ProtocolType.Tcp,
                     "localhost",
                     1433,
@@ -214,10 +206,10 @@ public class AddSqlServerTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var db1 = builder.AddPostgres("sqlserver1")
+        var db1 = builder.AddSqlServer("sqlserver1")
             .AddDatabase("db1", "imports");
 
-        var db2 = builder.AddPostgres("sqlserver2")
+        var db2 = builder.AddSqlServer("sqlserver2")
             .AddDatabase("db2", "imports");
 
         Assert.Equal("imports", db1.Resource.DatabaseName);

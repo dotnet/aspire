@@ -1,5 +1,6 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons;
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inherits LayoutComponentBase
 
 <div class="layout">
@@ -32,6 +33,7 @@
     </FluentHeader>
     <NavMenu />
     <FluentBodyContent Class="custom-body-content">
+        <FluentToastProvider />
         @Body
     </FluentBodyContent>
 

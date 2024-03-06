@@ -6,9 +6,10 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a parameter resource.
 /// </summary>
-public sealed class ParameterResource : Resource
+public sealed class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
 {
     private readonly Func<string> _callback;
+    private InputReference? _valueInput;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterResource"/>.
@@ -34,8 +35,12 @@ public sealed class ParameterResource : Resource
     /// </summary>
     public bool Secret { get; }
 
+    internal InputReference ValueInput => _valueInput ??= new(this, "value");
+
     /// <summary>
     /// Gets the expression used in the manifest to reference the value of the parameter.
     /// </summary>
     public string ValueExpression => $"{{{Name}.value}}";
+
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Value);
 }

@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.Postgres;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -42,16 +43,7 @@ public class AddPostgresTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-           await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>
@@ -101,16 +93,7 @@ public class AddPostgresTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-           await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>
@@ -136,7 +119,7 @@ public class AddPostgresTests
         var appBuilder = DistributedApplication.CreateBuilder();
         var postgres = appBuilder.AddPostgres("postgres")
                                  .WithAnnotation(
-                                     new AllocatedEndpointAnnotation("mybinding",
+                                     new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName,
                                       ProtocolType.Tcp,
                                      "localhost",
                                      2000,
@@ -154,7 +137,7 @@ public class AddPostgresTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("postgres")
             .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
+            new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName,
             ProtocolType.Tcp,
             "localhost",
             2000,
@@ -206,16 +189,7 @@ public class AddPostgresTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            await annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
         Assert.Collection(config,
             env =>

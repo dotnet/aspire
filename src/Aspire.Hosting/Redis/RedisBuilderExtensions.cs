@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Redis;
@@ -24,7 +23,7 @@ public static class RedisBuilderExtensions
     {
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
+                      .WithEndpoint(hostPort: port, containerPort: 6379, name: RedisResource.PrimaryEndpointName)
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "7.2.4" })
                       .PublishAsContainer();
     }

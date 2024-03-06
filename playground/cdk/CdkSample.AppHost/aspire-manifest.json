@@ -18,16 +18,18 @@
         }
       }
     },
-    "cdkstorage1": {
-      "type": "azure.bicep.v0",
-      "path": "cdkstorage1.module.bicep",
-      "params": {
-        "storagesku": "{storagesku.value}"
+    "signaturesecret": {
+      "type": "parameter.v0",
+      "value": "{signaturesecret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
       }
     },
-    "cdkstorage2": {
+    "storage": {
       "type": "azure.bicep.v0",
-      "path": "cdkstorage2.module.bicep",
+      "path": "storage.module.bicep",
       "params": {
         "principalId": "",
         "principalType": "",
@@ -37,7 +39,30 @@
     },
     "blobs": {
       "type": "value.v0",
-      "connectionString": "{cdkstorage2.outputs.blobEndpoint}"
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "sql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "sql.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalName": ""
+      }
+    },
+    "sqldb": {
+      "type": "value.v0",
+      "connectionString": "{sql.connectionString};Database=sqldb"
+    },
+    "mykv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{mykv.outputs.vaultUri}",
+      "path": "mykv.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "signaturesecret": "{signaturesecret.value}"
+      }
     },
     "api": {
       "type": "project.v0",
@@ -45,7 +70,9 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__blobs": "{blobs.connectionString}"
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "ConnectionStrings__sqldb": "{sqldb.connectionString}",
+        "ConnectionStrings__mykv": "{mykv.connectionString}"
       },
       "bindings": {
         "http": {
