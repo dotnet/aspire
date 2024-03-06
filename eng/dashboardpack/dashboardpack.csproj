@@ -26,7 +26,7 @@
 
   <Target Name="Build" />
 
-  <Target Name="BeforeBuild" BeforeTargets="_GetPackageFiles">
+  <Target Name="BeforeBuild" BeforeTargets="Build">
     <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime)" />
 
     <!-- After publishing the project, we ensure that the published assets get packed in the nuspec. -->
