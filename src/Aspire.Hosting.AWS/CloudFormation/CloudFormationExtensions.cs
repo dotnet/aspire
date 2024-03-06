@@ -64,6 +64,42 @@ public static class CloudFormationExtensions
     }
 
     /// <summary>
+    /// Gets a reference to a  output from the CloudFormation stack.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">Name of the output.</param>
+    /// <returns>A <see cref="StackOutputReference"/> that represents the output.</returns>
+    public static StackOutputReference GetOutput(this IResourceBuilder<ICloudFormationResource> builder, string name)
+    {
+        return new StackOutputReference(name, builder.Resource);
+    }
+
+    /// <summary>
+    /// Adds an environment variable to the resource with the value of the output from the CloudFormation stack.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="stackOutputReference">The reference to the CloudFormation stack output.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, StackOutputReference stackOutputReference)
+        where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironment(async ctx =>
+        {
+            if (ctx.ExecutionContext.IsPublishMode)
+            {
+                ctx.EnvironmentVariables[name] = stackOutputReference.ValueExpression;
+                return;
+            }
+
+            ctx.Logger?.LogInformation("Getting CloudFormation stack output {Name} from resource {ResourceName}", stackOutputReference.Name, stackOutputReference.Resource.Name);
+
+            ctx.EnvironmentVariables[name] = await stackOutputReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? "";
+        });
+    }
+
+    /// <summary>
     /// The AWS SDK service client configuration used to create the CloudFormation service client.
     /// </summary>
     /// <param name="builder"></param>

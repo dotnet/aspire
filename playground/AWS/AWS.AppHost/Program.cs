@@ -21,8 +21,11 @@ var awsResources = builder.AddAWSCloudFormationTemplate("AspireSampleDevResource
 //                        .WithReference(awsConfig);
 
 builder.AddProject<Projects.Frontend>("Frontend")
-        // Reference the CloudFormation resource to project. The output parameters will added to the IConfiguration of the project.
+        // Demonstrating binding all of the output variables to a section in IConfiguration. By default they are bound to the AWS::Resources prefix.
+        // The prefix is configurable by the optional configSection parameter.
         .WithReference(awsResources)
+        // Demonstrating binding a single output variable to environment variable in the project.
+        .WithEnvironment("ChatTopicArnEnv", awsResources.GetOutput("ChatTopicArn"))
         // Assign the SDK config to the project. The service clients created in the project relying on environment config
         // will pick up these configuration.
         .WithReference(awsConfig);
