@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">Nombre: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Seguimientos</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">Filtro de nombres</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
@@ -24,27 +24,27 @@
       </trans-unit>
       <trans-unit id="TracesPageTitle">
         <source>{0} traces</source>
-        <target state="translated">seguimientos de {0}</target>
+        <target state="translated">Seguimientos de {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TracesResourceSpans">
         <source>{0} spans</source>
-        <target state="translated">intervalos de {0}</target>
+        <target state="translated">Intervalos de {0}</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="translated">Abarca</target>
+        <target state="translated">Intervalos</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
         <source>Errored: {0}</source>
-        <target state="translated">Error: {0}</target>
+        <target state="translated">Con errores: {0}</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">Total: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">

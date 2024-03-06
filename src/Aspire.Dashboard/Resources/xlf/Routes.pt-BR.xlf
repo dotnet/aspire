@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="RoutesPageTitle">
         <source>Not found</source>
-        <target state="new">Not found</target>
+        <target state="translated">Não encontrado</target>
         <note />
       </trans-unit>
     </body>

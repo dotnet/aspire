@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">Nom : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Traces</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">Nom du filtre</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
@@ -24,32 +24,32 @@
       </trans-unit>
       <trans-unit id="TracesPageTitle">
         <source>{0} traces</source>
-        <target state="translated">{0} traces</target>
+        <target state="translated">Traces {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TracesResourceSpans">
         <source>{0} spans</source>
-        <target state="translated">{0} étendues</target>
+        <target state="translated">Étendues {0}</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="translated">Travées</target>
+        <target state="translated">Étendues</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
         <source>Errored: {0}</source>
-        <target state="translated">Erreur : {0}</target>
+        <target state="translated">En erreur : {0}</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">Total : {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">
         <source>Trace Id: {0}</source>
-        <target state="translated">ID de trace : {0}</target>
+        <target state="translated">ID de trace : {0}</target>
         <note />
       </trans-unit>
     </body>

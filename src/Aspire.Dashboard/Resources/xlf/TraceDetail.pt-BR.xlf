@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="TraceDetailDepthHeader">
         <source>Depth</source>
-        <target state="new">Depth</target>
+        <target state="translated">Profundidade</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailDurationHeader">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">Duração</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
@@ -19,17 +19,17 @@
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">Recursos</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
         <source>Total spans</source>
-        <target state="translated">Total de intervalos</target>
+        <target state="translated">Intervalos totais</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTraceNotFound">
         <source>Trace "{0}" not found</source>
-        <target state="new">Trace "{0}" not found</target>
+        <target state="translated">Rastreamento"{0}" não encontrado</target>
         <note>{0} is an identifier</note>
       </trans-unit>
       <trans-unit id="TraceDetailTraceStartHeader">

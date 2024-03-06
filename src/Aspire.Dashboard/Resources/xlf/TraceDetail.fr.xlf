@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="TraceDetailDepthHeader">
         <source>Depth</source>
-        <target state="new">Depth</target>
+        <target state="translated">Profondeur</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailDurationHeader">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">Durée</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} Traces</source>
-        <target state="translated">traces {0}</target>
+        <target state="translated">Traces {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">Ressources</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="TraceDetailTraceNotFound">
         <source>Trace "{0}" not found</source>
-        <target state="new">Trace "{0}" not found</target>
+        <target state="translated">Trace « {0} » introuvable</target>
         <note>{0} is an identifier</note>
       </trans-unit>
       <trans-unit id="TraceDetailTraceStartHeader">
         <source>Trace detail</source>
-        <target state="translated">Détail de la trace</target>
+        <target state="translated">Détails de la trace</target>
         <note />
       </trans-unit>
     </body>
