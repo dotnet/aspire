@@ -59,7 +59,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public string? SpanId { get; set; }
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "level")]
+    [SupplyParameterFromQuery(Name = "logLevel")]
     public string? LogLevelText { get; set; }
 
     [Parameter]

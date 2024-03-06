@@ -13,11 +13,14 @@ public class RabbitMQServerResource(string name, string password) : ContainerRes
     internal const string PrimaryEndpointName = "tcp";
 
     private EndpointReference? _primaryEndpoint;
+    private InputReference? _passwordInput;
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
 
     /// <summary>
     /// The RabbitMQ server password.
@@ -28,7 +31,7 @@ public class RabbitMQServerResource(string name, string password) : ContainerRes
     /// Gets the connection string expression for the RabbitMQ server for the manifest.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"amqp://guest:{{{Name}.inputs.password}}@{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
+        $"amqp://guest:{PasswordInput.ValueExpression}@{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
 
     /// <summary>
     /// Gets the connection string for the RabbitMQ server.

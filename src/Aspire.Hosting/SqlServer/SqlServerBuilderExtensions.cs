@@ -27,20 +27,15 @@ public static class SqlServerBuilderExtensions
         var sqlServer = new SqlServerServerResource(name, password);
 
         return builder.AddResource(sqlServer)
-                      .WithEndpoint(hostPort: port, containerPort: 1433, name: MySqlServerResource.PrimaryEndpointName)
+                      .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithDefaultPassword()
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishMode)
-                          {
-                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", $"{{{sqlServer.Name}.inputs.password}}");
-                          }
-                          else
-                          {
-                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", sqlServer.Password);
-                          }
+                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = context.ExecutionContext.IsPublishMode
+                              ? sqlServer.PasswordInput
+                              : sqlServer.Password;
                       })
                       .PublishAsContainer();
     }

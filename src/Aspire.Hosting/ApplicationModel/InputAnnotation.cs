@@ -52,7 +52,7 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <summary>
     /// The value of the input.
     /// </summary>
-    public string? GenerateDefaultValue()
+    public string GenerateDefaultValue()
     {
         if (Default is null)
         {

@@ -15,11 +15,14 @@ public class PostgresServerResource(string name, string password) : ContainerRes
     internal const string PrimaryEndpointName = "tcp";
 
     private EndpointReference? _primaryEndpoint;
+    private InputReference? _passwordInput;
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
 
     /// <summary>
     /// Gets the PostgreSQL server password.
@@ -38,7 +41,7 @@ public class PostgresServerResource(string name, string password) : ContainerRes
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"Host={PrimaryEndpoint.GetExpression(EndpointProperty.Host)};Port={PrimaryEndpoint.GetExpression(EndpointProperty.Port)};Username=postgres;Password={{{Name}.inputs.password}}";
+            return $"Host={PrimaryEndpoint.GetExpression(EndpointProperty.Host)};Port={PrimaryEndpoint.GetExpression(EndpointProperty.Port)};Username=postgres;Password={PasswordInput.ValueExpression}";
         }
     }
 
