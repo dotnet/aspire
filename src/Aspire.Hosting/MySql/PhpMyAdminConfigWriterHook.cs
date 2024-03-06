@@ -3,10 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.MySql;
 
-internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
+internal class PhpMyAdminConfigWriterHook(IConfiguration configuration) : IDistributedApplicationLifecycleHook
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
@@ -26,6 +28,8 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
             return Task.CompletedTask;
         }
 
+        var containerHostName = HostNameResolver.ReplaceLocalhostWithContainerHost("localhost", configuration);
+
         if (mySqlInstances.Count() == 1)
         {
             var singleInstance = mySqlInstances.Single();
@@ -34,7 +38,7 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
                 var endpoint = allocatedEndPoints.Where(ae => ae.Name == "tcp").Single();
                 myAdminResource.Annotations.Add(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
                 {
-                    context.EnvironmentVariables.Add("PMA_HOST", $"host.docker.internal:{endpoint.Port}");
+                    context.EnvironmentVariables.Add("PMA_HOST", $"{containerHostName}:{endpoint.Port}");
                     context.EnvironmentVariables.Add("PMA_USER", "root");
                     context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.Password);
                 }));
@@ -55,7 +59,7 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
                 {
                     var endpoint = allocatedEndpoints.Where(ae => ae.Name == "tcp").Single();
                     writer.WriteLine("$i++;");
-                    writer.WriteLine($"$cfg['Servers'][$i]['host'] = 'host.docker.internal:{endpoint.Port}';");
+                    writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{containerHostName}:{endpoint.Port}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
                     writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");

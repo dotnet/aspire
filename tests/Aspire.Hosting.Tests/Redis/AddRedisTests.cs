@@ -118,18 +118,26 @@ public class AddRedisTests
         Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
     }
 
-    [Fact]
-    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable()
+    [Theory]
+    [InlineData(null, "host.docker.internal")]
+    [InlineData("host.containers.internal", "host.containers.internal")]
+    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable(string? containerHost, string expectedHost)
     {
         var builder = DistributedApplication.CreateBuilder();
+
+        if (containerHost is not null)
+        {
+            builder.Configuration["AppHost:ContainerHostname"] = containerHost;
+        }
+
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        redis.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 5001, "tcp"));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new RedisCommanderConfigWriterHook();
+        var hook = new RedisCommanderConfigWriterHook(builder.Configuration);
         await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
@@ -145,23 +153,31 @@ public class AddRedisTests
             annotation.Callback(context);
         }
 
-        Assert.Equal("myredis1:host.docker.internal:5001:0", context.EnvironmentVariables["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{expectedHost}:5001:0", context.EnvironmentVariables["REDIS_HOSTS"]);
     }
 
-    [Fact]
-    public async Task MultipleRedisInstanceProducesCorrectRedisHostsVariable()
+    [Theory]
+    [InlineData(null, "host.docker.internal")]
+    [InlineData("host.containers.internal", "host.containers.internal")]
+    public async Task MultipleRedisInstanceProducesCorrectRedisHostsVariable(string? containerHost, string expectedHost)
     {
         var builder = DistributedApplication.CreateBuilder();
+
+        if (containerHost is not null)
+        {
+            builder.Configuration["AppHost:ContainerHostname"] = containerHost;
+        }
+
         var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
         var redis2 = builder.AddRedis("myredis2").WithRedisCommander();
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        redis2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        redis1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 5001, "tcp"));
+        redis2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 5002, "tcp"));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new RedisCommanderConfigWriterHook();
+        var hook = new RedisCommanderConfigWriterHook(builder.Configuration);
         await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
@@ -177,6 +193,6 @@ public class AddRedisTests
             annotation.Callback(context);
         }
 
-        Assert.Equal("myredis1:host.docker.internal:5001:0,myredis2:host.docker.internal:5002:0", context.EnvironmentVariables["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{expectedHost}:5001:0,myredis2:{expectedHost}:5002:0", context.EnvironmentVariables["REDIS_HOSTS"]);
     }
 }

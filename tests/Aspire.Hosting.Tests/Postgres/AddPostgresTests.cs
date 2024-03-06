@@ -275,16 +275,24 @@ public class AddPostgresTests
         builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
     }
 
-    [Fact]
-    public void WithPostgresProducesValidServersJsonFile()
+    [Theory]
+    [InlineData(null, "host.docker.internal")]
+    [InlineData("host.containers.internal", "host.containers.internal")]
+    public void WithPostgresProducesValidServersJsonFile(string? containerHost, string expectedHost)
     {
         var builder = DistributedApplication.CreateBuilder();
+
+        if (containerHost is not null)
+        {
+            builder.Configuration["AppHost:ContainerHostname"] = containerHost;
+        }
+
         var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(8081);
         var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(8081);
 
         // Add fake allocated endpoints.
-        pg1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        pg2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        pg1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 5001, "tcp"));
+        pg2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 5002, "tcp"));
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
         var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -292,7 +300,7 @@ public class AddPostgresTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var hook = new PgAdminConfigWriterHook();
+        var hook = new PgAdminConfigWriterHook(builder.Configuration);
         hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
 
         using var stream = File.OpenRead(volume.Source!);
@@ -303,7 +311,7 @@ public class AddPostgresTests
         // Make sure the first server is correct.
         Assert.Equal(pg1.Resource.Name, servers.GetProperty("1").GetProperty("Name").GetString());
         Assert.Equal("Aspire instances", servers.GetProperty("1").GetProperty("Group").GetString());
-        Assert.Equal("host.docker.internal", servers.GetProperty("1").GetProperty("Host").GetString());
+        Assert.Equal(expectedHost, servers.GetProperty("1").GetProperty("Host").GetString());
         Assert.Equal(5001, servers.GetProperty("1").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("1").GetProperty("SSLMode").GetString());
@@ -313,7 +321,7 @@ public class AddPostgresTests
         // Make sure the second server is correct.
         Assert.Equal(pg2.Resource.Name, servers.GetProperty("2").GetProperty("Name").GetString());
         Assert.Equal("Aspire instances", servers.GetProperty("2").GetProperty("Group").GetString());
-        Assert.Equal("host.docker.internal", servers.GetProperty("2").GetProperty("Host").GetString());
+        Assert.Equal(expectedHost, servers.GetProperty("2").GetProperty("Host").GetString());
         Assert.Equal(5002, servers.GetProperty("2").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());

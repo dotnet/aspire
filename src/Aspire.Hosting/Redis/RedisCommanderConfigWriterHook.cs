@@ -4,10 +4,12 @@
 using Aspire.Hosting.ApplicationModel;
 using System.Text;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Configuration;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Redis;
 
-internal class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycleHook
+internal class RedisCommanderConfigWriterHook(IConfiguration configuration) : IDistributedApplicationLifecycleHook
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
@@ -25,6 +27,8 @@ internal class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycle
             return Task.CompletedTask;
         }
 
+        var containerHostName = HostNameResolver.ReplaceLocalhostWithContainerHost("localhost", configuration);
+
         var hostsVariableBuilder = new StringBuilder();
 
         foreach (var redisInstance in redisInstances)
@@ -33,7 +37,7 @@ internal class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycle
             {
                 var endpoint = allocatedEndpoints.Where(ae => ae.Name == "tcp").Single();
 
-                var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:host.docker.internal:{endpoint.Port}:0";
+                var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{containerHostName}:{endpoint.Port}:0";
                 hostsVariableBuilder.Append(hostString);
             }
         }
