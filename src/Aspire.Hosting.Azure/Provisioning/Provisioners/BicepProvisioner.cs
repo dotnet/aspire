@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
+internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService) : AzureResourceProvisioner<AzureBicepResource>
 {
@@ -42,8 +42,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             return false;
         }
-
-        var resourceIds = section.GetSection("ResourceIds");
 
         if (section["Outputs"] is string outputJson)
         {
@@ -189,7 +187,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             Arguments = $"bicep build --file \"{path}\" --stdout",
             OnOutputData = data => armTemplateContents.AppendLine(data),
-            OnErrorData = data => logger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
+            OnErrorData = data => resourceLogger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
         if (!await ExecuteCommand(templateSpec).ConfigureAwait(false))
@@ -477,9 +475,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                     Guid g => g.ToString(),
                     JsonNode node => node,
                     InputReference reference => reference.Input.GenerateDefaultValue(),
-                    // TODO: Support this
-                    AzureBicepResource bicepResource => throw new NotSupportedException("Referencing bicep resources is not supported"),
-                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
                     IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     null => null,
                     _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")

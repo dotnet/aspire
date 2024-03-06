@@ -44,8 +44,8 @@ public static class AzureKeyVaultResourceExtensions
             keyVault.AddOutput(x => x.Properties.VaultUri, "vaultUri");
 
             var keyVaultAdministratorRoleAssignment = keyVault.AssignRole(RoleDefinition.KeyVaultAdministrator);
-            keyVaultAdministratorRoleAssignment.AssignParameter(x => x.PrincipalId, construct.PrincipalIdParameter);
-            keyVaultAdministratorRoleAssignment.AssignParameter(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            keyVaultAdministratorRoleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
+            keyVaultAdministratorRoleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
 
             if (configureResource != null)
             {

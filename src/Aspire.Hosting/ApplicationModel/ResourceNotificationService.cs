@@ -35,17 +35,6 @@ public class ResourceNotificationService
     /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
     /// </summary>
     /// <param name="resource"></param>
-    /// <param name="state"></param>
-    /// <returns></returns>
-    public Task PublishUpdateAsync(IResource resource, CustomResourceSnapshot state)
-    {
-        return GetResourceNotificationState(resource.Name).PublishUpdateAsync(state);
-    }
-
-    /// <summary>
-    /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
-    /// </summary>
-    /// <param name="resource"></param>
     /// <param name="stateFactory"></param>
     /// <returns></returns>
     public Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)

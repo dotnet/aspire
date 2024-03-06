@@ -1,13 +1,13 @@
 targetScope = 'resourceGroup'
 
 @description('')
-param location string = resourceGroup().location
-
-@description('')
 param principalId string
 
 @description('')
 param principalType string
+
+@description('')
+param location string = resourceGroup().location
 
 @description('')
 param signaturesecret string
