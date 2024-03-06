@@ -117,7 +117,7 @@ internal sealed class AzureProvisioner(
         // Mark all resources as starting
         foreach (var r in azureResources)
         {
-            r.ProvisioningTaskCompletionSource = new();
+            r.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await SetStateAsync(r, "Starting").ConfigureAwait(false);
 
