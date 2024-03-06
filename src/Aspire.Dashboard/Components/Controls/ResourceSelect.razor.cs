@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components.Controls;
 public partial class ResourceSelect
 {
     private const int ResourceOptionPixelHeight = 32;
-    private const int MaxVisibleResourceOptions = 10;
+    private const int MaxVisibleResourceOptions = 15;
 
     [Parameter]
     public IEnumerable<SelectViewModel<ResourceTypeDetails>> Resources { get; set; } = default!;
