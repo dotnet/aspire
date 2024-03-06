@@ -8,6 +8,7 @@ using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -113,6 +114,7 @@ public static class CloudFormationExtensions
 
             if (cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource is not null)
             {
+                context.Logger?.LogInformation("Waiting on CloudFormation resource {Name} ...", cloudFormationResourceBuilder.Resource.Name);
                 await cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(context.CancellationToken).ConfigureAwait(false);
             }
 
