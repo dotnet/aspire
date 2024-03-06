@@ -10,6 +10,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <PackageOutputPath Condition=" '$(PackageOutputPath)' == '' ">$(ArtifactsShippingPackagesDir)</PackageOutputPath>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddPackageFiles</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -39,13 +40,16 @@
 
   <Target Name="Build" />
 
-  <Target Name="AddPackageFiles" BeforeTargets="_GetPackageFiles">
+  <Target Name="AddPackageFiles" Returns="@(TfmSpecificPackageFile)">
+    <PropertyGroup>
+      <_DcpNuGetRootPath>$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools</_DcpNuGetRootPath>
+    </PropertyGroup>
     <ItemGroup>
-      <DcpFiles Include="$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/**/*" />
-      <None Include="@(DcpFiles)" Pack="true" PackagePath="tools/" />
+      <_DcpFiles Include="$(_DcpNuGetRootPath)\**\*" />
+      <TfmSpecificPackageFile Include="@(_DcpFiles)" PackagePath="tools/" />
     </ItemGroup>
 
-    <Error Condition="@(DcpFiles->Count()) == 0" Text="No dcp files found in :$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools" />
+    <Error Condition="@(_DcpFiles->Count()) == 0" Text="No dcp files found in : $(_DcpNuGetRootPath)" />
   </Target>
 
   <ItemGroup>
