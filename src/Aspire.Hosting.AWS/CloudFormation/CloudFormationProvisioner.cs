@@ -245,7 +245,7 @@ internal sealed class CloudFormationProvisioner(
 
             if (status == Constants.ResourceStateRunning)
             {
-                loggerService.GetLogger(reference).LogInformation("Resource {Project} is referencing the output variables of CloudFormation Stack {Stack}", reference.TargetResourceName, reference.StackName);
+                loggerService.GetLogger(reference).LogInformation("Resource {Project} is referencing the output variables of CloudFormation Stack {Stack}", reference.TargetResource.Name, reference.CloudFormationResource.Name);
             }
         }
     }

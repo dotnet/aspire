@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
@@ -12,7 +13,14 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// <param name="targetResource"></param>
 internal sealed class CloudFormationReferenceResource(ICloudFormationResource cloudFormationResource, IResource targetResource) : Resource($"{targetResource.Name}-{cloudFormationResource.Name}-ref"), IResourceWithEnvironment
 {
-    internal string TargetResourceName { get; } = targetResource.Name;
+    internal IResource TargetResource { get; } = targetResource;
 
-    internal string StackName { get; } = cloudFormationResource.Name;
+    internal ICloudFormationResource CloudFormationResource { get; } = cloudFormationResource;
+
+    internal void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("type", "aws.cloudformation.reference.v0");
+        context.Writer.WriteString("cloudformation", CloudFormationResource.Name);
+        context.Writer.WriteString("resource", TargetResource.Name);
+    }
 }

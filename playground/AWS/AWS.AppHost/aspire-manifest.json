@@ -5,12 +5,13 @@
       "stack-name": "AspireSampleDevResources",
       "template-path": "app-resources.template"
     },
-    "frontend": {
+    "Frontend": {
       "type": "project.v0",
       "path": "../Frontend/Frontend.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ChatTopicArnEnv": "{AspireSampleDevResources.aws.cloudformation.output.ChatTopicArn}"
       },
       "bindings": {
         "http": {
@@ -25,10 +26,10 @@
         }
       }
     },
-    "frontend-AspireSampleDevResources-cloudformation": {
+    "Frontend-AspireSampleDevResources-ref": {
       "type": "aws.cloudformation.reference.v0",
       "cloudformation": "AspireSampleDevResources",
-      "resource": "frontend"
+      "resource": "Frontend"
     }
   }
 }
