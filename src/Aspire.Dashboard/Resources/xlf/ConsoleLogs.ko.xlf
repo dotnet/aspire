@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConsoleLogsFailedToInitialize">
         <source>Failed to initialize</source>
-        <target state="new">Failed to initialize</target>
+        <target state="translated">초기화 실패</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">콘솔 로그</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsInitializingLogViewer">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
         <source>Loading resources ...</source>
-        <target state="translated">리소스를 로드하는 중 ...</target>
+        <target state="translated">리소스를 로드하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLogsNotYetAvailable">
@@ -34,17 +34,17 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsNoResourceSelected">
         <source>No resource selected</source>
-        <target state="new">No resource selected</target>
+        <target state="translated">리소스를 선택하지 않음</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
-        <target state="translated">콘솔 로그 {0}</target>
+        <target state="translated">{0} 콘솔 로그</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
-        <target state="new">Unknown state</target>
+        <target state="translated">알 수 없는 상태</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsWatchingLogs">

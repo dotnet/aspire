@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="EndpointsColumnDisplayNone">
         <source>None</source>
-        <target state="new">None</target>
+        <target state="translated">없음</target>
         <note />
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
         <source>Starting...</source>
-        <target state="new">Starting...</target>
+        <target state="translated">시작 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="LogMessageColumnExceptionDetailsTitle">
         <source>Exception details</source>
-        <target state="new">Exception details</target>
+        <target state="translated">예외 세부 정보</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="ResourceNameDisplayCopyContainerIdText">
         <source>Copy container ID to clipboard</source>
-        <target state="new">Copy container ID to clipboard</target>
+        <target state="translated">컨테이너 ID를 클립보드에 복사</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayProcessIdText">
         <source>Process ID: {0}</source>
-        <target state="new">Process ID: {0}</target>
+        <target state="translated">프로세스 ID: {0}</target>
         <note>{0} is a numeric id</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommand">
         <source>Command: {0}</source>
-        <target state="new">Command: {0}</target>
+        <target state="translated">명령: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommandTitle">
@@ -49,22 +49,22 @@
       </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
-        <target state="new">Copy full command to clipboard</target>
+        <target state="translated">전체 명령을 클립보드에 복사</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayPort">
         <source>Port: {0}</source>
-        <target state="new">Port: {0}</target>
+        <target state="translated">포트: {0}</target>
         <note>{0} is a port number</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayPorts">
         <source>Ports: {0}</source>
-        <target state="new">Ports: {0}</target>
+        <target state="translated">포트: {0}</target>
         <note>{0} is a list of ports</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayWorkingDirectory">
         <source>Working directory: {0}</source>
-        <target state="new">Working directory: {0}</target>
+        <target state="translated">작업 디렉터리: {0}</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
@@ -74,27 +74,27 @@
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
         <source>Copy file path to clipboard</source>
-        <target state="new">Copy file path to clipboard</target>
+        <target state="translated">파일 경로를 클립보드에 복사</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
         <source>{0} is no longer running</source>
-        <target state="translated">{0} 더 이상 실행되고 있지 않습니다.</target>
+        <target state="translated">{0}(이)가 더 이상 실행되고 있지 않습니다.</target>
         <note>{0} is a resource type</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExitedUnexpectedly">
         <source>{0} exited unexpectedly with exit code {1}</source>
-        <target state="translated">{0} 종료 코드 {1} 예기치 않게 종료되었습니다.</target>
+        <target state="translated">{0}(이)가 종료 코드 {1}(으)로 예기치 않게 종료되었습니다.</target>
         <note>{0} is a resource type, {1} is a number</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLogs">
         <source>{0} error logs</source>
-        <target state="translated">오류 로그 {0}</target>
+        <target state="translated">{0}개의 오류 로그</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeOneErrorLog">
         <source>1 error log</source>
-        <target state="translated">오류 로그 1</target>
+        <target state="translated">1개의 오류 로그</target>
         <note />
       </trans-unit>
     </body>
