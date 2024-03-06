@@ -53,13 +53,13 @@ public static class AzureStorageExtensions
             var blobService = new BlobService(construct);
 
             var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
-            blobRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            blobRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
-            tableRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            tableRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
-            queueRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            queueRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             storageAccount.AddOutput(sa => sa.PrimaryEndpoints.BlobUri, "blobEndpoint");
             storageAccount.AddOutput(sa => sa.PrimaryEndpoints.QueueUri, "queueEndpoint");

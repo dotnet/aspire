@@ -1,13 +1,13 @@
 targetScope = 'resourceGroup'
 
 @description('')
-param location string = resourceGroup().location
-
-@description('')
 param principalId string
 
 @description('')
 param principalName string
+
+@description('')
+param location string = resourceGroup().location
 
 
 resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2022-08-01-preview' = {
