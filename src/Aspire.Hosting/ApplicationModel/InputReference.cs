@@ -28,7 +28,7 @@ public sealed class InputReference(IResource owner, string inputName) : IManifes
     /// <inheritdoc/>
     public string ValueExpression => $"{{{Owner.Name}.inputs.{InputName}}}";
 
-    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => ((IValueProvider)Input).GetValueAsync(cancellationToken);
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Input.Value);
 
     private InputAnnotation GetInputAnnotation()
     {

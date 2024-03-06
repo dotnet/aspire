@@ -14,7 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// This class is used to specify generated passwords, usernames, etc.
 /// </remarks>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
-public sealed class InputAnnotation : IResourceAnnotation, IValueProvider
+public sealed class InputAnnotation : IResourceAnnotation
 {
     private string? _value;
     private bool _hasValue;
@@ -58,8 +58,6 @@ public sealed class InputAnnotation : IResourceAnnotation, IValueProvider
             return _value;
         }
     }
-
-    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Value);
 
     internal void SetValueGetter(Func<string> valueGetter) => _valueGetter = valueGetter;
 
