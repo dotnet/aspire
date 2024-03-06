@@ -5,10 +5,12 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Postgres;
 
-internal class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
+internal class PgAdminConfigWriterHook(IConfiguration configuration) : IDistributedApplicationLifecycleHook
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
@@ -20,8 +22,9 @@ internal class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
 
         using var stream = new FileStream(serverFileMount.Source!, FileMode.Create);
         using var writer = new Utf8JsonWriter(stream);
-
         var serverIndex = 1;
+
+        var containerHostName = HostNameResolver.ReplaceLocalhostWithContainerHost("localhost", configuration);
 
         writer.WriteStartObject();
         writer.WriteStartObject("Servers");
@@ -35,7 +38,7 @@ internal class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
                 writer.WriteStartObject($"{serverIndex}");
                 writer.WriteString("Name", postgresInstance.Name);
                 writer.WriteString("Group", "Aspire instances");
-                writer.WriteString("Host", "host.docker.internal");
+                writer.WriteString("Host", containerHostName);
                 writer.WriteNumber("Port", endpoint.Port);
                 writer.WriteString("Username", "postgres");
                 writer.WriteString("SSLMode", "prefer");

@@ -4,6 +4,8 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
@@ -66,18 +68,20 @@ public static class MongoDBBuilderExtensions
         var mongoExpressContainer = new MongoExpressContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(mongoExpressContainer)
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "1.0.2-20" })
-                                  .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
+                                  .WithEnvironment(context => ConfigureMongoExpressContainer(builder.ApplicationBuilder.Configuration, context, builder.Resource))
                                   .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
                                   .ExcludeFromManifest();
 
         return builder;
     }
 
-    private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, IResource resource)
+    private static void ConfigureMongoExpressContainer(IConfiguration configuration, EnvironmentCallbackContext context, IResource resource)
     {
+        var containerHostName = HostNameResolver.ReplaceLocalhostWithContainerHost("localhost", configuration);
+
         var hostPort = GetResourcePort(resource);
         
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://host.docker.internal:{hostPort}/?directConnection=true");
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{containerHostName}:{hostPort}/?directConnection=true");
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
 
         static int GetResourcePort(IResource resource)

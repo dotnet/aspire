@@ -102,13 +102,43 @@ public class AddMongoDBTests
         Assert.Equal("{mongodb.connectionString}/mydatabase", connectionStringResource.ConnectionStringExpression);
     }
 
-    [Fact]
-    public void WithMongoExpressAddsContainer()
+    [Theory]
+    [InlineData(null, "host.docker.internal")]
+    [InlineData("host.containers.internal", "host.containers.internal")]
+    public void WithMongoExpressAddsContainer(string? containerHost, string expectedHost)
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddMongoDB("mongo").WithMongoExpress();
 
-        Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+        if (containerHost is not null)
+        {
+            builder.Configuration["AppHost:ContainerHostname"] = containerHost;
+        }
+
+        builder.AddMongoDB("mongo")
+               .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "locahost", 3452, "tcp"))
+               .WithMongoExpress();
+
+        var mongoExpress = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+
+        Assert.Equal("mongo-mongoexpress", mongoExpress.Name);
+        Assert.True(mongoExpress.TryGetEnvironmentVariables(out var environmentCallbackAnnotations));
+        var context = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)); ;
+        foreach (var annotation in environmentCallbackAnnotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Collection(context.EnvironmentVariables,
+            kvp =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_URL", kvp.Key);
+                Assert.Equal($"mongodb://{expectedHost}:3452/?directConnection=true", kvp.Value);
+            },
+            kvp =>
+            {
+                Assert.Equal("ME_CONFIG_BASICAUTH", kvp.Key);
+                Assert.Equal("false", kvp.Value);
+            });
     }
 
     [Fact]
@@ -130,7 +160,7 @@ public class AddMongoDBTests
 
         var mongoManifest = ManifestUtils.GetManifest(mongo.Resource);
         var dbManifest = ManifestUtils.GetManifest(db.Resource);
-        
+
         Assert.Equal("container.v0", mongoManifest["type"]?.ToString());
         Assert.Equal(mongo.Resource.ConnectionStringExpression, mongoManifest["connectionString"]?.ToString());
 

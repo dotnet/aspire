@@ -188,18 +188,26 @@ public class AddMySqlTests
         Assert.Single(builder.Resources.OfType<PhpMyAdminContainerResource>());
     }
 
-    [Fact]
-    public async Task SingleMySqlInstanceProducesCorrectMySqlHostsVariable()
+    [Theory]
+    [InlineData(null, "host.docker.internal")]
+    [InlineData("host.containers.internal", "host.containers.internal")]
+    public async Task SingleMySqlInstanceProducesCorrectMySqlHostsVariable(string? containerHost, string expectedHost)
     {
         var builder = DistributedApplication.CreateBuilder();
+
+        if (containerHost is not null)
+        {
+            builder.Configuration["AppHost:ContainerHostname"] = containerHost;
+        }
+
         var mysql = builder.AddMySql("mySql").WithPhpMyAdmin();
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        mysql.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        mysql.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 5001, "tcp"));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new PhpMyAdminConfigWriterHook();
+        var hook = new PhpMyAdminConfigWriterHook(builder.Configuration);
         await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
@@ -215,7 +223,7 @@ public class AddMySqlTests
             annotation.Callback(context);
         }
 
-        Assert.Equal("host.docker.internal:5001", context.EnvironmentVariables["PMA_HOST"]);
+        Assert.Equal($"{expectedHost}:5001", context.EnvironmentVariables["PMA_HOST"]);
         Assert.NotNull(context.EnvironmentVariables["PMA_USER"]);
         Assert.NotNull(context.EnvironmentVariables["PMA_PASSWORD"]);
     }
@@ -233,16 +241,24 @@ public class AddMySqlTests
         Assert.Equal("/etc/phpmyadmin/config.user.inc.php", volume.Target);
     }
 
-    [Fact]
-    public void WithPhpMyAdminProducesValidServerConfigFile()
+    [Theory]
+    [InlineData(null, "host.docker.internal")]
+    [InlineData("host.containers.internal", "host.containers.internal")]
+    public void WithPhpMyAdminProducesValidServerConfigFile(string? containerHost, string expectedHost)
     {
         var builder = DistributedApplication.CreateBuilder();
+
+        if (containerHost is not null)
+        {
+            builder.Configuration["AppHost:ContainerHostname"] = containerHost;
+        }
+
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(8081);
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(8081);
 
         // Add fake allocated endpoints.
-        mysql1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        mysql2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        mysql1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 5001, "tcp"));
+        mysql2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 5002, "tcp"));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -250,15 +266,15 @@ public class AddMySqlTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var hook = new PhpMyAdminConfigWriterHook();
+        var hook = new PhpMyAdminConfigWriterHook(builder.Configuration);
         hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
 
         using var stream = File.OpenRead(volume.Source!);
         var fileContents = new StreamReader(stream).ReadToEnd();
 
         // check to see that the two hosts are in the file
-        string pattern1 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host.docker.internal:5001';";
-        string pattern2 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host.docker.internal:5002';";
+        string pattern1 = $@"\$cfg\['Servers'\]\[\$i\]\['host'\] = '{expectedHost}:5001';";
+        string pattern2 = $@"\$cfg\['Servers'\]\[\$i\]\['host'\] = '{expectedHost}:5002';";
         Match match1 = Regex.Match(fileContents, pattern1);
         Assert.True(match1.Success);
         Match match2 = Regex.Match(fileContents, pattern2);
