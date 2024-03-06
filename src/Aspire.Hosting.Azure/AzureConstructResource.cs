@@ -30,13 +30,22 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
 
         var resourceModuleConstruct = new ResourceModuleConstruct(this, configuration);
 
+        ConfigureConstruct(resourceModuleConstruct);
+
+        var constructParameters = resourceModuleConstruct.GetParameters();
+        var distinctConstructParameters = constructParameters.DistinctBy(p => p.Name);
+        var distinctConstructParametersLookup = distinctConstructParameters.ToDictionary(p => p.Name);
+
         foreach (var aspireParameter in this.Parameters)
         {
+            if (distinctConstructParametersLookup.ContainsKey(aspireParameter.Key))
+            {
+                continue;
+            }
+
             var constructParameter = new Parameter(aspireParameter.Key);
             resourceModuleConstruct.AddParameter(constructParameter);
         }
-
-        ConfigureConstruct(resourceModuleConstruct);
 
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
         resourceModuleConstruct.Build(generationPath);

@@ -94,40 +94,16 @@ public static class AzureRedisExtensions
         {
             var redisCache = new RedisCache(construct, name: builder.Resource.Name);
 
-            // EXPERIMENTAL: Create a keyvault using the same details as the existing one.
             var vaultNameParameter = new Parameter("keyVaultName");
             construct.AddParameter(vaultNameParameter);
 
-            var keyVault = new KeyVault(construct);
-            keyVault.AssignProperty(x => x.Name, "keyVaultName");
+            var  keyVault = KeyVault.FromExisting(construct, "keyVaultName");
 
-            // HACK: Temporary comment out whilst integration with AZD is figured out.
-            //var role = keyVault.AssignRole(RoleDefinition.KeyVaultAdministrator);
-            //role.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            //role.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
-
-            // HACK: Use the name {resourcename}.salt1 to ensure the Bicep construct name is unique.
-            var keyVaultSecret = new KeyVaultSecret(construct, $"{builder.Resource.Name}salt1");
-            keyVaultSecret.AssignProperty(x => x.Name, "'connectionString'");
+            var keyVaultSecret = new KeyVaultSecret(construct, keyVault, "connectionString");
             keyVaultSecret.AssignProperty(
                 x => x.Properties.Value,
                 $$"""'${{{redisCache.Name}}.properties.hostName},ssl=true,password=${{{redisCache.Name}}.listKeys({{redisCache.Name}}.apiVersion).primaryKey}'"""
                 );
-
-            // HACK: Use the name {resourcename}.salt1 to ensure the Bicep construct name is unique.
-            var discardSecret = new KeyVaultSecret(construct, $"{builder.Resource.Name}salt2");
-            discardSecret.AssignProperty(x => x.Name, "'keyVaultName'");
-            discardSecret.AssignProperty(x => x.Properties.Value, vaultNameParameter); // HACK: Ensures parameter stays in Bicep!
-
-            // HACK: Use the name {resourcename}.salt1 to ensure the Bicep construct name is unique.
-            var discardPrincipalId = new KeyVaultSecret(construct, $"{builder.Resource.Name}salt3");
-            discardPrincipalId.AssignProperty(x => x.Name, "'principalId'");
-            discardPrincipalId.AssignProperty(x => x.Properties.Value, construct.PrincipalIdParameter); // HACK: Ensures parameter stays in Bicep!
-
-            // HACK: Use the name {resourcename}.salt1 to ensure the Bicep construct name is unique.
-            var discardPrincipalType = new KeyVaultSecret(construct, $"{builder.Resource.Name}salt4");
-            discardPrincipalType.AssignProperty(x => x.Name, "'principalType'");
-            discardPrincipalType.AssignProperty(x => x.Properties.Value, construct.PrincipalTypeParameter); // HACK: Ensures parameter stays in Bicep!
 
             if (configureResource != null)
             {
