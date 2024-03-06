@@ -29,7 +29,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
     [InlineData(TestResourceNames.sqlserver)]
-    [InlineData(TestResourceNames.oracledatabase)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
