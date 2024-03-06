@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -63,22 +62,10 @@ public partial class GridValue
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
     private readonly string _anchorId = $"copy-{Guid.NewGuid():N}";
 
-    private IJSObjectReference? _onclickReference;
-
     protected override void OnInitialized()
     {
         PreCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopyToClipboard)];
         PostCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopied)];
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        _onclickReference = await JS.InvokeAsync<IJSObjectReference>("window.addOnCopyButtonClickedListener", _anchorId, ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await JS.InvokeVoidAsync("window.removeOnCopyButtonClickedListener", _onclickReference);
     }
 
     private string GetContainerClass() => EnableMasking ? "container masking-enabled wrap" : "container wrap";

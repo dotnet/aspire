@@ -52,30 +52,13 @@ function isScrolledToBottom(container) {
     return container.scrollHeight - container.clientHeight <= container.scrollTop + marginOfError;
 }
 
-window.addOnCopyButtonClickedListener = function (id, text, precopy, postcopy) {
+window.buttonCopyTextToClipboard = function(id) {
     const element = document.getElementById(id);
-    // element could be null if the button was rendered in a tooltip that hasn't yet been opened
-    if (!element) return {};
+    const text = element.getAttribute("data-text");
+    const precopy = element.getAttribute("data-precopy");
+    const postcopy = element.getAttribute("data-postcopy");
 
-    function onClick() {
-        copyTextToClipboard(id, text, precopy, postcopy);
-    }
-
-    element.addEventListener("click", onClick);
-
-    return {
-        id: id,
-        listener: onClick
-    }
-}
-
-window.removeOnCopyButtonClickedListener = function (obj) {
-    if (!obj || !obj.id) return;
-    const element = document.getElementById(obj.id);
-    // element could be null if the button was rendered in a tooltip that hasn't yet been opened
-    if (!element) return;
-
-    element.removeEventListener("click", obj.listener);
+    copyTextToClipboard(id, text, precopy, postcopy);
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {

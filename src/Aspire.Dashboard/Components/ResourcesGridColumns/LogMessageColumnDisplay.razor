@@ -1,13 +1,12 @@
 ﻿@namespace Aspire.Dashboard.Components
 
+@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 
 @inject IJSRuntime JS
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<Columns> Loc
-
-@implements IAsyncDisposable
 
 @if (_hasErrorInfo)
 {
@@ -34,7 +33,8 @@
             <div style="float: right; margin-bottom: 10px;">
                 <FluentButton
                     Id="@_copyButtonId"
-                    Appearance="Appearance.Lightweight">
+                    Appearance="Appearance.Lightweight"
+                    AdditionalAttributes="@FluentUiExtensions.GetClipboardCopyAdditionalAttributes(_copyButtonId, _errorInfo, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString())">
 
                     @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
 
