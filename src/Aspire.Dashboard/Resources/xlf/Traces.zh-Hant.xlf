@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">名稱: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">追蹤</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">名稱篩選</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
@@ -34,22 +34,22 @@
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="translated">跨越</target>
+        <target state="translated">範圍</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
         <source>Errored: {0}</source>
-        <target state="translated">發生錯誤： {0}</target>
+        <target state="translated">Errored: {0}</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">總計: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">
         <source>Trace Id: {0}</source>
-        <target state="translated">追蹤標識碼： {0}</target>
+        <target state="translated">追蹤識別碼 {0}</target>
         <note />
       </trans-unit>
     </body>

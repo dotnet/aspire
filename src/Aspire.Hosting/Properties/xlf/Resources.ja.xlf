@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</source>
-        <target state="translated">コンテナー ランタイム '{0}' が見つかりませんでした。コンテナー ランタイム チェックからのエラー: {1}。</target>
+        <target state="translated">コンテナー ランタイム '{0}' が見つかりませんでした。コンテナー ランタイム チェックのエラー: {1}。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">コンテナー ランタイム '{0}' が見つかりましたが、正常でない可能性があります。コンテナー ランタイム チェックからのエラーが {1} されました。</target>
+        <target state="translated">コンテナー ランタイム '{0}' が見つかりましたが、異常な可能性があります。コンテナー ランタイム チェックのエラー: {1}。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
         <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">コンテナー ランタイム '{0}' が見つかりましたが、応答していない可能性があります。コマンド '{0}' が {1} 秒後に戻りませんでした。</target>
+        <target state="translated">コンテナー ランタイム '{0}' が見つかりましたが、応答していないようです。コマンド '{0}' が {1} 秒後に返されませんでした。</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">アプリケーション オーケストレーターの依存関係チェックで予期しないエラーが発生 {0}。</target>
+        <target state="translated">アプリケーション オーケストレーターの依存関係チェックで予期しないエラー {0} が発生しました。</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckFailedMessage">
         <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="translated">アプリケーション オーケストレーターのバージョンを特定できませんでした。継続。</target>
+        <target state="translated">アプリケーション オーケストレーターのバージョンを特定できませんでした。継続中。</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooHighMessage">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotFoundExceptionMessage">
         <source>Project file '{0}' was not found.</source>
-        <target state="new">Project file '{0}' was not found.</target>
+        <target state="translated">プロジェクト ファイル '{0}' が見つかりませんでした。</target>
         <note />
       </trans-unit>
     </body>

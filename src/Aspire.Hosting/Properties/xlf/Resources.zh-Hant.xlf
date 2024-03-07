@@ -4,57 +4,57 @@
     <body>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</source>
-        <target state="translated">找不到容器運行時間 '{0}'。容器運行時間檢查發生的錯誤為： {1}。</target>
+        <target state="translated">找不到容器執行階段 '{0}'。容器執行階段檢查的錯誤為: {1}。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="translated">找到容器運行時間 '{0}'，但似乎狀況不良。容器運行時間檢查發生的錯誤 {1}。</target>
+        <target state="translated">找到了容器執行階段 '{0}'，但似乎狀況不良。容器執行階段檢查中的錯誤為 {1}。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
         <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="translated">找到容器運行時間 '{0}'，但似乎沒有回應。命令 '{0}' 未在 {1} 秒後傳回。</target>
+        <target state="translated">已找到容器執行階段 '{0}'，但似乎無回應。命令 '{0}' 在 {1} 秒後未傳回。</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="translated">應用程式協調器相依性檢查 {0} 發生意外的錯誤。</target>
+        <target state="translated">應用程式協調器相依性檢查出現未預期的錯誤 {0}。</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckFailedMessage">
         <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="translated">無法判斷應用程式協調器版本。繼續。</target>
+        <target state="translated">無法確定應用程式協調器版本。繼續。</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooHighMessage">
         <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
-        <target state="translated">發現 .NET Aspire 工作負載的版本不相容 (需要應用程式協調器版本 {0} 才能執行應用程式)。</target>
+        <target state="translated">發現不相容的 .NET Aspire 工作負載的版本 (需要應用程式協調器版本 {0} 才能執行應用程式)。</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
-        <target state="translated">需要較新版本的 .NET Aspire 工作負載，才能執行應用程式。請執行 『dotnet 工作負載更新』 以取得。</target>
+        <target state="translated">執行應用程式需要較新版本的 .NET Aspire 工作負載。執行 'dotnet workload update' 以取得它。</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
         <source>Launch profile is specified but launch settings file is not present.</source>
-        <target state="translated">已指定啟動配置檔，但啟動配置檔不存在。</target>
+        <target state="translated">已指定啟動設定檔，但啟動設定檔案不存在。</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">
         <source>Launch settings file does not contain '{0}' profile.</source>
-        <target state="translated">啟動配置檔不包含 '{0}' 設定檔。</target>
+        <target state="translated">啟動設定檔案不包含 '{0}' 設定檔。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectDoesNotContainMetadataExceptionMessage">
         <source>Project does not contain project metadata.</source>
-        <target state="translated">專案不包含專案元數據。</target>
+        <target state="translated">專案不包含專案中繼資料。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotFoundExceptionMessage">
         <source>Project file '{0}' was not found.</source>
-        <target state="new">Project file '{0}' was not found.</target>
+        <target state="translated">找不到專案檔 '{0}'。</target>
         <note />
       </trans-unit>
     </body>
