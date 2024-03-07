@@ -6,29 +6,29 @@ using Azure.Provisioning.KeyVaults;
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
 
+#pragma warning disable CA2252 // This API requires opting into preview features
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
 var signaturesecret = builder.AddParameter("signaturesecret");
 
-#pragma warning disable CA2252 // This API requires opting into preview features
 var storage = builder.AddAzureStorage("storage", (_, _, account) =>
 {
     account.AssignProperty(sa => sa.Sku.Name, sku);
     account.AssignProperty(sa => sa.Location, locationOverride);
 });
-#pragma warning restore CA2252 // This API requires opting into preview features
 
 var blobs = storage.AddBlobs("blobs");
 
 var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct().AddDatabase("sqldb");
 
-var keyvault = builder.AddAzureKeyVaultConstruct("mykv", (construct, keyVault) =>
+var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 {
     var secret = new KeyVaultSecret(construct, name: "mysecret");
     secret.AssignProperty(x => x.Properties.Value, signaturesecret);
 });
 
 var cache = builder.AddRedis("cache").AsAzureRedis();
+#pragma warning restore CA2252 // This API requires opting into preview features
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(blobs)
