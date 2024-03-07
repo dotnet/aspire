@@ -306,12 +306,14 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
         }
+
+        // ActiveIssue: https://github.com/dotnet/aspire/issues/2690
+        resourcesToSkip.Add(nameof(TestResourceNames.pomelo));
+
         if (BuildEnvironment.IsRunningOnCI)
         {
             resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
             resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
-            // ActiveIssue: https://github.com/dotnet/aspire/issues/2690
-            resourcesToSkip.Add(nameof(TestResourceNames.pomelo));
         }
 
         resourcesToSkip.Add(nameof(TestResourceNames.dashboard));

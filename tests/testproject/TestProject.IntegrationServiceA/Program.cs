@@ -16,7 +16,10 @@ if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 if (!resourcesToSkip.Contains(TestResourceNames.mysql))
 {
     builder.AddMySqlDataSource("mysqldb");
-    builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
+    if (!resourcesToSkip.Contains(TestResourceNames.pomelo))
+    {
+        builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
+    }
 }
 if (!resourcesToSkip.Contains(TestResourceNames.redis))
 {
