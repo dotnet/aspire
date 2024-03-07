@@ -15,13 +15,15 @@ builder.AddAzureBlobClient("blobs");
 builder.AddSqlServerDbContext<SqlContext>("sqldb");
 builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
+builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc, SqlContext context, SecretClient sc, IConnectionMultiplexer connection) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext context, SecretClient sc, IConnectionMultiplexer connection, CosmosContext cosmosContext) =>
 {
     return new
     {
+        cosmosDocuments = await TestCosmosAsync(cosmosContext),
         redisEntries = await TestRedisAsync(connection),
         secretChecked = await TestSecretAsync(sc),
         blobFiles = await TestBlobStorageAsync(bsc),
@@ -89,10 +91,28 @@ static async Task<List<Entry>> TestSqlServerAsync(SqlContext context)
     return entries;
 }
 
+static async Task<List<Entry>> TestCosmosAsync(CosmosContext context)
+{
+    await context.Database.EnsureCreatedAsync();
+
+    var entry = new Entry();
+    await context.Entries.AddAsync(entry);
+    await context.SaveChangesAsync();
+
+    var entries = await context.Entries.ToListAsync();
+    return entries;
+}
+
 public class SqlContext(DbContextOptions<SqlContext> options) : DbContext(options)
 {
     public DbSet<Entry> Entries { get; set; }
 }
+
+public class CosmosContext(DbContextOptions<CosmosContext> options) : DbContext(options)
+{
+    public DbSet<Entry> Entries { get; set; }
+}
+
 public class Entry
 {
     public Guid Id { get; set; } = Guid.NewGuid();

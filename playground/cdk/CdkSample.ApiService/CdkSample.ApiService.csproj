@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Security.KeyVault\Aspire.Azure.Security.KeyVault.csproj" />
     <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Storage.Blobs\Aspire.Azure.Storage.Blobs.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.Cosmos\Aspire.Microsoft.EntityFrameworkCore.Cosmos.csproj" />
     <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.SqlServer\Aspire.Microsoft.EntityFrameworkCore.SqlServer.csproj" />
     <ProjectReference Include="..\..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
