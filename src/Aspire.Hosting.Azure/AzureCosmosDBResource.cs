@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Cosmos;
@@ -17,9 +16,12 @@ namespace Aspire.Hosting;
 /// </summary>
 public class AzureCosmosDBResource(string name) :
     AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.cosmosdb.bicep"),
-    IResourceWithConnectionString
+    IResourceWithConnectionString,
+    IResourceWithEndpoints
 {
     internal List<string> Databases { get; } = [];
+
+    internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
     /// <summary>
     /// Gets the "connectionString" reference from the secret outputs of the Azure Cosmos DB resource.
@@ -59,18 +61,11 @@ public class AzureCosmosDBResource(string name) :
     {
         if (IsEmulator)
         {
-            return AzureCosmosDBEmulatorConnectionString.Create(GetEmulatorPort("emulator"));
+            return AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port);
         }
 
         return ConnectionString.Value;
     }
-
-    private int GetEmulatorPort(string endpointName) =>
-        Annotations
-            .OfType<AllocatedEndpointAnnotation>()
-            .FirstOrDefault(x => x.Name == endpointName)
-            ?.Port
-        ?? throw new DistributedApplicationException($"Azure Cosmos DB resource does not have endpoint annotation with name '{endpointName}'.");
 }
 
 /// <summary>
@@ -217,7 +212,7 @@ public static class AzureCosmosExtensions
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBResource> RunAsEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
     {
-        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", containerPort: 8081))
+        builder.WithEndpoint(name: "emulator", containerPort: 8081)
                .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
 
         if (configureContainer != null)
