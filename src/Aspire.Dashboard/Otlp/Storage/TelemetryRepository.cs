@@ -40,7 +40,9 @@ public sealed class TelemetryRepository
     private const int DefaultSpanEventCountLimit = int.MaxValue;
 
     private readonly object _lock = new();
-    private readonly ILogger _logger;
+    internal readonly ILogger _logger;
+    internal TimeSpan _subscriptionMinExecuteInterval = TimeSpan.FromMilliseconds(100);
+
     private readonly TelemetryOptions _options;
     private readonly List<Subscription> _applicationSubscriptions = new();
     private readonly List<Subscription> _logSubscriptions = new();
@@ -208,34 +210,34 @@ public sealed class TelemetryRepository
 
     public Subscription OnNewApplications(Func<Task> callback)
     {
-        return AddSubscription(string.Empty, SubscriptionType.Read, callback, _applicationSubscriptions);
+        return AddSubscription(nameof(OnNewApplications), string.Empty, SubscriptionType.Read, callback, _applicationSubscriptions);
     }
 
     public Subscription OnNewLogs(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(applicationId, subscriptionType, callback, _logSubscriptions);
+        return AddSubscription(nameof(OnNewLogs), applicationId, subscriptionType, callback, _logSubscriptions);
     }
 
     public Subscription OnNewMetrics(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(applicationId, subscriptionType, callback, _metricsSubscriptions);
+        return AddSubscription(nameof(OnNewMetrics), applicationId, subscriptionType, callback, _metricsSubscriptions);
     }
 
     public Subscription OnNewTraces(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(applicationId, subscriptionType, callback, _tracesSubscriptions);
+        return AddSubscription(nameof(OnNewTraces), applicationId, subscriptionType, callback, _tracesSubscriptions);
     }
 
-    private Subscription AddSubscription(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
+    private Subscription AddSubscription(string name, string? applicationId, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
     {
         Subscription? subscription = null;
-        subscription = new Subscription(applicationId, subscriptionType, callback, () =>
+        subscription = new Subscription(name, applicationId, subscriptionType, callback, () =>
         {
             lock (_lock)
             {
                 subscriptions.Remove(subscription!);
             }
-        }, ExecutionContext.Capture(), _logger);
+        }, ExecutionContext.Capture(), this);
 
         lock (_lock)
         {
