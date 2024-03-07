@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddNats("nats", configureOptions: opts =>
+builder.AddNatsClient("nats", configureOptions: opts =>
 {
     var jsonRegistry = new NatsJsonContextSerializerRegistry(AppJsonContext.Default);
     return opts with { SerializerRegistry = jsonRegistry };

@@ -12,7 +12,7 @@ builder.Services.AddSwaggerGen();
 
 builder.AddServiceDefaults();
 
-builder.AddNats("nats", configureOptions: opts =>
+builder.AddNatsClient("nats", configureOptions: opts =>
 {
     var jsonRegistry = new NatsJsonContextSerializerRegistry(AppJsonContext.Default);
     return opts with { SerializerRegistry = jsonRegistry };
@@ -29,7 +29,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapPost("/ping", async (INatsConnection nats) =>
+app.MapGet("/ping", async (INatsConnection nats) =>
 {
     var rtt = await nats.PingAsync();
     return Results.Json(new { rtt, nats.ServerInfo });

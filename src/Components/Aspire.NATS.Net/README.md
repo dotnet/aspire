@@ -18,10 +18,10 @@ dotnet add package Aspire.NATS.Net
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddNats` extension method to register a `INatsConnection` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddNatsClient` extension method to register a `INatsConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddNats("nats");
+builder.AddNatsClient("nats");
 ```
 
 You can then retrieve a `INatsConnection` instance using dependency injection. For example, to retrieve a connection from a Web API controller:
@@ -97,7 +97,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method configures a connection in the `MyService` project named `nats`. In the _Program.cs_ file of `MyService`, the NATS connection can be consumed using:
 
 ```csharp
-builder.AddNats("nats");
+builder.AddNatsClient("nats");
 ```
 
 ## Additional documentation

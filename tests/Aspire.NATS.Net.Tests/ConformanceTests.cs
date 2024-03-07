@@ -20,11 +20,11 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
     {
         if (key is null)
         {
-            builder.AddNats("nats", configure);
+            builder.AddNatsClient("nats", configure);
         }
         else
         {
-            builder.AddKeyedNats(key, configure);
+            builder.AddKeyedNatsClient(key, configure);
         }
     }
 

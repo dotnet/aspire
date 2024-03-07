@@ -25,11 +25,11 @@ public class AspireNatsClientExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedNats("nats");
+            builder.AddKeyedNatsClient("nats");
         }
         else
         {
-            builder.AddNats("nats");
+            builder.AddNatsClient("nats");
         }
 
         var host = builder.Build();
@@ -53,11 +53,11 @@ public class AspireNatsClientExtensionsTests
         static void SetConnectionString(NatsClientSettings settings) => settings.ConnectionString = ConnectionString;
         if (useKeyed)
         {
-            builder.AddKeyedNats("nats", SetConnectionString);
+            builder.AddKeyedNatsClient("nats", SetConnectionString);
         }
         else
         {
-            builder.AddNats("nats", SetConnectionString);
+            builder.AddNatsClient("nats", SetConnectionString);
         }
 
         var host = builder.Build();
@@ -85,11 +85,11 @@ public class AspireNatsClientExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedNats("nats");
+            builder.AddKeyedNatsClient("nats");
         }
         else
         {
-            builder.AddNats("nats");
+            builder.AddNatsClient("nats");
         }
 
         var host = builder.Build();
