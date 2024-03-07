@@ -6,7 +6,6 @@ using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.KeyVaults;
 using Azure.Provisioning.PostgreSql;
-using Azure.Provisioning.Sql;
 
 namespace Aspire.Hosting;
 
