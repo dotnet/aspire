@@ -73,9 +73,12 @@ public class AzureCosmosDBResource(string name) :
 /// </summary>
 public class AzureCosmosDBConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
-    IResourceWithConnectionString
+    IResourceWithConnectionString,
+    IResourceWithEndpoints
 {
     internal List<string> Databases { get; } = [];
+
+    internal EndpointReference EmulatorEndpoint => new(this, "emulator");
 
     /// <summary>
     /// Gets the "connectionString" reference from the secret outputs of the Azure Cosmos DB resource.
@@ -115,19 +118,13 @@ public class AzureCosmosDBConstructResource(string name, Action<ResourceModuleCo
     {
         if (IsEmulator)
         {
-            return AzureCosmosDBEmulatorConnectionString.Create(GetEmulatorPort("emulator"));
+            return AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port);
         }
 
         return ConnectionString.Value;
     }
-
-    private int GetEmulatorPort(string endpointName) =>
-        Annotations
-            .OfType<AllocatedEndpointAnnotation>()
-            .FirstOrDefault(x => x.Name == endpointName)
-            ?.Port
-        ?? throw new DistributedApplicationException($"Azure Cosmos DB resource does not have endpoint annotation with name '{endpointName}'.");
 }
+
 
 /// <summary>
 /// Extension methods for adding Azure Cosmos DB resources to the application model.
