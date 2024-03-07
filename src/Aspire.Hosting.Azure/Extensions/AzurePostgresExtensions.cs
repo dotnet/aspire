@@ -215,6 +215,27 @@ public static class AzurePostgresExtensions
     }
 
     /// <summary>
+    /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
+    /// <param name="administratorLogin"></param>
+    /// <param name="administratorLoginPassword"></param>
+    /// <param name="configureResource">Callback to configure Azure resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
+    public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerConstruct(
+        this IResourceBuilder<PostgresServerResource> builder,
+        IResourceBuilder<ParameterResource> administratorLogin,
+        IResourceBuilder<ParameterResource> administratorLoginPassword,
+        Action<IResourceBuilder<AzurePostgresConstructResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource = null)
+    {
+        return builder.PublishAsAzurePostgresFlexibleServerConstruct(
+            administratorLogin,
+            administratorLoginPassword,
+            configureResource,
+            useProvisioner: false);
+    }
+
+    /// <summary>
     /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
