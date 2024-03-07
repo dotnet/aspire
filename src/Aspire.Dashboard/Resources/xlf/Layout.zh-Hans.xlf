@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>.NET Aspire</source>
-        <target state="new">.NET Aspire</target>
+        <target state="translated">.NET Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
         <source>Help</source>
-        <target state="new">Help</target>
+        <target state="translated">帮助</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
@@ -19,57 +19,57 @@
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
         <source>Launch settings</source>
-        <target state="new">Launch settings</target>
+        <target state="translated">启动设置</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">关闭</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogTitle">
         <source>Settings</source>
-        <target state="new">Settings</target>
+        <target state="translated">设置</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorMessage">
         <source>An unhandled error has occurred.</source>
-        <target state="new">An unhandled error has occurred.</target>
+        <target state="translated">出现未处理的错误。</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorReload">
         <source>Reload</source>
-        <target state="new">Reload</target>
+        <target state="translated">重新加载</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
         <source>Console</source>
-        <target state="new">Console</target>
+        <target state="translated">控制台</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMetricsTab">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">指标</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMonitoringTab">
         <source>Monitoring</source>
-        <target state="new">Monitoring</target>
+        <target state="translated">监视</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuResourcesTab">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">资源</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuStructuredLogsTab">
         <source>Structured</source>
-        <target state="new">Structured</target>
+        <target state="translated">结构化</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuTracesTab">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">跟踪</target>
         <note />
       </trans-unit>
     </body>

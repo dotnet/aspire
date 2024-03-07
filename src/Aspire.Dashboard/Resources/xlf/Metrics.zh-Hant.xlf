@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="MetricsHeader">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">計量</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsInsturementDescriptionGridNameColumnHeader">
         <source>Description</source>
-        <target state="new">Description</target>
+        <target state="translated">描述</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsInsturementNameGridNameColumnHeader">
         <source>Instrument</source>
-        <target state="new">Instrument</target>
+        <target state="translated">檢測</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastFifteenMinutes">
         <source>Last 15 minutes</source>
-        <target state="new">Last 15 minutes</target>
+        <target state="translated">過去 15 分鐘</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastFiveMinutes">
         <source>Last 5 minutes</source>
-        <target state="new">Last 5 minutes</target>
+        <target state="translated">過去 5 分鐘</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastHour">
         <source>Last hour</source>
-        <target state="new">Last hour</target>
+        <target state="translated">過去 1 小時</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastOneMinute">
@@ -39,47 +39,47 @@
       </trans-unit>
       <trans-unit id="MetricsLastSixHours">
         <source>Last 6 hours</source>
-        <target state="new">Last 6 hours</target>
+        <target state="translated">過去 6 小時</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastThirtyMinutes">
         <source>Last 30 minutes</source>
-        <target state="new">Last 30 minutes</target>
+        <target state="translated">過去 30 分鐘</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastThreeHours">
         <source>Last 3 hours</source>
-        <target state="new">Last 3 hours</target>
+        <target state="translated">過去 3 小時</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastTwelveHours">
         <source>Last 12 hours</source>
-        <target state="new">Last 12 hours</target>
+        <target state="translated">過去 12 小時</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastTwentyFourHours">
         <source>Last 24 hours</source>
-        <target state="new">Last 24 hours</target>
+        <target state="translated">過去 24 小時</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
-        <target state="translated">選取的資源沒有計量</target>
+        <target state="translated">沒有所選資源的計量</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsPageTitle">
         <source>{0} metrics</source>
-        <target state="new">{0} metrics</target>
+        <target state="translated">{0} 計量</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="MetricsSelectADuration">
         <source>Select a duration</source>
-        <target state="new">Select a duration</target>
+        <target state="translated">選取期間</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsSelectAResource">
         <source>Select a resource to view metrics</source>
-        <target state="translated">選取要檢視計量的資源</target>
+        <target state="translated">選取資源以檢視計量</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsSelectInstrument">

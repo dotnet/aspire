@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>.NET Aspire</source>
-        <target state="new">.NET Aspire</target>
+        <target state="translated">.NET Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
         <source>Help</source>
-        <target state="new">Help</target>
+        <target state="translated">ヘルプ</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
@@ -19,57 +19,57 @@
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
         <source>Launch settings</source>
-        <target state="new">Launch settings</target>
+        <target state="translated">起動設定</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">閉じる</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogTitle">
         <source>Settings</source>
-        <target state="new">Settings</target>
+        <target state="translated">設定</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorMessage">
         <source>An unhandled error has occurred.</source>
-        <target state="new">An unhandled error has occurred.</target>
+        <target state="translated">ハンドルされないエラーが発生しました。</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorReload">
         <source>Reload</source>
-        <target state="new">Reload</target>
+        <target state="translated">再読み込み</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
         <source>Console</source>
-        <target state="new">Console</target>
+        <target state="translated">コンソール</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMetricsTab">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">メトリック</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMonitoringTab">
         <source>Monitoring</source>
-        <target state="new">Monitoring</target>
+        <target state="translated">モニター中</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuResourcesTab">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">リソース</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuStructuredLogsTab">
         <source>Structured</source>
-        <target state="new">Structured</target>
+        <target state="translated">構造化</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuTracesTab">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">トレース</target>
         <note />
       </trans-unit>
     </body>

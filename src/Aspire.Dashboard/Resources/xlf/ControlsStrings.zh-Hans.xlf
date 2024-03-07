@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
         <source>All tags</source>
-        <target state="new">All tags</target>
+        <target state="translated">所有标记</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerFilteredTags">
@@ -19,32 +19,32 @@
       </trans-unit>
       <trans-unit id="ChartContainerFiltersHeader">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">筛选器</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">图。若要获得可访问的视图，请导航到“表格”选项卡</target>
+        <target state="translated">Graph。有关可访问的视图，请导航到“表”选项卡</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="new">Graph</target>
+        <target state="translated">Graph</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerNoneSelected">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(无)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
-        <target state="new">Options</target>
+        <target state="translated">选项</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
         <source>Select filters</source>
-        <target state="new">Select filters</target>
+        <target state="translated">选择筛选器</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
         <source>Table</source>
-        <target state="new">Table</target>
+        <target state="translated">表</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">详细信息</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
@@ -74,17 +74,17 @@
       </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
-        <target state="new">Event</target>
+        <target state="translated">事件</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
-        <target state="new">Filter...</target>
+        <target state="translated">筛选...</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
         <source>Show all</source>
-        <target state="new">Show all</target>
+        <target state="translated">全部显示</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
@@ -94,32 +94,32 @@
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
         <source>Hide values</source>
-        <target state="new">Hide values</target>
+        <target state="translated">隐藏值</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
         <source>Show values</source>
-        <target state="new">Show values</target>
+        <target state="translated">显示值</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
-        <target state="new">Copied!</target>
+        <target state="translated">已复制!</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">
         <source>Copy to clipboard</source>
-        <target state="new">Copy to clipboard</target>
+        <target state="translated">复制到剪贴板</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskHideValue">
         <source>Hide value</source>
-        <target state="new">Hide value</target>
+        <target state="translated">隐藏值</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskShowValue">
         <source>Show value</source>
-        <target state="new">Show value</target>
+        <target state="translated">显示值</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
-        <target state="new">No metrics data found</target>
+        <target state="translated">未找到指标数据</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowLatestValues">
@@ -144,17 +144,17 @@
       </trans-unit>
       <trans-unit id="MetricTableStartColumnHeader">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">时间</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueDecreased">
         <source>Value decreased</source>
-        <target state="translated">值已减小</target>
+        <target state="translated">已减小值</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueIncreased">
         <source>Value increased</source>
-        <target state="translated">值已增加</target>
+        <target state="translated">已增加值</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueNoChange">
@@ -169,32 +169,32 @@
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
-        <target state="new">Count</target>
+        <target state="translated">计数</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
-        <target state="new">Length</target>
+        <target state="translated">长度</target>
         <note>Length is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">值</target>
         <note>Value is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">值</target>
         <note />
       </trans-unit>
       <trans-unit id="ReplicaSetLower">
         <source>replica set</source>
-        <target state="new">replica set</target>
+        <target state="translated">副本集</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
         <source>{0} (replica of {1})</source>
-        <target state="translated">{1}) 的 {0} (副本 (replica)</target>
+        <target state="translated">{0} ({1} 的副本)</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
       <trans-unit id="SelectAResource">
@@ -209,22 +209,22 @@
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Duration &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">持续时间 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsService">
         <source>Service &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Service &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">服务 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Start time &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">开始时间 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TimeOffsetColumnHeader">
         <source>Time offset</source>
-        <target state="new">Time offset</target>
+        <target state="translated">时间偏移</target>
         <note />
       </trans-unit>
       <trans-unit id="TimestampColumnHeader">
@@ -239,12 +239,12 @@
       </trans-unit>
       <trans-unit id="ViewLogsLink">
         <source>View logs</source>
-        <target state="new">View logs</target>
+        <target state="translated">查看日志</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">关闭</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitHorizontal">
@@ -259,7 +259,7 @@
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
         <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
-        <target state="translated">&lt;strong&gt; 找到的 &lt;/strong&gt;{0} 结果总数</target>
+        <target state="translated">总计: 找到&lt;strong&gt;{0} 个结果&lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>
