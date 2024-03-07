@@ -279,26 +279,7 @@ public class AzureBicepResourceTests
 
         var redis = builder.AddRedis("cache")
             .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
-            .PublishAsAzureRedis();
-
-        Assert.True(redis.Resource.IsContainer());
-
-        Assert.Equal("localhost:12455", redis.Resource.GetConnectionString());
-
-        var manifest = await ManifestUtils.GetManifest(redis.Resource);
-
-        Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
-        Assert.Equal("{cache.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
-    }
-
-    [Fact]
-    public async Task PublishAsRedisPublishesRedisAsAzureRedisConstruct()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var redis = builder.AddRedis("cache")
-            .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
-            .PublishAsAzureRedisConstruct(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
+            .PublishAsAzureRedis(_ => { }); // Callback provided to avoid ambiguity due to InternalsVisbleTo.
 
         Assert.True(redis.Resource.IsContainer());
 
@@ -714,47 +695,13 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var storage = builder.AddAzureStorage("storage");
-
-        storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
-        storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
-        storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
-
-        var blob = storage.AddBlobs("blob");
-        var queue = storage.AddQueues("queue");
-        var table = storage.AddTables("table");
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.storage.bicep", storage.Resource.TemplateResourceName);
-        Assert.Equal("storage", storage.Resource.Name);
-        Assert.Equal("storage", storage.Resource.Parameters["storageName"]);
-
-        Assert.Equal("https://myblob", blob.Resource.GetConnectionString());
-        Assert.Equal("https://myqueue", queue.Resource.GetConnectionString());
-        Assert.Equal("https://mytable", table.Resource.GetConnectionString());
-        Assert.Equal("{storage.outputs.blobEndpoint}", blob.Resource.ConnectionStringExpression);
-        Assert.Equal("{storage.outputs.queueEndpoint}", queue.Resource.ConnectionStringExpression);
-        Assert.Equal("{storage.outputs.tableEndpoint}", table.Resource.ConnectionStringExpression);
-
-        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
-        Assert.Equal("{storage.outputs.blobEndpoint}", blobManifest["connectionString"]?.ToString());
-
-        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
-        Assert.Equal("{storage.outputs.queueEndpoint}", queueManifest["connectionString"]?.ToString());
-
-        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
-        Assert.Equal("{storage.outputs.tableEndpoint}", tableManifest["connectionString"]?.ToString());
-    }
-
-    [Fact]
-    public async Task AddAzureConstructStorage()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
         var storagesku = builder.AddParameter("storagesku");
-        var storage = builder.AddAzureConstructStorage("storage", (_, sa) =>
+#pragma warning disable CA2252 // This API requires opting into preview features
+        var storage = builder.AddAzureStorage("storage", (_, _, sa) =>
         {
             sa.AssignProperty(x => x.Sku.Name, storagesku);
         });
+#pragma warning restore CA2252 // This API requires opting into preview features
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
