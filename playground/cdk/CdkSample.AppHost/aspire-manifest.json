@@ -125,6 +125,10 @@
         }
       }
     },
+    "pgsqldb": {
+      "type": "value.v0",
+      "connectionString": "{pgsql.connectionString};Database=pgsqldb"
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
@@ -135,7 +139,7 @@
         "ConnectionStrings__sqldb": "{sqldb.connectionString}",
         "ConnectionStrings__mykv": "{mykv.connectionString}",
         "ConnectionStrings__cache": "{cache.connectionString}",
-        "ConnectionStrings__pgsql": "{pgsql.connectionString}"
+        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}"
       },
       "bindings": {
         "http": {

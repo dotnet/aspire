@@ -30,14 +30,16 @@ var cache = builder.AddRedis("cache").AsAzureRedisConstruct();
 
 var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
 var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
-var pgsql = builder.AddPostgres("pgsql").AsAzurePostgresFlexibleServerConstruct(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword);
+var pgsqldb = builder.AddPostgres("pgsql")
+                   .AsAzurePostgresFlexibleServerConstruct(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
+                   .AddDatabase("pgsqldb");
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(blobs)
        .WithReference(sqldb)
        .WithReference(keyvault)
        .WithReference(cache)
-       .WithReference(pgsql);
+       .WithReference(pgsqldb);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

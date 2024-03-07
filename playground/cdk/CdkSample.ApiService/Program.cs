@@ -15,17 +15,19 @@ builder.AddAzureBlobClient("blobs");
 builder.AddSqlServerDbContext<SqlContext>("sqldb");
 builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
+builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc, SqlContext context, SecretClient sc, IConnectionMultiplexer connection) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClient sc, IConnectionMultiplexer connection, NpgsqlContext npgsqlContext) =>
 {
     return new
     {
         redisEntries = await TestRedisAsync(connection),
         secretChecked = await TestSecretAsync(sc),
         blobFiles = await TestBlobStorageAsync(bsc),
-        sqlRows = await TestSqlServerAsync(context)
+        sqlRows = await TestSqlServerAsync(sqlContext),
+        npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
     };
 });
 app.Run();
@@ -89,10 +91,28 @@ static async Task<List<Entry>> TestSqlServerAsync(SqlContext context)
     return entries;
 }
 
+static async Task<List<Entry>> TestNpgsqlAsync(NpgsqlContext context)
+{
+    await context.Database.EnsureCreatedAsync();
+
+    var entry = new Entry();
+    await context.Entries.AddAsync(entry);
+    await context.SaveChangesAsync();
+
+    var entries = await context.Entries.ToListAsync();
+    return entries;
+}
+
+public class NpgsqlContext(DbContextOptions<NpgsqlContext> options) : DbContext(options)
+{
+    public DbSet<Entry> Entries { get; set; }
+}
+
 public class SqlContext(DbContextOptions<SqlContext> options) : DbContext(options)
 {
     public DbSet<Entry> Entries { get; set; }
 }
+
 public class Entry
 {
     public Guid Id { get; set; } = Guid.NewGuid();
