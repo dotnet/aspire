@@ -9,8 +9,10 @@ namespace Aspire.Hosting.Tests;
 
 public class WithReferenceTests
 {
-    [Fact]
-    public async Task ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables()
+    [Theory]
+    [InlineData("mybinding")]
+    [InlineData("MYbinding")]
+    public async Task ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables(string endpointName)
     {
         using var testProgram = CreateTestProgram();
 
@@ -25,7 +27,7 @@ public class WithReferenceTests
             ));
 
         // Get the service provider.
-        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
+        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint(endpointName));
         testProgram.Build();
 
         // Call environment variable callbacks.

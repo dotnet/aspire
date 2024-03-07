@@ -99,6 +99,21 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets the endpoints for the specified resource.
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <returns></returns>
+    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource)
+    {
+        if (TryGetAllocatedEndPoints(resource, out var endpoints))
+        {
+            return endpoints.Select(e => new EndpointReference(resource, e));
+        }
+
+        return [];
+    }
+
+    /// <summary>
     /// Attempts to get the container image name from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the container image name from.</param>

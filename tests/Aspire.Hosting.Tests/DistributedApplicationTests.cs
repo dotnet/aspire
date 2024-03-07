@@ -147,10 +147,9 @@ public class DistributedApplicationTests
 
         foreach (var item in appModel.Resources)
         {
-            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetEndpoints(out _))
+            if (item is IResourceWithEndpoints resourceWithEndpoints)
             {
-                Assert.True(item.TryGetAllocatedEndPoints(out var endpoints));
-                Assert.NotEmpty(endpoints);
+                Assert.True(resourceWithEndpoints.GetEndpoints().All(e => e.IsAllocated));
             }
         }
     }
