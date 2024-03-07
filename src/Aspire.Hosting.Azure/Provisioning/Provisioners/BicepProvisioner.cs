@@ -474,7 +474,6 @@ internal sealed class BicepProvisioner(
                     bool b => b,
                     Guid g => g.ToString(),
                     JsonNode node => node,
-                    InputReference reference => reference.Input.GenerateDefaultValue(),
                     IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     null => null,
                     _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")
