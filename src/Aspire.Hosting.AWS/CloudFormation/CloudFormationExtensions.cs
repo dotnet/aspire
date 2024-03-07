@@ -131,13 +131,7 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = "AWS::Resources")
         where TDestination : IResourceWithEnvironment
     {
-        var referenceResource = builder.ApplicationBuilder.AddResource(new CloudFormationReferenceResource(cloudFormationResourceBuilder.Resource, builder.Resource));
-        referenceResource.WithManifestPublishingCallback(referenceResource.Resource.WriteToManifest);
-
-        if (cloudFormationResourceBuilder.Resource is CloudFormationResource impl)
-        {
-            impl.References.Add(referenceResource.Resource);
-        }
+        cloudFormationResourceBuilder.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
 
         builder.WithEnvironment(async context =>
         {

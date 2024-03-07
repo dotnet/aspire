@@ -56,5 +56,5 @@ public class StackOutputReference(string name, ICloudFormationResource resource)
     /// <summary>
     /// The expression used in the manifest to reference the value of the output.
     /// </summary>
-    public string ValueExpression => $"{{{Resource.Name}.aws.cloudformation.output.{Name}}}";
+    public string ValueExpression => $"{{{Resource.Name}.output.{Name}}}";
 }

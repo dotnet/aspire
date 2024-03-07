@@ -3,7 +3,12 @@
     "AspireSampleDevResources": {
       "type": "aws.cloudformation.template.v0",
       "stack-name": "AspireSampleDevResources",
-      "template-path": "app-resources.template"
+      "template-path": "app-resources.template",
+      "references": [
+        {
+          "TargetResource": "Frontend"
+        }
+      ]
     },
     "Frontend": {
       "type": "project.v0",
@@ -25,11 +30,6 @@
           "transport": "http"
         }
       }
-    },
-    "Frontend-AspireSampleDevResources-ref": {
-      "type": "aws.cloudformation.reference.v0",
-      "cloudformation": "AspireSampleDevResources",
-      "resource": "Frontend"
     }
   }
 }

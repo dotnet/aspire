@@ -21,6 +21,4 @@ internal abstract class CloudFormationResource(string name) : Resource(name), IC
 
     /// <inheritdoc/>
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
-
-    internal IList<CloudFormationReferenceResource> References { get; } = new List<CloudFormationReferenceResource>();
 }

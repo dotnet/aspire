@@ -89,7 +89,7 @@ internal sealed class CloudFormationProvisioner(
                 using var cfClient = GetCloudFormationClient(cloudFormationResource);
 
                 var templateBody = File.ReadAllText(cloudFormationResource.TemplatePath);
-                var templateSha256 = ComputeSHA256(templateBody);
+                var templateSha256 = ComputeSHA256(templateBody, cloudFormationResource.CloudFormationParameters);
 
                 var templateParameters = new List<Parameter>();
                 foreach (var kvp in cloudFormationResource.CloudFormationParameters)
@@ -239,15 +239,6 @@ internal sealed class CloudFormationProvisioner(
         }
 
         await notificationService.PublishUpdateAsync(resource, state => state with { State = status, Properties = state.Properties.AddRange(properties) }).ConfigureAwait(false);
-        foreach (var reference in resource.References)
-        {
-            await notificationService.PublishUpdateAsync(reference, state => state with { State = status, Properties = state.Properties.AddRange(properties) }).ConfigureAwait(false);
-
-            if (status == Constants.ResourceStateRunning)
-            {
-                loggerService.GetLogger(reference).LogInformation("Resource {Project} is referencing the output variables of CloudFormation Stack {Stack}", reference.TargetResource.Name, reference.CloudFormationResource.Name);
-            }
-        }
     }
 
     private static ImmutableArray<(string, string)> ConvertOutputToProperties(Stack stack, string? templateFile = null)
@@ -388,9 +379,15 @@ internal sealed class CloudFormationProvisioner(
         return events;
     }
 
-    private static string ComputeSHA256(string templateBody)
+    private static string ComputeSHA256(string templateBody, IDictionary<string, string> parameters)
     {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(templateBody));
+        var content = templateBody;
+        if(parameters != null)
+        {
+            content += string.Join(";", parameters.Select(x => x.Key + "=" + x.Value).ToArray());
+        }
+
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(content));
         return Convert.ToHexString(bytes).ToLower(CultureInfo.InvariantCulture);
     }
 

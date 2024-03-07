@@ -1,26 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
 /// <summary>
-/// Resource to attach the manifest publishing callback on. The callback records in the manifest the reference between the project and the CloudFormation resource.
+/// Annotations that records a reference of CloudFormation resources to target resources like projects.
 /// </summary>
-/// <param name="cloudFormationResource"></param>
 /// <param name="targetResource"></param>
-internal sealed class CloudFormationReferenceResource(ICloudFormationResource cloudFormationResource, IResource targetResource) : Resource($"{targetResource.Name}-{cloudFormationResource.Name}-ref"), IResourceWithEnvironment
+[DebuggerDisplay("Type = {GetType().Name,nq}, TargetResource = {TargetResource}")]
+internal sealed class CloudFormationReferenceAnnotation(string targetResource) : IResourceAnnotation
 {
-    internal IResource TargetResource { get; } = targetResource;
-
-    internal ICloudFormationResource CloudFormationResource { get; } = cloudFormationResource;
-
-    internal void WriteToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "aws.cloudformation.reference.v0");
-        context.Writer.WriteString("cloudformation", CloudFormationResource.Name);
-        context.Writer.WriteString("resource", TargetResource.Name);
-    }
+    /// <summary>
+    /// The name of the target resource.
+    /// </summary>
+    internal string TargetResource { get; } = targetResource;
 }

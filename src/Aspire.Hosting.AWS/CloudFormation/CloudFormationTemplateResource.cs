@@ -26,5 +26,15 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
         context.Writer.WriteString("type", "aws.cloudformation.template.v0");
         context.Writer.TryWriteString("stack-name", context.GetManifestRelativePath(Name));
         context.Writer.TryWriteString("template-path", context.GetManifestRelativePath(TemplatePath));
+
+        context.Writer.WritePropertyName("references");
+        context.Writer.WriteStartArray();
+        foreach (var cloudFormationResource in Annotations.OfType<CloudFormationReferenceAnnotation>())
+        {
+            context.Writer.WriteStartObject();
+            context.Writer.WriteString("TargetResource", cloudFormationResource.TargetResource);
+            context.Writer.WriteEndObject();
+        }
+        context.Writer.WriteEndArray();
     }
 }
