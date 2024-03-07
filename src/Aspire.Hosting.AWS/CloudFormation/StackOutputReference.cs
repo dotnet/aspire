@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.AWS.CloudFormation;
 
 /// <summary>
@@ -8,7 +10,7 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// </summary>
 /// <param name="name"></param>
 /// <param name="resource"></param>
-public class StackOutputReference(string name, ICloudFormationResource resource)
+public class StackOutputReference(string name, ICloudFormationResource resource) : IManifestExpressionProvider, IValueProvider
 {
     /// <summary>
     /// Name of the output.

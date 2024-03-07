@@ -28,7 +28,7 @@ internal sealed class CloudFormationLifecycleHook(
         foreach (CloudFormationResource cloudFormationResource in appModel.Resources.OfType<CloudFormationResource>())
         {
             await notificationService.PublishUpdateAsync(cloudFormationResource, (state) => state with { State = Constants.ResourceStateStarting }).ConfigureAwait(false);
-            cloudFormationResource.ProvisioningTaskCompletionSource = new();
+            cloudFormationResource.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
         _ = Task.Run(() => new CloudFormationProvisioner(appModel, notificationService, loggerService).ConfigureCloudFormation(), cancellationToken);
