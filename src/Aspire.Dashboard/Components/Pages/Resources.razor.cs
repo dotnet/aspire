@@ -120,8 +120,14 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
         {
-            _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
-            await InvokeAsync(StateHasChanged);
+            var newApplicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+
+            // Only update UI if the error counts have changed.
+            if (ApplicationErrorCountsChanged(newApplicationUnviewedErrorCounts))
+            {
+                _applicationUnviewedErrorCounts = newApplicationUnviewedErrorCounts;
+                await InvokeAsync(StateHasChanged);
+            }
         });
 
         async Task SubscribeResourcesAsync()
@@ -164,6 +170,24 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 }
             });
         }
+    }
+
+    private bool ApplicationErrorCountsChanged(Dictionary<OtlpApplication, int> newApplicationUnviewedErrorCounts)
+    {
+        if (_applicationUnviewedErrorCounts == null || _applicationUnviewedErrorCounts.Count != newApplicationUnviewedErrorCounts.Count)
+        {
+            return true;
+        }
+
+        foreach (var (application, count) in newApplicationUnviewedErrorCounts)
+        {
+            if (!_applicationUnviewedErrorCounts.TryGetValue(application, out var oldCount) || oldCount != count)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void ShowResourceDetails(ResourceViewModel resource)
