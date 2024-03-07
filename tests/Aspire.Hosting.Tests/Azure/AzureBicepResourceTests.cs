@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Sql;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
@@ -120,6 +121,44 @@ public class AzureBicepResourceTests
         Assert.Equal(["mydatabase"], databases);
         Assert.Equal("mycosmosconnectionstring", cosmos.Resource.GetConnectionString());
         Assert.Equal("{cosmos.secretOutputs.connectionString}", cosmos.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDbConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDBConstruct("cosmos", (resource, construct, account, databases) =>
+        {
+            callbackDatabases = databases;
+        });
+        cosmos.AddDatabase("mydatabase");
+
+        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
+
+        var manifest = await ManifestUtils.GetManifest(cosmos.Resource);
+        var expectedManifest = """
+                               {
+                                 "type": "azure.bicep.v0",
+                                 "connectionString": "{cosmos.secretOutputs.connectionString}",
+                                 "path": "cosmos.module.bicep",
+                                 "params": {
+                                   "keyVaultName": ""
+                                 }
+                               }
+                               """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Properties.Name)
+            );
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", cosmos.Resource.GetConnectionString());
     }
 
     [Fact]
