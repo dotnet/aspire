@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -23,11 +24,11 @@ public class OtlpApplication
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
 
     private readonly ILogger _logger;
-    private readonly int _maxMetricsCount;
+    private readonly TelemetryOptions _options;
 
     public KeyValuePair<string, string>[] Properties { get; }
 
-    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger, int maxMetricsCount)
+    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger, TelemetryOptions options)
     {
         var properties = new List<KeyValuePair<string, string>>();
         foreach (var attribute in resource.Attributes)
@@ -60,7 +61,7 @@ public class OtlpApplication
             InstanceId = ApplicationName;
         }
         _logger = logger;
-        _maxMetricsCount = maxMetricsCount;
+        _options = options;
     }
 
     public Dictionary<string, string> AllProperties()
@@ -102,7 +103,7 @@ public class OtlpApplication
                                 Unit = metric.Unit,
                                 Type = MapMetricType(metric.DataCase),
                                 Parent = GetMeter(sm.Scope),
-                                Capacity = _maxMetricsCount
+                                Options = _options
                             });
                         }
 
@@ -137,7 +138,7 @@ public class OtlpApplication
     {
         if (!_meters.TryGetValue(scope.Name, out var meter))
         {
-            _meters.Add(scope.Name, meter = new OtlpMeter(scope));
+            _meters.Add(scope.Name, meter = new OtlpMeter(scope, _options));
         }
         return meter;
     }

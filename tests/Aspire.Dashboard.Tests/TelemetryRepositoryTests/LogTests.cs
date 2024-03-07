@@ -64,7 +64,7 @@ public class LogTests
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
                 Assert.Equal("TestLogger", app.Scope.ScopeName);
-                Assert.Collection(app.Properties,
+                Assert.Collection(app.Attributes,
                     p =>
                     {
                         Assert.Equal("Log", p.Key);
@@ -555,5 +555,92 @@ public class LogTests
         // Assert
         var callbackValue = await tcs.Task;
         Assert.Equal("CustomValue", callbackValue);
+    }
+
+    [Fact]
+    public void AddLogs_AttributeLimits_LimitsApplied()
+    {
+        // Arrange
+        var repository = CreateRepository(attributeCountLimit: 5, attributeLengthLimit: 16);
+
+        // Act
+        var attributes = new List<KeyValuePair<string, string>>
+        {
+            new KeyValuePair<string, string>("{OriginalFormat}", "Test {Log}")
+        };
+
+        for (var i = 0; i < 10; i++)
+        {
+            var value = GetValue((i + 1) * 5);
+            attributes.Add(new KeyValuePair<string, string>($"Key{i}", value));
+        }
+
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(message: GetValue(50), attributes: attributes) }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationServiceId = applications[0].InstanceId,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs.Items,
+            app =>
+            {
+                Assert.Equal("Test {Log}", app.OriginalFormat);
+                Assert.Equal("0123456789012345", app.Message);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("Key0", p.Key);
+                        Assert.Equal("01234", p.Value);
+                    },
+                    p =>
+                    {
+                        Assert.Equal("Key1", p.Key);
+                        Assert.Equal("0123456789", p.Value);
+                    },
+                    p =>
+                    {
+                        Assert.Equal("Key2", p.Key);
+                        Assert.Equal("012345678901234", p.Value);
+                    },
+                    p =>
+                    {
+                        Assert.Equal("Key3", p.Key);
+                        Assert.Equal("0123456789012345", p.Value);
+                    },
+                    p =>
+                    {
+                        Assert.Equal("Key4", p.Key);
+                        Assert.Equal("0123456789012345", p.Value);
+                    });
+            });
     }
 }
