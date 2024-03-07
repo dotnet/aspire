@@ -304,13 +304,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
 
         await InvokeAsync(StateHasChanged);
-
-        // Workaround for issue in fluent-select web component where the display value of the
-        // selected item doesn't update automatically when the item changes
-        if (_resourceSelectComponent is not null)
-        {
-            await _resourceSelectComponent.UpdateDisplayValueAsync();
-        }
     }
 
     public async ValueTask DisposeAsync()

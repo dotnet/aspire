@@ -4,8 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -26,25 +24,6 @@ public partial class ResourceSelect
 
     [Parameter]
     public string? AriaLabel { get; set; }
-
-    [Inject]
-    public required IJSRuntime JSRuntime { get; init; }
-
-    private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
-
-    /// <summary>
-    /// Workaround for issue in fluent-select web component where the display value of the
-    /// selected item doesn't update automatically when the item changes.
-    /// </summary>
-    public ValueTask UpdateDisplayValueAsync()
-    {
-        if (JSRuntime is null || _resourceSelectComponent is null)
-        {
-            return ValueTask.CompletedTask;
-        }
-
-        return JSRuntime.InvokeVoidAsync("updateSelectDisplayValue", _resourceSelectComponent.Element);
-    }
 
     private string? GetPopupHeight()
     {
