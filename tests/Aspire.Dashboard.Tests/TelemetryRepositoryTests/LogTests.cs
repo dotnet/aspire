@@ -706,6 +706,6 @@ public class LogTests
         Assert.Equal(2, read2);
 
         var elapsed = stopwatch.Elapsed;
-        Assert.True(elapsed >= minExecuteInterval, $"Elapsed time {elapsed} should be greater than min execute interval {minExecuteInterval} on read.");
+        CustomAssert.AssertExceedsMinInterval(elapsed, minExecuteInterval);
     }
 }
