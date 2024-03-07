@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="ConsoleLogsFailedToInitialize">
         <source>Failed to initialize</source>
-        <target state="new">Failed to initialize</target>
+        <target state="translated">無法初始化</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
-        <target state="translated">觀看記錄已完成</target>
+        <target state="translated">已完成監看記錄</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">主控台記錄</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsInitializingLogViewer">
         <source>Initializing log viewer...</source>
-        <target state="translated">初始化記錄檢視器...</target>
+        <target state="translated">正在初始化記錄檢視器...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
         <source>Loading resources ...</source>
-        <target state="translated">載入資源...</target>
+        <target state="translated">正在載入資源 ...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLogsNotYetAvailable">
         <source>Logs not yet available</source>
-        <target state="translated">尚無法使用記錄檔</target>
+        <target state="translated">記錄尚不可用</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsNoResourceSelected">
         <source>No resource selected</source>
-        <target state="new">No resource selected</target>
+        <target state="translated">未選取任何資源</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
@@ -44,17 +44,17 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
-        <target state="new">Unknown state</target>
+        <target state="translated">未知狀態</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
-        <target state="translated">正在觀看記錄...</target>
+        <target state="translated">正在監看記錄...</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">
         <source>Service log status</source>
-        <target state="translated">服務記錄檔狀態</target>
+        <target state="translated">服務記錄狀態</target>
         <note />
       </trans-unit>
     </body>

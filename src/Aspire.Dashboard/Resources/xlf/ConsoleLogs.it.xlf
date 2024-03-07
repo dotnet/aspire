@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="ConsoleLogsFailedToInitialize">
         <source>Failed to initialize</source>
-        <target state="new">Failed to initialize</target>
+        <target state="translated">Inizializzazione non riuscita</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
         <source>Finished watching logs</source>
-        <target state="translated">La visione dei log è stata completata</target>
+        <target state="translated">Controllo dei log terminato</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">Log della console</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsInitializingLogViewer">
         <source>Initializing log viewer...</source>
-        <target state="translated">Inizializzazione del visualizzatore log...</target>
+        <target state="translated">Inizializzazione del visualizzatore log in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsNoResourceSelected">
         <source>No resource selected</source>
-        <target state="new">No resource selected</target>
+        <target state="translated">Nessuna risorsa selezionata</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
-        <target state="new">Unknown state</target>
+        <target state="translated">Stato sconosciuto</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
-        <target state="translated">Visualizzazione dei log in corso...</target>
+        <target state="translated">Controllo dei log in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">

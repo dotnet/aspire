@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
         <source>All tags</source>
-        <target state="new">All tags</target>
+        <target state="translated">すべてのタグ</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerFilteredTags">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerFiltersHeader">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">フィルター</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
@@ -29,22 +29,22 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="new">Graph</target>
+        <target state="translated">グラフ</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerNoneSelected">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(なし)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
-        <target state="new">Options</target>
+        <target state="translated">オプション​​</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
         <source>Select filters</source>
-        <target state="new">Select filters</target>
+        <target state="translated">フィルターの選択</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
         <source>Table</source>
-        <target state="new">Table</target>
+        <target state="translated">テーブル</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">詳細</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
@@ -74,17 +74,17 @@
       </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
-        <target state="new">Event</target>
+        <target state="translated">イベント</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
-        <target state="new">Filter...</target>
+        <target state="translated">フィルター...</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
         <source>Show all</source>
-        <target state="new">Show all</target>
+        <target state="translated">すべてを表示</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
@@ -94,32 +94,32 @@
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
         <source>Hide values</source>
-        <target state="new">Hide values</target>
+        <target state="translated">値を非表示にする</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
         <source>Show values</source>
-        <target state="new">Show values</target>
+        <target state="translated">値を表示する</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
-        <target state="new">Copied!</target>
+        <target state="translated">コピーしました。</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">
         <source>Copy to clipboard</source>
-        <target state="new">Copy to clipboard</target>
+        <target state="translated">クリップボードにコピーする</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskHideValue">
         <source>Hide value</source>
-        <target state="new">Hide value</target>
+        <target state="translated">値を非表示にする</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskShowValue">
         <source>Show value</source>
-        <target state="new">Show value</target>
+        <target state="translated">値の表示</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
-        <target state="new">No metrics data found</target>
+        <target state="translated">メトリック データが見つかりません</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowLatestValues">
@@ -144,7 +144,7 @@
       </trans-unit>
       <trans-unit id="MetricTableStartColumnHeader">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">時間</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueDecreased">
@@ -169,27 +169,27 @@
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
-        <target state="new">Count</target>
+        <target state="translated">カウント</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
-        <target state="new">Length</target>
+        <target state="translated">長さ</target>
         <note>Length is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">値</target>
         <note>Value is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">値</target>
         <note />
       </trans-unit>
       <trans-unit id="ReplicaSetLower">
         <source>replica set</source>
-        <target state="new">replica set</target>
+        <target state="translated">レプリカ セット</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -209,22 +209,22 @@
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Duration &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">期間 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsService">
         <source>Service &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Service &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">サービス &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Start time &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">開始時刻 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TimeOffsetColumnHeader">
         <source>Time offset</source>
-        <target state="new">Time offset</target>
+        <target state="translated">時刻オフセット</target>
         <note />
       </trans-unit>
       <trans-unit id="TimestampColumnHeader">
@@ -239,22 +239,22 @@
       </trans-unit>
       <trans-unit id="ViewLogsLink">
         <source>View logs</source>
-        <target state="new">View logs</target>
+        <target state="translated">ログの表示</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">閉じる</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitHorizontal">
         <source>Split horizontal</source>
-        <target state="translated">左右に分割</target>
+        <target state="translated">左右に分割する</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
-        <target state="translated">上下に分割</target>
+        <target state="translated">上下に分割する</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">

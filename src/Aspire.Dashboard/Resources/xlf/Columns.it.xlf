@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="EndpointsColumnDisplayNone">
         <source>None</source>
-        <target state="new">None</target>
+        <target state="translated">Nessuno</target>
         <note />
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
         <source>Starting...</source>
-        <target state="new">Starting...</target>
+        <target state="translated">Avvio in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="LogMessageColumnExceptionDetailsTitle">
         <source>Exception details</source>
-        <target state="new">Exception details</target>
+        <target state="translated">Dettagli eccezione</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="ResourceNameDisplayCopyContainerIdText">
         <source>Copy container ID to clipboard</source>
-        <target state="new">Copy container ID to clipboard</target>
+        <target state="translated">Copia ID contenitore negli Appunti</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayProcessIdText">
         <source>Process ID: {0}</source>
-        <target state="new">Process ID: {0}</target>
+        <target state="translated">ID processo: {0}</target>
         <note>{0} is a numeric id</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
@@ -39,7 +39,7 @@
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommand">
         <source>Command: {0}</source>
-        <target state="new">Command: {0}</target>
+        <target state="translated">Comando: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommandTitle">
@@ -49,32 +49,32 @@
       </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
-        <target state="new">Copy full command to clipboard</target>
+        <target state="translated">Copia intero comando negli Appunti</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayPort">
         <source>Port: {0}</source>
-        <target state="new">Port: {0}</target>
+        <target state="translated">Porta: {0}</target>
         <note>{0} is a port number</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayPorts">
         <source>Ports: {0}</source>
-        <target state="new">Ports: {0}</target>
+        <target state="translated">Porte: {0}</target>
         <note>{0} is a list of ports</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayWorkingDirectory">
         <source>Working directory: {0}</source>
-        <target state="new">Working directory: {0}</target>
+        <target state="translated">Directory di lavoro: {0}</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
         <source>Copy image name and tag to clipboard</source>
-        <target state="translated">Copia il nome e il tag dell'immagine negli Appunti</target>
+        <target state="translated">Copia nome e tag dell'immagine negli Appunti</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
         <source>Copy file path to clipboard</source>
-        <target state="new">Copy file path to clipboard</target>
+        <target state="translated">Copia percorso file negli Appunti</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
@@ -84,7 +84,7 @@
       </trans-unit>
       <trans-unit id="StateColumnResourceExitedUnexpectedly">
         <source>{0} exited unexpectedly with exit code {1}</source>
-        <target state="translated">{0} terminato in modo imprevisto con il codice di uscita {1}</target>
+        <target state="translated">La risorsa {0} è stata chiusa in modo imprevisto con codice di uscita {1}</target>
         <note>{0} is a resource type, {1} is a number</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLogs">

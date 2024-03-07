@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ConsoleLogsFailedToInitialize">
         <source>Failed to initialize</source>
-        <target state="new">Failed to initialize</target>
+        <target state="translated">初期化できませんでした</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsFinishedWatchingLogs">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsHeader">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">コンソール ログ</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsInitializingLogViewer">
@@ -24,27 +24,27 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsLoadingResources">
         <source>Loading resources ...</source>
-        <target state="translated">リソースを読み込んでいます...</target>
+        <target state="translated">リソースを読み込んでいます ...</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsLogsNotYetAvailable">
         <source>Logs not yet available</source>
-        <target state="translated">ログはまだ利用できません</target>
+        <target state="translated">ログはまだ使用できません</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsNoResourceSelected">
         <source>No resource selected</source>
-        <target state="new">No resource selected</target>
+        <target state="translated">リソースが選択されていません</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
         <source>{0} console logs</source>
-        <target state="translated">コンソール ログの {0}</target>
+        <target state="translated">{0} のコンソール ログ</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
-        <target state="new">Unknown state</target>
+        <target state="translated">不明な状態</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsWatchingLogs">

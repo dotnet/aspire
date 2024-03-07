@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
         <source>All tags</source>
-        <target state="new">All tags</target>
+        <target state="translated">Tutti i tag</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerFilteredTags">
@@ -19,32 +19,32 @@
       </trans-unit>
       <trans-unit id="ChartContainerFiltersHeader">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">Filtri</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">Grafico. Per una visualizzazione accessibile, passare alla scheda Tabella</target>
+        <target state="translated">Grafo. Per una visualizzazione accessibile, passa alla scheda Tabella</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="new">Graph</target>
+        <target state="translated">Grafo</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerNoneSelected">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(Nessuno)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
-        <target state="new">Options</target>
+        <target state="translated">Opzioni</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
         <source>Select filters</source>
-        <target state="new">Select filters</target>
+        <target state="translated">Seleziona filtri</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
         <source>Table</source>
-        <target state="new">Table</target>
+        <target state="translated">Tabella</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">Dettagli</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
@@ -74,17 +74,17 @@
       </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
-        <target state="new">Event</target>
+        <target state="translated">Evento</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
-        <target state="new">Filter...</target>
+        <target state="translated">Filtro...</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
         <source>Show all</source>
-        <target state="new">Show all</target>
+        <target state="translated">Mostra tutto</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
@@ -94,32 +94,32 @@
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
         <source>Hide values</source>
-        <target state="new">Hide values</target>
+        <target state="translated">Nascondi valori</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
         <source>Show values</source>
-        <target state="new">Show values</target>
+        <target state="translated">Mostra valori</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
-        <target state="new">Copied!</target>
+        <target state="translated">Copia completata.</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">
         <source>Copy to clipboard</source>
-        <target state="new">Copy to clipboard</target>
+        <target state="translated">Copia negli Appunti</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskHideValue">
         <source>Hide value</source>
-        <target state="new">Hide value</target>
+        <target state="translated">Nascondi valore</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskShowValue">
         <source>Show value</source>
-        <target state="new">Show value</target>
+        <target state="translated">Mostra valore</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
-        <target state="new">No metrics data found</target>
+        <target state="translated">Nessun dato delle metriche trovato</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowLatestValues">
@@ -144,7 +144,7 @@
       </trans-unit>
       <trans-unit id="MetricTableStartColumnHeader">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">Orario</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueDecreased">
@@ -169,27 +169,27 @@
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
-        <target state="new">Count</target>
+        <target state="translated">Numero</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
-        <target state="new">Length</target>
+        <target state="translated">Lunghezza</target>
         <note>Length is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Valore</target>
         <note>Value is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Valore</target>
         <note />
       </trans-unit>
       <trans-unit id="ReplicaSetLower">
         <source>replica set</source>
-        <target state="new">replica set</target>
+        <target state="translated">set di repliche</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -209,22 +209,22 @@
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Duration &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Durata &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsService">
         <source>Service &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Service &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Servizio &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Start time &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Ora di inizio &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TimeOffsetColumnHeader">
         <source>Time offset</source>
-        <target state="new">Time offset</target>
+        <target state="translated">Differenza di tempo</target>
         <note />
       </trans-unit>
       <trans-unit id="TimestampColumnHeader">
@@ -239,22 +239,22 @@
       </trans-unit>
       <trans-unit id="ViewLogsLink">
         <source>View logs</source>
-        <target state="new">View logs</target>
+        <target state="translated">Visualizza log</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">Chiudi</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitHorizontal">
         <source>Split horizontal</source>
-        <target state="translated">Dividi orizzontalmente</target>
+        <target state="translated">Dividi in orizzontale</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
-        <target state="translated">Dividi verticale</target>
+        <target state="translated">Dividi in verticale</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
