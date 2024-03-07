@@ -56,7 +56,7 @@ public interface IDashboardClient : IAsyncDisposable
 
 public sealed record ResourceViewModelSubscription(
     ImmutableArray<ResourceViewModel> InitialState,
-    IAsyncEnumerable<ResourceViewModelChange> Subscription);
+    IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> Subscription);
 
 public sealed record ResourceViewModelChange(
     ResourceViewModelChangeType ChangeType,

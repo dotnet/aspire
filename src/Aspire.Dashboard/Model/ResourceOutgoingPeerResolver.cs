@@ -34,16 +34,19 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
 
-            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchContainersTokenSource.Token))
+            await foreach (var changes in subscription.WithCancellation(_watchContainersTokenSource.Token))
             {
-                if (changeType == ResourceViewModelChangeType.Upsert)
+                foreach (var (changeType, resource) in changes)
                 {
-                    _resourceByName[resource.Name] = resource;
-                }
-                else if (changeType == ResourceViewModelChangeType.Delete)
-                {
-                    var removed = _resourceByName.TryRemove(resource.Name, out _);
-                    Debug.Assert(removed, "Cannot remove unknown resource.");
+                    if (changeType == ResourceViewModelChangeType.Upsert)
+                    {
+                        _resourceByName[resource.Name] = resource;
+                    }
+                    else if (changeType == ResourceViewModelChangeType.Delete)
+                    {
+                        var removed = _resourceByName.TryRemove(resource.Name, out _);
+                        Debug.Assert(removed, "Cannot remove unknown resource.");
+                    }
                 }
 
                 await RaisePeerChangesAsync().ConfigureAwait(false);

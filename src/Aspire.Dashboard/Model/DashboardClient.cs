@@ -45,7 +45,7 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly IConfiguration _configuration;
     private readonly ILogger<DashboardClient> _logger;
 
-    private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
+    private ImmutableHashSet<Channel<IReadOnlyList<ResourceViewModelChange>>> _outgoingChannels = [];
     private string? _applicationName;
 
     private const int StateDisabled = -1;
@@ -287,12 +287,8 @@ internal sealed class DashboardClient : IDashboardClient
                         {
                             foreach (var channel in _outgoingChannels)
                             {
-                                // TODO send batches over the channel instead of individual items? They are batched downstream however
-                                foreach (var change in changes)
-                                {
-                                    // Channel is unbound so TryWrite always succeeds.
-                                    channel.Writer.TryWrite(change);
-                                }
+                                // Channel is unbound so TryWrite always succeeds.
+                                channel.Writer.TryWrite(changes);
                             }
                         }
                     }
@@ -332,7 +328,7 @@ internal sealed class DashboardClient : IDashboardClient
         // There are two types of channel in this class. This is not a gRPC channel.
         // It's a producer-consumer queue channel, used to push updates to subscribers
         // without blocking the producer here.
-        var channel = Channel.CreateUnbounded<ResourceViewModelChange>(
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
         lock (_lock)
@@ -344,13 +340,20 @@ internal sealed class DashboardClient : IDashboardClient
                 Subscription: StreamUpdatesAsync(cts.Token));
         }
 
-        async IAsyncEnumerable<ResourceViewModelChange> StreamUpdatesAsync([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
+        async IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> StreamUpdatesAsync([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
         {
             try
             {
-                await foreach (var batch in channel.Reader.ReadAllAsync(enumeratorCancellationToken).ConfigureAwait(false))
+                await foreach (var batch in channel.GetBatchesAsync(minReadInterval: TimeSpan.FromMilliseconds(100), cancellationToken: enumeratorCancellationToken).ConfigureAwait(false))
                 {
-                    yield return batch;
+                    if (batch.Count == 1)
+                    {
+                        yield return batch[0];
+                    }
+                    else
+                    {
+                        yield return batch.SelectMany(batch => batch).ToList();
+                    }
                 }
             }
             finally
@@ -371,17 +374,47 @@ internal sealed class DashboardClient : IDashboardClient
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
             cancellationToken: combinedTokens.Token);
 
-        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
+        // Write incoming logs to a channel, and then read from that channel to yield the logs.
+        // We do this to batch logs together and enforce a minimum read interval.
+        var channel = Channel.CreateUnbounded<IReadOnlyList<(string Content, bool IsErrorMessage)>>(
+            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
+
+        var readTask = Task.Run(async () =>
         {
-            var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
-
-            for (var i = 0; i < logLines.Length; i++)
+            try
             {
-                logLines[i] = (response.LogLines[i].Text, response.LogLines[i].IsStdErr);
-            }
+                await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
+                {
+                    var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
 
-            yield return logLines;
+                    for (var i = 0; i < logLines.Length; i++)
+                    {
+                        logLines[i] = (response.LogLines[i].Text, response.LogLines[i].IsStdErr);
+                    }
+
+                    // Channel is unbound so TryWrite always succeeds.
+                    channel.Writer.TryWrite(logLines);
+                }
+            }
+            finally
+            {
+                channel.Writer.TryComplete();
+            }
+        }, combinedTokens.Token);
+
+        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token))
+        {
+            if (batch.Count == 1)
+            {
+                yield return batch[0];
+            }
+            else
+            {
+                yield return batch.SelectMany(batch => batch).ToList();
+            }
         }
+
+        await readTask.ConfigureAwait(false);
     }
 
     public async Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken)

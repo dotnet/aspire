@@ -105,18 +105,23 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             _resourceSubscriptionTask = Task.Run(async () =>
             {
-                await foreach (var (changeType, resource) in subscription.WithCancellation(_resourceSubscriptionCancellation.Token))
+                await foreach (var changes in subscription.WithCancellation(_resourceSubscriptionCancellation.Token))
                 {
-                    await OnResourceChanged(changeType, resource);
-
-                    // the initial snapshot we obtain is [almost] never correct (it's always empty)
-                    // we still want to select the user's initial queried resource on page load,
-                    // so if there is no selected resource when we
-                    // receive an added resource, and that added resource name == ResourceName,
-                    // we should mark it as selected
-                    if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                    // TODO: This could be updated to be more efficent.
+                    // It should apply on the resource changes in a batch and then update the UI.
+                    foreach (var (changeType, resource) in changes)
                     {
-                        SetSelectedResourceOption(resource);
+                        await OnResourceChanged(changeType, resource);
+
+                        // the initial snapshot we obtain is [almost] never correct (it's always empty)
+                        // we still want to select the user's initial queried resource on page load,
+                        // so if there is no selected resource when we
+                        // receive an added resource, and that added resource name == ResourceName,
+                        // we should mark it as selected
+                        if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                        {
+                            SetSelectedResourceOption(resource);
+                        }
                     }
                 }
             });

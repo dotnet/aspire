@@ -151,7 +151,7 @@ public class ResourceLoggerService
 
                 try
                 {
-                    await foreach (var entry in channel.GetBatchesAsync(cancellationToken))
+                    await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken))
                     {
                         yield return entry;
                     }
