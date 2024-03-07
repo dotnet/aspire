@@ -45,10 +45,3 @@
 ::deep fluent-data-grid {
     overflow-x: clip;
 }
-
-/* Some of the data-columns (e.g. logs and details) should not
-   have ellipsis as this is unnecessary and a bit distracting.
-*/
-::deep fluent-data-grid-cell.no-ellipsis {
-    text-overflow: unset;
-}
