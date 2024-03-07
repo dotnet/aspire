@@ -26,7 +26,7 @@ var keyvault = builder.AddAzureKeyVaultConstruct("mykv", (construct, keyVault) =
     secret.AssignProperty(x => x.Properties.Value, signaturesecret);
 });
 
-var cache = builder.AddRedis("cache").AsAzureRedisConstruct();
+var cache = builder.AddRedis("cache").AsAzureRedis();
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(blobs)
