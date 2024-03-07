@@ -243,7 +243,7 @@ public class AddPostgresTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }

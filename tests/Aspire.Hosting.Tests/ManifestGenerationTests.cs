@@ -527,6 +527,55 @@ public class ManifestGenerationTests
         Assert.Equal(DateTime.MinValue, nestedComplexValue.GetDateTime());
     }
 
+    [Fact]
+    public async Task InputAnnotationDefaultValuesGenerateCorrectly()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var container = appBuilder.AddContainer("container", "image");
+        container.WithAnnotation(new InputAnnotation("fake")
+        {
+            Default = new GenerateInputDefault()
+            {
+                MinLength = 16,
+                Lower = false,
+                Upper = false,
+                Numeric = false,
+                Special = false,
+                MinLower = 1,
+                MinUpper = 2,
+                MinNumeric = 3,
+                MinSpecial = 4,
+            }
+        });
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "image:latest",
+              "inputs": {
+                "fake": {
+                  "type": "string",
+                  "default": {
+                    "generate": {
+                      "minLength": 16,
+                      "lower": false,
+                      "upper": false,
+                      "numeric": false,
+                      "special": false,
+                      "minLower": 1,
+                      "minUpper": 2,
+                      "minNumeric": 3,
+                      "minSpecial": 4
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
         var program = TestProgram.Create<ManifestGenerationTests>(GetManifestArgs(), includeNodeApp: includeNodeApp);
