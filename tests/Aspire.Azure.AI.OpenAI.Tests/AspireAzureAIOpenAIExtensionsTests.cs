@@ -68,8 +68,10 @@ public class AspireAzureAIOpenAIExtensionsTests
 
     [Theory]
     [InlineData("https://yourservice.openai.azure.com/")]
-    [InlineData("http://foo:12345")]
-    public void ReadsUriFromConnectionStrings(string connectionString)
+    [InlineData("http://domain:12345")]
+    [InlineData("Endpoint=http://domain.com:12345;Key=abc123")]
+    [InlineData("Endpoint=http://domain.com:12345")]
+    public void ReadsFromConnectionStringsFormats(string connectionString)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
