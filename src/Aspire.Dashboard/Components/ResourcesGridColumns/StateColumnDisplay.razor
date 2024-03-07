@@ -24,7 +24,7 @@
                     Class="severity-icon"/>
     }
 }
-else if (Resource is { State: ResourceStates.StartingState or /* about to start */ null })
+else if (Resource is { State: ResourceStates.StartingState or /* pending */ null })
 {
     <FluentIcon Icon="Icons.Filled.Size16.Circle"
                 Color="Color.Info"
