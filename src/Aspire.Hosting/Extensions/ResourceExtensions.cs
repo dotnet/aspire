@@ -93,7 +93,8 @@ public static class ResourceExtensions
     /// <param name="resource">The resource to get the allocated endpoints for.</param>
     /// <param name="allocatedEndPoints">When this method returns, contains the allocated endpoints for the specified resource, if they exist; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if the allocated endpoints were successfully retrieved; otherwise, <c>false</c>.</returns>
-    private static bool TryGetAllocatedEndPoints(this IResource resource, [NotNullWhen(true)] out IEnumerable<AllocatedEndpointAnnotation>? allocatedEndPoints)
+    [Obsolete("Use GetEndpoints instead.")]
+    public static bool TryGetAllocatedEndPoints(this IResource resource, [NotNullWhen(true)] out IEnumerable<AllocatedEndpointAnnotation>? allocatedEndPoints)
     {
         return TryGetAnnotationsOfType(resource, out allocatedEndPoints);
     }
@@ -105,7 +106,7 @@ public static class ResourceExtensions
     /// <returns></returns>
     public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource)
     {
-        if (TryGetAllocatedEndPoints(resource, out var endpoints))
+        if (TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(resource, out var endpoints))
         {
             return endpoints.Select(e => new EndpointReference(resource, e));
         }
