@@ -9,22 +9,26 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the Seq resource</param>
 public class SeqResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "http";
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the primary endpoint for the Seq server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
     /// <summary>
     /// Gets the Uri of the Seq endpoint
     /// </summary>
     public string? GetConnectionString()
     {
-        if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var seqEndpointAnnotations))
-        {
-            throw new DistributedApplicationException("Seq resource does not have endpoint annotation.");
-        }
-
-        return seqEndpointAnnotations.Single().UriString;
+        return PrimaryEndpoint.Url;
     }
 
     /// <summary>
     /// Gets the connection string expression for the Seq server for the manifest.
     /// </summary>
     public string? ConnectionStringExpression =>
-        $"{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+        PrimaryEndpoint.GetExpression(EndpointProperty.Url);
 }
