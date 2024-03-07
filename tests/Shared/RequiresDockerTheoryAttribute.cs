@@ -8,7 +8,10 @@ namespace Aspire.InternalTesting;
 // TODO: remove these attributes when Helix has a Windows agent with Docker support
 public class RequiresDockerTheoryAttribute : TheoryAttribute
 {
-    public static bool IsSupported => !OperatingSystem.IsWindows() || Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null;
+    // Not available on windows/CI
+    public static bool IsSupported => !OperatingSystem.IsWindows()
+                                      && Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null
+                                      && Environment.GetEnvironmentVariable("BUILD_BUILDID") is null;
 
     public override string Skip
     {
