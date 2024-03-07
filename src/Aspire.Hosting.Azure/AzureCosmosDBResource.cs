@@ -125,7 +125,6 @@ public class AzureCosmosDBConstructResource(string name, Action<ResourceModuleCo
     }
 }
 
-
 /// <summary>
 /// Extension methods for adding Azure Cosmos DB resources to the application model.
 /// </summary>
