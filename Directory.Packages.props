@@ -127,7 +127,7 @@
     <PackageVersion Include="Microsoft.Signed.Wix" Version="1.0.0-v3.14.0.5722" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
     <!-- unit test dependencies -->
-    <PackageVersion Include="bUnit" Version="1.26.64" />
+    <PackageVersion Include="bUnit" Version="1.27.17" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
     <PackageVersion Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="$(MicrosoftNETRuntimeWorkloadTestingInternalVersion)" />
     <PackageVersion Include="Testcontainers.RabbitMq" Version="3.7.0" />
