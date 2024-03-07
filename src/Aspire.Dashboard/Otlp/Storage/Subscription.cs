@@ -38,7 +38,7 @@ public sealed class Subscription : IDisposable
         var success = _lock.Wait(0, cancellationToken);
         if (!success)
         {
-            Logger.LogDebug("Subscription '{Name}' update already queued.", Name);
+            Logger.LogTrace("Subscription '{Name}' update already queued.", Name);
             return false;
         }
 
@@ -50,7 +50,7 @@ public sealed class Subscription : IDisposable
                 var s = lastExecute.Value.Add(_telemetryRepository._subscriptionMinExecuteInterval) - DateTime.UtcNow;
                 if (s > TimeSpan.Zero)
                 {
-                    Logger.LogDebug("Subscription '{Name}' minimum execute interval hit. Waiting {DelayInterval}.", Name, s);
+                    Logger.LogTrace("Subscription '{Name}' minimum execute interval hit. Waiting {DelayInterval}.", Name, s);
                     await Task.Delay(s, cancellationToken).ConfigureAwait(false);
                 }
             }
@@ -89,7 +89,7 @@ public sealed class Subscription : IDisposable
                     ExecutionContext.Restore(_executionContext);
                 }
 
-                Logger.LogDebug("Subscription '{Name}' executing.", Name);
+                Logger.LogTrace("Subscription '{Name}' executing.", Name);
                 await _callback().ConfigureAwait(false);
                 _lastExecute = DateTime.UtcNow;
             }
