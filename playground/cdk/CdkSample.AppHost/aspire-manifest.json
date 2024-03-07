@@ -48,6 +48,17 @@
       "params": {
         "principalId": "",
         "principalName": ""
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
       }
     },
     "sqldb": {
@@ -71,6 +82,47 @@
       "params": {
         "principalId": "",
         "keyVaultName": ""
+      }
+    },
+    "pgsqlAdministratorLogin": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLogin.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "pgsqlAdministratorLoginPassword": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLoginPassword.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "pgsql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql.secretOutputs.connectionString}",
+      "path": "pgsql.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": "",
+        "administratorLogin": "{pgsqlAdministratorLogin.value}",
+        "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
       }
     },
     "api": {
