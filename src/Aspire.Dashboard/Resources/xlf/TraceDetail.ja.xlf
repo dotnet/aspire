@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="TraceDetailDepthHeader">
         <source>Depth</source>
-        <target state="new">Depth</target>
+        <target state="translated">深さ</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailDurationHeader">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">期間</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} Traces</source>
-        <target state="translated">トレースの {0}</target>
+        <target state="translated">{0} のトレース</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">リソース</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
         <source>Total spans</source>
-        <target state="translated">合計スパン</target>
+        <target state="translated">合計範囲</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTraceNotFound">
         <source>Trace "{0}" not found</source>
-        <target state="new">Trace "{0}" not found</target>
+        <target state="translated">トレース "{0}" が見つかりません</target>
         <note>{0} is an identifier</note>
       </trans-unit>
       <trans-unit id="TraceDetailTraceStartHeader">

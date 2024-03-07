@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">Nome: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Tracce</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">Nome del filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
@@ -29,22 +29,22 @@
       </trans-unit>
       <trans-unit id="TracesResourceSpans">
         <source>{0} spans</source>
-        <target state="translated">{0} span</target>
+        <target state="translated">{0} intervalli</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="translated">Si estende</target>
+        <target state="translated">Intervalli</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
         <source>Errored: {0}</source>
-        <target state="translated">Errore: {0}</target>
+        <target state="translated">In errore: {0}</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">Totale: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">
