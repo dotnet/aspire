@@ -303,23 +303,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepKeyVault()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var keyVault = builder.AddAzureKeyVault("keyVault");
-
-        keyVault.Resource.Outputs["vaultUri"] = "https://myvault";
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.keyvault.bicep", keyVault.Resource.TemplateResourceName);
-        Assert.Equal("keyVault", keyVault.Resource.Name);
-        Assert.Equal("keyvault", keyVault.Resource.Parameters["vaultName"]);
-        Assert.Equal("https://myvault", keyVault.Resource.GetConnectionString());
-        Assert.Equal("{keyVault.outputs.vaultUri}", keyVault.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public async Task AddKeyVaultConstruct()
+    public async Task AddKeyVault()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -330,6 +314,9 @@ public class AzureBicepResourceTests
             cdkKeyVault = cdkResource;
         });
 #pragma warning restore CA2252 // This API requires opting into preview features
+
+        mykv.Resource.Outputs["vaultUri"] = "https://myvault";
+        Assert.Equal("https://myvault", mykv.Resource.GetConnectionString());
 
         var expectedManifest = """
             {
@@ -351,35 +338,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AsAzureSqlDatabase()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        IResourceBuilder<AzureSqlServerResource>? azureSql = null;
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase(resource =>
-        {
-            azureSql = resource;
-        });
-        sql.AddDatabase("db", "dbName");
-
-        Assert.NotNull(azureSql);
-        azureSql.Resource.Outputs["sqlServerFqdn"] = "myserver";
-
-        var databasesCallback = azureSql.Resource.Parameters["databases"] as Func<object?>;
-        Assert.NotNull(databasesCallback);
-        var databases = databasesCallback() as IEnumerable<string>;
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.sql.bicep", azureSql.Resource.TemplateResourceName);
-        Assert.Equal("sql", sql.Resource.Name);
-        Assert.Equal("sql", azureSql.Resource.Parameters["serverName"]);
-        Assert.NotNull(databases);
-        Assert.Equal(["dbName"], databases);
-        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.GetConnectionString());
-        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public async void AsAzureSqlDatabaseConstruct()
+    public async void AsAzureSqlDatabase()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -421,6 +380,10 @@ public class AzureBicepResourceTests
             """;
         var manifest = await ManifestUtils.GetManifest(sql.Resource);
         Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.NotNull(azureSql);
+        azureSql.Resource.Outputs["sqlServerFqdn"] = "myserver";
+        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.GetConnectionString());
 
         Assert.NotNull(cdkSqlServer);
         Assert.NotNull(azureSql);
