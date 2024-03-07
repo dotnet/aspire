@@ -134,7 +134,8 @@
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__sqldb": "{sqldb.connectionString}",
         "ConnectionStrings__mykv": "{mykv.connectionString}",
-        "ConnectionStrings__cache": "{cache.connectionString}"
+        "ConnectionStrings__cache": "{cache.connectionString}",
+        "ConnectionStrings__pgsql": "{pgsql.connectionString}"
       },
       "bindings": {
         "http": {
