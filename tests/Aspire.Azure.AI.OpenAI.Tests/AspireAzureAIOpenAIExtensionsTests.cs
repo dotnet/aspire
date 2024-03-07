@@ -67,28 +67,19 @@ public class AspireAzureAIOpenAIExtensionsTests
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ReadsUriFromConnectionStringsCorrectly(bool useKeyed)
+    [InlineData("https://yourservice.openai.azure.com/")]
+    [InlineData("http://foo:12345")]
+    public void ReadsUriFromConnectionStrings(string connectionString)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", "https://yourservice.openai.azure.com/")
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", connectionString)
         ]);
 
-        if (useKeyed)
-        {
-            builder.AddKeyedAzureOpenAIClient("openai");
-        }
-        else
-        {
-            builder.AddAzureOpenAIClient("openai");
-        }
+        builder.AddAzureOpenAIClient("openai");
 
         var host = builder.Build();
-        var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
-            host.Services.GetRequiredService<OpenAIClient>();
+        var client = host.Services.GetRequiredService<OpenAIClient>();
 
         Assert.NotNull(client);
     }
