@@ -19,7 +19,7 @@ var storage = builder.AddAzureStorage("storage", (_, _, account) =>
 
 var blobs = storage.AddBlobs("blobs");
 
-var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct().AddDatabase("sqldb");
+var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
 
 var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 {

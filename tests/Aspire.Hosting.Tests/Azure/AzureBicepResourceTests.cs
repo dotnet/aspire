@@ -324,10 +324,12 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         global::Azure.Provisioning.KeyVaults.KeyVault? cdkKeyVault = null;
-        var mykv = builder.AddAzureKeyVaultConstruct("mykv", (construct, cdkResource) =>
+#pragma warning disable CA2252 // This API requires opting into preview features
+        var mykv = builder.AddAzureKeyVault("mykv", (resource, construct, cdkResource) =>
         {
             cdkKeyVault = cdkResource;
         });
+#pragma warning restore CA2252 // This API requires opting into preview features
 
         var expectedManifest = """
             {
@@ -382,14 +384,16 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         global::Azure.Provisioning.Sql.SqlServer? cdkSqlServer = null;
-        AzureSqlServerConstructResource? azureSql = null;
+        IResourceBuilder<AzureSqlServerResource>? azureSql = null;
         List<SqlDatabase>? cdkSqlDatabases = null;
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct((construct, sqlServer, databases) =>
+#pragma warning disable CA2252 // This API requires opting into preview features
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((resource, construct, sqlServer, databases) =>
         {
-            azureSql = construct.Resource as AzureSqlServerConstructResource;
+            azureSql = resource;
             cdkSqlServer = sqlServer;
             cdkSqlDatabases = databases.ToList();
         });
+#pragma warning restore CA2252 // This API requires opting into preview features
         sql.AddDatabase("db", "dbName");
 
         var expectedManifest = """
