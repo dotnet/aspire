@@ -61,11 +61,11 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
     {
         if (key is null)
         {
-            builder.AddRedis("redis", configure);
+            builder.AddRedisClient("redis", configure);
         }
         else
         {
-            builder.AddKeyedRedis(key, configure);
+            builder.AddKeyedRedisClient(key, configure);
         }
     }
 

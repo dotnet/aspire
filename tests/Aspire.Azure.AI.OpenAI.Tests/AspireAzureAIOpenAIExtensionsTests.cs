@@ -25,11 +25,11 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureOpenAI("openai");
+            builder.AddKeyedAzureOpenAIClient("openai");
         }
         else
         {
-            builder.AddAzureOpenAI("openai");
+            builder.AddAzureOpenAIClient("openai");
         }
 
         var host = builder.Build();
@@ -51,11 +51,11 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureOpenAI("openai", settings => { settings.Endpoint = uri; settings.Key = key; });
+            builder.AddKeyedAzureOpenAIClient("openai", settings => { settings.Endpoint = uri; settings.Key = key; });
         }
         else
         {
-            builder.AddAzureOpenAI("openai", settings => { settings.Endpoint = uri; settings.Key = key; });
+            builder.AddAzureOpenAIClient("openai", settings => { settings.Endpoint = uri; settings.Key = key; });
         }
 
         var host = builder.Build();

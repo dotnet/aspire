@@ -7,7 +7,7 @@ using Microsoft.FluentUI.AspNetCore.Components.Utilities;
 
 namespace Aspire.Dashboard.Components;
 
-public partial class FluentAppBar : FluentComponentBase
+public partial class AspireAppBar : FluentComponentBase
 {
     [Parameter]
     public RenderFragment? ChildContent { get; set; }

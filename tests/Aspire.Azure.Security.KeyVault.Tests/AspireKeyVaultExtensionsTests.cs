@@ -28,11 +28,11 @@ public class AspireKeyVaultExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureKeyVaultSecrets("secrets", settings => settings.VaultUri = vaultUri);
+            builder.AddKeyedAzureKeyVaultClient("secrets", settings => settings.VaultUri = vaultUri);
         }
         else
         {
-            builder.AddAzureKeyVaultSecrets("secrets", settings => settings.VaultUri = vaultUri);
+            builder.AddAzureKeyVaultClient("secrets", settings => settings.VaultUri = vaultUri);
         }
 
         var host = builder.Build();
@@ -58,11 +58,11 @@ public class AspireKeyVaultExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureKeyVaultSecrets("secrets");
+            builder.AddKeyedAzureKeyVaultClient("secrets");
         }
         else
         {
-            builder.AddAzureKeyVaultSecrets("secrets");
+            builder.AddAzureKeyVaultClient("secrets");
         }
 
         var host = builder.Build();

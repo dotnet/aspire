@@ -33,7 +33,7 @@ public class AspireRabbitMQLoggingTests
             new KeyValuePair<string, string?>("ConnectionStrings:messaging", rabbitMqContainer.GetConnectionString())
         ]);
 
-        builder.AddRabbitMQ("messaging");
+        builder.AddRabbitMQClient("messaging");
 
         var tsc = new TaskCompletionSource();
         var logger = new TestLogger();

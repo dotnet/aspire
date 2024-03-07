@@ -20,7 +20,7 @@ if (!resourcesToSkip.Contains(TestResourceNames.mysql))
 }
 if (!resourcesToSkip.Contains(TestResourceNames.redis))
 {
-    builder.AddRedis("redis");
+    builder.AddRedisClient("redis");
 }
 if (!resourcesToSkip.Contains(TestResourceNames.postgres))
 {
@@ -28,7 +28,7 @@ if (!resourcesToSkip.Contains(TestResourceNames.postgres))
 }
 if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
 {
-    builder.AddRabbitMQ("rabbitmq");
+    builder.AddRabbitMQClient("rabbitmq");
 }
 if (!resourcesToSkip.Contains(TestResourceNames.mongodb))
 {
@@ -50,7 +50,7 @@ if (!resourcesToSkip.Contains(TestResourceNames.kafka))
 
 if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 {
-    builder.AddAzureCosmosDB("cosmos");
+    builder.AddAzureCosmosDBClient("cosmos");
 }
 
 var app = builder.Build();
