@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -11,8 +12,6 @@ using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -20,9 +19,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 {
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
-
-    [Inject]
-    public required IJSRuntime JS { get; init; }
 
     [Inject]
     public required ProtectedSessionStorage SessionStorage { get; init; }
@@ -44,14 +40,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private Task? _resourceSubscriptionTask;
 
     // UI
-    private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
+    private ResourceSelect? _resourceSelectComponent;
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private LogViewer _logViewer = null!;
 
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
-    public string BasePath => "consolelogs";
+    public string BasePath => DashboardUrls.ConsoleLogBasePath;
     public string SessionStorageKey => "ConsoleLogs_PageState";
 
     protected override async Task OnInitializedAsync()
@@ -61,7 +57,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         var loadingTcs = new TaskCompletionSource();
 
-        TrackResourceSnapshots();
+        await TrackResourceSnapshotsAsync();
 
         // Wait for resource to be selected. If selected resource isn't available after a few seconds then stop waiting.
         try
@@ -74,14 +70,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             Logger.LogWarning(ex, "Load timeout while waiting for resource {ResourceName}.", ResourceName);
         }
 
-        void TrackResourceSnapshots()
+        async Task TrackResourceSnapshotsAsync()
         {
             if (!DashboardClient.IsEnabled)
             {
                 return;
             }
 
-            var (snapshot, subscription) = DashboardClient.SubscribeResources();
+            var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_resourceSubscriptionCancellation.Token);
 
             Logger.LogDebug("Received initial resource snapshot with {ResourceCount} resources.", snapshot.Length);
 
@@ -306,9 +302,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         // Workaround for issue in fluent-select web component where the display value of the
         // selected item doesn't update automatically when the item changes
-        if (_resourceSelectComponent is not null && JS is not null)
+        if (_resourceSelectComponent is not null)
         {
-            await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
+            await _resourceSelectComponent.UpdateDisplayValueAsync();
         }
     }
 
@@ -360,14 +356,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    public UrlState GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
+    public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
     {
-        if (serializable.SelectedResource is { } selectedOption)
-        {
-            return new UrlState($"{BasePath}/resource/{selectedOption}", null);
-        }
-
-        return new UrlState($"/{BasePath}", null);
+        return DashboardUrls.ConsoleLogsUrl(serializable.SelectedResource);
     }
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()

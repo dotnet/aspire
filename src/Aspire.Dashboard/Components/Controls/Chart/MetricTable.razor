@@ -1,6 +1,7 @@
 ﻿@namespace Aspire.Dashboard.Components.Controls
 
 @implements IAsyncDisposable
+@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
@@ -15,15 +16,15 @@
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px; max-width:1200px;">
     <FluentDataGrid Items="@_metricsView" ItemSize="35" Virtualize="true" GridTemplateColumns="@string.Join(" ", Enumerable.Repeat("1fr", columnCount))">
         <ChildContent>
-            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.DateTime, false, CultureInfo.CurrentCulture))" Tooltip="true">
-                @FormatHelpers.FormatTimeWithOptionalDate(context.DateTime)
+            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider.ToLocal(context.DateTime), false, CultureInfo.CurrentCulture))" Tooltip="true">
+                @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider.ToLocal(context.DateTime))
             </TemplateColumn>
 
             @if (ShowPercentiles())
             {
                 foreach (var (percentile, underlineColor) in percentileColumns)
                 {
-                    <TemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? $"P{percentile}")">
+                    <TemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? (_instrument is not null ? $"P{percentile} {InstrumentUnitResolver.ResolveDisplayedUnit(_instrument)}" : $"P{percentile}"))">
                         @if (context is HistogramMetricView histogramMetric)
                         {
                             var percentileData = histogramMetric.Percentiles[percentile];

@@ -45,9 +45,6 @@ fluent-toolbar[orientation=horizontal] {
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
     --kbd-background-color: var(--neutral-layer-4);
 
-    /* overrides of default fluentui-blazor styling */
-    --disabled-opacity: 0.7 !important;
-
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
 }
 
@@ -66,13 +63,22 @@ fluent-toolbar[orientation=horizontal] {
 
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
-    --disabled-opacity: 0.85 !important;
 
     color-scheme: dark;
 }
 
 [data-theme="light"] {
     color-scheme: light;
+}
+
+fluent-select.resource-list {
+    /* overrides of default fluentui-blazor styling */
+    --disabled-opacity: 0.7;
+}
+
+[data-theme="dark"] fluent-select.resource-list {
+    /* overrides of default fluentui-blazor styling */
+    --disabled-opacity: 0.85;
 }
 
 h1 {
@@ -341,4 +347,12 @@ fluent-switch.table-switch::part(label) {
 .total-items-footer {
     padding-left: calc(var(--design-unit) * 2.5px);
     padding-bottom: calc(var(--design-unit) * 2.5px);
+}
+
+/* Align the toast with the top of the body/bottom of the header
+   and the right edge of the filter box
+*/
+.layout .fluent-toast-provider.position-topright {
+    top: 50px;
+    right: calc(var(--design-unit) * 1.5px);
 }

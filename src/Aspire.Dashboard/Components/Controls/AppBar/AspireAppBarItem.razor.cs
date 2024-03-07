@@ -8,7 +8,7 @@ using Microsoft.FluentUI.AspNetCore.Components.Utilities;
 
 namespace Aspire.Dashboard.Components;
 
-public partial class FluentAppBarItem : FluentComponentBase
+public partial class AspireAppBarItem : FluentComponentBase
 {
     [Parameter, EditorRequired]
     public required string Href { get; set; }

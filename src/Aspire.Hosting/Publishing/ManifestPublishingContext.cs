@@ -179,7 +179,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     string stringValue => stringValue,
                     IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    _ => throw new DistributedApplicationException($"The value of the environment variable `{key}` is not supported.")
+                    _ => throw new DistributedApplicationException($"The value of the environment variable '{key}' is not supported.")
                 };
 
                 Writer.WriteString(key, valueString);
@@ -205,7 +205,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             foreach (var input in inputs)
             {
                 Writer.WriteStartObject(input.Name);
-                Writer.WriteString("type", input.Type);
+
+                // https://github.com/Azure/azure-dev/issues/3487 tracks being able to remove this. All inputs are strings.
+                Writer.WriteString("type", "string");
 
                 if (input.Secret)
                 {

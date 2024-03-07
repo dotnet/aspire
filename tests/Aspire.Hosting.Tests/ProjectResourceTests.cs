@@ -4,6 +4,7 @@
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -145,6 +146,48 @@ public class ProjectResourceTests
         Assert.Contains(resource.Annotations, a => a.GetType().Name == "ExcludeLaunchProfileAnnotation");
     }
 
+    [Fact]
+    public async Task VerifyManifest()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var manifest = await ManifestUtils.GetManifest(resource);
+
+        var expectedManifest = """
+            {
+              "type": "project.v0",
+              "path": "net8.0/another-path",
+              "env": {
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+              },
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http"
+                },
+                "https": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http"
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
     private static IDistributedApplicationBuilder CreateBuilder()
     {
         var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
@@ -157,5 +200,30 @@ public class ProjectResourceTests
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";
+
+        public LaunchSettings? LaunchSettings { get; set; }
+    }
+
+    private sealed class TestProjectWithLaunchSettings : IProjectMetadata
+    {
+        public string ProjectPath => "another-path";
+
+        public LaunchSettings? LaunchSettings { get; } =
+            new LaunchSettings
+            {
+                Profiles = new()
+                {
+                    ["http"] = new()
+                    {
+                        CommandName = "Project",
+                        LaunchBrowser = true,
+                        ApplicationUrl = "http://localhost:5031",
+                        EnvironmentVariables = new()
+                        {
+                            ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                        }
+                    }
+                }
+            };
     }
 }

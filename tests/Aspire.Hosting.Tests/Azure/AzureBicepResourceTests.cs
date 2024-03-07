@@ -211,7 +211,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, skuName);
+            storage.AssignProperty(sa => sa.Sku.Name, skuName);
             moduleConstruct = construct;
         });
 
@@ -249,7 +249,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, skuName, parameterName: "sku");
+            storage.AssignProperty(sa => sa.Sku.Name, skuName, parameterName: "sku");
             moduleConstruct = construct;
         });
 
@@ -289,6 +289,36 @@ public class AzureBicepResourceTests
 
         Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
         Assert.Equal("{cache.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
+    }
+
+    [Fact]
+    public async Task PublishAsRedisPublishesRedisAsAzureRedisConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var redis = builder.AddRedis("cache")
+            .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
+            .PublishAsAzureRedisConstruct(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
+
+        Assert.True(redis.Resource.IsContainer());
+
+        Assert.Equal("localhost:12455", redis.Resource.GetConnectionString());
+
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{cache.secretOutputs.connectionString}",
+              "path": "cache.module.bicep",
+              "params": {
+                "principalId": "",
+                "keyVaultName": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -723,7 +753,7 @@ public class AzureBicepResourceTests
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureConstructStorage("storage", (_, sa) =>
         {
-            sa.AssignParameter(x => x.Sku.Name, storagesku);
+            sa.AssignProperty(x => x.Sku.Name, storagesku);
         });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
@@ -821,5 +851,32 @@ public class AzureBicepResourceTests
         var serviceManifest = await ManifestUtils.GetManifest(serviceA.Resource);
         Assert.Equal("{ai.connectionString}", serviceManifest["env"]?["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.ToString());
         Assert.Equal("{servicebus.connectionString}", serviceManifest["env"]?["ConnectionStrings__servicebus"]?.ToString());
+    }
+
+    [Fact]
+    public void AddAzureOpenAI()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var openai = builder.AddAzureOpenAI("openai")
+            .WithDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
+
+        openai.Resource.Outputs["connectionString"] = "myopenaiconnectionstring";
+
+        var callback = openai.Resource.Parameters["deployments"] as Func<object?>;
+        var deployments = callback?.Invoke() as JsonArray;
+        var deployment = deployments?.FirstOrDefault();
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.openai.bicep", openai.Resource.TemplateResourceName);
+        Assert.Equal("openai", openai.Resource.Name);
+        Assert.Equal("myopenaiconnectionstring", openai.Resource.GetConnectionString());
+        Assert.Equal("{openai.outputs.connectionString}", openai.Resource.ConnectionStringExpression);
+        Assert.NotNull(deployment);
+        Assert.Equal("mymodel", deployment["name"]?.ToString());
+        Assert.Equal("Basic", deployment["sku"]?["name"]?.ToString());
+        Assert.Equal(4, deployment["sku"]?["capacity"]?.GetValue<int>());
+        Assert.Equal("OpenAI", deployment["model"]?["format"]?.ToString());
+        Assert.Equal("gpt-35-turbo", deployment["model"]?["name"]?.ToString());
+        Assert.Equal("0613", deployment["model"]?["version"]?.ToString());
     }
 }

@@ -116,7 +116,7 @@ public class WithEnvironmentTests
 
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource));
 
-        Assert.Equal("Parameter resource could not be used because configuration key `Parameters:parameter` is missing.", exception.Message);
+        Assert.Equal("Parameter resource could not be used because configuration key 'Parameters:parameter' is missing.", exception.Message);
     }
 
     [Fact]
