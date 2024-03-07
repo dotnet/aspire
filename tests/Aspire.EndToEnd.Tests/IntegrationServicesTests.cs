@@ -24,8 +24,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Theory]
     [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.mysql)]
-    // ActiveIssue: https://github.com/dotnet/aspire/issues/2690
-    //[InlineData(TestResourceNames.pomelo)]
+    [InlineData(TestResourceNames.pomelo)]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
