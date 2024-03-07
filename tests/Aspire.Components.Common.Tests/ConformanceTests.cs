@@ -82,6 +82,15 @@ public abstract class ConformanceTests<TService, TOptions>
     /// </summary>
     protected abstract void SetMetrics(TOptions options, bool enabled);
 
+    /// <summary>
+    /// Gets the health status
+    /// </summary>
+    /// <returns>
+    /// HealthStatus
+    /// </returns>
+    protected virtual HealthStatus GetHealthStatus()
+        => CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;
+
     [ConditionalFact]
     public void OptionsTypeIsSealed()
     {
@@ -309,7 +318,7 @@ public abstract class ConformanceTests<TService, TOptions>
 
         HealthReport healthReport = await healthCheckService.CheckHealthAsync().ConfigureAwait(false);
 
-        HealthStatus expected = CanConnectToServer ? HealthStatus.Healthy : HealthStatus.Unhealthy;
+        HealthStatus expected = GetHealthStatus();
 
         Assert.Equal(expected, healthReport.Status);
         Assert.NotEmpty(healthReport.Entries);

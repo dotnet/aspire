@@ -2,32 +2,32 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.InternalTesting;
-using Testcontainers.RabbitMq;
+using Testcontainers.MongoDb;
 using Xunit;
 
-namespace Aspire.RabbitMQ.Client.Tests;
+namespace Aspire.MongoDB.Driver.Tests;
 
-public sealed class RabbitMQContainerFixture : IAsyncLifetime
+public sealed class MongoDbContainerFixture : IAsyncLifetime
 {
-    private RabbitMqContainer? _container;
+    public MongoDbContainer? Container { get; private set; }
 
-    public string GetConnectionString() => _container?.GetConnectionString() ??
+    public string GetConnectionString() => Container?.GetConnectionString() ??
         throw new InvalidOperationException("The test container was not initialized.");
 
     public async Task InitializeAsync()
     {
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
-            _container = new RabbitMqBuilder().Build();
-            await _container.StartAsync();
+            Container = new MongoDbBuilder().Build();
+            await Container.StartAsync();
         }
     }
 
     public async Task DisposeAsync()
     {
-        if (_container is not null)
+        if (Container is not null)
         {
-            await _container.DisposeAsync();
+            await Container.DisposeAsync();
         }
     }
 }

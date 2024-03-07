@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -10,13 +11,21 @@ using Xunit;
 
 namespace Aspire.MongoDB.Driver.Tests;
 
-public class AspireMongoDBDriverExtensionsTests
+public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainerFixture>
 {
-    private const string DefaultConnectionString = "mongodb://localhost:27017/mydatabase";
     private const string DefaultConnectionName = "mongodb";
 
+    private readonly MongoDbContainerFixture _containerFixture;
+
+    public AspireMongoDBDriverExtensionsTests(MongoDbContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
+
+    private string DefaultConnectionString => _containerFixture.GetConnectionString();
+
     [Theory]
-    [InlineData("mongodb://localhost:27017/mydatabase", true)]
+    [InlineData("mongodb://localhost:2017/mydatabase", true)]
     [InlineData("mongodb://localhost:27017", false)]
     public void AddMongoDBDataSource_ReadsFromConnectionStringsCorrectly(string connectionString, bool shouldRegisterDatabase)
     {
@@ -79,7 +88,7 @@ public class AspireMongoDBDriverExtensionsTests
         }
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public async Task AddMongoDBDataSource_HealthCheckShouldBeRegisteredWhenEnabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);
@@ -101,7 +110,7 @@ public class AspireMongoDBDriverExtensionsTests
         Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void AddKeyedMongoDBDataSource_HealthCheckShouldNotBeRegisteredWhenDisabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);
@@ -119,7 +128,7 @@ public class AspireMongoDBDriverExtensionsTests
 
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public async Task AddKeyedMongoDBDataSource_HealthCheckShouldBeRegisteredWhenEnabled()
     {
         var key = DefaultConnectionName;
@@ -143,7 +152,7 @@ public class AspireMongoDBDriverExtensionsTests
         Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void AddMongoDBDataSource_HealthCheckShouldNotBeRegisteredWhenDisabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);
