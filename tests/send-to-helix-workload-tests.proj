@@ -1,0 +1,69 @@
+<Project>
+
+  <PropertyGroup>
+    <WorkItemArchiveWildCardWorkloadTests>$(TestArchiveTestsDirForWorkloadTests)**/*.zip</WorkItemArchiveWildCardWorkloadTests>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <_DefaultWorkItemsWorkloadTests Include="$(WorkItemArchiveWildCardWorkloadTests)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest;%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_DIR_NAME=dotnet-latest" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_DIR_NAME=dotnet-latest" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_WORKLOAD_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\%SDK_DIR_NAME%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_WORKLOAD_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$SDK_DIR_NAME" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TestsRunningOutsideOfRepo=true" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TestsRunningOutsideOfRepo=true" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set BUILT_NUGETS_PATH=%HELIX_CORRELATION_PAYLOAD%\built-nugets" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export BUILT_NUGETS_PATH=$HELIX_CORRELATION_PAYLOAD/built-nugets" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TEST_LOG_PATH=%HELIX_WORKITEM_UPLOAD_ROOT%/logs" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TEST_LOG_PATH=$HELIX_WORKITEM_UPLOAD_ROOT/logs" />
+
+    <HelixPreCommand Include="docker info" />
+    <HelixPreCommand Include="docker ps" />
+    <HelixPreCommand Include="docker container ls --all" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
+
+    <HelixPostCommand Include="docker container ls --all" />
+    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
+  </ItemGroup>
+
+  <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsWorkloadTests->Count()) > 0">
+    <PropertyGroup>
+      <_WorkItemTimeoutForWorkloadTests>00:20:00</_WorkItemTimeoutForWorkloadTests>
+
+      <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
+      <HelixPostCommands>$(HelixPostCommands);@(HelixPostCommand)</HelixPostCommands>
+
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+    </PropertyGroup>
+
+    <Error Condition="'$(_DotNetCoverageToolPath)' == '' or !Exists($(_DotNetCoverageToolPath))"
+           Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolPath)=$(_DotNetCoverageToolPath)" />
+
+    <ItemGroup>
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />
+      <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
+
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+    </ItemGroup>
+  </Target>
+</Project>
