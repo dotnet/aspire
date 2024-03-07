@@ -20,7 +20,7 @@ resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
 }
 
-resource postgreSqlFlexibleServer_NYWb9Nbel 'Microsoft.DBforPostgreSQL/flexibleServers@2021-06-01' = {
+resource postgreSqlFlexibleServer_NYWb9Nbel 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   name: toLower(take(concat('postgres', uniqueString(resourceGroup().id)), 24))
   location: location
   sku: {
@@ -42,6 +42,22 @@ resource postgreSqlFlexibleServer_NYWb9Nbel 'Microsoft.DBforPostgreSQL/flexibleS
       mode: 'Disabled'
     }
     availabilityZone: '1'
+  }
+}
+
+resource postgreSqlFirewallRule_2vbo6vMGo 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+  parent: postgreSqlFlexibleServer_NYWb9Nbel
+  name: 'AllowAllAzureIps'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
+  }
+}
+
+resource postgreSqlFlexibleServerDatabase_BdCZrXAhR 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
+  parent: postgreSqlFlexibleServer_NYWb9Nbel
+  name: 'pgsqldb'
+  properties: {
   }
 }
 

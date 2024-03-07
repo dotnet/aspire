@@ -132,9 +132,7 @@ public static class AzurePostgresExtensions
             var administratorLogin = new Parameter("administratorLogin");
             var administratorLoginPassword = new Parameter("administratorLoginPassword");
 
-            // ISSUE #1: The API version defaulted in the constructor is invalid (at least in West US 3):
-            //       https://github.com/Azure/azure-sdk-for-net/issues/42510
-            var postgres = new PostgreSqlFlexibleServer(construct, administratorLogin, administratorLoginPassword, version: "2021-06-01");
+            var postgres = new PostgreSqlFlexibleServer(construct, administratorLogin, administratorLoginPassword);
             postgres.AssignProperty(x => x.Sku.Name, "'Standard_B1ms'");
             postgres.AssignProperty(x => x.Sku.Tier, "'Burstable'");
             postgres.AssignProperty(x => x.Version, "'16'");
@@ -144,38 +142,25 @@ public static class AzurePostgresExtensions
             postgres.AssignProperty(x => x.Backup.GeoRedundantBackup, "'Disabled'");
             postgres.AssignProperty(x => x.AvailabilityZone, "'1'");
 
-            // ISSUE #2: No firewall rule support ... asssuming will be similar to SQL Server when it arrives.
-            //           https://github.com/Azure/azure-sdk-for-net/issues/42508
-            //var azureServicesFirewallRule = new PostreSqlFirewallRule(construct, postgres, "AllowAllAzureIps");
-            //azureServicesFirewallRule.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
-            //azureServicesFirewallRule.AssignProperty(x => x.EndIPAddress, "'0.0.0.0'");
+            // Opens access to all Azure services.
+            var azureServicesFirewallRule = new PostgreSqlFirewallRule(construct, "0.0.0.0", "0.0.0.0", postgres, "AllowAllAzureIps");
 
             if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
             {
-                // ISSUE #2 (repeat): No firewall rule support ... asssuming will be similar to SQL Server when it arrives.
-                //                    https://github.com/Azure/azure-sdk-for-net/issues/42508
-                //var azureServicesFirewallRule = new PostreSqlFirewallRule(construct, postgres);
-                //azureServicesFirewallRule.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
-                //azureServicesFirewallRule.AssignProperty(x => x.EndIPAddress, "'255.255.255.255'");
+                // Opens access to the Internet.
+                var openFirewallRule = new PostgreSqlFirewallRule(construct, "0.0.0.0", "255.255.255.255", postgres, "AllowAllIps");
             }
 
-            // ISSUE #3: No database child resource
-            //           https://github.com/Azure/azure-sdk-for-net/issues/42509
-            //List<PostgreSqlFlexibleServerDatabase> sqlDatabases = new List<PostgreSqlFlexibleServerDatabase>();
-            //foreach (var databaseNames in builder.Resource.Databases)
-            //{
-            //    var databaseName = databaseNames.Value;
-            //    var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(construct, postgres, databaseName);
-            //    sqlDatabases.Add(pgsqlDatabase);
-            //}
+            List<PostgreSqlFlexibleServerDatabase> sqlDatabases = new List<PostgreSqlFlexibleServerDatabase>();
+            foreach (var databaseNames in builder.Resource.Databases)
+            {
+                var databaseName = databaseNames.Value;
+                var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(construct, postgres, databaseName);
+                sqlDatabases.Add(pgsqlDatabase);
+            }
 
             var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-
-            var connectionStringSecret = new KeyVaultSecret(construct, keyVault, "connectionString");
-            connectionStringSecret.AssignProperty(
-                x => x.Properties.Value,
-                $$"""'Host=${{{postgres.Name}}.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'"""
-                );
+            _ = new KeyVaultSecret(construct, "connectionString", postgres.GetConnectionString(administratorLogin, administratorLoginPassword));
 
             if (configureResource != null)
             {
