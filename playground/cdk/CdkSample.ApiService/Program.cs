@@ -11,10 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureBlobService("blobs");
+builder.AddAzureBlobClient("blobs");
 builder.AddSqlServerDbContext<SqlContext>("sqldb");
-builder.AddAzureKeyVaultSecrets("mykv");
-builder.AddRedis("cache");
+builder.AddAzureKeyVaultClient("mykv");
+builder.AddRedisClient("cache");
 
 var app = builder.Build();
 

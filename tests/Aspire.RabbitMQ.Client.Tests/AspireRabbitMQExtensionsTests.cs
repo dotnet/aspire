@@ -33,11 +33,11 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
 
         if (useKeyed)
         {
-            builder.AddKeyedRabbitMQ("messaging");
+            builder.AddKeyedRabbitMQClient("messaging");
         }
         else
         {
-            builder.AddRabbitMQ("messaging");
+            builder.AddRabbitMQClient("messaging");
         }
 
         var host = builder.Build();
@@ -63,11 +63,11 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         void SetConnectionString(RabbitMQClientSettings settings) => settings.ConnectionString = _containerFixture.GetConnectionString();
         if (useKeyed)
         {
-            builder.AddKeyedRabbitMQ("messaging", SetConnectionString);
+            builder.AddKeyedRabbitMQClient("messaging", SetConnectionString);
         }
         else
         {
-            builder.AddRabbitMQ("messaging", SetConnectionString);
+            builder.AddRabbitMQClient("messaging", SetConnectionString);
         }
 
         var host = builder.Build();
@@ -95,11 +95,11 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
 
         if (useKeyed)
         {
-            builder.AddKeyedRabbitMQ("messaging");
+            builder.AddKeyedRabbitMQClient("messaging");
         }
         else
         {
-            builder.AddRabbitMQ("messaging");
+            builder.AddRabbitMQClient("messaging");
         }
 
         var host = builder.Build();
@@ -145,7 +145,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
 
         builder.Configuration.AddJsonStream(jsonStream);
 
-        builder.AddRabbitMQ("messaging");
+        builder.AddRabbitMQClient("messaging");
 
         var host = builder.Build();
         var connectionFactory = (ConnectionFactory)host.Services.GetRequiredService<IConnectionFactory>();

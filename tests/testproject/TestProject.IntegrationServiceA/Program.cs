@@ -5,9 +5,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddSqlServerClient("tempdb");
 builder.AddMySqlDataSource("mysqldb");
 builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
-builder.AddRedis("redis");
+builder.AddRedisClient("redis");
 builder.AddNpgsqlDataSource("postgresdb");
-builder.AddRabbitMQ("rabbitmq");
+builder.AddRabbitMQClient("rabbitmq");
 builder.AddMongoDBClient("mymongodb");
 builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
 builder.AddKafkaProducer<string, string>("kafka");
@@ -17,7 +17,7 @@ builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
     consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
 });
 
-builder.AddAzureCosmosDB("cosmos");
+builder.AddAzureCosmosDbClient("cosmos");
 
 var app = builder.Build();
 
