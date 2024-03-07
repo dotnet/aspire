@@ -5,7 +5,7 @@ using System.Threading.Channels;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Utils;
 
-namespace Aspire.Hosting.Dashboard;
+namespace Aspire.Hosting.Dcp;
 
 internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
 {

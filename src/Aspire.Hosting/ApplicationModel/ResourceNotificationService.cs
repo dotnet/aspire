@@ -3,43 +3,36 @@
 
 using System.Collections.Concurrent;
 using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// A service that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public class ResourceNotificationService
+public class ResourceNotificationService(ILogger<ResourceNotificationService> logger)
 {
-    private readonly ConcurrentDictionary<string, ResourceNotificationState> _resourceNotificationStates = new();
+    // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
+    private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
+
+    private Action<ResourceEvent>? OnResourceUpdated { get; set; }
 
     /// <summary>
-    /// Watch for changes to the dashboard state for a resource.
+    /// Watch for changes to the state for all resources.
     /// </summary>
-    /// <param name="resource">The name of the resource</param>
     /// <returns></returns>
-    public IAsyncEnumerable<CustomResourceSnapshot> WatchAsync(IResource resource)
-    {
-        var notificationState = GetResourceNotificationState(resource.Name);
-
-        lock (notificationState)
-        {
-            // When watching a resource, make sure the initial snapshot is set.
-            notificationState.LastSnapshot = GetInitialSnapshot(resource, notificationState);
-        }
-
-        return notificationState.WatchAsync();
-    }
+    public IAsyncEnumerable<ResourceEvent> WatchAsync() =>
+        new AllResourceUpdatesAsyncEnumerable(this);
 
     /// <summary>
     /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
     /// </summary>
-    /// <param name="resource"></param>
-    /// <param name="stateFactory"></param>
-    /// <returns></returns>
-    public Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+    /// <param name="resource">The resource to update</param>
+    /// <param name="resourceId"> The id of the resource.</param>
+    /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
+    public Task PublishUpdateAsync(IResource resource, string resourceId, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
-        var notificationState = GetResourceNotificationState(resource.Name);
+        var notificationState = GetResourceNotificationState(resource, resourceId);
 
         lock (notificationState)
         {
@@ -49,8 +42,25 @@ public class ResourceNotificationService
 
             notificationState.LastSnapshot = newState;
 
-            return notificationState.PublishUpdateAsync(newState);
+            OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
+
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Resource {Resource}/{ResourceId} -> {State}", resource.Name, resourceId, newState.State);
+            }
+
+            return Task.CompletedTask;
         }
+    }
+
+    /// <summary>
+    /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
+    /// </summary>
+    /// <param name="resource">The resource to update</param>
+    /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
+    public Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+    {
+        return PublishUpdateAsync(resource, resource.Name, stateFactory);
     }
 
     private static CustomResourceSnapshot? GetInitialSnapshot(IResource resource, ResourceNotificationState notificationState)
@@ -75,92 +85,76 @@ public class ResourceNotificationService
         return previousState;
     }
 
-    /// <summary>
-    /// Signal that no more updates are expected for this resource.
-    /// </summary>
-    public void Complete(IResource resource)
+    private ResourceNotificationState GetResourceNotificationState(IResource resource, string resourceId) =>
+        _resourceNotificationStates.GetOrAdd((resource, resourceId), _ => new ResourceNotificationState());
+
+    private sealed class AllResourceUpdatesAsyncEnumerable(ResourceNotificationService resourceNotificationService) : IAsyncEnumerable<ResourceEvent>
     {
-        if (_resourceNotificationStates.TryGetValue(resource.Name, out var state))
+        public async IAsyncEnumerator<ResourceEvent> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            state.Complete();
+            // Return the last snapshot for each resource.
+            foreach (var state in resourceNotificationService._resourceNotificationStates)
+            {
+                var (resource, resourceId) = state.Key;
+
+                if (state.Value.LastSnapshot is not null)
+                {
+                    yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
+                }
+            }
+
+            var channel = Channel.CreateUnbounded<ResourceEvent>();
+
+            void WriteToChannel(ResourceEvent resourceEvent) =>
+                channel.Writer.TryWrite(resourceEvent);
+
+            resourceNotificationService.OnResourceUpdated += WriteToChannel;
+
+            try
+            {
+                await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    yield return item;
+                }
+            }
+            finally
+            {
+                resourceNotificationService.OnResourceUpdated -= WriteToChannel;
+
+                channel.Writer.TryComplete();
+            }
         }
     }
-
-    private ResourceNotificationState GetResourceNotificationState(string resourceName) =>
-        _resourceNotificationStates.GetOrAdd(resourceName, _ => new ResourceNotificationState());
 
     /// <summary>
     /// The annotation that allows publishing and subscribing to changes in the state of a resource.
     /// </summary>
     private sealed class ResourceNotificationState
     {
-        private readonly CancellationTokenSource _streamClosedCts = new();
-
-        private Action<CustomResourceSnapshot>? OnSnapshotUpdated { get; set; }
-
         public CustomResourceSnapshot? LastSnapshot { get; set; }
-
-        /// <summary>
-        /// Watch for changes to the dashboard state for a resource.
-        /// </summary>
-        public IAsyncEnumerable<CustomResourceSnapshot> WatchAsync() => new ResourceUpdatesAsyncEnumerable(this);
-
-        /// <summary>
-        /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
-        /// </summary>
-        /// <param name="state">The new <see cref="CustomResourceSnapshot"/>.</param>
-        public Task PublishUpdateAsync(CustomResourceSnapshot state)
-        {
-            if (_streamClosedCts.IsCancellationRequested)
-            {
-                return Task.CompletedTask;
-            }
-
-            OnSnapshotUpdated?.Invoke(state);
-
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Signal that no more updates are expected for this resource.
-        /// </summary>
-        public void Complete()
-        {
-            _streamClosedCts.Cancel();
-        }
-
-        private sealed class ResourceUpdatesAsyncEnumerable(ResourceNotificationState customResourceAnnotation) : IAsyncEnumerable<CustomResourceSnapshot>
-        {
-            public async IAsyncEnumerator<CustomResourceSnapshot> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-            {
-                if (customResourceAnnotation.LastSnapshot is not null)
-                {
-                    yield return customResourceAnnotation.LastSnapshot;
-                }
-
-                var channel = Channel.CreateUnbounded<CustomResourceSnapshot>();
-
-                void WriteToChannel(CustomResourceSnapshot state)
-                    => channel.Writer.TryWrite(state);
-
-                using var _ = customResourceAnnotation._streamClosedCts.Token.Register(() => channel.Writer.TryComplete());
-
-                customResourceAnnotation.OnSnapshotUpdated = WriteToChannel;
-
-                try
-                {
-                    await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
-                    {
-                        yield return item;
-                    }
-                }
-                finally
-                {
-                    customResourceAnnotation.OnSnapshotUpdated -= WriteToChannel;
-
-                    channel.Writer.TryComplete();
-                }
-            }
-        }
     }
+}
+
+/// <summary>
+/// Represents a change in the state of a resource.
+/// </summary>
+/// <param name="resource">The resource associated with the event. </param>
+/// <param name="resourceId">The unique id of the resource.</param>
+/// <param name="snapshot">The snapshot of the resource state.</param>
+public class ResourceEvent(IResource resource, string resourceId, CustomResourceSnapshot snapshot)
+{
+    /// <summary>
+    /// The resource associated with the event.
+    /// </summary>
+    public IResource Resource { get; } = resource;
+
+    /// <summary>
+    /// The unique id of the resource.
+    /// </summary>
+    public string ResourceId { get; } = resourceId;
+
+    /// <summary>
+    /// The snapshot of the resource state.
+    /// </summary>
+    public CustomResourceSnapshot Snapshot { get; } = snapshot;
 }

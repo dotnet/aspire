@@ -123,6 +123,7 @@ public static class ProjectResourceBuilderExtensions
                 {
                     e.Port = uri.Port;
                     e.UriScheme = uri.Scheme;
+                    e.FromLaunchProfile = true;
                 },
                 createIfNotExists: true);
             }

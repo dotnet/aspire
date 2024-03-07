@@ -106,6 +106,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public bool IsProxied { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether the endpoint is from a launch profile.
+    /// </summary>
+    internal bool FromLaunchProfile { get; set; }
+
+    /// <summary>
     /// Gets or sets the allocated endpoint.
     /// </summary>
     public AllocatedEndpoint? AllocatedEndpoint { get; set; }

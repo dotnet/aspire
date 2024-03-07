@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Net.Sockets;
+using System.Text.Json;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
@@ -67,11 +71,20 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly DistributedApplicationModel _model = model;
+    private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
     private readonly IOptions<DcpOptions> _options = options;
     private readonly IDashboardEndpointProvider _dashboardEndpointProvider = dashboardEndpointProvider;
     private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
     private readonly List<AppResource> _appResources = [];
+
+    private readonly ConcurrentDictionary<string, Container> _containersMap = [];
+    private readonly ConcurrentDictionary<string, Executable> _executablesMap = [];
+    private readonly ConcurrentDictionary<string, Service> _servicesMap = [];
+    private readonly ConcurrentDictionary<string, Endpoint> _endpointsMap = [];
+    private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _logStreams = new();
+    private readonly ConcurrentDictionary<IResource, bool> _hiddenResources = new();
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -83,18 +96,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 if (_model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not { } dashboardResource)
                 {
                     // No dashboard is specified, so start one.
-                    // TODO validate that the dashboard has not been suppressed
                     await StartDashboardAsDcpExecutableAsync(cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    await ConfigureAspireDashboardResource(dashboardResource, cancellationToken).ConfigureAwait(false);
+                    ConfigureAspireDashboardResource(dashboardResource);
                 }
             }
-
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
+
+            await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -104,6 +117,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
             }
+
+            // Watch for changes to the resource state.
+            WatchResourceChanges(cancellationToken);
         }
         finally
         {
@@ -111,7 +127,500 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task ConfigureAspireDashboardResource(IResource dashboardResource, CancellationToken cancellationToken)
+    private async Task PublishResourcesWithInitialStateAsync()
+    {
+        // Publish the initial state of the resources that have a snapshot annotation.
+        foreach (var resource in _model.Resources)
+        {
+            await notificationService.PublishUpdateAsync(resource, s => s).ConfigureAwait(false);
+        }
+    }
+
+    private void WatchResourceChanges(CancellationToken cancellationToken)
+    {
+        var semaphore = new SemaphoreSlim(1);
+
+        Task.Run(
+            async () =>
+            {
+                using (semaphore)
+                {
+                    await Task.WhenAll(
+                        Task.Run(() => WatchKubernetesResource<Executable>((t, r) => ProcessResourceChange(t, r, _executablesMap, "Executable", ToSnapshot)), cancellationToken),
+                        Task.Run(() => WatchKubernetesResource<Container>((t, r) => ProcessResourceChange(t, r, _containersMap, "Container", ToSnapshot)), cancellationToken),
+                        Task.Run(() => WatchKubernetesResource<Service>(ProcessServiceChange), cancellationToken),
+                        Task.Run(() => WatchKubernetesResource<Endpoint>(ProcessEndpointChange), cancellationToken)).ConfigureAwait(false);
+                }
+            },
+            cancellationToken);
+
+        async Task WatchKubernetesResource<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
+        {
+            try
+            {
+                await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
+                {
+                    await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                    try
+                    {
+                        await handler(eventType, resource).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
+            }
+        }
+    }
+
+    private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, ConcurrentDictionary<string, T> resourceByName, string resourceKind, Func<T, CustomResourceSnapshot, CustomResourceSnapshot> snapshotFactory) where T : CustomResource
+    {
+        if (ProcessResourceChange(resourceByName, watchEventType, resource))
+        {
+            UpdateAssociatedServicesMap();
+
+            var changeType = watchEventType switch
+            {
+                WatchEventType.Added or WatchEventType.Modified => ResourceSnapshotChangeType.Upsert,
+                WatchEventType.Deleted => ResourceSnapshotChangeType.Delete,
+                _ => throw new System.ComponentModel.InvalidEnumArgumentException($"Cannot convert {nameof(WatchEventType)} with value {watchEventType} into enum of type {nameof(ResourceSnapshotChangeType)}.")
+            };
+
+            // Find the associated application model resource and update it.
+            string? resourceName = null;
+            resource.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
+
+            if (resourceName is not null &&
+                _applicationModel.TryGetValue(resourceName, out var appModelResource))
+            {
+                if (changeType == ResourceSnapshotChangeType.Delete)
+                {
+                    // Stop the log stream for the resource
+                    if (_logStreams.TryRemove(resource.Metadata.Name, out var cts))
+                    {
+                        cts.Cancel();
+                    }
+
+                    // TODO: Handle resource deletion
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace("Deleting application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
+                    }
+                }
+                else
+                {
+                    if (_logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace("Updating application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
+                    }
+
+                    if (_hiddenResources.TryAdd(appModelResource, true))
+                    {
+                        // Hide the application model resource because we have the DCP resource
+                        await notificationService.PublishUpdateAsync(appModelResource, s => s with { State = "Hidden" }).ConfigureAwait(false);
+                    }
+
+                    // Notifications are associated with the application model resource, so we need to update with that context
+                    await notificationService.PublishUpdateAsync(appModelResource, resource.Metadata.Name, s => snapshotFactory(resource, s)).ConfigureAwait(false);
+
+                    StartLogStream(resource);
+                }
+            }
+            else
+            {
+                // No application model resource found for the DCP resource. This should only happen for the dashboard.
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    _logger.LogTrace("No application model resource found for {ResourceKind} resource {ResourceName}", resourceKind, resource.Metadata.Name);
+                }
+            }
+        }
+
+        void UpdateAssociatedServicesMap()
+        {
+            // We keep track of associated services for the resource
+            // So whenever we get the service we can figure out if the service can generate endpoint for the resource
+            if (watchEventType == WatchEventType.Deleted)
+            {
+                _resourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name), out _);
+            }
+            else if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
+            {
+                var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
+                if (serviceProducerAnnotations is not null)
+                {
+                    _resourceAssociatedServicesMap[(resourceKind, resource.Metadata.Name)]
+                        = serviceProducerAnnotations.Select(e => e.ServiceName).ToList();
+                }
+            }
+        }
+    }
+
+    private void StartLogStream<T>(T resource) where T : CustomResource
+    {
+        IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
+        {
+            Container c when c.Status?.ContainerId is not null => new DockerContainerLogSource(c.Status.ContainerId),
+            Executable e when e.Status?.StdOutFile is not null && e.Status?.StdErrFile is not null => new FileLogSource(e.Status.StdOutFile, e.Status.StdErrFile),
+            // Container or Executable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
+            _ => null
+        };
+
+        // No way to get logs for this resource as yet
+        if (enumerable is null)
+        {
+            return;
+        }
+
+        // This does not run concurrently for the same resource so we can safely use GetOrAdd without
+        // creating multiple log streams.
+        _logStreams.GetOrAdd(resource.Metadata.Name, (_) =>
+        {
+            var cts = new CancellationTokenSource();
+
+            var task = Task.Run(async () =>
+            {
+                try
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug("Starting log streaming for {ResourceName}", resource.Metadata.Name);
+                    }
+
+                    // Pump the logs from the enumerable into the logger
+                    var logger = loggerService.GetLogger(resource.Metadata.Name);
+
+                    await foreach (var batch in enumerable.WithCancellation(cts.Token))
+                    {
+                        foreach (var (content, isError) in batch)
+                        {
+                            var level = isError ? LogLevel.Error : LogLevel.Information;
+                            logger.Log(level, 0, content, null, (s, _) => s);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Ignore
+                    _logger.LogDebug("Log streaming for {ResourceName} was cancelled", resource.Metadata.Name);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error streaming logs for {ResourceName}", resource.Metadata.Name);
+                }
+                finally
+                {
+                    // Complete the log stream
+                    loggerService.Complete(resource.Metadata.Name);
+                }
+            },
+            cts.Token);
+
+            return cts;
+        });
+    }
+
+    private async Task ProcessEndpointChange(WatchEventType watchEventType, Endpoint endpoint)
+    {
+        if (!ProcessResourceChange(_endpointsMap, watchEventType, endpoint))
+        {
+            return;
+        }
+
+        if (endpoint.Metadata.OwnerReferences is null)
+        {
+            return;
+        }
+
+        foreach (var ownerReference in endpoint.Metadata.OwnerReferences)
+        {
+            await TryRefreshResource(ownerReference.Kind, ownerReference.Name).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ProcessServiceChange(WatchEventType watchEventType, Service service)
+    {
+        if (!ProcessResourceChange(_servicesMap, watchEventType, service))
+        {
+            return;
+        }
+
+        foreach (var ((resourceKind, resourceName), _) in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
+        {
+            await TryRefreshResource(resourceKind, resourceName).ConfigureAwait(false);
+        }
+    }
+
+    private async ValueTask TryRefreshResource(string resourceKind, string resourceName)
+    {
+        CustomResource? cr = resourceKind switch
+        {
+            "Container" => _containersMap.TryGetValue(resourceName, out var container) ? container : null,
+            "Executable" => _executablesMap.TryGetValue(resourceName, out var executable) ? executable : null,
+            _ => null
+        };
+
+        if (cr is not null)
+        {
+            string? appModelResourceName = null;
+            cr.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out appModelResourceName);
+
+            if (appModelResourceName is not null &&
+                _applicationModel.TryGetValue(appModelResourceName, out var appModelResource))
+            {
+                await notificationService.PublishUpdateAsync(appModelResource, cr.Metadata.Name, s =>
+                {
+                    if (cr is Container container)
+                    {
+                        return ToSnapshot(container, s);
+                    }
+                    else if (cr is Executable exe)
+                    {
+                        return ToSnapshot(exe, s);
+                    }
+                    return s;
+                })
+                .ConfigureAwait(false);
+            }
+        }
+    }
+
+    private CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
+    {
+        var containerId = container.Status?.ContainerId;
+        var (endpointsWithMetadata, services) = GetEndpointsAndServices(container, "Container");
+
+        var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
+
+        return previous with
+        {
+            ResourceType = KnownResourceTypes.Container,
+            State = container.Status?.State,
+            // Map a container exit code of -1 (unknown) to null
+            ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
+            Properties = [
+                (KnownProperties.Container.Image, container.Spec.Image),
+                (KnownProperties.Container.Id, containerId),
+                (KnownProperties.Container.Command, container.Spec.Command),
+                (KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []),
+                (KnownProperties.Container.Ports, GetPorts()),
+            ],
+            EnvironmentVariables = environment,
+            CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
+            Endpoints = [.. endpointsWithMetadata.Select(e => (e.EndpointUrl, e.ProxyUrl))],
+            Services = services
+        };
+
+        ImmutableArray<int> GetPorts()
+        {
+            if (container.Spec.Ports is null)
+            {
+                return [];
+            }
+
+            var ports = ImmutableArray.CreateBuilder<int>();
+            foreach (var port in container.Spec.Ports)
+            {
+                if (port.ContainerPort != null)
+                {
+                    ports.Add(port.ContainerPort.Value);
+                }
+            }
+            return ports.ToImmutable();
+        }
+    }
+
+    private CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
+    {
+        string? projectPath = null;
+        executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
+
+        string? resourceName = null;
+        executable.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
+
+        var (endpointsWithMetadata, services) = GetEndpointsAndServices(executable, "Executable");
+
+        var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
+
+        if (projectPath is not null)
+        {
+            var endpoints = endpointsWithMetadata.Select(e => (e.EndpointUrl, e.ProxyUrl));
+
+            if (resourceName is not null &&
+                _applicationModel.TryGetValue(resourceName, out var appModelResource) &&
+                appModelResource is ProjectResource p &&
+                p.GetEffectiveLaunchProfile() is LaunchProfile profile &&
+                profile.LaunchUrl is string launchUrl)
+            {
+                // Concat the launch url from the launch profile to the urls with IsFromLaunchProfile set to true
+
+                string CombineUrls(string url, string launchUrl)
+                {
+                    if (!launchUrl.Contains("://"))
+                    {
+                        // This is relative URL
+                        url += $"/{launchUrl}";
+                    }
+                    else
+                    {
+                        // For absolute URL we need to update the port value if possible
+                        if (profile.ApplicationUrl is string applicationUrl
+                            && launchUrl.StartsWith(applicationUrl))
+                        {
+                            url = launchUrl.Replace(applicationUrl, url);
+                        }
+                    }
+
+                    return url;
+                }
+
+                endpoints = endpointsWithMetadata.Select(e => e.IsFromLaunchProfile
+                    ? (CombineUrls(e.EndpointUrl, launchUrl), CombineUrls(e.ProxyUrl, launchUrl))
+                    : (e.EndpointUrl, e.ProxyUrl)
+                );
+            }
+
+            return previous with
+            {
+                ResourceType = KnownResourceTypes.Project,
+                State = executable.Status?.State,
+                ExitCode = executable.Status?.ExitCode,
+                Properties = [
+                    (KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
+                    (KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
+                    (KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []),
+                    (KnownProperties.Executable.Pid, executable.Status?.ProcessId),
+                    (KnownProperties.Project.Path, projectPath)
+                ],
+                EnvironmentVariables = environment,
+                CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+                Endpoints = [.. endpoints],
+                Services = services
+            };
+        }
+
+        return previous with
+        {
+            ResourceType = KnownResourceTypes.Executable,
+            State = executable.Status?.State,
+            ExitCode = executable.Status?.ExitCode,
+            Properties = [
+                (KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
+                (KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
+                (KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []),
+                (KnownProperties.Executable.Pid, executable.Status?.ProcessId)
+            ],
+            EnvironmentVariables = environment,
+            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+            Endpoints = [.. endpointsWithMetadata.Select(e => (e.EndpointUrl, e.ProxyUrl))],
+            Services = services
+        };
+    }
+
+    private (ImmutableArray<(string EndpointUrl, string ProxyUrl, bool IsFromLaunchProfile)> Endpoints,
+            ImmutableArray<(string Name, string? AllocatedAddress, int? AllocatedPort)> Services)
+        GetEndpointsAndServices(CustomResource resource, string resourceKind)
+    {
+        var endpoints = ImmutableArray.CreateBuilder<(string EndpointUrl, string ProxyUrl, bool IsFromLaunchProfile)>();
+        var services = ImmutableArray.CreateBuilder<(string Name, string? AllocatedAddress, int? AllocatedPort)>();
+        var name = resource.Metadata.Name;
+
+        foreach (var (_, endpoint) in _endpointsMap)
+        {
+            if (endpoint.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) != true)
+            {
+                continue;
+            }
+
+            if (endpoint.Spec.ServiceName is not null
+                && _servicesMap.TryGetValue(endpoint.Spec.ServiceName, out var service)
+                && service?.UsesHttpProtocol(out var uriScheme) == true)
+            {
+                string? launchProfile = null;
+                service.Metadata.Annotations?.TryGetValue(CustomResource.LaunchProfileAnnotation, out launchProfile);
+
+                var endpointString = $"{uriScheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
+                var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
+                var isFromLaunchProfile = false;
+
+                if (launchProfile is not null)
+                {
+                    _ = bool.TryParse(launchProfile, out isFromLaunchProfile);
+                }
+
+                endpoints.Add(new(endpointString, proxyUrlString, isFromLaunchProfile));
+            }
+        }
+
+        if (_resourceAssociatedServicesMap.TryGetValue((resourceKind, name), out var resourceServiceMappings))
+        {
+            foreach (var serviceName in resourceServiceMappings)
+            {
+                if (_servicesMap.TryGetValue(serviceName, out var service))
+                {
+                    services.Add(new(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
+                }
+            }
+        }
+
+        return (endpoints.ToImmutable(), services.ToImmutable());
+    }
+
+    private static ImmutableArray<(string Name, string Value, bool IsFromSpec)> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
+    {
+        if (effectiveSource is null or { Count: 0 })
+        {
+            return [];
+        }
+
+        var environment = ImmutableArray.CreateBuilder<(string Name, string Value, bool IsFromSpec)>(effectiveSource.Count);
+
+        foreach (var env in effectiveSource)
+        {
+            if (env.Name is not null)
+            {
+                var isFromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) is true or null;
+
+                environment.Add(new(env.Name, env.Value ?? "", isFromSpec));
+            }
+        }
+
+        environment.Sort((v1, v2) => string.Compare(v1.Name, v2.Name, StringComparison.Ordinal));
+
+        return environment.ToImmutable();
+    }
+
+    private static bool ProcessResourceChange<T>(ConcurrentDictionary<string, T> map, WatchEventType watchEventType, T resource)
+            where T : CustomResource
+    {
+        switch (watchEventType)
+        {
+            case WatchEventType.Added:
+                map.TryAdd(resource.Metadata.Name, resource);
+                break;
+
+            case WatchEventType.Modified:
+                map[resource.Metadata.Name] = resource;
+                break;
+
+            case WatchEventType.Deleted:
+                map.Remove(resource.Metadata.Name, out _);
+                break;
+
+            default:
+                return false;
+        }
+
+        return true;
+    }
+
+    private void ConfigureAspireDashboardResource(IResource dashboardResource)
     {
         // Don't publish the resource to the manifest.
         dashboardResource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -124,10 +633,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             dashboardResource.Annotations.Remove(endpointAnnotation);
         }
 
-        // Get resource endpoint URL.
-        var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
-
-        dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+        dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
         {
             if (configuration["ASPNETCORE_URLS"] is not { } appHostApplicationUrl)
             {
@@ -140,6 +646,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
 
             // Grab the resource service URL. We need to inject this into the resource.
+
+            var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
@@ -331,6 +839,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
             svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
+            svc.Annotate(CustomResource.LaunchProfileAnnotation, sba.FromLaunchProfile.ToString());
             svc.Spec.AddressAllocationMode = sba.IsProxied ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
             _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
         }
@@ -650,7 +1159,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             else
             {
-                logger.LogInformation("Waiting for value for environment variable value '{Name}' from {Name}.", key, valueProvider.ToString());
+                logger.LogInformation("Waiting for value for environment variable value '{Name}' from {ValueProvider}.", key, valueProvider.ToString());
             }
         }
 
@@ -752,7 +1261,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             if (container.TryGetContainerMounts(out var containerMounts))
             {
-                ctr.Spec.VolumeMounts = new();
+                ctr.Spec.VolumeMounts = [];
 
                 foreach (var mount in containerMounts)
                 {
@@ -802,7 +1311,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with
                 {
                     State = "Starting",
-                    Properties = [], // TODO: Add image name
+                    Properties = [
+                        (KnownProperties.Container.Image, cr.ModelResource.TryGetContainerImageName(out var imageName) ? imageName : ""),
+                   ],
                     ResourceType = KnownResourceTypes.Container
                 })
                 .ConfigureAwait(false);
