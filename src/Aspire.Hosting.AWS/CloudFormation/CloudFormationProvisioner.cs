@@ -269,15 +269,22 @@ internal sealed class CloudFormationProvisioner(
 
         try
         {
+            AmazonCloudFormationClient client;
             if (resource.AWSSDKConfig != null)
             {
                 var config = resource.AWSSDKConfig.CreateServiceConfig<AmazonCloudFormationConfig>();
 
                 var awsCredentials = FallbackCredentialsFactory.GetCredentials(config);
-                return new AmazonCloudFormationClient(awsCredentials, config);
+                client = new AmazonCloudFormationClient(awsCredentials, config);
+            }
+            else
+            {
+                client = new AmazonCloudFormationClient();
             }
 
-            return new AmazonCloudFormationClient();
+            client.BeforeRequestEvent += SdkUtilities.ConfigureUserAgentString;
+
+            return client;
         }
         catch (Exception e)
         {
