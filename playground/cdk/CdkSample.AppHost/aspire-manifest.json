@@ -18,6 +18,15 @@
         }
       }
     },
+    "signaturesecret": {
+      "type": "parameter.v0",
+      "value": "{signaturesecret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "storage": {
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
@@ -45,6 +54,25 @@
       "type": "value.v0",
       "connectionString": "{sql.connectionString};Database=sqldb"
     },
+    "mykv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{mykv.outputs.vaultUri}",
+      "path": "mykv.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "signaturesecret": "{signaturesecret.value}"
+      }
+    },
+    "cache": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cache.secretOutputs.connectionString}",
+      "path": "cache.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": ""
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
@@ -52,7 +80,9 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
-        "ConnectionStrings__sqldb": "{sqldb.connectionString}"
+        "ConnectionStrings__sqldb": "{sqldb.connectionString}",
+        "ConnectionStrings__mykv": "{mykv.connectionString}",
+        "ConnectionStrings__cache": "{cache.connectionString}"
       },
       "bindings": {
         "http": {

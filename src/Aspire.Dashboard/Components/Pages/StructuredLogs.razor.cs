@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -27,7 +28,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
 
-    public string BasePath => "structuredlogs";
+    public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => "StructuredLogs_PageState";
     public StructuredLogsPageViewModel PageViewModel { get; set; } = null!;
 
@@ -58,7 +59,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public string? SpanId { get; set; }
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "level")]
+    [SupplyParameterFromQuery(Name = "logLevel")]
     public string? LogLevelText { get; set; }
 
     [Parameter]
@@ -283,22 +284,16 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _filterCts?.Dispose();
     }
 
-    public UrlState GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
+    public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
     {
-        var path = serializable.SelectedApplication is not null ? $"/structuredlogs/resource/{serializable.SelectedApplication}" : "/structuredlogs";
-        var queryParameters = new Dictionary<string, string?>();
+        var filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
 
-        if (serializable.LogLevelText is not null)
-        {
-            queryParameters.Add("level", serializable.LogLevelText);
-        }
+        var url = DashboardUrls.StructuredLogsUrl(
+            resource: serializable.SelectedApplication,
+            logLevel: serializable.LogLevelText,
+            filters: filters);
 
-        if (serializable.Filters.Count > 0)
-        {
-            queryParameters.Add("filters", LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters));
-        }
-
-        return new UrlState(path, queryParameters);
+        return url;
     }
 
     public StructuredLogsPageState ConvertViewModelToSerializable()

@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -47,6 +48,19 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// Represents how the default value of the input should be retrieved.
     /// </summary>
     public InputDefault? Default { get; set; }
+
+    /// <summary>
+    /// The value of the input.
+    /// </summary>
+    public string GenerateDefaultValue()
+    {
+        if (Default is null)
+        {
+            throw new InvalidOperationException("The input does not have a default value.");
+        }
+
+        return Default.GenerateDefaultValue();
+    }
 }
 
 /// <summary>
@@ -59,6 +73,12 @@ public abstract class InputDefault
     /// </summary>
     /// <param name="context">The context for the manifest publishing operation.</param>
     public abstract void WriteToManifest(ManifestPublishingContext context);
+
+    /// <summary>
+    /// Generates a value for the input.
+    /// </summary>
+    /// <returns>The generated string value.</returns>
+    public abstract string GenerateDefaultValue();
 }
 
 /// <summary>
@@ -77,5 +97,12 @@ public sealed class GenerateInputDefault : InputDefault
         context.Writer.WriteStartObject("generate");
         context.Writer.WriteNumber("minLength", MinLength);
         context.Writer.WriteEndObject();
+    }
+
+    /// <inheritdoc/>
+    public override string GenerateDefaultValue()
+    {
+        // https://github.com/Azure/azure-dev/issues/3462 tracks adding more generation options
+        return PasswordGenerator.GenerateRandomLettersValue(MinLength);
     }
 }

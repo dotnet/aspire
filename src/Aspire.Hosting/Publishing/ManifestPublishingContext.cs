@@ -179,7 +179,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     string stringValue => stringValue,
                     IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    _ => throw new DistributedApplicationException($"The value of the environment variable `{key}` is not supported.")
+                    _ => throw new DistributedApplicationException($"The value of the environment variable '{key}' is not supported.")
                 };
 
                 Writer.WriteString(key, valueString);

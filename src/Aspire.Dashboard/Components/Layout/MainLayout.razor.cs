@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
@@ -169,11 +170,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             var url = args.Key.ToLower() switch
             {
-                "r" => "/",
-                "c" => "/consolelogs",
-                "s" => "/structuredlogs",
-                "t" => "/traces",
-                "m" => "/metrics",
+                "r" => DashboardUrls.ResourcesUrl(),
+                "c" => DashboardUrls.ConsoleLogsUrl(),
+                "s" => DashboardUrls.StructuredLogsUrl(),
+                "t" => DashboardUrls.TracesUrl(),
+                "m" => DashboardUrls.MetricsUrl(),
                 _ => null
             };
 

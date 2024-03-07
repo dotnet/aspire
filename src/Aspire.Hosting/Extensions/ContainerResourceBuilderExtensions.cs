@@ -153,7 +153,7 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Changes the Kafka resource to be published as a container in the manifest.
+    /// Changes the resource to be published as a container in the manifest.
     /// </summary>
     /// <param name="builder">Resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>

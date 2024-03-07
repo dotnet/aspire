@@ -6,6 +6,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
@@ -15,6 +16,7 @@
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect Items="@_applications"
+                      Class="resource-list"
                       OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
                       OptionValue="@(c => c.Id?.InstanceId)"
                       @bind-SelectedOption="PageViewModel.SelectedApplication"
@@ -69,7 +71,7 @@
                             <FluentDataGrid Style="max-width:1100px;" Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
                                 <ChildContent>
                                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                        <FluentAnchor Href="@($"/metrics/resource/{PageViewModel.SelectedApplication.Name}/meter/{context.Parent.MeterName}/instrument/{context.Name}")" Appearance="Appearance.Lightweight">
+                                        <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name)" Appearance="Appearance.Lightweight">
                                             @context.Name
                                         </FluentAnchor>
                                     </TemplateColumn>

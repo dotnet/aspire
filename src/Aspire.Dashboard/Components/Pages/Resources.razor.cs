@@ -3,9 +3,11 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -22,6 +24,10 @@ public partial class Resources : ComponentBase, IDisposable
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+    [Inject]
+    public required IToastService ToastService { get; init; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
@@ -94,19 +100,21 @@ public partial class Resources : ComponentBase, IDisposable
         }
     }
 
+    private bool HasResourcesWithCommands => _resourceByName.Values.Any(r => r.Commands.Any());
+
     private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
     private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
     private readonly GridSort<ResourceViewModel> _startTimeSort = GridSort<ResourceViewModel>.ByDescending(p => p.CreationTimeStamp);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
         {
-            SubscribeResources();
+            await SubscribeResourcesAsync();
         }
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
@@ -115,9 +123,9 @@ public partial class Resources : ComponentBase, IDisposable
             await InvokeAsync(StateHasChanged);
         });
 
-        void SubscribeResources()
+        async Task SubscribeResourcesAsync()
         {
-            var (snapshot, subscription) = DashboardClient.SubscribeResources();
+            var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
             // Apply snapshot.
             foreach (var resource in snapshot)
@@ -209,4 +217,38 @@ public partial class Resources : ComponentBase, IDisposable
 
     private string? GetRowClass(ResourceViewModel resource)
         => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
+
+    private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
+    {
+        if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
+        {
+            var dialogReference = await DialogService.ShowConfirmationAsync(command.ConfirmationMessage);
+            var result = await dialogReference.Result;
+            if (result.Cancelled)
+            {
+                return;
+            }
+        }
+
+        var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
+
+        if (response.Kind == ResourceCommandResponseKind.Succeeded)
+        {
+            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName));
+        }
+        else
+        {
+            ToastService.ShowCommunicationToast(new ToastParameters<CommunicationToastContent>()
+            {
+                Intent = ToastIntent.Error,
+                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName),
+                PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)],
+                OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name))),
+                Content = new CommunicationToastContent()
+                {
+                    Details = response.ErrorMessage
+                }
+            });
+        }
+    }
 }

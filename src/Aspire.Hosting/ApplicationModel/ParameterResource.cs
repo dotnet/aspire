@@ -9,6 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
 {
     private readonly Func<string> _callback;
+    private InputReference? _valueInput;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterResource"/>.
@@ -33,6 +34,8 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     /// Gets a value indicating whether the parameter is secret.
     /// </summary>
     public bool Secret { get; }
+
+    internal InputReference ValueInput => _valueInput ??= new(this, "value");
 
     /// <summary>
     /// Gets the expression used in the manifest to reference the value of the parameter.

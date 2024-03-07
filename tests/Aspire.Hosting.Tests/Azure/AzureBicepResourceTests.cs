@@ -211,7 +211,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, skuName);
+            storage.AssignProperty(sa => sa.Sku.Name, skuName);
             moduleConstruct = construct;
         });
 
@@ -249,7 +249,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, skuName, parameterName: "sku");
+            storage.AssignProperty(sa => sa.Sku.Name, skuName, parameterName: "sku");
             moduleConstruct = construct;
         });
 
@@ -292,6 +292,36 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task PublishAsRedisPublishesRedisAsAzureRedisConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var redis = builder.AddRedis("cache")
+            .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
+            .PublishAsAzureRedisConstruct(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
+
+        Assert.True(redis.Resource.IsContainer());
+
+        Assert.Equal("localhost:12455", redis.Resource.GetConnectionString());
+
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{cache.secretOutputs.connectionString}",
+              "path": "cache.module.bicep",
+              "params": {
+                "principalId": "",
+                "keyVaultName": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
     public void AddBicepKeyVault()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -305,6 +335,36 @@ public class AzureBicepResourceTests
         Assert.Equal("keyvault", keyVault.Resource.Parameters["vaultName"]);
         Assert.Equal("https://myvault", keyVault.Resource.GetConnectionString());
         Assert.Equal("{keyVault.outputs.vaultUri}", keyVault.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public async Task AddKeyVaultConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        global::Azure.Provisioning.KeyVaults.KeyVault? cdkKeyVault = null;
+        var mykv = builder.AddAzureKeyVaultConstruct("mykv", (construct, cdkResource) =>
+        {
+            cdkKeyVault = cdkResource;
+        });
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{mykv.outputs.vaultUri}",
+              "path": "mykv.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        Assert.Equal("mykv", mykv.Resource.Name);
+        var manifest = await ManifestUtils.GetManifest(mykv.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.NotNull(cdkKeyVault);
     }
 
     [Fact]
@@ -360,6 +420,17 @@ public class AzureBicepResourceTests
                 "principalId": "",
                 "principalName": "",
                 "principalType": ""
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
               }
             }
             """;
@@ -458,8 +529,151 @@ public class AzureBicepResourceTests
 
         var manifest = await ManifestUtils.GetManifest(postgres.Resource);
 
-        Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
-        Assert.Equal("{postgres.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "params": {
+                "serverName": "postgres",
+                "keyVaultName": "",
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "databases": [
+                  "db"
+                ]
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task PublishAsAzurePostgresFlexibleServerNoUserPassParams()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var postgres = builder.AddPostgres("postgres1")
+            .PublishAsAzurePostgresFlexibleServer();
+
+        var manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres1.secretOutputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "params": {
+                "serverName": "postgres1",
+                "keyVaultName": "",
+                "administratorLogin": "{postgres1.inputs.username}",
+                "administratorLoginPassword": "{postgres1.inputs.password}",
+                "databases": []
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                },
+                "username": {
+                  "type": "string",
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        var param = builder.AddParameter("param");
+
+        postgres = builder.AddPostgres("postgres2")
+            .PublishAsAzurePostgresFlexibleServer(administratorLogin: param);
+
+        manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres2.secretOutputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "params": {
+                "serverName": "postgres2",
+                "keyVaultName": "",
+                "administratorLogin": "{param.value}",
+                "administratorLoginPassword": "{postgres2.inputs.password}",
+                "databases": []
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        postgres = builder.AddPostgres("postgres3")
+            .PublishAsAzurePostgresFlexibleServer(administratorLoginPassword: param);
+
+        manifest = await ManifestUtils.GetManifest(postgres.Resource);
+        expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres3.secretOutputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "params": {
+                "serverName": "postgres3",
+                "keyVaultName": "",
+                "administratorLogin": "{postgres3.inputs.username}",
+                "administratorLoginPassword": "{param.value}",
+                "databases": []
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                },
+                "username": {
+                  "type": "string",
+                  "default": {
+                    "generate": {
+                      "minLength": 10
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -539,7 +753,7 @@ public class AzureBicepResourceTests
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureConstructStorage("storage", (_, sa) =>
         {
-            sa.AssignParameter(x => x.Sku.Name, storagesku);
+            sa.AssignProperty(x => x.Sku.Name, storagesku);
         });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
@@ -637,5 +851,32 @@ public class AzureBicepResourceTests
         var serviceManifest = await ManifestUtils.GetManifest(serviceA.Resource);
         Assert.Equal("{ai.connectionString}", serviceManifest["env"]?["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.ToString());
         Assert.Equal("{servicebus.connectionString}", serviceManifest["env"]?["ConnectionStrings__servicebus"]?.ToString());
+    }
+
+    [Fact]
+    public void AddAzureOpenAI()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var openai = builder.AddAzureOpenAI("openai")
+            .WithDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
+
+        openai.Resource.Outputs["connectionString"] = "myopenaiconnectionstring";
+
+        var callback = openai.Resource.Parameters["deployments"] as Func<object?>;
+        var deployments = callback?.Invoke() as JsonArray;
+        var deployment = deployments?.FirstOrDefault();
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.openai.bicep", openai.Resource.TemplateResourceName);
+        Assert.Equal("openai", openai.Resource.Name);
+        Assert.Equal("myopenaiconnectionstring", openai.Resource.GetConnectionString());
+        Assert.Equal("{openai.outputs.connectionString}", openai.Resource.ConnectionStringExpression);
+        Assert.NotNull(deployment);
+        Assert.Equal("mymodel", deployment["name"]?.ToString());
+        Assert.Equal("Basic", deployment["sku"]?["name"]?.ToString());
+        Assert.Equal(4, deployment["sku"]?["capacity"]?.GetValue<int>());
+        Assert.Equal("OpenAI", deployment["model"]?["format"]?.ToString());
+        Assert.Equal("gpt-35-turbo", deployment["model"]?["name"]?.ToString());
+        Assert.Equal("0613", deployment["model"]?["version"]?.ToString());
     }
 }

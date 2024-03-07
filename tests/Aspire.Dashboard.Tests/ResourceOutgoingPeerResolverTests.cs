@@ -29,7 +29,8 @@ public class ResourceOutgoingPeerResolverTests
             Services = resourceServices,
             ExpectedEndpointsCount = 0,
             Properties = FrozenDictionary<string, Value>.Empty,
-            State = null
+            State = null,
+            Commands = []
         };
     }
 

@@ -22,6 +22,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<ResourceServiceViewModel> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }
     public required FrozenDictionary<string, Value> Properties { get; init; }
+    public required ImmutableArray<CommandViewModel> Commands { get; init; }
 
     internal bool MatchesFilter(string filter)
     {
@@ -45,6 +46,25 @@ public sealed class ResourceViewModel
         }
 
         return resource.DisplayName;
+    }
+}
+
+public sealed class CommandViewModel
+{
+    public string CommandType { get; }
+    public string DisplayName { get; }
+    public string? ConfirmationMessage { get; }
+    public Value? Parameter { get; }
+
+    public CommandViewModel(string commandType, string displayName, string? confirmationMessage, Value? parameter)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
+
+        CommandType = commandType;
+        DisplayName = displayName;
+        ConfirmationMessage = confirmationMessage;
+        Parameter = parameter;
     }
 }
 

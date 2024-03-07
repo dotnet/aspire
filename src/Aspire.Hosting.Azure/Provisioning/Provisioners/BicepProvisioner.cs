@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
+internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService) : AzureResourceProvisioner<AzureBicepResource>
 {
@@ -42,8 +42,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             return false;
         }
-
-        var resourceIds = section.GetSection("ResourceIds");
 
         if (section["Outputs"] is string outputJson)
         {
@@ -189,7 +187,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             Arguments = $"bicep build --file \"{path}\" --stdout",
             OnOutputData = data => armTemplateContents.AppendLine(data),
-            OnErrorData = data => logger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
+            OnErrorData = data => resourceLogger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
         if (!await ExecuteCommand(templateSpec).ConfigureAwait(false))
@@ -425,9 +423,10 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                 return null;
             }
 
-            // Now overwite with live object values skipping known values.
-            // This is important because the provisioner will fill in the known values
-            await SetParametersAsync(parameters, resource, skipKnownValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            // Now overwrite with live object values skipping known and generated values.
+            // This is important because the provisioner will fill in the known values and
+            // generated values would change every time, so they can't be part of the checksum.
+            await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             // Get the checksum of the new values
             return GetChecksum(resource, parameters);
@@ -451,12 +450,13 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
     ];
 
     // Converts the parameters to a JSON object compatible with the ARM template
-    internal static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipKnownValues = false, CancellationToken cancellationToken = default)
+    internal static async Task SetParametersAsync(JsonObject parameters, AzureBicepResource resource, bool skipDynamicValues = false, CancellationToken cancellationToken = default)
     {
         // Convert the parameters to a JSON object
         foreach (var parameter in resource.Parameters)
         {
-            if (skipKnownValues && s_knownParameterNames.Contains(parameter.Key))
+            if (skipDynamicValues &&
+                (s_knownParameterNames.Contains(parameter.Key) || parameter.Value is InputReference))
             {
                 continue;
             }
@@ -474,9 +474,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                     bool b => b,
                     Guid g => g.ToString(),
                     JsonNode node => node,
-                    // TODO: Support this
-                    AzureBicepResource bicepResource => throw new NotSupportedException("Referencing bicep resources is not supported"),
-                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
+                    InputReference reference => reference.Input.GenerateDefaultValue(),
                     IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     null => null,
                     _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")

@@ -75,6 +75,10 @@
                       "type": "string",
                       "description": "The server version to assume."
                     },
+                    "HeartbeatConsistencyChecks": {
+                      "type": "boolean",
+                      "description": "Whether to enable ECHO checks on every heartbeat to ensure network stream consistency.\nThis is a rare measure to react to any potential network traffic drops ASAP, terminating the connection."
+                    },
                     "HeartbeatInterval": {
                       "type": "string",
                       "format": "duration",

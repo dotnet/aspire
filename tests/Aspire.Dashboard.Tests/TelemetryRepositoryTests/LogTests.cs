@@ -508,4 +508,52 @@ public class LogTests
         Assert.Equal(0, addContext.FailureCount);
         Assert.False(onNewApplicationsCalled, "Callback shouldn't have been called because subscription was disposed.");
     }
+
+    [Fact]
+    public async Task Subscription_RaisedFromDifferentContext_InitialContextPreserved()
+    {
+        // Arrange
+        var asyncLocal = new AsyncLocal<string>();
+        asyncLocal.Value = "CustomValue";
+
+        var repository = CreateRepository();
+
+        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var subscription = repository.OnNewApplications(() =>
+        {
+            tcs.SetResult(asyncLocal.Value);
+            return Task.CompletedTask;
+        });
+
+        // Act
+        Task task;
+        using (ExecutionContext.SuppressFlow())
+        {
+            task = Task.Run(() =>
+            {
+                var addContext = new AddContext();
+                repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+                {
+                    new ResourceLogs
+                    {
+                        Resource = CreateResource(),
+                        ScopeLogs =
+                        {
+                            new ScopeLogs
+                            {
+                                Scope = CreateScope("TestLogger"),
+                                LogRecords = { CreateLogRecord() }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        await task;
+
+        // Assert
+        var callbackValue = await tcs.Task;
+        Assert.Equal("CustomValue", callbackValue);
+    }
 }

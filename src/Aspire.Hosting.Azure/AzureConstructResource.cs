@@ -30,13 +30,27 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
 
         var resourceModuleConstruct = new ResourceModuleConstruct(this, configuration);
 
+        ConfigureConstruct(resourceModuleConstruct);
+
+        // WARNING: GetParameters currently returns more than one instance of the same
+        //          parameter. Its the only API that gives us what we need (a list of
+        //          parameters. Here we find all the distinct parameters by name and
+        //          put them into a dictionary for quick lookup so we don't need to scan
+        //          through the parameter enumerable each time.
+        var constructParameters = resourceModuleConstruct.GetParameters();
+        var distinctConstructParameters = constructParameters.DistinctBy(p => p.Name);
+        var distinctConstructParametersLookup = distinctConstructParameters.ToDictionary(p => p.Name);
+
         foreach (var aspireParameter in this.Parameters)
         {
+            if (distinctConstructParametersLookup.ContainsKey(aspireParameter.Key))
+            {
+                continue;
+            }
+
             var constructParameter = new Parameter(aspireParameter.Key);
             resourceModuleConstruct.AddParameter(constructParameter);
         }
-
-        ConfigureConstruct(resourceModuleConstruct);
 
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
         resourceModuleConstruct.Build(generationPath);
@@ -76,7 +90,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
-    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
+    public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
     {
         parameterName ??= parameterResourceBuilder.Resource.Name;
 
@@ -90,12 +104,12 @@ public static class AzureConstructResourceExtensions
         if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
         {
             var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterName);
-            resource.AssignParameter(propertySelector, parameter);
+            resource.AssignProperty(propertySelector, parameter.Name);
         }
         else
         {
             var parameter = new Parameter(parameterName, isSecure: parameterResourceBuilder.Resource.Secret);
-            resource.AssignParameter(propertySelector, parameter);
+            resource.AssignProperty(propertySelector, parameter);
         }
     }
 
@@ -107,7 +121,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <param name="outputReference">Aspire parameter resource builder.</param>
-    public static void AssignParameter<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
+    public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
     {
         parameterName ??= outputReference.Resource.Name;
 
@@ -121,12 +135,12 @@ public static class AzureConstructResourceExtensions
         if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
         {
             var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterName);
-            resource.AssignParameter(propertySelector, parameter);
+            resource.AssignProperty(propertySelector, parameter);
         }
         else
         {
             var parameter = new Parameter(parameterName);
-            resource.AssignParameter(propertySelector, parameter);
+            resource.AssignProperty(propertySelector, parameter);
         }
     }
 }
@@ -159,5 +173,5 @@ public class ResourceModuleConstruct : Infrastructure
     /// <summary>
     /// TODO:
     /// </summary>
-    public Parameter PrincipalName => new Parameter("principalName");
+    public Parameter PrincipalNameParameter => new Parameter("principalName");
 }

@@ -42,25 +42,12 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     /// Translates the <param name="serializable">serializable form of the view model</param> to a relative URL associated
     /// with that state
     /// </summary>
-    public UrlState GetUrlFromSerializableViewModel(TSerializableViewModel serializable);
+    public string GetUrlFromSerializableViewModel(TSerializableViewModel serializable);
 
     /// <summary>
     /// Maps <typeparamref name="TViewModel"/> to <typeparamref name="TSerializableViewModel"/>, which should contain simple types.
     /// </summary>
     public TSerializableViewModel ConvertViewModelToSerializable();
-}
-
-public sealed record UrlState(string Path, Dictionary<string, string?>? QueryParameters)
-{
-    public override string ToString()
-    {
-        if (QueryParameters is null || QueryParameters.Count == 0 || !QueryParameters.Any(kvp => kvp.Value is not null))
-        {
-            return Path;
-        }
-
-        return Path + "?" + string.Join('&', QueryParameters.Select(kvp => $"{kvp.Key}={kvp.Value}"));
-    }
 }
 
 public static class PageExtensions
