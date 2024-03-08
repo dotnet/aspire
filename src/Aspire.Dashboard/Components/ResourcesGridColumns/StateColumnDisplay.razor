@@ -30,11 +30,11 @@ else if (Resource is { State: ResourceStates.StartingState })
                 Color="Color.Info"
                 Class="severity-icon"/>
 }
-else if (Resource is { State: /* pending */ null })
+else if (Resource is { State: /* unknown */ null })
 {
-    /* Show nothing while waiting for
-       the resource to be assigned a state.
-    */
+    <FluentIcon Icon="Icons.Filled.Size16.Circle"
+                Color="Color.Neutral"
+                Class="severity-icon" />
 }
 else
 {
@@ -43,7 +43,8 @@ else
                 Class="severity-icon"/>
 }
 
-@(Resource.State?.Humanize() ?? "Pending")
+@(Resource.State?.Humanize() ?? "Unknown")
+
 <UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
 
 @code {
