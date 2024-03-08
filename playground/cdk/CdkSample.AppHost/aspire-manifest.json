@@ -1,5 +1,13 @@
 {
   "resources": {
+    "cosmos": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmos.secretOutputs.connectionString}",
+      "path": "cosmos.module.bicep",
+      "params": {
+        "keyVaultName": ""
+      }
+    },
     "storagesku": {
       "type": "parameter.v0",
       "value": "{storagesku.inputs.value}",
@@ -12,15 +20,6 @@
     "locationOverride": {
       "type": "parameter.v0",
       "value": "{locationOverride.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "signaturesecret": {
-      "type": "parameter.v0",
-      "value": "{signaturesecret.inputs.value}",
       "inputs": {
         "value": {
           "type": "string"
@@ -64,6 +63,15 @@
     "sqldb": {
       "type": "value.v0",
       "connectionString": "{sql.connectionString};Database=sqldb"
+    },
+    "signaturesecret": {
+      "type": "parameter.v0",
+      "value": "{signaturesecret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
     },
     "mykv": {
       "type": "azure.bicep.v0",
@@ -169,6 +177,7 @@
         "ConnectionStrings__sqldb": "{sqldb.connectionString}",
         "ConnectionStrings__mykv": "{mykv.connectionString}",
         "ConnectionStrings__cache": "{cache.connectionString}",
+        "ConnectionStrings__cosmos": "{cosmos.connectionString}",
         "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}"
       },
       "bindings": {

@@ -6,10 +6,10 @@ using Azure.Provisioning.KeyVaults;
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
 
+var cosmosdb = builder.AddAzureCosmosDBConstruct("cosmos").AddDatabase("cosmosdb");
+
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
-var signaturesecret = builder.AddParameter("signaturesecret");
-
 var storage = builder.AddAzureConstructStorage("storage", (_, account) =>
 {
     account.AssignProperty(sa => sa.Sku.Name, sku);
@@ -20,6 +20,7 @@ var blobs = storage.AddBlobs("blobs");
 
 var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct().AddDatabase("sqldb");
 
+var signaturesecret = builder.AddParameter("signaturesecret");
 var keyvault = builder.AddAzureKeyVaultConstruct("mykv", (construct, keyVault) =>
 {
     var secret = new KeyVaultSecret(construct, name: "mysecret");
@@ -41,6 +42,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(sqldb)
        .WithReference(keyvault)
        .WithReference(cache)
+       .WithReference(cosmosdb)
        .WithReference(pgsqldb);
 
 // This project is only added in playground projects to support development/debugging
