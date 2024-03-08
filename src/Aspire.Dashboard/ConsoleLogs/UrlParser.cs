@@ -65,7 +65,7 @@ public static partial class UrlParser
         if (TryRemoveXmlTagsFromMatch(text, match.Index, out var noXmlTags, out var removedCharacterCount))
         {
             var noXmlTagsMatch = s_urlRegEx.Match(noXmlTags);
-            nextCharIndex = noXmlTagsMatch.Index + noXmlTagsMatch.Length + removedCharacterCount;
+            nextCharIndex = match.Index + noXmlTagsMatch.Length + removedCharacterCount;
             return noXmlTagsMatch.Value;
         }
         else
@@ -95,7 +95,6 @@ public static partial class UrlParser
             var tagEnd = text.IndexOf('>', nextTagStart);
             if (tagEnd < 0)
             {
-                index = text.Length - 1;
                 break;
             }
 
@@ -106,6 +105,7 @@ public static partial class UrlParser
         }
 
         sb.Append(text[index..]);
+
         modifiedText = sb.ToString();
         return true;
     }
