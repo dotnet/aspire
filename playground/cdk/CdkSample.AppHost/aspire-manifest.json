@@ -48,6 +48,17 @@
       "params": {
         "principalId": "",
         "principalName": ""
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
       }
     },
     "sqldb": {
@@ -73,6 +84,81 @@
         "keyVaultName": ""
       }
     },
+    "pgsqlAdministratorLogin": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLogin.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "pgsqlAdministratorLoginPassword": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLoginPassword.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "pgsql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql.secretOutputs.connectionString}",
+      "path": "pgsql.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": "",
+        "administratorLogin": "{pgsqlAdministratorLogin.value}",
+        "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "pgsqldb": {
+      "type": "value.v0",
+      "connectionString": "{pgsql.connectionString};Database=pgsqldb"
+    },
+    "pgsql2": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql2.secretOutputs.connectionString}",
+      "path": "pgsql2.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": "",
+        "administratorLogin": "{pgsql2.inputs.username}",
+        "administratorLoginPassword": "{pgsql2.inputs.password}"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        },
+        "username": {
+          "type": "string",
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
@@ -82,7 +168,8 @@
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__sqldb": "{sqldb.connectionString}",
         "ConnectionStrings__mykv": "{mykv.connectionString}",
-        "ConnectionStrings__cache": "{cache.connectionString}"
+        "ConnectionStrings__cache": "{cache.connectionString}",
+        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}"
       },
       "bindings": {
         "http": {

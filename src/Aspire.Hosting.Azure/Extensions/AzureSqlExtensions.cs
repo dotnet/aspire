@@ -95,7 +95,7 @@ public static class AzureSqlExtensions
                 // the principalType.
                 sqlServer.AssignProperty(x => x.Administrators.PrincipalType, construct.PrincipalTypeParameter);
 
-                var sqlFirewall = new SqlFirewallRule(construct);
+                var sqlFirewall = new SqlFirewallRule(construct, sqlServer);
                 sqlFirewall.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
                 sqlFirewall.AssignProperty(x => x.EndIPAddress, "'255.255.255.255'");
             }
