@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.Tests.Utils;
 using Xunit;
 
@@ -18,13 +17,7 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         // Get the service provider.
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint(endpointName));
@@ -45,25 +38,12 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         // Create a binding and its matching annotation (simulating DCP behavior) - HOWEVER
         // this binding conflicts with the earlier because they have the same scheme.
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "myconflictingbinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("myconflictingbinding",
-            ProtocolType.Tcp,
-            "localhost",
-            3000,
-            "https"
-            ));
-
+        testProgram.ServiceABuilder.WithEndpoint("myconflictingbinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("myconflictingbinding"));
 
@@ -86,24 +66,12 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         // Create a binding and its matching annotation (simulating DCP behavior) - not
         // conflicting because the scheme is different to the first binding.
         testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mynonconflictingbinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mynonconflictingbinding",
-            ProtocolType.Tcp,
-            "localhost",
-            3000,
-            "http"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mynonconflictingbinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
 
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mynonconflictingbinding"));
@@ -127,22 +95,10 @@ public class WithReferenceTests
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "mybinding2");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding2",
-            ProtocolType.Tcp,
-            "localhost",
-            3000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
 
         // Get the service provider.
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder);
@@ -164,22 +120,10 @@ public class WithReferenceTests
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mybinding2");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding2",
-            ProtocolType.Tcp,
-            "localhost",
-            3000,
-            "http"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
 
         // Get the service provider.
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder);

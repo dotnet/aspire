@@ -80,13 +80,7 @@ public class AddMongoDBTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddMongoDB("mongodb")
-            .WithAnnotation(
-                new AllocatedEndpointAnnotation("tcp",
-                ProtocolType.Tcp,
-                "localhost",
-                27017,
-                "https"
-            ))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
             .AddDatabase("mydatabase");
 
         using var app = appBuilder.Build();

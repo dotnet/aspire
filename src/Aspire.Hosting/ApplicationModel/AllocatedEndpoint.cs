@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Net.Sockets;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -10,39 +9,34 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an endpoint allocated for a service instance.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, UriString = {UriString}, EndpointNameQualifiedUriString = {EndpointNameQualifiedUriString}")]
-public class AllocatedEndpointAnnotation : IResourceAnnotation
+public class AllocatedEndpoint
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="AllocatedEndpointAnnotation"/> class.
+    /// Initializes a new instance of the <see cref="AllocatedEndpoint"/> class.
     /// </summary>
-    /// <param name="name">The name of the endpoint.</param>
-    /// <param name="protocol">The protocol used by the endpoint.</param>
+    /// <param name="endpoint">The endpoint.</param>
     /// <param name="address">The IP address of the endpoint.</param>
     /// <param name="port">The port number of the endpoint.</param>
-    /// <param name="scheme">The URI scheme used by the endpoint.</param>
-    public AllocatedEndpointAnnotation(string name, ProtocolType protocol, string address, int port, string scheme)
+    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(name);
-        ArgumentNullException.ThrowIfNullOrEmpty(scheme);
+        ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1, nameof(port));
         ArgumentOutOfRangeException.ThrowIfGreaterThan(port, 65535, nameof(port));
 
-        Name = name;
-        Protocol = protocol;
+        Endpoint = endpoint;
         Address = address;
         Port = port;
-        UriScheme = scheme;
     }
+
+    /// <summary>
+    /// Gets the endpoint which this allocation is associated with.
+    /// </summary>
+    public EndpointAnnotation Endpoint { get; }
 
     /// <summary>
     /// Friendly name for the endpoint.
     /// </summary>
-    public string Name { get; private set; }
-
-    /// <summary>
-    /// The network protocol (TCP and UDP are supported).
-    /// </summary>
-    public ProtocolType Protocol { get; private set; }
+    public string Name => Endpoint.Name;
 
     /// <summary>
     /// The address of the endpoint
@@ -57,7 +51,7 @@ public class AllocatedEndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// For URI-addressed services, contains the scheme part of the address.
     /// </summary>
-    public string UriScheme { get; private set; }
+    public string UriScheme => Endpoint.UriScheme;
 
     /// <summary>
     /// Endpoint in string representation formatted as <c>"Address:Port"</c>.

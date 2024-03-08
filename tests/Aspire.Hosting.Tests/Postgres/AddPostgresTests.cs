@@ -118,13 +118,7 @@ public class AddPostgresTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var postgres = appBuilder.AddPostgres("postgres")
-                                 .WithAnnotation(
-                                     new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName,
-                                      ProtocolType.Tcp,
-                                     "localhost",
-                                     2000,
-                                     "https"
-                                 ));
+                                 .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         var connectionString = postgres.Resource.GetConnectionString();
         Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}", postgres.Resource.ConnectionStringExpression);
@@ -136,13 +130,7 @@ public class AddPostgresTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("postgres")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000))
             .AddDatabase("db");
 
         using var app = appBuilder.Build();
@@ -292,8 +280,8 @@ public class AddPostgresTests
         var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(8081);
 
         // Add fake allocated endpoints.
-        pg1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        pg2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
+        pg2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
         var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
