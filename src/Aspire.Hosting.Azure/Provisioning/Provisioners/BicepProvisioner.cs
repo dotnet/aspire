@@ -209,7 +209,7 @@ internal sealed class BicepProvisioner(
         {
             Template = BinaryData.FromString(armTemplateContents.ToString()),
             Parameters = BinaryData.FromObjectAsJson(parameters),
-            DebugSettingDetailLevel = "RequestContent, ResponseContent",
+            DebugSettingDetailLevel = "ResponseContent"
         }),
         cancellationToken).ConfigureAwait(false);
 
