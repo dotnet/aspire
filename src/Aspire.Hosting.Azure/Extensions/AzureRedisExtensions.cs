@@ -94,6 +94,8 @@ public static class AzureRedisExtensions
         {
             var redisCache = new RedisCache(construct, name: builder.Resource.Name);
 
+            redisCache.Properties.Tags["aspire-resource-name"] = builder.Resource.Name;
+
             var vaultNameParameter = new Parameter("keyVaultName");
             construct.AddParameter(vaultNameParameter);
 

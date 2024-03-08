@@ -163,6 +163,8 @@ public static class AzureCosmosExtensions
             cosmosAccount.AssignProperty(x => x.Locations[0].LocationName, "location");
             cosmosAccount.AssignProperty(x => x.Locations[0].FailoverPriority, "0");
 
+            cosmosAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
             var keyVaultNameParameter = new Parameter("keyVaultName");
             construct.AddParameter(keyVaultNameParameter);
 
