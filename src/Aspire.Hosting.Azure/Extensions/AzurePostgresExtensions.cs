@@ -122,8 +122,8 @@ public static class AzurePostgresExtensions
 
     internal static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerConstruct(
         this IResourceBuilder<PostgresServerResource> builder,
-        IResourceBuilder<ParameterResource> administratorLogin,
-        IResourceBuilder<ParameterResource> administratorLoginPassword,
+        IResourceBuilder<ParameterResource>? administratorLogin = null,
+        IResourceBuilder<ParameterResource>? administratorLoginPassword = null,
         Action<IResourceBuilder<AzurePostgresConstructResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource = null,
         bool useProvisioner = false)
     {
@@ -208,8 +208,8 @@ public static class AzurePostgresExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerConstruct(
         this IResourceBuilder<PostgresServerResource> builder,
-        IResourceBuilder<ParameterResource> administratorLogin,
-        IResourceBuilder<ParameterResource> administratorLoginPassword,
+        IResourceBuilder<ParameterResource>? administratorLogin = null,
+        IResourceBuilder<ParameterResource>? administratorLoginPassword = null,
         Action<IResourceBuilder<AzurePostgresConstructResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource = null)
     {
         return builder.PublishAsAzurePostgresFlexibleServerConstruct(
@@ -229,8 +229,8 @@ public static class AzurePostgresExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServerConstruct(
         this IResourceBuilder<PostgresServerResource> builder,
-        IResourceBuilder<ParameterResource> administratorLogin,
-        IResourceBuilder<ParameterResource> administratorLoginPassword,
+        IResourceBuilder<ParameterResource>? administratorLogin = null,
+        IResourceBuilder<ParameterResource>? administratorLoginPassword = null,
         Action<IResourceBuilder<AzurePostgresConstructResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource = null)
     {
         return builder.PublishAsAzurePostgresFlexibleServerConstruct(

@@ -34,6 +34,8 @@ var pgsqldb = builder.AddPostgres("pgsql")
                    .AsAzurePostgresFlexibleServerConstruct(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
                    .AddDatabase("pgsqldb");
 
+var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServerConstruct();
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(blobs)
        .WithReference(sqldb)

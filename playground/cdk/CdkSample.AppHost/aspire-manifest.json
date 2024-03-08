@@ -129,6 +129,36 @@
       "type": "value.v0",
       "connectionString": "{pgsql.connectionString};Database=pgsqldb"
     },
+    "pgsql2": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql2.secretOutputs.connectionString}",
+      "path": "pgsql2.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": "",
+        "administratorLogin": "{pgsql2.inputs.username}",
+        "administratorLoginPassword": "{pgsql2.inputs.password}"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        },
+        "username": {
+          "type": "string",
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
