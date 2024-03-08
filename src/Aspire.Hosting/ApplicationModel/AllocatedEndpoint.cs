@@ -34,11 +34,6 @@ public class AllocatedEndpoint
     public EndpointAnnotation Endpoint { get; }
 
     /// <summary>
-    /// Friendly name for the endpoint.
-    /// </summary>
-    public string Name => Endpoint.Name;
-
-    /// <summary>
     /// The address of the endpoint
     /// </summary>
     public string Address { get; private set; }
