@@ -37,6 +37,8 @@ var pgsqldb = builder.AddPostgres("pgsql")
 
 var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServerConstruct();
 
+var mongo = builder.AddMongoDB("mongo").PublishAsAzureCosmosDB();
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(blobs)
        .WithReference(sqldb)

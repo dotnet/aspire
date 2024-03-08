@@ -71,11 +71,35 @@ public class AzureCosmosDBResource(string name) :
 /// <summary>
 /// A resource that represents an Azure Cosmos DB.
 /// </summary>
-public class AzureCosmosDBConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
-    IResourceWithConnectionString,
-    IResourceWithEndpoints
+public class AzureCosmosDBConstructResource : AzureConstructResource, IResourceWithConnectionString, IResourceWithEndpoints
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="configureConstruct"></param>
+    public AzureCosmosDBConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) : base(name, configureConstruct)
+    {
+
+    }
+
+    internal AzureCosmosDBConstructResource(IResource innerResource, Action<ResourceModuleConstruct> configureConstruct) : base(innerResource.Name, configureConstruct)
+    {
+        _innerResource = innerResource;
+    }
+
+    private readonly IResource? _innerResource;
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public override string Name => base.Name;
+
+    /// <summary>
+    /// TODO:
+    /// </summary>
+    public override ResourceAnnotationCollection Annotations => _innerResource?.Annotations ?? base.Annotations;
+
     internal List<string> Databases { get; } = [];
 
     internal EndpointReference EmulatorEndpoint => new(this, "emulator");
@@ -270,6 +294,66 @@ public static class AzureCosmosExtensions
     public static IResourceBuilder<AzureCosmosDBConstructResource> AddDatabase(this IResourceBuilder<AzureCosmosDBConstructResource> builder, string databaseName)
     {
         builder.Resource.Databases.Add(databaseName);
+        return builder;
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="configureResource"></param>
+    /// <param name="useProvisioner"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<MongoDBServerResource> PublishAsAzureCosmosDB(this IResourceBuilder<MongoDBServerResource> builder, Action<IResourceBuilder<MongoDBServerResource>, ResourceModuleConstruct, CosmosDBAccount, IEnumerable<CosmosDBSqlDatabase>>? configureResource = null, bool useProvisioner = true)
+    {
+        var configureConstruct = (ResourceModuleConstruct construct) =>
+        {
+            var cosmosAccount = new CosmosDBAccount(construct, CosmosDBAccountKind.MongoDB, name: construct.Resource.Name);
+            cosmosAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
+            List<CosmosDBSqlDatabase> mongoDatabases = new List<CosmosDBSqlDatabase>();
+            foreach (var database in builder.Resource.Databases)
+            {
+                var databaseName = database.Value;
+                var mongoDatabase = new CosmosDBSqlDatabase(construct, cosmosAccount, name: databaseName);
+                mongoDatabases.Add(mongoDatabase);
+            }
+
+            var keyVaultNameParameter = new Parameter("keyVaultName");
+            construct.AddParameter(keyVaultNameParameter);
+
+            var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
+            _ = new KeyVaultSecret(construct, "connectionString", cosmosAccount.GetConnectionString());
+
+            if (configureResource != null)
+            {
+                configureResource(builder, construct, cosmosAccount, mongoDatabases);
+            }
+        };
+
+        var resource = new AzureCosmosDBConstructResource(builder.Resource, configureConstruct);
+        var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
+        resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
+                       .WithManifestPublishingCallback(resource.WriteToManifest);
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
+        }
+
+        if (useProvisioner)
+        {
+            // Used to hold a reference to the azure surrogate for use with the provisioner.
+            builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
+            builder.WithConnectionStringRedirection(resource);
+
+            // Remove the container annotation so that DCP doesn't do anything with it.
+            if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault() is { } containerAnnotation)
+            {
+                builder.Resource.Annotations.Remove(containerAnnotation);
+            }
+        }
+
         return builder;
     }
 }

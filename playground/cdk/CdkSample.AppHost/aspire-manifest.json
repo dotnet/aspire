@@ -167,6 +167,15 @@
         }
       }
     },
+    "mongo": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{mongo.secretOutputs.connectionString}",
+      "path": "mongo.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalName": ""
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
