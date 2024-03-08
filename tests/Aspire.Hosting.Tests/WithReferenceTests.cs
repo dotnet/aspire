@@ -93,12 +93,15 @@ public class WithReferenceTests
     {
         using var testProgram = CreateTestProgram();
 
-        // Create a binding and its metching annotation (simulating DCP behavior)
+        // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
+
+        // The appsettings.json adds an "http" endpoint
+        testProgram.ServiceABuilder.WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4000));
 
         // Get the service provider.
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder);
@@ -108,9 +111,10 @@ public class WithReferenceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
-        Assert.Equal(2, servicesKeysCount);
+        Assert.Equal(3, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding__0" && kvp.Value == "https://localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding2__0" && kvp.Value == "https://localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__http__0" && kvp.Value == "http://localhost:4000");
     }
 
     [Fact]
@@ -125,6 +129,9 @@ public class WithReferenceTests
         testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
 
+        // The appsettings.json adds an "http" endpoint
+        testProgram.ServiceABuilder.WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4000));
+
         // Get the service provider.
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder);
         testProgram.Build();
@@ -133,9 +140,10 @@ public class WithReferenceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
-        Assert.Equal(2, servicesKeysCount);
+        Assert.Equal(3, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding__0" && kvp.Value == "https://localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding2__0" && kvp.Value == "http://localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__http__0" && kvp.Value == "http://localhost:4000");
     }
 
     [Fact]
