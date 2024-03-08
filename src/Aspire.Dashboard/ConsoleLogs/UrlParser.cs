@@ -27,10 +27,7 @@ public static partial class UrlParser
                     builder.Append(text[(nextCharIndex)..urlMatch.Index]);
                 }
 
-                var urlStart = urlMatch.Index;
-                nextCharIndex = urlMatch.Index + urlMatch.Length;
-                var url = text[urlStart..nextCharIndex];
-
+                var url = ReadUrl(text, urlMatch, out nextCharIndex);
                 builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{url}</a>");
                 urlMatch = urlMatch.NextMatch();
             }
@@ -62,4 +59,72 @@ public static partial class UrlParser
     // [A-Za-z0-9+&@#/%=~_|$]         - Any character in the list, matched exactly once
     [GeneratedRegex("\\bhttps?://[-A-Za-z0-9+&@#/%?=~_|$!:,.;]*[A-Za-z0-9+&@#/%=~_|$]")]
     private static partial Regex GenerateUrlRegEx();
+
+    private static string ReadUrl(string text, Match match, out int nextCharIndex)
+    {
+        if (TryRemoveAnsiSequencesFromMatch(text, match.Index, out var noAnsi, out var removedCharacterCount))
+        {
+            var noAnsiMatch = s_urlRegEx.Match(noAnsi);
+            nextCharIndex = noAnsiMatch.Index + noAnsiMatch.Length + removedCharacterCount;
+            return noAnsiMatch.Value;
+        }
+        else
+        {
+            nextCharIndex = match.Index + match.Length;
+            return match.Value;
+        }
+    }
+
+    private static bool TryRemoveAnsiSequencesFromMatch(string text, int index, [NotNullWhen(true)] out string? trimmedWord, out int removedCharacterCount)
+    {
+        removedCharacterCount = 0;
+
+        var nextSequenceStart = text.IndexOf('\x1B', index);
+        if (nextSequenceStart < 0)
+        {
+            trimmedWord = null;
+            return false;
+        }
+
+        var sb = new StringBuilder();
+
+        while (nextSequenceStart > 0)
+        {
+            sb.Append(text[index..nextSequenceStart]);
+
+            var sequenceLength = GetAnsiSequenceLengthAt(text, nextSequenceStart);
+            if (sequenceLength == 0)
+            {
+                break;
+            }
+
+            index = nextSequenceStart + sequenceLength;
+            removedCharacterCount += sequenceLength;
+
+            nextSequenceStart = text.IndexOf('\x1B', index);
+        }
+
+        sb.Append(text[index..]);
+        trimmedWord = sb.ToString();
+        return true;
+    }
+
+    private static int GetAnsiSequenceLengthAt(string text, int index)
+    {
+        var start = index;
+
+        if (index + 4 > text.Length || text[index] != '\u001B' || text[index + 1] != '[' || !char.IsDigit(text[index + 2]))
+        {
+            return 0;
+        }
+
+        index += 2; // The escape and the '[' character
+        while (index < text.Length && char.IsDigit(text[index]))
+        {
+            index++;
+        }
+        index++; // m-postfix
+
+        return index - start;
+    }
 }
