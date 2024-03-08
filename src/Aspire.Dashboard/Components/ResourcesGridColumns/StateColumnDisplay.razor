@@ -30,6 +30,12 @@ else if (Resource is { State: ResourceStates.StartingState })
                 Color="Color.Info"
                 Class="severity-icon"/>
 }
+else if (Resource is { State: /* unknown */ null })
+{
+    <FluentIcon Icon="Icons.Filled.Size16.Circle"
+                Color="Color.Neutral"
+                Class="severity-icon" />
+}
 else
 {
     <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
@@ -37,7 +43,8 @@ else
                 Class="severity-icon"/>
 }
 
-@Resource.State.Humanize()
+@(Resource.State?.Humanize() ?? "Unknown")
+
 <UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
 
 @code {
