@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Instrumentation.StackExchangeRedis;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
@@ -136,39 +137,48 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.DoesNotContain("unused", connection.Configuration);
     }
 
-    // public static IEnumerable<object[]> AbortOnConnectFailData =>
-    // [
-    //     [true, GetDefaultConfiguration(), false],
-    //     [false, GetDefaultConfiguration(), false],
+    [RequiresDockerTheory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    public void AbortOnConnectFailDefaultsForDefaultConfiguration(bool useKeyed, bool expectedAbortOnConnect)
+    {
+        IEnumerable<KeyValuePair<string, string?>> configs =
+        [
+            new KeyValuePair<string, string?>("ConnectionStrings:redis", _containerFixture.GetConnectionString())
+        ];
+        AbortOnConnectFailDefaultsImplementation(useKeyed, configs, expectedAbortOnConnect);
+    }
 
-    //     [true, GetSetsTrueConfig(true), true],
-    //     [false, GetSetsTrueConfig(false), true],
+    [RequiresDockerTheory]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public void AbortOnConnectFailDefaultsForSetsTrueConfig(bool useKeyed, bool expectedAbortOnConnect)
+    {
+        IEnumerable<KeyValuePair<string, string?>> configs =
+        [
+            new KeyValuePair<string, string?>("ConnectionStrings:redis", _containerFixture.GetConnectionString()),
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", useKeyed ? "redis" : null, "ConfigurationOptions:AbortOnConnectFail"), "true")
+        ];
+        AbortOnConnectFailDefaultsImplementation(useKeyed, configs, expectedAbortOnConnect);
+    }
 
-    //     [true, GetConnectionString(abortConnect: true), true],
-    //     [false, GetConnectionString(abortConnect: true), true],
-    //     [true, GetConnectionString(abortConnect: false), false],
-    //     [false, GetConnectionString(abortConnect: false), false],
-    // ];
+    [RequiresDockerTheory]
+    [InlineData(true, true, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(false, false, false)]
+    public void AbortOnConnectFailDefaultsForAbortConnectSetting(bool useKeyed, bool abortConnect, bool expectedAbortOnConnect)
+    {
+        IEnumerable<KeyValuePair<string, string?>> configs =
+        [
+            new KeyValuePair<string, string?>("ConnectionStrings:redis", $"{_containerFixture.GetConnectionString()},abortConnect={(abortConnect ? "true" : "false")}")
+        ];
+        AbortOnConnectFailDefaultsImplementation(useKeyed, configs, expectedAbortOnConnect);
+    }
 
-    // private IEnumerable<KeyValuePair<string, string?>> GetDefaultConfiguration() =>
-    // [
-    //     new KeyValuePair<string, string?>("ConnectionStrings:redis", _containerFixture.GetConnectionString())
-    // ];
-
-    // private IEnumerable<KeyValuePair<string, string?>> GetSetsTrueConfig(bool useKeyed) =>
-    // [
-    //     new KeyValuePair<string, string?>("ConnectionStrings:redis", _containerFixture.GetConnectionString()),
-    //     new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", useKeyed ? "redis" : null, "ConfigurationOptions:AbortOnConnectFail"), "true")
-    // ];
-
-    // private IEnumerable<KeyValuePair<string, string?>> GetConnectionString(bool abortConnect) =>
-    // [
-    //     new KeyValuePair<string, string?>("ConnectionStrings:redis", $"{_containerFixture.GetConnectionString()},abortConnect={(abortConnect ? "true" : "false")}")
-    // ];
-
-    /* [Theory]
-    [MemberData(nameof(AbortOnConnectFailData))]
-    public void AbortOnConnectFailDefaults(bool useKeyed, IEnumerable<KeyValuePair<string, string?>> configValues, bool expectedAbortOnConnect)
+    // [Theory]
+    // [MemberData(nameof(AbortOnConnectFailData))]
+    private static void AbortOnConnectFailDefaultsImplementation(bool useKeyed, IEnumerable<KeyValuePair<string, string?>> configValues, bool expectedAbortOnConnect)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection(configValues);
@@ -188,7 +198,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             host.Services.GetRequiredService<IOptions<ConfigurationOptions>>().Value;
 
         Assert.Equal(expectedAbortOnConnect, options.AbortOnConnectFail);
-    } */
+    }
 
     /// <summary>
     /// Verifies that both distributed and output caching components can be added to the same builder and their HealthChecks don't conflict.
