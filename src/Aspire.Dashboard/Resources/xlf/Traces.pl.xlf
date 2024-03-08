@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">Nazwa: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Ślady</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">Filtr nazw</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="TracesPageTitle">
         <source>{0} traces</source>
-        <target state="translated">ślady {0}</target>
+        <target state="translated">Ślady {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TracesResourceSpans">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="translated">Obejmuje</target>
+        <target state="translated">Zakresy</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">Suma: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">

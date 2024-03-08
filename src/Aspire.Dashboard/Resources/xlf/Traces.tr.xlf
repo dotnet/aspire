@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">Ad: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">İzlemeler</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">Ad filtresi</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="translated">Yayılan</target>
+        <target state="translated">Yayılmalar</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">Toplam: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">
