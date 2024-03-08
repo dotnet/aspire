@@ -92,15 +92,3 @@ public class AzureServiceBusConstructResource(string name, Action<ResourceModule
         return GetConnectionString();
     }
 }
-
-// /// <summary>
-// ///
-// /// </summary>
-// /// <param name="name"></param>
-// /// <param name="configureConstruct"></param>
-// public class AzureServiceBusTopicResource(string name, Action<ResourceModuleConstruct> configureConstruct)
-//     : AzureServiceBusConstructResource(name, configureConstruct)
-// {
-//     // internal Action<ServiceBusTopic>? ConfigureTopic { get; } = configureTopic;
-//     // internal Action<ServiceBusSubscription>? ConfigureSubscription { get; } = configureSubscription;
-// }
