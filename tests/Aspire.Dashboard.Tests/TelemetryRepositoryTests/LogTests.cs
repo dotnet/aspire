@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Threading.Channels;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
@@ -642,5 +644,68 @@ public class LogTests
                         Assert.Equal("0123456789012345", p.Value);
                     });
             });
+    }
+
+    [Fact]
+    public async Task Subscription_MultipleUpdates_MinExecuteIntervalApplied()
+    {
+        // Arrange
+        var minExecuteInterval = TimeSpan.FromMilliseconds(500);
+        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval);
+
+        var callCount = 0;
+        var resultChannel = Channel.CreateUnbounded<int>();
+        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var subscription = repository.OnNewLogs(applicationId: null, SubscriptionType.Read, () =>
+        {
+            ++callCount;
+            resultChannel.Writer.TryWrite(callCount);
+            return Task.CompletedTask;
+        });
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord() }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        var stopwatch = Stopwatch.StartNew();
+        var read1 = await resultChannel.Reader.ReadAsync();
+        Assert.Equal(1, read1);
+
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord() }
+                    }
+                }
+            }
+        });
+
+        var read2 = await resultChannel.Reader.ReadAsync();
+        Assert.Equal(2, read2);
+
+        var elapsed = stopwatch.Elapsed;
+        CustomAssert.AssertExceedsMinInterval(elapsed, minExecuteInterval);
     }
 }

@@ -14,6 +14,7 @@ public enum TestResourceNames
     rabbitmq,
     redis,
     sqlserver,
+    efnpgsql
 }
 
 public static class TestResourceNamesExtensions

@@ -183,12 +183,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 new CommandLineArgsCallbackAnnotation(
                     updatedArgs =>
                     {
-                        AllocatedEndpointAnnotation? httpEndPoint = null;
-                        if (resource.TryGetAllocatedEndPoints(out var projectEndPoints))
+                        EndpointReference? httpEndPoint = null;
+                        if (resource is IResourceWithEndpoints resourceWithEndpoints)
                         {
-                            httpEndPoint = projectEndPoints.FirstOrDefault(endPoint => endPoint.Name == "http");
+                            httpEndPoint = resourceWithEndpoints.GetEndpoint("http");
 
-                            if (httpEndPoint is not null && sidecarOptions?.AppPort is null)
+                            if (httpEndPoint.IsAllocated && sidecarOptions?.AppPort is null)
                             {
                                 updatedArgs.AddRange(daprAppPortArg(httpEndPoint.Port)());
                             }
@@ -203,7 +203,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }
                         if (sidecarOptions?.AppChannelAddress is null && httpEndPoint is not null)
                         {
-                            updatedArgs.AddRange(daprAppChannelAddressArg(httpEndPoint.Address)());
+                            updatedArgs.AddRange(daprAppChannelAddressArg(httpEndPoint.Host)());
                         }
                     }));
 

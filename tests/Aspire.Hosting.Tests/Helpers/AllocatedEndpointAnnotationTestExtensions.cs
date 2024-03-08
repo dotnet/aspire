@@ -18,8 +18,8 @@ public static class AllocatedEndpointAnnotationTestExtensions
     public static async Task<string> HttpGetStringAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, CancellationToken cancellationToken)
         where T : IResourceWithEndpoints
     {
-        var allocatedEndpoint = builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
-        var url = $"{allocatedEndpoint.UriString}{path}";
+        var endpoint = builder.Resource.GetEndpoint(bindingName);
+        var url = $"{endpoint.Url}{path}";
 
         var response = await client.GetStringAsync(url, cancellationToken);
         return response;

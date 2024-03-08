@@ -96,7 +96,7 @@ public class ChannelExtensionsTests
         Assert.Equal(["d", "e", "f"], read2.Single());
 
         var elapsed = stopwatch.Elapsed;
-        Assert.True(elapsed >= minReadInterval, $"Elapsed time {elapsed} should be greater than min read interval {minReadInterval} on read.");
+        CustomAssert.AssertExceedsMinInterval(elapsed, minReadInterval);
 
         channel.Writer.Complete();
         await TaskHelpers.WaitIgnoreCancelAsync(readTask);

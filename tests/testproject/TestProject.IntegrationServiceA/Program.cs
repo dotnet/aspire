@@ -29,6 +29,10 @@ if (!resourcesToSkip.Contains(TestResourceNames.postgres))
 {
     builder.AddNpgsqlDataSource("postgresdb");
 }
+if (!resourcesToSkip.Contains(TestResourceNames.efnpgsql))
+{
+    builder.AddNpgsqlDbContext<NpgsqlDbContext>("postgresdb");
+}
 if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
 {
     builder.AddRabbitMQClient("rabbitmq");
@@ -87,6 +91,10 @@ if (!resourcesToSkip.Contains(TestResourceNames.pomelo))
 if (!resourcesToSkip.Contains(TestResourceNames.postgres))
 {
     app.MapPostgresApi();
+}
+if (!resourcesToSkip.Contains(TestResourceNames.efnpgsql))
+{
+    app.MapNpgsqlEFCoreApi();
 }
 
 if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
