@@ -9,9 +9,9 @@ namespace Aspire.InternalTesting;
 public class RequiresDockerTheoryAttribute : TheoryAttribute
 {
     // Not available on windows/CI
-    public static bool IsSupported => !OperatingSystem.IsWindows()
-                                      && Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null
-                                      && Environment.GetEnvironmentVariable("BUILD_BUILDID") is null;
+    public static bool IsSupported => !OperatingSystem.IsWindows() ||
+                                      (Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null
+                                      && Environment.GetEnvironmentVariable("BUILD_BUILDID") is null);
 
     public override string Skip
     {
