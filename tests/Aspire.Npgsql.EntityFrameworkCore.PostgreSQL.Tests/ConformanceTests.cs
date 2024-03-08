@@ -3,24 +3,25 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
+using Aspire.InternalTesting;
+using Aspire.Npgsql.Tests;
 using Microsoft.DotNet.RemoteExecutor;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Npgsql;
 using Xunit;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
-public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
     // in the future it can become a static property that reads the value from Env Var
-    protected const string ConnectionString = "Host=localhost;Database=test;Username=postgres;Password=postgres";
+    // protected const string ConnectionString = "Host=localhost;Database=test;Username=postgres;Password=postgres";
 
-    private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
+    // private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
+    protected readonly PostgreSQLContainerFixture _containerFixture;
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/npgsql/npgsql/blob/ef9db1ffe9e432c1562d855b46dfac3514726b1b/src/Npgsql.OpenTelemetry/TracerProviderBuilderExtensions.cs#L18
@@ -52,7 +53,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         "Npgsql.Exception"
     };
 
-    protected override bool CanConnectToServer => s_canConnectToServer.Value;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {
@@ -78,6 +79,13 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
             ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
+
+    protected string ConnectionString => _containerFixture.GetConnectionString();
+
+    public ConformanceTests(PostgreSQLContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
@@ -132,22 +140,5 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         SkipIfCanNotConnectToServer();
 
         RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
-    }
-
-    private static bool GetCanConnect()
-    {
-        var builder = new DbContextOptionsBuilder<TestDbContext>().UseNpgsql(connectionString: ConnectionString);
-        using TestDbContext dbContext = new(builder.Options);
-
-        try
-        {
-            dbContext.Database.EnsureCreated();
-
-            return true;
-        }
-        catch (NpgsqlException)
-        {
-            return false;
-        }
     }
 }

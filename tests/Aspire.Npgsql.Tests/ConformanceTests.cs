@@ -3,6 +3,7 @@
 
 using System.Data.Common;
 using Aspire.Components.ConformanceTests;
+using Aspire.InternalTesting;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,11 +13,11 @@ using Xunit;
 
 namespace Aspire.Npgsql.Tests;
 
-public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>
+public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
-    private const string ConnectionSting = "Host=localhost;Database=test_aspire_npgsql;Username=postgres;Password=postgres";
+    private readonly PostgreSQLContainerFixture _containerFixture;
 
-    private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
+    // private const string ConnectionSting = "Host=localhost;Database=test_aspire_npgsql;Username=postgres;Password=postgres";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -35,7 +36,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanConnectToServer => s_canConnectToServer.Value;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {
@@ -56,10 +57,15 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
             ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
+    public ConformanceTests(PostgreSQLContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Npgsql", key, "ConnectionString"), ConnectionSting)
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Npgsql", key, "ConnectionString"), _containerFixture.GetConnectionString())
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlSettings>? configure = null, string? key = null)
@@ -116,54 +122,15 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         T? Resolve<T>() => key is null ? host.Services.GetService<T>() : host.Services.GetKeyedService<T>(key);
     }
 
-    [ConditionalFact]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
     {
-        SkipIfCanNotConnectToServer();
-
         RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
     }
 
-    [ConditionalFact]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource_Keyed()
     {
-        SkipIfCanNotConnectToServer();
-
         RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
-    }
-
-    private static bool GetCanConnect()
-    {
-        NpgsqlConnection connection = new(ConnectionSting);
-        NpgsqlCommand? cmd = null;
-
-        try
-        {
-            string dbName = connection.Database;
-
-            // postgres is the default administrative connection database of PostgreSQL
-            // we need to switch to it before we create the test db
-            connection = new(connection.ConnectionString.Replace(dbName, "postgres"));
-
-            connection.Open();
-
-            cmd = new NpgsqlCommand($"CREATE DATABASE {dbName}", connection);
-            cmd.ExecuteNonQuery();
-        }
-        catch (PostgresException dbEx) when (dbEx.SqlState == "42P04")
-        {
-            return true; // db already exists
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-        finally
-        {
-            cmd?.Dispose();
-            connection.Dispose();
-        }
-
-        return true;
     }
 }

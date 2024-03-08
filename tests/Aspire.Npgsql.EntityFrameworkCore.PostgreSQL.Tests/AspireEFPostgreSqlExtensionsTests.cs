@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Npgsql.Tests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -14,9 +15,15 @@ using Xunit;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
-public class AspireEFPostgreSqlExtensionsTests
+public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContainerFixture>
 {
-    private const string ConnectionString = "Host=localhost;Database=test;Username=postgres";
+    private readonly PostgreSQLContainerFixture _containerFixture;
+    private string ConnectionString => _containerFixture.GetConnectionString(); //"Host=localhost;Database=test;Username=postgres";
+
+    public AspireEFPostgreSqlExtensionsTests(PostgreSQLContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
 
     internal static void ConfigureDbContextOptionsBuilderForTesting(DbContextOptionsBuilder builder)
     {

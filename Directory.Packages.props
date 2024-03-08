@@ -133,6 +133,7 @@
     <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestContainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestContainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Redis" Version="$(TestContainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.PostgreSQL" Version="$(TestContainersPackageVersion)" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- Introduced by Microsoft.Azure.Cosmos, https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->
