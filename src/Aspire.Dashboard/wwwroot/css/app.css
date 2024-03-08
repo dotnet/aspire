@@ -45,9 +45,6 @@ fluent-toolbar[orientation=horizontal] {
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
     --kbd-background-color: var(--neutral-layer-4);
 
-    /* overrides of default fluentui-blazor styling */
-    --disabled-opacity: 0.7 !important;
-
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
 }
 
@@ -66,13 +63,22 @@ fluent-toolbar[orientation=horizontal] {
 
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
-    --disabled-opacity: 0.85 !important;
 
     color-scheme: dark;
 }
 
 [data-theme="light"] {
     color-scheme: light;
+}
+
+fluent-select.resource-list {
+    /* overrides of default fluentui-blazor styling */
+    --disabled-opacity: 0.7;
+}
+
+[data-theme="dark"] fluent-select.resource-list {
+    /* overrides of default fluentui-blazor styling */
+    --disabled-opacity: 0.85;
 }
 
 h1 {
@@ -349,4 +355,13 @@ fluent-switch.table-switch::part(label) {
 .layout .fluent-toast-provider.position-topright {
     top: 50px;
     right: calc(var(--design-unit) * 1.5px);
+}
+
+
+/* Some of the data-columns (e.g. logs and details in the resource page)
+   should not have ellipsis as this is unnecessary and a bit distracting.
+   !important is required to override the fluentui-blazor styling.
+*/
+fluent-data-grid-cell.no-ellipsis {
+    text-overflow: unset !important;
 }

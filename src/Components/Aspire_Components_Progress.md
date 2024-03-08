@@ -26,6 +26,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | Oracle.EntityFrameworkCore              |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
 | Confluent.Kafka                         |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ❌            |         ✅           |              ✅                  |
 | Pomelo.EntityFrameworkCore.MySql        |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
+| NATS.Net                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |                      |                      |              ✅                  |
 
 Nomenclature used in the table above:
 

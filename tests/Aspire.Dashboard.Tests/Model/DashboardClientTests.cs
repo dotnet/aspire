@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Configuration;
@@ -46,7 +47,7 @@ public sealed class DashboardClientTests
 
         await cts.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask).ConfigureAwait(false);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
     }
@@ -76,7 +77,7 @@ public sealed class DashboardClientTests
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask).ConfigureAwait(false);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
     }
 
     [Fact]

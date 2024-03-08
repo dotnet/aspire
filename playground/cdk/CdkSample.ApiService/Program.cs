@@ -1,31 +1,55 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureBlobService("blobs");
+builder.AddAzureBlobClient("blobs");
 builder.AddSqlServerDbContext<SqlContext>("sqldb");
-builder.AddAzureKeyVaultSecrets("mykv");
+builder.AddAzureKeyVaultClient("mykv");
+builder.AddRedisClient("cache");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc, SqlContext context, SecretClient sc) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext context, SecretClient sc, IConnectionMultiplexer connection) =>
 {
     return new
     {
+        redisEntries = await TestRedisAsync(connection),
         secretChecked = await TestSecretAsync(sc),
         blobFiles = await TestBlobStorageAsync(bsc),
         sqlRows = await TestSqlServerAsync(context)
     };
 });
-
 app.Run();
+
+static async Task<IEnumerable<Entry>> TestRedisAsync(IConnectionMultiplexer connection)
+{
+    var database = connection.GetDatabase();
+
+    var entry = new Entry();
+
+    // Add an entry to the list on each request.
+    await database.ListRightPushAsync("entries", JsonSerializer.SerializeToUtf8Bytes(entry));
+
+    var entries = new List<Entry>();
+    var list = await database.ListRangeAsync("entries");
+
+    foreach (var item in list)
+    {
+        entries.Add(JsonSerializer.Deserialize<Entry>((string)item!)!);
+    }
+
+    return entries;
+
+}
 
 static async Task<bool> TestSecretAsync(SecretClient secretClient)
 {

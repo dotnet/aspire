@@ -32,6 +32,7 @@ microsoft
 mongodb
 mssql
 mysql
+nats
 noreferrer
 noopener
 npgsql

@@ -13,7 +13,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Resources : ComponentBase, IDisposable
+public partial class Resources : ComponentBase, IAsyncDisposable
 {
     private Subscription? _logsSubscription;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
@@ -37,6 +37,7 @@ public partial class Resources : ComponentBase, IDisposable
     private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes;
     private string _filter = "";
     private bool _isTypeFilterVisible;
+    private Task? _resourceSubscriptionTask;
 
     public Resources()
     {
@@ -119,8 +120,14 @@ public partial class Resources : ComponentBase, IDisposable
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
         {
-            _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
-            await InvokeAsync(StateHasChanged);
+            var newApplicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+
+            // Only update UI if the error counts have changed.
+            if (ApplicationErrorCountsChanged(newApplicationUnviewedErrorCounts))
+            {
+                _applicationUnviewedErrorCounts = newApplicationUnviewedErrorCounts;
+                await InvokeAsync(StateHasChanged);
+            }
         });
 
         async Task SubscribeResourcesAsync()
@@ -139,27 +146,48 @@ public partial class Resources : ComponentBase, IDisposable
             }
 
             // Listen for updates and apply.
-            _ = Task.Run(async () =>
+            _resourceSubscriptionTask = Task.Run(async () =>
             {
-                await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
+                await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
                 {
-                    if (changeType == ResourceViewModelChangeType.Upsert)
+                    foreach (var (changeType, resource) in changes)
                     {
-                        _resourceByName[resource.Name] = resource;
+                        if (changeType == ResourceViewModelChangeType.Upsert)
+                        {
+                            _resourceByName[resource.Name] = resource;
 
-                        _allResourceTypes[resource.ResourceType] = true;
-                        _visibleResourceTypes[resource.ResourceType] = true;
-                    }
-                    else if (changeType == ResourceViewModelChangeType.Delete)
-                    {
-                        var removed = _resourceByName.TryRemove(resource.Name, out _);
-                        Debug.Assert(removed, "Cannot remove unknown resource.");
+                            _allResourceTypes[resource.ResourceType] = true;
+                            _visibleResourceTypes[resource.ResourceType] = true;
+                        }
+                        else if (changeType == ResourceViewModelChangeType.Delete)
+                        {
+                            var removed = _resourceByName.TryRemove(resource.Name, out _);
+                            Debug.Assert(removed, "Cannot remove unknown resource.");
+                        }
                     }
 
                     await InvokeAsync(StateHasChanged);
                 }
             });
         }
+    }
+
+    private bool ApplicationErrorCountsChanged(Dictionary<OtlpApplication, int> newApplicationUnviewedErrorCounts)
+    {
+        if (_applicationUnviewedErrorCounts == null || _applicationUnviewedErrorCounts.Count != newApplicationUnviewedErrorCounts.Count)
+        {
+            return true;
+        }
+
+        foreach (var (application, count) in newApplicationUnviewedErrorCounts)
+        {
+            if (!_applicationUnviewedErrorCounts.TryGetValue(application, out var oldCount) || oldCount != count)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void ShowResourceDetails(ResourceViewModel resource)
@@ -199,22 +227,6 @@ public partial class Resources : ComponentBase, IDisposable
         return false;
     }
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _watchTaskCancellationTokenSource.Cancel();
-            _watchTaskCancellationTokenSource.Dispose();
-            _logsSubscription?.Dispose();
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
     private string? GetRowClass(ResourceViewModel resource)
         => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
 
@@ -250,5 +262,14 @@ public partial class Resources : ComponentBase, IDisposable
                 }
             });
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _watchTaskCancellationTokenSource.Cancel();
+        _watchTaskCancellationTokenSource.Dispose();
+        _logsSubscription?.Dispose();
+
+        await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
     }
 }

@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="owner">The resource with inputs that owns the input.</param>
 /// <param name="inputName">The name of the input.</param>
-public sealed class InputReference(IResource owner, string inputName) : IManifestExpressionProvider
+public sealed class InputReference(IResource owner, string inputName) : IManifestExpressionProvider, IValueProvider
 {
     /// <summary>
     /// Gets the owner of the input.
@@ -27,6 +27,8 @@ public sealed class InputReference(IResource owner, string inputName) : IManifes
 
     /// <inheritdoc/>
     public string ValueExpression => $"{{{Owner.Name}.inputs.{InputName}}}";
+
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Input.Value);
 
     private InputAnnotation GetInputAnnotation()
     {

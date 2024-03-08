@@ -32,7 +32,25 @@ public static class AspireQueueStorageExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Queues" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageQueuesSettings.ConnectionString"/> nor <see cref="AzureStorageQueuesSettings.ServiceUri"/> is provided.</exception>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureQueueClient)} instead.")]
     public static void AddAzureQueueService(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureStorageQueuesSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>>? configureClientBuilder = null)
+        => AddAzureQueueClient(builder, connectionName, configureSettings, configureClientBuilder);
+
+    /// <summary>
+    /// Registers <see cref="QueueServiceClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureStorageQueuesSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Queues" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageQueuesSettings.ConnectionString"/> nor <see cref="AzureStorageQueuesSettings.ServiceUri"/> is provided.</exception>
+    public static void AddAzureQueueClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureStorageQueuesSettings>? configureSettings = null,
@@ -51,7 +69,25 @@ public static class AspireQueueStorageExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Queues:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageQueuesSettings.ConnectionString"/> nor <see cref="AzureStorageQueuesSettings.ServiceUri"/> is provided.</exception>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedAzureQueueClient)} instead.")]
     public static void AddKeyedAzureQueueService(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureStorageQueuesSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>>? configureClientBuilder = null)
+        => AddKeyedAzureQueueClient(builder, name, configureSettings, configureClientBuilder);
+
+    /// <summary>
+    /// Registers <see cref="QueueServiceClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureStorageQueuesSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Storage:Queues:{name}" section.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageQueuesSettings.ConnectionString"/> nor <see cref="AzureStorageQueuesSettings.ServiceUri"/> is provided.</exception>
+    public static void AddKeyedAzureQueueClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureStorageQueuesSettings>? configureSettings = null,

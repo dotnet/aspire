@@ -43,8 +43,6 @@ internal sealed class BicepProvisioner(
             return false;
         }
 
-        var resourceIds = section.GetSection("ResourceIds");
-
         if (section["Outputs"] is string outputJson)
         {
             JsonNode? outputObj = null;
@@ -476,10 +474,6 @@ internal sealed class BicepProvisioner(
                     bool b => b,
                     Guid g => g.ToString(),
                     JsonNode node => node,
-                    InputReference reference => reference.Input.GenerateDefaultValue(),
-                    // TODO: Support this
-                    AzureBicepResource bicepResource => throw new NotSupportedException("Referencing bicep resources is not supported"),
-                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
                     IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     null => null,
                     _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")
