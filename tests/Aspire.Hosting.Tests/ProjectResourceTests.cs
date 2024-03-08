@@ -112,7 +112,7 @@ public class ProjectResourceTests
     }
 
     [Fact]
-    public void WithLaunchProfile_TrailingSemiColon()
+    public void WithLaunchProfile_ApplicationUrlTrailingSemiColon_Ignore()
     {
         var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
 
