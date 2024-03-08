@@ -8,7 +8,7 @@ namespace Aspire.Dashboard.ConsoleLogs;
 
 public class AnsiParser
 {
-    public const char EscapeChar = '\x1B';
+    private const char EscapeChar = '\x1B';
     private const int ResetCode = 0;
     private const int IncreasedIntensityCode = 1;
     private const int NormalIntensityCode = 22;
@@ -133,7 +133,7 @@ public class AnsiParser
         }
     }
 
-    public static bool IsControlSequence(ReadOnlySpan<char> span, int position, out int parameter)
+    private static bool IsControlSequence(ReadOnlySpan<char> span, int position, out int parameter)
     {
         // If we're at \x1B[ and the span is at least long enough for a single digit parameter
         if (span[position] == EscapeChar && span.Length >= position + 4 && span[position + 1] == '[')
