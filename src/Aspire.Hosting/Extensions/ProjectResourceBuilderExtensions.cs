@@ -114,7 +114,7 @@ public static class ProjectResourceBuilderExtensions
                 return builder;
             }
 
-            var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';') ?? [];
+            var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
             foreach (var url in urlsFromApplicationUrl)
             {
                 var uri = new Uri(url);
