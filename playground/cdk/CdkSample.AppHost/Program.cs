@@ -37,13 +37,36 @@ var pgsqldb = builder.AddPostgres("pgsql")
 
 var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServerConstruct();
 
+var sb = builder.AddAzureServiceBusConstruct("sb")
+    .AddQueue("queue1",
+        (construct, queue) =>
+        {
+            queue.Properties.MaxDeliveryCount = 5;
+            queue.Properties.LockDuration = TimeSpan.FromMinutes(5);
+        })
+    .AddTopic("topic1",
+        (cosntruct, topic) =>
+        {
+            topic.Properties.EnablePartitioning = true;
+        })
+    .AddTopic("topic2")
+    .AddSubscription("topic1", "subscription1",
+        (construct, subscription) =>
+        {
+            subscription.Properties.LockDuration = TimeSpan.FromMinutes(5);
+            subscription.Properties.RequiresSession = true;
+        })
+    .AddSubscription("topic1", "subscription2")
+    .AddTopic("topic3", new[] { "sub1", "sub2" });
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
-       .WithReference(blobs)
-       .WithReference(sqldb)
-       .WithReference(keyvault)
-       .WithReference(cache)
-       .WithReference(cosmosdb)
-       .WithReference(pgsqldb);
+    .WithReference(blobs)
+    .WithReference(sqldb)
+    .WithReference(keyvault)
+    .WithReference(cache)
+    .WithReference(cosmosdb)
+    .WithReference(pgsqldb)
+    .WithReference(sb);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

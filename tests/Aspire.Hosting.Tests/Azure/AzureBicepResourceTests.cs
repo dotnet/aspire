@@ -756,6 +756,39 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public void AddAzureServiceBusConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var serviceBus = builder.AddAzureServiceBusConstruct("sb");
+
+        serviceBus
+            .AddQueue("queue1")
+            .AddQueue("queue2")
+            .AddTopic("t1")
+            .AddTopic("t2")
+            .AddSubscription("t1", "s3");
+
+        serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
+
+        var queuesCallback = serviceBus.Resource.Parameters["queues"] as Func<object?>;
+        var topicsCallback = serviceBus.Resource.Parameters["topics"] as Func<object?>;
+        Assert.NotNull(queuesCallback);
+        Assert.NotNull(topicsCallback);
+        var queues = queuesCallback() as IEnumerable<string>;
+        var topics = topicsCallback() as JsonNode;
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.servicebus.bicep", serviceBus.Resource.TemplateResourceName);
+        Assert.Equal("sb", serviceBus.Resource.Name);
+        Assert.Equal("sb", serviceBus.Resource.Parameters["serviceBusNamespaceName"]);
+        Assert.NotNull(queues);
+        Assert.Equal(["queue1", "queue2"], queues);
+        Assert.NotNull(topics);
+        Assert.Equal("""[{"name":"t1","subscriptions":["s1","s2"]},{"name":"t2","subscriptions":[]},{"name":"t3","subscriptions":["s3"]}]""", topics.ToJsonString());
+        Assert.Equal("mynamespaceEndpoint", serviceBus.Resource.GetConnectionString());
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
     public async Task AddAzureStorage()
     {
         var builder = DistributedApplication.CreateBuilder();
