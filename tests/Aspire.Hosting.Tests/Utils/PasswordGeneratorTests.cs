@@ -12,7 +12,6 @@ public class PasswordGeneratorTests
     public void ThrowsArgumentOutOfRangeException()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Generate(-1, true, true, true, true, 0, 0, 0, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Generate(129, true, true, true, true, 0, 0, 0, 0));
 
         Assert.Throws<ArgumentOutOfRangeException>(() => Generate(10, true, true, true, true, -1, 0, 0, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => Generate(10, true, true, true, true, 0, -1, 0, 0));
@@ -30,6 +29,12 @@ public class PasswordGeneratorTests
         Assert.Throws<ArgumentException>(() => Generate(10, true, true, true, false, 0, 0, 0, 1));
 
         Assert.Throws<ArgumentException>(() => Generate(10, false, false, false, false, 0, 0, 0, 0));
+    }
+
+    [Fact]
+    public void ThrowsOverflowException()
+    {
+        Assert.Throws<OverflowException>(() => Generate(10, true, true, true, true, int.MaxValue, 1, 0, 0));
     }
 
     [Theory]
@@ -114,5 +119,15 @@ public class PasswordGeneratorTests
         var password = Generate(7, true, true, true, true, 2, 2, 2, 2);
 
         Assert.Equal(8, password.Length);
+    }
+
+    [Fact]
+    public void WorksWithLargeLengths()
+    {
+        var password = Generate(1025, true, true, true, true, 0, 0, 0, 0);
+        Assert.Equal(1025, password.Length);
+
+        password = Generate(10, true, true, true, true, 1024, 1024, 1024, 1025);
+        Assert.Equal(4097, password.Length);
     }
 }
