@@ -142,7 +142,7 @@ public static class AzurePostgresExtensions
             postgres.AssignProperty(x => x.Backup.GeoRedundantBackup, "'Disabled'");
             postgres.AssignProperty(x => x.AvailabilityZone, "'1'");
 
-            postgres.Properties.Tags["aspire-resource-name"] = builder.Resource.Name;
+            postgres.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
             // Opens access to all Azure services.
             var azureServicesFirewallRule = new PostgreSqlFirewallRule(construct, "0.0.0.0", "0.0.0.0", postgres, "AllowAllAzureIps");
