@@ -4,6 +4,7 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.ServiceBus;
 
@@ -52,7 +53,10 @@ public static class AzureServiceBusExtensions
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var serviceBusNamespace = new ServiceBusNamespace(construct, name: construct.Resource.Name);
+            var serviceBusNamespace = new ServiceBusNamespace(construct, name: name);
+
+            serviceBusNamespace.AssignProperty(p => p.Sku, new Parameter("sku", defaultValue: "Standard"));
+
             var serviceBusDataOwnerRole = serviceBusNamespace.AssignRole(RoleDefinition.ServiceBusDataOwner);
             serviceBusDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 

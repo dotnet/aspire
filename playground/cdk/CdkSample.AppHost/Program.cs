@@ -37,7 +37,7 @@ var pgsqldb = builder.AddPostgres("pgsql")
 
 var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServerConstruct();
 
-var sb = builder.AddAzureServiceBusConstruct("sb")
+var sb = builder.AddAzureServiceBusConstruct("servicebus")
     .AddQueue("queue1",
         (construct, queue) =>
         {
