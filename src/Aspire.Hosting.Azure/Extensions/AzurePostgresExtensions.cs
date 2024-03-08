@@ -130,7 +130,7 @@ public static class AzurePostgresExtensions
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var administratorLogin = new Parameter("administratorLogin");
-            var administratorLoginPassword = new Parameter("administratorLoginPassword");
+            var administratorLoginPassword = new Parameter("administratorLoginPassword", isSecure: true);
 
             var postgres = new PostgreSqlFlexibleServer(construct, administratorLogin, administratorLoginPassword, name: construct.Resource.Name);
             postgres.AssignProperty(x => x.Sku.Name, "'Standard_B1ms'");

@@ -6,6 +6,7 @@ param location string = resourceGroup().location
 @description('')
 param administratorLogin string
 
+@secure()
 @description('')
 param administratorLoginPassword string
 
