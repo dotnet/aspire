@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ChartContainerUnableToDisplay">
         <source>Unable to display chart.</source>
-        <target state="translated">Grafik görüntülenemiyor.</target>
+        <target state="translated">Liste görüntülenemiyor.</target>
         <note />
       </trans-unit>
     </body>
