@@ -216,7 +216,7 @@ public class AddOracleTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }

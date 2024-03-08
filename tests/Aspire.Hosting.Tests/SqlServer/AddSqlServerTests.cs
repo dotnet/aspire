@@ -143,7 +143,10 @@ public class AddSqlServerTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22,
+                      "minLower": 1,
+                      "minUpper": 1,
+                      "minNumeric": 1
                     }
                   }
                 }

@@ -97,7 +97,13 @@ public static class AzurePostgresExtensions
             // generate a username since a parameter was not provided
             builder.WithAnnotation(new InputAnnotation(usernameInput)
             {
-                Default = new GenerateInputDefault { MinLength = 10 }
+                Default = new GenerateInputDefault
+                {
+                    MinLength = 10,
+                    // just use letters for the username since it can't start with a number
+                    Numeric = false,
+                    Special = false
+                }
             });
 
             builder.WithParameter("administratorLogin", new InputReference(builder.Resource, usernameInput));

@@ -176,7 +176,7 @@ public class AddMySqlTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }

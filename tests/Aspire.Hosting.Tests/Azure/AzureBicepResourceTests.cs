@@ -466,7 +466,10 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22,
+                      "minLower": 1,
+                      "minUpper": 1,
+                      "minNumeric": 1
                     }
                   }
                 }
@@ -588,7 +591,7 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }
@@ -625,7 +628,7 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 },
@@ -633,7 +636,9 @@ public class AzureBicepResourceTests
                   "type": "string",
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 10,
+                      "numeric": false,
+                      "special": false
                     }
                   }
                 }
@@ -666,7 +671,7 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }
@@ -697,7 +702,7 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 },
@@ -705,7 +710,9 @@ public class AzureBicepResourceTests
                   "type": "string",
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 10,
+                      "numeric": false,
+                      "special": false
                     }
                   }
                 }
