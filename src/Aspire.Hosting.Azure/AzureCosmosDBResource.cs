@@ -176,12 +176,7 @@ public static class AzureCosmosExtensions
             }
 
             var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-
-            var keyVaultSecret = new KeyVaultSecret(construct, keyVault, "connectionString");
-            keyVaultSecret.AssignProperty(
-                x => x.Properties.Value,
-                $$"""'AccountEndpoint=${{{cosmosAccount.Name}}.properties.documentEndpoint};AccountKey=${{{cosmosAccount.Name}}.listKeys({{cosmosAccount.Name}}.apiVersion).primaryMasterKey}'"""
-            );
+            _ = new KeyVaultSecret(construct, "connectionString", cosmosAccount.GetConnectionString());
 
             if (configureResource != null)
             {

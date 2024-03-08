@@ -45,6 +45,6 @@ resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2023-02-01'
   name: 'connectionString'
   location: location
   properties: {
-    value: 'AccountEndpoint=${cosmosDBAccount_5pKmb8KAZ.properties.documentEndpoint};AccountKey=${cosmosDBAccount_5pKmb8KAZ.listKeys(cosmosDBAccount_5pKmb8KAZ.apiVersion).primaryMasterKey}
+    value: 'AccountEndpoint=${cosmosDBAccount_5pKmb8KAZ.properties.documentEndpoint};AccountKey=${cosmosDBAccount_5pKmb8KAZ.listkeys(cosmosDBAccount_5pKmb8KAZ.apiVersion).primaryMasterKey}'
   }
 }
