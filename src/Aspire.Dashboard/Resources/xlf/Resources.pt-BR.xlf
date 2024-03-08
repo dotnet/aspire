@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="ResourceCommandFailed">
         <source>"{0}" command failed</source>
-        <target state="new">"{0}" command failed</target>
+        <target state="translated">O comando “{0}” falhou</target>
         <note>{0} is the display name of the command that failed</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
         <source>"{0}" command succeeded</source>
-        <target state="new">"{0}" command succeeded</target>
+        <target state="translated">O comando “{0}” foi bem-sucedido</target>
         <note>{0} is the display name of the command that succeeded</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View Logs</source>
-        <target state="new">View Logs</target>
+        <target state="translated">Exibir os Logs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ResourcesCommandsColumnHeader">
         <source>Commands</source>
-        <target state="new">Commands</target>
+        <target state="translated">Comandos</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsColumnHeader">

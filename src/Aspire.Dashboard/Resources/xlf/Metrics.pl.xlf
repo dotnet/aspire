@@ -4,32 +4,32 @@
     <body>
       <trans-unit id="MetricsHeader">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Metryki</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsInsturementDescriptionGridNameColumnHeader">
         <source>Description</source>
-        <target state="new">Description</target>
+        <target state="translated">Opis</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsInsturementNameGridNameColumnHeader">
         <source>Instrument</source>
-        <target state="new">Instrument</target>
+        <target state="translated">Instrument</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastFifteenMinutes">
         <source>Last 15 minutes</source>
-        <target state="new">Last 15 minutes</target>
+        <target state="translated">Ostatnie 15 minut</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastFiveMinutes">
         <source>Last 5 minutes</source>
-        <target state="new">Last 5 minutes</target>
+        <target state="translated">Ostatnie 5 minut</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastHour">
         <source>Last hour</source>
-        <target state="new">Last hour</target>
+        <target state="translated">Ostatnia godzina</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastOneMinute">
@@ -39,27 +39,27 @@
       </trans-unit>
       <trans-unit id="MetricsLastSixHours">
         <source>Last 6 hours</source>
-        <target state="new">Last 6 hours</target>
+        <target state="translated">Ostatnie 6 godzin</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastThirtyMinutes">
         <source>Last 30 minutes</source>
-        <target state="new">Last 30 minutes</target>
+        <target state="translated">Ostatnie 30 minut</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastThreeHours">
         <source>Last 3 hours</source>
-        <target state="new">Last 3 hours</target>
+        <target state="translated">Ostatnie 3 godziny</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastTwelveHours">
         <source>Last 12 hours</source>
-        <target state="new">Last 12 hours</target>
+        <target state="translated">Ostatnie 12 godzin</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastTwentyFourHours">
         <source>Last 24 hours</source>
-        <target state="new">Last 24 hours</target>
+        <target state="translated">Ostatnie 24 godziny</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
@@ -69,12 +69,12 @@
       </trans-unit>
       <trans-unit id="MetricsPageTitle">
         <source>{0} metrics</source>
-        <target state="new">{0} metrics</target>
+        <target state="translated">Metryki {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="MetricsSelectADuration">
         <source>Select a duration</source>
-        <target state="new">Select a duration</target>
+        <target state="translated">Wybierz czas trwania</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsSelectAResource">

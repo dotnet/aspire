@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>.NET Aspire</source>
-        <target state="new">.NET Aspire</target>
+        <target state="translated">.NET Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
         <source>Help</source>
-        <target state="new">Help</target>
+        <target state="translated">Nápověda</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
@@ -19,57 +19,57 @@
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
         <source>Launch settings</source>
-        <target state="new">Launch settings</target>
+        <target state="translated">Nastavení pro spuštění</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">Zavřít</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogTitle">
         <source>Settings</source>
-        <target state="new">Settings</target>
+        <target state="translated">Nastavení</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorMessage">
         <source>An unhandled error has occurred.</source>
-        <target state="new">An unhandled error has occurred.</target>
+        <target state="translated">Došlo k neošetřené chybě.</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorReload">
         <source>Reload</source>
-        <target state="new">Reload</target>
+        <target state="translated">Načíst znovu</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
         <source>Console</source>
-        <target state="new">Console</target>
+        <target state="translated">Konzola</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMetricsTab">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Metriky</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMonitoringTab">
         <source>Monitoring</source>
-        <target state="new">Monitoring</target>
+        <target state="translated">Monitorování</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuResourcesTab">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">Prostředky</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuStructuredLogsTab">
         <source>Structured</source>
-        <target state="new">Structured</target>
+        <target state="translated">Strukturované</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuTracesTab">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Trasování</target>
         <note />
       </trans-unit>
     </body>

@@ -4,72 +4,72 @@
     <body>
       <trans-unit id="MainLayoutAspire">
         <source>.NET Aspire</source>
-        <target state="new">.NET Aspire</target>
+        <target state="translated">Platforma .NET — Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
         <source>Help</source>
-        <target state="new">Help</target>
+        <target state="translated">Pomoc</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
         <source>.NET Aspire repo</source>
-        <target state="translated">Repozytorium Platformy .NET</target>
+        <target state="translated">Repozytorium platformy .NET — Aspire</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
         <source>Launch settings</source>
-        <target state="new">Launch settings</target>
+        <target state="translated">Ustawienia uruchamiania</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">Zamknij</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogTitle">
         <source>Settings</source>
-        <target state="new">Settings</target>
+        <target state="translated">Ustawienia</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorMessage">
         <source>An unhandled error has occurred.</source>
-        <target state="new">An unhandled error has occurred.</target>
+        <target state="translated">Wystąpił nieobsługiwany błąd.</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorReload">
         <source>Reload</source>
-        <target state="new">Reload</target>
+        <target state="translated">Załaduj ponownie</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
         <source>Console</source>
-        <target state="new">Console</target>
+        <target state="translated">Konsola</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMetricsTab">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Metryki</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMonitoringTab">
         <source>Monitoring</source>
-        <target state="new">Monitoring</target>
+        <target state="translated">Monitorowanie</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuResourcesTab">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">Zasoby</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuStructuredLogsTab">
         <source>Structured</source>
-        <target state="new">Structured</target>
+        <target state="translated">Ustrukturyzowane</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuTracesTab">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Ślady</target>
         <note />
       </trans-unit>
     </body>
