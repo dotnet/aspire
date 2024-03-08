@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">Název: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Trasování</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">Filtr názvů</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="TracesPageTitle">
         <source>{0} traces</source>
-        <target state="translated">{0} trasování</target>
+        <target state="translated">Trasování aplikace {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TracesResourceSpans">
         <source>{0} spans</source>
-        <target state="translated">{0} rozsahy</target>
+        <target state="translated">Rozsahy prostředku {0}</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
         <source>Errored: {0}</source>
-        <target state="translated">Chyba: {0}</target>
+        <target state="translated">S chybami: {0}</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">Celkem: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">
