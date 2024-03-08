@@ -132,7 +132,7 @@ public static class AzurePostgresExtensions
             var administratorLogin = new Parameter("administratorLogin");
             var administratorLoginPassword = new Parameter("administratorLoginPassword");
 
-            var postgres = new PostgreSqlFlexibleServer(construct, administratorLogin, administratorLoginPassword);
+            var postgres = new PostgreSqlFlexibleServer(construct, administratorLogin, administratorLoginPassword, name: construct.Resource.Name);
             postgres.AssignProperty(x => x.Sku.Name, "'Standard_B1ms'");
             postgres.AssignProperty(x => x.Sku.Tier, "'Burstable'");
             postgres.AssignProperty(x => x.Version, "'16'");

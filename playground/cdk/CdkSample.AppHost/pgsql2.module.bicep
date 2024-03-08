@@ -20,8 +20,8 @@ resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
 }
 
-resource postgreSqlFlexibleServer_NYWb9Nbel 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
-  name: toLower(take(concat('postgres', uniqueString(resourceGroup().id)), 24))
+resource postgreSqlFlexibleServer_L4yCjMLWz 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+  name: toLower(take(concat('pgsql2', uniqueString(resourceGroup().id)), 24))
   location: location
   sku: {
     name: 'Standard_B1ms'
@@ -45,8 +45,8 @@ resource postgreSqlFlexibleServer_NYWb9Nbel 'Microsoft.DBforPostgreSQL/flexibleS
   }
 }
 
-resource postgreSqlFirewallRule_2vbo6vMGo 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
-  parent: postgreSqlFlexibleServer_NYWb9Nbel
+resource postgreSqlFirewallRule_b2WDQTOKx 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+  parent: postgreSqlFlexibleServer_L4yCjMLWz
   name: 'AllowAllAzureIps'
   properties: {
     startIpAddress: '0.0.0.0'
@@ -59,6 +59,6 @@ resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2023-02-01'
   name: 'connectionString'
   location: location
   properties: {
-    value: 'Host=${postgreSqlFlexibleServer_NYWb9Nbel.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+    value: 'Host=${postgreSqlFlexibleServer_L4yCjMLWz.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
   }
 }
