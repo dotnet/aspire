@@ -20,7 +20,7 @@ builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClient sc, IConnectionMultiplexer connection, CosmosContext cosmosContext, npgsqlContext) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClient sc, IConnectionMultiplexer connection, CosmosContext cosmosContext, NpgsqlContext npgsqlContext) =>
 {
     return new
     {
@@ -105,11 +105,6 @@ static async Task<List<Entry>> TestNpgsqlAsync(NpgsqlContext context)
     return entries;
 }
 
-public class NpgsqlContext(DbContextOptions<NpgsqlContext> options) : DbContext(options)
-{
-    public DbSet<Entry> Entries { get; set; }
-}
-
 static async Task<List<Entry>> TestCosmosAsync(CosmosContext context)
 {
     await context.Database.EnsureCreatedAsync();
@@ -120,6 +115,11 @@ static async Task<List<Entry>> TestCosmosAsync(CosmosContext context)
 
     var entries = await context.Entries.ToListAsync();
     return entries;
+}
+
+public class NpgsqlContext(DbContextOptions<NpgsqlContext> options) : DbContext(options)
+{
+    public DbSet<Entry> Entries { get; set; }
 }
 
 public class SqlContext(DbContextOptions<SqlContext> options) : DbContext(options)

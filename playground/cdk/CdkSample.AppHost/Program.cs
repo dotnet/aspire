@@ -42,7 +42,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
        .WithReference(sqldb)
        .WithReference(keyvault)
        .WithReference(cache)
-       .WithReference(cosmosdb);
+       .WithReference(cosmosdb)
        .WithReference(pgsqldb);
 
 // This project is only added in playground projects to support development/debugging
