@@ -183,6 +183,43 @@ public class ManifestGenerationTests
             arg => Assert.Equal("more", arg.GetString()));
     }
 
+    [Fact]
+    public void EnsureContainerWithVolumesEmitsVolumes()
+    {
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddContainer("containerwithvolumes", "image/name")
+                          .WithVolume("myvolume", "/mount/here")
+                          .WithBindMount("./some/source", "/bound") // This should be ignored and not written to the manifest
+                          .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
+                          .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var grafana = resources.GetProperty("containerwithvolumes");
+        var volumes = grafana.GetProperty("volumes");
+        Assert.Equal(3, volumes.GetArrayLength());
+        Assert.Collection(volumes.EnumerateArray(),
+            volume => Assert.Collection(volume.EnumerateObject(),
+                property => { Assert.Equal("name", property.Name); Assert.Equal("myvolume", property.Value.GetString()); },
+                property => { Assert.Equal("target", property.Name); Assert.Equal("/mount/here", property.Value.GetString()); },
+                property => { Assert.Equal("readOnly", property.Name); Assert.False(property.Value.GetBoolean()); }),
+            volume => Assert.Collection(volume.EnumerateObject(),
+                property => { Assert.Equal("name", property.Name); Assert.Equal("myreadonlyvolume", property.Value.GetString()); },
+                property => { Assert.Equal("target", property.Name); Assert.Equal("/mount/there", property.Value.GetString()); },
+                property => { Assert.Equal("readOnly", property.Name); Assert.True(property.Value.GetBoolean()); }),
+            volume => Assert.Collection(volume.EnumerateObject(),
+                // Anonymous volumes don't have a name
+                property => { Assert.Equal("target", property.Name); Assert.Equal("/mount/everywhere", property.Value.GetString()); },
+                property => { Assert.Equal("readOnly", property.Name); Assert.False(property.Value.GetBoolean()); }));
+    }
+
     [Theory]
     [InlineData(new string[] { "args1", "args2" }, new string[] { "withArgs1", "withArgs2" })]
     [InlineData(new string[] { }, new string[] { "withArgs1", "withArgs2" })]
