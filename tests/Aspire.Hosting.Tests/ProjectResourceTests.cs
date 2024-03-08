@@ -112,6 +112,36 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public void WithLaunchProfile_TrailingSemiColon()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: "https");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        Assert.Collection(
+            resource.Annotations.OfType<EndpointAnnotation>(),
+            a =>
+            {
+                Assert.Equal("https", a.Name);
+                Assert.Equal("https", a.UriScheme);
+                Assert.Equal(7123, a.Port);
+            },
+            a =>
+            {
+                Assert.Equal("http", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5156, a.Port);
+            });
+    }
+
+    [Fact]
     public void AddProjectFailsIfFileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
@@ -188,9 +218,10 @@ public class ProjectResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    private static IDistributedApplicationBuilder CreateBuilder()
+    private static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
-        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
+        var args = operation == DistributedApplicationOperation.Publish ? new[] { "--publisher", "manifest" } : Array.Empty<string>();
+        var appBuilder = DistributedApplication.CreateBuilder(args);
         // Block DCP from actually starting anything up as we don't need it for this test.
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
 
