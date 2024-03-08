@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.InternalTesting;
+namespace Aspire.Components.Common.Tests;
 
 // TODO: remove these attributes when Helix has a Windows agent with Docker support
 public class RequiresDockerTheoryAttribute : TheoryAttribute

@@ -4,7 +4,7 @@
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Text;
-using Aspire.InternalTesting;
+using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
