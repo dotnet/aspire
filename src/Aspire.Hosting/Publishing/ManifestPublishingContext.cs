@@ -185,8 +185,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString(key, valueString);
             }
 
-            WriteServiceDiscoveryEnvironmentVariables(resource);
-
             WritePortBindingEnvironmentVariables(resource);
 
             Writer.WriteEndObject();
@@ -224,42 +222,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteEndObject();
             }
             Writer.WriteEndObject();
-        }
-    }
-
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <param name="resource"></param>
-    public void WriteServiceDiscoveryEnvironmentVariables(IResource resource)
-    {
-        var endpointReferenceAnnotations = resource.Annotations.OfType<EndpointReferenceAnnotation>();
-
-        if (endpointReferenceAnnotations.Any())
-        {
-            foreach (var endpointReferenceAnnotation in endpointReferenceAnnotations)
-            {
-                var endpointNames = endpointReferenceAnnotation.UseAllEndpoints
-                    ? endpointReferenceAnnotation.Resource.Annotations.OfType<EndpointAnnotation>().Select(sb => sb.Name)
-                    : endpointReferenceAnnotation.EndpointNames;
-
-                var endpointAnnotationsGroupedByName = endpointReferenceAnnotation.Resource.Annotations
-                    .OfType<EndpointAnnotation>()
-                    .Where(sba => endpointNames.Contains(sba.Name, StringComparers.EndpointAnnotationName))
-                    .GroupBy(sba => sba.Name);
-
-                var serviceName = endpointReferenceAnnotation.Resource.Name;
-                foreach (var group in endpointAnnotationsGroupedByName)
-                {
-                    var i = 0;
-                    foreach (var endpointAnnotation in group)
-                    {
-                        Writer.WriteString(
-                            $"services__{serviceName}__{endpointAnnotation.Name}__{i++}",
-                            $"{{{serviceName}.bindings.{endpointAnnotation.Name}.url}}");
-                    }
-                }
-            }
         }
     }
 
