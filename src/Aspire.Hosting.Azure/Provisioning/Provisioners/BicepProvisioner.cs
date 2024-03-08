@@ -208,7 +208,8 @@ internal sealed class BicepProvisioner(
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
             Template = BinaryData.FromString(armTemplateContents.ToString()),
-            Parameters = BinaryData.FromObjectAsJson(parameters)
+            Parameters = BinaryData.FromObjectAsJson(parameters),
+            DebugSettingDetailLevel = "ResponseContent"
         }),
         cancellationToken).ConfigureAwait(false);
 
