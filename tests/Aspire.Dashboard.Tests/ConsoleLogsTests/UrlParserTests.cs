@@ -62,20 +62,13 @@ public class UrlParserTests
     [Theory]
     [InlineData("https://localhost\x1B[94m:\x1B[96m5173\x1B[94m\x1B[0m", "<a target=\"_blank\" href=\"https://localhost:5173\">https://localhost:5173</a>")]
     [InlineData("http://localhost\x1B[94m:\x1B[96m5173\x1B[94m\x1B[0m", "<a target=\"_blank\" href=\"http://localhost:5173\">http://localhost:5173</a>")]
+    [InlineData("\u001b[94mhttp://localhost\x1B[94m:\x1B[96m5173\x1B[94m\x1B[0m", "<a target=\"_blank\" href=\"http://localhost:5173\">http://localhost:5173</a>")]
     public void TryParse_IgnoreAnsiSequenceInUrl(string input, string? expectedOutput)
     {
-        var result = UrlParser.TryParse(input, out var modifiedText);
+        var inputAsHtml = AnsiParser.ConvertToHtml(input).ConvertedText;
+        var result = UrlParser.TryParse(inputAsHtml, out var modifiedText);
 
         Assert.True(result);
         Assert.Equal(expectedOutput, modifiedText);
-    }
-
-    [Theory]
-    [InlineData("\u001b[94mhttp://localhost\x1B[94m:\x1B[96m5173\x1B[94m\x1B[0m")]
-    public void TryParse_UnsupportedAnsiAtStartOfUrl(string input)
-    {
-        var result = UrlParser.TryParse(input, out _);
-
-        Assert.False(result);
     }
 }
