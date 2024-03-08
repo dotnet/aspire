@@ -33,22 +33,60 @@
     }
 }
 
-<ul class="endpoint-list">
-    @foreach (var displayedEndpoint in displayedEndpoints)
-    {
-        <li>
-            @if (displayedEndpoint.Url != null)
-            {
-                <a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>
-            }
-            else
-            {
-                @displayedEndpoint.Text
-            }
-        </li>
-    }
-    @if (!string.IsNullOrEmpty(additionalMessage))
-    {
-        <li>@additionalMessage</li>
-    }
-</ul>
+<FluentOverflow>
+    <ChildContent>
+        @for (var i = 0; i < displayedEndpoints.Count; i++)
+        {
+            var displayedEndpoint = displayedEndpoints[i];
+            var isLast = i == displayedEndpoints.Count - 1;
+
+            <FluentOverflowItem Data="displayedEndpoint">
+                @if (displayedEndpoint.Url != null)
+                {
+                    <a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>
+                }
+                else
+                {
+                    @displayedEndpoint.Text
+                }
+                @if (!isLast)
+                {
+                    <span>,</span>
+                }
+            </FluentOverflowItem>
+        }
+    </ChildContent>
+    <MoreButtonTemplate Context="overflow">
+        <FluentBadge>
+            @($"+{overflow.ItemsOverflow.Count()}")
+        </FluentBadge>
+    </MoreButtonTemplate>
+    <OverflowTemplate Context="overflow">
+        @{
+            var items = overflow.ItemsOverflow.ToList();
+        }
+        <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton">
+            <div style="max-height:400px; overflow-x:hidden; overflow-y: auto; padding:5px 10px;">
+                @foreach (var item in items)
+                {
+                    var d = (DisplayedEndpoint)item.Data!;
+                    <div style="margin-top: 8px; margin-bottom: 8px;">
+                        @if (d.Url != null)
+                        {
+                            <a href="@d.Url" target="_blank">@d.Text</a>
+                        }
+                        else
+                        {
+                            @d.Text
+                        }
+                    </div>
+                }
+            </div>
+        </FluentTooltip>
+    </OverflowTemplate>
+</FluentOverflow>
+
+@if (!string.IsNullOrEmpty(additionalMessage))
+{
+    <div>@additionalMessage</div>
+}
