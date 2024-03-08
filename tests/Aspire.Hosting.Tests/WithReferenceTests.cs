@@ -100,7 +100,7 @@ public class WithReferenceTests
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
 
-        // The appsettings.json adds an "http" endpoint
+        // The launch profile adds an "http" endpoint
         testProgram.ServiceABuilder.WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4000));
 
         // Get the service provider.
@@ -129,7 +129,7 @@ public class WithReferenceTests
         testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
 
-        // The appsettings.json adds an "http" endpoint
+        // The launch profile adds an "http" endpoint
         testProgram.ServiceABuilder.WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4000));
 
         // Get the service provider.
