@@ -24,11 +24,17 @@
                     Class="severity-icon"/>
     }
 }
-else if (Resource is { State: ResourceStates.StartingState or /* pending */ null })
+else if (Resource is { State: ResourceStates.StartingState })
 {
     <FluentIcon Icon="Icons.Filled.Size16.Circle"
                 Color="Color.Info"
-                Class="severity-icon"/>
+    Class="severity-icon"/>
+}
+else if (Resource is { State: /* pending */ null })
+{
+    /* Show nothing while waiting for
+       the resource to be assigned a state.
+    */
 }
 else
 {
@@ -37,7 +43,7 @@ else
                 Class="severity-icon"/>
 }
 
-@Resource.State.Humanize()
+@(Resource.State?.Humanize() ?? "Pending")
 <UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
 
 @code {
