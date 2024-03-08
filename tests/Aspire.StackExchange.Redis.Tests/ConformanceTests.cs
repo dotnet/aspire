@@ -2,21 +2,25 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.ConformanceTests;
+using Aspire.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
+using Xunit;
 
 namespace Aspire.StackExchange.Redis.Tests;
 
-public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackExchangeRedisSettings>
+public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackExchangeRedisSettings>, IClassFixture<RedisContainerFixture>
 {
+    private readonly RedisContainerFixture _containerFixture;
+
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // IConnectionMultiplexer can be created only via call to ConnectionMultiplexer.Connect
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => AspireRedisHelpers.CanConnectToServer;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -54,8 +58,20 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
             ("""{"Aspire": { "StackExchange": { "Redis":{ "ConfigurationOptions": { "HeartbeatInterval": "3S"}}}}}""", "Value does not match format \"duration\"")
         };
 
-    protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
-        AspireRedisHelpers.PopulateConfiguration(configuration, key);
+    public ConformanceTests(RedisContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
+
+    protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
+    {
+        string connectionString = RequiresDockerTheoryAttribute.IsSupported
+                                    ? _containerFixture.GetConnectionString()
+                                    : "localhost";
+        configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", key, "ConnectionString"), connectionString)
+        ]);
+    }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<StackExchangeRedisSettings>? configure = null, string? key = null)
     {

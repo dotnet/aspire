@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Shared\RequiresDockerTheoryAttribute.cs" />
     <None Include="$(RepoRoot)src\Components\Aspire.StackExchange.Redis\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
@@ -12,6 +13,8 @@
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis.OutputCaching\Aspire.StackExchange.Redis.OutputCaching.csproj" />
 
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+
+    <PackageReference Include="TestContainers.Redis" />
   </ItemGroup>
 
 </Project>
