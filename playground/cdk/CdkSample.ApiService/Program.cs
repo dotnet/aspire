@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Azure.Messaging.ServiceBus;
 using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 using Microsoft.EntityFrameworkCore;
@@ -17,10 +18,11 @@ builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
 builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");
 builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
+builder.AddAzureServiceBusClient("sb");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClient sc, IConnectionMultiplexer connection, CosmosContext cosmosContext, NpgsqlContext npgsqlContext) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClient sc, IConnectionMultiplexer connection, CosmosContext cosmosContext, NpgsqlContext npgsqlContext, ServiceBusClient sbc) =>
 {
     return new
     {
@@ -30,6 +32,7 @@ app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClien
         blobFiles = await TestBlobStorageAsync(bsc),
         sqlRows = await TestSqlServerAsync(sqlContext),
         npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
+        serviceBus = await TestServiceBusAsync(sbc)
     };
 });
 app.Run();
@@ -79,6 +82,15 @@ static async Task<List<string>> TestBlobStorageAsync(BlobServiceClient bsc)
     }
 
     return blobNames;
+}
+
+static async Task<ServiceBusReceivedMessage> TestServiceBusAsync(ServiceBusClient sbc)
+{
+    await using var sender = sbc.CreateSender("myqueue");
+    await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"));
+
+    await using var receiver = sbc.CreateReceiver("myqueue");
+    return await receiver.ReceiveMessageAsync();
 }
 
 static async Task<List<Entry>> TestSqlServerAsync(SqlContext context)
