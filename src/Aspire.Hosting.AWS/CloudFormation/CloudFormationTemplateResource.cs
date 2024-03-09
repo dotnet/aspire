@@ -15,6 +15,18 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
     public string TemplatePath { get; } = templatePath;
 
     /// <inheritdoc/>
+    public string? RoleArn { get; set; }
+
+    /// <inheritdoc/>
+    public int StackPollingInterval { get; set; } = 3;
+
+    /// <inheritdoc/>
+    public bool DisableDiffCheck { get; set; }
+
+    /// <inheritdoc/>
+    public IList<string> DisabledCapabilities { get; } = new List<string>();
+
+    /// <inheritdoc/>
     public ICloudFormationTemplateResource AddParameter(string parameterName, string parameterValue)
     {
         CloudFormationParameters[parameterName] = parameterValue;

@@ -39,7 +39,7 @@ public static class CloudFormationExtensions
     /// <param name="parameterName">Name of the CloudFormation parameter.</param>
     /// <param name="parameterValue">Value of the CloudFormation parameter.</param>
     /// <returns></returns>
-    public static IResourceBuilder<ICloudFormationResource> WithParameter(this IResourceBuilder<ICloudFormationTemplateResource> builder, string parameterName, string parameterValue)
+    public static IResourceBuilder<ICloudFormationTemplateResource> WithParameter(this IResourceBuilder<ICloudFormationTemplateResource> builder, string parameterName, string parameterValue)
     {
         builder.Resource.AddParameter(parameterName, parameterValue);
         return builder;
@@ -102,19 +102,42 @@ public static class CloudFormationExtensions
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="awsSdkConfig">The name of the AWS credential profile.</param>
-    public static IResourceBuilder<ICloudFormationResource> WithReference(this IResourceBuilder<ICloudFormationResource> builder, IAWSSDKConfig awsSdkConfig)
+    public static IResourceBuilder<ICloudFormationStackResource> WithReference(this IResourceBuilder<ICloudFormationStackResource> builder, IAWSSDKConfig awsSdkConfig)
     {
         builder.Resource.AWSSDKConfig = awsSdkConfig;
         return builder;
     }
 
     /// <summary>
-    /// Override the CloudFormation service client the ICloudFormationResource would create to interact with the CloudFormation service. This can be used for pointing the
+    /// The AWS SDK service client configuration used to create the CloudFormation service client.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="awsSdkConfig">The name of the AWS credential profile.</param>
+    public static IResourceBuilder<ICloudFormationTemplateResource> WithReference(this IResourceBuilder<ICloudFormationTemplateResource> builder, IAWSSDKConfig awsSdkConfig)
+    {
+        builder.Resource.AWSSDKConfig = awsSdkConfig;
+        return builder;
+    }
+
+    /// <summary>
+    /// Override the CloudFormation service client the ICloudFormationStackResource would create to interact with the CloudFormation service. This can be used for pointing the
     /// CloudFormation service client to a non-standard CloudFormation endpoint like an emulator.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="cloudFormationClient">The AWS CloudFormation service client.</param>
-    public static IResourceBuilder<ICloudFormationResource> WithReference(this IResourceBuilder<ICloudFormationResource> builder, IAmazonCloudFormation cloudFormationClient)
+    public static IResourceBuilder<ICloudFormationStackResource> WithReference(this IResourceBuilder<ICloudFormationStackResource> builder, IAmazonCloudFormation cloudFormationClient)
+    {
+        builder.Resource.CloudFormationClient = cloudFormationClient;
+        return builder;
+    }
+
+    /// <summary>
+    /// Override the CloudFormation service client the ICloudFormationTemplateResource would create to interact with the CloudFormation service. This can be used for pointing the
+    /// CloudFormation service client to a non-standard CloudFormation endpoint like an emulator.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="cloudFormationClient">The AWS CloudFormation service client.</param>
+    public static IResourceBuilder<ICloudFormationTemplateResource> WithReference(this IResourceBuilder<ICloudFormationTemplateResource> builder, IAmazonCloudFormation cloudFormationClient)
     {
         builder.Resource.CloudFormationClient = cloudFormationClient;
         return builder;
