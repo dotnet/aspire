@@ -5,8 +5,11 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents an annotation that disables enabling forwarded headers on ASP.NET Core projects on publish.
+/// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
-internal sealed class DisableForwardedHeadersAnnotation : IResourceAnnotation
+public sealed class DisableForwardedHeadersAnnotation : IResourceAnnotation
 {
 
 }

@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a endpoint annotation that describes how a service should be bound to a network.
+/// Represents an endpoint annotation that describes how a service should be bound to a network.
 /// </summary>
 /// <remarks>
 /// This class is used to specify the network protocol, port, URI scheme, transport, and other details for a service.
