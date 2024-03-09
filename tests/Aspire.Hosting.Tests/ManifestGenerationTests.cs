@@ -184,40 +184,44 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureContainerWithVolumesEmitsVolumes()
+    public async Task EnsureContainerWithVolumesEmitsVolumes()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddContainer("containerwithvolumes", "image/name")
+        var container = program.AppBuilder.AddContainer("containerwithvolumes", "image/name")
                           .WithVolume("myvolume", "/mount/here")
                           .WithBindMount("./some/source", "/bound") // This should be ignored and not written to the manifest
                           .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
                           .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
 
-        // Build AppHost so that publisher can be resolved.
         program.Build();
-        var publisher = program.GetManifestPublisher();
 
-        program.Run();
+        var manifest = await ManifestUtils.GetManifest(container.Resource);
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "image/name:latest",
+              "volumes": [
+                {
+                  "name": "myvolume",
+                  "target": "/mount/here",
+                  "readOnly": false
+                },
+                {
+                  "name": "myreadonlyvolume",
+                  "target": "/mount/there",
+                  "readOnly": true
+                },
+                {
+                  "target": "/mount/everywhere",
+                  "readOnly": false
+                }
+              ]
+            }
+            """;
 
-        var grafana = resources.GetProperty("containerwithvolumes");
-        var volumes = grafana.GetProperty("volumes");
-        Assert.Equal(3, volumes.GetArrayLength());
-        Assert.Collection(volumes.EnumerateArray(),
-            volume => Assert.Collection(volume.EnumerateObject(),
-                property => { Assert.Equal("name", property.Name); Assert.Equal("myvolume", property.Value.GetString()); },
-                property => { Assert.Equal("target", property.Name); Assert.Equal("/mount/here", property.Value.GetString()); },
-                property => { Assert.Equal("readOnly", property.Name); Assert.False(property.Value.GetBoolean()); }),
-            volume => Assert.Collection(volume.EnumerateObject(),
-                property => { Assert.Equal("name", property.Name); Assert.Equal("myreadonlyvolume", property.Value.GetString()); },
-                property => { Assert.Equal("target", property.Name); Assert.Equal("/mount/there", property.Value.GetString()); },
-                property => { Assert.Equal("readOnly", property.Name); Assert.True(property.Value.GetBoolean()); }),
-            volume => Assert.Collection(volume.EnumerateObject(),
-                // Anonymous volumes don't have a name
-                property => { Assert.Equal("target", property.Name); Assert.Equal("/mount/everywhere", property.Value.GetString()); },
-                property => { Assert.Equal("readOnly", property.Name); Assert.False(property.Value.GetBoolean()); }));
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Theory]
