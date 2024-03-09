@@ -77,8 +77,8 @@ public static class MongoDBBuilderExtensions
     /// Adds a named volume for the data folder to a MongoDb container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the mount. Defaults to an auto-generated volume. </param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> WithDataVolume(this IResourceBuilder<MongoDBServerResource> builder, string? name = null, bool isReadOnly = false)
         => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data/db", isReadOnly);
@@ -87,7 +87,7 @@ public static class MongoDBBuilderExtensions
     /// Adds a bind mount for the data folder to a MongoDb container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> WithDataBindMount(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = false)
@@ -98,7 +98,7 @@ public static class MongoDBBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> WithInitBindMount<T>(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = true)
