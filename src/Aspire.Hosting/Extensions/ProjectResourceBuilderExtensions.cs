@@ -100,7 +100,7 @@ public static class ProjectResourceBuilderExtensions
         {
             builder.WithEnvironment(context =>
             {
-                // If we have any endpoints assume & the forwarded headers wasn't disabled then add it
+                // If we have any endpoints & the forwarded headers wasn't disabled then add it
                 if (projectResource.GetEndpoints().Any() && !projectResource.Annotations.OfType<DisableForwardedHeadersAnnotation>().Any())
                 {
                     context.EnvironmentVariables[AspNetCoreForwaredHeadersEnabledVariableName] = "true";
