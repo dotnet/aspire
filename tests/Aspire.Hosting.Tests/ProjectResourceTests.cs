@@ -181,7 +181,7 @@ public class ProjectResourceTests
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwadedHeadersOnPublish();
+        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwadedHeaders();
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -203,7 +203,7 @@ public class ProjectResourceTests
         var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
         if (disableForwardedHeaders)
         {
-            project.DisableForwadedHeadersOnPublish();
+            project.DisableForwadedHeaders();
         }
 
         using var app = appBuilder.Build();
