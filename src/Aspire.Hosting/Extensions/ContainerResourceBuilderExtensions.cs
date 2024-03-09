@@ -134,21 +134,9 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">Type of container resource.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="image">Image value.</param>
-    /// <returns></returns>
-    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image) where T : ContainerResource
-    {
-        return builder.WithImage<T>(image, "latest");
-    }
-
-    /// <summary>
-    /// Allows overriding the image on a container.
-    /// </summary>
-    /// <typeparam name="T">Type of container resource.</typeparam>
-    /// <param name="builder">Builder for the container resource.</param>
-    /// <param name="image">Image value.</param>
     /// <param name="tag">Tag value.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string tag) where T : ContainerResource
+    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string tag = "latest") where T : ContainerResource
     {
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {

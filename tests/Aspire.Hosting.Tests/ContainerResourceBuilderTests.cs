@@ -45,7 +45,7 @@ public class ContainerResourceBuilderTests
 
         container.WithImage("new-image");
         Assert.Equal("new-image", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Image);
-        Assert.Equal("latest", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
+        Assert.Equal("latest", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Tag);
     }
 
     [Fact]
