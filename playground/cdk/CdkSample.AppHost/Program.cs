@@ -45,7 +45,7 @@ var sb = builder.AddAzureServiceBusConstruct("servicebus")
             queue.Properties.LockDuration = TimeSpan.FromMinutes(5);
         })
     .AddTopic("topic1",
-        (cosntruct, topic) =>
+        (construct, topic) =>
         {
             topic.Properties.EnablePartitioning = true;
         })

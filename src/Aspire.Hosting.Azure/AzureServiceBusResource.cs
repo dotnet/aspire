@@ -50,10 +50,10 @@ public class AzureServiceBusResource(string name) :
 }
 
 /// <summary>
-/// A resource that represents an Azure Key Vault.
+/// Represents an Azure Service Bus resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct"></param>
+/// <param name="configureConstruct">Callback to configure the Azure Service Bus resource.</param>
 public class AzureServiceBusConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct)
     : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString
 {

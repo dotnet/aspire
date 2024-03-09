@@ -42,12 +42,12 @@ public static class AzureServiceBusExtensions
         };
     }
 
-        /// <summary>
-    /// Adds an Azure Storage resource to the application model.This resource can be used to create Azure blob, table, and queue resources.
+    /// <summary>
+    /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="configureResource">Callback to configure the storage account.</param>
+    /// <param name="configureResource">Optional callback to configure the Service Bus namespace.</param>
     /// <returns></returns>
     public static IResourceBuilder<AzureServiceBusConstructResource> AddAzureServiceBusConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, ServiceBusNamespace>? configureResource = null)
     {
@@ -55,7 +55,7 @@ public static class AzureServiceBusExtensions
         {
             var serviceBusNamespace = new ServiceBusNamespace(construct, name: name);
 
-            serviceBusNamespace.AssignProperty(p => p.Sku, new Parameter("sku", defaultValue: "Standard"));
+            serviceBusNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
 
             var serviceBusDataOwnerRole = serviceBusNamespace.AssignRole(RoleDefinition.ServiceBusDataOwner);
             serviceBusDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
@@ -94,7 +94,7 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds a Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
@@ -106,7 +106,7 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds a Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
@@ -119,7 +119,7 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds a Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
@@ -135,7 +135,7 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds a Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusConstructResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
@@ -147,7 +147,7 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds a Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusConstructResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
@@ -159,12 +159,12 @@ public static class AzureServiceBusExtensions
     }
 
     /// <summary>
-    /// Adds a Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusConstructResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="topicName">The name of the topic.</param>
     /// <param name="subscriptionName">The name of the subscription.</param>
-    /// <param name="configureSubscription">Optional callback to customize the topic.</param>
+    /// <param name="configureSubscription">Optional callback to customize the subscription.</param>
     public static IResourceBuilder<AzureServiceBusConstructResource> AddSubscription(this IResourceBuilder<AzureServiceBusConstructResource> builder, string topicName, string subscriptionName, Action<ResourceModuleConstruct, ServiceBusSubscription>? configureSubscription = default)
     {
         builder.Resource.Subscriptions.Add((topicName, subscriptionName, configureSubscription));
