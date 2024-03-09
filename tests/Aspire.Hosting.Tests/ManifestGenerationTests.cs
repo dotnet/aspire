@@ -137,6 +137,50 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void ProjectResourceEmitsForwardedHeadersEnvironmentVariableByDefault()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        { Args = GetManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
+
+        appBuilder.AddProject<Projects.ServiceA>("servicea", launchProfileName: null);
+
+        appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+
+        var program = appBuilder.Build();
+        var publisher = program.Services.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        Assert.Equal("true",
+            resources.GetProperty("servicea").GetProperty("env").GetProperty("ASPNETCORE_FORWARDEDHEADERS_ENABLED").GetString());
+    }
+
+    [Fact]
+    public void DisableForwardedHeadersOmitsEnvironmentVariable()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        { Args = GetManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
+
+        appBuilder.AddProject<Projects.ServiceA>("servicea", launchProfileName: null)
+            .DisableForwadedHeadersOnPublish();
+
+        appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+
+        var program = appBuilder.Build();
+        var publisher = program.Services.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        Assert.False(
+            resources.GetProperty("servicea").GetProperty("env").TryGetProperty("ASPNETCORE_FORWARDEDHEADERS_ENABLED", out _),
+            "Service has no ASPNETCORE_FORWARDEDHEADERS_ENABLED environment variable because it was disabled.");
+    }
+
+    [Fact]
     public void EnsureContainerWithEndpointsEmitsContainerPort()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();

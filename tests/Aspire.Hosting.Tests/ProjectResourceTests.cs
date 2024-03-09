@@ -199,7 +199,8 @@ public class ProjectResourceTests
               "path": "net8.0/another-path",
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
               },
               "bindings": {
                 "http": {

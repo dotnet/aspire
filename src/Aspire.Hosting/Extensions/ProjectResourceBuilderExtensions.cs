@@ -13,6 +13,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class ProjectResourceBuilderExtensions
 {
+    private const string AspNetCoreForwaredHeadersEnabledVariableName = "ASPNETCORE_FORWARDEDHEADERS_ENABLED";
+
     /// <summary>
     /// Adds a .NET project to the application model. By default, this will exist in a Projects namespace. e.g. Projects.MyProject.
     /// If the project is not in a Projects namespace, make sure a project reference is added from the AppHost project to the target project.
@@ -92,6 +94,19 @@ public static class ProjectResourceBuilderExtensions
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
 
+        var projectResource = builder.Resource;
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.WithEnvironment(context =>
+            {
+                if (!projectResource.Annotations.OfType<DisableForwardedHeadersAnnotation>().Any())
+                {
+                    context.EnvironmentVariables[AspNetCoreForwaredHeadersEnabledVariableName] = "true";
+                }
+            });
+        }
+
         if (excludeLaunchProfile)
         {
             builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
@@ -102,8 +117,6 @@ public static class ProjectResourceBuilderExtensions
         {
             builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
         }
-
-        var projectResource = builder.Resource;
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
@@ -206,6 +219,17 @@ public static class ProjectResourceBuilderExtensions
     public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
     {
         throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile. Method will be removed by GA.");
+    }
+
+    /// <summary>
+    /// Configures the project to disable forwarded headers when being published.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> DisableForwadedHeadersOnPublish(this IResourceBuilder<ProjectResource> builder)
+    {
+        builder.WithAnnotation<DisableForwardedHeadersAnnotation>(ResourceAnnotationMutationBehavior.Replace);
+        return builder;
     }
 
     private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
