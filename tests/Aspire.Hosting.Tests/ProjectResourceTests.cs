@@ -177,11 +177,34 @@ public class ProjectResourceTests
     }
 
     [Fact]
-    public async Task VerifyManifest()
+    public void DisabledForwadedHeadersAddsAnnotationToProject()
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
+        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwadedHeadersOnPublish();
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+        // DisableForwardedHeadersAnnotation isn't public, so we just check the type name
+        Assert.Contains(resource.Annotations, a => a.GetType().Name == "DisableForwardedHeadersAnnotation");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task VerifyManifest(bool disableForwardedHeaders)
+    {
+        var appBuilder = CreateBuilder();
+
+        var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
+        if (disableForwardedHeaders)
+        {
+            project.DisableForwadedHeadersOnPublish();
+        }
 
         using var app = appBuilder.Build();
 
@@ -193,14 +216,17 @@ public class ProjectResourceTests
 
         var manifest = await ManifestUtils.GetManifest(resource);
 
-        var expectedManifest = """
+        var fordwardedHeadersEnvVar = disableForwardedHeaders
+            ? ""
+            : ",\r\n    \"ASPNETCORE_FORWARDEDHEADERS_ENABLED\": \"true\"";
+
+        var expectedManifest = $$"""
             {
               "type": "project.v0",
               "path": "net8.0/another-path",
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"{{fordwardedHeadersEnvVar}}
               },
               "bindings": {
                 "http": {
@@ -216,6 +242,7 @@ public class ProjectResourceTests
               }
             }
             """;
+
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
