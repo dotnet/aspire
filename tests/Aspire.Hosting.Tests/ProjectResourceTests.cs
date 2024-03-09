@@ -172,8 +172,8 @@ public class ProjectResourceTests
         var projectResources = appModel.GetProjectResources();
 
         var resource = Assert.Single(projectResources);
-        // ExcludeLaunchProfileAnnotation isn't public, so we just check the type name
-        Assert.Contains(resource.Annotations, a => a.GetType().Name == "ExcludeLaunchProfileAnnotation");
+        
+        Assert.Contains(resource.Annotations, a => a is ExcludeLaunchProfileAnnotation);
     }
 
     [Fact]
@@ -189,8 +189,8 @@ public class ProjectResourceTests
         var projectResources = appModel.GetProjectResources();
 
         var resource = Assert.Single(projectResources);
-        // DisableForwardedHeadersAnnotation isn't public, so we just check the type name
-        Assert.Contains(resource.Annotations, a => a.GetType().Name == "DisableForwardedHeadersAnnotation");
+
+        Assert.Contains(resource.Annotations, a => a is DisableForwardedHeadersAnnotation);
     }
 
     [Theory]
