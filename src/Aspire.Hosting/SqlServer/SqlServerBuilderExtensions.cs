@@ -81,11 +81,7 @@ public static class SqlServerBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> WithDataVolume(this IResourceBuilder<SqlServerServerResource> builder, string? name = null, bool isReadOnly = false)
-    {
-        name ??= $".data/{builder.Resource.Name}";
-        var fullyQualifiedPath = Path.GetFullPath(name, builder.ApplicationBuilder.AppHostDirectory);
-        return builder.WithVolume(fullyQualifiedPath, "/var/opt/mssql/data", isReadOnly);
-    }
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/opt/mssql/data", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the log folder to a SqlServer resource.
@@ -105,11 +101,7 @@ public static class SqlServerBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> WithLogsVolume(this IResourceBuilder<SqlServerServerResource> builder, string? name = null, bool isReadOnly = false)
-    {
-        name ??= $".logs/{builder.Resource.Name}";
-        var fullyQualifiedPath = Path.GetFullPath(name, builder.ApplicationBuilder.AppHostDirectory);
-        return builder.WithVolume(fullyQualifiedPath, "/var/opt/mssql/log", isReadOnly);
-    }
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-logs", "/var/opt/mssql/log", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the log folder to a SqlServer container resource.

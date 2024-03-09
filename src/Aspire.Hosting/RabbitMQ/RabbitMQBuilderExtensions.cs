@@ -60,11 +60,7 @@ public static class RabbitMQBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> WithDataVolume(this IResourceBuilder<RabbitMQServerResource> builder, string? name = null, bool isReadOnly = false)
-    {
-        name ??= $".data/{builder.Resource.Name}";
-        var fullyQualifiedPath = Path.GetFullPath(name, builder.ApplicationBuilder.AppHostDirectory);
-        return builder.WithVolume(fullyQualifiedPath, "/var/lib/rabbitmq", isReadOnly);
-    }
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/rabbitmq", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a RabbitMQ container resource.

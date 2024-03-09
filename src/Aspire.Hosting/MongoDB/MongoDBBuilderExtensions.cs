@@ -81,11 +81,7 @@ public static class MongoDBBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> WithDataVolume(this IResourceBuilder<MongoDBServerResource> builder, string? name = null, bool isReadOnly = false)
-    {
-        name ??= $".data/{builder.Resource.Name}";
-        var fullyQualifiedPath = Path.GetFullPath(name, builder.ApplicationBuilder.AppHostDirectory);
-        return builder.WithVolume(fullyQualifiedPath, "/data/db", isReadOnly);
-    }
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data/db", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a MongoDb container resource.
