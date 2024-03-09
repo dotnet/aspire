@@ -79,7 +79,11 @@
 
   <!-- For test projects -->
 
-  <Target Name="_PatchNuGetConfigForBuildingTestProject" AfterTargets="GetCopyToOutputDirectoryItems" Inputs="$(TemplateNuGetConfigPath)" Outputs="$(PatchedNuGetConfigPath)">
+  <Target Name="_PatchNuGetConfigForBuildingTestProject"
+          AfterTargets="GetCopyToOutputDirectoryItems"
+          Condition="'$(InstallWorkloadForTesting)' == 'true'"
+          Inputs="$(TemplateNuGetConfigPath)"
+          Outputs="$(PatchedNuGetConfigPath)">
     <!-- %BUILT_NUGETS_PATH% is set when building the testproject -->
     <PatchNuGetConfig TemplateNuGetConfigPath="$(RepoRoot)NuGet.config"
                       LocalNuGetsPath="%BUILT_NUGETS_PATH%"
