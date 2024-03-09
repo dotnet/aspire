@@ -16,6 +16,39 @@ public class ContainerResourceBuilderTests
     }
 
     [Fact]
+    public void WithImageMutatesImageNameAndTag()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var redis = builder.AddRedis("redis").WithImage("redis-stack", "1.0.0");
+        Assert.Equal("redis-stack", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Image);
+        Assert.Equal("1.0.0", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
+    }
+
+    [Fact]
+    public void WithImageAddsAnnotationIfNotExistingAndMutatesImageName()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("app", "some-image");
+        container.Resource.Annotations.RemoveAt(0);
+
+        container.WithImage("new-image");
+        Assert.Equal("new-image", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Image);
+        Assert.Equal("latest", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
+    }
+
+    [Fact]
+    public void WithImageMutatesImageNameOfLastAnnotation()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("app", "some-image");
+        container.Resource.Annotations.Add(new ContainerImageAnnotation { Image = "another-image" } );
+
+        container.WithImage("new-image");
+        Assert.Equal("new-image", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Image);
+        Assert.Equal("latest", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Tag);
+    }
+
+    [Fact]
     public void WithImageTagMutatesImageTag()
     {
         var builder = DistributedApplication.CreateBuilder();
