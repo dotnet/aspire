@@ -54,7 +54,10 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22,
+              "minLower": 1,
+              "minUpper": 1,
+              "minNumeric": 1
             }
           }
         }
@@ -127,7 +130,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -153,7 +156,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         },
@@ -161,10 +164,21 @@
           "type": "string",
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 10,
+              "numeric": false,
+              "special": false
             }
           }
         }
+      }
+    },
+    "servicebus": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}",
+      "path": "servicebus.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
       }
     },
     "api": {
@@ -178,7 +192,8 @@
         "ConnectionStrings__mykv": "{mykv.connectionString}",
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}"
+        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}"
       },
       "bindings": {
         "http": {

@@ -754,6 +754,40 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task AddAzureServiceBusConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var serviceBus = builder.AddAzureServiceBusConstruct("sb");
+
+        serviceBus
+            .AddQueue("queue1")
+            .AddQueue("queue2")
+            .AddTopic("t1")
+            .AddTopic("t2")
+            .AddSubscription("t1", "s3");
+
+        serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
+
+        Assert.Equal("sb", serviceBus.Resource.Name);
+        Assert.Equal("mynamespaceEndpoint", serviceBus.Resource.GetConnectionString());
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
+
+        var manifest = await ManifestUtils.GetManifest(serviceBus.Resource);
+        var expected = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{sb.outputs.serviceBusEndpoint}",
+              "path": "sb.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+        Assert.Equal(expected, manifest.ToString());
+    }
+
+    [Fact]
     public async Task AddAzureStorage()
     {
         var builder = DistributedApplication.CreateBuilder();
