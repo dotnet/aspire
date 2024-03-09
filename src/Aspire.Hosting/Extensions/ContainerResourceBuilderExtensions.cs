@@ -158,7 +158,7 @@ public static class ContainerResourceBuilderExtensions
         }
 
         // if the annotation doesn't exist, create it with the given image and add it to the collection
-        var containerImageAnnotation = new ContainerImageAnnotation() { Image = image };
+        var containerImageAnnotation = new ContainerImageAnnotation() { Image = image, Tag = tag };
         builder.Resource.Annotations.Add(containerImageAnnotation);
         return builder;
     }
