@@ -25,7 +25,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
-        Assert.Equal(6, resource.Annotations.Count);
+        Assert.Equal(7, resource.Annotations.Count);
 
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
@@ -72,6 +72,11 @@ public class ProjectResourceTests
             {
                 Assert.Equal("LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT", env.Key);
                 Assert.Equal("yyyy-MM-ddTHH:mm:ss.fffffff ", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("ASPNETCORE_FORWARDED_HEADERS_ENABLED", env.Key);
+                Assert.Equal("true", env.Value);
             });
     }
 
