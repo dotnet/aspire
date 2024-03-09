@@ -218,7 +218,7 @@ public class ProjectResourceTests
 
         var fordwardedHeadersEnvVar = disableForwardedHeaders
             ? ""
-            : ",\r\n    \"ASPNETCORE_FORWARDEDHEADERS_ENABLED\": \"true\"";
+            : $",{Environment.NewLine}    \"ASPNETCORE_FORWARDEDHEADERS_ENABLED\": \"true\"";
 
         var expectedManifest = $$"""
             {
