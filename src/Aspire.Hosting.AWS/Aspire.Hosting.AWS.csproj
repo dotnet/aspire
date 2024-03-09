@@ -12,5 +12,9 @@
     <PackageReference Include="AWSSDK.Core" />
     <PackageReference Include="AWSSDK.CloudFormation" />
   </ItemGroup>
-  
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+  </ItemGroup>
+
 </Project>

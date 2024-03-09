@@ -12,14 +12,14 @@ internal sealed class CloudFormationStackResource(string name) : CloudFormationR
     internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "aws.cloudformation.stack.v0");
-        context.Writer.TryWriteString("stack-name", context.GetManifestRelativePath(Name));
+        context.Writer.TryWriteString("stack-name", Name);
 
         context.Writer.WritePropertyName("references");
         context.Writer.WriteStartArray();
         foreach (var cloudFormationResource in Annotations.OfType<CloudFormationReferenceAnnotation>())
         {
             context.Writer.WriteStartObject();
-            context.Writer.WriteString("TargetResource", cloudFormationResource.TargetResource);
+            context.Writer.WriteString("target-resource", cloudFormationResource.TargetResource);
             context.Writer.WriteEndObject();
         }
         context.Writer.WriteEndArray();

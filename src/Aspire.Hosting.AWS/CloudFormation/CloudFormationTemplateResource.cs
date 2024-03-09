@@ -36,7 +36,7 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
     internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "aws.cloudformation.template.v0");
-        context.Writer.TryWriteString("stack-name", context.GetManifestRelativePath(Name));
+        context.Writer.TryWriteString("stack-name", Name);
         context.Writer.TryWriteString("template-path", context.GetManifestRelativePath(TemplatePath));
 
         context.Writer.WritePropertyName("references");
@@ -44,7 +44,7 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
         foreach (var cloudFormationResource in Annotations.OfType<CloudFormationReferenceAnnotation>())
         {
             context.Writer.WriteStartObject();
-            context.Writer.WriteString("TargetResource", cloudFormationResource.TargetResource);
+            context.Writer.WriteString("target-resource", cloudFormationResource.TargetResource);
             context.Writer.WriteEndObject();
         }
         context.Writer.WriteEndArray();

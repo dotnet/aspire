@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj" IsAspireProjectResource="false" />    
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" IsAspireProjectResource="false" />
 
