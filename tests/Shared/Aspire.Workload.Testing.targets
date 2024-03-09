@@ -5,7 +5,6 @@
 
     <!-- this will cause the output for `dotnet workload install` to be visible to the user -->
     <WorkloadInstallCommandOutputImportance>High</WorkloadInstallCommandOutputImportance>
-
     <NuGetConfigPackageSourceMappingsForWorkloadTesting>*Aspire*</NuGetConfigPackageSourceMappingsForWorkloadTesting>
 
     <_ShippingPackagesDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'packages', $(Configuration), 'Shipping'))</_ShippingPackagesDir>
