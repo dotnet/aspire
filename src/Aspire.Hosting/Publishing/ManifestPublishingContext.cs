@@ -81,6 +81,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             Writer.WriteString("entrypoint", container.Entrypoint);
         }
 
+        // Write args if they are present
         if (container.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
         {
             var args = new List<string>();
@@ -100,6 +101,40 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     Writer.WriteStringValue(arg);
                 }
+                Writer.WriteEndArray();
+            }
+        }
+
+        // Write volume details
+        if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))
+        {
+            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Named).ToList();
+
+            // Only write out details for volumes (no bind mounts)
+            if (volumes.Count > 0)
+            {
+                // Volumes are written as an array of objects as anonymous volumes do not have a name
+                Writer.WriteStartArray("volumes");
+
+                foreach (var volume in volumes)
+                {
+                    Writer.WriteStartObject();
+
+                    // This can be null for anonymous volumes
+                    if (volume.Source is not null)
+                    {
+                        Writer.WritePropertyName("name");
+                        Writer.WriteStringValue(volume.Source);
+                    }
+
+                    Writer.WritePropertyName("target");
+                    Writer.WriteStringValue(volume.Target);
+
+                    Writer.WriteBoolean("readOnly", volume.IsReadOnly);
+
+                    Writer.WriteEndObject();
+                }
+
                 Writer.WriteEndArray();
             }
         }
