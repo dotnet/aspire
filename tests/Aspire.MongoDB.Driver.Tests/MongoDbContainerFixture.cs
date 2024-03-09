@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using Testcontainers.MongoDb;
 using Xunit;
 
@@ -22,6 +24,18 @@ public sealed class MongoDbContainerFixture : IAsyncLifetime
                 .WithImage("mongo:7.0.5")
                 .Build();
             await Container.StartAsync();
+
+            // Create `test_db` database with user:mongo pwd:mongo
+            var mongoClient = new MongoClient(Container.GetConnectionString());
+            var createUserCommand = new BsonDocumentCommand<BsonDocument>(BsonDocument.Parse("""
+            {
+               createUser: "mongo",
+               pwd: "mongo",
+               roles: [ { role: 'readWrite', db: 'test_db' } ]
+            }
+            """));
+            await mongoClient.GetDatabase("test_db")
+                .RunCommandAsync(createUserCommand);
         }
     }
 

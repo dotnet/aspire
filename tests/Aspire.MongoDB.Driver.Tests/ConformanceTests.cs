@@ -59,8 +59,8 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
         var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
-            $"{_containerFixture.GetConnectionString()}" :
-            "mongodb://root:password@localhost:27017/";
+            $"{_containerFixture.GetConnectionString()}test_db" :
+            "mongodb://root:password@localhost:27017/test_db";
 
         configuration.AddInMemoryCollection(
             [
