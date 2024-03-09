@@ -67,7 +67,7 @@ public class StackOutputReferenceTests
 
         resource.Outputs = new List<Output>
         {
-            new Output{OutputKey = "key1", OutputValue = "value1"}
+            new Output { OutputKey = "key1", OutputValue = "value1"}
         };
 
         var reference = resourceBuilder.GetOutput("not-found");

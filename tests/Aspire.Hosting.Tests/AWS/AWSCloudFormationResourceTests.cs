@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using Amazon;
 using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.Utils;
@@ -68,19 +67,21 @@ public class AWSCloudFormationResourceTests
 
         var resource = resourceBuilder.Resource as CloudFormationStackResource;
         Assert.NotNull(resource);
-        var obj = ManifestUtils.GetManifest(resource.WriteToManifest);
 
-        Assert.NotNull(obj);
-        Assert.Equal("aws.cloudformation.stack.v0", obj["type"]?.ToString());
-        Assert.Equal("ExistingStack", obj["stack-name"]?.ToString());
+        var expectedManifest = """
+        {
+          "type": "aws.cloudformation.stack.v0",
+          "stack-name": "ExistingStack",
+          "references": [
+            {
+              "target-resource": "serviceA"
+            }
+          ]
+        }
+        """;
 
-        var references = obj["references"] as JsonArray;
-        Assert.NotNull(references);
-        Assert.Single(references);
-
-        var ref1 = references[0];
-        Assert.NotNull(ref1);
-        Assert.Equal("serviceA", ref1["target-resource"]?.ToString());
+        var manifest = ManifestUtils.GetManifest(resource.WriteToManifest);
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -95,19 +96,21 @@ public class AWSCloudFormationResourceTests
 
         var resource = resourceBuilder.Resource as CloudFormationTemplateResource;
         Assert.NotNull(resource);
-        var obj = ManifestUtils.GetManifest(resource.WriteToManifest);
 
-        Assert.NotNull(obj);
-        Assert.Equal("aws.cloudformation.template.v0", obj["type"]?.ToString());
-        Assert.Equal("NewStack", obj["stack-name"]?.ToString());
-        Assert.Equal("net8.0/cf.template", obj["template-path"]?.ToString());
+        var expectedManifest = """
+        {
+          "type": "aws.cloudformation.template.v0",
+          "stack-name": "NewStack",
+          "template-path": "net8.0/cf.template",
+          "references": [
+            {
+              "target-resource": "serviceA"
+            }
+          ]
+        }
+        """;
 
-        var references = obj["references"] as JsonArray;
-        Assert.NotNull(references);
-        Assert.Single(references);
-
-        var ref1 = references[0];
-        Assert.NotNull(ref1);
-        Assert.Equal("serviceA", ref1["target-resource"]?.ToString());
+        var manifest = ManifestUtils.GetManifest(resource.WriteToManifest);
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 }
