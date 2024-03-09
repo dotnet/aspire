@@ -394,4 +394,98 @@ public class TraceTests
         Assert.NotSame(trace1, trace2);
         Assert.NotSame(trace1.Spans[0].Trace, trace2.Spans[0].Trace);
     }
+
+    [Fact]
+    public void AddTraces_AttributeAndEventLimits_LimitsApplied()
+    {
+        // Arrange
+        var repository = CreateRepository(attributeCountLimit: 5, attributeLengthLimit: 16, spanEventCountLimit: 5);
+
+        var attributes = new List<KeyValuePair<string, string>>();
+        for (var i = 0; i < 10; i++)
+        {
+            var value = GetValue((i + 1) * 5);
+            attributes.Add(new KeyValuePair<string, string>($"Key{i}", value));
+        }
+
+        var events = new List<Span.Types.Event>();
+        for (var i = 0; i < 10; i++)
+        {
+            events.Add(CreateSpanEvent($"Event {i}", i, attributes));
+        }
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes, events: events)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationServiceId = applications[0].InstanceId,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+
+        var trace = Assert.Single(traces.PagedResult.Items);
+
+        AssertId("1", trace.TraceId);
+        AssertId("1-1", trace.FirstSpan.SpanId);
+        Assert.Collection(trace.FirstSpan.Attributes,
+            p =>
+            {
+                Assert.Equal("Key0", p.Key);
+                Assert.Equal("01234", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Key1", p.Key);
+                Assert.Equal("0123456789", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Key2", p.Key);
+                Assert.Equal("012345678901234", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Key3", p.Key);
+                Assert.Equal("0123456789012345", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Key4", p.Key);
+                Assert.Equal("0123456789012345", p.Value);
+            });
+
+        Assert.Equal(5, trace.FirstSpan.Events.Count);
+        Assert.Equal(5, trace.FirstSpan.Events[0].Attributes.Length);
+    }
 }

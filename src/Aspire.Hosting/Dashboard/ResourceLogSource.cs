@@ -47,7 +47,7 @@ internal sealed class ResourceLogSource<TResource>(
             TaskContinuationOptions.None,
             TaskScheduler.Default).ConfigureAwait(false);
 
-        await foreach (var batch in channel.GetBatchesAsync(cancellationToken))
+        await foreach (var batch in channel.GetBatchesAsync(cancellationToken: cancellationToken))
         {
             yield return batch;
         }

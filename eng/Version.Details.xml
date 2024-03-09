@@ -73,6 +73,10 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
       <Sha>5535e31a712343a63f5d7d796cd874e563e5ac14</Sha>
     </Dependency>
+    <Dependency Name="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="9.0.0-preview.3.24151.4">
+      <Uri>https://github.com/dotnet/runtime</Uri>
+      <Sha>50d6e5d5ffd05dd4034cffd222ea610baedcc326</Sha>
+    </Dependency>
     <Dependency Name="Microsoft.AspNetCore.OpenApi" Version="8.0.2">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-aspnetcore</Uri>
       <Sha>da7e9894ce22ef8cc02e5acc56e95a6f8cf8f644</Sha>

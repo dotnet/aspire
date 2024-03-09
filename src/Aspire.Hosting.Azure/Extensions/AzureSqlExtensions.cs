@@ -81,8 +81,8 @@ public static class AzureSqlExtensions
 
             sqlServer.AssignProperty(x => x.Administrators.AdministratorType, "'ActiveDirectory'");
             sqlServer.AssignProperty(x => x.Administrators.IsAzureADOnlyAuthenticationEnabled, "true");
-            sqlServer.AssignParameter(x => x.Administrators.Sid, construct.PrincipalIdParameter);
-            sqlServer.AssignParameter(x => x.Administrators.Login, construct.PrincipalNameParameter);
+            sqlServer.AssignProperty(x => x.Administrators.Sid, construct.PrincipalIdParameter);
+            sqlServer.AssignProperty(x => x.Administrators.Login, construct.PrincipalNameParameter);
             sqlServer.AssignProperty(x => x.Administrators.TenantId, "subscription().tenantId");
 
             var azureServicesFirewallRule = new SqlFirewallRule(construct, sqlServer, "AllowAllAzureIps");
@@ -93,9 +93,9 @@ public static class AzureSqlExtensions
             {
                 // When in run mode we inject the users identity and we need to specify
                 // the principalType.
-                sqlServer.AssignParameter(x => x.Administrators.PrincipalType, construct.PrincipalTypeParameter);
+                sqlServer.AssignProperty(x => x.Administrators.PrincipalType, construct.PrincipalTypeParameter);
 
-                var sqlFirewall = new SqlFirewallRule(construct);
+                var sqlFirewall = new SqlFirewallRule(construct, sqlServer);
                 sqlFirewall.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
                 sqlFirewall.AssignProperty(x => x.EndIPAddress, "'255.255.255.255'");
             }

@@ -1,0 +1,167 @@
+<Project>
+  <PropertyGroup>
+    <GetWorkloadInputsDependsOn>_GetWorkloadsToInstall;$(GetWorkloadInputsDependsOn)</GetWorkloadInputsDependsOn>
+    <GetNuGetsToBuildForWorkloadTestingDependsOn>_GetNuGetsToBuild;$(GetNuGetsToBuildForWorkloadTestingDependsOn)</GetNuGetsToBuildForWorkloadTestingDependsOn>
+
+    <_ShippingPackagesDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'packages', $(Configuration), 'Shipping'))</_ShippingPackagesDir>
+
+    <_GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</_GlobalJsonContent>
+    <_DotNetCliVersionFromGlobalJson>$([System.Text.RegularExpressions.Regex]::Match($(_GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</_DotNetCliVersionFromGlobalJson>
+    <SdkVersionForWorkloadTesting Condition="'$(SdkVersionForWorkloadTesting)' == ''">$(_DotNetCliVersionFromGlobalJson)</SdkVersionForWorkloadTesting>
+
+    <VersionBandForSdkManifestsDir>$(DotNetVersionBand)</VersionBandForSdkManifestsDir>
+    <VersionBandForManifestPackages>$(DotNetVersionBand)</VersionBandForManifestPackages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
+  </ItemGroup>
+
+  <Target Name="_GetNuGetsToBuild" Returns="@(NuGetsToBuildForWorkloadTesting)">
+    <Error Condition="'$(VersionBandForManifestPackages)' == '' or '$(VersionBandForManifestPackages)' == ''"
+           Text="Both properties need to be set: %24(VersionBandForSdkManifestsDir)=$(VersionBandForSdkManifestsDir), and %24(VersionBandForManifestPackages)=$(VersionBandForManifestPackages)" />
+
+    <ItemGroup>
+      <_ManifestPackage Include="$(_ShippingPackagesDir)Microsoft.NET.Sdk.Aspire.Manifest*nupkg" />
+    </ItemGroup>
+    <Error Condition="@(_ManifestPackage->Count()) == 0" Text="No manifest packages found in $(_ShippingPackagesDir). Make sure build packages with './build.sh -pack'" />
+
+    <Error Condition="'$(NETCoreSdkRuntimeIdentifier)' == ''" Text="%24(NETCoreSdkRuntimeIdentifier) is unset. This is needed to build the Aspire.Hosting.Orchestration nuget" />
+
+    <ItemGroup>
+      <_PropertiesForNuGetBuilds Include="DashboardRuntime=$(NETCoreSdkRuntimeIdentifier)" />
+      <_PropertiesForNuGetBuilds Include="DcpRuntime=$(NETCoreSdkRuntimeIdentifier)" />
+      <_PropertiesForNuGetBuilds Include="PackageOutputPath=$(WorkloadsPackageSource)" />
+
+      <NuGetsToBuildForWorkloadTesting
+                      Include="$(_ShippingPackagesDir)Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).nupkg"
+                      Project="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+                      Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
+                      Descriptor="Dashboard pack"/>
+
+      <NuGetsToBuildForWorkloadTesting
+                      Include="$(_ShippingPackagesDir)Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).nupkg"
+                      Project="$(RepoRoot)eng/dcppack/dcppack.csproj"
+                      Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
+                      Descriptor="Dcp pack"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_CombinedProps>@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')</_CombinedProps>
+    </PropertyGroup>
+    <!-- FIXME:
+      Explicitly invoke Build on these two projects so the GenerateTextReplacementFiles target gets triggered.
+      This can be removed once the workloadtesting targets support a custom list of targets to invoke
+    -->
+    <MSBuild Projects="$(RepoRoot)eng/dcppack/dcppack.csproj"
+              Properties="$(_CombinedProps)"
+              Targets="Restore;Build" />
+    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+              Properties="$(_CombinedProps)"
+              Targets="Restore;Build" />
+  </Target>
+
+  <Target Name="_GetWorkloadsToInstall" DependsOnTargets="_SetPackageVersionForWorkloadsTesting" Returns="@(WorkloadIdForTesting);@(WorkloadCombinationsToInstall)">
+    <ItemGroup>
+      <WorkloadIdForTesting Include="aspire"
+                            ManifestName="Microsoft.NET.Sdk.Aspire"
+                            Variant="latest"
+                            Version="$(PackageVersionForWorkloadManifests)" />
+
+      <WorkloadCombinationsToInstall Include="latest" Variants="latest" />
+    </ItemGroup>
+  </Target>
+
+  <UsingTask TaskName="PrepareNuGetConfigForWorkloadTesting"
+      TaskFactory="RoslynCodeTaskFactory"
+      AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <TemplateNuGetConfigPath ParameterType="System.String" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
+      <AddBuiltNuGetSource ParameterType="System.Boolean" Required="false" />
+      <AddPackageSourceMapping ParameterType="System.Boolean" Required="false" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Xml.Linq" />
+      <Using Namespace="System.Xml.XPath" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          if (!File.Exists(TemplateNuGetConfigPath))
+          {
+            Log.LogError($"Could not find nuget config template at '{TemplateNuGetConfigPath}' .");
+            return false;
+          }
+
+          XDocument doc = XDocument.Load(TemplateNuGetConfigPath);
+          if (AddBuiltNuGetSource)
+          {
+            string xpath = "/configuration/packageSources";
+            XElement packageSources = doc.XPathSelectElement(xpath);
+            if (packageSources is null)
+            {
+              Log.LogError($"Could not find {xpath} in {TemplateNuGetConfigPath}");
+              return false;
+            }
+            packageSources.LastNode.AddAfterSelf(
+              new XElement("add",
+                new XAttribute("key", "nuget-local"),
+                new XAttribute("value", "%BUILT_NUGETS_PATH%")));
+          }
+
+          if (AddPackageSourceMapping)
+          {
+            string mappingXpath = "/configuration/packageSourceMapping";
+            XElement packageSourceMapping = doc.XPathSelectElement(mappingXpath);
+            if (packageSourceMapping is null)
+            {
+              // if mapping has been removed completely then the task needs an update!
+              throw new InvalidOperationException($"Expected to find {mappingXpath} in {TemplateNuGetConfigPath}");
+            }
+
+            packageSourceMapping.FirstNode.AddBeforeSelf(
+              new XElement("packageSource",
+                new XAttribute("key", "nuget-local"),
+                new XElement("package", new XAttribute("pattern", "*Aspire*"))));
+          }
+          doc.Save(OutputFile);
+          Log.LogMessage(MessageImportance.Low, $"Generated patched nuget.config at {OutputFile}");
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <!-- For test projects -->
+
+  <Target Name="_PatchNuGetConfig" AfterTargets="GetCopyToOutputDirectoryItems" Inputs="$(TemplateNuGetConfigPath)" Outputs="$(PatchedNuGetConfigPath)">
+    <PrepareNuGetConfigForWorkloadTesting TemplateNuGetConfigPath="$(RepoRoot)NuGet.config" OutputFile="$(PatchedNuGetConfigPath)" AddBuiltNuGetSource="true" />
+  </Target>
+
+  <Target Name="_AddPackageVersionsForUseWithHelix" BeforeTargets="ZipTestArchive">
+    <PropertyGroup>
+      <_TestAssetsOutputDir>$(OutputPath)\testassets\</_TestAssetsOutputDir>
+
+      <_PackagePropsContents>
+<![CDATA[
+      <Project>
+        <PropertyGroup>
+          <PackageVersion>$(PackageVersion)</PackageVersion>
+          <MicrosoftExtensionsHostingAbstractionsPackageVersion>$(MicrosoftExtensionsHostingAbstractionsPackageVersion)</MicrosoftExtensionsHostingAbstractionsPackageVersion>
+          <MicrosoftExtensionsHostingPackageVersion>$(MicrosoftExtensionsHostingPackageVersion)</MicrosoftExtensionsHostingPackageVersion>
+        </PropertyGroup>
+      </Project>
+]]>
+      </_PackagePropsContents>
+    </PropertyGroup>
+
+    <WriteLinesToFile Lines="$(_PackagePropsContents)" File="$(_TestAssetsOutputDir)\testproject\Directory.Build.Helix.props" Overwrite="true" />
+  </Target>
+
+  <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+    <Error Condition="'$(SdkWithWorkloadForTestingPath)' == '' or !Exists($(SdkWithWorkloadForTestingPath))"
+      Text="Could not find %24(SdkWithWorkloadForTestingPath)=$(SdkWithWorkloadForTestingPath) . Prepare it by following:
+      1. .\build.cmd -pack
+      2. dotnet build tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.csproj /t:InstallWorkloadUsingArtifacts /p:Configuration=$(Configuration)" />
+  </Target>
+
+</Project>

@@ -49,7 +49,7 @@ public class PassThroughServiceEndPointResolverTests
         {
             InitialData = new Dictionary<string, string?>
             {
-                ["services:basket:0"] = "http://localhost:8080",
+                ["services:basket:http:0"] = "http://localhost:8080",
             }
         };
         var config = new ConfigurationBuilder().Add(configSource);
@@ -72,7 +72,7 @@ public class PassThroughServiceEndPointResolverTests
 
             // We expect the basket service to be resolved from Configuration, not the pass-through provider.
             Assert.Single(initialResult.EndPoints);
-            Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndPoints[0].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
         }
     }
 
@@ -83,7 +83,7 @@ public class PassThroughServiceEndPointResolverTests
         {
             InitialData = new Dictionary<string, string?>
             {
-                ["services:basket:0"] = "http://localhost:8080",
+                ["services:basket:default:0"] = "http://localhost:8080",
             }
         };
         var config = new ConfigurationBuilder().Add(configSource);
@@ -118,7 +118,7 @@ public class PassThroughServiceEndPointResolverTests
         {
             InitialData = new Dictionary<string, string?>
             {
-                ["services:basket:0"] = "http://localhost:8080",
+                ["services:basket:default:0"] = "http://localhost:8080",
             }
         };
         var config = new ConfigurationBuilder().Add(configSource);

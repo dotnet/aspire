@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -136,43 +135,23 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ConnectionStringRedirectAnnotation(resource), ResourceAnnotationMutationBehavior.Replace);
     }
 
-    private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
-    {
-        // An ambiguous endpoint is where any scheme (
-        return endpoints.GroupBy(e => e.UriScheme).Any(g => g.Count() > 1);
-    }
-
-    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback<T>(IResourceBuilder<T> builder, EndpointReferenceAnnotation endpointReferencesAnnotation)
-        where T : IResourceWithEnvironment
+    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation)
     {
         return (context) =>
         {
-            var name = endpointReferencesAnnotation.Resource.Name;
-
-            var allocatedEndPoints = endpointReferencesAnnotation.Resource.Annotations
-                .OfType<AllocatedEndpointAnnotation>()
-                .Where(a => endpointReferencesAnnotation.UseAllEndpoints || endpointReferencesAnnotation.EndpointNames.Contains(a.Name));
-
-            var containsAmbiguousEndpoints = ContainsAmbiguousEndpoints(allocatedEndPoints);
-
-            var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
-            var configuration = builder.ApplicationBuilder.Configuration;
-
-            var i = 0;
-            foreach (var allocatedEndPoint in allocatedEndPoints)
+            var annotation = endpointReferencesAnnotation;
+            var serviceName = annotation.Resource.Name;
+            foreach (var endpoint in annotation.Resource.GetEndpoints())
             {
-                var endpointNameQualifiedUriStringKey = $"services__{name}__{i++}";
-                context.EnvironmentVariables[endpointNameQualifiedUriStringKey] = replaceLocalhostWithContainerHost
-                    ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.EndpointNameQualifiedUriString, configuration)
-                    : allocatedEndPoint.EndpointNameQualifiedUriString;
-
-                if (!containsAmbiguousEndpoints)
+                var endpointName = endpoint.EndpointName;
+                if (!annotation.UseAllEndpoints && !annotation.EndpointNames.Contains(endpointName))
                 {
-                    var uriStringKey = $"services__{name}__{i++}";
-                    context.EnvironmentVariables[uriStringKey] = replaceLocalhostWithContainerHost
-                        ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.UriString, configuration)
-                        : allocatedEndPoint.UriString;
+                    // Skip this endpoint since it's not in the list of endpoints we want to reference.
+                    continue;
                 }
+
+                // Add the endpoint, rewriting localhost to the container host if necessary.
+                context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = endpoint;
             }
         };
     }
@@ -212,7 +191,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
-    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointIndex}={endpointNameQualifiedUriString}."
+    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -252,7 +231,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
-    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointIndex}={endpointNameQualifiedUriString}."
+    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -282,7 +261,7 @@ public static class ResourceBuilderExtensions
             endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
             builder.WithAnnotation(endpointReferenceAnnotation);
 
-            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(builder, endpointReferenceAnnotation);
+            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation);
             builder.WithEnvironment(callback);
         }
 

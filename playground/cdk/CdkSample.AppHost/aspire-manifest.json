@@ -1,5 +1,13 @@
 {
   "resources": {
+    "cosmos": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmos.secretOutputs.connectionString}",
+      "path": "cosmos.module.bicep",
+      "params": {
+        "keyVaultName": ""
+      }
+    },
     "storagesku": {
       "type": "parameter.v0",
       "value": "{storagesku.inputs.value}",
@@ -12,15 +20,6 @@
     "locationOverride": {
       "type": "parameter.v0",
       "value": "{locationOverride.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "signaturesecret": {
-      "type": "parameter.v0",
-      "value": "{signaturesecret.inputs.value}",
       "inputs": {
         "value": {
           "type": "string"
@@ -48,11 +47,34 @@
       "params": {
         "principalId": "",
         "principalName": ""
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "minLower": 1,
+              "minUpper": 1,
+              "minNumeric": 1
+            }
+          }
+        }
       }
     },
     "sqldb": {
       "type": "value.v0",
       "connectionString": "{sql.connectionString};Database=sqldb"
+    },
+    "signaturesecret": {
+      "type": "parameter.v0",
+      "value": "{signaturesecret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
     },
     "mykv": {
       "type": "azure.bicep.v0",
@@ -64,6 +86,101 @@
         "signaturesecret": "{signaturesecret.value}"
       }
     },
+    "cache": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cache.secretOutputs.connectionString}",
+      "path": "cache.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": ""
+      }
+    },
+    "pgsqlAdministratorLogin": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLogin.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "pgsqlAdministratorLoginPassword": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLoginPassword.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "pgsql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql.secretOutputs.connectionString}",
+      "path": "pgsql.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": "",
+        "administratorLogin": "{pgsqlAdministratorLogin.value}",
+        "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "pgsqldb": {
+      "type": "value.v0",
+      "connectionString": "{pgsql.connectionString};Database=pgsqldb"
+    },
+    "pgsql2": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql2.secretOutputs.connectionString}",
+      "path": "pgsql2.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": "",
+        "administratorLogin": "{pgsql2.inputs.username}",
+        "administratorLoginPassword": "{pgsql2.inputs.password}"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        },
+        "username": {
+          "type": "string",
+          "default": {
+            "generate": {
+              "minLength": 10,
+              "numeric": false,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "servicebus": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}",
+      "path": "servicebus.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
@@ -72,7 +189,11 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__sqldb": "{sqldb.connectionString}",
-        "ConnectionStrings__mykv": "{mykv.connectionString}"
+        "ConnectionStrings__mykv": "{mykv.connectionString}",
+        "ConnectionStrings__cache": "{cache.connectionString}",
+        "ConnectionStrings__cosmos": "{cosmos.connectionString}",
+        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}"
       },
       "bindings": {
         "http": {

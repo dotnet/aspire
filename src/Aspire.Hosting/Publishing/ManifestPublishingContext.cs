@@ -81,6 +81,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             Writer.WriteString("entrypoint", container.Entrypoint);
         }
 
+        // Write args if they are present
         if (container.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
         {
             var args = new List<string>();
@@ -100,6 +101,40 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     Writer.WriteStringValue(arg);
                 }
+                Writer.WriteEndArray();
+            }
+        }
+
+        // Write volume details
+        if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))
+        {
+            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Named).ToList();
+
+            // Only write out details for volumes (no bind mounts)
+            if (volumes.Count > 0)
+            {
+                // Volumes are written as an array of objects as anonymous volumes do not have a name
+                Writer.WriteStartArray("volumes");
+
+                foreach (var volume in volumes)
+                {
+                    Writer.WriteStartObject();
+
+                    // This can be null for anonymous volumes
+                    if (volume.Source is not null)
+                    {
+                        Writer.WritePropertyName("name");
+                        Writer.WriteStringValue(volume.Source);
+                    }
+
+                    Writer.WritePropertyName("target");
+                    Writer.WriteStringValue(volume.Target);
+
+                    Writer.WriteBoolean("readOnly", volume.IsReadOnly);
+
+                    Writer.WriteEndObject();
+                }
+
                 Writer.WriteEndArray();
             }
         }
@@ -185,8 +220,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString(key, valueString);
             }
 
-            WriteServiceDiscoveryEnvironmentVariables(resource);
-
             WritePortBindingEnvironmentVariables(resource);
 
             Writer.WriteEndObject();
@@ -205,7 +238,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             foreach (var input in inputs)
             {
                 Writer.WriteStartObject(input.Name);
-                Writer.WriteString("type", input.Type);
+
+                // https://github.com/Azure/azure-dev/issues/3487 tracks being able to remove this. All inputs are strings.
+                Writer.WriteString("type", "string");
 
                 if (input.Secret)
                 {
@@ -222,40 +257,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteEndObject();
             }
             Writer.WriteEndObject();
-        }
-    }
-
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <param name="resource"></param>
-    public void WriteServiceDiscoveryEnvironmentVariables(IResource resource)
-    {
-        var endpointReferenceAnnotations = resource.Annotations.OfType<EndpointReferenceAnnotation>();
-
-        if (endpointReferenceAnnotations.Any())
-        {
-            foreach (var endpointReferenceAnnotation in endpointReferenceAnnotations)
-            {
-                var endpointNames = endpointReferenceAnnotation.UseAllEndpoints
-                    ? endpointReferenceAnnotation.Resource.Annotations.OfType<EndpointAnnotation>().Select(sb => sb.Name)
-                    : endpointReferenceAnnotation.EndpointNames;
-
-                var endpointAnnotationsGroupedByScheme = endpointReferenceAnnotation.Resource.Annotations
-                    .OfType<EndpointAnnotation>()
-                    .Where(sba => endpointNames.Contains(sba.Name, StringComparers.EndpointAnnotationName))
-                    .GroupBy(sba => sba.UriScheme);
-
-                var i = 0;
-                foreach (var endpointAnnotationGroupedByScheme in endpointAnnotationsGroupedByScheme)
-                {
-                    // HACK: For November we are only going to support a single endpoint annotation
-                    //       per URI scheme per service reference.
-                    var binding = endpointAnnotationGroupedByScheme.Single();
-
-                    Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
-                }
-            }
         }
     }
 

@@ -5,6 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,15 +17,15 @@ namespace Aspire.Dashboard.Tests.Integration;
 
 public static class IntegrationTestHelpers
 {
+    private static readonly X509Certificate2 s_testCertificate = TestCertificateLoader.GetTestCertificate();
+
     public static DashboardWebApplication CreateDashboardWebApplication(ITestOutputHelper testOutputHelper, ITestSink? testSink = null)
     {
         var config = new ConfigurationManager()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ASPNETCORE_URLS"] = "https://127.0.0.1:0",
-                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0",
-                ["Kestrel:Certificates:Default:Path"] = TestCertificateLoader.TestCertificatePath,
-                ["Kestrel:Certificates:Default:Password"] = "testPassword"
+                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0"
             }).Build();
 
         var dashboardWebApplication = new DashboardWebApplication(builder =>
@@ -40,6 +41,13 @@ public static class IntegrationTestHelpers
             {
                 builder.Logging.AddProvider(new TestLoggerProvider(testSink));
             }
+            builder.WebHost.ConfigureKestrel(serverOptions =>
+            {
+                serverOptions.ConfigureHttpsDefaults(options =>
+                {
+                    options.ServerCertificate = s_testCertificate;
+                });
+            });
         });
 
         return dashboardWebApplication;

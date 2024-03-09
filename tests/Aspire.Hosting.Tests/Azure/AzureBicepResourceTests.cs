@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Sql;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
@@ -123,6 +123,44 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task AddAzureCosmosDbConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDBConstruct("cosmos", (resource, construct, account, databases) =>
+        {
+            callbackDatabases = databases;
+        });
+        cosmos.AddDatabase("mydatabase");
+
+        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
+
+        var manifest = await ManifestUtils.GetManifest(cosmos.Resource);
+        var expectedManifest = """
+                               {
+                                 "type": "azure.bicep.v0",
+                                 "connectionString": "{cosmos.secretOutputs.connectionString}",
+                                 "path": "cosmos.module.bicep",
+                                 "params": {
+                                   "keyVaultName": ""
+                                 }
+                               }
+                               """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Properties.Name)
+            );
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", cosmos.Resource.GetConnectionString());
+    }
+
+    [Fact]
     public void AddAppConfiguration()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -211,7 +249,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, skuName);
+            storage.AssignProperty(sa => sa.Sku.Name, skuName);
             moduleConstruct = construct;
         });
 
@@ -249,7 +287,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AssignParameter(sa => sa.Sku.Name, skuName, parameterName: "sku");
+            storage.AssignProperty(sa => sa.Sku.Name, skuName, parameterName: "sku");
             moduleConstruct = construct;
         });
 
@@ -278,7 +316,7 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         var redis = builder.AddRedis("cache")
-            .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
             .PublishAsAzureRedis();
 
         Assert.True(redis.Resource.IsContainer());
@@ -289,6 +327,36 @@ public class AzureBicepResourceTests
 
         Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
         Assert.Equal("{cache.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
+    }
+
+    [Fact]
+    public async Task PublishAsRedisPublishesRedisAsAzureRedisConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var redis = builder.AddRedis("cache")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
+            .PublishAsAzureRedisConstruct(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
+
+        Assert.True(redis.Resource.IsContainer());
+
+        Assert.Equal("localhost:12455", redis.Resource.GetConnectionString());
+
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{cache.secretOutputs.connectionString}",
+              "path": "cache.module.bicep",
+              "params": {
+                "principalId": "",
+                "keyVaultName": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -397,7 +465,10 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22,
+                      "minLower": 1,
+                      "minUpper": 1,
+                      "minNumeric": 1
                     }
                   }
                 }
@@ -490,9 +561,8 @@ public class AzureBicepResourceTests
 
         // Verify that when PublishAs variant is used, connection string acquisition
         // still uses the local endpoint.
-        var endpointAnnotation = new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName, System.Net.Sockets.ProtocolType.Tcp, "localhost", 1234, "tcp");
-        postgres.WithAnnotation(endpointAnnotation);
-        var expectedConnectionString = $"Host={endpointAnnotation.Address};Port={endpointAnnotation.Port};Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
+        postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
+        var expectedConnectionString = $"Host=localhost;Port=1234;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
         Assert.Equal(expectedConnectionString, postgres.Resource.GetConnectionString());
 
         Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
@@ -519,7 +589,7 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }
@@ -556,7 +626,7 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 },
@@ -564,7 +634,9 @@ public class AzureBicepResourceTests
                   "type": "string",
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 10,
+                      "numeric": false,
+                      "special": false
                     }
                   }
                 }
@@ -597,7 +669,7 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }
@@ -628,7 +700,7 @@ public class AzureBicepResourceTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 },
@@ -636,7 +708,9 @@ public class AzureBicepResourceTests
                   "type": "string",
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 10,
+                      "numeric": false,
+                      "special": false
                     }
                   }
                 }
@@ -677,6 +751,40 @@ public class AzureBicepResourceTests
         Assert.Equal("""[{"name":"t1","subscriptions":["s1","s2"]},{"name":"t2","subscriptions":[]},{"name":"t3","subscriptions":["s3"]}]""", topics.ToJsonString());
         Assert.Equal("mynamespaceEndpoint", serviceBus.Resource.GetConnectionString());
         Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public async Task AddAzureServiceBusConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var serviceBus = builder.AddAzureServiceBusConstruct("sb");
+
+        serviceBus
+            .AddQueue("queue1")
+            .AddQueue("queue2")
+            .AddTopic("t1")
+            .AddTopic("t2")
+            .AddSubscription("t1", "s3");
+
+        serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
+
+        Assert.Equal("sb", serviceBus.Resource.Name);
+        Assert.Equal("mynamespaceEndpoint", serviceBus.Resource.GetConnectionString());
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
+
+        var manifest = await ManifestUtils.GetManifest(serviceBus.Resource);
+        var expected = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{sb.outputs.serviceBusEndpoint}",
+              "path": "sb.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+        Assert.Equal(expected, manifest.ToString());
     }
 
     [Fact]
@@ -723,7 +831,7 @@ public class AzureBicepResourceTests
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureConstructStorage("storage", (_, sa) =>
         {
-            sa.AssignParameter(x => x.Sku.Name, storagesku);
+            sa.AssignProperty(x => x.Sku.Name, storagesku);
         });
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";

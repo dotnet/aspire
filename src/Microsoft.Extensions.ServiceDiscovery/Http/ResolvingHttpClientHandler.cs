@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Internal;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
@@ -9,9 +10,10 @@ namespace Microsoft.Extensions.ServiceDiscovery.Http;
 /// <summary>
 /// <see cref="HttpClientHandler"/> which resolves endpoints using service discovery.
 /// </summary>
-public class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver) : HttpClientHandler
+public class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver, IOptions<ServiceDiscoveryOptions> options) : HttpClientHandler
 {
     private readonly HttpServiceEndPointResolver _resolver = resolver;
+    private readonly ServiceDiscoveryOptions _options = options.Value;
 
     /// <inheritdoc/>
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -23,7 +25,7 @@ public class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver) : 
         if (originalUri?.Host is not null)
         {
             var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
-            request.RequestUri = ResolvingHttpDelegatingHandler.GetUriWithEndPoint(originalUri, result);
+            request.RequestUri = ResolvingHttpDelegatingHandler.GetUriWithEndPoint(originalUri, result, _options);
             request.Headers.Host ??= result.Features.Get<IHostNameFeature>()?.HostName;
             epHealth = result.Features.Get<IEndPointHealthFeature>();
         }

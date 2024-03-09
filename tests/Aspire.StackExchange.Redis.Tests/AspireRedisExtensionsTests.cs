@@ -29,7 +29,7 @@ public class AspireRedisExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         AspireRedisHelpers.PopulateConfiguration(builder.Configuration);
 
-        builder.AddRedis("redis");
+        builder.AddRedisClient("redis");
 
         builder.Services.Configure<ConfigurationOptions>(options =>
         {
@@ -56,11 +56,11 @@ public class AspireRedisExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedRedis("myredis");
+            builder.AddKeyedRedisClient("myredis");
         }
         else
         {
-            builder.AddRedis("myredis");
+            builder.AddRedisClient("myredis");
         }
 
         var host = builder.Build();
@@ -86,11 +86,11 @@ public class AspireRedisExtensionsTests
         static void SetConnectionString(StackExchangeRedisSettings settings) => settings.ConnectionString = AspireRedisHelpers.TestingEndpoint;
         if (useKeyed)
         {
-            builder.AddKeyedRedis("redis", SetConnectionString);
+            builder.AddKeyedRedisClient("redis", SetConnectionString);
         }
         else
         {
-            builder.AddRedis("redis", SetConnectionString);
+            builder.AddRedisClient("redis", SetConnectionString);
         }
 
         var host = builder.Build();
@@ -120,11 +120,11 @@ public class AspireRedisExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedRedis("redis");
+            builder.AddKeyedRedisClient("redis");
         }
         else
         {
-            builder.AddRedis("redis");
+            builder.AddRedisClient("redis");
         }
 
         var host = builder.Build();
@@ -176,11 +176,11 @@ public class AspireRedisExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedRedis("redis");
+            builder.AddKeyedRedisClient("redis");
         }
         else
         {
-            builder.AddRedis("redis");
+            builder.AddRedisClient("redis");
         }
 
         var host = builder.Build();
@@ -237,7 +237,7 @@ public class AspireRedisExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        builder.AddKeyedRedis("redis", settings =>
+        builder.AddKeyedRedisClient("redis", settings =>
         {
             settings.ConnectionString = "localhost";
             settings.Tracing = true;
@@ -268,7 +268,7 @@ public class AspireRedisExtensionsTests
         // set the FlushInterval to to zero so the Activity gets created immediately
         builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
 
-        builder.AddKeyedRedis("redis");
+        builder.AddKeyedRedisClient("redis");
         var host = builder.Build();
 
         // We start the host to make it build TracerProvider.

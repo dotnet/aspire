@@ -79,13 +79,7 @@ public class AddRedisTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(RedisResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "tcp"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         using var app = appBuilder.Build();
 
@@ -141,7 +135,7 @@ public class AddRedisTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new RedisCommanderConfigWriterHook();
@@ -163,8 +157,8 @@ public class AddRedisTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        redis2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
+        redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new RedisCommanderConfigWriterHook();

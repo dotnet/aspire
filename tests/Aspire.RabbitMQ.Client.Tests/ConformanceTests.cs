@@ -81,11 +81,11 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     {
         if (key is null)
         {
-            builder.AddRabbitMQ("rabbit", configure);
+            builder.AddRabbitMQClient("rabbit", configure);
         }
         else
         {
-            builder.AddKeyedRabbitMQ(key, configure);
+            builder.AddKeyedRabbitMQClient(key, configure);
         }
     }
 

@@ -8,26 +8,35 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a SQL Server container.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-/// <param name="password">The SQL Sever password.</param>
-public class SqlServerServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
+public class SqlServerServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
 
-    private EndpointReference? _primaryEndpoint;
-    private InputReference? _passwordInput;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SqlServerServerResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="password">The SQL Sever password, or <see langword="null"/> to generate a random password.</param>
+    public SqlServerServerResource(string name, string? password = null) : base(name)
+    {
+        PrimaryEndpoint = new(this, PrimaryEndpointName);
+        PasswordInput = new(this, "password");
+
+        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
+        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(password, minLower: 1, minUpper: 1, minNumeric: 1));
+    }
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
-    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+    public EndpointReference PrimaryEndpoint { get; }
 
-    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
+    internal InputReference PasswordInput { get; }
 
     /// <summary>
     /// Gets the password for the SQL Server container resource.
     /// </summary>
-    public string Password { get; } = password;
+    public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
     /// <summary>
     /// Gets the connection string expression for the SQL Server for the manifest.

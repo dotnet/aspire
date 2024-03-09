@@ -6,24 +6,26 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
-/// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
-/// <param name="endpointName">The name of the endpoint.</param>
-public sealed class EndpointReference(IResourceWithEndpoints owner, string endpointName) : IManifestExpressionProvider, IValueProvider
+public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider
 {
+    // A reference to the endpoint annotation if it exists.
+    private EndpointAnnotation? _endpointAnnotation;
+    private bool? _isAllocated;
+
     /// <summary>
     /// Gets the owner of the endpoint reference.
     /// </summary>
-    public IResourceWithEndpoints Owner { get; } = owner;
+    public IResourceWithEndpoints Owner { get; }
 
     /// <summary>
     /// Gets the name of the endpoint associated with the endpoint reference.
     /// </summary>
-    public string EndpointName { get; } = endpointName;
+    public string EndpointName { get; }
 
     /// <summary>
     /// Gets a value indicating whether the endpoint is allocated.
     /// </summary>
-    public bool IsAllocated => Owner.Annotations.OfType<AllocatedEndpointAnnotation>().Any(a => a.Name == EndpointName);
+    public bool IsAllocated => _isAllocated ??= GetAllocatedEndpoint() is not null;
 
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
@@ -49,29 +51,54 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     /// <summary>
     /// Gets the port for this endpoint.
     /// </summary>
-    public int Port => GetAllocatedEndpoint().Port;
+    public int Port => AllocatedEndpoint.Port;
 
     /// <summary>
     /// Gets the host for this endpoint.
     /// </summary>
-    public string Host => GetAllocatedEndpoint().Address ?? "localhost";
+    public string Host => AllocatedEndpoint.Address ?? "localhost";
 
     /// <summary>
     /// Gets the scheme for this endpoint.
     /// </summary>
-    public string Scheme => GetAllocatedEndpoint().UriScheme;
+    public string Scheme => AllocatedEndpoint.UriScheme;
 
     /// <summary>
     /// Gets the URL for this endpoint.
     /// </summary>
-    public string Url => GetAllocatedEndpoint().UriString;
+    public string Url => AllocatedEndpoint.UriString;
 
-    private AllocatedEndpointAnnotation GetAllocatedEndpoint()
+    private AllocatedEndpoint AllocatedEndpoint =>
+        GetAllocatedEndpoint()
+        ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
+
+    private AllocatedEndpoint? GetAllocatedEndpoint()
     {
-        var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName) ??
-            throw new InvalidOperationException($"The endpoint '{EndpointName}' is not allocated for the resource '{Owner.Name}'.");
+        var endpoint = _endpointAnnotation ??= Owner.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
+        return endpoint?.AllocatedEndpoint;
+    }
 
-        return allocatedEndpoint;
+    /// <summary>
+    /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.
+    /// </summary>
+    /// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
+    /// <param name="endpoint">The endpoint annotation.</param>
+    public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint)
+    {
+        Owner = owner;
+        EndpointName = endpoint.Name;
+        _endpointAnnotation = endpoint;
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.
+    /// </summary>
+    /// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
+    /// <param name="endpointName">The name of the endpoint.</param>
+    public EndpointReference(IResourceWithEndpoints owner, string endpointName)
+    {
+        Owner = owner;
+        EndpointName = endpointName;
     }
 }
 

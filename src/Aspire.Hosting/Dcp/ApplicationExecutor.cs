@@ -59,7 +59,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IConfiguration configuration,
                                           IOptions<DcpOptions> options,
                                           IDashboardEndpointProvider dashboardEndpointProvider,
-                                          IDashboardAvailability dashboardAvailability,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
                                           ResourceLoggerService loggerService)
@@ -71,7 +70,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
     private readonly IOptions<DcpOptions> _options = options;
     private readonly IDashboardEndpointProvider _dashboardEndpointProvider = dashboardEndpointProvider;
-    private readonly IDashboardAvailability _dashboardAvailability = dashboardAvailability;
     private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
     private readonly List<AppResource> _appResources = [];
 
@@ -222,36 +220,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-        await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
+        PrintDashboardUrls(dashboardUrls);
     }
 
-    private TimeSpan DashboardAvailabilityTimeoutDuration
-    {
-        get
-        {
-            if (configuration["DOTNET_ASPIRE_DASHBOARD_TIMEOUT_SECONDS"] is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
-            {
-                return TimeSpan.FromSeconds(timeoutInSeconds);
-            }
-            else
-            {
-                return TimeSpan.FromSeconds(DefaultDashboardAvailabilityTimeoutDurationInSeconds);
-            }
-        }
-    }
-
-    private const int DefaultDashboardAvailabilityTimeoutDurationInSeconds = 60;
-
-    private async Task CheckDashboardAvailabilityAsync(string delimitedUrlList, CancellationToken cancellationToken)
+    private void PrintDashboardUrls(string delimitedUrlList)
     {
         if (StringUtils.TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
         {
-            await _dashboardAvailability.WaitForDashboardAvailabilityAsync(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
-        }
-        else
-        {
-            _logger.LogWarning("Skipping dashboard availability check because ASPNETCORE_URLS environment variable could not be parsed.");
         }
     }
 
@@ -333,15 +309,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
                 }
 
-                var a = new AllocatedEndpointAnnotation(
-                    sp.EndpointAnnotation.Name,
-                    PortProtocol.ToProtocolType(svc.Spec.Protocol),
+                sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
+                    sp.EndpointAnnotation,
                     sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
-                    (int)svc.AllocatedPort!,
-                    sp.EndpointAnnotation.UriScheme
-                    );
-
-                appResource.ModelResource.Annotations.Add(a);
+                    (int)svc.AllocatedPort!);
             }
         }
     }
@@ -659,7 +630,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
             }
 
-            await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
+            PrintDashboardUrls(dashboardUrls);
         }
     }
 

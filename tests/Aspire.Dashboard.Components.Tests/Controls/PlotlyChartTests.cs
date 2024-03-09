@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
+using Aspire.Dashboard.Otlp.Storage;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Proto.Common.V1;
@@ -49,16 +50,17 @@ public class PlotlyChartTests : TestContext
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
         Services.AddSingleton<TimeProvider, TestTimeProvider>();
 
+        var options = new TelemetryOptions();
         var instrument = new OtlpInstrument
         {
             Name = "Name-<b>Bold</b>",
             Unit = "Unit-<b>Bold</b>",
-            Capacity = 100,
+            Options = options,
             Description = "Description-<b>Bold</b>",
             Parent = new OtlpMeter(new InstrumentationScope
             {
                 Name = "Parent-Name-<b>Bold</b>"
-            }),
+            }, options),
             Type = OtlpInstrumentType.Sum
         };
 
