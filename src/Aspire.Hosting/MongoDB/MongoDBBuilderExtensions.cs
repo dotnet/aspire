@@ -73,6 +73,41 @@ public static class MongoDBBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a named volume for the data folder to a MongoDb container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the mount. Defaults to an auto-generated volume. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithDataVolume(this IResourceBuilder<MongoDBServerResource> builder, string? name = null, bool isReadOnly = false)
+    {
+        name ??= $".data/{builder.Resource.Name}";
+        var fullyQualifiedPath = Path.GetFullPath(name, builder.ApplicationBuilder.AppHostDirectory);
+        return builder.WithVolume(fullyQualifiedPath, "/data/db", isReadOnly);
+    }
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a MongoDb container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithDataBindMount(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/data/db", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the init folder to a MongoDb container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithInitBindMount<T>(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = true)
+        => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+
     private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
         context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://host.docker.internal:{resource.PrimaryEndpoint.Port}/?directConnection=true");

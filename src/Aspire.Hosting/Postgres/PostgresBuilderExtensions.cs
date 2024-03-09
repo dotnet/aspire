@@ -115,4 +115,39 @@ public static class PostgresBuilderExtensions
     {
         return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a Postgres container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the mount. Defaults to an auto-generated volume. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)
+    {
+        name ??= $".data/{builder.Resource.Name}";
+        var fullyQualifiedPath = Path.GetFullPath(name, builder.ApplicationBuilder.AppHostDirectory);
+        return builder.WithVolume(fullyQualifiedPath, "/var/lib/postgresql/data", isReadOnly);
+    }
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a Postgres container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithDataBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the init folder to a Postgres container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithInitBindMount<T>(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = true)
+        => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
 }

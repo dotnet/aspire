@@ -9,14 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a MongoDB container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithDataDirectory, IResourceWithInitDirectory
+public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
-
-    /// <inheritdoc/>
-    public static string DataDirectory => "/data/db";
-    /// <inheritdoc/>
-    public static string InitDirectory => "/docker-entrypoint-initdb.d";
 
     private EndpointReference? _primaryEndpoint;
 

@@ -51,4 +51,28 @@ public static class RabbitMQBuilderExtensions
     {
         return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a RabbitMQ container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the mount. Defaults to an auto-generated volume. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RabbitMQServerResource> WithDataVolume(this IResourceBuilder<RabbitMQServerResource> builder, string? name = null, bool isReadOnly = false)
+    {
+        name ??= $".data/{builder.Resource.Name}";
+        var fullyQualifiedPath = Path.GetFullPath(name, builder.ApplicationBuilder.AppHostDirectory);
+        return builder.WithVolume(fullyQualifiedPath, "/var/lib/rabbitmq", isReadOnly);
+    }
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a RabbitMQ container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RabbitMQServerResource> WithDataBindMount(this IResourceBuilder<RabbitMQServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/lib/rabbitmq", isReadOnly);
 }
