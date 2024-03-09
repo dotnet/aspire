@@ -111,7 +111,7 @@ public static class ContainerResourceBuilderExtensions
             return builder;
         }
 
-        throw new InvalidOperationException("The resource does not contain any image annotation to be mutated");
+        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
     }
 
     /// <summary>
