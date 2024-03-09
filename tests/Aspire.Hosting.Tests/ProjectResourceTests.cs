@@ -72,11 +72,6 @@ public class ProjectResourceTests
             {
                 Assert.Equal("LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT", env.Key);
                 Assert.Equal("yyyy-MM-ddTHH:mm:ss.fffffff ", env.Value);
-            },
-            env =>
-            {
-                Assert.Equal("ASPNETCORE_FORWARDED_HEADERS_ENABLED", env.Key);
-                Assert.Equal("true", env.Value);
             });
     }
 
