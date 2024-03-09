@@ -105,9 +105,13 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string tag) where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Tag = tag;
-        return builder;
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.Tag = tag;
+            return builder;
+        }
+
+        throw new InvalidOperationException("The resource does not contain any image annotation to be mutated");
     }
 
     /// <summary>
@@ -129,13 +133,27 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">Type of container resource.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
-    /// <param name="image">Registry value.</param>
+    /// <param name="image">Image value.</param>
     /// <returns></returns>
     public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image) where T : ContainerResource
+    {
+        return builder.WithImage<T>(image, "latest");
+    }
+
+    /// <summary>
+    /// Allows overriding the image on a container.
+    /// </summary>
+    /// <typeparam name="T">Type of container resource.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="image">Image value.</param>
+    /// <param name="tag">Tag value.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string tag) where T : ContainerResource
     {
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {
             existingImageAnnotation.Image = image;
+            existingImageAnnotation.Tag = tag;
             return builder;
         }
 

@@ -16,6 +16,15 @@ public class ContainerResourceBuilderTests
     }
 
     [Fact]
+    public void WithImageMutatesImageNameAndTag()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var redis = builder.AddRedis("redis").WithImage("redis-stack", "1.0.0");
+        Assert.Equal("redis-stack", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Image);
+        Assert.Equal("1.0.0", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
+    }
+
+    [Fact]
     public void WithImageAddsAnnotationIfNotExistingAndMutatesImageName()
     {
         var builder = DistributedApplication.CreateBuilder();
