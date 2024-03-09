@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Microsoft.Extensions.ServiceDiscovery\Internal\ServiceNameParts.cs" Link="Internal\ServiceNameParts.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="DnsClient" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

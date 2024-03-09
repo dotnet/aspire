@@ -96,13 +96,7 @@ public class AddOracleTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracle("orcl")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(OracleDatabaseServerResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         using var app = appBuilder.Build();
 
@@ -121,13 +115,7 @@ public class AddOracleTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracle("orcl")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(OracleDatabaseServerResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000))
             .AddDatabase("db");
 
         using var app = appBuilder.Build();

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Tests.Utils;
@@ -317,7 +316,7 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         var redis = builder.AddRedis("cache")
-            .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
             .PublishAsAzureRedis();
 
         Assert.True(redis.Resource.IsContainer());
@@ -336,7 +335,7 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         var redis = builder.AddRedis("cache")
-            .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
             .PublishAsAzureRedisConstruct(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
 
         Assert.True(redis.Resource.IsContainer());
@@ -562,9 +561,8 @@ public class AzureBicepResourceTests
 
         // Verify that when PublishAs variant is used, connection string acquisition
         // still uses the local endpoint.
-        var endpointAnnotation = new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName, System.Net.Sockets.ProtocolType.Tcp, "localhost", 1234, "tcp");
-        postgres.WithAnnotation(endpointAnnotation);
-        var expectedConnectionString = $"Host={endpointAnnotation.Address};Port={endpointAnnotation.Port};Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
+        postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
+        var expectedConnectionString = $"Host=localhost;Port=1234;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
         Assert.Equal(expectedConnectionString, postgres.Resource.GetConnectionString());
 
         Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
