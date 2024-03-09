@@ -18,7 +18,9 @@ public sealed class MongoDbContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
-            Container = new MongoDbBuilder().Build();
+            Container = new MongoDbBuilder()
+                .WithImage("mongo:7.0.5")
+                .Build();
             await Container.StartAsync();
         }
     }

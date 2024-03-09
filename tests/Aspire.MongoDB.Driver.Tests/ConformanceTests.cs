@@ -3,10 +3,8 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
-using DotNet.Testcontainers.Containers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
 using Xunit;
@@ -61,8 +59,8 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
         var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
-            $"{_containerFixture.GetConnectionString()}test_db" :
-            "mongodb://root:password@localhost:27017/test_db";
+            $"{_containerFixture.GetConnectionString()}" :
+            "mongodb://root:password@localhost:27017/";
 
         configuration.AddInMemoryCollection(
             [
@@ -103,11 +101,6 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
         service.ListDatabases(source.Token);
     }
-
-    protected override HealthStatus GetHealthStatus()
-        => _containerFixture.Container?.Health == TestcontainersHealthStatus.Healthy
-            ? HealthStatus.Healthy
-            : HealthStatus.Unhealthy;
 
     [Theory]
     [InlineData(null)]
