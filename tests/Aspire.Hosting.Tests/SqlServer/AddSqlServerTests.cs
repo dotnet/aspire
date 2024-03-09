@@ -64,13 +64,7 @@ public class AddSqlServerTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddSqlServer("sqlserver")
-            .WithAnnotation(
-                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
-                    ProtocolType.Tcp,
-                    "localhost",
-                    1433,
-                    "tcp"
-             ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433));
 
         using var app = appBuilder.Build();
 
@@ -90,13 +84,8 @@ public class AddSqlServerTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddSqlServer("sqlserver")
-            .WithAnnotation(
-                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
-                    ProtocolType.Tcp,
-                    "localhost",
-                    1433,
-                    "tcp"
-             )).AddDatabase("mydb");
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433))
+            .AddDatabase("mydb");
 
         using var app = appBuilder.Build();
 
@@ -143,7 +132,10 @@ public class AddSqlServerTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22,
+                      "minLower": 1,
+                      "minUpper": 1,
+                      "minNumeric": 1
                     }
                   }
                 }

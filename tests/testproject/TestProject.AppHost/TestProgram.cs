@@ -37,9 +37,9 @@ public class TestProgram : IDisposable
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
-        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath);
-        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
-        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec");
+        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http");
+        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb", launchProfileName: "http");
+        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http");
         WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
 
         if (includeNodeApp)
@@ -158,7 +158,7 @@ public class TestProgram : IDisposable
     public void Dispose() => App?.Dispose();
 
     /// <summary>
-    /// Writes the allocated endpoints to the console in JSON format.
+    /// Writes the allocatedEndpoint endpoints to the console in JSON format.
     /// This allows for easier consumption by the external test process.
     /// </summary>
     private sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
@@ -174,11 +174,19 @@ public class TestProgram : IDisposable
                 var endpointsJsonArray = new JsonArray();
                 projectJson["Endpoints"] = endpointsJsonArray;
 
-                foreach (var endpoint in project.Annotations.OfType<AllocatedEndpointAnnotation>())
+                foreach (var endpoint in project.Annotations.OfType<EndpointAnnotation>())
                 {
-                    var endpointJsonObject = new JsonObject();
-                    endpointJsonObject["Name"] = endpoint.Name;
-                    endpointJsonObject["Uri"] = endpoint.UriString;
+                    var allocatedEndpoint = endpoint.AllocatedEndpoint;
+                    if (allocatedEndpoint is null)
+                    {
+                        continue;
+                    }
+
+                    var endpointJsonObject = new JsonObject
+                    {
+                        ["Name"] = endpoint.Name,
+                        ["Uri"] = allocatedEndpoint.UriString
+                    };
                     endpointsJsonArray.Add(endpointJsonObject);
                 }
             }

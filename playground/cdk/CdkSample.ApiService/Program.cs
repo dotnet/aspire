@@ -15,17 +15,21 @@ builder.AddAzureBlobClient("blobs");
 builder.AddSqlServerDbContext<SqlContext>("sqldb");
 builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
+builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");
+builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc, SqlContext context, SecretClient sc, IConnectionMultiplexer connection) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClient sc, IConnectionMultiplexer connection, CosmosContext cosmosContext, NpgsqlContext npgsqlContext) =>
 {
     return new
     {
+        cosmosDocuments = await TestCosmosAsync(cosmosContext),
         redisEntries = await TestRedisAsync(connection),
         secretChecked = await TestSecretAsync(sc),
         blobFiles = await TestBlobStorageAsync(bsc),
-        sqlRows = await TestSqlServerAsync(context)
+        sqlRows = await TestSqlServerAsync(sqlContext),
+        npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
     };
 });
 app.Run();
@@ -89,10 +93,45 @@ static async Task<List<Entry>> TestSqlServerAsync(SqlContext context)
     return entries;
 }
 
+static async Task<List<Entry>> TestNpgsqlAsync(NpgsqlContext context)
+{
+    await context.Database.EnsureCreatedAsync();
+
+    var entry = new Entry();
+    await context.Entries.AddAsync(entry);
+    await context.SaveChangesAsync();
+
+    var entries = await context.Entries.ToListAsync();
+    return entries;
+}
+
+static async Task<List<Entry>> TestCosmosAsync(CosmosContext context)
+{
+    await context.Database.EnsureCreatedAsync();
+
+    var entry = new Entry();
+    await context.Entries.AddAsync(entry);
+    await context.SaveChangesAsync();
+
+    var entries = await context.Entries.ToListAsync();
+    return entries;
+}
+
+public class NpgsqlContext(DbContextOptions<NpgsqlContext> options) : DbContext(options)
+{
+    public DbSet<Entry> Entries { get; set; }
+}
+
 public class SqlContext(DbContextOptions<SqlContext> options) : DbContext(options)
 {
     public DbSet<Entry> Entries { get; set; }
 }
+
+public class CosmosContext(DbContextOptions<CosmosContext> options) : DbContext(options)
+{
+    public DbSet<Entry> Entries { get; set; }
+}
+
 public class Entry
 {
     public Guid Id { get; set; } = Guid.NewGuid();

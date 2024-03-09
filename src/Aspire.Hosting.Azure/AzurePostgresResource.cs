@@ -50,3 +50,50 @@ public class AzurePostgresResource(PostgresServerResource innerResource) :
     /// <inheritdoc />
     public override ResourceAnnotationCollection Annotations => innerResource.Annotations;
 }
+
+/// <summary>
+/// Represents an resource for Azure Postgres Flexible Server.
+/// </summary>
+/// <param name="innerResource"><see cref="PostgresServerResource"/> that this resource wraps.</param>
+/// <param name="configureConstruct">Callback to configure construct.</param>
+public class AzurePostgresConstructResource(PostgresServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(innerResource.Name, configureConstruct),
+    IResourceWithConnectionString
+{
+    /// <summary>
+    /// Gets the "connectionString" secret output reference from the bicep template for the Azure Postgres Flexible Server.
+    /// </summary>
+    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+
+    /// <summary>
+    /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
+    /// </summary>
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string for the Azure Postgres Flexible Server.
+    /// </summary>
+    /// <returns>The connection string.</returns>
+    public string? GetConnectionString() => ConnectionString.Value;
+
+    /// <summary>
+    /// Gets the connection string for the Azure Postgres Flexible Server.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string.</returns>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (ProvisioningTaskCompletionSource is not null)
+        {
+            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return GetConnectionString();
+    }
+
+    /// <inheritdoc/>
+    public override string Name => innerResource.Name;
+
+    /// <inheritdoc />
+    public override ResourceAnnotationCollection Annotations => innerResource.Annotations;
+}

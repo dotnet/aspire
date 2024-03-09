@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -25,18 +24,13 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
-
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
                       .WithEndpoint(hostPort: port, containerPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
-                      .WithDefaultPassword()
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables[PasswordEnvVarName] = context.ExecutionContext.IsPublishMode
-                              ? resource.PasswordInput
-                              : resource.Password;
+                          context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordInput;
                       })
                       .PublishAsContainer();
     }

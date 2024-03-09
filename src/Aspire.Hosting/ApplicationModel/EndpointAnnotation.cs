@@ -104,4 +104,9 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     /// <remarks>Defaults to <c>true</c>.</remarks>
     public bool IsProxied { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the allocated endpoint.
+    /// </summary>
+    public AllocatedEndpoint? AllocatedEndpoint { get; set; }
 }

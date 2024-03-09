@@ -47,13 +47,7 @@ public class AddKafkaTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddKafka("kafka")
-            .WithAnnotation(
-                new AllocatedEndpointAnnotation(KafkaServerResource.PrimaryEndpointName,
-                ProtocolType.Tcp,
-                "localhost",
-                27017,
-                "tcp"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017));
 
         using var app = appBuilder.Build();
 

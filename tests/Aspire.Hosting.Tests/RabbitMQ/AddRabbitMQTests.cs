@@ -48,13 +48,7 @@ public class AddRabbitMQTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddRabbitMQ("rabbit")
-            .WithAnnotation(
-                new AllocatedEndpointAnnotation(RabbitMQServerResource.PrimaryEndpointName,
-                ProtocolType.Tcp,
-                "localhost",
-                27011,
-                "tcp"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27011));
 
         using var app = appBuilder.Build();
 
@@ -99,7 +93,8 @@ public class AddRabbitMQTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22,
+                      "special": false
                     }
                   }
                 }

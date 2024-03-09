@@ -65,4 +65,25 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         Assert.NotNull(client);
     }
+
+    [Theory]
+    [InlineData("https://yourservice.openai.azure.com/")]
+    [InlineData("http://domain:12345")]
+    [InlineData("Endpoint=http://domain.com:12345;Key=abc123")]
+    [InlineData("Endpoint=http://domain.com:12345")]
+    public void ReadsFromConnectionStringsFormats(string connectionString)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", connectionString)
+        ]);
+
+        builder.AddAzureOpenAIClient("openai");
+
+        var host = builder.Build();
+        var client = host.Services.GetRequiredService<OpenAIClient>();
+
+        Assert.NotNull(client);
+    }
+
 }

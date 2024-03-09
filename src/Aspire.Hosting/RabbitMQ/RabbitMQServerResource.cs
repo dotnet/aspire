@@ -6,26 +6,35 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a RabbitMQ resource.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-/// <param name="password">The RabbitMQ server password.</param>
-public class RabbitMQServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString, IResourceWithEnvironment
+public class RabbitMQServerResource : ContainerResource, IResourceWithConnectionString, IResourceWithEnvironment
 {
     internal const string PrimaryEndpointName = "tcp";
 
-    private EndpointReference? _primaryEndpoint;
-    private InputReference? _passwordInput;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RabbitMQServerResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="password">The RabbitMQ server password, or <see langword="null"/> to generate a random password.</param>
+    public RabbitMQServerResource(string name, string? password = null) : base(name)
+    {
+        PrimaryEndpoint = new(this, PrimaryEndpointName);
+        PasswordInput = new(this, "password");
+
+        // don't use special characters in the password, since it goes into a URI
+        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(password, special: false));
+    }
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
-    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+    public EndpointReference PrimaryEndpoint { get; }
 
-    internal InputReference PasswordInput => _passwordInput ??= new(this, "password");
+    internal InputReference PasswordInput { get; }
 
     /// <summary>
-    /// The RabbitMQ server password.
+    /// Gets the RabbitMQ server password.
     /// </summary>
-    public string Password { get; } = password;
+    public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
     /// <summary>
     /// Gets the connection string expression for the RabbitMQ server for the manifest.
