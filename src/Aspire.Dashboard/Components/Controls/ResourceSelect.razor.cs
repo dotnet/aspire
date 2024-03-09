@@ -43,7 +43,7 @@ public partial class ResourceSelect
             return ValueTask.CompletedTask;
         }
 
-        return JSRuntime.InvokeVoidAsync("updateSelectDisplayValue", _resourceSelectComponent.Element);
+        return JSRuntime.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
     }
 
     private string? GetPopupHeight()
