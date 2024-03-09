@@ -142,7 +142,7 @@ public class ManifestGenerationTests
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
         { Args = GetManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
 
-        appBuilder.AddProject<Projects.ServiceA>("servicea", launchProfileName: null);
+        appBuilder.AddProject<Projects.ServiceA>("servicea");
 
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
 
