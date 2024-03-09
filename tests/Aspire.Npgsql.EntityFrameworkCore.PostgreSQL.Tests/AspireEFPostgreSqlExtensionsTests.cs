@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.InternalTesting;
 using Aspire.Npgsql.Tests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
@@ -32,7 +33,7 @@ public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContain
         builder.EnableServiceProviderCaching(false);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void ReadsFromConnectionStringsCorrectly()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -48,7 +49,7 @@ public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContain
         Assert.Equal(ConnectionString, context.Database.GetDbConnection().ConnectionString);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void ConnectionStringCanBeSetInCode()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -69,7 +70,7 @@ public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContain
         Assert.DoesNotContain("unused", actualConnectionString);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void ConnectionNameWinsOverConfigSection()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -89,7 +90,7 @@ public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContain
         Assert.DoesNotContain("unused", actualConnectionString);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void AddNpgsqlCanConfigureDbContextOptions()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -131,7 +132,7 @@ public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContain
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void AddNpgsqlCanConfigureDbContextOptionsWithoutRetry()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -173,7 +174,7 @@ public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContain
     /// <summary>
     /// Verifies that two different DbContexts can be registered with different connection strings.
     /// </summary>
-    [Fact]
+    [RequiresDockerFact]
     public void CanHave2DbContexts()
     {
         const string connectionString2 = "Host=localhost2;Database=test2;Username=postgres2";
@@ -198,7 +199,7 @@ public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContain
         Assert.Equal(connectionString2, actualConnectionString);
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
@@ -221,7 +222,7 @@ public class AspireEFPostgreSqlExtensionsTests : IClassFixture<PostgreSQLContain
         Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddNpgsqlDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void DoesntThrowWhenDbContextIsRegisteredBeforeAspireComponentProduction(bool useServiceType)

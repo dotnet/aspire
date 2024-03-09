@@ -291,12 +291,8 @@ public abstract class ConformanceTests<TService, TOptions>
         {
             TriggerActivity(service);
         }
-        catch (Exception ex) { Console.WriteLine (ex.ToString());}
+        catch (Exception) { }
 
-        foreach (string logCategory in loggerFactory.Categories)
-        {
-            Console.WriteLine($"found category: {logCategory}");
-        }
         foreach (string logCategory in RequiredLogCategories)
         {
             Assert.Contains(logCategory, loggerFactory.Categories);

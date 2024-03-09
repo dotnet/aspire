@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,11 +10,17 @@ using Xunit;
 
 namespace Aspire.Npgsql.Tests;
 
-public class AspirePostgreSqlNpgsqlExtensionsTests
+public class AspirePostgreSqlNpgsqlExtensionsTests : IClassFixture<PostgreSQLContainerFixture>
 {
-    private const string ConnectionString = "Host=localhost;Database=test_aspire_npgsql";
+    private readonly PostgreSQLContainerFixture _containerFixture;
+    private string ConnectionString => _containerFixture.GetConnectionString();
 
-    [Theory]
+    public AspirePostgreSqlNpgsqlExtensionsTests(PostgreSQLContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
+
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
@@ -40,7 +47,7 @@ public class AspirePostgreSqlNpgsqlExtensionsTests
         Assert.Equal(ConnectionString, dataSource.ConnectionString);
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
@@ -50,7 +57,7 @@ public class AspirePostgreSqlNpgsqlExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", "unused")
         ]);
 
-        static void SetConnectionString(NpgsqlSettings settings) => settings.ConnectionString = ConnectionString;
+        void SetConnectionString(NpgsqlSettings settings) => settings.ConnectionString = ConnectionString;
         if (useKeyed)
         {
             builder.AddKeyedNpgsqlDataSource("npgsql", SetConnectionString);
@@ -70,7 +77,7 @@ public class AspirePostgreSqlNpgsqlExtensionsTests
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed)
@@ -102,7 +109,7 @@ public class AspirePostgreSqlNpgsqlExtensionsTests
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void CustomDataSourceBuilderIsExecuted(bool useKeyed)

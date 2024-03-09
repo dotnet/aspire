@@ -16,11 +16,6 @@ namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
-    // in the future it can become a static property that reads the value from Env Var
-    // protected const string ConnectionString = "Host=localhost;Database=test;Username=postgres;Password=postgres";
-
-    // private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
-
     protected readonly PostgreSQLContainerFixture _containerFixture;
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -83,9 +78,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
     protected string ConnectionString => _containerFixture.GetConnectionString();
 
     public ConformanceTests(PostgreSQLContainerFixture containerFixture)
-    {
-        _containerFixture = containerFixture;
-    }
+        => _containerFixture = containerFixture;
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
@@ -113,7 +106,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         }
     }
 
-    [Fact]
+    [RequiresDockerFact]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
     public void DbContextPoolingRegistersIDbContextPool()
     {
@@ -124,7 +117,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         Assert.NotNull(pool);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void DbContextCanBeAlwaysResolved()
     {
         using IHost host = CreateHostWithComponent();
@@ -134,11 +127,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         Assert.NotNull(dbContext);
     }
 
-    [ConditionalFact]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
     {
-        SkipIfCanNotConnectToServer();
-
         RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
     }
 }
