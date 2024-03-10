@@ -12,9 +12,9 @@ internal static class ResourceEndpointHelpers
     /// </summary>
     public static List<DisplayedEndpoint> GetEndpoints(ILogger logger, ResourceViewModel resource, bool excludeServices = false, bool includeEndpointUrl = false)
     {
-        var isKnownResourceType = resource.IsContainer() || resource.IsExecutable(allowSubtypes: false) || resource.IsProject();
-
         var displayedEndpoints = new List<DisplayedEndpoint>();
+
+        var isKnownResourceType = resource.IsContainer() || resource.IsExecutable(allowSubtypes: false) || resource.IsProject();
 
         if (isKnownResourceType)
         {

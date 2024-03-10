@@ -3,5 +3,6 @@
     <IsTestSupportProject>true</IsTestSupportProject>
   </PropertyGroup>
 
-  <Import Project="..\Directory.Build.props" />
+  <Import Project="Directory.Build.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="..\Directory.Build.props" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
 </Project>

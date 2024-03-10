@@ -94,41 +94,29 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public void MySqlCreatesConnectionString()
+    public async Task MySqlCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
         Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("Server=localhost;Port=2000;User ID=root;Password=", connectionString);
     }
 
     [Fact]
-    public void MySqlCreatesConnectionStringWithDatabase()
+    public async Task MySqlCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000))
             .AddDatabase("db");
 
         using var app = appBuilder.Build();
@@ -136,9 +124,9 @@ public class AddMySqlTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var mySqlResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
-        var mySqlConnectionString = mySqlResource.GetConnectionString();
+        var mySqlConnectionString = await mySqlResource.GetConnectionStringAsync(default);
         var mySqlDatabaseResource = Assert.Single(appModel.Resources.OfType<MySqlDatabaseResource>());
-        var dbConnectionString = mySqlDatabaseResource.GetConnectionString();
+        var dbConnectionString = await mySqlDatabaseResource.GetConnectionStringAsync(default);
 
         Assert.Equal(mySqlConnectionString + ";Database=db", dbConnectionString);
         Assert.Equal("{mysql.connectionString};Database=db", mySqlDatabaseResource.ConnectionStringExpression);
@@ -176,7 +164,7 @@ public class AddMySqlTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }
@@ -212,7 +200,7 @@ public class AddMySqlTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        mysql.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new PhpMyAdminConfigWriterHook();
@@ -248,8 +236,8 @@ public class AddMySqlTests
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(8081);
 
         // Add fake allocated endpoints.
-        mysql1.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        mysql2.WithAnnotation(new AllocatedEndpointAnnotation(MySqlServerResource.PrimaryEndpointName, ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
+        mysql2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();

@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
+internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService) : AzureResourceProvisioner<AzureBicepResource>
 {
@@ -42,8 +42,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             return false;
         }
-
-        var resourceIds = section.GetSection("ResourceIds");
 
         if (section["Outputs"] is string outputJson)
         {
@@ -87,13 +85,13 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
-            ImmutableArray<(string, string)> props = [
+            ImmutableArray<(string, object?)> props = [
                 .. state.Properties,
-                    ("azure.subscription.id", configuration["Azure:SubscriptionId"] ?? ""),
+                    ("azure.subscription.id", configuration["Azure:SubscriptionId"]),
                     // ("azure.resource.group", configuration["Azure:ResourceGroup"]!),
-                    ("azure.tenant.domain", configuration["Azure:Tenant"] ?? ""),
-                    ("azure.location", configuration["Azure:Location"] ?? ""),
-                    (CustomResourceKnownProperties.Source, section["Id"] ?? "")
+                    ("azure.tenant.domain", configuration["Azure:Tenant"]),
+                    ("azure.location", configuration["Azure:Location"]),
+                    (CustomResourceKnownProperties.Source, section["Id"])
             ];
 
             return state with
@@ -189,7 +187,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             Arguments = $"bicep build --file \"{path}\" --stdout",
             OnOutputData = data => armTemplateContents.AppendLine(data),
-            OnErrorData = data => logger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
+            OnErrorData = data => resourceLogger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
         if (!await ExecuteCommand(templateSpec).ConfigureAwait(false))
@@ -211,7 +209,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
         {
             Template = BinaryData.FromString(armTemplateContents.ToString()),
             Parameters = BinaryData.FromObjectAsJson(parameters),
-            DebugSettingDetailLevel = "RequestContent, ResponseContent",
+            DebugSettingDetailLevel = "ResponseContent"
         }),
         cancellationToken).ConfigureAwait(false);
 
@@ -310,7 +308,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
-            ImmutableArray<(string, string)> properties = [
+            ImmutableArray<(string, object?)> properties = [
                 .. state.Properties,
                 (CustomResourceKnownProperties.Source, deployment.Id.Name)
             ];
@@ -476,10 +474,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger,
                     bool b => b,
                     Guid g => g.ToString(),
                     JsonNode node => node,
-                    InputReference reference => reference.Input.GenerateDefaultValue(),
-                    // TODO: Support this
-                    AzureBicepResource bicepResource => throw new NotSupportedException("Referencing bicep resources is not supported"),
-                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
                     IValueProvider v => await v.GetValueAsync(cancellationToken).ConfigureAwait(false),
                     null => null,
                     _ => throw new NotSupportedException($"The parameter value type {parameterValue.GetType()} is not supported.")

@@ -54,6 +54,12 @@ internal static class LaunchProfileExtensions
 
     private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)
     {
+        // For testing
+        if (projectMetadata.LaunchSettings is { } launchSettings)
+        {
+            return launchSettings;
+        }
+
         if (!File.Exists(projectMetadata.ProjectPath))
         {
             var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -21,26 +20,15 @@ public static class SqlServerBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
-        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
-        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
-
         var sqlServer = new SqlServerServerResource(name, password);
 
         return builder.AddResource(sqlServer)
-                      .WithEndpoint(hostPort: port, containerPort: 1433, name: MySqlServerResource.PrimaryEndpointName)
+                      .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
-                      .WithDefaultPassword()
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishMode)
-                          {
-                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", $"{{{sqlServer.Name}.inputs.password}}");
-                          }
-                          else
-                          {
-                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", sqlServer.Password);
-                          }
+                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordInput;
                       })
                       .PublishAsContainer();
     }

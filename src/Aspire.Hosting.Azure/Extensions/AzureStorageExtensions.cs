@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Authorization;
@@ -53,13 +52,13 @@ public static class AzureStorageExtensions
             var blobService = new BlobService(construct);
 
             var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
-            blobRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            blobRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
-            tableRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            tableRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
-            queueRole.AssignParameter(p => p.PrincipalType, construct.PrincipalTypeParameter);
+            queueRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             storageAccount.AddOutput(sa => sa.PrimaryEndpoints.BlobUri, "blobEndpoint");
             storageAccount.AddOutput(sa => sa.PrimaryEndpoints.QueueUri, "queueEndpoint");
@@ -87,9 +86,9 @@ public static class AzureStorageExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureStorageResource> RunAsEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
-        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", containerPort: 10000))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", containerPort: 10001))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", containerPort: 10002))
+        builder.WithEndpoint(name: "blob", containerPort: 10000)
+               .WithEndpoint(name: "queue", containerPort: 10001)
+               .WithEndpoint(name: "table", containerPort: 10002)
                .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "3.29.0" });
 
         if (configureContainer != null)

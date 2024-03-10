@@ -114,35 +114,23 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public void PostgresCreatesConnectionString()
+    public async Task PostgresCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var postgres = appBuilder.AddPostgres("postgres")
-                                 .WithAnnotation(
-                                     new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName,
-                                      ProtocolType.Tcp,
-                                     "localhost",
-                                     2000,
-                                     "https"
-                                 ));
+                                 .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
-        var connectionString = postgres.Resource.GetConnectionString();
+        var connectionString = await postgres.Resource.GetConnectionStringAsync();
         Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}", postgres.Resource.ConnectionStringExpression);
         Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}", connectionString);
     }
 
     [Fact]
-    public void PostgresCreatesConnectionStringWithDatabase()
+    public async Task PostgresCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("postgres")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(PostgresServerResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000))
             .AddDatabase("db");
 
         using var app = appBuilder.Build();
@@ -150,9 +138,9 @@ public class AddPostgresTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var postgresResource = Assert.Single(appModel.Resources.OfType<PostgresServerResource>());
-        var postgresConnectionString = postgresResource.GetConnectionString();
+        var postgresConnectionString = await postgresResource.GetConnectionStringAsync();
         var postgresDatabaseResource = Assert.Single(appModel.Resources.OfType<PostgresDatabaseResource>());
-        var dbConnectionString = postgresDatabaseResource.GetConnectionString();
+        var dbConnectionString = await postgresDatabaseResource.GetConnectionStringAsync(default);
 
         Assert.Equal("{postgres.connectionString};Database=db", postgresDatabaseResource.ConnectionStringExpression);
         Assert.Equal(postgresConnectionString + ";Database=db", dbConnectionString);
@@ -243,7 +231,7 @@ public class AddPostgresTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }
@@ -292,8 +280,8 @@ public class AddPostgresTests
         var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(8081);
 
         // Add fake allocated endpoints.
-        pg1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        pg2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
+        pg2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
         var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();

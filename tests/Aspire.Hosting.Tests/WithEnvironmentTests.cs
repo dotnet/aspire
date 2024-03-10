@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.Tests.Utils;
 using Xunit;
 
@@ -16,13 +15,9 @@ public class WithEnvironmentTests
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint(
+            "mybinding",
+            e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         testProgram.ServiceBBuilder.WithEnvironment("myName", testProgram.ServiceABuilder.GetEndpoint("mybinding"));
 
@@ -116,7 +111,7 @@ public class WithEnvironmentTests
 
         var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource));
 
-        Assert.Equal("Parameter resource could not be used because configuration key `Parameters:parameter` is missing.", exception.Message);
+        Assert.Equal("Parameter resource could not be used because configuration key 'Parameters:parameter' is missing.", exception.Message);
     }
 
     [Fact]
@@ -140,5 +135,49 @@ public class WithEnvironmentTests
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "myName" && kvp.Value == "value2");
     }
+
+    [Fact]
+    public async Task EnvironmentVariableExpressions()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var test = builder.AddResource(new TestResource("test", "connectionString"));
+
+        var container = builder.AddContainer("container1", "image")
+                               .WithHttpEndpoint(name: "primary")
+                               .WithEndpoint("primary", ep =>
+                               {
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90);
+                               });
+
+        var endpoint = container.GetEndpoint("primary");
+
+        var containerB = builder.AddContainer("container2", "imageB")
+                                .WithEnvironment("URL", $"{endpoint}/foo")
+                                .WithEnvironment("PORT", $"{endpoint.Property(EndpointProperty.Port)}")
+                                .WithEnvironment("HOST", $"{test.Resource};name=1");
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerB.Resource);
+        var manifestConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerB.Resource, DistributedApplicationOperation.Publish);
+
+        Assert.Equal(3, config.Count);
+        Assert.Equal($"http://localhost:90/foo", config["URL"]);
+        Assert.Equal("90", config["PORT"]);
+        Assert.Equal("connectionString;name=1", config["HOST"]);
+
+        Assert.Equal(3, manifestConfig.Count);
+        Assert.Equal("{container1.bindings.primary.url}/foo", manifestConfig["URL"]);
+        Assert.Equal("{container1.bindings.primary.port}", manifestConfig["PORT"]);
+        Assert.Equal("{test.connectionString};name=1", manifestConfig["HOST"]);
+    }
+
+    private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
+    {
+        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+        {
+            return new(connectionString);
+        }
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
 }

@@ -105,9 +105,13 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string tag) where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Tag = tag;
-        return builder;
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.Tag = tag;
+            return builder;
+        }
+
+        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
     }
 
     /// <summary>
@@ -129,12 +133,21 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">Type of container resource.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
-    /// <param name="image">Registry value.</param>
+    /// <param name="image">Image value.</param>
+    /// <param name="tag">Tag value.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image) where T : ContainerResource
+    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image, string tag = "latest") where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Image = image;
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.Image = image;
+            existingImageAnnotation.Tag = tag;
+            return builder;
+        }
+
+        // if the annotation doesn't exist, create it with the given image and add it to the collection
+        var containerImageAnnotation = new ContainerImageAnnotation() { Image = image, Tag = tag };
+        builder.Resource.Annotations.Add(containerImageAnnotation);
         return builder;
     }
 
@@ -153,7 +166,7 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Changes the Kafka resource to be published as a container in the manifest.
+    /// Changes the resource to be published as a container in the manifest.
     /// </summary>
     /// <param name="builder">Resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>

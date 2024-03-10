@@ -199,6 +199,14 @@ Aspire.MySqlConnector:
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
+Aspire.NATS.Net:
+- Log categories:
+  - "NATS"
+- Activity source names:
+  - none (currently not supported by NATS.Net library)
+- Metric names:
+  - none (currently not supported by NATS.Net library)
+
 Aspire.Npgsql:
 - Log categories:
   - "Npgsql.Command"

@@ -13,7 +13,7 @@
         <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExitedUnexpectedly], Resource.ResourceType, exitCode)"
                     Icon="Icons.Filled.Size16.ErrorCircle"
                     Color="Color.Error"
-                    Class="severity-icon"/>
+                    Class="severity-icon" />
     }
     else
     {
@@ -21,23 +21,37 @@
         <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExited], Resource.ResourceType)"
                     Icon="Icons.Filled.Size16.Warning"
                     Color="Color.Warning"
-                    Class="severity-icon"/>
+                    Class="severity-icon" />
     }
 }
 else if (Resource is { State: ResourceStates.StartingState })
 {
     <FluentIcon Icon="Icons.Filled.Size16.Circle"
                 Color="Color.Info"
-                Class="severity-icon"/>
+                Class="severity-icon" />
+}
+else if (Resource is { State: /* unknown */ null or { Length: 0 } })
+{
+    <FluentIcon Icon="Icons.Filled.Size16.Circle"
+                Color="Color.Neutral"
+                Class="severity-icon" />
 }
 else
 {
     <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
                 Color="Color.Success"
-                Class="severity-icon"/>
+                Class="severity-icon" />
 }
 
-@Resource.State.Humanize()
+@if (string.IsNullOrEmpty(Resource.State))
+{
+    <span>Unknown</span>
+}
+else
+{
+    <span>@Resource.State.Humanize()</span>
+}
+
 <UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
 
 @code {

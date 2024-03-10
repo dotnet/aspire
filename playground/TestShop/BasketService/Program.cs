@@ -5,10 +5,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddGrpc();
 
-builder.AddRedis("basketcache");
+builder.AddRedisClient("basketcache");
 builder.Services.AddTransient<IBasketRepository, RedisBasketRepository>();
 
-builder.AddRabbitMQ("messaging");
+builder.AddRabbitMQClient("messaging");
 
 var app = builder.Build();
 

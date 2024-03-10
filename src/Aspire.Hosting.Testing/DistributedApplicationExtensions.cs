@@ -32,9 +32,10 @@ public static class DistributedApplicationExtensions
     /// </summary>
     /// <param name="app">The application.</param>
     /// <param name="resourceName">The resource name.</param>
+    /// <param name="cancellationToken"> The cancellationToken to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the specified resource.</returns>
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
-    public static string? GetConnectionString(this DistributedApplication app, string resourceName)
+    public static ValueTask<string?> GetConnectionStringAsync(this DistributedApplication app, string resourceName, CancellationToken cancellationToken = default)
     {
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithConnectionString resourceWithConnectionString)
@@ -42,7 +43,7 @@ public static class DistributedApplicationExtensions
             throw new ArgumentException($"Resource '{resourceName}' does not expose a connection string.", nameof(resourceName));
         }
 
-        return resourceWithConnectionString.GetConnectionString();
+        return resourceWithConnectionString.GetConnectionStringAsync(cancellationToken);
     }
 
     /// <summary>
@@ -74,19 +75,19 @@ public static class DistributedApplicationExtensions
     private static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default)
     {
         var resource = GetResource(app, resourceName);
-        if (!resource.TryGetAllocatedEndPoints(out var endpoints))
+        if (resource is not IResourceWithEndpoints resourceWithEndpoints)
         {
             throw new InvalidOperationException($"Resource '{resourceName}' has no allocated endpoints.");
         }
 
-        AllocatedEndpointAnnotation? endpoint;
+        EndpointReference? endpoint;
         if (!string.IsNullOrEmpty(endpointName))
         {
-            endpoint = GetEndpointOrDefault(endpoints, resourceName, endpointName);
+            endpoint = GetEndpointOrDefault(resourceWithEndpoints, endpointName);
         }
         else
         {
-            endpoint = GetEndpointOrDefault(endpoints, resourceName, "http") ?? GetEndpointOrDefault(endpoints, resourceName, "https");
+            endpoint = GetEndpointOrDefault(resourceWithEndpoints, "http") ?? GetEndpointOrDefault(resourceWithEndpoints, "https");
         }
 
         if (endpoint is null)
@@ -94,17 +95,13 @@ public static class DistributedApplicationExtensions
             throw new ArgumentException($"Endpoint '{endpointName}' for resource '{resourceName}' not found.", nameof(endpointName));
         }
 
-        return endpoint.UriString;
+        return endpoint.Url;
     }
 
-    static AllocatedEndpointAnnotation? GetEndpointOrDefault(IEnumerable<AllocatedEndpointAnnotation> endpoints, string resourceName, string? endpointName)
+    static EndpointReference? GetEndpointOrDefault(IResourceWithEndpoints resourceWithEndpoints, string endpointName)
     {
-        var filteredEndpoints = endpoints.Where(e => string.Equals(e.Name, endpointName, StringComparison.OrdinalIgnoreCase)).ToList();
-        return filteredEndpoints.Count switch
-        {
-            0 => null,
-            1 => filteredEndpoints[0],
-            _ => throw new InvalidOperationException($"Resource '{resourceName}' has multiple endpoints named '{endpointName}'."),
-        };
+        var reference = resourceWithEndpoints.GetEndpoint(endpointName);
+
+        return reference.IsAllocated ? reference : null;
     }
 }

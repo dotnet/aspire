@@ -13,8 +13,8 @@ public class TestingBuilderTests
     [LocalOnlyFact]
     public async Task HasEndPoints()
     {
-        var appHost = new DistributedApplicationTestingBuilder<Program>();
-        await using var app = appHost.Build();
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
+        await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
 
@@ -24,7 +24,7 @@ public class TestingBuilderTests
         Assert.True(workerEndpoint.Host.Length > 0);
 
         // Get a connection string from a resource
-        var pgConnectionString = app.GetConnectionString("postgres1");
+        var pgConnectionString = await app.GetConnectionStringAsync("postgres1");
         Assert.NotNull(pgConnectionString);
         Assert.True(pgConnectionString.Length > 0);
     }
@@ -32,10 +32,8 @@ public class TestingBuilderTests
     [LocalOnlyFact]
     public async Task CanGetResources()
     {
-        var appHost = new DistributedApplicationTestingBuilder<Program>();
-        appHost.Resources.Remove(appHost.Resources.Single(r => r.Name == "redis1"));
-
-        await using var app = appHost.Build();
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
+        await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
         // Ensure that the resource which we added is present in the model.
@@ -47,8 +45,8 @@ public class TestingBuilderTests
     [LocalOnlyFact]
     public async Task HttpClientGetTest()
     {
-        var builder = new DistributedApplicationTestingBuilder<Program>();
-        await using var app = builder.Build();
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
+        await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
         var httpClient = app.CreateHttpClient("mywebapp1");

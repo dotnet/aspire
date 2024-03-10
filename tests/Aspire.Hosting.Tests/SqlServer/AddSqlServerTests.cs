@@ -59,25 +59,19 @@ public class AddSqlServerTests
     }
 
     [Fact]
-    public void SqlServerCreatesConnectionString()
+    public async Task SqlServerCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddSqlServer("sqlserver")
-            .WithAnnotation(
-                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
-                    ProtocolType.Tcp,
-                    "localhost",
-                    1433,
-                    "tcp"
-             ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433));
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         var password = PasswordUtil.EscapePassword(connectionStringResource.Password);
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true", connectionString);
@@ -85,25 +79,20 @@ public class AddSqlServerTests
     }
 
     [Fact]
-    public void SqlServerDatabaseCreatesConnectionString()
+    public async Task SqlServerDatabaseCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddSqlServer("sqlserver")
-            .WithAnnotation(
-                    new AllocatedEndpointAnnotation(SqlServerServerResource.PrimaryEndpointName,
-                    ProtocolType.Tcp,
-                    "localhost",
-                    1433,
-                    "tcp"
-             )).AddDatabase("mydb");
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433))
+            .AddDatabase("mydb");
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerDatabaseResource>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         var password = PasswordUtil.EscapePassword(connectionStringResource.Parent.Password);
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true;Database=mydb", connectionString);
@@ -143,7 +132,10 @@ public class AddSqlServerTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22,
+                      "minLower": 1,
+                      "minUpper": 1,
+                      "minNumeric": 1
                     }
                   }
                 }
@@ -206,10 +198,10 @@ public class AddSqlServerTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var db1 = builder.AddPostgres("sqlserver1")
+        var db1 = builder.AddSqlServer("sqlserver1")
             .AddDatabase("db1", "imports");
 
-        var db2 = builder.AddPostgres("sqlserver2")
+        var db2 = builder.AddSqlServer("sqlserver2")
             .AddDatabase("db2", "imports");
 
         Assert.Equal("imports", db1.Resource.DatabaseName);

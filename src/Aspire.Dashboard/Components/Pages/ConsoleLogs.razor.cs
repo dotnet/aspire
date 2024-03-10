@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -11,8 +12,6 @@ using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -20,9 +19,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 {
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
-
-    [Inject]
-    public required IJSRuntime JS { get; init; }
 
     [Inject]
     public required ProtectedSessionStorage SessionStorage { get; init; }
@@ -44,7 +40,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private Task? _resourceSubscriptionTask;
 
     // UI
-    private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
+    private ResourceSelect? _resourceSelectComponent;
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private LogViewer _logViewer = null!;
 
@@ -109,18 +105,23 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             _resourceSubscriptionTask = Task.Run(async () =>
             {
-                await foreach (var (changeType, resource) in subscription.WithCancellation(_resourceSubscriptionCancellation.Token))
+                await foreach (var changes in subscription.WithCancellation(_resourceSubscriptionCancellation.Token))
                 {
-                    await OnResourceChanged(changeType, resource);
-
-                    // the initial snapshot we obtain is [almost] never correct (it's always empty)
-                    // we still want to select the user's initial queried resource on page load,
-                    // so if there is no selected resource when we
-                    // receive an added resource, and that added resource name == ResourceName,
-                    // we should mark it as selected
-                    if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                    // TODO: This could be updated to be more efficent.
+                    // It should apply on the resource changes in a batch and then update the UI.
+                    foreach (var (changeType, resource) in changes)
                     {
-                        SetSelectedResourceOption(resource);
+                        await OnResourceChanged(changeType, resource);
+
+                        // the initial snapshot we obtain is [almost] never correct (it's always empty)
+                        // we still want to select the user's initial queried resource on page load,
+                        // so if there is no selected resource when we
+                        // receive an added resource, and that added resource name == ResourceName,
+                        // we should mark it as selected
+                        if (ResourceName is not null && PageViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                        {
+                            SetSelectedResourceOption(resource);
+                        }
                     }
                 }
             });
@@ -169,7 +170,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
         builder.Add(_noSelection);
 
-        foreach (var resourceGroupsByApplicationName in _resourceByName.Values.OrderBy(c => c.Name).GroupBy(resource => resource.DisplayName))
+        foreach (var resourceGroupsByApplicationName in _resourceByName
+            .Where(r => r.Value.State != ResourceStates.HiddenState)
+            .OrderBy(c => c.Value.Name)
+            .GroupBy(r => r.Value.DisplayName, r => r.Value))
         {
             if (resourceGroupsByApplicationName.Count() > 1)
             {
@@ -202,7 +206,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             string GetDisplayText()
             {
-                var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName.Values);
+                var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName);
 
                 return resource.State switch
                 {
@@ -306,9 +310,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         // Workaround for issue in fluent-select web component where the display value of the
         // selected item doesn't update automatically when the item changes
-        if (_resourceSelectComponent is not null && JS is not null)
+        if (_resourceSelectComponent is not null)
         {
-            await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
+            await _resourceSelectComponent.UpdateDisplayValueAsync();
         }
     }
 

@@ -1,30 +1,43 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Utils;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// A resource that represents a PostgreSQL container.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-/// <param name="password">The PostgreSQL server password.</param>
-public class PostgresServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
+public class PostgresServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
 
-    private EndpointReference? _primaryEndpoint;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PostgresServerResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="password">The PostgreSQL server password, or <see langword="null"/> to generate a random password.</param>
+    public PostgresServerResource(string name, string? password = null) : base(name)
+    {
+        PrimaryEndpoint = new(this, PrimaryEndpointName);
+        PasswordInput = new(this, "password");
+
+        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(password));
+    }
 
     /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
-    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+    public EndpointReference PrimaryEndpoint { get; }
+
+    internal InputReference PasswordInput { get; }
 
     /// <summary>
     /// Gets the PostgreSQL server password.
     /// </summary>
-    public string Password { get; } = password;
+    public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
+
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"Host={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};Username=postgres;Password={PasswordInput}");
 
     /// <summary>
     /// Gets the connection string expression for the PostgreSQL server for the manifest.
@@ -38,7 +51,7 @@ public class PostgresServerResource(string name, string password) : ContainerRes
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"Host={PrimaryEndpoint.GetExpression(EndpointProperty.Host)};Port={PrimaryEndpoint.GetExpression(EndpointProperty.Port)};Username=postgres;Password={{{Name}.inputs.password}}";
+            return ConnectionString.ValueExpression;
         }
     }
 
@@ -54,21 +67,7 @@ public class PostgresServerResource(string name, string password) : ContainerRes
             return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
         }
 
-        return new(GetConnectionString());
-    }
-
-    /// <summary>
-    /// Gets the connection string for the PostgreSQL server.
-    /// </summary>
-    /// <returns>A connection string for the PostgreSQL server in the form "Host=host;Port=port;Username=postgres;Password=password".</returns>
-    public string? GetConnectionString()
-    {
-        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-        {
-            return connectionStringAnnotation.Resource.GetConnectionString();
-        }
-
-        return $"Host={PrimaryEndpoint.Host};Port={PrimaryEndpoint.Port};Username=postgres;Password={PasswordUtil.EscapePassword(Password)}";
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);

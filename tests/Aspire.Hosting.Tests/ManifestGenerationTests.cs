@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -180,6 +181,47 @@ public class ManifestGenerationTests
             arg => Assert.Equal("test", arg.GetString()),
             arg => Assert.Equal("arg2", arg.GetString()),
             arg => Assert.Equal("more", arg.GetString()));
+    }
+
+    [Fact]
+    public async Task EnsureContainerWithVolumesEmitsVolumes()
+    {
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        var container = program.AppBuilder.AddContainer("containerwithvolumes", "image/name")
+                          .WithVolume("myvolume", "/mount/here")
+                          .WithBindMount("./some/source", "/bound") // This should be ignored and not written to the manifest
+                          .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
+                          .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
+
+        program.Build();
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "image/name:latest",
+              "volumes": [
+                {
+                  "name": "myvolume",
+                  "target": "/mount/here",
+                  "readOnly": false
+                },
+                {
+                  "name": "myreadonlyvolume",
+                  "target": "/mount/there",
+                  "readOnly": true
+                },
+                {
+                  "target": "/mount/everywhere",
+                  "readOnly": false
+                }
+              ]
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Theory]
@@ -363,25 +405,42 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllAzureOpenAIManifestTypesHaveVersion0Suffix()
+    public async Task VerifyOpenAIManifest()
     {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var openai = appBuilder.AddAzureOpenAI("openai")
+            .WithDeployment(new(name: "deployment", modelName: "gpt-35-turbo", modelVersion: "0613"));
 
-        program.AppBuilder.AddAzureOpenAI("openai").AddDeployment("deployment");
+        var openaiManifest = await ManifestUtils.GetManifest(openai.Resource);
 
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{openai.outputs.connectionString}",
+              "path": "aspire.hosting.azure.bicep.openai.bicep",
+              "params": {
+                "name": "openai",
+                "deployments": [
+                  {
+                    "name": "deployment",
+                    "sku": {
+                      "name": "Standard",
+                      "capacity": 1
+                    },
+                    "model": {
+                      "format": "OpenAI",
+                      "name": "gpt-35-turbo",
+                      "version": "0613"
+                    }
+                  }
+                ],
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
 
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var openai = resources.GetProperty("openai");
-        Assert.Equal("azure.openai.account.v0", openai.GetProperty("type").GetString());
-
-        var deployment = resources.GetProperty("deployment");
-        Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
+        Assert.Equal(expectedManifest, openaiManifest.ToString());
     }
 
     [Fact]
@@ -509,6 +568,55 @@ public class ManifestGenerationTests
         Assert.Equal(DateTime.MinValue, nestedComplexValue.GetDateTime());
     }
 
+    [Fact]
+    public async Task InputAnnotationDefaultValuesGenerateCorrectly()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var container = appBuilder.AddContainer("container", "image");
+        container.WithAnnotation(new InputAnnotation("fake")
+        {
+            Default = new GenerateInputDefault()
+            {
+                MinLength = 16,
+                Lower = false,
+                Upper = false,
+                Numeric = false,
+                Special = false,
+                MinLower = 1,
+                MinUpper = 2,
+                MinNumeric = 3,
+                MinSpecial = 4,
+            }
+        });
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "image:latest",
+              "inputs": {
+                "fake": {
+                  "type": "string",
+                  "default": {
+                    "generate": {
+                      "minLength": 16,
+                      "lower": false,
+                      "upper": false,
+                      "numeric": false,
+                      "special": false,
+                      "minLower": 1,
+                      "minUpper": 2,
+                      "minNumeric": 3,
+                      "minSpecial": 4
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
         var program = TestProgram.Create<ManifestGenerationTests>(GetManifestArgs(), includeNodeApp: includeNodeApp);

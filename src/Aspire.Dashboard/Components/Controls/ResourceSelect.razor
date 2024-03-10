@@ -1,0 +1,15 @@
+﻿@using Aspire.Dashboard.Resources
+
+<FluentSelect @ref="_resourceSelectComponent"
+              Items="Resources"
+              OptionValue="@(c => c!.Id?.InstanceId)"
+              OptionDisabled="@(c => c!.Id?.Type is Otlp.Model.OtlpApplicationType.ReplicaSet)"
+              SelectedOption="SelectedResource"
+              SelectedOptionChanged="SelectedResourceChanged"
+              AriaLabel="@AriaLabel"
+              Class="resource-list"
+              Height="@GetPopupHeight()">
+    <OptionTemplate>
+        <ResourceSelectOptionTemplate ViewModel="@context" />
+    </OptionTemplate>
+</FluentSelect>

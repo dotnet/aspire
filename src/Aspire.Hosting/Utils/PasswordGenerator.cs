@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
 namespace Aspire.Hosting.Utils;
@@ -14,55 +15,94 @@ internal static class PasswordGenerator
 
     internal const string LowerCaseChars = "abcdefghjkmnpqrstuvwxyz"; // exclude i,l,o
     internal const string UpperCaseChars = "ABCDEFGHJKMNPQRSTUVWXYZ"; // exclude I,L,O
-    internal const string LettersChars = LowerCaseChars + UpperCaseChars;
-    internal const string DigitChars = "0123456789";
+    internal const string NumericChars = "0123456789";
     internal const string SpecialChars = "-_.{}~()*+!"; // exclude &<>=;,`'^%$#@/:[]
 
     /// <summary>
-    /// Creates a cryptographically random password.
+    /// Creates a cryptographically random string.
     /// </summary>
-    /// <param name="lowerCase">The number of lowercase chars in the generated password or 0 to ignore this component.</param>
-    /// <param name="upperCase">The number of uppercase chars in the generated password or 0 to ignore this component.</param>
-    /// <param name="digit">The number of digits in the generated password or 0 to ignore this component.</param>
-    /// <param name="special">The number of special chars in the generated password or 0 to ignore this component.</param>
-    /// <returns>A cryptographically random password.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">If lowerCase, upperCase, digit or special is negative or their sum is zero.</exception>
-    public static string GeneratePassword(int lowerCase, int upperCase, int digit, int special)
+    public static string Generate(int minLength,
+        bool lower, bool upper, bool numeric, bool special,
+        int minLower, int minUpper, int minNumeric, int minSpecial)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(lowerCase);
-        ArgumentOutOfRangeException.ThrowIfNegative(upperCase);
-        ArgumentOutOfRangeException.ThrowIfNegative(digit);
-        ArgumentOutOfRangeException.ThrowIfNegative(special);
+        ArgumentOutOfRangeException.ThrowIfNegative(minLength);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(minLength, 128);
+        ArgumentOutOfRangeException.ThrowIfNegative(minLower);
+        ArgumentOutOfRangeException.ThrowIfNegative(minUpper);
+        ArgumentOutOfRangeException.ThrowIfNegative(minNumeric);
+        ArgumentOutOfRangeException.ThrowIfNegative(minSpecial);
+        CheckMinZeroWhenDisabled(lower, minLower);
+        CheckMinZeroWhenDisabled(upper, minUpper);
+        CheckMinZeroWhenDisabled(numeric, minNumeric);
+        CheckMinZeroWhenDisabled(special, minSpecial);
 
-        var length = lowerCase + upperCase + digit + special;
-
-        ArgumentOutOfRangeException.ThrowIfZero(length);
-
-        Debug.Assert(length <= 128, "password too long");
+        var requiredMinLength = minLower + minUpper + minNumeric + minSpecial;
+        var length = Math.Max(minLength, requiredMinLength);
 
         Span<char> chars = stackalloc char[length];
 
-        RandomNumberGenerator.GetItems(LowerCaseChars, chars.Slice(0, lowerCase));
-        RandomNumberGenerator.GetItems(UpperCaseChars, chars.Slice(lowerCase, upperCase));
-        RandomNumberGenerator.GetItems(DigitChars, chars.Slice(lowerCase + upperCase, digit));
-        RandomNumberGenerator.GetItems(SpecialChars, chars.Slice(lowerCase + upperCase + digit, special));
+        // fill the required characters first
+        var currentChars = chars;
+        GenerateRequiredValues(ref currentChars, minLower, LowerCaseChars);
+        GenerateRequiredValues(ref currentChars, minUpper, UpperCaseChars);
+        GenerateRequiredValues(ref currentChars, minNumeric, NumericChars);
+        GenerateRequiredValues(ref currentChars, minSpecial, SpecialChars);
+
+        // fill the rest of the password with random characters from all the available choices
+        var choices = GetChoices(lower, upper, numeric, special);
+        RandomNumberGenerator.GetItems(choices, currentChars);
+
         RandomNumberGenerator.Shuffle(chars);
 
         return new string(chars);
     }
 
-    /// <summary>
-    /// Creates a random string of upper and lower case letters.
-    /// </summary>
-    public static string GenerateRandomLettersValue(int length)
+    private static void CheckMinZeroWhenDisabled(
+        bool enabled,
+        int minValue,
+        [CallerArgumentExpression(nameof(enabled))] string? enabledParamName = null,
+        [CallerArgumentExpression(nameof(minValue))] string? minValueParamName = null)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, 128);
+        if (!enabled && minValue > 0)
+        {
+            ThrowArgumentException();
+        }
 
-        Span<char> chars = stackalloc char[length];
-
-        RandomNumberGenerator.GetItems(LettersChars, chars);
-
-        return new string(chars);
+        void ThrowArgumentException() => throw new ArgumentException($"'{minValueParamName}' must be 0 if '{enabledParamName}' is disabled.");
     }
+
+    private static void GenerateRequiredValues(ref Span<char> destination, int minValues, string choices)
+    {
+        Debug.Assert(destination.Length >= minValues);
+
+        if (minValues > 0)
+        {
+            RandomNumberGenerator.GetItems(choices, destination.Slice(0, minValues));
+            destination = destination.Slice(minValues);
+        }
+    }
+
+    private static string GetChoices(bool lower, bool upper, bool numeric, bool special) =>
+        (lower, upper, numeric, special) switch
+        {
+            (true, true, true, true) => LowerCaseChars + UpperCaseChars + NumericChars + SpecialChars,
+            (true, true, true, false) => LowerCaseChars + UpperCaseChars + NumericChars,
+            (true, true, false, true) => LowerCaseChars + UpperCaseChars + SpecialChars,
+            (true, true, false, false) => LowerCaseChars + UpperCaseChars,
+
+            (true, false, true, true) => LowerCaseChars + NumericChars + SpecialChars,
+            (true, false, true, false) => LowerCaseChars + NumericChars,
+            (true, false, false, true) => LowerCaseChars + SpecialChars,
+            (true, false, false, false) => LowerCaseChars,
+
+            (false, true, true, true) => UpperCaseChars + NumericChars + SpecialChars,
+            (false, true, true, false) => UpperCaseChars + NumericChars,
+            (false, true, false, true) => UpperCaseChars + SpecialChars,
+            (false, true, false, false) => UpperCaseChars,
+
+            (false, false, true, true) => NumericChars + SpecialChars,
+            (false, false, true, false) => NumericChars,
+            (false, false, false, true) => SpecialChars,
+            (false, false, false, false) => throw new ArgumentException("At least one character type must be enabled.")
+        };
 }

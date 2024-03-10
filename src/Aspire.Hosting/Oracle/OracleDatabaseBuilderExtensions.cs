@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -37,23 +36,13 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracle(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
-
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
         return builder.AddResource(oracleDatabaseServer)
-                      .WithEndpoint(hostPort: port, containerPort: 1521, name: MySqlServerResource.PrimaryEndpointName)
+                      .WithEndpoint(hostPort: port, containerPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
-                      .WithDefaultPassword()
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishMode)
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
-                          }
-                          else
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, oracleDatabaseServer.Password);
-                          }
+                          context.EnvironmentVariables[PasswordEnvVarName] = oracleDatabaseServer.PasswordInput;
                       })
                       .PublishAsContainer();
     }

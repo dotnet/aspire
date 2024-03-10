@@ -24,6 +24,14 @@ public class ResourceLoggerService
         GetResourceLoggerState(resource.Name).Logger;
 
     /// <summary>
+    /// Gets the logger for the resource to write to.
+    /// </summary>
+    /// <param name="resourceName"></param>
+    /// <returns></returns>
+    public ILogger GetLogger(string resourceName) =>
+        GetResourceLoggerState(resourceName).Logger;
+
+    /// <summary>
     /// Watch for changes to the log stream for a resource.
     /// </summary>
     /// <param name="resourceName">The resource name</param>
@@ -50,6 +58,19 @@ public class ResourceLoggerService
             logger.Complete();
         }
     }
+
+    /// <summary>
+    /// Completes the log stream for the resource.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    public void Complete(string name)
+    {
+        if (_loggers.TryGetValue(name, out var logger))
+        {
+            logger.Complete();
+        }
+    }
+
     private ResourceLoggerState GetResourceLoggerState(string resourceName) =>
         _loggers.GetOrAdd(resourceName, _ => new ResourceLoggerState());
 
@@ -76,7 +97,14 @@ public class ResourceLoggerService
         /// Watch for changes to the log stream for a resource.
         /// </summary>
         /// <returns> The log stream for the resource. </returns>
-        public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync() => new LogAsyncEnumerable(this);
+        public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync()
+        {
+            lock (_backlog)
+            {
+                // REVIEW: Performance makes me very sad, but we can optimize this later.
+                return new LogAsyncEnumerable(this, _backlog.ToList());
+            }
+        }
 
         // This provides the fan out to multiple subscribers.
         private Action<(string, bool)>? OnNewLog { get; set; }
@@ -123,19 +151,13 @@ public class ResourceLoggerService
             }
         }
 
-        private sealed class LogAsyncEnumerable(ResourceLoggerState annotation) : IAsyncEnumerable<IReadOnlyList<(string, bool)>>
+        private sealed class LogAsyncEnumerable(ResourceLoggerState annotation, List<(string, bool)> backlogSnapshot) : IAsyncEnumerable<IReadOnlyList<(string, bool)>>
         {
             public async IAsyncEnumerator<IReadOnlyList<(string, bool)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
             {
-                // Yield the backlog first.
-
-                lock (annotation._backlog)
+                if (backlogSnapshot.Count > 0)
                 {
-                    if (annotation._backlog.Count > 0)
-                    {
-                        // REVIEW: Performance makes me very sad, but we can optimize this later.
-                        yield return annotation._backlog.ToList();
-                    }
+                    yield return backlogSnapshot;
                 }
 
                 var channel = Channel.CreateUnbounded<(string, bool)>();
@@ -151,7 +173,7 @@ public class ResourceLoggerService
 
                 try
                 {
-                    await foreach (var entry in channel.GetBatchesAsync(cancellationToken))
+                    await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken))
                     {
                         yield return entry;
                     }

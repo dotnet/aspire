@@ -33,7 +33,7 @@ internal abstract class ResourceSnapshot
             yield return (KnownProperties.Resource.Name, Value.ForString(Name));
             yield return (KnownProperties.Resource.Type, Value.ForString(ResourceType));
             yield return (KnownProperties.Resource.DisplayName, Value.ForString(DisplayName));
-            yield return (KnownProperties.Resource.State, Value.ForString(State));
+            yield return (KnownProperties.Resource.State, State is null ? Value.ForNull() : Value.ForString(State));
             yield return (KnownProperties.Resource.ExitCode, ExitCode is null ? Value.ForNull() : Value.ForString(ExitCode.Value.ToString("D", CultureInfo.InvariantCulture)));
             yield return (KnownProperties.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")));
 

@@ -71,9 +71,8 @@ public class ApplicationExecutorTests
                 DashboardPath = "./dashboard"
             }),
             new MockDashboardEndpointProvider(),
-            new MockDashboardAvailability(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            new ResourceNotificationService(),
+            new ResourceNotificationService(new NullLogger<ResourceNotificationService>()),
             new ResourceLoggerService()
             );
     }

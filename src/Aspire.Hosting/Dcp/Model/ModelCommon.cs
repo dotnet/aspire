@@ -20,6 +20,7 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
     public const string ServiceProducerAnnotation = "service-producer";
     public const string ServiceConsumerAnnotation = "service-consumer";
     public const string UriSchemeAnnotation = "uri-scheme";
+    public const string LaunchProfileAnnotation = "launchProfile";
 
     [JsonPropertyName("metadata")]
     public V1ObjectMeta Metadata { get; set; } = new V1ObjectMeta();

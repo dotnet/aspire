@@ -43,25 +43,19 @@ public class AddRabbitMQTests
     }
 
     [Fact]
-    public void RabbitMQCreatesConnectionString()
+    public async Task RabbitMQCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddRabbitMQ("rabbit")
-            .WithAnnotation(
-                new AllocatedEndpointAnnotation(RabbitMQServerResource.PrimaryEndpointName,
-                ProtocolType.Tcp,
-                "localhost",
-                27011,
-                "tcp"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27011));
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         var password = connectionStringResource.Password;
 
         Assert.Equal($"amqp://guest:{password}@localhost:27011", connectionString);
@@ -99,7 +93,8 @@ public class AddRabbitMQTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22,
+                      "special": false
                     }
                   }
                 }

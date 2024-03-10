@@ -43,7 +43,7 @@ public partial class LogMessageColumnDisplay
 
         string? GetProperty(string propertyName)
         {
-            return LogEntry.Properties.GetValue(propertyName);
+            return LogEntry.Attributes.GetValue(propertyName);
         }
     }
 }

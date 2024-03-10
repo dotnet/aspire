@@ -5,28 +5,23 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 /// <summary>
 /// <see cref="IServiceEndPointResolverProvider"/> implementation that resolves services using <see cref="IConfiguration"/>.
 /// </summary>
-/// <param name="configuration">The configuration.</param>
-/// <param name="options">The options.</param>
-/// <param name="loggerFactory">The logger factory.</param>
-public class ConfigurationServiceEndPointResolverProvider(
+internal sealed class ConfigurationServiceEndPointResolverProvider(
     IConfiguration configuration,
     IOptions<ConfigurationServiceEndPointResolverOptions> options,
-    ILoggerFactory loggerFactory) : IServiceEndPointResolverProvider
+    ILogger<ConfigurationServiceEndPointResolver> logger,
+    ServiceNameParser parser) : IServiceEndPointResolverProvider
 {
-    private readonly IConfiguration _configuration = configuration;
-    private readonly IOptions<ConfigurationServiceEndPointResolverOptions> _options = options;
-    private readonly ILogger<ConfigurationServiceEndPointResolver> _logger = loggerFactory.CreateLogger<ConfigurationServiceEndPointResolver>();
-
     /// <inheritdoc/>
     public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
-        resolver = new ConfigurationServiceEndPointResolver(serviceName, _configuration, _logger, _options);
+        resolver = new ConfigurationServiceEndPointResolver(serviceName, configuration, logger, options, parser);
         return true;
     }
 }

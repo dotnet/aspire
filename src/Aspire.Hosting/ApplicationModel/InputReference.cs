@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="owner">The resource with inputs that owns the input.</param>
 /// <param name="inputName">The name of the input.</param>
-public sealed class InputReference(IResource owner, string inputName) : IManifestExpressionProvider
+public sealed class InputReference(IResource owner, string inputName) : IManifestExpressionProvider, IValueProvider
 {
     /// <summary>
     /// Gets the owner of the input.
@@ -25,15 +25,15 @@ public sealed class InputReference(IResource owner, string inputName) : IManifes
     /// </summary>
     public string InputName => inputName;
 
-    /// <summary>
-    /// Gets the expression used in the manifest to reference the value of the input.
-    /// </summary>
+    /// <inheritdoc/>
     public string ValueExpression => $"{{{Owner.Name}.inputs.{InputName}}}";
+
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Input.Value);
 
     private InputAnnotation GetInputAnnotation()
     {
         var input = Owner.Annotations.OfType<InputAnnotation>().SingleOrDefault(a => a.Name == InputName) ??
-            throw new InvalidOperationException($"The InputAnnotation `{InputName}` was not found for the resource `{Owner.Name}`.");
+            throw new InvalidOperationException($"The InputAnnotation '{InputName}' was not found for the resource '{Owner.Name}'.");
 
         return input;
     }

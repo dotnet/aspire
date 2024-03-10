@@ -18,10 +18,10 @@ dotnet add package Aspire.StackExchange.Redis
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddRedis` extension method to register an `IConnectionMultiplexer` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddRedisClient` extension method to register an `IConnectionMultiplexer` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddRedis("cache");
+builder.AddRedisClient("cache");
 ```
 
 You can then retrieve the `IConnectionMultiplexer` instance using dependency injection. For example, to retrieve the connection multiplexer from a Web API controller:
@@ -110,7 +110,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method configures a connection in the `MyService` project named `cache`. In the _Program.cs_ file of `MyService`, the redis connection can be consumed using:
 
 ```csharp
-builder.AddRedis("cache");
+builder.AddRedisClient("cache");
 ```
 
 ## Additional documentation

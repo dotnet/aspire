@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.MongoDB;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -20,23 +18,23 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
-    /// <summary>
-    /// Gets the connection string for the MongoDB server.
-    /// </summary>
-    public string ConnectionStringExpression =>
-        $"mongodb://{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"mongodb://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
+    public string ConnectionStringExpression =>
+        ConnectionString.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string for the MongoDB server.
+    /// </summary>
+    /// <param name="cancellationToken"> Cancellation token. </param>
     /// <returns>A connection string for the MongoDB server in the form "mongodb://host:port".</returns>
-    public string? GetConnectionString()
-    {
-        return new MongoDBConnectionStringBuilder()
-            .WithServer(PrimaryEndpoint.Host)
-            .WithPort(PrimaryEndpoint.Port)
-            .Build();
-    }
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
+        ConnectionString.GetValueAsync(cancellationToken);
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 

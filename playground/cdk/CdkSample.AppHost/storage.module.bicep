@@ -4,16 +4,16 @@ targetScope = 'resourceGroup'
 param location string = resourceGroup().location
 
 @description('')
-param storagesku string
-
-@description('')
-param locationOverride string
-
-@description('')
 param principalId string
 
 @description('')
 param principalType string
+
+@description('')
+param storagesku string
+
+@description('')
+param locationOverride string
 
 
 resource storageAccount_65zdmu5tK 'Microsoft.Storage/storageAccounts@2022-09-01' = {
