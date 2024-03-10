@@ -8,9 +8,10 @@ namespace Aspire.Dashboard.Components;
 
 public partial class LogMessageColumnDisplay
 {
+    private readonly string _copyButtonId = Guid.NewGuid().ToString();
+
     private bool _hasErrorInfo;
     private string? _errorInfo;
-    private readonly string _copyButtonId = Guid.NewGuid().ToString();
 
     protected override void OnInitialized()
     {
