@@ -150,6 +150,6 @@ public class ResourceNotificationTests
         IResourceWithEnvironment,
         IResourceWithConnectionString
     {
-        public string? GetConnectionString() => "CustomConnectionString";
+        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) => new("CustomConnectionString");
     }
 }

@@ -28,23 +28,6 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     /// </summary>
     /// <returns>The connection string for the database resource.</returns>
     /// <exception cref="DistributedApplicationException">Thrown when the parent resource connection string is null.</exception>
-    public string? GetConnectionString()
-    {
-        if (Parent.GetConnectionString() is { } connectionString)
-        {
-            return $"{connectionString};Database={DatabaseName}";
-        }
-        else
-        {
-            throw new DistributedApplicationException("Parent resource connection string was null.");
-        }
-    }
-
-    /// <summary>
-    /// Gets the connection string for the database resource.
-    /// </summary>
-    /// <returns>The connection string for the database resource.</returns>
-    /// <exception cref="DistributedApplicationException">Thrown when the parent resource connection string is null.</exception>
     public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
         if (await Parent.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false) is { } connectionString)

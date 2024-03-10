@@ -36,18 +36,20 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"amqp://guest:{PasswordInput}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+
     /// <summary>
     /// Gets the connection string expression for the RabbitMQ server for the manifest.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"amqp://guest:{PasswordInput.ValueExpression}@{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
+        ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the RabbitMQ server.
     /// </summary>
     /// <returns>A connection string for the RabbitMQ server in the form "amqp://user:password@host:port".</returns>
-    public string? GetConnectionString()
-    {
-        return $"amqp://guest:{Password}@{PrimaryEndpoint.Host}:{PrimaryEndpoint.Port}";
-    }
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
+        await ConnectionString.GetValueAsync(cancellationToken).ConfigureAwait(false);
 }

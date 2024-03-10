@@ -26,22 +26,11 @@ public class AzureKeyVaultResource(string name) :
     /// <summary>
     /// Gets the connection string for the Azure Key Vault resource.
     /// </summary>
-    /// <returns>The connection string for the Azure Key Vault resource.</returns>
-    public string? GetConnectionString() => VaultUri.Value;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Key Vault resource.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure Key Vault resource.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return new(GetConnectionString());
+        return VaultUri.GetValueAsync(cancellationToken);
     }
 }
 
@@ -65,21 +54,10 @@ public class AzureKeyVaultConstructResource(string name, Action<ResourceModuleCo
     /// <summary>
     /// Gets the connection string for the Azure Key Vault resource.
     /// </summary>
-    /// <returns>The connection string for the Azure Key Vault resource.</returns>
-    public string? GetConnectionString() => VaultUri.Value;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Key Vault resource.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure Key Vault resource.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return new(GetConnectionString());
+        return VaultUri.GetValueAsync(cancellationToken);
     }
 }

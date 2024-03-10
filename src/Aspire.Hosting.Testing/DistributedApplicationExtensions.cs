@@ -32,9 +32,10 @@ public static class DistributedApplicationExtensions
     /// </summary>
     /// <param name="app">The application.</param>
     /// <param name="resourceName">The resource name.</param>
+    /// <param name="cancellationToken"> The cancellationToken to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the specified resource.</returns>
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
-    public static string? GetConnectionString(this DistributedApplication app, string resourceName)
+    public static ValueTask<string?> GetConnectionStringAsync(this DistributedApplication app, string resourceName, CancellationToken cancellationToken = default)
     {
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithConnectionString resourceWithConnectionString)
@@ -42,7 +43,7 @@ public static class DistributedApplicationExtensions
             throw new ArgumentException($"Resource '{resourceName}' does not expose a connection string.", nameof(resourceName));
         }
 
-        return resourceWithConnectionString.GetConnectionString();
+        return resourceWithConnectionString.GetConnectionStringAsync(cancellationToken);
     }
 
     /// <summary>

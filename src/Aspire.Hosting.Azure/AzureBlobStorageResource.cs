@@ -28,12 +28,6 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
     /// </summary>
-    /// <returns>The connection string for the Azure Blob Storage resource.</returns>
-    public string? GetConnectionString() => Parent.GetBlobConnectionString();
-
-    /// <summary>
-    /// Gets the connection string for the Azure Blob Storage resource.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure Blob Storage resource.</returns>
     public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
@@ -43,7 +37,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
             await Parent.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        return GetConnectionString();
+        return Parent.GetBlobConnectionString();
     }
 
     /// <summary>
@@ -79,12 +73,6 @@ public class AzureBlobStorageConstructResource(string name, AzureStorageConstruc
     /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
     /// </summary>
-    /// <returns>The connection string for the Azure Blob Storage resource.</returns>
-    public string? GetConnectionString() => Parent.GetBlobConnectionString();
-
-    /// <summary>
-    /// Gets the connection string for the Azure Blob Storage resource.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure Blob Storage resource.</returns>
     public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
@@ -94,7 +82,7 @@ public class AzureBlobStorageConstructResource(string name, AzureStorageConstruc
             await Parent.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        return GetConnectionString();
+        return Parent.GetBlobConnectionString();
     }
 
     /// <summary>

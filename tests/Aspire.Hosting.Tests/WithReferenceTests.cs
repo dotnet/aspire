@@ -330,9 +330,9 @@ public class WithReferenceTests
 
         public ResourceAnnotationCollection Annotations => throw new NotImplementedException();
 
-        public string? GetConnectionString()
+        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
         {
-            return ConnectionString;
+            return new(ConnectionString);
         }
     }
 }

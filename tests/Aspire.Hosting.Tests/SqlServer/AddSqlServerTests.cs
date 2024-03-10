@@ -59,7 +59,7 @@ public class AddSqlServerTests
     }
 
     [Fact]
-    public void SqlServerCreatesConnectionString()
+    public async Task SqlServerCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
@@ -71,7 +71,7 @@ public class AddSqlServerTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         var password = PasswordUtil.EscapePassword(connectionStringResource.Password);
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true", connectionString);
@@ -79,7 +79,7 @@ public class AddSqlServerTests
     }
 
     [Fact]
-    public void SqlServerDatabaseCreatesConnectionString()
+    public async Task SqlServerDatabaseCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
@@ -92,7 +92,7 @@ public class AddSqlServerTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerDatabaseResource>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         var password = PasswordUtil.EscapePassword(connectionStringResource.Parent.Password);
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true;Database=mydb", connectionString);

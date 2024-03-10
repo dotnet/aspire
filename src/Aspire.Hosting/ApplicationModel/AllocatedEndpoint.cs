@@ -16,8 +16,9 @@ public class AllocatedEndpoint
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="address">The IP address of the endpoint.</param>
+    /// <param name="containerHostAddress">The address of the container host.</param>
     /// <param name="port">The port number of the endpoint.</param>
-    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port)
+    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string containerHostAddress = "host.docker.internal")
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1, nameof(port));
@@ -25,6 +26,7 @@ public class AllocatedEndpoint
 
         Endpoint = endpoint;
         Address = address;
+        ContainerHostAddress = containerHostAddress;
         Port = port;
     }
 
@@ -37,6 +39,11 @@ public class AllocatedEndpoint
     /// The address of the endpoint
     /// </summary>
     public string Address { get; private set; }
+
+    /// <summary>
+    /// The address of the container host.
+    /// </summary>
+    public string ContainerHostAddress { get; private set; }
 
     /// <summary>
     /// The port used by the endpoint

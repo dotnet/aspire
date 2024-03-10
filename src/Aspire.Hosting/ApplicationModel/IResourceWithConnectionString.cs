@@ -11,15 +11,9 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     /// <summary>
     /// Gets the connection string associated with the resource.
     /// </summary>
-    /// <returns>The connection string associated with the resource, when one is available.</returns>
-    public string? GetConnectionString();
-
-    /// <summary>
-    /// Gets the connection string associated with the resource.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string associated with the resource, when one is available.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default) => new(GetConnectionString());
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default);
 
     string IManifestExpressionProvider.ValueExpression => ConnectionStringReferenceExpression;
 

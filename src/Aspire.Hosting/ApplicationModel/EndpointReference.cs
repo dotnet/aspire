@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -34,18 +36,28 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
     /// </summary>
-    public string GetExpression(EndpointProperty property = EndpointProperty.Url)
+    internal string GetExpression(EndpointProperty property = EndpointProperty.Url)
     {
         var prop = property switch
         {
             EndpointProperty.Url => "url",
-            EndpointProperty.Host => "host",
+            EndpointProperty.Host or EndpointProperty.IPV4Host => "host",
             EndpointProperty.Port => "port",
             EndpointProperty.Scheme => "scheme",
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
         return $"{{{Owner.Name}.bindings.{EndpointName}.{prop}}}";
+    }
+
+    /// <summary>
+    /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
+    /// </summary>
+    /// <param name="property"></param>
+    /// <returns></returns>
+    public EndpointReferenceExpression Property(EndpointProperty property)
+    {
+        return new(this, property);
     }
 
     /// <summary>
@@ -57,6 +69,11 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// Gets the host for this endpoint.
     /// </summary>
     public string Host => AllocatedEndpoint.Address ?? "localhost";
+
+    /// <summary>
+    /// Gets the container host for this endpoint.
+    /// </summary>
+    public string ContainerHost => AllocatedEndpoint.ContainerHostAddress;
 
     /// <summary>
     /// Gets the scheme for this endpoint.
@@ -103,6 +120,46 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 }
 
 /// <summary>
+/// Represents a property expression for an endpoint reference.
+/// </summary>
+/// <param name="endpointReference">The endpoint reference.</param>
+/// <param name="property">The property of the endpoint.</param>
+public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IValueProvider, IManifestExpressionProvider
+{
+    /// <summary>
+    /// Gets the <see cref="EndpointReference"/>.
+    /// </summary>
+    public EndpointReference Owner { get; } = endpointReference;
+
+    /// <summary>
+    /// Gets the <see cref="EndpointProperty"/> for the property expression.
+    /// </summary>
+    public EndpointProperty Property { get; } = property;
+
+    /// <summary>
+    /// Gets the expression of the property of the endpoint.
+    /// </summary>
+    public string ValueExpression =>
+        Owner.GetExpression(Property);
+
+    /// <summary>
+    /// Gets the value of the property of the endpoint.
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken) => Property switch
+    {
+        EndpointProperty.Url => new(Owner.Url),
+        EndpointProperty.Host => new(Owner.Host),
+        EndpointProperty.IPV4Host => new("127.0.0.1"),
+        EndpointProperty.Port => new(Owner.Port.ToString(CultureInfo.InvariantCulture)),
+        EndpointProperty.Scheme => new(Owner.Scheme),
+        _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Owner.EndpointName}'.")
+    };
+}
+
+/// <summary>
 /// Represents the properties of an endpoint that can be referenced.
 /// </summary>
 public enum EndpointProperty
@@ -115,6 +172,10 @@ public enum EndpointProperty
     /// The host of the endpoint.
     /// </summary>
     Host,
+    /// <summary>
+    /// The IPv4 address of the endpoint.
+    /// </summary>
+    IPV4Host,
     /// <summary>
     /// The port of the endpoint.
     /// </summary>
