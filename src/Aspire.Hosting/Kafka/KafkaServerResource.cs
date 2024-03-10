@@ -20,18 +20,20 @@ public class KafkaServerResource(string name) : ContainerResource(name), IResour
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+
     /// <summary>
     /// Gets the connection string expression for Kafka broker for the manifest.
     /// </summary>
     public string ConnectionStringExpression =>
-       $"{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
+       ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for Kafka broker.
     /// </summary>
     /// <returns>A connection string for the Kafka in the form "host:port" to be passed as <see href="https://docs.confluent.io/platform/current/clients/confluent-kafka-dotnet/_site/api/Confluent.Kafka.ClientConfig.html#Confluent_Kafka_ClientConfig_BootstrapServers">BootstrapServers</see>.</returns>
-    public string? GetConnectionString()
-    {
-        return $"{PrimaryEndpoint.Host}:{PrimaryEndpoint.Port}";
-    }
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
+        ConnectionString.GetValueAsync(cancellationToken);
 }

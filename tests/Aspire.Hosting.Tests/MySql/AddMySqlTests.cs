@@ -94,7 +94,7 @@ public class AddMySqlTests
     }
 
     [Fact]
-    public void MySqlCreatesConnectionString()
+    public async Task MySqlCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql")
@@ -105,14 +105,14 @@ public class AddMySqlTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
         Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("Server=localhost;Port=2000;User ID=root;Password=", connectionString);
     }
 
     [Fact]
-    public void MySqlCreatesConnectionStringWithDatabase()
+    public async Task MySqlCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql")
@@ -124,9 +124,9 @@ public class AddMySqlTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var mySqlResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
-        var mySqlConnectionString = mySqlResource.GetConnectionString();
+        var mySqlConnectionString = await mySqlResource.GetConnectionStringAsync(default);
         var mySqlDatabaseResource = Assert.Single(appModel.Resources.OfType<MySqlDatabaseResource>());
-        var dbConnectionString = mySqlDatabaseResource.GetConnectionString();
+        var dbConnectionString = await mySqlDatabaseResource.GetConnectionStringAsync(default);
 
         Assert.Equal(mySqlConnectionString + ";Database=db", dbConnectionString);
         Assert.Equal("{mysql.connectionString};Database=db", mySqlDatabaseResource.ConnectionStringExpression);

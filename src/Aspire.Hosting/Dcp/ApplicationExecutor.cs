@@ -290,8 +290,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
     }
 
-    private static void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
+    private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
     {
+        var containerHost = HostNameResolver.ReplaceLocalhostWithContainerHost("localhost", configuration);
+
         foreach (var appResource in resources)
         {
             foreach (var sp in appResource.ServicesProduced)
@@ -312,7 +314,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
                     sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
-                    (int)svc.AllocatedPort!);
+                    (int)svc.AllocatedPort!,
+                    containerHostAddress: containerHost);
             }
         }
     }

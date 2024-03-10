@@ -35,7 +35,7 @@ internal class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
                 writer.WriteStartObject($"{serverIndex}");
                 writer.WriteString("Name", postgresInstance.Name);
                 writer.WriteString("Group", "Aspire instances");
-                writer.WriteString("Host", "host.docker.internal");
+                writer.WriteString("Host", endpoint.ContainerHost);
                 writer.WriteNumber("Port", endpoint.Port);
                 writer.WriteString("Username", "postgres");
                 writer.WriteString("SSLMode", "prefer");

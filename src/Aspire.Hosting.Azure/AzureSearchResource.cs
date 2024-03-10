@@ -26,22 +26,11 @@ public class AzureSearchResource(string name) :
     /// <summary>
     /// Gets the connection string for the azure search resource.
     /// </summary>
-    /// <returns>The connection string for the resource.</returns>
-    public string? GetConnectionString() => ConnectionString.Value;
-
-    /// <summary>
-    /// Gets the connection string for the azure search resource.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the resource.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return GetConnectionString();
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 }
 

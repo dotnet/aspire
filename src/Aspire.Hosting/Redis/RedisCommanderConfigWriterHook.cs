@@ -31,7 +31,7 @@ internal class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycle
         {
             if (redisInstance.PrimaryEndpoint.IsAllocated)
             {
-                var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:host.docker.internal:{redisInstance.PrimaryEndpoint.Port}:0";
+                var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
                 hostsVariableBuilder.Append(hostString);
             }
         }
