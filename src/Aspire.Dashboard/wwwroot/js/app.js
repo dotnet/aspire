@@ -52,6 +52,14 @@ function isScrolledToBottom(container) {
     return container.scrollHeight - container.clientHeight <= container.scrollTop + marginOfError;
 }
 
+window.buttonCopyTextToClipboard = function(element) {
+    const text = element.getAttribute("data-text");
+    const precopy = element.getAttribute("data-precopy");
+    const postcopy = element.getAttribute("data-postcopy");
+
+    copyTextToClipboard(element.getAttribute("id"), text, precopy, postcopy);
+}
+
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
     const button = document.getElementById(id);
 

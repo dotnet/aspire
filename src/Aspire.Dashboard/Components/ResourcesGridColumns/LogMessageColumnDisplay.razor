@@ -1,14 +1,14 @@
 ﻿@namespace Aspire.Dashboard.Components
 
+@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
-@using Microsoft.Extensions.Logging
 
 @inject IJSRuntime JS
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<Columns> Loc
 
-@if (TryGetErrorInformation(out var errorInfo))
+@if (_hasErrorInfo)
 {
     var iconId = Guid.NewGuid().ToString();
 
@@ -24,19 +24,17 @@
                 Color="Color.Accent"
                 Class="severity-icon"/>
 
-    var copyButtonId = Guid.NewGuid().ToString();
-
     <FluentTooltip Anchor="@iconId" MaxWidth="650px">
         <div style="padding: 10px">
             <h4>@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]</h4>
 
-            <pre style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 300px; overflow: auto;">@errorInfo</pre>
+            <pre style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 300px; overflow: auto;">@_errorInfo</pre>
 
             <div style="float: right; margin-bottom: 10px;">
                 <FluentButton
-                    Id="@copyButtonId"
+                    Id="@_copyButtonId"
                     Appearance="Appearance.Lightweight"
-                    OnClick="@(() => CopyTextToClipboardAsync(errorInfo, copyButtonId))">
+                    AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(_errorInfo, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString())">
 
                     @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
 
