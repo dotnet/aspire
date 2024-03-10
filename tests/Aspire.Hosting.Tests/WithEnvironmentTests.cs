@@ -173,8 +173,6 @@ public class WithEnvironmentTests
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
-        // public string? ConnectionStringExpression => "{{connectionString}}";
-
         public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
         {
             return new(connectionString);
