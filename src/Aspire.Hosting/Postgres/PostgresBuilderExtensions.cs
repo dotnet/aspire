@@ -139,11 +139,10 @@ public static class PostgresBuilderExtensions
     /// <summary>
     /// Adds a bind mount for the init folder to a Postgres container resource.
     /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PostgresServerResource> WithInitBindMount<T>(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = true)
+    public static IResourceBuilder<PostgresServerResource> WithInitBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = true)
         => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
 }
