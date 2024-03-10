@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
-namespace Aspire.Hosting.Dashboard;
+namespace Aspire.Hosting.Dcp;
 
 internal sealed partial class FileLogSource(string stdOutPath, string stdErrPath) : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
 {
