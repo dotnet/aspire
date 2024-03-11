@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -121,7 +120,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     Writer.WriteStartObject();
 
                     Writer.WritePropertyName("source");
-                    Writer.WriteStringValue(PathNormalizer.NormalizePathForManifest(bindMount.Source));
+                    var manifestRelativeSource = GetManifestRelativePath(bindMount.Source);
+                    Writer.WriteStringValue(manifestRelativeSource);
 
                     Writer.WritePropertyName("target");
                     Writer.WriteStringValue(bindMount.Target.Replace('\\', '/'));

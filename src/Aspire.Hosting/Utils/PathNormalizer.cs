@@ -17,28 +17,4 @@ internal static class PathNormalizer
 
         return Path.GetFullPath(path);
     }
-
-    public static string NormalizePathForManifest(string path)
-    {
-        if (string.IsNullOrEmpty(path))
-        {
-            return path;
-        }
-
-        // Fix slashes
-        path = path.Replace('\\', '/');
-
-        // Prepend ./ if the path is not fully qualified, rooted, or relative qualified
-        if (!Path.IsPathFullyQualified(path) && !Path.IsPathRooted(path) && !IsPathRelativeQualified(path))
-        {
-            path = "./" + path;
-        }
-
-        return path;
-    }
-
-    private static bool IsPathRelativeQualified(string path)
-    {
-        return path.StartsWith("./") || path.StartsWith("../");
-    }
 }

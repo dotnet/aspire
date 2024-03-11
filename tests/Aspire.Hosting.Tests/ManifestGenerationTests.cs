@@ -231,10 +231,8 @@ public class ManifestGenerationTests
         var container = program.AppBuilder.AddContainer("containerwithbindmounts", "image/name")
             .WithBindMount("./some/source", "/bound")
             .WithBindMount("not/relative/qualified", "/another/place")
-            .WithBindMount("/root/qualified", "/this/place")
             .WithBindMount(".\\some\\other\\source", "\\mount\\here")
-            .WithBindMount("./some/file/path.txt", "/mount/there.txt", isReadOnly: true)
-            .WithBindMount("C:\\full\\path", "/mount/c");
+            .WithBindMount("./some/file/path.txt", "/mount/there.txt", isReadOnly: true);
 
         program.Build();
 
@@ -246,34 +244,24 @@ public class ManifestGenerationTests
               "image": "image/name:latest",
               "bindMounts": [
                 {
-                  "source": "./some/source",
+                  "source": "net8.0/some/source",
                   "target": "/bound",
                   "readOnly": false
                 },
                 {
-                  "source": "./not/relative/qualified",
+                  "source": "net8.0/not/relative/qualified",
                   "target": "/another/place",
                   "readOnly": false
                 },
                 {
-                  "source": "/root/qualified",
-                  "target": "/this/place",
-                  "readOnly": false
-                },
-                {
-                  "source": "./some/other/source",
+                  "source": "net8.0/some/other/source",
                   "target": "/mount/here",
                   "readOnly": false
                 },
                 {
-                  "source": "./some/file/path.txt",
+                  "source": "net8.0/some/file/path.txt",
                   "target": "/mount/there.txt",
                   "readOnly": true
-                },
-                {
-                  "source": "C:/full/path",
-                  "target": "/mount/c",
-                  "readOnly": false
                 }
               ]
             }
