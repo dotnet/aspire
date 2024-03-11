@@ -20,22 +20,13 @@ public sealed class MongoDbContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
+            // testcontainers uses mongo:mongo by default
             Container = new MongoDbBuilder()
                 .WithImage("mongo:7.0.5")
+                .WithUsername(null)
+                .WithPassword(null)
                 .Build();
             await Container.StartAsync();
-
-            // Create `test_db` database with user:mongo pwd:mongo
-            var mongoClient = new MongoClient(Container.GetConnectionString());
-            var createUserCommand = new BsonDocumentCommand<BsonDocument>(BsonDocument.Parse("""
-            {
-               createUser: "mongo",
-               pwd: "mongo",
-               roles: [ { role: 'readWrite', db: 'test_db' } ]
-            }
-            """));
-            await mongoClient.GetDatabase("test_db")
-                .RunCommandAsync(createUserCommand);
         }
     }
 
