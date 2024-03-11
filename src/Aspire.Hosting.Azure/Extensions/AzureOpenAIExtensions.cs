@@ -4,6 +4,10 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.CognitiveServices;
+using Azure.Provisioning.KeyVaults;
+using Azure.ResourceManager.CognitiveServices.Models;
 
 namespace Aspire.Hosting;
 
@@ -30,12 +34,86 @@ public static class AzureOpenAIExtensions
     }
 
     /// <summary>
+    /// Adds an Azure OpenAI resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="configureResource"></param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureOpenAIConstructResource> AddAzureOpenAIConstruct(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureOpenAIConstructResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>>? configureResource = null)
+    {
+        var configureConstruct = (ResourceModuleConstruct construct) =>
+        {
+            var cogServicesAccount = new CognitiveServicesAccount(construct, "OpenAI", name: name);
+
+            // HACK: This name should be an auto generated name based on input name and resource group.
+            //       https://github.com/Azure/azure-sdk-for-net/issues/42574
+            cogServicesAccount.AssignProperty(x => x.Name, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
+            cogServicesAccount.AssignProperty(x => x.Properties.CustomSubDomainName, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
+            cogServicesAccount.AssignProperty(x => x.Properties.PublicNetworkAccess, "'Enabled'");
+
+            var roleAssignment = cogServicesAccount.AssignRole(RoleDefinition.CognitiveServicesOpenAIContributor);
+            roleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
+            roleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+
+            var resource = (AzureOpenAIConstructResource)construct.Resource;
+
+            List<CognitiveServicesAccountDeployment> cdkDeployments = new List<CognitiveServicesAccountDeployment>();
+            foreach (var deployment in resource.Deployments)
+            {
+                var model = new CognitiveServicesAccountDeploymentModel();
+                model.Name = deployment.ModelName;
+                model.Version = deployment.ModelVersion;
+                model.Format = "OpenAI";
+
+                var cdkDeployment = new CognitiveServicesAccountDeployment(construct, model, parent: cogServicesAccount, name: deployment.Name);
+                cdkDeployment.AssignProperty(x => x.Sku.Name, $"'{deployment.SkuName}'");
+                cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
+            }
+
+            // HACK: We can't create an output that is an interpolated string so we are
+            //       storing the result in a keyvault secret so we can get it out in the
+            //       format that we want even though there is not anything on it that is
+            //       strictly a secret.
+            var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
+            var connectionStringSecret = new KeyVaultSecret(construct, keyVault, "connectionString");
+            connectionStringSecret.AssignProperty(x => x.Properties.Value, $"'Endpoint=${{{cogServicesAccount.Name}.properties.endpoint}}'");
+
+            if (configureResource != null)
+            {
+                var resourceBuilder = builder.CreateResourceBuilder(resource);
+                configureResource(resourceBuilder, construct, cogServicesAccount, cdkDeployments);
+            }
+
+        };
+
+        var resource = new AzureOpenAIConstructResource(name, configureConstruct);
+        return builder.AddResource(resource)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
+                      .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
     /// Adds an Azure OpenAI Deployment resource to the application model. This resource requires an <see cref="AzureOpenAIResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure OpenAI resource builder.</param>
     /// <param name="deployment">The deployment to add.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> WithDeployment(this IResourceBuilder<AzureOpenAIResource> builder, AzureOpenAIDeployment deployment)
+    {
+        builder.Resource.AddDeployment(deployment);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure OpenAI Deployment resource to the application model. This resource requires an <see cref="AzureOpenAIResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure OpenAI resource builder.</param>
+    /// <param name="deployment">The deployment to add.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureOpenAIConstructResource> AddDeployment(this IResourceBuilder<AzureOpenAIConstructResource> builder, AzureOpenAIDeployment deployment)
     {
         builder.Resource.AddDeployment(deployment);
         return builder;
