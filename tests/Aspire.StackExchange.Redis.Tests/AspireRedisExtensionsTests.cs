@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Components.Common.Tests;
-using Aspire.InternalTesting;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
