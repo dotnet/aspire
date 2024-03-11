@@ -20,7 +20,7 @@ internal sealed class ConfigurationServiceEndPointResolverProvider(
     ServiceNameParser parser) : IServiceEndPointProviderFactory
 {
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
+    public bool TryCreateProvider(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
         resolver = new ConfigurationServiceEndPointResolver(serviceName, configuration, logger, options, parser);
         return true;

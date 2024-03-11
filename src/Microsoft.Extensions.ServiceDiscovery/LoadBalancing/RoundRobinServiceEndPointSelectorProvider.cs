@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 /// <summary>
 /// Provides instances of <see cref="RoundRobinServiceEndPointSelector"/>.
 /// </summary>
-internal class RoundRobinServiceEndPointSelectorProvider : IServiceEndPointSelectorProvider
+internal class RoundRobinServiceEndPointSelectorProvider : IServiceEndPointSelectorFactory
 {
     /// <summary>
     /// Gets a shared instance of this class.

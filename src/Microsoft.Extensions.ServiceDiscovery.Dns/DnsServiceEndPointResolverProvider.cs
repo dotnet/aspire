@@ -15,7 +15,7 @@ internal sealed partial class DnsServiceEndPointResolverProvider(
     ServiceNameParser parser) : IServiceEndPointProviderFactory
 {
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
+    public bool TryCreateProvider(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
         if (!parser.TryParse(serviceName, out var parts))
         {

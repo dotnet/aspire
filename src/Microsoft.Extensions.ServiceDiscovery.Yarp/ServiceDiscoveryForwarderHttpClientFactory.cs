@@ -9,7 +9,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
 
 internal sealed class ServiceDiscoveryForwarderHttpClientFactory(
     TimeProvider timeProvider,
-    IServiceEndPointSelectorProvider selectorProvider,
+    IServiceEndPointSelectorFactory selectorProvider,
     ServiceEndPointWatcherFactory factory,
     IOptions<ServiceDiscoveryOptions> options) : ForwarderHttpClientFactory
 {

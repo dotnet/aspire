@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 /// <summary>
 /// Provides instances of <see cref="RandomServiceEndPointSelector"/>.
 /// </summary>
-internal class RandomServiceEndPointSelectorProvider : IServiceEndPointSelectorProvider
+internal class RandomServiceEndPointSelectorProvider : IServiceEndPointSelectorFactory
 {
     /// <summary>
     /// Gets a shared instance of this class.

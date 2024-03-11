@@ -16,5 +16,5 @@ public interface IServiceEndPointProviderFactory
     /// <param name="serviceName">The service to create the resolver for.</param>
     /// <param name="resolver">The resolver.</param>
     /// <returns><see langword="true"/> if the resolver was created, <see langword="false"/> otherwise.</returns>
-    bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver);
+    bool TryCreateProvider(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver);
 }

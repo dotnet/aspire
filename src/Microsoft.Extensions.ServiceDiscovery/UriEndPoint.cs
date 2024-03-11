@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
@@ -9,7 +9,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// An endpoint represented by a <see cref="System.Uri"/>.
 /// </summary>
 /// <param name="uri">The <see cref="System.Uri"/>.</param>
-public sealed class UriEndPoint(Uri uri) : EndPoint
+internal sealed class UriEndPoint(Uri uri) : EndPoint
 {
     /// <summary>
     /// Gets the <see cref="System.Uri"/> associated with this endpoint.

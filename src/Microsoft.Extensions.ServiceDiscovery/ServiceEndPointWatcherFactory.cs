@@ -33,7 +33,7 @@ internal sealed partial class ServiceEndPointWatcherFactory(
         List<IServiceEndPointProvider>? resolvers = null;
         foreach (var factory in _resolverProviders)
         {
-            if (factory.TryCreateResolver(serviceName, out var resolver))
+            if (factory.TryCreateProvider(serviceName, out var resolver))
             {
                 resolvers ??= [];
                 resolvers.Add(resolver);

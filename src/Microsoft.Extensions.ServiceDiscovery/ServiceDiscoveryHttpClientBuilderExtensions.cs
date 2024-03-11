@@ -20,7 +20,7 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
     /// <param name="httpClientBuilder">The builder.</param>
     /// <param name="selectorProvider">The provider that creates selector instances.</param>
     /// <returns>The builder.</returns>
-    public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder, IServiceEndPointSelectorProvider selectorProvider)
+    public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder, IServiceEndPointSelectorFactory selectorProvider)
     {
         var services = httpClientBuilder.Services;
         services.AddServiceDiscoveryCore();
@@ -52,7 +52,7 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
         httpClientBuilder.AddHttpMessageHandler(services =>
         {
             var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
-            var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
+            var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorFactory>();
             var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
             var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
             var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();

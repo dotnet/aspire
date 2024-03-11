@@ -12,8 +12,6 @@
 
   <ItemGroup>
     <PackageReference Include="Yarp.ReverseProxy" />
-    <Compile Include="..\Microsoft.Extensions.ServiceDiscovery\Http\ResolvingHttpDelegatingHandler.cs" />
-    <Compile Include="..\Microsoft.Extensions.ServiceDiscovery\Http\HttpServiceEndPointResolver.cs" />
   </ItemGroup>
 
   <ItemGroup>

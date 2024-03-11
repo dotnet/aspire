@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Functionality for creating <see cref="IServiceEndPointSelector"/> instances.
 /// </summary>
-public interface IServiceEndPointSelectorProvider
+public interface IServiceEndPointSelectorFactory
 {
     /// <summary>
     /// Creates an <see cref="IServiceEndPointSelector"/> instance.

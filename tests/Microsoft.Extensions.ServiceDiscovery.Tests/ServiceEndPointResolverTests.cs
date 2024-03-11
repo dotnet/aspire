@@ -66,7 +66,7 @@ public class ServiceEndPointResolverTests
 
     private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointProvider? Resolver)> createResolverDelegate) : IServiceEndPointProviderFactory
     {
-        public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
+        public bool TryCreateProvider(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
         {
             bool result;
             (result, resolver) = createResolverDelegate(serviceName);
@@ -192,7 +192,7 @@ public class ServiceEndPointResolverTests
             .AddSingleton<IServiceEndPointProviderFactory>(fakeResolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
+        var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorFactory>();
         var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         await using var resolver = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, TimeProvider.System);
 
