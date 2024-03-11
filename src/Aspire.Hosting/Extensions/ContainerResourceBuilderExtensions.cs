@@ -34,7 +34,7 @@ public static class ContainerResourceBuilderExtensions
     {
         var container = new ContainerResource(name);
         return builder.AddResource(container)
-                      .WithAnnotation(new ContainerImageAnnotation { Image = image, Tag = tag });
+                      .WithImage(image, tag);
     }
 
     /// <summary>
@@ -123,9 +123,13 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string registry) where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Registry = registry;
-        return builder;
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.Registry = registry;
+            return builder;
+        }
+
+        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
     }
 
     /// <summary>
@@ -160,9 +164,13 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImageSHA256<T>(this IResourceBuilder<T> builder, string sha256) where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.SHA256 = sha256;
-        return builder;
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.SHA256 = sha256;
+            return builder;
+        }
+
+        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
     }
 
     /// <summary>

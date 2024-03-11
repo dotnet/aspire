@@ -21,24 +21,13 @@ public static class RabbitMQBuilderExtensions
     {
         var rabbitMq = new RabbitMQServerResource(name);
         return builder.AddResource(rabbitMq)
-                       .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
-                       .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
-                       .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
-                       .WithEnvironment(context =>
-                       {
-                           context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordInput;
-                       })
-                       .PublishAsContainer();
-    }
-
-    /// <summary>
-    /// Changes the RabbitMQ resource to be published as a container in the manifest.
-    /// </summary>
-    /// <param name="builder">Resource builder for <see cref="RabbitMQServerResource"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RabbitMQServerResource> PublishAsContainer(this IResourceBuilder<RabbitMQServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
+                      .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
+                      .WithImage("rabbitmq", "3")
+                      .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
+                      .WithEnvironment(context =>
+                      {
+                          context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordInput;
+                      });
     }
 
     /// <summary>

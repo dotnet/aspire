@@ -24,9 +24,8 @@ public static class KafkaBuilderExtensions
         var kafka = new KafkaServerResource(name);
         return builder.AddResource(kafka)
             .WithEndpoint(containerPort: KafkaBrokerPort, hostPort: port, name: KafkaServerResource.PrimaryEndpointName)
-            .WithAnnotation(new ContainerImageAnnotation { Image = "confluentinc/confluent-local", Tag = "7.6.0" })
-            .WithEnvironment(context => ConfigureKafkaContainer(context, kafka))
-            .PublishAsContainer();
+            .WithImage("confluentinc/confluent-local", "7.6.0")
+            .WithEnvironment(context => ConfigureKafkaContainer(context, kafka));
     }
 
     /// <summary>
