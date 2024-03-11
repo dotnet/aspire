@@ -4,52 +4,52 @@
     <body>
       <trans-unit id="TracesFullName">
         <source>Name: {0}</source>
-        <target state="new">Name: {0}</target>
+        <target state="translated">名称: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">跟踪</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">名称筛选器</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
         <source>No traces found</source>
-        <target state="new">No traces found</target>
+        <target state="translated">未找到任何跟踪</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesPageTitle">
         <source>{0} traces</source>
-        <target state="new">{0} traces</target>
+        <target state="translated">{0} 跟踪</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TracesResourceSpans">
         <source>{0} spans</source>
-        <target state="new">{0} spans</target>
+        <target state="translated">{0} 范围</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="new">Spans</target>
+        <target state="translated">范围</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
         <source>Errored: {0}</source>
-        <target state="new">Errored: {0}</target>
+        <target state="translated">出错: {0} 个</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">总计: {0} 个</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTraceId">
         <source>Trace Id: {0}</source>
-        <target state="new">Trace Id: {0}</target>
+        <target state="translated">跟踪 ID: {0}</target>
         <note />
       </trans-unit>
     </body>
