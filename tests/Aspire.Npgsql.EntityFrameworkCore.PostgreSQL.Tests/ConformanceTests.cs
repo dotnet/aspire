@@ -3,7 +3,6 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
-using Aspire.InternalTesting;
 using Aspire.Npgsql.Tests;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
