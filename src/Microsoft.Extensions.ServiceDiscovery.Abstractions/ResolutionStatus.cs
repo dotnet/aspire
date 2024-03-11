@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Represents the status of an endpoint resolution operation.
 /// </summary>
-public readonly struct ResolutionStatus(ResolutionStatusCode statusCode, Exception? exception, string message) : IEquatable<ResolutionStatus>
+public readonly struct ResolutionStatus(ResolutionStatusCode statusCode, Exception? exception, string message)
 {
     /// <summary>
     /// Indicates that resolution was not performed.
@@ -70,27 +70,6 @@ public readonly struct ResolutionStatus(ResolutionStatusCode statusCode, Excepti
     /// Gets the resolution status message.
     /// </summary>
     public string Message { get; } = message;
-
-    /// <summary>
-    /// Compares the provided operands, returning <see langword="true"/> if they are equal and <see langword="false"/> if they are not equal.
-    /// </summary>
-    public static bool operator ==(ResolutionStatus left, ResolutionStatus right) => left.Equals(right);
-
-    /// <summary>
-    /// Compares the provided operands, returning <see langword="true"/> if they are not equal and <see langword="false"/> if they are equal.
-    /// </summary>
-    public static bool operator !=(ResolutionStatus left, ResolutionStatus right) => !(left == right);
-
-    /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is ResolutionStatus status && Equals(status);
-
-    /// <inheritdoc/>
-    public bool Equals(ResolutionStatus other) => StatusCode == other.StatusCode &&
-               EqualityComparer<Exception?>.Default.Equals(Exception, other.Exception) &&
-               Message == other.Message;
-
-    /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(StatusCode, Exception, Message);
 
     /// <inheritdoc/>
     public override string ToString() => Exception switch
