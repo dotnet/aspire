@@ -108,10 +108,10 @@ You can also pass the `Action<AzureStorageBlobsSettings> configureSettings` dele
 builder.AddAzureBlobClient("blobs", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [BlobClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.blobs.blobclientoptions) using the optional `Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>> configureClientBuilder` parameter of the `AddAzureBlobService` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
+You can also setup the [BlobClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.blobs.blobclientoptions) using the optional `Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>> configureClientBuilder` parameter of the `AddAzureBlobClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```csharp
-builder.AddAzureBlobService("blobs", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+builder.AddAzureBlobClient("blobs", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
 ## AppHost extensions

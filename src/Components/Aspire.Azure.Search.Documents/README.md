@@ -120,10 +120,10 @@ You can also pass the `Action<AzureSearchSettings> configureSettings` delegate t
 builder.AddAzureSearchClient("searchConnectionName", settings => settings.Tracing = false);
 ```
 
-You can also setup the [SearchClientOptions](https://learn.microsoft.com/dotnet/api/azure.search.documents.searchclientoptions) using the optional `Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>> configureClientBuilder` parameter of the `AddAzureSearch` method. For example, to set the client ID for this client:
+You can also setup the [SearchClientOptions](https://learn.microsoft.com/dotnet/api/azure.search.documents.searchclientoptions) using the optional `Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>> configureClientBuilder` parameter of the `AddAzureSearchClient` method. For example, to set the client ID for this client:
 
 ```csharp
-builder.AddAzureSearch("searchConnectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "CLIENT_ID"));
+builder.AddAzureSearchClient("searchConnectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "CLIENT_ID"));
 ```
 
 ## AppHost extensions

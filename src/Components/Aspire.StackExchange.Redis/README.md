@@ -90,10 +90,10 @@ You can also pass the `Action<StackExchangeRedisSettings> configureSettings` del
 builder.AddRedisClient("cache", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedis` method. For example to set the connection timeout:
+You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedisClient` method. For example to set the connection timeout:
 
 ```csharp
-builder.AddRedis("cache", configureOptions: options => options.ConnectTimeout = 3000);
+builder.AddRedisClient("cache", configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
 ## AppHost extensions

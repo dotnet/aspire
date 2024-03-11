@@ -104,10 +104,10 @@ You can also pass the `Action<AzureOpenAISettings> configureSettings` delegate t
 builder.AddAzureAIOpenAIClient("openaiConnectionName", settings => settings.Tracing = false);
 ```
 
-You can also setup the [OpenAIClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclientoptions) using the optional `Action<IAzureClientBuilder<OpenAIClient, OpenAIClientOptions>> configureClientBuilder` parameter of the `AddAzureAIOpenAI` method. For example, to set the client ID for this client:
+You can also setup the [OpenAIClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclientoptions) using the optional `Action<IAzureClientBuilder<OpenAIClient, OpenAIClientOptions>> configureClientBuilder` parameter of the `AddAzureAIOpenAIClient` method. For example, to set the client ID for this client:
 
 ```csharp
-builder.AddAzureAIOpenAI("openaiConnectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "CLIENT_ID"));
+builder.AddAzureAIOpenAIClient("openaiConnectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "CLIENT_ID"));
 ```
 
 ## AppHost extensions

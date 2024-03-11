@@ -102,10 +102,10 @@ You can also pass the `Action<AzureCosmosDBSettings> configureSettings` delegate
 builder.AddAzureCosmosDbClient("cosmosConnectionName", settings => settings.Tracing = false);
 ```
 
-You can also setup the [CosmosClientOptions](https://learn.microsoft.com/dotnet/api/microsoft.azure.cosmos.cosmosclientoptions) using the optional `Action<CosmosClientOptions> configureClientOptions` parameter of the `AddAzureCosmosDB` method. For example, to set the `ApplicationName` "User-Agent" header suffix for all requests issues by this client:
+You can also setup the [CosmosClientOptions](https://learn.microsoft.com/dotnet/api/microsoft.azure.cosmos.cosmosclientoptions) using the optional `Action<CosmosClientOptions> configureClientOptions` parameter of the `AddAzureCosmosDbClient` method. For example, to set the `ApplicationName` "User-Agent" header suffix for all requests issues by this client:
 
 ```csharp
-builder.AddAzureCosmosDB("cosmosConnectionName", configureClientOptions: clientOptions => clientOptions.ApplicationName = "myapp");
+builder.AddAzureCosmosDbClient("cosmosConnectionName", configureClientOptions: clientOptions => clientOptions.ApplicationName = "myapp");
 ```
 
 ## AppHost extensions

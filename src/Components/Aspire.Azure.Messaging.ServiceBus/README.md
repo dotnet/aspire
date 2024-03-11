@@ -106,10 +106,10 @@ You can also pass the `Action<AzureMessagingServiceBusSettings> configureSetting
 builder.AddAzureServiceBusClient("sb", settings => settings.HealthCheckQueueName = "myQueue");
 ```
 
-You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclientoptions) using the optional `Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>> configureClientBuilder` parameter of the `AddAzureServiceBus` method. For example, to set the client ID for this client:
+You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclientoptions) using the optional `Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>> configureClientBuilder` parameter of the `AddAzureServiceBusClient` method. For example, to set the client ID for this client:
 
 ```csharp
-builder.AddAzureServiceBus("sb", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "CLIENT_ID"));
+builder.AddAzureServiceBusClient("sb", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "CLIENT_ID"));
 ```
 
 ## AppHost extensions

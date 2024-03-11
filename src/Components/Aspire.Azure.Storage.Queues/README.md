@@ -108,10 +108,10 @@ You can also pass the `Action<AzureStorageQueuesSettings> configureSettings` del
 builder.AddAzureQueueClient("queue", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [QueueClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueclientoptions) using the optional `Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>> configureClientBuilder` parameter of the `AddAzureQueueService` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
+You can also setup the [QueueClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueclientoptions) using the optional `Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>> configureClientBuilder` parameter of the `AddAzureQueueClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```csharp
-builder.AddAzureQueueService("queue", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+builder.AddAzureQueueClient("queue", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
 ## AppHost extensions

@@ -108,10 +108,10 @@ You can also pass the `Action<AzureDataTablesSettings> configureSettings` delega
 builder.AddAzureTableClient("tables", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [TableClientOptions](https://learn.microsoft.com/dotnet/api/azure.data.tables.tableclientoptions) using the optional `Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>> configureClientBuilder` parameter of the `AddAzureTableService` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
+You can also setup the [TableClientOptions](https://learn.microsoft.com/dotnet/api/azure.data.tables.tableclientoptions) using the optional `Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>> configureClientBuilder` parameter of the `AddAzureTableClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```csharp
-builder.AddAzureTableService("tables", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+builder.AddAzureTableClient("tables", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
 ## AppHost extensions
