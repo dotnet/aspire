@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -20,19 +19,14 @@ public static class RabbitMQBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
-        var password = PasswordGenerator.GeneratePassword(6, 6, 2, 2);
-
-        var rabbitMq = new RabbitMQServerResource(name, password);
+        var rabbitMq = new RabbitMQServerResource(name);
         return builder.AddResource(rabbitMq)
                        .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
-                       .WithDefaultPassword()
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment(context =>
                        {
-                           context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = context.ExecutionContext.IsPublishMode
-                               ? rabbitMq.PasswordInput
-                               : rabbitMq.Password;
+                           context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordInput;
                        })
                        .PublishAsContainer();
     }

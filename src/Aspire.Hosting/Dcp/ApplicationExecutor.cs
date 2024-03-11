@@ -309,15 +309,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     throw new InvalidOperationException($"Service '{svc.Metadata.Name}' needs to specify a port for endpoint '{sp.EndpointAnnotation.Name}' since it isn't using a proxy.");
                 }
 
-                var a = new AllocatedEndpointAnnotation(
-                    sp.EndpointAnnotation.Name,
-                    PortProtocol.ToProtocolType(svc.Spec.Protocol),
+                sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
+                    sp.EndpointAnnotation,
                     sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
-                    (int)svc.AllocatedPort!,
-                    sp.EndpointAnnotation.UriScheme
-                    );
-
-                appResource.ModelResource.Annotations.Add(a);
+                    (int)svc.AllocatedPort!);
             }
         }
     }

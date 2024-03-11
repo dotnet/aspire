@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -25,20 +24,15 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
-
         var postgresServer = new PostgresServerResource(name, password);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "16.2" })
-                      .WithDefaultPassword()
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables[PasswordEnvVarName] = context.ExecutionContext.IsPublishMode
-                              ? postgresServer.PasswordInput
-                              : postgresServer.Password;
+                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordInput;
                       })
                       .PublishAsContainer();
     }

@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,12 +11,14 @@ using Microsoft.Extensions.ServiceDiscovery.Internal;
 namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 /// <summary>
-/// A service endpoint resolver that uses configuration to resolve endpoints.
+/// A service endpoint resolver that uses configuration to resolve resolved.
 /// </summary>
 internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEndPointProvider, IHostNameFeature
 {
+    private const string DefaultEndPointName = "default";
     private readonly string _serviceName;
     private readonly string? _endpointName;
+    private readonly string[] _schemes;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ConfigurationServiceEndPointResolver> _logger;
     private readonly IOptions<ConfigurationServiceEndPointResolverOptions> _options;
@@ -28,16 +30,19 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     /// <param name="configuration">The configuration.</param>
     /// <param name="logger">The logger.</param>
     /// <param name="options">The options.</param>
+    /// <param name="parser">The service name parser.</param>
     public ConfigurationServiceEndPointResolver(
         string serviceName,
         IConfiguration configuration,
         ILogger<ConfigurationServiceEndPointResolver> logger,
-        IOptions<ConfigurationServiceEndPointResolverOptions> options)
+        IOptions<ConfigurationServiceEndPointResolverOptions> options,
+        ServiceNameParser parser)
     {
-        if (ServiceNameParts.TryParse(serviceName, out var parts))
+        if (parser.TryParse(serviceName, out var parts))
         {
             _serviceName = parts.Host;
             _endpointName = parts.EndPointName;
+            _schemes = parts.Schemes;
         }
         else
         {
@@ -59,89 +64,174 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
 
     private ResolutionStatus ResolveInternal(ServiceEndPointCollectionSource endPoints)
     {
-        // Only add endpoints to the collection if a previous provider (eg, an override) did not add them.
+        // Only add resolved to the collection if a previous provider (eg, an override) did not add them.
         if (endPoints.EndPoints.Count != 0)
         {
             Log.SkippedResolution(_logger, _serviceName, "Collection has existing endpoints");
             return ResolutionStatus.None;
         }
 
-        var root = _configuration;
-        var baseSectionName = _options.Value.SectionName;
-        if (baseSectionName is { Length: > 0 })
-        {
-            root = root.GetSection(baseSectionName);
-        }
-
         // Get the corresponding config section.
-        var section = root.GetSection(_serviceName);
-        var configPath = GetConfigurationPath(baseSectionName);
-        Log.UsingConfigurationPath(_logger, configPath, _serviceName);
+        var section = _configuration.GetSection(_options.Value.SectionName).GetSection(_serviceName);
         if (!section.Exists())
         {
-            return CreateNotFoundResponse(endPoints, configPath);
+            return CreateNotFoundResponse(endPoints, $"{_options.Value.SectionName}:{_serviceName}");
         }
 
-        // Read the endpoint from the configuration.
-        // First check if there is a collection of sections
-        var children = section.GetChildren();
-        if (children.Any())
+        endPoints.AddChangeToken(section.GetReloadToken());
+
+        // Find an appropriate configuration section based on the input.
+        IConfigurationSection? namedSection = null;
+        string endpointName;
+        if (string.IsNullOrWhiteSpace(_endpointName))
         {
-            var values = children.Select(c => c.Value!).Where(s => !string.IsNullOrEmpty(s)).ToList();
-            if (values is { Count: > 0 })
+            if (_schemes.Length == 0)
             {
-                // Use endpoint names if any of the values have an endpoint name set.
-                var parsedValues = ParseServiceNameParts(values, configPath);
-                Log.ConfiguredEndPoints(_logger, _serviceName, configPath, parsedValues);
+                // Use the section named "default".
+                endpointName = DefaultEndPointName;
+                namedSection = section.GetSection(endpointName);
+            }
+            else
+            {
+                // Set the ideal endpoint name for error messages.
+                endpointName = _schemes[0];
 
-                var matchEndPointNames = !parsedValues.TrueForAll(static uri => string.IsNullOrEmpty(uri.EndPointName));
-                Log.EndPointNameMatchSelection(_logger, _serviceName, matchEndPointNames);
-
-                foreach (var uri in parsedValues)
+                // Treat the scheme as the endpoint name and use the first section with a matching endpoint name which exists
+                foreach (var scheme in _schemes)
                 {
-                    // If either endpoint names are not in-use or the scheme matches, create an endpoint for this value.
-                    if (!matchEndPointNames || EndPointNamesMatch(_endpointName, uri))
+                    var candidate = section.GetSection(scheme);
+                    if (candidate.Exists())
                     {
-                        if (!ServiceNameParts.TryCreateEndPoint(uri, out var endPoint))
-                        {
-                            return ResolutionStatus.FromException(new KeyNotFoundException($"The endpoint configuration section for service '{_serviceName}' is invalid."));
-                        }
-
-                        endPoints.EndPoints.Add(CreateEndPoint(endPoint));
+                        endpointName = scheme;
+                        namedSection = candidate;
+                        break;
                     }
                 }
             }
         }
-        else if (section.Value is { } value && ServiceNameParts.TryParse(value, out var parsed))
+        else
         {
-            if (EndPointNamesMatch(_endpointName, parsed))
+            // Use the section corresponding to the endpoint name.
+            endpointName = _endpointName;
+            namedSection = section.GetSection(_endpointName);
+        }
+
+        var configPath = $"{_options.Value.SectionName}:{_serviceName}:{endpointName}";
+        if (!namedSection.Exists())
+        {
+            return CreateNotFoundResponse(endPoints, configPath);
+        }
+
+        List<ServiceEndPoint> resolved = [];
+        Log.UsingConfigurationPath(_logger, configPath, endpointName, _serviceName);
+
+        // Account for both the single and multi-value cases.
+        if (!string.IsNullOrWhiteSpace(namedSection.Value))
+        {
+            // Single value case.
+            if (!TryAddEndPoint(resolved, namedSection, endpointName, out var error))
             {
-                if (!ServiceNameParts.TryCreateEndPoint(parsed, out var endPoint))
+                return error;
+            }
+        }
+        else
+        {
+            // Multiple value case.
+            foreach (var child in namedSection.GetChildren())
+            {
+                if (!int.TryParse(child.Key, out _))
                 {
-                    return ResolutionStatus.FromException(new KeyNotFoundException($"The endpoint configuration section for service '{_serviceName}' is invalid."));
+                    return ResolutionStatus.FromException(new KeyNotFoundException($"The endpoint configuration section for service '{_serviceName}' endpoint '{endpointName}' has non-numeric keys."));
                 }
 
-                if (_logger.IsEnabled(LogLevel.Debug))
+                if (!TryAddEndPoint(resolved, child, endpointName, out var error))
                 {
-                    Log.ConfiguredEndPoints(_logger, _serviceName, configPath, [parsed]);
+                    return error;
                 }
-
-                endPoints.EndPoints.Add(CreateEndPoint(endPoint));
             }
         }
 
-        if (endPoints.EndPoints.Count == 0)
+        // Filter the resolved endpoints to only include those which match the specified scheme.
+        var minIndex = _schemes.Length;
+        foreach (var ep in resolved)
         {
-            Log.ConfigurationNotFound(_logger, _serviceName, configPath);
+            if (ep.EndPoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
+            {
+                var index = Array.IndexOf(_schemes, scheme);
+                if (index >= 0 && index < minIndex)
+                {
+                    minIndex = index;
+                }
+            }
         }
 
-        endPoints.AddChangeToken(section.GetReloadToken());
+        var added = 0;
+        foreach (var ep in resolved)
+        {
+            if (ep.EndPoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
+            {
+                var index = Array.IndexOf(_schemes, scheme);
+                if (index >= 0 && index <= minIndex)
+                {
+                    ++added;
+                    endPoints.EndPoints.Add(ep);
+                }
+            }
+            else
+            {
+                ++added;
+                endPoints.EndPoints.Add(ep);
+            }
+        }
+
+        if (added == 0)
+        {
+            return CreateNotFoundResponse(endPoints, configPath);
+        }
+
         return ResolutionStatus.Success;
 
-        static bool EndPointNamesMatch(string? endPointName, ServiceNameParts parts) =>
-            string.IsNullOrEmpty(parts.EndPointName)
-            || string.IsNullOrEmpty(endPointName)
-            || MemoryExtensions.Equals(parts.EndPointName, endPointName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool TryAddEndPoint(List<ServiceEndPoint> endPoints, IConfigurationSection section, string endpointName, out ResolutionStatus error)
+    {
+        var value = section.Value;
+        if (string.IsNullOrWhiteSpace(value) || !TryParseEndPoint(value, out var endPoint))
+        {
+            error = ResolutionStatus.FromException(new KeyNotFoundException($"The endpoint configuration section for service '{_serviceName}' endpoint '{endpointName}' has an invalid value with key '{section.Key}'."));
+            return false;
+        }
+
+        endPoints.Add(CreateEndPoint(endPoint));
+        error = default;
+        return true;
+    }
+
+    private static bool TryParseEndPoint(string value, [NotNullWhen(true)] out EndPoint? endPoint)
+    {
+        if (value.IndexOf("://") < 0 && Uri.TryCreate($"fakescheme://{value}", default, out var uri))
+        {
+            var port = uri.Port > 0 ? uri.Port : 0;
+            if (IPAddress.TryParse(uri.Host, out var ip))
+            {
+                endPoint = new IPEndPoint(ip, port);
+            }
+            else
+            {
+                endPoint = new DnsEndPoint(uri.Host, port);
+            }
+        }
+        else if (Uri.TryCreate(value, default, out uri))
+        {
+            endPoint = new UriEndPoint(uri);
+        }
+        else
+        {
+            endPoint = null;
+            return false;
+        }
+
+        return true;
     }
 
     private ServiceEndPoint CreateEndPoint(EndPoint endPoint)
@@ -159,41 +249,8 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     private ResolutionStatus CreateNotFoundResponse(ServiceEndPointCollectionSource endPoints, string configPath)
     {
         endPoints.AddChangeToken(_configuration.GetReloadToken());
-        Log.ConfigurationNotFound(_logger, _serviceName, configPath);
-        return ResolutionStatus.CreateNotFound($"No configuration for the specified path '{configPath}' was found.");
-    }
-
-    private string GetConfigurationPath(string? baseSectionName)
-    {
-        var configPath = new StringBuilder();
-        if (baseSectionName is { Length: > 0 })
-        {
-            configPath.Append(baseSectionName).Append(':');
-        }
-
-        configPath.Append(_serviceName);
-        return configPath.ToString();
-    }
-
-    private List<ServiceNameParts> ParseServiceNameParts(List<string> input, string configPath)
-    {
-        var results = new List<ServiceNameParts>(input.Count);
-        for (var i = 0; i < input.Count; ++i)
-        {
-            if (ServiceNameParts.TryParse(input[i], out var value))
-            {
-                if (!results.Contains(value))
-                {
-                    results.Add(value);
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException($"The endpoint configuration '{input[i]}' from path '{configPath}[{i}]' for service '{_serviceName}' is invalid.");
-            }
-        }
-
-        return results;
+        Log.ServiceConfigurationNotFound(_logger, _serviceName, configPath);
+        return ResolutionStatus.CreateNotFound($"No valid endpoint configuration was found for service '{_serviceName}' from path '{configPath}'.");
     }
 
     public override string ToString() => "Configuration";

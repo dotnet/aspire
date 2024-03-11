@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.InternalTesting;
+using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -25,7 +25,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
     private string DefaultConnectionString => _containerFixture.GetConnectionString();
 
     [Theory]
-    [InlineData("mongodb://localhost:2017/mydatabase", true)]
+    [InlineData("mongodb://localhost:27017/mydatabase", true)]
     [InlineData("mongodb://localhost:27017", false)]
     public void AddMongoDBDataSource_ReadsFromConnectionStringsCorrectly(string connectionString, bool shouldRegisterDatabase)
     {

@@ -119,10 +119,7 @@ public static class AzureRedisExtensions
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-            {
-                resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
-            }
+            resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
         }
 
         if (useProvisioner)

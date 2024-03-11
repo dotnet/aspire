@@ -1,12 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
-using Aspire.InternalTesting;
-using DotNet.Testcontainers.Containers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
 using Xunit;
@@ -103,11 +101,6 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
         service.ListDatabases(source.Token);
     }
-
-    protected override HealthStatus GetHealthStatus()
-        => _containerFixture.Container?.Health == TestcontainersHealthStatus.Healthy
-            ? HealthStatus.Healthy
-            : HealthStatus.Unhealthy;
 
     [Theory]
     [InlineData(null)]

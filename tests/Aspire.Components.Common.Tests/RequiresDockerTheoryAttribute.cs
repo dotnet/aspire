@@ -3,16 +3,12 @@
 
 using Xunit;
 
-namespace Aspire.InternalTesting;
+namespace Aspire.Components.Common.Tests;
 
 // TODO: remove these attributes when Helix has a Windows agent with Docker support
 public class RequiresDockerTheoryAttribute : TheoryAttribute
 {
-    // Not available on windows/CI
-    public static bool IsSupported => !OperatingSystem.IsMacOS();
-    // !OperatingSystem.IsWindows() ||
-    //                                   (Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null
-    //                                   && Environment.GetEnvironmentVariable("BUILD_BUILDID") is null);
+    public static bool IsSupported => !OperatingSystem.IsWindows() || Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null;
 
     public override string Skip
     {
