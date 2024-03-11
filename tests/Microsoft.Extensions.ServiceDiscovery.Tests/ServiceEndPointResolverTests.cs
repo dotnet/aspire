@@ -65,7 +65,7 @@ public class ServiceEndPointResolverTests
         Assert.Equal("No resolver which supports the provided service name, 'http://foo', has been configured.", exception.Message);
     }
 
-    private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointProvider? Resolver)> createResolverDelegate) : IServiceEndPointResolverProvider
+    private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointProvider? Resolver)> createResolverDelegate) : IServiceEndPointProviderFactory
     {
         public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
         {
@@ -101,7 +101,7 @@ public class ServiceEndPointResolverTests
             disposeAsync: () => default);
         var resolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
         var services = new ServiceCollection()
-            .AddSingleton<IServiceEndPointResolverProvider>(resolverProvider)
+            .AddSingleton<IServiceEndPointProviderFactory>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
@@ -154,7 +154,7 @@ public class ServiceEndPointResolverTests
             disposeAsync: () => default);
         var resolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
         var services = new ServiceCollection()
-            .AddSingleton<IServiceEndPointResolverProvider>(resolverProvider)
+            .AddSingleton<IServiceEndPointProviderFactory>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
         var resolver = services.GetRequiredService<ServiceEndPointResolver>();
@@ -190,7 +190,7 @@ public class ServiceEndPointResolverTests
             disposeAsync: () => default);
         var fakeResolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
         var services = new ServiceCollection()
-            .AddSingleton<IServiceEndPointResolverProvider>(fakeResolverProvider)
+            .AddSingleton<IServiceEndPointProviderFactory>(fakeResolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
         var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
@@ -237,7 +237,7 @@ public class ServiceEndPointResolverTests
             disposeAsync: () => default);
         var resolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
         var services = new ServiceCollection()
-            .AddSingleton<IServiceEndPointResolverProvider>(resolverProvider)
+            .AddSingleton<IServiceEndPointProviderFactory>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();

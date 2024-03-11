@@ -12,12 +12,12 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// Creates service endpoint resolvers.
 /// </summary>
 public partial class ServiceEndPointResolverFactory(
-    IEnumerable<IServiceEndPointResolverProvider> resolvers,
+    IEnumerable<IServiceEndPointProviderFactory> resolvers,
     ILogger<ServiceEndPointWatcher> resolverLogger,
     IOptions<ServiceEndPointResolverOptions> options,
     TimeProvider timeProvider)
 {
-    private readonly IServiceEndPointResolverProvider[] _resolverProviders = resolvers
+    private readonly IServiceEndPointProviderFactory[] _resolverProviders = resolvers
         .Where(r => r is not PassThroughServiceEndPointResolverProvider)
         .Concat(resolvers.Where(static r => r is PassThroughServiceEndPointResolverProvider)).ToArray();
     private readonly ILogger<ServiceEndPointWatcher> _logger = resolverLogger;

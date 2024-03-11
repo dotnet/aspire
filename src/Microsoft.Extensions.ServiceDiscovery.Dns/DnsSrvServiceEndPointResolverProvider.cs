@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using DnsClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
@@ -15,7 +14,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
     ILogger<DnsSrvServiceEndPointResolver> logger,
     IDnsQuery dnsClient,
     TimeProvider timeProvider,
-    ServiceNameParser parser) : IServiceEndPointResolverProvider
+    ServiceNameParser parser) : IServiceEndPointProviderFactory
 {
     private static readonly string s_serviceAccountPath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount");
     private static readonly string s_serviceAccountNamespacePath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount", "namespace");

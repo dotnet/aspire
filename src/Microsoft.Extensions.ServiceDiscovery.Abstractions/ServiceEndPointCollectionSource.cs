@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
 /// A mutable collection of service endpoints. 

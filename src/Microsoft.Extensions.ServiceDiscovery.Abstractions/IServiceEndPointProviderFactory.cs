@@ -3,12 +3,12 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
 /// Creates <see cref="IServiceEndPointProvider"/> instances.
 /// </summary>
-public interface IServiceEndPointResolverProvider
+public interface IServiceEndPointProviderFactory
 {
     /// <summary>
     /// Tries to create an <see cref="IServiceEndPointProvider"/> instance for the specified <paramref name="serviceName"/>.

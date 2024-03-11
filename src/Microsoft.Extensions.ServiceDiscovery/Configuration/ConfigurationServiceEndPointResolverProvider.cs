@@ -10,13 +10,13 @@ using Microsoft.Extensions.ServiceDiscovery.Internal;
 namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 /// <summary>
-/// <see cref="IServiceEndPointResolverProvider"/> implementation that resolves services using <see cref="IConfiguration"/>.
+/// <see cref="IServiceEndPointProviderFactory"/> implementation that resolves services using <see cref="IConfiguration"/>.
 /// </summary>
 internal sealed class ConfigurationServiceEndPointResolverProvider(
     IConfiguration configuration,
     IOptions<ConfigurationServiceEndPointResolverOptions> options,
     ILogger<ConfigurationServiceEndPointResolver> logger,
-    ServiceNameParser parser) : IServiceEndPointResolverProvider
+    ServiceNameParser parser) : IServiceEndPointProviderFactory
 {
     /// <inheritdoc/>
     public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)

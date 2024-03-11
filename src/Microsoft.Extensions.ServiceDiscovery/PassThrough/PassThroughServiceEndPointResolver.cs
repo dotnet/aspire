@@ -3,7 +3,6 @@
 
 using System.Net;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.PassThrough;
 

@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery.Features;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
 

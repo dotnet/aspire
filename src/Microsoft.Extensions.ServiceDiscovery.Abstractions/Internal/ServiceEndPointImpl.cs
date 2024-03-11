@@ -4,7 +4,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery.Internal;
 
 internal sealed class ServiceEndPointImpl : ServiceEndPoint
 {

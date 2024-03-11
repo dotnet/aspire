@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
@@ -13,7 +12,7 @@ internal sealed partial class DnsServiceEndPointResolverProvider(
     IOptionsMonitor<DnsServiceEndPointResolverOptions> options,
     ILogger<DnsServiceEndPointResolver> logger,
     TimeProvider timeProvider,
-    ServiceNameParser parser) : IServiceEndPointResolverProvider
+    ServiceNameParser parser) : IServiceEndPointProviderFactory
 {
     /// <inheritdoc/>
     public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)

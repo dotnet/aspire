@@ -4,8 +4,9 @@
 using System.Diagnostics;
 using System.Net;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
 /// Represents an endpoint for a service.

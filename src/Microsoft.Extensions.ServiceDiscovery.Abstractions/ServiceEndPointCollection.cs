@@ -6,7 +6,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
 /// Represents an immutable collection of service endpoints.

@@ -6,7 +6,6 @@ using DnsClient;
 using DnsClient.Protocol;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 

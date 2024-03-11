@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.Hosting;
 /// <summary>
 /// Extension methods for configuring service discovery.
 /// </summary>
-public static class HostingExtensions
+public static class ServiceDiscoveryServiceCollectionExtensions
 {
     /// <summary>
     /// Adds the core service discovery services and configures defaults.
@@ -66,7 +66,7 @@ public static class HostingExtensions
     public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services, Action<ConfigurationServiceEndPointResolverOptions>? configureOptions = null)
     {
         services.AddServiceDiscoveryCore();
-        services.AddSingleton<IServiceEndPointResolverProvider, ConfigurationServiceEndPointResolverProvider>();
+        services.AddSingleton<IServiceEndPointProviderFactory, ConfigurationServiceEndPointResolverProvider>();
         services.AddTransient<IValidateOptions<ConfigurationServiceEndPointResolverOptions>, ConfigurationServiceEndPointResolverOptionsValidator>();
         if (configureOptions is not null)
         {
@@ -84,7 +84,7 @@ public static class HostingExtensions
     public static IServiceCollection AddPassThroughServiceEndPointResolver(this IServiceCollection services)
     {
         services.AddServiceDiscoveryCore();
-        services.AddSingleton<IServiceEndPointResolverProvider, PassThroughServiceEndPointResolverProvider>();
+        services.AddSingleton<IServiceEndPointProviderFactory, PassThroughServiceEndPointResolverProvider>();
         return services;
     }
 }

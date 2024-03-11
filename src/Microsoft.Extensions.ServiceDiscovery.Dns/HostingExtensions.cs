@@ -4,7 +4,7 @@
 using DnsClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.ServiceDiscovery.Dns;
 
 namespace Microsoft.Extensions.Hosting;
@@ -28,7 +28,7 @@ public static class HostingExtensions
     {
         services.AddServiceDiscoveryCore();
         services.TryAddSingleton<IDnsQuery, LookupClient>();
-        services.AddSingleton<IServiceEndPointResolverProvider, DnsSrvServiceEndPointResolverProvider>();
+        services.AddSingleton<IServiceEndPointProviderFactory, DnsSrvServiceEndPointResolverProvider>();
         var options = services.AddOptions<DnsSrvServiceEndPointResolverOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
         return services;
@@ -46,7 +46,7 @@ public static class HostingExtensions
     public static IServiceCollection AddDnsServiceEndPointResolver(this IServiceCollection services, Action<DnsServiceEndPointResolverOptions>? configureOptions = null)
     {
         services.AddServiceDiscoveryCore();
-        services.AddSingleton<IServiceEndPointResolverProvider, DnsServiceEndPointResolverProvider>();
+        services.AddSingleton<IServiceEndPointProviderFactory, DnsServiceEndPointResolverProvider>();
         var options = services.AddOptions<DnsServiceEndPointResolverOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
         return services;

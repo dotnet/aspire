@@ -6,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.Http;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -14,7 +13,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>
 /// Extensions for configuring <see cref="IHttpClientBuilder"/> with service discovery.
 /// </summary>
-public static class HttpClientBuilderExtensions
+public static class ServiceDiscoveryHttpClientBuilderExtensions
 {
     /// <summary>
     /// Adds service discovery to the <see cref="IHttpClientBuilder"/>.
