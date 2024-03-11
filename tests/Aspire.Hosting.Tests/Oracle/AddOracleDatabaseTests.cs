@@ -24,9 +24,6 @@ public class AddOracleTests
         var containerResource = Assert.Single(appModel.GetContainerResources());
         Assert.Equal("orcl", containerResource.Name);
 
-        var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestPublishing.Callback);
-
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("23.3.0.0", containerAnnotation.Tag);
         Assert.Equal("database/free", containerAnnotation.Image);

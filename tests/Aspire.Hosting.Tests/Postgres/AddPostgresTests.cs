@@ -26,9 +26,6 @@ public class AddPostgresTests
         var containerResource = Assert.Single(appModel.GetContainerResources());
         Assert.Equal("myPostgres", containerResource.Name);
 
-        var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestPublishing.Callback);
-
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("16.2", containerAnnotation.Tag);
         Assert.Equal("postgres", containerAnnotation.Image);
@@ -75,9 +72,6 @@ public class AddPostgresTests
 
         var containerResource = Assert.Single(appModel.GetContainerResources());
         Assert.Equal("myPostgres", containerResource.Name);
-
-        var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("16.2", containerAnnotation.Tag);
@@ -159,9 +153,6 @@ public class AddPostgresTests
 
         var containerResource = Assert.Single(containerResources);
         Assert.Equal("postgres", containerResource.Name);
-
-        var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("16.2", containerAnnotation.Tag);

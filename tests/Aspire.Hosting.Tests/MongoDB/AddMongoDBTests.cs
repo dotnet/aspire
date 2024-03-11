@@ -25,9 +25,6 @@ public class AddMongoDBTests
         var containerResource = Assert.Single(appModel.Resources.OfType<MongoDBServerResource>());
         Assert.Equal("mongodb", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(27017, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
@@ -55,9 +52,6 @@ public class AddMongoDBTests
 
         var containerResource = Assert.Single(appModel.Resources.OfType<MongoDBServerResource>());
         Assert.Equal("mongodb", containerResource.Name);
-
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(27017, endpoint.ContainerPort);

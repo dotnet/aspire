@@ -24,9 +24,6 @@ public class AddRabbitMQTests
         var containerResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
         Assert.Equal("rabbit", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(5672, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);

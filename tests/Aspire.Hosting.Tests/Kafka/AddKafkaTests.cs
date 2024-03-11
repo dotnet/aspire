@@ -23,9 +23,6 @@ public class AddKafkaTests
         var containerResource = Assert.Single(appModel.Resources.OfType<KafkaServerResource>());
         Assert.Equal("kafka", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(9092, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);

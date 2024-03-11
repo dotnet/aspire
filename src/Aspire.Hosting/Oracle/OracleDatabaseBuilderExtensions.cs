@@ -39,7 +39,8 @@ public static class OracleDatabaseBuilderExtensions
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
         return builder.AddResource(oracleDatabaseServer)
                       .WithEndpoint(hostPort: port, containerPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
+                      .WithImage("database/free", "23.3.0.0")
+                      .WithImageRegistry("container-registry.oracle.com")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = oracleDatabaseServer.PasswordInput;
@@ -63,16 +64,6 @@ public static class OracleDatabaseBuilderExtensions
         var oracleDatabase = new OracleDatabaseResource(name, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(oracleDatabase)
                                          .WithManifestPublishingCallback(oracleDatabase.WriteToManifest);
-    }
-
-    /// <summary>
-    /// Changes the Oracle Database Server resource to be published as a container.
-    /// </summary>
-    /// <param name="builder">Builder for the underlying <see cref="OracleDatabaseServerResource"/>.</param>
-    /// <returns></returns>
-    public static IResourceBuilder<OracleDatabaseServerResource> PublishAsContainer(this IResourceBuilder<OracleDatabaseServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 
     /// <summary>

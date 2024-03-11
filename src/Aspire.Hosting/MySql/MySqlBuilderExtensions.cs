@@ -27,12 +27,11 @@ public static class MySqlBuilderExtensions
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
                       .WithEndpoint(hostPort: port, containerPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
+                      .WithImage("mysql", "8.3.0")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordInput;
-                      })
-                      .PublishAsContainer();
+                      });
     }
 
     /// <summary>
@@ -73,22 +72,12 @@ public static class MySqlBuilderExtensions
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "5.2" })
+                                  .WithImage("phpmyadmin", "5.2")
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
                                   .ExcludeFromManifest();
 
         return builder;
-    }
-
-    /// <summary>
-    /// Changes resource to be published as a container.
-    /// </summary>
-    /// <param name="builder">The <see cref="MySqlServerResource"/> builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MySqlServerResource> PublishAsContainer(this IResourceBuilder<MySqlServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 
     /// <summary>
