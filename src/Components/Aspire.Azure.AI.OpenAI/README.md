@@ -44,10 +44,10 @@ The .NET Aspire Azure Azure OpenAI library provides multiple options to configur
 
 ### Use a connection string
 
-A connection can be constructed from the __Keys and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};`. You can provide the name of the connection string when calling `builder.AddAzureAIOpenAI()`:
+A connection can be constructed from the __Keys and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};`. You can provide the name of the connection string when calling `builder.AddAzureAIOpenAIClient()`:
 
 ```csharp
-builder.AddAzureAIOpenAI("openaiConnectionName");
+builder.AddAzureAIOpenAIClient("openaiConnectionName");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:

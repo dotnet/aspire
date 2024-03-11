@@ -63,10 +63,10 @@ The .NET Aspire Azure Key Vault library provides multiple options to configure t
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureKeyVault()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureKeyVaultClient()`:
 
 ```csharp
-builder.AddAzureKeyVault("secretConnectionName");
+builder.AddAzureKeyVaultClient("secretConnectionName");
 ```
 
 And then the vault URI will be retrieved from the `ConnectionStrings` configuration section. The vault URI which works with the `AzureSecurityKeyVaultSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.

@@ -44,10 +44,10 @@ The .NET Aspire Azure Table storage library provides multiple options to configu
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureTableService()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureTableClient()`:
 
 ```csharp
-builder.AddAzureTableService("tableConnectionName");
+builder.AddAzureTableClient("tableConnectionName");
 ```
 
 And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:

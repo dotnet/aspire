@@ -43,10 +43,10 @@ The .NET Aspire StackExchange Redis component provides multiple options to confi
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRedis()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRedisClient()`:
 
 ```csharp
-builder.AddRedis("myRedisConnectionName");
+builder.AddRedisClient("myRedisConnectionName");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:

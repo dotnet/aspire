@@ -44,10 +44,10 @@ The .NET Aspire Azure Storage Blobs library provides multiple options to configu
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureBlobService()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureBlobClient()`:
 
 ```csharp
-builder.AddAzureBlobService("blobsConnectionName");
+builder.AddAzureBlobClient("blobsConnectionName");
 ```
 
 And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:

@@ -41,10 +41,10 @@ The .NET Aspire NATS component provides multiple options to configure the NATS c
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNats()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNatsClient()`:
 
 ```csharp
-builder.AddNats("myConnection");
+builder.AddNatsClient("myConnection");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:

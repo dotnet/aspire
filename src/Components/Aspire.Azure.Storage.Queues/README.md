@@ -44,10 +44,10 @@ The .NET Aspire Azure Storage Queues library provides multiple options to config
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureQueueService()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureQueueClient()`:
 
 ```csharp
-builder.AddAzureQueueService("queueConnectionName");
+builder.AddAzureQueueClient("queueConnectionName");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:

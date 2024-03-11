@@ -44,10 +44,10 @@ The .NET Aspire Azure Cosmos DB library provides multiple options to configure t
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureCosmosDB()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureCosmosDbClient()`:
 
 ```csharp
-builder.AddAzureCosmosDB("cosmosConnectionName");
+builder.AddAzureCosmosDbClient("cosmosConnectionName");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:

@@ -44,10 +44,10 @@ The .NET Aspire Azure Service Bus library provides multiple options to configure
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureServiceBus()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureServiceBusClient()`:
 
 ```csharp
-builder.AddAzureServiceBus("serviceBusConnectionName");
+builder.AddAzureServiceBusClient("serviceBusConnectionName");
 ```
 
 And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
