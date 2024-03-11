@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -105,12 +106,36 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
         }
 
-        // Write volume details
+        // Write volume & bind mount details
         if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))
         {
-            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Named).ToList();
+            // Write out details for bind mounts
+            var bindMounts = mounts.Where(mounts => mounts.Type == ContainerMountType.Bind).ToList();
+            if (bindMounts.Count > 0)
+            {
+                // Bind mounts are written as an array of objects to be consistent with volumes
+                Writer.WriteStartArray("bindMounts");
 
-            // Only write out details for volumes (no bind mounts)
+                foreach (var bindMount in bindMounts)
+                {
+                    Writer.WriteStartObject();
+
+                    Writer.WritePropertyName("source");
+                    Writer.WriteStringValue(PathNormalizer.NormalizePathForManifest(bindMount.Source));
+
+                    Writer.WritePropertyName("target");
+                    Writer.WriteStringValue(bindMount.Target.Replace('\\', '/'));
+
+                    Writer.WriteBoolean("readOnly", bindMount.IsReadOnly);
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndArray();
+            }
+
+            // Write out details for volumes
+            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Named).ToList();
             if (volumes.Count > 0)
             {
                 // Volumes are written as an array of objects as anonymous volumes do not have a name
