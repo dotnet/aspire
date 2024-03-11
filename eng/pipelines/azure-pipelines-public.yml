@@ -1,0 +1,171 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - main
+    - vNext
+    - release/*
+
+pr:
+  branches:
+    include:
+    - main
+    - vNext
+    - release/*
+    - feature/*
+
+variables:
+  - template: /eng/common/templates/variables/pool-providers.yml
+
+  - name: _BuildConfig
+    value: Release
+  - name: Build.Arcade.ArtifactsPath
+    value: $(Build.SourcesDirectory)/artifacts/
+  - name: Build.Arcade.LogsPath
+    value: $(Build.Arcade.ArtifactsPath)log/$(_BuildConfig)/
+  - name: Build.Arcade.TestResultsPath
+    value: $(Build.Arcade.ArtifactsPath)TestResults/$(_BuildConfig)/
+
+  # needed for darc (dependency flow) publishing
+  - name: _PublishArgs
+    value: ''
+  - name: _OfficialBuildIdArgs
+    value: ''
+  # needed for signing
+  - name: _SignType
+    value: test
+  - name: _SignArgs
+    value: ''
+  - name: _Sign
+    value: false
+
+resources:
+  containers:
+  - container: LinuxContainer
+    image: mcr.microsoft.com/dotnet-buildtools/prereqs:cbl-mariner-2.0-fpm
+
+stages:
+
+# ----------------------------------------------------------------
+# This stage performs build, test, packaging
+# ----------------------------------------------------------------
+- stage: build
+  displayName: Build
+  jobs:
+  - template: /eng/common/templates/jobs/jobs.yml
+    parameters:
+      artifacts:
+        publish:
+          artifacts: false
+          logs: true
+          manifests: true
+      enableMicrobuild: true
+      enablePublishUsingPipelines: true
+      publishAssetsImmediately: true
+      enablePublishTestResults: true
+      enableSourceBuild: true
+      testResultsFormat: vstest
+      enableSourceIndex: false
+      workspace:
+        clean: all
+
+      jobs:
+
+      - job: windows
+        # timeout accounts for wait times for helix agents up to 30mins
+        timeoutInMinutes: 60
+
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals windows.vs2022preview.amd64.open
+
+        variables:
+          - name: _buildScript
+            value: $(Build.SourcesDirectory)/build.cmd -ci
+
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+        steps:
+          - template: /eng/pipelines/templates/BuildAndTest.yml
+            parameters:
+              runAsPublic: true
+              dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
+              buildScript: $(_buildScript)
+              buildConfig: $(_BuildConfig)
+              repoLogPath: $(Build.Arcade.LogsPath)
+              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+              isWindows: true
+
+      - job: linux
+        # timeout accounts for wait times for helix agents up to 30mins
+        timeoutInMinutes: 60
+
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2004.amd64.open
+
+        variables:
+          - name: _buildScript
+            value: $(Build.SourcesDirectory)/build.sh --ci
+
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+        steps:
+        - template: /eng/pipelines/templates/BuildAndTest.yml
+          parameters:
+            runAsPublic: true
+            dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
+            buildScript: $(_buildScript)
+            buildConfig: $(_BuildConfig)
+            repoLogPath: $(Build.Arcade.LogsPath)
+            repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+            isWindows: false
+
+
+# ----------------------------------------------------------------
+# This stage performs quality gates checks
+# ----------------------------------------------------------------
+- stage: codecoverage
+  displayName: CodeCoverage
+  dependsOn:
+    - build
+  condition: succeeded('build')
+  variables:
+  - template: /eng/common/templates/variables/pool-providers.yml
+  jobs:
+  - template: /eng/common/templates/jobs/jobs.yml
+    parameters:
+      enableMicrobuild: true
+      enableTelemetry: true
+      runAsPublic: false
+      workspace:
+        clean: all
+
+      # ----------------------------------------------------------------
+      # This stage downloads the code coverage reports from the build jobs,
+      # merges those and validates the combined test coverage.
+      # ----------------------------------------------------------------
+      jobs:
+      - job: CodeCoverageReport
+        timeoutInMinutes: 10
+
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2004.amd64.open
+
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+        steps:
+        - script: $(Build.SourcesDirectory)/build.sh --ci --restore
+          displayName: Init toolset
+
+        - template: /eng/pipelines/templates/VerifyCoverageReport.yml
