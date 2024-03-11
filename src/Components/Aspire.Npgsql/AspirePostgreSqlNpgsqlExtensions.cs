@@ -64,13 +64,14 @@ public static class AspirePostgreSqlNpgsqlExtensions
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
             settings.ConnectionString = connectionString;
+            Console.WriteLine ($"AddNpgsqlDataSource: setting settings.connectionString: {connectionString}");
         }
 
         configureSettings?.Invoke(settings);
 
         builder.RegisterNpgsqlServices(settings, configurationSectionName, connectionName, serviceKey, configureDataSourceBuilder);
 
-        // Same as SqlClient connection pooling is on by default and can be handled with connection string 
+        // Same as SqlClient connection pooling is on by default and can be handled with connection string
         // https://www.npgsql.org/doc/connection-string-parameters.html#pooling
         if (settings.HealthChecks)
         {

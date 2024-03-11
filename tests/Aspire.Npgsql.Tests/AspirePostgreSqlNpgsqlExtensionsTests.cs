@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.InternalTesting;
+using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,6 +26,7 @@ public class AspirePostgreSqlNpgsqlExtensionsTests : IClassFixture<PostgreSQLCon
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
+        Console.WriteLine ($"ConnectionString: {ConnectionString}");
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
         ]);
@@ -44,7 +45,13 @@ public class AspirePostgreSqlNpgsqlExtensionsTests : IClassFixture<PostgreSQLCon
             host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
             host.Services.GetRequiredService<NpgsqlDataSource>();
 
-        Assert.Equal(ConnectionString, dataSource.ConnectionString);
+        // npsql does not include the password in the connection string,
+        // unless `Persist Security Info=true`
+        NpgsqlConnectionStringBuilder connStringBuilder = new(ConnectionString)
+        {
+            Password = null
+        };
+        Assert.Equal(connStringBuilder.ConnectionString, dataSource.ConnectionString);
     }
 
     [RequiresDockerTheory]
