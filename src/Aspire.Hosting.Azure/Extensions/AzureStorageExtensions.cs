@@ -49,6 +49,8 @@ public static class AzureStorageExtensions
                 sku: StorageSkuName.StandardGrs
                 );
 
+            storageAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
             var blobService = new BlobService(construct);
 
             var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);

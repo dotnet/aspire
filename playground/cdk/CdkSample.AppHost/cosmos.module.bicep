@@ -14,6 +14,9 @@ resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
 resource cosmosDBAccount_5pKmb8KAZ 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
   name: toLower(take(concat('cosmos', uniqueString(resourceGroup().id)), 24))
   location: location
+  tags: {
+    'aspire-resource-name': 'cosmos'
+  }
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'
