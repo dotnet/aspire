@@ -25,9 +25,6 @@ public class AddRedisTests
         var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
         Assert.Equal("myRedis", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(6379, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);

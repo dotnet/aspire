@@ -26,9 +26,6 @@ public class AddMySqlTests
         var containerResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
         Assert.Equal("mysql", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("8.3.0", containerAnnotation.Tag);
         Assert.Equal("mysql", containerAnnotation.Image);
