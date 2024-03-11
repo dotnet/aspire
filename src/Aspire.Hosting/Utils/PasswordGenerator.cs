@@ -86,7 +86,12 @@ internal static class PasswordGenerator
 
         RandomNumberGenerator.Shuffle(chars);
 
-        return new string(chars);
+        var result = new string(chars);
+
+        // clear the buffer so the password isn't in memory in multiple places
+        chars.Clear();
+
+        return result;
     }
 
     private static void CheckMinZeroWhenDisabled(
