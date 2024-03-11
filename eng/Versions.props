@@ -18,8 +18,6 @@
     <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.1.56</MicrosoftDeveloperControlPlanewindows386PackageVersion>
     <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.1.56</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
     <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.1.56</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
-    <MicrosoftNETCoreAppRefPackageVersion>8.0.0-rc.1.23419.3</MicrosoftNETCoreAppRefPackageVersion>
-    <MicrosoftmacOSSdkPackageVersion>13.3.8825-net8-rc1</MicrosoftmacOSSdkPackageVersion>
     <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24158.4</MicrosoftDotNetRemoteExecutorPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24158.4</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24158.4</MicrosoftDotNetBuildTasksInstallersPackageVersion>
