@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Utils;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -38,6 +36,10 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// </summary>
     public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordInput};TrustServerCertificate=true");
+
     /// <summary>
     /// Gets the connection string expression for the SQL Server for the manifest.
     /// </summary>
@@ -50,7 +52,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"Server={PrimaryEndpoint.GetExpression(EndpointProperty.Host)},{PrimaryEndpoint.GetExpression(EndpointProperty.Port)};User ID=sa;Password={PasswordInput.ValueExpression};TrustServerCertificate=true";
+            return ConnectionString.ValueExpression;
         }
     }
 
@@ -66,23 +68,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
             return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
         }
 
-        return new(GetConnectionString());
-    }
-
-    /// <summary>
-    /// Gets the connection string for the SQL Server.
-    /// </summary>
-    /// <returns>A connection string for the SQL Server in the form "Server=host,port;User ID=sa;Password=password;TrustServerCertificate=true".</returns>
-    public string? GetConnectionString()
-    {
-        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-        {
-            return connectionStringAnnotation.Resource.GetConnectionString();
-        }
-
-        // HACK: Use the 127.0.0.1 address because localhost is resolving to [::1] following
-        //       up with DCP on this issue.
-        return $"Server=127.0.0.1,{PrimaryEndpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true";
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);

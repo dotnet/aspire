@@ -3,16 +3,15 @@
 
 using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 
-namespace Aspire.Hosting.Dashboard;
+namespace Aspire.Hosting.Dcp;
 
 using LogEntry = (string Content, bool IsErrorMessage);
 using LogEntryList = IReadOnlyList<(string Content, bool IsErrorMessage)>;
 
 internal sealed class ResourceLogSource<TResource>(
-    ILoggerFactory loggerFactory,
+    ILogger logger,
     IKubernetesService kubernetesService,
     TResource resource) :
     IAsyncEnumerable<LogEntryList>
@@ -35,8 +34,6 @@ internal sealed class ResourceLogSource<TResource>(
             SingleWriter = false
         });
 
-        var logger = loggerFactory.CreateLogger<ResourceLogSource<TResource>>();
-
         var stdoutStreamTask = Task.Run(() => StreamLogsAsync(stdoutStream, isError: false), cancellationToken);
         var stderrStreamTask = Task.Run(() => StreamLogsAsync(stderrStream, isError: true), cancellationToken);
 
@@ -56,7 +53,7 @@ internal sealed class ResourceLogSource<TResource>(
         {
             try
             {
-                using StreamReader sr = new StreamReader(stream, leaveOpen: false);
+                using var sr = new StreamReader(stream, leaveOpen: false);
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     var line = await sr.ReadLineAsync(cancellationToken).ConfigureAwait(false);

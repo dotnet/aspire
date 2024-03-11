@@ -8,14 +8,23 @@ namespace Aspire.Hosting.Dashboard;
 
 internal class GenericResourceSnapshot(CustomResourceSnapshot state) : ResourceSnapshot
 {
-    // Default to the resource type name without the "Resource" suffix.
     public override string ResourceType => state.ResourceType;
 
     protected override IEnumerable<(string Key, Value Value)> GetProperties()
     {
         foreach (var (key, value) in state.Properties)
         {
-            yield return (key, Value.ForString(value));
+            var result = value switch
+            {
+                string s => Value.ForString(s),
+                int i => Value.ForNumber(i),
+                IEnumerable<string> list => Value.ForList(list.Select(Value.ForString).ToArray()),
+                IEnumerable<int> list => Value.ForList(list.Select(i => Value.ForNumber(i)).ToArray()),
+                null => Value.ForNull(),
+                _ => Value.ForString(value.ToString())
+            };
+
+            yield return (key, result);
         }
     }
 }

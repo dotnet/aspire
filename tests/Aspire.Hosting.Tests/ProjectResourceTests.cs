@@ -25,7 +25,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
-        Assert.Equal(6, resource.Annotations.Count);
+        Assert.Equal(7, resource.Annotations.Count);
 
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
@@ -172,16 +172,39 @@ public class ProjectResourceTests
         var projectResources = appModel.GetProjectResources();
 
         var resource = Assert.Single(projectResources);
-        // ExcludeLaunchProfileAnnotation isn't public, so we just check the type name
-        Assert.Contains(resource.Annotations, a => a.GetType().Name == "ExcludeLaunchProfileAnnotation");
+        
+        Assert.Contains(resource.Annotations, a => a is ExcludeLaunchProfileAnnotation);
     }
 
     [Fact]
-    public async Task VerifyManifest()
+    public void DisabledForwadedHeadersAddsAnnotationToProject()
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
+        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwadedHeaders();
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        Assert.Contains(resource.Annotations, a => a is DisableForwardedHeadersAnnotation);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task VerifyManifest(bool disableForwardedHeaders)
+    {
+        var appBuilder = CreateBuilder();
+
+        var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
+        if (disableForwardedHeaders)
+        {
+            project.DisableForwadedHeaders();
+        }
 
         using var app = appBuilder.Build();
 
@@ -193,13 +216,17 @@ public class ProjectResourceTests
 
         var manifest = await ManifestUtils.GetManifest(resource);
 
-        var expectedManifest = """
+        var fordwardedHeadersEnvVar = disableForwardedHeaders
+            ? ""
+            : $",{Environment.NewLine}    \"ASPNETCORE_FORWARDEDHEADERS_ENABLED\": \"true\"";
+
+        var expectedManifest = $$"""
             {
               "type": "project.v0",
               "path": "net8.0/another-path",
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"{{fordwardedHeadersEnvVar}}
               },
               "bindings": {
                 "http": {
@@ -215,6 +242,7 @@ public class ProjectResourceTests
               }
             }
             """;
+
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 

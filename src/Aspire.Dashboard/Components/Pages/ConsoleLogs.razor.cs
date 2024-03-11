@@ -170,7 +170,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
         builder.Add(_noSelection);
 
-        foreach (var resourceGroupsByApplicationName in _resourceByName.Values.OrderBy(c => c.Name).GroupBy(resource => resource.DisplayName))
+        foreach (var resourceGroupsByApplicationName in _resourceByName
+            .Where(r => r.Value.State != ResourceStates.HiddenState)
+            .OrderBy(c => c.Value.Name)
+            .GroupBy(r => r.Value.DisplayName, r => r.Value))
         {
             if (resourceGroupsByApplicationName.Count() > 1)
             {
@@ -203,7 +206,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             string GetDisplayText()
             {
-                var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName.Values);
+                var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName);
 
                 return resource.State switch
                 {

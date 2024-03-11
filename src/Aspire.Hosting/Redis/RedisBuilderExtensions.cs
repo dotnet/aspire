@@ -54,4 +54,24 @@ public static class RedisBuilderExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a Redis container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a Redis container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/data", isReadOnly);
 }

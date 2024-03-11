@@ -4,97 +4,97 @@
     <body>
       <trans-unit id="EndpointsColumnDisplayNone">
         <source>None</source>
-        <target state="new">None</target>
+        <target state="translated">Yok</target>
         <note />
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
         <source>Starting...</source>
-        <target state="new">Starting...</target>
+        <target state="translated">Başlatılıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="LogMessageColumnExceptionDetailsTitle">
         <source>Exception details</source>
-        <target state="new">Exception details</target>
+        <target state="translated">Özel durum ayrıntıları</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">
         <source>Container ID: {0}</source>
-        <target state="new">Container ID: {0}</target>
+        <target state="translated">Kapsayıcı Kimliği: {0}</target>
         <note>{0} is an alphanumeric id</note>
       </trans-unit>
       <trans-unit id="ResourceNameDisplayCopyContainerIdText">
         <source>Copy container ID to clipboard</source>
-        <target state="new">Copy container ID to clipboard</target>
+        <target state="translated">Kapsayıcı kimliğini panoya kopyala</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayProcessIdText">
         <source>Process ID: {0}</source>
-        <target state="new">Process ID: {0}</target>
+        <target state="translated">İşlem kimliği: {0}</target>
         <note>{0} is a numeric id</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>
-        <target state="new">Container args</target>
+        <target state="translated">Kapsayıcı bağımsız değişkenleri</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommand">
         <source>Command: {0}</source>
-        <target state="new">Command: {0}</target>
+        <target state="translated">Komut: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerCommandTitle">
         <source>Container command</source>
-        <target state="new">Container command</target>
+        <target state="translated">Kapsayıcı komutu</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayCopyCommandToClipboard">
         <source>Copy full command to clipboard</source>
-        <target state="new">Copy full command to clipboard</target>
+        <target state="translated">Tüm komutu panoya kopyalayın</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnDisplayPort">
         <source>Port: {0}</source>
-        <target state="new">Port: {0}</target>
+        <target state="translated">Bağlantı noktası: {0}</target>
         <note>{0} is a port number</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayPorts">
         <source>Ports: {0}</source>
-        <target state="new">Ports: {0}</target>
+        <target state="translated">Bağlantı Noktaları: {0}</target>
         <note>{0} is a list of ports</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayWorkingDirectory">
         <source>Working directory: {0}</source>
-        <target state="new">Working directory: {0}</target>
+        <target state="translated">Çalışma dizini: {0}</target>
         <note>{0} is a path</note>
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyContainerToClipboard">
         <source>Copy image name and tag to clipboard</source>
-        <target state="new">Copy image name and tag to clipboard</target>
+        <target state="translated">Resim adını ve etiketini panoya kopyala</target>
         <note />
       </trans-unit>
       <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
         <source>Copy file path to clipboard</source>
-        <target state="new">Copy file path to clipboard</target>
+        <target state="translated">Dosya yolunu panoya kopyala</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnResourceExited">
         <source>{0} is no longer running</source>
-        <target state="new">{0} is no longer running</target>
+        <target state="translated">{0} artık çalışmıyor</target>
         <note>{0} is a resource type</note>
       </trans-unit>
       <trans-unit id="StateColumnResourceExitedUnexpectedly">
         <source>{0} exited unexpectedly with exit code {1}</source>
-        <target state="new">{0} exited unexpectedly with exit code {1}</target>
+        <target state="translated">{0} {1} çıkış kodu ile beklenmedik bir şekilde çıktı</target>
         <note>{0} is a resource type, {1} is a number</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLogs">
         <source>{0} error logs</source>
-        <target state="new">{0} error logs</target>
+        <target state="translated">{0} hata günlükleri</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeOneErrorLog">
         <source>1 error log</source>
-        <target state="new">1 error log</target>
+        <target state="translated">1 hata günlüğü</target>
         <note />
       </trans-unit>
     </body>

@@ -72,9 +72,9 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
     /// <param name="resourceName">The resource name.</param>
     /// <returns>The connection string for the specified resource.</returns>
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
-    public string? GetConnectionString(string resourceName)
+    public ValueTask<string?> GetConnectionString(string resourceName)
     {
-        return GetStartedApplication().GetConnectionString(resourceName);
+        return GetStartedApplication().GetConnectionStringAsync(resourceName);
     }
 
     /// <summary>

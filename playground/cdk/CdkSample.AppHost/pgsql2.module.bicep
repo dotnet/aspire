@@ -24,6 +24,9 @@ resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
 resource postgreSqlFlexibleServer_L4yCjMLWz 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   name: toLower(take(concat('pgsql2', uniqueString(resourceGroup().id)), 24))
   location: location
+  tags: {
+    'aspire-resource-name': 'pgsql2'
+  }
   sku: {
     name: 'Standard_B1ms'
     tier: 'Burstable'

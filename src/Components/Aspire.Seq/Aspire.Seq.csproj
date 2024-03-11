@@ -1,14 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>$(NetCurrent)</TargetFramework>
-        <IsPackable>true</IsPackable>
-        <PackageTags>$(ComponentDatabasePackageTags) Seq</PackageTags>
-        <Description>Connects Aspire projects' telemetry to Seq</Description>
-        <Nullable>enable</Nullable>
-        <NoWarn>$(NoWarn);CS8002</NoWarn>
-        <PackageIconFullPath>$(SharedDir)Seq_logo.275x147.png</PackageIconFullPath>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>$(ComponentCommonPackageTags) Seq</PackageTags>
+    <Description>A Seq client that connects an Aspire project's telemetry to Seq.</Description>
+    <PackageIconFullPath>$(SharedDir)Seq_logo.275x147.png</PackageIconFullPath>
+  </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />

@@ -43,7 +43,7 @@ public class AddRabbitMQTests
     }
 
     [Fact]
-    public void RabbitMQCreatesConnectionString()
+    public async Task RabbitMQCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
@@ -55,7 +55,7 @@ public class AddRabbitMQTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         var password = connectionStringResource.Password;
 
         Assert.Equal($"amqp://guest:{password}@localhost:27011", connectionString);

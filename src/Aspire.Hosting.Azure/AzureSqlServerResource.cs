@@ -18,34 +18,24 @@ public class AzureSqlServerResource(SqlServerServerResource innerResource) :
     /// </summary>
     public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
 
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"Server=tcp:{FullyQualifiedDomainName},1433;Encrypt=True;Authentication=\"Active Directory Default\"");
+
     /// <summary>
     /// Gets the connection template for the manifest for the Azure SQL Server resource.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"Server=tcp:{FullyQualifiedDomainName.ValueExpression},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
-
-    /// <summary>
-    /// Gets the connection string for the Azure SQL Server resource.
-    /// </summary>
-    /// <returns>The connection string for the Azure SQL Server resource.</returns>
-    public string? GetConnectionString()
-    {
-        return $"Server=tcp:{FullyQualifiedDomainName.Value},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
-    }
+        ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure SQL Server resource.
     /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure SQL Server resource.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return GetConnectionString();
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -67,34 +57,24 @@ public class AzureSqlServerConstructResource(SqlServerServerResource innerResour
     /// </summary>
     public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
 
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"Server=tcp:{FullyQualifiedDomainName},1433;Encrypt=True;Authentication=\"Active Directory Default\"");
+
     /// <summary>
     /// Gets the connection template for the manifest for the Azure SQL Server resource.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"Server=tcp:{FullyQualifiedDomainName.ValueExpression},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
-
-    /// <summary>
-    /// Gets the connection string for the Azure SQL Server resource.
-    /// </summary>
-    /// <returns>The connection string for the Azure SQL Server resource.</returns>
-    public string? GetConnectionString()
-    {
-        return $"Server=tcp:{FullyQualifiedDomainName.Value},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
-    }
+        ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure SQL Server resource.
     /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure SQL Server resource.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return GetConnectionString();
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 
     /// <inheritdoc/>

@@ -4,92 +4,92 @@
     <body>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">Filtre ekle</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsAllApplications">
         <source>(All)</source>
-        <target state="new">(All)</target>
+        <target state="translated">(Tümü)</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsAllTypes">
         <source>All</source>
-        <target state="new">All</target>
+        <target state="translated">Tümü</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
         <source>Edit filter</source>
-        <target state="new">Edit filter</target>
+        <target state="translated">Filtreyi düzenle</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
         <source>Log entry details</source>
-        <target state="new">Log entry details</target>
+        <target state="translated">Günlük girişi ayrıntıları</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
         <source>Filters: </source>
-        <target state="new">Filters: </target>
+        <target state="translated">Filtreler: </target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
         <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <target state="translated">Yapılandırılmış günlükler</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsLevelColumnHeader">
         <source>Level</source>
-        <target state="new">Level</target>
+        <target state="translated">Düzey</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">
         <source>Message</source>
-        <target state="new">Message</target>
+        <target state="translated">İleti</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageFilter">
         <source>Message filter</source>
-        <target state="new">Message filter</target>
+        <target state="translated">İleti filtresi</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMinimumLogFilter">
         <source>Minimum log level filter</source>
-        <target state="new">Minimum log level filter</target>
+        <target state="translated">En düşük günlük düzeyi filtresi</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoFilters">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">Filtre bulunamadı</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
         <source>No structured logs found</source>
-        <target state="new">No structured logs found</target>
+        <target state="translated">Yapılandırılmış günlük bulunamadı</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsPageTitle">
         <source>{0} structured logs</source>
-        <target state="new">{0} structured logs</target>
+        <target state="translated">{0} yapılandırılmış günlükler</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="StructuredLogsResourceColumnHeader">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Kaynak</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsSelectMinimumLogLevel">
         <source>Select a minimum log level</source>
-        <target state="new">Select a minimum log level</target>
+        <target state="translated">En düşük günlük düzeyini seçin</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsTimestampColumnHeader">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">Zaman damgası</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsTraceColumnHeader">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">İzleme</target>
         <note />
       </trans-unit>
     </body>

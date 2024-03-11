@@ -30,22 +30,11 @@ public class AzureServiceBusResource(string name) :
     /// <summary>
     /// Gets the connection string for the Azure Service Bus endpoint.
     /// </summary>
-    /// <returns>The connection string for the Azure Service Bus endpoint.</returns>
-    public string? GetConnectionString() => ServiceBusEndpoint.Value;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Service Bus endpoint.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure Service Bus endpoint.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return GetConnectionString();
+        return ServiceBusEndpoint.GetValueAsync(cancellationToken);
     }
 }
 
@@ -74,21 +63,10 @@ public class AzureServiceBusConstructResource(string name, Action<ResourceModule
     /// <summary>
     /// Gets the connection string for the Azure Service Bus endpoint.
     /// </summary>
-    /// <returns>The connection string for the Azure Service Bus endpoint.</returns>
-    public string? GetConnectionString() => ServiceBusEndpoint.Value;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Service Bus endpoint.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure Service Bus endpoint.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return GetConnectionString();
+        return ServiceBusEndpoint.GetValueAsync(cancellationToken);
     }
 }

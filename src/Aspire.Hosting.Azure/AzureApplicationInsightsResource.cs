@@ -26,23 +26,10 @@ public class AzureApplicationInsightsResource(string name) :
     /// <summary>
     /// Gets the connection string for the Azure Application Insights resource.
     /// </summary>
-    /// <returns>The connection string for the Azure Application Insights resource.</returns>
-    public string? GetConnectionString() => ConnectionString.Value;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Application Insights resource.
-    /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for the Azure Application Insights resource.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return GetConnectionString();
-    }
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+        => ConnectionString.GetValueAsync(cancellationToken);
 
     // UseAzureMonitor is looks for this specific environment variable name.
     string IResourceWithConnectionString.ConnectionStringEnvironmentVariable => "APPLICATIONINSIGHTS_CONNECTION_STRING";

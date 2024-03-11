@@ -43,28 +43,14 @@ public class AzureCosmosDBResource(string name) :
     /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string to use for this database.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return GetConnectionString();
-    }
-
-    /// <summary>
-    /// Gets the connection string to use for this database.
-    /// </summary>
-    /// <returns>The connection string to use for this database.</returns>
-    public string? GetConnectionString()
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
         if (IsEmulator)
         {
-            return AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port);
+            return new(AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port));
         }
 
-        return ConnectionString.Value;
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 }
 
@@ -100,28 +86,14 @@ public class AzureCosmosDBConstructResource(string name, Action<ResourceModuleCo
     /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string to use for this database.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return GetConnectionString();
-    }
-
-    /// <summary>
-    /// Gets the connection string to use for this database.
-    /// </summary>
-    /// <returns>The connection string to use for this database.</returns>
-    public string? GetConnectionString()
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
         if (IsEmulator)
         {
-            return AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port);
+            return new(AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port));
         }
 
-        return ConnectionString.Value;
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 }
 
@@ -162,6 +134,8 @@ public static class AzureCosmosExtensions
             cosmosAccount.AssignProperty(x => x.DatabaseAccountOfferType, "'Standard'");
             cosmosAccount.AssignProperty(x => x.Locations[0].LocationName, "location");
             cosmosAccount.AssignProperty(x => x.Locations[0].FailoverPriority, "0");
+
+            cosmosAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
             var keyVaultNameParameter = new Parameter("keyVaultName");
             construct.AddParameter(keyVaultNameParameter);

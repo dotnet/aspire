@@ -85,13 +85,13 @@ internal sealed class BicepProvisioner(
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
-            ImmutableArray<(string, string)> props = [
+            ImmutableArray<(string, object?)> props = [
                 .. state.Properties,
-                    ("azure.subscription.id", configuration["Azure:SubscriptionId"] ?? ""),
+                    ("azure.subscription.id", configuration["Azure:SubscriptionId"]),
                     // ("azure.resource.group", configuration["Azure:ResourceGroup"]!),
-                    ("azure.tenant.domain", configuration["Azure:Tenant"] ?? ""),
-                    ("azure.location", configuration["Azure:Location"] ?? ""),
-                    (CustomResourceKnownProperties.Source, section["Id"] ?? "")
+                    ("azure.tenant.domain", configuration["Azure:Tenant"]),
+                    ("azure.location", configuration["Azure:Location"]),
+                    (CustomResourceKnownProperties.Source, section["Id"])
             ];
 
             return state with
@@ -308,7 +308,7 @@ internal sealed class BicepProvisioner(
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
-            ImmutableArray<(string, string)> properties = [
+            ImmutableArray<(string, object?)> properties = [
                 .. state.Properties,
                 (CustomResourceKnownProperties.Source, deployment.Id.Name)
             ];
