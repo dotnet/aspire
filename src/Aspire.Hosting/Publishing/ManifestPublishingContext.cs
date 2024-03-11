@@ -52,7 +52,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         var fullyQualifiedManifestPath = Path.GetFullPath(ManifestPath);
         var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
-        var relativePath = Path.GetRelativePath(manifestDirectory, path);
+
+        var normalizedPath = path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        var relativePath = Path.GetRelativePath(manifestDirectory, normalizedPath);
 
         return relativePath.Replace('\\', '/');
     }
