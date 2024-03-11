@@ -18,10 +18,10 @@ dotnet add package Aspire.RabbitMQ.Client
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddRabbitMQ` extension method to register an `IConnection` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddRabbitMQClient` extension method to register an `IConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddRabbitMQ("messaging");
+builder.AddRabbitMQClient("messaging");
 ```
 
 You can then retrieve the `IConnection` instance using dependency injection. For example, to retrieve the connection from a Web API controller:
@@ -80,13 +80,13 @@ The .NET Aspire RabbitMQ component supports [Microsoft.Extensions.Configuration]
 Also you can pass the `Action<RabbitMQClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddRabbitMQ("messaging", settings => settings.HealthChecks = false);
+builder.AddRabbitMQClient("messaging", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [ConnectionFactory](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.ConnectionFactory.html) using the `Action<ConnectionFactory> configureConnectionFactory` delegate parameter of the `AddRabbitMQ` method. For example to set the client provided name for connections:
+You can also setup the [ConnectionFactory](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.ConnectionFactory.html) using the `Action<ConnectionFactory> configureConnectionFactory` delegate parameter of the `AddRabbitMQClient` method. For example to set the client provided name for connections:
 
 ```csharp
-builder.AddRabbitMQ("messaging", configureConnectionFactory: factory => factory.ClientProvidedName = "MyApp");
+builder.AddRabbitMQClient("messaging", configureConnectionFactory: factory => factory.ClientProvidedName = "MyApp");
 ```
 
 ## AppHost extensions
