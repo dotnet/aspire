@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.ConformanceTests;
@@ -31,7 +31,7 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Nats:Client", key, "ConnectionString"), ConnectionSting)
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Nats:Net", key, "ConnectionString"), ConnectionSting)
         });
 
     protected override bool CanCreateClientWithoutConnectingToServer => false;
