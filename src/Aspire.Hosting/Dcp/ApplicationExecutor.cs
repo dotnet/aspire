@@ -266,9 +266,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
         {
-            Container c when c.Status?.ContainerId is not null => new DockerContainerLogSource(c.Status.ContainerId),
-            Executable e when e.Status?.StdOutFile is not null && e.Status?.StdErrFile is not null => new FileLogSource(e.Status.StdOutFile, e.Status.StdErrFile),
-            // Container or Executable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
+            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
+            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
             _ => null
         };
 

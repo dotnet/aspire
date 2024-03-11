@@ -56,7 +56,7 @@ internal sealed class ExecutableStatus : V1Status
 
     // The current state of the process/IDE session started for this executable
     [JsonPropertyName("state")]
-    public string? State { get; set; } = ExecutableStates.Unknown;
+    public string? State { get; set; } = ExecutableState.Unknown;
 
     // Start (attempt) timestamp.
     [JsonPropertyName("startupTimestamp")]
@@ -88,7 +88,7 @@ internal sealed class ExecutableStatus : V1Status
     public List<string>? EffectiveArgs { get; set; }
 }
 
-internal static class ExecutableStates
+internal static class ExecutableState
 {
     // Executable was successfully started and was running last time we checked.
     public const string Running = "Running";
@@ -134,4 +134,9 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
 
         return exe;
     }
+
+    public bool LogsAvailable =>
+        this.Status?.State == ExecutableState.Running
+        || this.Status?.State == ExecutableState.Finished
+        ||this.Status?.State == ExecutableState.Terminated;
 }

@@ -24,8 +24,9 @@ internal sealed class ResourceLogSource<TResource>(
             throw new ArgumentException("Cancellation token must be cancellable in order to prevent leaking resources.", nameof(cancellationToken));
         }
 
-        var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, follow: true, cancellationToken).ConfigureAwait(false);
-        var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, follow: true, cancellationToken).ConfigureAwait(false);
+        var timestamps = resource is Container; // Timestamps are available only for Containers as of Aspire P5.
+        var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
+        var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
 
         var channel = Channel.CreateUnbounded<LogEntry>(new UnboundedChannelOptions
         {
