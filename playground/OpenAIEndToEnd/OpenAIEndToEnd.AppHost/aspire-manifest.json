@@ -2,7 +2,7 @@
   "resources": {
     "openai": {
       "type": "azure.bicep.v0",
-      "connectionString": "{openai.secretOutputs.connectionString}",
+      "connectionString": "{openai.outputs.connectionString}",
       "path": "openai.module.bicep",
       "params": {
         "principalId": "",

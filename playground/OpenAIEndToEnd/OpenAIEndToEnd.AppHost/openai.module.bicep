@@ -13,10 +13,6 @@ param principalType string
 param keyVaultName string
 
 
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
-  name: keyVaultName
-}
-
 resource cognitiveServicesAccount_DqMZSfXbZ 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
   location: location
@@ -25,6 +21,7 @@ resource cognitiveServicesAccount_DqMZSfXbZ 'Microsoft.CognitiveServices/account
     name: 'S0'
   }
   properties: {
+    customSubDomainName: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
     publicNetworkAccess: 'Enabled'
   }
 }
@@ -55,11 +52,4 @@ resource cognitiveServicesAccountDeployment_0OtUTY1oh 'Microsoft.CognitiveServic
   }
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: keyVault_IeF8jZvXV
-  name: 'connectionString'
-  location: location
-  properties: {
-    value: 'Endpoint=${cognitiveServicesAccount_DqMZSfXbZ.properties.endpoint}'
-  }
-}
+output connectionString string = 'Endpoint=${cognitiveServicesAccount_DqMZSfXbZ.properties.endpoint}'

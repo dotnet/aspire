@@ -58,7 +58,7 @@ public class AzureOpenAIConstructResource(string name, Action<ResourceModuleCons
     /// <summary>
     /// Gets the "connectionString" output reference from the Azure OpenAI resource.
     /// </summary>
-    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+    public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.

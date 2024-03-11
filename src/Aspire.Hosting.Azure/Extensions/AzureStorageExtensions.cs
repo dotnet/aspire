@@ -60,9 +60,9 @@ public static class AzureStorageExtensions
             var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
             queueRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
-            storageAccount.AddOutput(sa => sa.PrimaryEndpoints.BlobUri, "blobEndpoint");
-            storageAccount.AddOutput(sa => sa.PrimaryEndpoints.QueueUri, "queueEndpoint");
-            storageAccount.AddOutput(sa => sa.PrimaryEndpoints.TableUri, "tableEndpoint");
+            storageAccount.AddOutput("blobEndpoint", sa => sa.PrimaryEndpoints.BlobUri);
+            storageAccount.AddOutput("queueEndpoint", sa => sa.PrimaryEndpoints.QueueUri);
+            storageAccount.AddOutput("tableEndpoint", sa => sa.PrimaryEndpoints.TableUri);
 
             if (configureResource != null)
             {

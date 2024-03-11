@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.CognitiveServices;
-using Azure.Provisioning.KeyVaults;
 using Azure.ResourceManager.CognitiveServices.Models;
 
 namespace Aspire.Hosting;
@@ -51,6 +50,7 @@ public static class AzureOpenAIExtensions
             cogServicesAccount.AssignProperty(x => x.Name, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
             cogServicesAccount.AssignProperty(x => x.Properties.CustomSubDomainName, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
             cogServicesAccount.AssignProperty(x => x.Properties.PublicNetworkAccess, "'Enabled'");
+            cogServicesAccount.AddOutput("connectionString", """'Endpoint=${{{0}}}'""", x => x.Properties.Endpoint);
 
             var roleAssignment = cogServicesAccount.AssignRole(RoleDefinition.CognitiveServicesOpenAIContributor);
             roleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
@@ -70,14 +70,6 @@ public static class AzureOpenAIExtensions
                 cdkDeployment.AssignProperty(x => x.Sku.Name, $"'{deployment.SkuName}'");
                 cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
             }
-
-            // HACK: We can't create an output that is an interpolated string so we are
-            //       storing the result in a keyvault secret so we can get it out in the
-            //       format that we want even though there is not anything on it that is
-            //       strictly a secret.
-            var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-            var connectionStringSecret = new KeyVaultSecret(construct, keyVault, "connectionString");
-            connectionStringSecret.AssignProperty(x => x.Properties.Value, $"'Endpoint=${{{cogServicesAccount.Name}.properties.endpoint}}'");
 
             if (configureResource != null)
             {

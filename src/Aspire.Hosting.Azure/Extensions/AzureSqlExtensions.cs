@@ -108,7 +108,7 @@ public static class AzureSqlExtensions
                 sqlDatabases.Add(sqlDatabase);
             }
 
-            sqlServer.AddOutput(x => x.FullyQualifiedDomainName, "sqlServerFqdn");
+            sqlServer.AddOutput("sqlServerFqdn", x => x.FullyQualifiedDomainName);
 
             if (configureResource != null)
             {
