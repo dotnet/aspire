@@ -52,9 +52,6 @@ public class AddNatsTests
         var containerResource = Assert.Single(appModel.Resources.OfType<NatsServerResource>());
         Assert.Equal("nats", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var mountAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerMountAnnotation>());
         Assert.Equal("/tmp/dev-data", mountAnnotation.Source);
         Assert.Equal("/data", mountAnnotation.Target);
