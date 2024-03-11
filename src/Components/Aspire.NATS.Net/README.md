@@ -1,6 +1,6 @@
 # Aspire.NATS.Net library
 
-Registers [INatsConnection](https://nats-io.github.io/nats.net.v2/api/NATS.Client.Core.INatsConnection.html) in the DI container for connecting NATS server. Enables corresponding health check, and logging.
+Registers [INatsConnection](https://nats-io.github.io/nats.net.v2/api/NATS.Client.Core.INatsConnection.html) in the DI container for connecting NATS server. Enables corresponding health check and logging.
 
 ## Getting started
 
