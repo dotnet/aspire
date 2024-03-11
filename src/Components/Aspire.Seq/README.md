@@ -20,7 +20,7 @@ dotnet add package Aspire.Seq
 
 ## Usage example
 
-In the _Program.cs_ file of your projects, call the `AddSeqEndpoint` extension method to register OpenTelemetry Protocol exporters to send logs and traces to Seq. The method takes an optional name parameter.
+In the _Program.cs_ file of your projects, call the `AddSeqEndpoint` extension method to register OpenTelemetry Protocol exporters to send logs and traces to Seq. The method takes a connection name parameter.
 
 ```csharp
 builder.AddSeqEndpoint("seq");
@@ -63,9 +63,9 @@ builder.AddSeqEndpoint("seq", settings => {
 In your AppHost project, register a Seq server and propagate its configuration using the following methods (note that you must accept the [Seq End User Licence Agreement](https://datalust.co/doc/eula-current.pdf) for Seq to start):
 
 ```csharp
-var seq = builder.AddSeq("seq);
+var seq = builder.AddSeq("seq");
 
-var myService = builder.AddProject<Projects_MyService>()
+var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(seq);
 ```
 
@@ -77,7 +77,7 @@ builder.AddSeqEndpoint("seq");
 
 ### Persistent logs and traces
 
-To retain Seq's data and configuration across application restarts register Seq with a data directory.
+To retain Seq's data and configuration across application restarts register Seq with a data directory in your AppHost project.
 
 ```csharp
 var seq = builder.AddSeq("seq", seqDataDirectory: "./seqdata");
@@ -85,15 +85,9 @@ var seq = builder.AddSeq("seq", seqDataDirectory: "./seqdata");
 
 Note that the directory specified must already exist.
 
-### Including Seq in the .NET Aspire manifest
+### Seq in the .NET Aspire manifest
 
-To deploy Seq as part of .NET Aspire deployment it must be included in the manifest.
-
-> Note that this should not be done without having [properly secured the Seq instance](https://docs.datalust.co/docs/production-deployment). It is currently easier to set up a secure production Seq server outside of .NET Aspire.
-
-```csharp
-var seq = builder.AddSeq("seq", seqDataDirectory: "./seqdata");
-```
+Seq is not part of the .NET Aspire deployment manifest. It is recommended to set up a secure production Seq server outside of .NET Aspire.
 
 ## Additional documentation
 
