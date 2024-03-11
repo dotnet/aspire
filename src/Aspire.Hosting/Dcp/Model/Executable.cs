@@ -138,5 +138,5 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
     public bool LogsAvailable =>
         this.Status?.State == ExecutableState.Running
         || this.Status?.State == ExecutableState.Finished
-        ||this.Status?.State == ExecutableState.Terminated;
+        || this.Status?.State == ExecutableState.Terminated;
 }
