@@ -21,10 +21,10 @@ dotnet add package Aspire.Azure.Security.KeyVault
 
 ### Add secrets to configuration
 
-In the _Program.cs_ file of your project, call the `builder.Configuration.AddKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `builder.Configuration.AddAzureKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
 
 ```csharp
-builder.Configuration.AddKeyVaultSecrets("secrets");
+builder.Configuration.AddAzureKeyVaultSecrets("secrets");
 ```
 
 You can then retrieve a secret through normal `IConfiguration` APIs. For example, to retrieve a secret from a Web API controller:
