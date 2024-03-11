@@ -14,6 +14,16 @@ public class AspirePostgreSqlNpgsqlExtensionsTests : IClassFixture<PostgreSQLCon
 {
     private readonly PostgreSQLContainerFixture _containerFixture;
     private string ConnectionString => _containerFixture.GetConnectionString();
+    private string GetConnectionStringWithoutPassword()
+    {
+        // npsql does not include the password in the connection string,
+        // unless `Persist Security Info=true`
+        NpgsqlConnectionStringBuilder connStringBuilder = new(ConnectionString)
+        {
+            Password = null
+        };
+        return connStringBuilder.ConnectionString;
+    }
 
     public AspirePostgreSqlNpgsqlExtensionsTests(PostgreSQLContainerFixture containerFixture)
     {
@@ -45,13 +55,7 @@ public class AspirePostgreSqlNpgsqlExtensionsTests : IClassFixture<PostgreSQLCon
             host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
             host.Services.GetRequiredService<NpgsqlDataSource>();
 
-        // npsql does not include the password in the connection string,
-        // unless `Persist Security Info=true`
-        NpgsqlConnectionStringBuilder connStringBuilder = new(ConnectionString)
-        {
-            Password = null
-        };
-        Assert.Equal(connStringBuilder.ConnectionString, dataSource.ConnectionString);
+        Assert.Equal(GetConnectionStringWithoutPassword(), dataSource.ConnectionString);
     }
 
     [RequiresDockerTheory]
@@ -79,7 +83,7 @@ public class AspirePostgreSqlNpgsqlExtensionsTests : IClassFixture<PostgreSQLCon
             host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
             host.Services.GetRequiredService<NpgsqlDataSource>();
 
-        Assert.Equal(ConnectionString, dataSource.ConnectionString);
+        Assert.Equal(GetConnectionStringWithoutPassword(), dataSource.ConnectionString);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
@@ -111,7 +115,7 @@ public class AspirePostgreSqlNpgsqlExtensionsTests : IClassFixture<PostgreSQLCon
             host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
             host.Services.GetRequiredService<NpgsqlDataSource>();
 
-        Assert.Equal(ConnectionString, dataSource.ConnectionString);
+        Assert.Equal(GetConnectionStringWithoutPassword(), dataSource.ConnectionString);
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
