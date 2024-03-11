@@ -103,7 +103,7 @@ The .NET Aspire Azure Service Bus library supports [Microsoft.Extensions.Configu
 You can also pass the `Action<AzureMessagingServiceBusSettings> configureSettings` delegate to set up some or all the options inline, for example to configure the health check queue name from code:
 
 ```csharp
-builder.AddAzureServiceBus("sb", settings => settings.HealthCheckQueueName = "myQueue");
+builder.AddAzureServiceBusClient("sb", settings => settings.HealthCheckQueueName = "myQueue");
 ```
 
 You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclientoptions) using the optional `Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>> configureClientBuilder` parameter of the `AddAzureServiceBus` method. For example, to set the client ID for this client:

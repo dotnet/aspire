@@ -101,7 +101,7 @@ The .NET Aspire Azure AI OpenAI library supports [Microsoft.Extensions.Configura
 You can also pass the `Action<AzureOpenAISettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-builder.AddAzureAIOpenAI("openaiConnectionName", settings => settings.Tracing = false);
+builder.AddAzureAIOpenAIClient("openaiConnectionName", settings => settings.Tracing = false);
 ```
 
 You can also setup the [OpenAIClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclientoptions) using the optional `Action<IAzureClientBuilder<OpenAIClient, OpenAIClientOptions>> configureClientBuilder` parameter of the `AddAzureAIOpenAI` method. For example, to set the client ID for this client:
