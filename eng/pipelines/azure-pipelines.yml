@@ -6,6 +6,20 @@ trigger:
     - vNext
     - release/*
     - internal/release/*
+  paths:
+    include:
+      - '*'
+    exclude:
+      - eng/Version.Details.xml
+      - .github/*
+      - docs/*
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - README.md
+      - SECURITY.md
+      - LICENSE.TXT
+      - PATENTS.TXT
+      - THIRD-PARTY-NOTICES.TXT
 
 pr:
   branches:
@@ -15,10 +29,24 @@ pr:
     - release/*
     - feature/*
     - internal/release/*
+  paths:
+    include:
+      - '*'
+    exclude:
+      - eng/Version.Details.xml
+      - .github/*
+      - docs/*
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - README.md
+      - SECURITY.md
+      - LICENSE.TXT
+      - PATENTS.TXT
+      - THIRD-PARTY-NOTICES.TXT
 
 variables:
-  - template: /eng/pipelines/common-variables.yml
-  - template: /eng/common/templates/variables/pool-providers.yml
+  - template: /eng/pipelines/common-variables.yml@self
+  - template: /eng/common/templates-official/variables/pool-providers.yml@self
 
   - name: _BuildConfig
     value: Release
@@ -65,169 +93,140 @@ resources:
   - container: LinuxContainer
     image: mcr.microsoft.com/dotnet-buildtools/prereqs:cbl-mariner-2.0-fpm
 
-stages:
+  repositories:
+  - repository: 1ESPipelineTemplates
+    type: git
+    name: 1ESPipelineTemplates/1ESPipelineTemplates
+    ref: refs/tags/release
 
-# ----------------------------------------------------------------
-# This stage performs build, test, packaging
-# ----------------------------------------------------------------
-- stage: build
-  displayName: Build
-  jobs:
-  # TODO: Temporarily disabled, see:https://github.com/dotnet/aspire/issues/145
-  # - ${{ if and(eq(variables._RunAsInternal, True), notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
-  #   - template: /eng/common/templates/job/onelocbuild.yml
-  #     parameters:
-  #       MirrorRepo: aspire
-  #       LclSource: lclFilesFromPackage
-  #       LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
-  - template: /eng/common/templates/jobs/jobs.yml
-    parameters:
-      artifacts:
-        publish:
-          artifacts: false
-          logs: true
-          manifests: true
-      enableMicrobuild: true
-      enablePublishUsingPipelines: true
-      publishAssetsImmediately: true
-      enablePublishTestResults: true
-      enableSourceBuild: true
-      testResultsFormat: vstest
-      enableSourceIndex: false
-      workspace:
-        clean: all
+extends:
+  template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
+  parameters:
+    sdl:
+      eslint:
+        enabled: false
+        justificationForDisabling: 'see https://portal.microsofticm.com/imp/v3/incidents/incident/482258316/summary'
+      sourceAnalysisPool:
+        name: NetCore1ESPool-Internal
+        image: windows.vs2022preview.amd64
+        os: windows
+    customBuildTags:
+    - ES365AIMigrationTooling
 
+    stages:
+
+    # ----------------------------------------------------------------
+    # This stage performs build, test, packaging
+    # ----------------------------------------------------------------
+    - stage: build
+      displayName: Build
       jobs:
+      - template: /eng/common/templates-official/jobs/jobs.yml@self
+        parameters:
+          enableMicrobuild: true
+          # Publish NuGet packages using v3
+          # https://github.com/dotnet/arcade/blob/main/Documentation/CorePackages/Publishing.md#basic-onboarding-scenario-for-new-repositories-to-the-current-publishing-version-v3
+          enablePublishUsingPipelines: true
+          enablePublishBuildAssets: true
+          enableTelemetry: true
+          enableSourceIndex: false
+          # Publish build logs
+          enablePublishBuildArtifacts: true
+          # Publish test logs
+          enablePublishTestResults: true
+          workspace:
+            clean: all
 
-      - job: windows
-        # timeout accounts for wait times for helix agents up to 30mins
-        timeoutInMinutes: 60
+          jobs:
 
-        pool:
-          ${{ if eq(variables['System.TeamProject'], 'public') }}:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals windows.vs2022preview.amd64.open
-          ${{ else }}:
-            name: $(DncEngInternalBuildPool)
-            demands: ImageOverride -equals windows.vs2022preview.amd64
+          - job: Windows
+            # timeout accounts for wait times for helix agents up to 30mins
+            timeoutInMinutes: 60
 
-        variables:
-          - name: _buildScript
-            value: $(Build.SourcesDirectory)/build.cmd -ci
+            pool:
+              name: NetCore1ESPool-Internal
+              image: windows.vs2022preview.amd64
+              os: windows
 
-        preSteps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
+            variables:
+              - name: _buildScript
+                value: $(Build.SourcesDirectory)/build.cmd -ci
 
-        steps:
-          - template: /eng/pipelines/templates/BuildAndTest.yml
-            parameters:
-              runAsPublic: ${{ eq(variables._RunAsPublic, True) }}
-              dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
-              buildScript: $(_buildScript)
-              buildConfig: $(_BuildConfig)
-              repoLogPath: $(Build.Arcade.LogsPath)
-              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-              isWindows: true
+            preSteps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
 
+            steps:
+              - template: /eng/pipelines/templates/BuildAndTest.yml
+                parameters:
+                  dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
+                  buildScript: $(_buildScript)
+                  buildConfig: $(_BuildConfig)
+                  repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                  repoLogPath: $(Build.Arcade.LogsPath)
+                  repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                  isWindows: true
 
-      - ${{ if eq(variables._RunAsPublic, True) }}:
-        - job: linux
-          # timeout accounts for wait times for helix agents up to 30mins
-          timeoutInMinutes: 60
+          - ${{ if eq(variables._RunAsPublic, True) }}:
+            - job: Linux
+              # timeout accounts for wait times for helix agents up to 30mins
+              timeoutInMinutes: 60
 
-          pool:
-            ${{ if eq(variables['System.TeamProject'], 'public') }}:
-              name: $(DncEngPublicBuildPool)
-              demands: ImageOverride -equals build.ubuntu.2004.amd64.open
-            ${{ else }}:
-              name: $(DncEngInternalBuildPool)
-              demands: ImageOverride -equals build.ubuntu.2004.amd64
+              pool:
+                name: NetCore1ESPool-Internal
+                image: 1es-mariner-2-pt
+                os: linux
 
-          variables:
-            - name: _buildScript
-              value: $(Build.SourcesDirectory)/build.sh --ci
+              variables:
+                - name: _buildScript
+                  value: $(Build.SourcesDirectory)/build.sh --ci
 
-          preSteps:
-            - checkout: self
-              fetchDepth: 1
-              clean: true
+              preSteps:
+                - checkout: self
+                  fetchDepth: 1
+                  clean: true
 
-          steps:
-          - template: /eng/pipelines/templates/BuildAndTest.yml
-            parameters:
-              runAsPublic: ${{ eq(variables._RunAsPublic, True) }}
-              dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
-              buildScript: $(_buildScript)
-              buildConfig: $(_BuildConfig)
-              repoLogPath: $(Build.Arcade.LogsPath)
-              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-              isWindows: false
+              steps:
+                - template: /eng/pipelines/templates/BuildAndTest.yml
+                  parameters:
+                    dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
+                    buildScript: $(_buildScript)
+                    buildConfig: $(_BuildConfig)
+                    repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                    repoLogPath: $(Build.Arcade.LogsPath)
+                    repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                    isWindows: false
 
+      - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
+        - template: /eng/common/templates-official/job/onelocbuild.yml@self
+          parameters:
+            LclSource: lclFilesfromPackage
+            LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
+            MirrorRepo: aspire
+            MirrorBranch: main
 
-# ----------------------------------------------------------------
-# This stage performs quality gates checks
-# ----------------------------------------------------------------
-- stage: codecoverage
-  displayName: CodeCoverage
-  dependsOn:
-    - build
-  condition: succeeded('build')
-  variables:
-  - template: /eng/common/templates/variables/pool-providers.yml
-  jobs:
-  - template: /eng/common/templates/jobs/jobs.yml
-    parameters:
-      enableMicrobuild: true
-      enableTelemetry: true
-      runAsPublic: false
-      workspace:
-        clean: all
-
-      # ----------------------------------------------------------------
-      # This stage downloads the code coverage reports from the build jobs,
-      # merges those and validates the combined test coverage.
-      # ----------------------------------------------------------------
-      jobs:
-      - job: CodeCoverageReport
-        timeoutInMinutes: 10
-
-        pool:
-          ${{ if eq(variables['System.TeamProject'], 'public') }}:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals build.ubuntu.2004.amd64.open
-          ${{ else }}:
-            name: $(DncEngInternalBuildPool)
-            demands: ImageOverride -equals build.ubuntu.2004.amd64
-
-        preSteps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
-
-        steps:
-        - script: $(Build.SourcesDirectory)/build.sh --ci --restore
-          displayName: Init toolset
-
-        - template: /eng/pipelines/templates/VerifyCoverageReport.yml
-
-
-- ${{ if eq(variables._RunAsInternal, True) }}:
-  - template: /eng/common/templates/post-build/post-build.yml
-    parameters:
-      publishAssetsImmediately: true
-      SDLValidationParameters:
-        enable: false
-        params: ' -SourceToolsList $(_TsaSourceToolsList)
-          -TsaInstanceURL $(_TsaInstanceURL)
-          -TsaProjectName $(_TsaProjectName)
-          -TsaNotificationEmail $(_TsaNotificationEmail)
-          -TsaCodebaseAdmin $(_TsaCodebaseAdmin)
-          -TsaBugAreaPath $(_TsaBugAreaPath)
-          -TsaIterationPath $(_TsaIterationPath)
-          -TsaRepositoryName $(_TsaRepositoryName)
-          -TsaCodebaseName $(_TsaCodebaseName)
-          -TsaOnboard $(_TsaOnboard)
-          -TsaPublish $(_TsaPublish)'
+    - template: /eng/common/templates-official/post-build/post-build.yml@self
+      parameters:
+        validateDependsOn:
+        - build
+        publishingInfraVersion: 3
+        enableSymbolValidation: false
+        enableSigningValidation: false
+        enableNugetValidation: false
+        enableSourceLinkValidation: false
+        # these param values come from the DotNet-Winforms-SDLValidation-Params azdo variable group
+        SDLValidationParameters:
+          enable: false
+          params: ' -SourceToolsList $(_TsaSourceToolsList)
+            -TsaInstanceURL $(_TsaInstanceURL)
+            -TsaProjectName $(_TsaProjectName)
+            -TsaNotificationEmail $(_TsaNotificationEmail)
+            -TsaCodebaseAdmin $(_TsaCodebaseAdmin)
+            -TsaBugAreaPath $(_TsaBugAreaPath)
+            -TsaIterationPath $(_TsaIterationPath)
+            -TsaRepositoryName $(_TsaRepositoryName)
+            -TsaCodebaseName $(_TsaCodebaseName)
+            -TsaOnboard $(_TsaOnboard)
+            -TsaPublish $(_TsaPublish)'
 
