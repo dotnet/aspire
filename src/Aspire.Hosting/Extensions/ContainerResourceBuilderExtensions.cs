@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -111,7 +112,7 @@ public static class ContainerResourceBuilderExtensions
             return builder;
         }
 
-        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
+        return ThrowResourceIsNotContainer(builder);
     }
 
     /// <summary>
@@ -129,7 +130,7 @@ public static class ContainerResourceBuilderExtensions
             return builder;
         }
 
-        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
+        return ThrowResourceIsNotContainer(builder);
     }
 
     /// <summary>
@@ -170,6 +171,11 @@ public static class ContainerResourceBuilderExtensions
             return builder;
         }
 
+        return ThrowResourceIsNotContainer(builder);
+    }
+
+    private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
+    {
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
     }
 
