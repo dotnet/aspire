@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery.Configuration;
 
 /// <summary>
 /// Options for <see cref="ConfigurationServiceEndPointResolver"/>.

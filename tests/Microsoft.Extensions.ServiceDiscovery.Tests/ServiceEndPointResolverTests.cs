@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.Http;
 using Xunit;
 
@@ -36,7 +35,7 @@ public class ServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = new ServiceEndPointWatcher([], NullLogger.Instance, "foo", TimeProvider.System, Options.Options.Create(new ServiceEndPointResolverOptions()));
+        var resolverFactory = new ServiceEndPointWatcher([], NullLogger.Instance, "foo", TimeProvider.System, Options.Options.Create(new ServiceDiscoveryOptions()));
         var exception = Assert.Throws<InvalidOperationException>(resolverFactory.Start);
         Assert.Equal("No service endpoint resolvers are configured.", exception.Message);
         exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await resolverFactory.GetEndPointsAsync());

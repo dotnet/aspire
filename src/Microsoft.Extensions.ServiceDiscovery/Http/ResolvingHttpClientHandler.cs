@@ -1,16 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Features;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
 
 /// <summary>
 /// <see cref="HttpClientHandler"/> which resolves endpoints using service discovery.
 /// </summary>
-public class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver, IOptions<ServiceDiscoveryOptions> options) : HttpClientHandler
+internal class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver, IOptions<ServiceDiscoveryOptions> options) : HttpClientHandler
 {
     private readonly HttpServiceEndPointResolver _resolver = resolver;
     private readonly ServiceDiscoveryOptions _options = options.Value;
@@ -19,29 +17,20 @@ public class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver, IO
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var originalUri = request.RequestUri;
-        IEndPointHealthFeature? epHealth = null;
-        Exception? error = null;
-        var startTime = Stopwatch.GetTimestamp();
-        if (originalUri?.Host is not null)
-        {
-            var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
-            request.RequestUri = ResolvingHttpDelegatingHandler.GetUriWithEndPoint(originalUri, result, _options);
-            request.Headers.Host ??= result.Features.Get<IHostNameFeature>()?.HostName;
-            epHealth = result.Features.Get<IEndPointHealthFeature>();
-        }
 
         try
         {
+            if (originalUri?.Host is not null)
+            {
+                var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
+                request.RequestUri = ResolvingHttpDelegatingHandler.GetUriWithEndPoint(originalUri, result, _options);
+                request.Headers.Host ??= result.Features.Get<IHostNameFeature>()?.HostName;
+            }
+
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            error = exception;
-            throw;
         }
         finally
         {
-            epHealth?.ReportHealth(Stopwatch.GetElapsedTime(startTime), error); // Report health so that the resolver pipeline can take health and performance into consideration, possibly triggering a circuit breaker?.
             request.RequestUri = originalUri;
         }
     }

@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using System.Net;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 

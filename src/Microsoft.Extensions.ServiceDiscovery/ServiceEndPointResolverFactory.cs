@@ -3,7 +3,6 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
@@ -14,7 +13,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 public partial class ServiceEndPointResolverFactory(
     IEnumerable<IServiceEndPointProviderFactory> resolvers,
     ILogger<ServiceEndPointWatcher> resolverLogger,
-    IOptions<ServiceEndPointResolverOptions> options,
+    IOptions<ServiceDiscoveryOptions> options,
     TimeProvider timeProvider)
 {
     private readonly IServiceEndPointProviderFactory[] _resolverProviders = resolvers
@@ -22,7 +21,7 @@ public partial class ServiceEndPointResolverFactory(
         .Concat(resolvers.Where(static r => r is PassThroughServiceEndPointResolverProvider)).ToArray();
     private readonly ILogger<ServiceEndPointWatcher> _logger = resolverLogger;
     private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly IOptions<ServiceEndPointResolverOptions> _options = options;
+    private readonly IOptions<ServiceDiscoveryOptions> _options = options;
 
     /// <summary>
     /// Creates a service endpoint resolver for the provided service name.

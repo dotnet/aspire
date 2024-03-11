@@ -4,14 +4,13 @@
 using System.Diagnostics;
 using System.Net;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Features;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
 
 /// <summary>
 /// HTTP message handler which resolves endpoints using service discovery.
 /// </summary>
-public class ResolvingHttpDelegatingHandler : DelegatingHandler
+internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
 {
     private readonly HttpServiceEndPointResolver _resolver;
     private readonly ServiceDiscoveryOptions _options;

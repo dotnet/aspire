@@ -5,9 +5,10 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery.Configuration;
 
 /// <summary>
 /// <see cref="IServiceEndPointProviderFactory"/> implementation that resolves services using <see cref="IConfiguration"/>.

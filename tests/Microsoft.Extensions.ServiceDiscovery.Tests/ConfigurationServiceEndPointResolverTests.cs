@@ -5,15 +5,13 @@ using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
-using Microsoft.Extensions.ServiceDiscovery.Features;
 using Xunit;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
-/// Tests for <see cref="ConfigurationServiceEndPointResolver"/> and <see cref="ConfigurationServiceEndPointResolverProvider"/>.
+/// Tests for <see cref="ConfigurationServiceEndPointResolver"/>.
 /// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
 /// </summary>
 public class ConfigurationServiceEndPointResolverTests

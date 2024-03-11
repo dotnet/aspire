@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
@@ -20,14 +19,14 @@ public sealed partial class ServiceEndPointWatcher(
     ILogger logger,
     string serviceName,
     TimeProvider timeProvider,
-    IOptions<ServiceEndPointResolverOptions> options) : IAsyncDisposable
+    IOptions<ServiceDiscoveryOptions> options) : IAsyncDisposable
 {
     private static readonly TimerCallback s_pollingAction = static state => _ = ((ServiceEndPointWatcher)state!).RefreshAsync(force: true);
 
     private readonly object _lock = new();
     private readonly ILogger _logger = logger;
     private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly ServiceEndPointResolverOptions _options = options.Value;
+    private readonly ServiceDiscoveryOptions _options = options.Value;
     private readonly IServiceEndPointProvider[] _resolvers = resolvers;
     private readonly CancellationTokenSource _disposalCancellation = new();
     private ITimer? _pollingTimer;

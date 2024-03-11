@@ -9,7 +9,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Http;
 /// <summary>
 /// Resolves endpoints for HTTP requests.
 /// </summary>
-public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolverFactory, IServiceEndPointSelectorProvider selectorProvider, TimeProvider timeProvider) : IAsyncDisposable
+internal sealed class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolverFactory, IServiceEndPointSelectorProvider selectorProvider, TimeProvider timeProvider) : IAsyncDisposable
 {
     private static readonly TimerCallback s_cleanupCallback = s => ((HttpServiceEndPointResolver)s!).CleanupResolvers();
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);

@@ -2,15 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery.Configuration;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
+using Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 
-namespace Microsoft.Extensions.Hosting;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// Extension methods for configuring service discovery.
@@ -40,10 +40,10 @@ public static class ServiceDiscoveryServiceCollectionExtensions
         services.AddLogging();
         services.TryAddSingleton<ServiceNameParser>();
         services.TryAddTransient<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
-        services.TryAddSingleton<TimeProvider>(static sp => TimeProvider.System);
+        services.TryAddSingleton(static sp => TimeProvider.System);
         services.TryAddSingleton<IServiceEndPointSelectorProvider, RoundRobinServiceEndPointSelectorProvider>();
         services.TryAddSingleton<ServiceEndPointResolverFactory>();
-        services.TryAddSingleton<ServiceEndPointResolver>(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointResolverFactory>(), sp.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointResolverFactory>(), sp.GetRequiredService<TimeProvider>()));
         return services;
     }
 
