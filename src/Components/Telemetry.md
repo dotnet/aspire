@@ -340,6 +340,14 @@ Aspire.RabbitMQ.Client:
 - Metric names:
   - none (currently not supported by RabbitMQ.Client library)
 
+Aspire.Seq:
+- Log categories:
+  - "Seq"
+- Activity source names:
+  - N/A (Seq is a telemetry sink, not a telemetry source)
+- Metric names:
+  - N/A (Seq is a telemetry sink, not a telemetry source)
+
 Aspire.StackExchange.Redis:
 - Log categories:
   - "StackExchange.Redis"

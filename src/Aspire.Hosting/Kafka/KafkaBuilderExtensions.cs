@@ -29,6 +29,26 @@ public static class KafkaBuilderExtensions
             .PublishAsContainer();
     }
 
+    /// <summary>
+    /// Adds a named volume for the data folder to a KafkaServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<KafkaServerResource> WithDataVolume(this IResourceBuilder<KafkaServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/kafka/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a KafkaServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<KafkaServerResource> WithDataBindMount(this IResourceBuilder<KafkaServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/lib/kafka/data", isReadOnly);
+
     private static void ConfigureKafkaContainer(EnvironmentCallbackContext context, KafkaServerResource resource)
     {
         // confluentinc/confluent-local is a docker image that contains a Kafka broker started with KRaft to avoid pulling a separate image for ZooKeeper.

@@ -16,6 +16,9 @@ param signaturesecret string
 resource keyVault_IKWI2x0B5 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: toLower(take(concat('mykv', uniqueString(resourceGroup().id)), 24))
   location: location
+  tags: {
+    'aspire-resource-name': 'mykv'
+  }
   properties: {
     tenantId: tenant().tenantId
     sku: {

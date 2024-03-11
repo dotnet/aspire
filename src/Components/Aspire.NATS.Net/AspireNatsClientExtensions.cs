@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireNatsClientExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:Nats:Client";
+    private const string DefaultConfigSectionName = "Aspire:NATS:Net";
 
     /// <summary>
     /// Registers <see cref="INatsConnection"/> service for connecting NATS server with NATS client.
@@ -122,7 +122,7 @@ public static class AspireNatsClientExtensions
 
         builder.Services.AddSingleton<INatsJSContext>(static provider =>
         {
-            return new NatsJSContextFactory().CreateContext(provider.GetService<INatsConnection>()!);
+            return new NatsJSContextFactory().CreateContext(provider.GetRequiredService<INatsConnection>());
         });
     }
 }

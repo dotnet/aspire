@@ -4,182 +4,182 @@
     <body>
       <trans-unit id="ResourceCommandFailed">
         <source>"{0}" command failed</source>
-        <target state="new">"{0}" command failed</target>
+        <target state="translated">"{0}" 명령이 실패했습니다.</target>
         <note>{0} is the display name of the command that failed</note>
       </trans-unit>
       <trans-unit id="ResourceCommandSuccess">
         <source>"{0}" command succeeded</source>
-        <target state="new">"{0}" command succeeded</target>
+        <target state="translated">"{0}" 명령이 성공했습니다.</target>
         <note>{0} is the display name of the command that succeeded</note>
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View Logs</source>
-        <target state="new">View Logs</target>
+        <target state="translated">로그 보기</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
         <source>Endpoint URL</source>
-        <target state="new">Endpoint URL</target>
+        <target state="translated">엔드포인트 URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsProxyUrl">
         <source>Proxy URL</source>
-        <target state="new">Proxy URL</target>
+        <target state="translated">프록시 URL</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesCommandsColumnHeader">
         <source>Commands</source>
-        <target state="new">Commands</target>
+        <target state="translated">명령</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">세부 정보</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
-        <target state="new">Container arguments</target>
+        <target state="translated">컨테이너 인수</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerCommandProperty">
         <source>Container command</source>
-        <target state="new">Container command</target>
+        <target state="translated">컨테이너 명령</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerIdProperty">
         <source>Container ID</source>
-        <target state="new">Container ID</target>
+        <target state="translated">컨테이너 ID</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerImageProperty">
         <source>Container image</source>
-        <target state="new">Container image</target>
+        <target state="translated">컨테이너 이미지</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerPortsProperty">
         <source>Container ports</source>
-        <target state="new">Container ports</target>
+        <target state="translated">컨테이너 포트</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsDisplayNameProperty">
         <source>Display name</source>
-        <target state="new">Display name</target>
+        <target state="translated">표시 이름</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutableArgumentsProperty">
         <source>Executable arguments</source>
-        <target state="new">Executable arguments</target>
+        <target state="translated">실행 파일 인수</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutablePathProperty">
         <source>Executable path</source>
-        <target state="new">Executable path</target>
+        <target state="translated">실행 파일 경로</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutableProcessIdProperty">
         <source>Process ID</source>
-        <target state="new">Process ID</target>
+        <target state="translated">프로세스 ID</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExecutableWorkingDirectoryProperty">
         <source>Working directory</source>
-        <target state="new">Working directory</target>
+        <target state="translated">작업 디렉터리</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsExitCodeProperty">
         <source>Exit code</source>
-        <target state="new">Exit code</target>
+        <target state="translated">종료 코드</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
-        <target state="new">Project path</target>
+        <target state="translated">프로젝트 경로</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStartTimeProperty">
         <source>Start time</source>
-        <target state="new">Start time</target>
+        <target state="translated">시작 시각</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsStateProperty">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">상태</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">엔드포인트</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
-        <target state="new">Environment</target>
+        <target state="translated">환경</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesLogsColumnHeader">
         <source>Logs</source>
-        <target state="new">Logs</target>
+        <target state="translated">로그</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">
         <source>Source</source>
-        <target state="new">Source</target>
+        <target state="translated">원본</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesStartTimeColumnHeader">
         <source>Start time</source>
-        <target state="new">Start time</target>
+        <target state="translated">시작 시각</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesStateColumnHeader">
         <source>State</source>
-        <target state="new">State</target>
+        <target state="translated">상태</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEnvironmentVariablesHeader">
         <source>Environment variables for {0}</source>
-        <target state="new">Environment variables for {0}</target>
+        <target state="translated">{0}에 대한 환경 변수</target>
         <note>{0} is a resource</note>
       </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">리소스</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoEnvironmentVariables">
         <source>No environment variables</source>
-        <target state="new">No environment variables</target>
+        <target state="translated">환경 변수 없음</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">
         <source>No resources found</source>
-        <target state="new">No resources found</target>
+        <target state="translated">리소스를 찾을 수 없음</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesPageTitle">
         <source>{0} resources</source>
-        <target state="new">{0} resources</target>
+        <target state="translated">{0} 리소스</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ResourcesResourceTypesHeader">
         <source>Resource types</source>
-        <target state="new">Resource types</target>
+        <target state="translated">리소스 종류</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeColumnHeader">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">형식</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeFilterAllVisible">
         <source>Type filter: All types visible</source>
-        <target state="new">Type filter: All types visible</target>
+        <target state="translated">형식 필터: 모든 형식 표시</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeFiltered">
         <source>Type filter: Filtered</source>
-        <target state="new">Type filter: Filtered</target>
+        <target state="translated">형식 필터: 필터링됨</target>
         <note />
       </trans-unit>
     </body>

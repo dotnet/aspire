@@ -145,6 +145,6 @@ public class AzureBicepProvisionerTests
         Resource(name),
         IResourceWithConnectionString
     {
-        public string? GetConnectionString() => connectionString;
+        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) => new(connectionString);
     }
 }

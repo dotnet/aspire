@@ -75,7 +75,7 @@ public class AddMongoDBTests
     }
 
     [Fact]
-    public void MongoDBCreatesConnectionString()
+    public async Task MongoDBCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
@@ -88,9 +88,9 @@ public class AddMongoDBTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<MongoDBDatabaseResource>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("mongodb://localhost:27017/", connectionStringResource.Parent.GetConnectionString());
+        Assert.Equal("mongodb://localhost:27017", await connectionStringResource.Parent.GetConnectionStringAsync(default));
         Assert.Equal("mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", connectionStringResource.Parent.ConnectionStringExpression);
         Assert.Equal("mongodb://localhost:27017/mydatabase", connectionString);
         Assert.Equal("{mongodb.connectionString}/mydatabase", connectionStringResource.ConnectionStringExpression);

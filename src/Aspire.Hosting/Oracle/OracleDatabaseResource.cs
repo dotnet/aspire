@@ -27,9 +27,9 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     /// Gets the connection string for the Oracle Database.
     /// </summary>
     /// <returns>A connection string for the Oracle Database.</returns>
-    public string? GetConnectionString()
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
     {
-        if (Parent.GetConnectionString() is { } connectionString)
+        if (await Parent.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false) is { } connectionString)
         {
             return $"{connectionString}/{DatabaseName}";
         }

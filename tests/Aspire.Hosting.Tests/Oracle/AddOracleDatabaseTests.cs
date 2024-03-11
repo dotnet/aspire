@@ -92,7 +92,7 @@ public class AddOracleTests
     }
 
     [Fact]
-    public void OracleCreatesConnectionString()
+    public async Task OracleCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracle("orcl")
@@ -103,15 +103,15 @@ public class AddOracleTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("user id=system;password={orcl.inputs.password};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port};", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("user id=system;password={orcl.inputs.password};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("user id=system;password=", connectionString);
         Assert.EndsWith(";data source=localhost:2000", connectionString);
     }
 
     [Fact]
-    public void OracleCreatesConnectionStringWithDatabase()
+    public async void OracleCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracle("orcl")
@@ -123,9 +123,9 @@ public class AddOracleTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var oracleResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseServerResource>());
-        var oracleConnectionString = oracleResource.GetConnectionString();
+        var oracleConnectionString = oracleResource.GetConnectionStringAsync(default);
         var oracleDatabaseResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseResource>());
-        var dbConnectionString = oracleDatabaseResource.GetConnectionString();
+        var dbConnectionString = await oracleDatabaseResource.GetConnectionStringAsync(default);
 
         Assert.Equal("{orcl.connectionString}/db", oracleDatabaseResource.ConnectionStringExpression);
         Assert.Equal(oracleConnectionString + "/db", dbConnectionString);
@@ -185,7 +185,7 @@ public class AddOracleTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "user id=system;password={oracle.inputs.password};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port};",
+              "connectionString": "user id=system;password={oracle.inputs.password};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}",
               "image": "container-registry.oracle.com/database/free:23.3.0.0",
               "env": {
                 "ORACLE_PWD": "{oracle.inputs.password}"

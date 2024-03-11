@@ -60,4 +60,44 @@ public static class SqlServerBuilderExtensions
         return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
                                          .WithManifestPublishingCallback(sqlServerDatabase.WriteToManifest);
     }
+
+    /// <summary>
+    /// Adds a named volume for the log folder to a SqlServer resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithDataVolume(this IResourceBuilder<SqlServerServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/opt/mssql/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the log folder to a SqlServer resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithDataBindMount(this IResourceBuilder<SqlServerServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/opt/mssql/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a named volume for the log folder to a SqlServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithLogsVolume(this IResourceBuilder<SqlServerServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-logs", "/var/opt/mssql/log", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the log folder to a SqlServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithLogsBindMount(this IResourceBuilder<SqlServerServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/opt/mssql/log", isReadOnly);
 }

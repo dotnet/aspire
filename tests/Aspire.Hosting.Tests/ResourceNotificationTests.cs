@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -41,115 +42,115 @@ public class ResourceNotificationTests
     {
         var resource = new CustomResource("myResource");
 
-        var notificationService = new ResourceNotificationService();
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
 
-        async Task<List<CustomResourceSnapshot>> GetValuesAsync()
+        async Task<List<ResourceEvent>> GetValuesAsync(CancellationToken cancellationToken)
         {
-            var values = new List<CustomResourceSnapshot>();
+            var values = new List<ResourceEvent>();
 
-            await foreach (var item in notificationService.WatchAsync(resource))
+            await foreach (var item in notificationService.WatchAsync().WithCancellation(cancellationToken))
             {
                 values.Add(item);
+
+                if (values.Count == 2)
+                {
+                    break;
+                }
             }
 
             return values;
         }
 
-        var enumerableTask = GetValuesAsync();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var enumerableTask = GetValuesAsync(cts.Token);
 
         await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(("A", "value")) });
 
         await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(("B", "value")) });
 
-        notificationService.Complete(resource);
-
         var values = await enumerableTask;
 
-        // Watch returns an initial snapshot
-        Assert.Empty(values[0].Properties);
-        Assert.Equal("value", values[1].Properties.Single(p => p.Key == "A").Value);
-        Assert.Equal("value", values[2].Properties.Single(p => p.Key == "B").Value);
+        Assert.Collection(values,
+            c =>
+            {
+                Assert.Equal(resource, c.Resource);
+                Assert.Equal("myResource", c.ResourceId);
+                Assert.Equal("CustomResource", c.Snapshot.ResourceType);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "A").Value);
+            },
+            c =>
+            {
+                Assert.Equal(resource, c.Resource);
+                Assert.Equal("myResource", c.ResourceId);
+                Assert.Equal("CustomResource", c.Snapshot.ResourceType);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "B").Value);
+            });
     }
 
     [Fact]
-    public async Task WatchReturnsAnInitialState()
+    public async Task WatchingAllResourcesNotifiesOfAnyResourceChange()
     {
-        var resource = new CustomResource("myResource");
+        var resource1 = new CustomResource("myResource1");
+        var resource2 = new CustomResource("myResource2");
 
-        var notificationService = new ResourceNotificationService();
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
 
-        async Task<List<CustomResourceSnapshot>> GetValuesAsync()
+        async Task<List<ResourceEvent>> GetValuesAsync(CancellationToken cancellation)
         {
-            var values = new List<CustomResourceSnapshot>();
+            var values = new List<ResourceEvent>();
 
-            await foreach (var item in notificationService.WatchAsync(resource))
+            await foreach (var item in notificationService.WatchAsync().WithCancellation(cancellation))
             {
                 values.Add(item);
+
+                if (values.Count == 3)
+                {
+                    break;
+                }
             }
 
             return values;
         }
 
-        var enumerableTask = GetValuesAsync();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var enumerableTask = GetValuesAsync(cts.Token);
 
-        notificationService.Complete(resource);
+        await notificationService.PublishUpdateAsync(resource1, state => state with { Properties = state.Properties.Add(("A", "value")) });
+
+        await notificationService.PublishUpdateAsync(resource2, state => state with { Properties = state.Properties.Add(("B", "value")) });
+
+        await notificationService.PublishUpdateAsync(resource1, "replica1", state => state with { Properties = state.Properties.Add(("C", "value")) });
 
         var values = await enumerableTask;
 
-        // Watch returns an initial snapshot
-        var snapshot = Assert.Single(values);
-
-        Assert.Equal("CustomResource", snapshot.ResourceType);
-        Assert.Empty(snapshot.EnvironmentVariables);
-        Assert.Empty(snapshot.Properties);
-    }
-
-    [Fact]
-    public async Task WatchReturnsAnInitialStateIfCustomized()
-    {
-        var resource = new CustomResource("myResource");
-        resource.Annotations.Add(new ResourceSnapshotAnnotation(new CustomResourceSnapshot
-        {
-            ResourceType = "CustomResource1",
-            Properties = [("A", "B")],
-        }));
-
-        var notificationService = new ResourceNotificationService();
-
-        async Task<List<CustomResourceSnapshot>> GetValuesAsync()
-        {
-            var values = new List<CustomResourceSnapshot>();
-
-            await foreach (var item in notificationService.WatchAsync(resource))
+        Assert.Collection(values,
+            c =>
             {
-                values.Add(item);
-            }
-
-            return values;
-        }
-
-        var enumerableTask = GetValuesAsync();
-
-        notificationService.Complete(resource);
-
-        var values = await enumerableTask;
-
-        // Watch returns an initial snapshot
-        var snapshot = Assert.Single(values);
-
-        Assert.Equal("CustomResource1", snapshot.ResourceType);
-        Assert.Empty(snapshot.EnvironmentVariables);
-        Assert.Collection(snapshot.Properties, c =>
-        {
-            Assert.Equal("A", c.Key);
-            Assert.Equal("B", c.Value);
-        });
+                Assert.Equal(resource1, c.Resource);
+                Assert.Equal("myResource1", c.ResourceId);
+                Assert.Equal("CustomResource", c.Snapshot.ResourceType);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "A").Value);
+            },
+            c =>
+            {
+                Assert.Equal(resource2, c.Resource);
+                Assert.Equal("myResource2", c.ResourceId);
+                Assert.Equal("CustomResource", c.Snapshot.ResourceType);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "B").Value);
+            },
+            c =>
+            {
+                Assert.Equal(resource1, c.Resource);
+                Assert.Equal("replica1", c.ResourceId);
+                Assert.Equal("CustomResource", c.Snapshot.ResourceType);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "C").Value);
+            });
     }
 
     private sealed class CustomResource(string name) : Resource(name),
         IResourceWithEnvironment,
         IResourceWithConnectionString
     {
-        public string? GetConnectionString() => "CustomConnectionString";
+        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) => new("CustomConnectionString");
     }
 }

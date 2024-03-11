@@ -28,7 +28,8 @@ public class AzureOpenAIResource(string name) :
     /// Gets the connection string for the resource.
     /// </summary>
     /// <returns>The connection string for the resource.</returns>
-    public string? GetConnectionString() => ConnectionString.Value;
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
+        => ConnectionString.GetValueAsync(cancellationToken);
 
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.

@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Utils;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -37,6 +35,10 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"Host={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};Username=postgres;Password={PasswordInput}");
+
     /// <summary>
     /// Gets the connection string expression for the PostgreSQL server for the manifest.
     /// </summary>
@@ -49,7 +51,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"Host={PrimaryEndpoint.GetExpression(EndpointProperty.Host)};Port={PrimaryEndpoint.GetExpression(EndpointProperty.Port)};Username=postgres;Password={PasswordInput.ValueExpression}";
+            return ConnectionString.ValueExpression;
         }
     }
 
@@ -65,21 +67,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
             return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
         }
 
-        return new(GetConnectionString());
-    }
-
-    /// <summary>
-    /// Gets the connection string for the PostgreSQL server.
-    /// </summary>
-    /// <returns>A connection string for the PostgreSQL server in the form "Host=host;Port=port;Username=postgres;Password=password".</returns>
-    public string? GetConnectionString()
-    {
-        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-        {
-            return connectionStringAnnotation.Resource.GetConnectionString();
-        }
-
-        return $"Host={PrimaryEndpoint.Host};Port={PrimaryEndpoint.Port};Username=postgres;Password={PasswordUtil.EscapePassword(Password)}";
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);

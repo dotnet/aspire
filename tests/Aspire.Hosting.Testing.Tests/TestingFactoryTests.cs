@@ -13,7 +13,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Program> fixture)
     private readonly DistributedApplication _app = fixture.Application;
 
     [LocalOnlyFact]
-    public void HasEndPoints()
+    public async void HasEndPoints()
     {
         // Get an endpoint from a resource
         var workerEndpoint = _app.GetEndpoint("myworker1", "myendpoint1");
@@ -21,7 +21,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Program> fixture)
         Assert.True(workerEndpoint.Host.Length > 0);
 
         // Get a connection string from a resource
-        var pgConnectionString = _app.GetConnectionString("postgres1");
+        var pgConnectionString = await _app.GetConnectionStringAsync("postgres1");
         Assert.NotNull(pgConnectionString);
         Assert.True(pgConnectionString.Length > 0);
     }

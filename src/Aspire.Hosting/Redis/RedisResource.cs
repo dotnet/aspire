@@ -18,6 +18,10 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+
     /// <summary>
     /// Gets the connection string expression for the Redis server for the manifest.
     /// </summary>
@@ -30,7 +34,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return $"{PrimaryEndpoint.GetExpression(EndpointProperty.Host)}:{PrimaryEndpoint.GetExpression(EndpointProperty.Port)}";
+            return ConnectionString.ValueExpression;
         }
     }
 
@@ -46,20 +50,6 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
         }
 
-        return new(GetConnectionString());
-    }
-
-    /// <summary>
-    /// Gets the connection string for the Redis server.
-    /// </summary>
-    /// <returns>A connection string for the redis server in the form "host:port".</returns>
-    public string? GetConnectionString()
-    {
-        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-        {
-            return connectionStringAnnotation.Resource.GetConnectionString();
-        }
-
-        return $"{PrimaryEndpoint.Host}:{PrimaryEndpoint.Port}";
+        return ConnectionString.GetValueAsync(cancellationToken);
     }
 }

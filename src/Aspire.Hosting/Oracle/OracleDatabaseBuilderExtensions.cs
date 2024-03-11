@@ -74,4 +74,42 @@ public static class OracleDatabaseBuilderExtensions
     {
         return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a OracleDatabaseServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithDataVolume(this IResourceBuilder<OracleDatabaseServerResource> builder, string? name = null)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/opt/oracle/oradata", true);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a OracleDatabaseServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithDataBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source)
+        => builder.WithBindMount(source, "/opt/oracle/oradata", false);
+
+    /// <summary>
+    /// Adds a bind mount for the init folder to a OracleDatabaseServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithInitBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source, bool isReadOnly = true)
+        => builder.WithBindMount(source, "/opt/oracle/scripts/startup", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the database setup folder to a OracleDatabaseServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithDbSetupBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source, bool isReadOnly = true)
+        => builder.WithBindMount(source, "/opt/oracle/scripts/setup", isReadOnly);
 }
