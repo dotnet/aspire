@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
 /// Tests for <see cref="ConfigurationServiceEndPointResolver"/>.
-/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
+/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointWatcherFactory"/> by extension.
 /// </summary>
 public class ConfigurationServiceEndPointResolverTests
 {
@@ -28,9 +28,9 @@ public class ConfigurationServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndPointResolver()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -66,12 +66,12 @@ public class ConfigurationServiceEndPointResolverTests
             .AddConfigurationServiceEndPointResolver()
             .Configure<ServiceDiscoveryOptions>(o => o.AllowedSchemes = ["https"])
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
 
         // Explicitly specifying http.
         // We should get no endpoint back because http is not allowed by configuration.
-        await using ((resolver = resolverFactory.CreateResolver("http://_foo.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://_foo.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -86,7 +86,7 @@ public class ConfigurationServiceEndPointResolverTests
 
         // Specifying either https or http.
         // The result should be that we only get the http endpoint back.
-        await using ((resolver = resolverFactory.CreateResolver("https+http://_foo.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("https+http://_foo.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -102,7 +102,7 @@ public class ConfigurationServiceEndPointResolverTests
 
         // Specifying either https or http, but in reverse.
         // The result should be that we only get the http endpoint back.
-        await using ((resolver = resolverFactory.CreateResolver("http+https://_foo.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http+https://_foo.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -134,9 +134,9 @@ public class ConfigurationServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndPointResolver(options => options.ApplyHostNameMetadata = _ => true)
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -159,7 +159,7 @@ public class ConfigurationServiceEndPointResolverTests
         }
 
         // Request either https or http. Since there are only http endpoints, we should get only http endpoints back.
-        await using ((resolver = resolverFactory.CreateResolver("https+http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("https+http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -203,9 +203,9 @@ public class ConfigurationServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndPointResolver()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://_grpc.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://_grpc.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -249,9 +249,9 @@ public class ConfigurationServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndPointResolver()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("https+http://_grpc.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("https+http://_grpc.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();

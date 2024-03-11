@@ -9,13 +9,13 @@ namespace Microsoft.Extensions.ServiceDiscovery.Http;
 /// <summary>
 /// Resolves endpoints for HTTP requests.
 /// </summary>
-internal sealed class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolverFactory, IServiceEndPointSelectorProvider selectorProvider, TimeProvider timeProvider) : IAsyncDisposable
+internal sealed class HttpServiceEndPointResolver(ServiceEndPointWatcherFactory resolverFactory, IServiceEndPointSelectorProvider selectorProvider, TimeProvider timeProvider) : IAsyncDisposable
 {
     private static readonly TimerCallback s_cleanupCallback = s => ((HttpServiceEndPointResolver)s!).CleanupResolvers();
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
-    private readonly ServiceEndPointResolverFactory _resolverFactory = resolverFactory;
+    private readonly ServiceEndPointWatcherFactory _resolverFactory = resolverFactory;
     private readonly IServiceEndPointSelectorProvider _selectorProvider = selectorProvider;
     private readonly ConcurrentDictionary<string, ResolverEntry> _resolvers = new();
     private ITimer? _cleanupTimer;
@@ -147,7 +147,7 @@ internal sealed class HttpServiceEndPointResolver(ServiceEndPointResolverFactory
 
     private ResolverEntry CreateResolver(string serviceName)
     {
-        var resolver = _resolverFactory.CreateResolver(serviceName);
+        var resolver = _resolverFactory.CreateWatcher(serviceName);
         var selector = _selectorProvider.CreateSelector();
         var result = new ResolverEntry(resolver, selector);
         resolver.Start();

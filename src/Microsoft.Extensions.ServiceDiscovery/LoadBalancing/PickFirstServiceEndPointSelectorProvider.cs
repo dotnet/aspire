@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 /// <summary>
 /// Provides instances of <see cref="PickFirstServiceEndPointSelector"/>.
 /// </summary>
-public class PickFirstServiceEndPointSelectorProvider : IServiceEndPointSelectorProvider
+internal class PickFirstServiceEndPointSelectorProvider : IServiceEndPointSelectorProvider
 {
     /// <summary>
     /// Gets a shared instance of this class.

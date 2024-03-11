@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
 /// Tests for <see cref="PassThroughServiceEndPointResolverProvider"/>.
-/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
+/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointWatcherFactory"/> by extension.
 /// </summary>
 public class PassThroughServiceEndPointResolverTests
 {
@@ -23,9 +23,9 @@ public class PassThroughServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddPassThroughServiceEndPointResolver()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -55,9 +55,9 @@ public class PassThroughServiceEndPointResolverTests
             .AddSingleton<IConfiguration>(config.Build())
             .AddServiceDiscovery() // Adds the configuration and pass-through providers.
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -89,9 +89,9 @@ public class PassThroughServiceEndPointResolverTests
             .AddSingleton<IConfiguration>(config.Build())
             .AddServiceDiscovery() // Adds the configuration and pass-through providers.
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://catalog")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://catalog")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();

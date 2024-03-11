@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.Hosting;
 /// <summary>
 /// Extensions for <see cref="IServiceCollection"/> to add service discovery.
 /// </summary>
-public static class HostingExtensions
+public static class ServiceDiscoveryDnsServiceCollectionExtensions
 {
     /// <summary>
     /// Adds DNS SRV service discovery to the <see cref="IServiceCollection"/>.

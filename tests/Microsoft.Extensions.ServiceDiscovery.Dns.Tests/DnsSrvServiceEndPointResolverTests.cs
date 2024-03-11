@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns.Tests;
 
 /// <summary>
 /// Tests for <see cref="DnsServiceEndPointResolverBase"/> and <see cref="DnsSrvServiceEndPointResolverProvider"/>.
-/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
+/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointWatcherFactory"/> by extension.
 /// </summary>
 public class DnsSrvServiceEndPointResolverTests
 {
@@ -102,9 +102,9 @@ public class DnsSrvServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns")
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -189,9 +189,9 @@ public class DnsSrvServiceEndPointResolverTests
             .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns");
         };
         var services = serviceCollection.BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -270,9 +270,9 @@ public class DnsSrvServiceEndPointResolverTests
             .AddServiceDiscovery()
             .AddConfigurationServiceEndPointResolver()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointResolver resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var channel = Channel.CreateUnbounded<ServiceEndPointResolverResult>();

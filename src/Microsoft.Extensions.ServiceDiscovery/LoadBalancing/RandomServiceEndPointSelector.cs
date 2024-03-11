@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 /// <summary>
 /// A service endpoint selector which returns random endpoints from the collection.
 /// </summary>
-public class RandomServiceEndPointSelector : IServiceEndPointSelector
+internal class RandomServiceEndPointSelector : IServiceEndPointSelector
 {
     private ServiceEndPointCollection? _endPoints;
 

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
-partial class ServiceEndPointResolverFactory
+partial class ServiceEndPointWatcherFactory
 {
     private sealed partial class Log
     {

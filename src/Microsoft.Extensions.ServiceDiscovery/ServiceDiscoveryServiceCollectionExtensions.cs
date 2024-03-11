@@ -42,8 +42,8 @@ public static class ServiceDiscoveryServiceCollectionExtensions
         services.TryAddTransient<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
         services.TryAddSingleton(static sp => TimeProvider.System);
         services.TryAddSingleton<IServiceEndPointSelectorProvider, RoundRobinServiceEndPointSelectorProvider>();
-        services.TryAddSingleton<ServiceEndPointResolverFactory>();
-        services.TryAddSingleton(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointResolverFactory>(), sp.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<ServiceEndPointWatcherFactory>();
+        services.TryAddSingleton(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointWatcherFactory>(), sp.GetRequiredService<TimeProvider>()));
         return services;
     }
 

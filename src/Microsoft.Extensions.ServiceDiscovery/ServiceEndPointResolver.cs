@@ -15,7 +15,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
-    private readonly ServiceEndPointResolverFactory _resolverProvider;
+    private readonly ServiceEndPointWatcherFactory _resolverProvider;
     private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, ResolverEntry> _resolvers = new();
     private ITimer? _cleanupTimer;
@@ -27,7 +27,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
     /// </summary>
     /// <param name="resolverProvider">The resolver factory.</param>
     /// <param name="timeProvider">The time provider.</param>
-    internal ServiceEndPointResolver(ServiceEndPointResolverFactory resolverProvider, TimeProvider timeProvider)
+    internal ServiceEndPointResolver(ServiceEndPointWatcherFactory resolverProvider, TimeProvider timeProvider)
     {
         _resolverProvider = resolverProvider;
         _timeProvider = timeProvider;
@@ -156,7 +156,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
 
     private ResolverEntry CreateResolver(string serviceName)
     {
-        var resolver = _resolverProvider.CreateResolver(serviceName);
+        var resolver = _resolverProvider.CreateWatcher(serviceName);
         resolver.Start();
         return new ResolverEntry(resolver);
     }

@@ -14,7 +14,7 @@ using Xunit;
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
-/// Tests for <see cref="ServiceEndPointResolverFactory"/> and <see cref="ServiceEndPointWatcher"/>.
+/// Tests for <see cref="ServiceEndPointWatcherFactory"/> and <see cref="ServiceEndPointWatcher"/>.
 /// </summary>
 public class ServiceEndPointResolverTests
 {
@@ -24,8 +24,8 @@ public class ServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        var exception = Assert.Throws<InvalidOperationException>(() => resolverFactory.CreateResolver("https://basket"));
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
+        var exception = Assert.Throws<InvalidOperationException>(() => resolverFactory.CreateWatcher("https://basket"));
         Assert.Equal("No resolver which supports the provided service name, 'https://basket', has been configured.", exception.Message);
     }
 
@@ -48,8 +48,8 @@ public class ServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        Assert.Throws<ArgumentNullException>(() => resolverFactory.CreateResolver(null!));
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
+        Assert.Throws<ArgumentNullException>(() => resolverFactory.CreateWatcher(null!));
     }
 
     [Fact]
@@ -103,10 +103,10 @@ public class ServiceEndPointResolverTests
             .AddSingleton<IServiceEndPointProviderFactory>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
 
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var initialEndPoints = await resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);
@@ -193,7 +193,7 @@ public class ServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
         var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
-        var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         await using var resolver = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, TimeProvider.System);
 
         Assert.NotNull(resolver);
@@ -239,10 +239,10 @@ public class ServiceEndPointResolverTests
             .AddSingleton<IServiceEndPointProviderFactory>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
 
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var initialEndPointsTask = resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);

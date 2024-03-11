@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Watches for updates to the collection of resolved endpoints for a specified service.
 /// </summary>
-public sealed partial class ServiceEndPointWatcher(
+internal sealed partial class ServiceEndPointWatcher(
     IServiceEndPointProvider[] resolvers,
     ILogger logger,
     string serviceName,

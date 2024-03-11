@@ -27,7 +27,7 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
         httpClientBuilder.AddHttpMessageHandler(services =>
         {
             var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
-            var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
+            var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
             var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
             var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();
             return new ResolvingHttpDelegatingHandler(registry, options);
@@ -53,7 +53,7 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
         {
             var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
             var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
-            var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
+            var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
             var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
             var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();
             return new ResolvingHttpDelegatingHandler(registry, options);

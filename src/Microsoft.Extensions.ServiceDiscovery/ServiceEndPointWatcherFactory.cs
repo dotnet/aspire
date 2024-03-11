@@ -8,9 +8,9 @@ using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
-/// Creates service endpoint resolvers.
+/// Creates service endpoint watchers.
 /// </summary>
-public partial class ServiceEndPointResolverFactory(
+internal sealed partial class ServiceEndPointWatcherFactory(
     IEnumerable<IServiceEndPointProviderFactory> resolvers,
     ILogger<ServiceEndPointWatcher> resolverLogger,
     IOptions<ServiceDiscoveryOptions> options,
@@ -26,7 +26,7 @@ public partial class ServiceEndPointResolverFactory(
     /// <summary>
     /// Creates a service endpoint resolver for the provided service name.
     /// </summary>
-    public ServiceEndPointWatcher CreateResolver(string serviceName)
+    public ServiceEndPointWatcher CreateWatcher(string serviceName)
     {
         ArgumentNullException.ThrowIfNull(serviceName);
 

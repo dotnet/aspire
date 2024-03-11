@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 /// <summary>
 /// A service endpoint selector which always returns the first endpoint in a collection.
 /// </summary>
-public class PickFirstServiceEndPointSelector : IServiceEndPointSelector
+internal class PickFirstServiceEndPointSelector : IServiceEndPointSelector
 {
     private ServiceEndPointCollection? _endPoints;
 

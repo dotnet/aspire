@@ -6,7 +6,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 /// <summary>
 /// Selects endpoints by iterating through the list of endpoints in a round-robin fashion.
 /// </summary>
-public class RoundRobinServiceEndPointSelector : IServiceEndPointSelector
+internal class RoundRobinServiceEndPointSelector : IServiceEndPointSelector
 {
     private uint _next;
     private ServiceEndPointCollection? _endPoints;
