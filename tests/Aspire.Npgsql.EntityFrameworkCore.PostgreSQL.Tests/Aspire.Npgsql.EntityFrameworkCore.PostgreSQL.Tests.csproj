@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <Compile Include="..\Aspire.Npgsql.Tests\PostgreSQLContainerFixture.cs" />
-    <Compile Include="..\Shared\RequiresDockerTheoryAttribute.cs" />
     <None Include="$(RepoRoot)src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
