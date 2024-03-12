@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.AppConfiguration;
+using Azure.Provisioning.Authorization;
 
 namespace Aspire.Hosting;
 
@@ -44,6 +45,14 @@ public static class AzureAppConfigurationExtensions
             // PROBLEM #1: We don't seem to have the ability to set the SKU, assigning this property does nothing.
             //             https://github.com/Azure/azure-sdk-for-net/issues/42623
             store.AssignProperty(x => x.SkuName, "Standard");
+
+            // HACK: We should have a built in role here.
+            var appConfigurationDataOwnerRoleDefinition = new RoleDefinition("5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b");
+            var appConfigurationDataOwnerRoleAssignemnt = store.AssignRole(appConfigurationDataOwnerRoleDefinition);
+            appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
+            appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+
+            // PROBLEM: Firewall rules?
 
             if (configureResource != null)
             {

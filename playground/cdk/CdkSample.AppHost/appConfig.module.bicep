@@ -20,4 +20,14 @@ resource appConfigurationStore_j2IqAZkBh 'Microsoft.AppConfiguration/configurati
   }
 }
 
+resource roleAssignment_umUNaNdeG 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: appConfigurationStore_j2IqAZkBh
+  name: guid(appConfigurationStore_j2IqAZkBh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b')
+    principalId: principalId
+    principalType: principalType
+  }
+}
+
 output appConfigurationStore_j2IqAZkBh_endpoint string = appConfigurationStore_j2IqAZkBh.properties.endpoint
