@@ -81,7 +81,7 @@ public class AspireKeyVaultExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:secrets", ConformanceTests.VaultUri)
         ]);
 
-        builder.Configuration.AddKeyVaultSecrets("secrets", configureClientOptions: o =>
+        builder.Configuration.AddAzureKeyVaultSecrets("secrets", configureClientOptions: o =>
         {
             o.Transport = new MockTransport(
                 CreateResponse("""
