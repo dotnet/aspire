@@ -14,7 +14,7 @@ resource searchService_7WkaGluF0 'Microsoft.Search/searchServices@2023-11-01' = 
   name: toLower(take(concat('search', uniqueString(resourceGroup().id)), 24))
   location: location
   tags: {
-    'aspire-resource-name': 'searchService_7WkaGluF0'
+    'aspire-resource-name': 'search'
   }
   sku: {
     name: 'basic'

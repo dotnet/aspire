@@ -59,9 +59,9 @@ public static class AzureSearchExtensions
                         PartitionCount = 1,
                         HostingMode = SearchServiceHostingMode.Default,
                         IsLocalAuthDisabled = true,
+                        Tags = { { "aspire-resource-name", name } }
                     }
                 };
-            search.Properties.Tags["aspire-resource-name"] = search.Name;
 
             search.AssignRole(RoleDefinition.SearchIndexDataContributor)
                   .AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
