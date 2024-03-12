@@ -14,11 +14,11 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     /// <summary>
     /// Instantiates a mount annotation that specifies the source and target paths for a mount.
     /// </summary>
-    /// <param name="source">The source path of the mount.</param>
+    /// <param name="source">The source path if a bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
     /// <param name="target">The target path of the mount.</param>
     /// <param name="type">The type of the mount.</param>
     /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
-    public ContainerMountAnnotation(string source, string target, ContainerMountType type, bool isReadOnly)
+    public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly)
     {
         Source = source;
         Target = target;
@@ -27,9 +27,9 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Gets or sets the source of the mount.
+    /// Gets or sets the source of the bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.
     /// </summary>
-    public string Source { get; set; }
+    public string? Source { get; set; }
 
     /// <summary>
     /// Gets or sets the target of the mount.
