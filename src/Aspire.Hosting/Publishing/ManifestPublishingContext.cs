@@ -52,7 +52,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         var fullyQualifiedManifestPath = Path.GetFullPath(ManifestPath);
         var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
-        var relativePath = Path.GetRelativePath(manifestDirectory, path);
+
+        var normalizedPath = path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        var relativePath = Path.GetRelativePath(manifestDirectory, normalizedPath);
 
         return relativePath.Replace('\\', '/');
     }
@@ -105,39 +107,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
         }
 
-        // Write volume details
-        if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))
-        {
-            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Named).ToList();
-
-            // Only write out details for volumes (no bind mounts)
-            if (volumes.Count > 0)
-            {
-                // Volumes are written as an array of objects as anonymous volumes do not have a name
-                Writer.WriteStartArray("volumes");
-
-                foreach (var volume in volumes)
-                {
-                    Writer.WriteStartObject();
-
-                    // This can be null for anonymous volumes
-                    if (volume.Source is not null)
-                    {
-                        Writer.WritePropertyName("name");
-                        Writer.WriteStringValue(volume.Source);
-                    }
-
-                    Writer.WritePropertyName("target");
-                    Writer.WriteStringValue(volume.Target);
-
-                    Writer.WriteBoolean("readOnly", volume.IsReadOnly);
-
-                    Writer.WriteEndObject();
-                }
-
-                Writer.WriteEndArray();
-            }
-        }
+        // Write volume & bind mount details
+        WriteContainerMounts(container);
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container, emitContainerPort: true);
@@ -296,5 +267,66 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
 
         Writer.WriteEndObject();
+    }
+
+    private void WriteContainerMounts(ContainerResource container)
+    {
+        if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))
+        {
+            // Write out details for bind mounts
+            var bindMounts = mounts.Where(mounts => mounts.Type == ContainerMountType.Bind).ToList();
+            if (bindMounts.Count > 0)
+            {
+                // Bind mounts are written as an array of objects to be consistent with volumes
+                Writer.WriteStartArray("bindMounts");
+
+                foreach (var bindMount in bindMounts)
+                {
+                    Writer.WriteStartObject();
+
+                    Writer.WritePropertyName("source");
+                    var manifestRelativeSource = GetManifestRelativePath(bindMount.Source);
+                    Writer.WriteStringValue(manifestRelativeSource);
+
+                    Writer.WritePropertyName("target");
+                    Writer.WriteStringValue(bindMount.Target.Replace('\\', '/'));
+
+                    Writer.WriteBoolean("readOnly", bindMount.IsReadOnly);
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndArray();
+            }
+
+            // Write out details for volumes
+            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Named).ToList();
+            if (volumes.Count > 0)
+            {
+                // Volumes are written as an array of objects as anonymous volumes do not have a name
+                Writer.WriteStartArray("volumes");
+
+                foreach (var volume in volumes)
+                {
+                    Writer.WriteStartObject();
+
+                    // This can be null for anonymous volumes
+                    if (volume.Source is not null)
+                    {
+                        Writer.WritePropertyName("name");
+                        Writer.WriteStringValue(volume.Source);
+                    }
+
+                    Writer.WritePropertyName("target");
+                    Writer.WriteStringValue(volume.Target);
+
+                    Writer.WriteBoolean("readOnly", volume.IsReadOnly);
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndArray();
+            }
+        }
     }
 }
