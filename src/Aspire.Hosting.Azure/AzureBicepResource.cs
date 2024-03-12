@@ -47,6 +47,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 
     /// <summary>
+    /// For testing purposes only.
+    /// </summary>
+    internal string TempDirectory { get; set; } = Path.GetTempPath();
+
+    /// <summary>
     /// Gets the path to the bicep file. If the template is a string or embedded resource, it will be written to a temporary file.
     /// </summary>
     /// <param name="directory">The directory where the bicep file will be written to (if it's a temporary file)</param>
@@ -68,7 +73,9 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         {
             isTempFile = directory is null;
 
-            path = Path.GetTempFileName() + ".bicep";
+            path = TempDirectory is null
+                ? Path.GetTempFileName() + ".bicep"
+                : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.bicep");
 
             if (TemplateResourceName is null)
             {
@@ -160,7 +167,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                     continue;
                 }
 
-                var value = input.Value switch
+                var value = inputValue switch
                 {
                     IManifestExpressionProvider output => output.ValueExpression,
                     object obj => obj.ToString(),
