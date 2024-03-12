@@ -13,7 +13,7 @@ param principalType string
 param keyVaultName string
 
 
-resource cognitiveServicesAccount_DqMZSfXbZ 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+resource cognitiveServicesAccount_6g8jyEjX5 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
   location: location
   kind: 'OpenAI'
@@ -26,9 +26,9 @@ resource cognitiveServicesAccount_DqMZSfXbZ 'Microsoft.CognitiveServices/account
   }
 }
 
-resource roleAssignment_biQFQxikh 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: cognitiveServicesAccount_DqMZSfXbZ
-  name: guid(cognitiveServicesAccount_DqMZSfXbZ.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
+resource roleAssignment_X7ie0XqR2 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: cognitiveServicesAccount_6g8jyEjX5
+  name: guid(cognitiveServicesAccount_6g8jyEjX5.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
     principalId: principalId
@@ -36,8 +36,8 @@ resource roleAssignment_biQFQxikh 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource cognitiveServicesAccountDeployment_0OtUTY1oh 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
-  parent: cognitiveServicesAccount_DqMZSfXbZ
+resource cognitiveServicesAccountDeployment_f9rYX6SRK 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+  parent: cognitiveServicesAccount_6g8jyEjX5
   name: 'gpt-35-turbo'
   sku: {
     name: 'Standard'
@@ -52,4 +52,4 @@ resource cognitiveServicesAccountDeployment_0OtUTY1oh 'Microsoft.CognitiveServic
   }
 }
 
-output connectionString string = 'Endpoint=${cognitiveServicesAccount_DqMZSfXbZ.properties.endpoint}'
+output connectionString string = 'Endpoint=${cognitiveServicesAccount_6g8jyEjX5.properties.endpoint}'

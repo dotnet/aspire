@@ -44,10 +44,6 @@ public static class AzureOpenAIExtensions
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var cogServicesAccount = new CognitiveServicesAccount(construct, "OpenAI", name: name);
-
-            // HACK: This name should be an auto generated name based on input name and resource group.
-            //       https://github.com/Azure/azure-sdk-for-net/issues/42574
-            cogServicesAccount.AssignProperty(x => x.Name, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
             cogServicesAccount.AssignProperty(x => x.Properties.CustomSubDomainName, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
             cogServicesAccount.AssignProperty(x => x.Properties.PublicNetworkAccess, "'Enabled'");
             cogServicesAccount.AddOutput("connectionString", """'Endpoint=${{{0}}}'""", x => x.Properties.Endpoint);
@@ -76,7 +72,6 @@ public static class AzureOpenAIExtensions
                 var resourceBuilder = builder.CreateResourceBuilder(resource);
                 configureResource(resourceBuilder, construct, cogServicesAccount, cdkDeployments);
             }
-
         };
 
         var resource = new AzureOpenAIConstructResource(name, configureConstruct);
