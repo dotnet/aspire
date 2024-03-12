@@ -9,9 +9,6 @@ param principalId string
 @description('')
 param principalType string
 
-@description('')
-param keyVaultName string
-
 
 resource cognitiveServicesAccount_6g8jyEjX5 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))

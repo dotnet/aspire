@@ -6,8 +6,7 @@
       "path": "openai.module.bicep",
       "params": {
         "principalId": "",
-        "principalType": "",
-        "keyVaultName": ""
+        "principalType": ""
       }
     },
     "webstory": {
