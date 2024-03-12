@@ -4,7 +4,7 @@
     <!-- This list of runtimes needs to match the set of runtimes specified in eng/workloads/workloads.csproj -->
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <!-- Enable System.GC.DynamicAdaptationMode by default to get a GC that dynamically adapts to the application's memory use. -->
+    <!-- Enable System.GC.DynamicAdaptationMode to get a GC that dynamically adapts to the application's memory use. -->
     <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
     <!--
       CS1591: Missing XML comment for publicly visible type or member 'Type_or_Member'
