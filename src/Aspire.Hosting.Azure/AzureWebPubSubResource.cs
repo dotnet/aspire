@@ -24,23 +24,12 @@ public class AzureWebPubSubResource(string name) :
     public string ConnectionStringExpression => Endpoint.ValueExpression;
 
     /// <summary>
-    /// Gets the connection string for Azure Web PubSub which is actually the service Endpoint URL.
-    /// </summary>
-    /// <returns>The connection string for Azure Web PubSub.</returns>
-    public string? GetConnectionString() => Endpoint.Value;
-
-    /// <summary>
     /// Gets the connection string for Azure Web PubSub.
     /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for Azure Web PubSub.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (ProvisioningTaskCompletionSource is not null)
-        {
-            await ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return await Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+        return Endpoint.GetValueAsync(cancellationToken);
     }
 }
