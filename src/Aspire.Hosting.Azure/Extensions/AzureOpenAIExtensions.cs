@@ -78,7 +78,6 @@ public static class AzureOpenAIExtensions
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
