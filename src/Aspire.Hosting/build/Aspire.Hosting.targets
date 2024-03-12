@@ -43,7 +43,7 @@ public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "")]
     [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
-    public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
+    public string ProjectPath { get%3B } = """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>
       </AspireProjectMetadataSource>
