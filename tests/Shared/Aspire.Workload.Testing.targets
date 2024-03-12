@@ -139,7 +139,7 @@
   <!-- For test projects -->
 
   <Target Name="_PatchNuGetConfig" AfterTargets="GetCopyToOutputDirectoryItems" Inputs="$(TemplateNuGetConfigPath)" Outputs="$(PatchedNuGetConfigPath)">
-    <PrepareNuGetConfigForWorkloadTesting TemplateNuGetConfigPath="$(RepoRoot)NuGet.config" OutputFile="$(PatchedNuGetConfigPath)" AddBuiltNuGetSource="true" AddPackageSourceMapping="true" />
+    <PrepareNuGetConfigForWorkloadTesting TemplateNuGetConfigPath="$(RepoRoot)NuGet.config" OutputFile="$(PatchedNuGetConfigPath)" />
   </Target>
 
   <Target Name="_AddPackageVersionsForUseWithHelix" BeforeTargets="ZipTestArchive">
