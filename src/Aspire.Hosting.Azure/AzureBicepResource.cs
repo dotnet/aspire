@@ -49,7 +49,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <summary>
     /// For testing purposes only.
     /// </summary>
-    internal string TempDirectory { get; set; } = Path.GetTempPath();
+    internal string? TempDirectory { get; set; }
 
     /// <summary>
     /// Gets the path to the bicep file. If the template is a string or embedded resource, it will be written to a temporary file.
