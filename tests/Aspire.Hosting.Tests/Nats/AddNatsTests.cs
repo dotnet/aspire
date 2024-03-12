@@ -58,7 +58,7 @@ public class AddNatsTests
 
         var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>());
         Assert.NotNull(argsAnnotation.Callback);
-        var args = new List<string>();
+        var args = new List<object>();
         argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         Assert.Equal("-js -sd /data".Split(' '), args);
 
