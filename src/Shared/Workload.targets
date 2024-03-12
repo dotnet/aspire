@@ -15,10 +15,6 @@
     <DotNetDirectory>$(DotNetOutputPath)dotnet/</DotNetDirectory>
     <DotNetPacksDirectory>$(DotNetDirectory)packs/</DotNetPacksDirectory>
     <DotNetSdkManifestsFolder>$(DotNetVersionBand)</DotNetSdkManifestsFolder>
-    <_AspireDotNetVersionMajor>8</_AspireDotNetVersionMajor>
-    <_AspireDotNetVersionMinor>0</_AspireDotNetVersionMinor>
-    <_AspireDotNetVersion>$(_AspireDotNetVersionMajor).$(_AspireDotNetVersionMinor)</_AspireDotNetVersion>
-    <_AspireDotNetTfm>net8.0</_AspireDotNetTfm>
     <DotNetSdkManifestsDirectory>$(DotNetDirectory)sdk-manifests/$(DotNetSdkManifestsFolder)/</DotNetSdkManifestsDirectory>
   </PropertyGroup>
 
