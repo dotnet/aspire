@@ -12,7 +12,7 @@ public class ContainerMountAnnotationTests
     [InlineData("")]
     public void CtorThrowsArgumentNullExceptionIfSourceIsMissingForBindMount(string? source)
     {
-#pragma warning disable CA1507 // Use nameof to express symbol names: fals positive here, the parameter name being tested isn't the parameter to the test method
+#pragma warning disable CA1507 // Use nameof to express symbol names: false positive here, the parameter name being tested isn't the parameter to the test method
         Assert.Throws<ArgumentNullException>("source", () => new ContainerMountAnnotation(source, "/usr/foo", ContainerMountType.BindMount, false));
 #pragma warning restore CA1507
     }
