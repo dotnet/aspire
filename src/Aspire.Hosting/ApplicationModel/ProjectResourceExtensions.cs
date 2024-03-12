@@ -15,6 +15,8 @@ public static class ProjectResourceExtensions
     /// <returns>An enumerable collection of project resources.</returns>
     public static IEnumerable<ProjectResource> GetProjectResources(this DistributedApplicationModel model)
     {
+        ArgumentNullException.ThrowIfNull(model);
+
         return model.Resources.OfType<ProjectResource>();
     }
 
@@ -26,6 +28,8 @@ public static class ProjectResourceExtensions
     /// <exception cref="InvalidOperationException">Thrown when the project resource doesn't have project metadata.</exception>
     public static IProjectMetadata GetProjectMetadata(this ProjectResource projectResource)
     {
+        ArgumentNullException.ThrowIfNull(projectResource);
+
         return projectResource.Annotations.OfType<IProjectMetadata>().Single();
     }
 }

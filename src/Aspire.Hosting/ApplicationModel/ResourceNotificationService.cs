@@ -14,6 +14,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 {
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
+    private readonly ILogger<ResourceNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
 
@@ -44,9 +45,9 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
 
-            if (logger.IsEnabled(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
-                logger.LogDebug("Resource {Resource}/{ResourceId} -> {State}", resource.Name, resourceId, newState.State);
+                _logger.LogDebug("Resource {Resource}/{ResourceId} -> {State}", resource.Name, resourceId, newState.State);
             }
 
             return Task.CompletedTask;

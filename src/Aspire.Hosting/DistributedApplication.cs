@@ -54,6 +54,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <param name="host">The <see cref="IHost"/> instance.</param>
     public DistributedApplication(IHost host)
     {
+        ArgumentNullException.ThrowIfNull(host);
+
         _host = host;
     }
 
@@ -70,6 +72,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>A new instance of <see cref="IDistributedApplicationBuilder"/>.</returns>
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         var builder = new DistributedApplicationBuilder(new DistributedApplicationOptions() { Args = args });
         return builder;
     }
@@ -81,6 +85,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
     public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         var builder = new DistributedApplicationBuilder(options);
         return builder;
     }
