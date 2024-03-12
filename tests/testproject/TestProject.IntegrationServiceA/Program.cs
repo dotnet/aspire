@@ -66,7 +66,7 @@ if (!resourcesToSkip.Contains(TestResourceNames.kafka))
 
 if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 {
-    builder.AddAzureCosmosDbClient("cosmos");
+    builder.AddAzureCosmosDBClient("cosmos");
 }
 
 var app = builder.Build();

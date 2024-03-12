@@ -25,9 +25,6 @@ public class AddSqlServerTests
         var containerResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
         Assert.Equal("sqlserver", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(1433, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);

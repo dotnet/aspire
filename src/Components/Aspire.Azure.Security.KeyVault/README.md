@@ -21,10 +21,10 @@ dotnet add package Aspire.Azure.Security.KeyVault
 
 ### Add secrets to configuration
 
-In the _Program.cs_ file of your project, call the `builder.Configuration.AddKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `builder.Configuration.AddAzureKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
 
 ```csharp
-builder.Configuration.AddKeyVaultSecrets("secrets");
+builder.Configuration.AddAzureKeyVaultSecrets("secrets");
 ```
 
 You can then retrieve a secret through normal `IConfiguration` APIs. For example, to retrieve a secret from a Web API controller:
@@ -63,10 +63,10 @@ The .NET Aspire Azure Key Vault library provides multiple options to configure t
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureKeyVaultSecrets()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureKeyVaultClient()`:
 
 ```csharp
-builder.AddAzureKeyVaultSecrets("secretConnectionName");
+builder.AddAzureKeyVaultClient("secretConnectionName");
 ```
 
 And then the vault URI will be retrieved from the `ConnectionStrings` configuration section. The vault URI which works with the `AzureSecurityKeyVaultSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
@@ -108,13 +108,13 @@ The .NET Aspire Azure Key Vault library supports [Microsoft.Extensions.Configura
 You can also pass the `Action<AzureSecurityKeyVaultSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddAzureKeyVaultSecrets("secrets", settings => settings.HealthChecks = false);
+builder.AddAzureKeyVaultClient("secrets", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using the optional `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>> configureClientBuilder` parameter of the `AddAzureKeyVaultSecrets` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
+You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using the optional `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>> configureClientBuilder` parameter of the `AddAzureKeyVaultClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```csharp
-builder.AddAzureKeyVaultSecrets("secrets", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+builder.AddAzureKeyVaultClient("secrets", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
 ## AppHost extensions
@@ -137,7 +137,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddAzureKeyVault` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:secrets` config key. The `WithReference` method passes that connection information into a connection string named `secrets` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddKeyVaultSecretsClient("secrets");
+builder.AddAzureKeyVaultClient("secrets");
 ```
 
 ## Additional documentation

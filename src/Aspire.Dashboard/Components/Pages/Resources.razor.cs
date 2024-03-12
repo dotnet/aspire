@@ -38,6 +38,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
+    private bool _isLoading = true;
 
     public Resources()
     {
@@ -129,6 +130,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 await InvokeAsync(StateHasChanged);
             }
         });
+
+        _isLoading = false;
 
         async Task SubscribeResourcesAsync()
         {

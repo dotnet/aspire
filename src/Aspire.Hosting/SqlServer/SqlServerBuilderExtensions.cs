@@ -24,23 +24,13 @@ public static class SqlServerBuilderExtensions
 
         return builder.AddResource(sqlServer)
                       .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
-                      .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
+                      .WithImage("mssql/server", "2022-latest")
+                      .WithImageRegistry("mcr.microsoft.com")
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordInput;
-                      })
-                      .PublishAsContainer();
-    }
-
-    /// <summary>
-    /// Changes the SQL Server resource to be published as a container.
-    /// </summary>
-    /// <param name="builder">Builder for the underlying <see cref="SqlServerServerResource"/>.</param>
-    /// <returns></returns>
-    public static IResourceBuilder<SqlServerServerResource> PublishAsContainer(this IResourceBuilder<SqlServerServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
+                      });
     }
 
     /// <summary>

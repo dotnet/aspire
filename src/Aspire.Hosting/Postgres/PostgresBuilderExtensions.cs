@@ -27,14 +27,13 @@ public static class PostgresBuilderExtensions
         var postgresServer = new PostgresServerResource(name, password);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "16.2" })
+                      .WithImage("postgres", "16.2")
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordInput;
-                      })
-                      .PublishAsContainer();
+                      });
     }
 
     /// <summary>
@@ -62,7 +61,7 @@ public static class PostgresBuilderExtensions
     /// <param name="hostPort">The host port for the application ui.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T: PostgresServerResource
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : PostgresServerResource
     {
         if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().Any())
         {
@@ -75,7 +74,7 @@ public static class PostgresBuilderExtensions
 
         var pgAdminContainer = new PgAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "8.3" })
+                                  .WithImage("dpage/pgadmin4", "8.3")
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithEnvironment(SetPgAdminEnvironmentVariables)
                                   .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
@@ -93,16 +92,6 @@ public static class PostgresBuilderExtensions
         // You need to define the PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD or PGADMIN_DEFAULT_PASSWORD_FILE environment variables.
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_EMAIL", "admin@domain.com");
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
-    }
-
-    /// <summary>
-    /// Changes the PostgreSQL resource to be published as a container in the manifest.
-    /// </summary>
-    /// <param name="builder">The Postgres server resource builder.</param>
-    /// <returns></returns>
-    public static IResourceBuilder<PostgresServerResource> PublishAsContainer(this IResourceBuilder<PostgresServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
     }
 
     /// <summary>

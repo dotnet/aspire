@@ -41,7 +41,7 @@ public class ContainerResourceBuilderTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var container = builder.AddContainer("app", "some-image");
-        container.Resource.Annotations.Add(new ContainerImageAnnotation { Image = "another-image" } );
+        container.Resource.Annotations.Add(new ContainerImageAnnotation { Image = "another-image" });
 
         container.WithImage("new-image");
         Assert.Equal("new-image", container.Resource.Annotations.OfType<ContainerImageAnnotation>().Last().Image);
@@ -70,5 +70,39 @@ public class ContainerResourceBuilderTests
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("redis").WithImageSHA256("42b5c726e719639fcc1e9dbc13dd843f567dcd37911d0e1abb9f47f2cc1c95cd");
         Assert.Equal("42b5c726e719639fcc1e9dbc13dd843f567dcd37911d0e1abb9f47f2cc1c95cd", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().SHA256);
+    }
+
+    [Fact]
+    public void WithImageTagThrowsIfNoImageAnnotation()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageTag("7.2.4"));
+        Assert.Equal("The resource 'testcontainer' does not have a container image specified. Use WithImage to specify the container image and tag.", exception.Message);
+    }
+
+    [Fact]
+    public void WithImageRegistryThrowsIfNoImageAnnotation()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageRegistry("myregistry.azurecr.io"));
+        Assert.Equal("The resource 'testcontainer' does not have a container image specified. Use WithImage to specify the container image and tag.", exception.Message);
+    }
+
+    [Fact]
+    public void WithImageSHA256ThrowsIfNoImageAnnotation()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageSHA256("42b5c726e719639fcc1e9dbc13dd843f567dcd37911d0e1abb9f47f2cc1c95cd"));
+        Assert.Equal("The resource 'testcontainer' does not have a container image specified. Use WithImage to specify the container image and tag.", exception.Message);
+    }
+
+    private sealed class TestContainerResource(string name) : ContainerResource(name)
+    {
     }
 }

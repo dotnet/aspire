@@ -34,7 +34,7 @@ public static class ContainerResourceBuilderExtensions
     {
         var container = new ContainerResource(name);
         return builder.AddResource(container)
-                      .WithAnnotation(new ContainerImageAnnotation { Image = image, Tag = tag });
+                      .WithImage(image, tag);
     }
 
     /// <summary>
@@ -68,22 +68,6 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds the arguments to be passed to a container resource when the container is started.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="args">The arguments to be passed to the container when it is started.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>    
-    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
-    {
-        var annotation = new CommandLineArgsCallbackAnnotation(updatedArgs =>
-        {
-            updatedArgs.AddRange(args);
-        });
-        return builder.WithAnnotation(annotation);
-    }
-
-    /// <summary>
     /// Sets the Entrypoint for the container.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -111,7 +95,7 @@ public static class ContainerResourceBuilderExtensions
             return builder;
         }
 
-        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
+        return ThrowResourceIsNotContainer(builder);
     }
 
     /// <summary>
@@ -123,9 +107,13 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string registry) where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Registry = registry;
-        return builder;
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.Registry = registry;
+            return builder;
+        }
+
+        return ThrowResourceIsNotContainer(builder);
     }
 
     /// <summary>
@@ -160,9 +148,18 @@ public static class ContainerResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithImageSHA256<T>(this IResourceBuilder<T> builder, string sha256) where T : ContainerResource
     {
-        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.SHA256 = sha256;
-        return builder;
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
+        {
+            existingImageAnnotation.SHA256 = sha256;
+            return builder;
+        }
+
+        return ThrowResourceIsNotContainer(builder);
+    }
+
+    private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
+    {
+        throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
     }
 
     /// <summary>
