@@ -54,7 +54,7 @@ public static class AzureOpenAIExtensions
 
             var resource = (AzureOpenAIConstructResource)construct.Resource;
 
-            List<CognitiveServicesAccountDeployment> cdkDeployments = new List<CognitiveServicesAccountDeployment>();
+            var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
                 var model = new CognitiveServicesAccountDeploymentModel();
