@@ -60,7 +60,7 @@ public static class AzureServiceBusExtensions
             var serviceBusDataOwnerRole = serviceBusNamespace.AssignRole(RoleDefinition.ServiceBusDataOwner);
             serviceBusDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
-            serviceBusNamespace.AddOutput(sa => sa.ServiceBusEndpoint, "serviceBusEndpoint");
+            serviceBusNamespace.AddOutput("serviceBusEndpoint", sa => sa.ServiceBusEndpoint);
 
             configureResource?.Invoke(construct, serviceBusNamespace);
 

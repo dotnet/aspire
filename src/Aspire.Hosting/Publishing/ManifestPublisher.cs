@@ -140,28 +140,7 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
         context.Writer.WriteString("command", executable.Command);
 
-        var args = new List<string>(executable.Args ?? []);
-
-        if (executable.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
-        {
-            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, context.CancellationToken);
-
-            foreach (var callback in argsCallback)
-            {
-                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
-            }
-        }
-
-        if (args.Count > 0)
-        {
-            context.Writer.WriteStartArray("args");
-
-            foreach (var arg in args)
-            {
-                context.Writer.WriteStringValue(arg);
-            }
-            context.Writer.WriteEndArray();
-        }
+        await context.WriteCommandLineArgumentsAsync(executable).ConfigureAwait(false);
 
         await context.WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
         context.WriteBindings(executable);

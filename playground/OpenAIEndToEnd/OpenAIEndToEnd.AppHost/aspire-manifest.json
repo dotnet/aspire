@@ -3,23 +3,8 @@
     "openai": {
       "type": "azure.bicep.v0",
       "connectionString": "{openai.outputs.connectionString}",
-      "path": "aspire.hosting.azure.bicep.openai.bicep",
+      "path": "openai.module.bicep",
       "params": {
-        "name": "openai",
-        "deployments": [
-          {
-            "name": "gpt-35-turbo",
-            "sku": {
-              "name": "Standard",
-              "capacity": 1
-            },
-            "model": {
-              "format": "OpenAI",
-              "name": "gpt-35-turbo",
-              "version": "0613"
-            }
-          }
-        ],
         "principalId": "",
         "principalType": ""
       }
@@ -30,6 +15,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__openai": "{openai.connectionString}"
       },
       "bindings": {

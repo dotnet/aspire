@@ -189,10 +189,9 @@ public class ManifestGenerationTests
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         var container = program.AppBuilder.AddContainer("containerwithvolumes", "image/name")
-                          .WithVolume("myvolume", "/mount/here")
-                          .WithBindMount("./some/source", "/bound") // This should be ignored and not written to the manifest
-                          .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
-                          .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
+            .WithVolume("myvolume", "/mount/here")
+            .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
+            .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
 
         program.Build();
 
@@ -216,6 +215,53 @@ public class ManifestGenerationTests
                 {
                   "target": "/mount/everywhere",
                   "readOnly": false
+                }
+              ]
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task EnsureContainerWithBindMountsEmitsBindMounts()
+    {
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        var container = program.AppBuilder.AddContainer("containerwithbindmounts", "image/name")
+            .WithBindMount("./some/source", "/bound")
+            .WithBindMount("not/relative/qualified", "/another/place")
+            .WithBindMount(".\\some\\other\\source", "\\mount\\here")
+            .WithBindMount("./some/file/path.txt", "/mount/there.txt", isReadOnly: true);
+
+        program.Build();
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "image/name:latest",
+              "bindMounts": [
+                {
+                  "source": "some/source",
+                  "target": "/bound",
+                  "readOnly": false
+                },
+                {
+                  "source": "not/relative/qualified",
+                  "target": "/another/place",
+                  "readOnly": false
+                },
+                {
+                  "source": "some/other/source",
+                  "target": "/mount/here",
+                  "readOnly": false
+                },
+                {
+                  "source": "some/file/path.txt",
+                  "target": "/mount/there.txt",
+                  "readOnly": true
                 }
               ]
             }
@@ -466,6 +512,7 @@ public class ManifestGenerationTests
 
         static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
+            var s = jsonElement.ToString();
             Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
 
             var bindings = jsonElement.GetProperty("bindings");
@@ -480,8 +527,6 @@ public class ManifestGenerationTests
             var command = jsonElement.GetProperty("command");
             Assert.Equal(expectedCommand, command.GetString());
             Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
-
-            var args = jsonElement.GetProperty("args");
         }
 
         AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);

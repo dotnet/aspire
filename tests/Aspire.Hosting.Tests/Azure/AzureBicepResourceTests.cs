@@ -74,31 +74,47 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AssertManifestLayout()
+    public async Task AssertManifestLayout()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var param = builder.AddParameter("p1");
 
+        var b2 = builder.AddBicepTemplateString("temp2", "content");
+
         var bicepResource = builder.AddBicepTemplateString("templ", "content")
                                     .WithParameter("param1", "value1")
                                     .WithParameter("param2", ["1", "2"])
                                     .WithParameter("param3", new JsonObject() { ["value"] = "nested" })
-                                    .WithParameter("param4", param);
+                                    .WithParameter("param4", param)
+                                    .WithParameter("param5", b2.GetOutput("value1"))
+                                    .WithParameter("param6", () => b2.GetOutput("value2"));
 
-        // This makes a temp file
-        var obj = ManifestUtils.GetManifest(bicepResource.Resource.WriteToManifest);
+        bicepResource.Resource.TempDirectory = Environment.CurrentDirectory;
 
-        Assert.NotNull(obj);
-        Assert.Equal("azure.bicep.v0", obj["type"]?.ToString());
-        Assert.NotNull(obj["path"]?.ToString());
-        var parameters = obj["params"];
-        Assert.NotNull(parameters);
-        Assert.Equal("value1", parameters?["param1"]?.ToString());
-        Assert.Equal("1", parameters?["param2"]?[0]?.ToString());
-        Assert.Equal("2", parameters?["param2"]?[1]?.ToString());
-        Assert.Equal("nested", parameters?["param3"]?["value"]?.ToString());
-        Assert.Equal($"{{{param.Resource.Name}.value}}", parameters?["param4"]?.ToString());
+        var manifest = await ManifestUtils.GetManifest(bicepResource.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "path": "templ.bicep",
+              "params": {
+                "param1": "value1",
+                "param2": [
+                  "1",
+                  "2"
+                ],
+                "param3": {
+                  "value": "nested"
+                },
+                "param4": "{p1.value}",
+                "param5": "{temp2.outputs.value1}",
+                "param6": "{temp2.outputs.value2}"
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -226,7 +242,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AddOutput(sa => sa.Name, "storageAccountName");
+            storage.AddOutput("storageAccountName", sa => sa.Name);
         });
 
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
