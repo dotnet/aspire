@@ -17,11 +17,9 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
                            .WithReference(basketCache)
                            .WithReference(messaging);
 
-var isHttps = string.Equals(builder.Configuration["DOTNET_LAUNCH_PROFILE"], "https", StringComparison.OrdinalIgnoreCase);
-
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
-       .WithReference(catalogService.GetEndpoint(isHttps ? "https" : "http"));
+       .WithReference(catalogService);
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
        .WithReference(messaging);
