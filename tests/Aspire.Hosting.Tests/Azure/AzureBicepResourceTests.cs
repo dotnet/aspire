@@ -226,7 +226,7 @@ public class AzureBicepResourceTests
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardLrs
                 );
-            storage.AddOutput(sa => sa.Name, "storageAccountName");
+            storage.AddOutput("storageAccountName", sa => sa.Name);
         });
 
         var manifest = await ManifestUtils.GetManifest(construct1.Resource);
