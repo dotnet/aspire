@@ -84,28 +84,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
 
         // Write args if they are present
-        if (container.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
-        {
-            var args = new List<string>();
-
-            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, CancellationToken);
-
-            foreach (var callback in argsCallback)
-            {
-                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
-            }
-
-            if (args.Count > 0)
-            {
-                Writer.WriteStartArray("args");
-
-                foreach (var arg in args)
-                {
-                    Writer.WriteStringValue(arg);
-                }
-                Writer.WriteEndArray();
-            }
-        }
+        await WriteCommandLineArgumentsAsync(container).ConfigureAwait(false);
 
         // Write volume & bind mount details
         WriteContainerMounts(container);
@@ -194,6 +173,45 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             WritePortBindingEnvironmentVariables(resource);
 
             Writer.WriteEndObject();
+        }
+    }
+
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <returns></returns>
+    public async Task WriteCommandLineArgumentsAsync(IResource resource)
+    {
+        var args = new List<object>();
+
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
+        {
+            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, CancellationToken);
+
+            foreach (var callback in argsCallback)
+            {
+                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
+            }
+        }
+
+        if (args.Count > 0)
+        {
+            Writer.WriteStartArray("args");
+
+            foreach (var arg in args)
+            {
+                var valueString = arg switch
+                {
+                    string stringValue => stringValue,
+                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                    _ => throw new DistributedApplicationException($"The value of the argument '{arg}' is not supported.")
+                };
+
+                Writer.WriteStringValue(valueString);
+            }
+
+            Writer.WriteEndArray();
         }
     }
 

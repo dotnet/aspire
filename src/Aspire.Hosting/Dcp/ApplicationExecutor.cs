@@ -883,7 +883,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             // The working directory is always relative to the app host project directory (if it exists).
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
-            exe.Spec.Args = executable.Args?.ToList();
             exe.Spec.ExecutionType = ExecutionType.Process;
             exe.Annotate(Executable.OtelServiceNameAnnotation, exe.Metadata.Name);
             exe.Annotate(Executable.ResourceNameAnnotation, executable.Name);
@@ -1062,11 +1061,28 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         if (er.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
         {
-            var commandLineContext = new CommandLineArgsCallbackContext(spec.Args, cancellationToken);
+            var args = new List<object>();
+            var commandLineContext = new CommandLineArgsCallbackContext(args, cancellationToken);
 
             foreach (var exeArgsCallback in exeArgsCallbacks)
             {
                 await exeArgsCallback.Callback(commandLineContext).ConfigureAwait(false);
+            }
+
+            foreach (var arg in args)
+            {
+                var value = arg switch
+                {
+                    string s => s,
+                    IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: false, cancellationToken).ConfigureAwait(false),
+                    null => null,
+                    _ => throw new InvalidOperationException($"Unexpected value for {arg}")
+                };
+
+                if (value is not null)
+                {
+                    spec.Args.Add(value);
+                }
             }
         }
 
@@ -1145,7 +1161,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task<string?> GetValue(string key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
+    private async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
     {
         var task = valueProvider.GetValueAsync(cancellationToken);
 
@@ -1153,7 +1169,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             if (valueProvider is IResource resource)
             {
-                logger.LogInformation("Waiting for value for environment variable value '{Name}' from resource '{ResourceName}'", key, resource.Name);
+                if (key is null)
+                {
+                    logger.LogInformation("Waiting for value from resource '{ResourceName}'", resource.Name);
+                }
+                else
+                {
+                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from resource '{ResourceName}'", key, resource.Name);
+                }
             }
             else if (valueProvider is ConnectionStringReference { Resource: var cs })
             {
@@ -1161,7 +1184,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             else
             {
-                logger.LogInformation("Waiting for value for environment variable value '{Name}' from {ValueProvider}.", key, valueProvider.ToString());
+                if (key is null)
+                {
+                    logger.LogInformation("Waiting for value from {ValueProvider}.", valueProvider.ToString());
+                }
+                else
+                {
+                    logger.LogInformation("Waiting for value for environment variable value '{Name}' from {ValueProvider}.", key, valueProvider.ToString());
+                }
             }
         }
 
@@ -1427,11 +1457,29 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             dcpContainerResource.Spec.Args ??= [];
 
-            var commandLineArgsContext = new CommandLineArgsCallbackContext(dcpContainerResource.Spec.Args, cancellationToken);
+            var args = new List<object>();
+
+            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, cancellationToken);
 
             foreach (var callback in argsCallback)
             {
                 await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
+            }
+
+            foreach (var arg in args)
+            {
+                var value = arg switch
+                {
+                    string s => s,
+                    IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
+                    null => null,
+                    _ => throw new InvalidOperationException($"Unexpected value for {arg}")
+                };
+
+                if (value is not null)
+                {
+                    dcpContainerResource.Spec.Args.Add(value);
+                }
             }
         }
 

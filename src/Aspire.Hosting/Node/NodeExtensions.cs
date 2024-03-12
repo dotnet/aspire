@@ -27,10 +27,11 @@ public static class NodeAppHostingExtension
         workingDirectory ??= Path.GetDirectoryName(scriptPath)!;
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
 
-        var resource = new NodeAppResource(name, "node", workingDirectory, effectiveArgs);
+        var resource = new NodeAppResource(name, "node", workingDirectory);
 
         return builder.AddResource(resource)
-                      .WithNodeDefaults();
+                      .WithNodeDefaults()
+                      .WithArgs(effectiveArgs);
     }
 
     /// <summary>
@@ -49,10 +50,11 @@ public static class NodeAppHostingExtension
             : ["run", scriptName];
 
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
-        var resource = new NodeAppResource(name, "npm", workingDirectory, allArgs);
+        var resource = new NodeAppResource(name, "npm", workingDirectory);
 
         return builder.AddResource(resource)
-                      .WithNodeDefaults();
+                      .WithNodeDefaults()
+                      .WithArgs(allArgs);
     }
 
     private static IResourceBuilder<NodeAppResource> WithNodeDefaults(this IResourceBuilder<NodeAppResource> builder) =>

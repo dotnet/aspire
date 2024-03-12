@@ -512,6 +512,7 @@ public class ManifestGenerationTests
 
         static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
+            var s = jsonElement.ToString();
             Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
 
             var bindings = jsonElement.GetProperty("bindings");
@@ -526,8 +527,6 @@ public class ManifestGenerationTests
             var command = jsonElement.GetProperty("command");
             Assert.Equal(expectedCommand, command.GetString());
             Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
-
-            var args = jsonElement.GetProperty("args");
         }
 
         AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);

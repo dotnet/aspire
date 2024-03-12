@@ -133,7 +133,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
             var daprCliResourceName = $"{daprSidecar.Name}-cli";
-            var daprCli = new ExecutableResource(daprCliResourceName, fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
+            var daprCli = new ExecutableResource(daprCliResourceName, fileName, appHostDirectory);
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
@@ -183,6 +183,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 new CommandLineArgsCallbackAnnotation(
                     updatedArgs =>
                     {
+                        updatedArgs.AddRange(daprCommandLine.Arguments);
+
                         EndpointReference? httpEndPoint = null;
                         if (resource is IResourceWithEndpoints resourceWithEndpoints)
                         {
