@@ -923,6 +923,43 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task AddAzureSearchConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        // Add search and parameterize the SKU
+        var sku = builder.AddParameter("searchSku");
+        var search = builder.AddAzureConstructSearch("search", (_, search) =>
+            search.AssignProperty(me => me.SkuName, sku));
+
+        // Pretend we deployed it
+        const string fakeConnectionString = "mysearchconnectionstring";
+        search.Resource.Outputs["connectionString"] = fakeConnectionString;
+
+        // Validate the resource
+        Assert.Equal("search", search.Resource.Name);
+        Assert.Equal("{search.outputs.connectionString}", search.Resource.ConnectionStringExpression);
+        Assert.Equal(fakeConnectionString, await search.Resource.GetConnectionStringAsync());
+
+        // Validate the manifest
+        var expectedManifest =
+            """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{search.outputs.connectionString}",
+              "path": "search.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": "",
+                "searchSku": "{searchSku.value}"
+              }
+            }
+            """;
+        var actualManifest = (await ManifestUtils.GetManifest(search.Resource)).ToString();
+        Assert.Equal(expectedManifest, actualManifest);
+    }
+
+    [Fact]
     public async Task PublishAsConnectionString()
     {
         var builder = DistributedApplication.CreateBuilder();

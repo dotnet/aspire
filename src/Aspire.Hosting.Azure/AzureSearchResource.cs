@@ -16,6 +16,9 @@ public class AzureSearchResource(string name) :
     /// <summary>
     /// Gets the "connectionString" output reference from the Azure Search resource.
     /// </summary>
+    /// <remarks>
+    /// This connection string will assume you're deploying to public Azure.
+    /// </remarks>
     public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
@@ -34,3 +37,36 @@ public class AzureSearchResource(string name) :
     }
 }
 
+/// <summary>
+/// Represents an Azure AI Search resource.
+/// </summary>
+/// <param name="name">The name of the resource</param>
+/// <param name="configureConstruct">Callback to configure the Azure AI Search resource.</param>
+public class AzureSearchConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
+    IResourceWithConnectionString
+{
+    /// <summary>
+    /// Gets the "connectionString" output reference from the Azure AI Search resource.
+    /// </summary>
+    /// <remarks>
+    /// This connection string will assume you're deploying to public Azure.
+    /// </remarks>
+    public BicepOutputReference ConnectionString => new("connectionString", this);
+
+    /// <summary>
+    /// Gets the connection string template for the manifest for the resource.
+    /// </summary>
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string for the Azure AI Search resource.
+    /// </summary>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the resource.</returns>
+    /// <remarks>
+    /// This connection string will assume you're deploying to public Azure.
+    /// </remarks>
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default) =>
+        await ConnectionString.GetValueAsync(cancellationToken).ConfigureAwait(false);
+}

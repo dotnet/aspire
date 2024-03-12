@@ -3,6 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Search;
+using Azure.ResourceManager.Search.Models;
 
 namespace Aspire.Hosting;
 
@@ -25,5 +28,55 @@ public static class AzureSearchExtensions
                 .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                 .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                 .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// Adds an Azure AI Search service resource to the application model.
+    /// </summary>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="name">The name of the Azure AI Search resource.</param>
+    /// <param name="configureResource">Callback to configure the Azure AI Search resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
+    public static IResourceBuilder<AzureSearchConstructResource> AddAzureConstructSearch(
+        this IDistributedApplicationBuilder builder,
+        string name,
+        Action<ResourceModuleConstruct, SearchService>? configureResource = null)
+    {
+        AzureSearchConstructResource resource = new(name, ConfigureSearch);
+        return builder.AddResource(resource)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithManifestPublishingCallback(resource.WriteToManifest);
+
+        void ConfigureSearch(ResourceModuleConstruct construct)
+        {
+            SearchService search =
+                new(construct, name: name, sku: SearchSkuName.Basic)
+                {
+                    Properties =
+                    {
+                        ReplicaCount = 1,
+                        PartitionCount = 1,
+                        HostingMode = SearchServiceHostingMode.Default,
+                        IsLocalAuthDisabled = true,
+                    }
+                };
+            search.Properties.Tags["aspire-resource-name"] = search.Name;
+
+            search.AssignRole(RoleDefinition.SearchIndexDataContributor)
+                  .AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
+            search.AssignRole(RoleDefinition.SearchServiceContributor)
+                  .AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
+
+            // TODO: The endpoint format should move into the CDK so we can maintain this
+            // logic in a single location and have a better chance at supporting more than
+            // just public Azure in the future.  https://github.com/Azure/azure-sdk-for-net/issues/42640
+            search.AddOutput("connectionString", "'Endpoint=https://${{{0}}}.search.windows.net'", me => me.Name);
+
+            if (configureResource is not null)
+            {
+                configureResource(construct, search);
+            }
+        }
     }
 }
