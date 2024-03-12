@@ -33,6 +33,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override bool SupportsKeyedRegistrations => true;
 
+    protected override bool CanCreateClientWithoutConnectingToServer => false;
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
