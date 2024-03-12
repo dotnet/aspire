@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Tests;
 public class ExecutableResourceTests
 {
     [Fact]
-    public async Task AddContainerWithArgs()
+    public async Task AddExecutableWithArgs()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -36,6 +36,7 @@ public class ExecutableResourceTests
         var args = await ArgumentEvaluator.GetArgumentListAsync(exe2.Resource);
 
         Assert.Collection(args,
+            arg => Assert.Equal("app.py", arg),
             arg => Assert.Equal("arg1", arg),
             arg => Assert.Equal("http://localhost:1234", arg),
             arg => Assert.Equal("connectionString", arg));
@@ -49,6 +50,7 @@ public class ExecutableResourceTests
           "workingDirectory": "net8.0",
           "command": "python",
           "args": [
+            "app.py",
             "arg1",
             "{e1.bindings.ep.url}",
             "{test.connectionString}"
