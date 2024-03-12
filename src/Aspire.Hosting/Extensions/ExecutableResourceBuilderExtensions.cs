@@ -25,8 +25,15 @@ public static class ExecutableResourceBuilderExtensions
     {
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
 
-        var executable = new ExecutableResource(name, command, workingDirectory, args);
-        return builder.AddResource(executable);
+        var executable = new ExecutableResource(name, command, workingDirectory);
+        return builder.AddResource(executable)
+                      .WithArgs(context =>
+                      {
+                          if (args is not null)
+                          {
+                              context.Args.AddRange(args);
+                          }
+                      });
     }
 
     /// <summary>

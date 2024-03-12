@@ -883,7 +883,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             // The working directory is always relative to the app host project directory (if it exists).
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
-            exe.Spec.Args = executable.Args?.ToList();
             exe.Spec.ExecutionType = ExecutionType.Process;
             exe.Annotate(Executable.OtelServiceNameAnnotation, exe.Metadata.Name);
             exe.Annotate(Executable.ResourceNameAnnotation, executable.Name);
