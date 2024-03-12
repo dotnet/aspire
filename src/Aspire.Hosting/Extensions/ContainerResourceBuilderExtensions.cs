@@ -48,7 +48,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string name, string target, bool isReadOnly = false) where T : ContainerResource
     {
-        var annotation = new ContainerMountAnnotation(name, target, ContainerMountType.Named, isReadOnly);
+        var annotation = new ContainerMountAnnotation(name, target, ContainerMountType.Volume, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
 
@@ -61,7 +61,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string target) where T : ContainerResource
     {
-        var annotation = new ContainerMountAnnotation(null, target, ContainerMountType.Named, false);
+        var annotation = new ContainerMountAnnotation(null, target, ContainerMountType.Volume, false);
         return builder.WithAnnotation(annotation);
     }
 
@@ -76,7 +76,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
     {
-        var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.Bind, isReadOnly);
+        var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.BindMount, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
 

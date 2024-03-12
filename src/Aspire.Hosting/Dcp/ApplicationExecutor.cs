@@ -1297,9 +1297,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 foreach (var mount in containerMounts)
                 {
-                    var isBound = mount.Type == ContainerMountType.Bind;
+                    var isBindMount = mount.Type == ContainerMountType.BindMount;
                     var resolvedSource = mount.Source;
-                    if (isBound)
+                    if (isBindMount)
                     {
                         // Source is only optional for creating anonymous volume mounts.
                         if (mount.Source == null)
@@ -1317,7 +1317,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         Source = resolvedSource,
                         Target = mount.Target,
-                        Type = isBound ? VolumeMountType.Bind : VolumeMountType.Volume,
+                        Type = isBindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
                         IsReadOnly = mount.IsReadOnly
                     };
                     ctr.Spec.VolumeMounts.Add(volumeSpec);
