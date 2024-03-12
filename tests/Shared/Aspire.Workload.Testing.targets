@@ -82,8 +82,6 @@
     <ParameterGroup>
       <TemplateNuGetConfigPath ParameterType="System.String" Required="true" />
       <OutputFile ParameterType="System.String" Required="true" />
-      <AddBuiltNuGetSource ParameterType="System.Boolean" Required="false" />
-      <AddPackageSourceMapping ParameterType="System.Boolean" Required="false" />
     </ParameterGroup>
     <Task>
       <Using Namespace="System.IO" />
@@ -97,37 +95,40 @@
             return false;
           }
 
+          // This task adds a nuget packageSource pointing to the locally built nugets.
+          // And then adds a packageSourceMapping for that source to `*Aspire*` so the
+          // locally built nugets can be restored from there
+
+          // add packageSource
           XDocument doc = XDocument.Load(TemplateNuGetConfigPath);
-          if (AddBuiltNuGetSource)
+          string xpath = "/configuration/packageSources";
+          XElement packageSources = doc.XPathSelectElement(xpath);
+          if (packageSources is null)
           {
-            string xpath = "/configuration/packageSources";
-            XElement packageSources = doc.XPathSelectElement(xpath);
-            if (packageSources is null)
-            {
-              Log.LogError($"Could not find {xpath} in {TemplateNuGetConfigPath}");
-              return false;
-            }
-            packageSources.LastNode.AddAfterSelf(
-              new XElement("add",
-                new XAttribute("key", "nuget-local"),
-                new XAttribute("value", "%BUILT_NUGETS_PATH%")));
+            Log.LogError($"Could not find {xpath} in {TemplateNuGetConfigPath}");
+            return false;
           }
 
-          if (AddPackageSourceMapping)
-          {
-            string mappingXpath = "/configuration/packageSourceMapping";
-            XElement packageSourceMapping = doc.XPathSelectElement(mappingXpath);
-            if (packageSourceMapping is null)
-            {
-              // if mapping has been removed completely then the task needs an update!
-              throw new InvalidOperationException($"Expected to find {mappingXpath} in {TemplateNuGetConfigPath}");
-            }
+          // %BUILT_NUGETS_PATH% is set when building the testproject
+          packageSources.LastNode.AddAfterSelf(
+            new XElement("add",
+              new XAttribute("key", "nuget-local"),
+              new XAttribute("value", "%BUILT_NUGETS_PATH%")));
 
-            packageSourceMapping.FirstNode.AddBeforeSelf(
-              new XElement("packageSource",
-                new XAttribute("key", "nuget-local"),
-                new XElement("package", new XAttribute("pattern", "*Aspire*"))));
+          // add packageSourceMapping
+          string mappingXpath = "/configuration/packageSourceMapping";
+          XElement packageSourceMapping = doc.XPathSelectElement(mappingXpath);
+          if (packageSourceMapping is null)
+          {
+            // if mapping has been removed completely then the task needs an update!
+            throw new InvalidOperationException($"Expected to find {mappingXpath} in {TemplateNuGetConfigPath}");
           }
+
+          packageSourceMapping.FirstNode.AddBeforeSelf(
+            new XElement("packageSource",
+              new XAttribute("key", "nuget-local"),
+              new XElement("package", new XAttribute("pattern", "*Aspire*"))));
+
           doc.Save(OutputFile);
           Log.LogMessage(MessageImportance.Low, $"Generated patched nuget.config at {OutputFile}");
         ]]>
