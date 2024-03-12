@@ -244,22 +244,22 @@ public class ManifestGenerationTests
               "image": "image/name:latest",
               "bindMounts": [
                 {
-                  "source": "net8.0/some/source",
+                  "source": "some/source",
                   "target": "/bound",
                   "readOnly": false
                 },
                 {
-                  "source": "net8.0/not/relative/qualified",
+                  "source": "not/relative/qualified",
                   "target": "/another/place",
                   "readOnly": false
                 },
                 {
-                  "source": "net8.0/some/other/source",
+                  "source": "some/other/source",
                   "target": "/mount/here",
                   "readOnly": false
                 },
                 {
-                  "source": "net8.0/some/file/path.txt",
+                  "source": "some/file/path.txt",
                   "target": "/mount/there.txt",
                   "readOnly": true
                 }
