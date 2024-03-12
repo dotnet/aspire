@@ -59,6 +59,8 @@ var sb = builder.AddAzureServiceBusConstruct("servicebus")
     .AddSubscription("topic1", "subscription2")
     .AddTopic("topic3", new[] { "sub1", "sub2" });
 
+var appConfig = builder.AddAzureAppConfigurationConstruct("appConfig");
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(blobs)
     .WithReference(sqldb)
@@ -66,7 +68,8 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(cache)
     .WithReference(cosmosdb)
     .WithReference(pgsqldb)
-    .WithReference(sb);
+    .WithReference(sb)
+    .WithReference(appConfig);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

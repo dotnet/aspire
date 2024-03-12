@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.AppConfiguration;
 
 namespace Aspire.Hosting;
 
@@ -25,5 +26,37 @@ public static class AzureAppConfigurationExtensions
                 .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                 .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                 .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// Adds an Azure App Configuration resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="configureResource"></param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureAppConfigurationConstructResource> AddAzureAppConfigurationConstruct(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureAppConfigurationConstructResource>, ResourceModuleConstruct, AppConfigurationStore>? configureResource = null)
+    {
+        var configureConstruct = (ResourceModuleConstruct construct) =>
+        {
+            var store = new AppConfigurationStore(construct, name: name);
+
+            // PROBLEM #1: We don't seem to have the ability to set the SKU, assigning this property does nothing.
+            //             https://github.com/Azure/azure-sdk-for-net/issues/42623
+            store.AssignProperty(x => x.SkuName, "Standard");
+
+            if (configureResource != null)
+            {
+                var resource = (AzureAppConfigurationConstructResource)construct.Resource;
+                var resourceBuilder = builder.CreateResourceBuilder(resource);
+                configureResource(resourceBuilder, construct, store);
+            }
+        };
+
+        var resource = new AzureAppConfigurationConstructResource(name, configureConstruct);
+        return builder.AddResource(resource)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }
