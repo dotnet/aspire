@@ -22,7 +22,7 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     {
         if (type == ContainerMountType.Bind && source == null)
         {
-            throw new ArgumentException("Source can't be null for a bind mount", nameof(source));
+            throw new ArgumentException("Source can't be null for a bind mount.", nameof(source));
         }
         ArgumentNullException.ThrowIfNull(target);
 
