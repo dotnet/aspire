@@ -10,7 +10,7 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
     /// <summary>
     /// The resource that the connection string is referencing.
     /// </summary>
-    public IResourceWithConnectionString Resource { get; } = resource;
+    public IResourceWithConnectionString Resource { get; } = resource ?? throw new ArgumentNullException(nameof(resource));
 
     /// <summary>
     /// A flag indicating whether the connection string is optional.

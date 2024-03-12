@@ -10,10 +10,22 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A service that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public class ResourceNotificationService(ILogger<ResourceNotificationService> logger)
+public class ResourceNotificationService
 {
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
+    private readonly ILogger<ResourceNotificationService> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ResourceNotificationService"/> class.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger)
+    {
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _logger = logger;
+    }
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
 
@@ -44,9 +56,9 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
 
-            if (logger.IsEnabled(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
-                logger.LogDebug("Resource {Resource}/{ResourceId} -> {State}", resource.Name, resourceId, newState.State);
+                _logger.LogDebug("Resource {Resource}/{ResourceId} -> {State}", resource.Name, resourceId, newState.State);
             }
 
             return Task.CompletedTask;
