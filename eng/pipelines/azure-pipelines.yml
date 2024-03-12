@@ -4,7 +4,6 @@ trigger:
     include:
     - main
     - release/*
-    - internal/release/*
 
 pr:
   branches:
@@ -12,10 +11,8 @@ pr:
     - main
     - release/*
     - feature/*
-    - internal/release/*
 
 variables:
-  - template: /eng/pipelines/common-variables.yml
   - template: /eng/common/templates/variables/pool-providers.yml
 
   - name: _BuildConfig
@@ -27,36 +24,20 @@ variables:
   - name: Build.Arcade.TestResultsPath
     value: $(Build.Arcade.ArtifactsPath)TestResults/$(_BuildConfig)/
 
-  # Produce test-signed build for PR and Public builds
-  - ${{ if or(eq(variables['_RunAsPublic'], 'true'), eq(variables['Build.Reason'], 'PullRequest')) }}:
-    # needed for darc (dependency flow) publishing
-    - name: _PublishArgs
-      value: ''
-    - name: _OfficialBuildIdArgs
-      value: ''
-    # needed for signing
-    - name: _SignType
-      value: test
-    - name: _SignArgs
-      value: ''
-    - name: _Sign
-      value: false
-
-  # Set up non-PR build from internal project
-  - ${{ if and(ne(variables['_RunAsPublic'], 'true'), ne(variables['Build.Reason'], 'PullRequest')) }}:
-    # needed for darc (dependency flow) publishing
-    - name: _PublishArgs
-      value: >-
-            /p:DotNetPublishUsingPipelines=true
-    - name: _OfficialBuildIdArgs
-      value: /p:OfficialBuildId=$(BUILD.BUILDNUMBER)
-    # needed for signing
-    - name: _SignType
-      value: real
-    - name: _SignArgs
-      value: /p:DotNetSignType=$(_SignType) /p:TeamName=$(_TeamName) /p:Sign=$(_Sign) /p:DotNetPublishUsingPipelines=true
-    - name: _Sign
-      value: true
+  # needed for darc (dependency flow) publishing
+  - name: _PublishArgs
+    value: ''
+  - name: _OfficialBuildIdArgs
+    value: ''
+  # needed for signing
+  - name: _SignType
+    value: test
+  - name: _SignArgs
+    value: ''
+  - name: _Sign
+    value: false
+  - name: HelixApiAccessToken
+    value: ''
 
 resources:
   containers:
@@ -71,13 +52,6 @@ stages:
 - stage: build
   displayName: Build
   jobs:
-  - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
-    - template: /eng/common/templates/job/onelocbuild.yml
-      parameters:
-        LclSource: lclFilesfromPackage
-        LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
-        MirrorRepo: aspire
-        MirrorBranch: main
   - template: /eng/common/templates/jobs/jobs.yml
     parameters:
       artifacts:
@@ -102,12 +76,8 @@ stages:
         timeoutInMinutes: 60
 
         pool:
-          ${{ if eq(variables['System.TeamProject'], 'public') }}:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals windows.vs2022preview.amd64.open
-          ${{ else }}:
-            name: $(DncEngInternalBuildPool)
-            demands: ImageOverride -equals windows.vs2022preview.amd64
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals windows.vs2022preview.amd64.open
 
         variables:
           - name: _buildScript
@@ -121,7 +91,7 @@ stages:
         steps:
           - template: /eng/pipelines/templates/BuildAndTest.yml
             parameters:
-              runAsPublic: ${{ eq(variables._RunAsPublic, True) }}
+              runAsPublic: true
               dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
               buildScript: $(_buildScript)
               buildConfig: $(_BuildConfig)
@@ -129,39 +99,33 @@ stages:
               repoTestResultsPath: $(Build.Arcade.TestResultsPath)
               isWindows: true
 
+      - job: linux
+        # timeout accounts for wait times for helix agents up to 30mins
+        timeoutInMinutes: 60
 
-      - ${{ if eq(variables._RunAsPublic, True) }}:
-        - job: linux
-          # timeout accounts for wait times for helix agents up to 30mins
-          timeoutInMinutes: 60
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2004.amd64.open
 
-          pool:
-            ${{ if eq(variables['System.TeamProject'], 'public') }}:
-              name: $(DncEngPublicBuildPool)
-              demands: ImageOverride -equals build.ubuntu.2004.amd64.open
-            ${{ else }}:
-              name: $(DncEngInternalBuildPool)
-              demands: ImageOverride -equals build.ubuntu.2004.amd64
+        variables:
+          - name: _buildScript
+            value: $(Build.SourcesDirectory)/build.sh --ci
 
-          variables:
-            - name: _buildScript
-              value: $(Build.SourcesDirectory)/build.sh --ci
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
 
-          preSteps:
-            - checkout: self
-              fetchDepth: 1
-              clean: true
-
-          steps:
-          - template: /eng/pipelines/templates/BuildAndTest.yml
-            parameters:
-              runAsPublic: ${{ eq(variables._RunAsPublic, True) }}
-              dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
-              buildScript: $(_buildScript)
-              buildConfig: $(_BuildConfig)
-              repoLogPath: $(Build.Arcade.LogsPath)
-              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-              isWindows: false
+        steps:
+        - template: /eng/pipelines/templates/BuildAndTest.yml
+          parameters:
+            runAsPublic: true
+            dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
+            buildScript: $(_buildScript)
+            buildConfig: $(_BuildConfig)
+            repoLogPath: $(Build.Arcade.LogsPath)
+            repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+            isWindows: false
 
 
 # ----------------------------------------------------------------
@@ -192,12 +156,8 @@ stages:
         timeoutInMinutes: 10
 
         pool:
-          ${{ if eq(variables['System.TeamProject'], 'public') }}:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals build.ubuntu.2004.amd64.open
-          ${{ else }}:
-            name: $(DncEngInternalBuildPool)
-            demands: ImageOverride -equals build.ubuntu.2004.amd64
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2004.amd64.open
 
         preSteps:
           - checkout: self
@@ -209,23 +169,3 @@ stages:
           displayName: Init toolset
 
         - template: /eng/pipelines/templates/VerifyCoverageReport.yml
-
-
-- ${{ if eq(variables._RunAsInternal, True) }}:
-  - template: /eng/common/templates/post-build/post-build.yml
-    parameters:
-      publishAssetsImmediately: true
-      SDLValidationParameters:
-        enable: false
-        params: ' -SourceToolsList $(_TsaSourceToolsList)
-          -TsaInstanceURL $(_TsaInstanceURL)
-          -TsaProjectName $(_TsaProjectName)
-          -TsaNotificationEmail $(_TsaNotificationEmail)
-          -TsaCodebaseAdmin $(_TsaCodebaseAdmin)
-          -TsaBugAreaPath $(_TsaBugAreaPath)
-          -TsaIterationPath $(_TsaIterationPath)
-          -TsaRepositoryName $(_TsaRepositoryName)
-          -TsaCodebaseName $(_TsaCodebaseName)
-          -TsaOnboard $(_TsaOnboard)
-          -TsaPublish $(_TsaPublish)'
-
