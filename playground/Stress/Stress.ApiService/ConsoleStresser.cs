@@ -33,6 +33,7 @@ public static class ConsoleStresser
         Console.Write("\x1b[32mlocalhost\x1b[0m");
         Console.Write("\x1b[33m:7002\x1b[0m");
         Console.WriteLine();
+        Console.WriteLine();
 
         Console.WriteLine("URL examples:");
         Console.Write("\x1b[36m"); // Set color so we can see the difference between URLs and the rest of the text
