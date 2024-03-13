@@ -318,9 +318,10 @@ public class BicepOutputReference(string name, AzureBicepResource resource) : IM
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
     {
-        if (Resource.ProvisioningTaskCompletionSource is not null)
+        var provisioning = Resource.ProvisioningTaskCompletionSource;
+        if (provisioning is not null)
         {
-            await Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await provisioning.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return Value;

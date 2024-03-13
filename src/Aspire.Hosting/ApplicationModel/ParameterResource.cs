@@ -18,6 +18,9 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     /// <param name="secret">A flag indicating whether the parameter is secret.</param>
     public ParameterResource(string name, Func<string> callback, bool secret = false) : base(name)
     {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(callback);
+
         _valueInput = new InputAnnotation("value", secret);
         _valueInput.SetValueGetter(callback);
 

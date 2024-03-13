@@ -37,5 +37,5 @@ public class EnvironmentCallbackContext(DistributedApplicationExecutionContext e
     /// <summary>
     /// Gets the execution context associated with this invocation of the AppHost.
     /// </summary>
-    public DistributedApplicationExecutionContext ExecutionContext { get; } = executionContext;
+    public DistributedApplicationExecutionContext ExecutionContext { get; } = executionContext ?? throw new ArgumentNullException(nameof(executionContext));
 }
