@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls.Chart;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -39,8 +40,8 @@ public partial class PlotlyChart : ChartBase
                 "plotly-chart-container",
                 traceDtos,
                 xValues,
-                inProgressDataTime.ToLocalTime(),
-                (inProgressDataTime - Duration).ToLocalTime(),
+                TimeProvider.ToLocal(inProgressDataTime),
+                TimeProvider.ToLocal(inProgressDataTime - Duration).ToLocalTime(),
                 userLocale).ConfigureAwait(false);
         }
         else
@@ -49,8 +50,8 @@ public partial class PlotlyChart : ChartBase
                 "plotly-chart-container",
                 traceDtos,
                 xValues,
-                inProgressDataTime.ToLocalTime(),
-                (inProgressDataTime - Duration).ToLocalTime()).ConfigureAwait(false);
+                TimeProvider.ToLocal(inProgressDataTime),
+                TimeProvider.ToLocal(inProgressDataTime - Duration)).ConfigureAwait(false);
         }
     }
 }

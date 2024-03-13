@@ -107,7 +107,10 @@ public class DashboardWebApplication : IAsyncDisposable
         // ShortcutManager is scoped because we want shortcuts to apply one browser window.
         builder.Services.AddScoped<ShortcutManager>();
         builder.Services.AddSingleton<IInstrumentUnitResolver, DefaultInstrumentUnitResolver>();
-        builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+
+        // Time zone is set by the browser.
+        builder.Services.AddScoped<TimeProvider>(s => s.GetRequiredService<BrowserTimeProvider>());
+        builder.Services.AddScoped<BrowserTimeProvider>(s => new BrowserTimeProvider());
 
         builder.Services.AddLocalization();
 

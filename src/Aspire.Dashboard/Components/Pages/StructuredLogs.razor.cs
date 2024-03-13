@@ -50,6 +50,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
+    [Inject]
+    public required TimeProvider TimeProvider { get; set; }
+
     [Parameter]
     [SupplyParameterFromQuery]
     public string? TraceId { get; set; }

@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Aspire.Dashboard.Extensions;
 
 namespace Aspire.Dashboard.Utils;
 
@@ -49,10 +50,10 @@ internal static partial class FormatHelpers
 
     private static string GetShortDateLongTimePatternWithMilliseconds(CultureInfo cultureInfo) => GetMillisecondFormatStrings(cultureInfo).ShortDateLongTimePattern;
 
-    public static string FormatTime(DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
+    public static string FormatTime(TimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
-        var local = value.ToLocalTime();
+        var local = timeProvider.ToLocal(value);
 
         // Long time
         return includeMilliseconds
@@ -60,10 +61,10 @@ internal static partial class FormatHelpers
             : local.ToString("T", cultureInfo);
     }
 
-    public static string FormatDateTime(DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
+    public static string FormatDateTime(TimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
-        var local = value.ToLocalTime();
+        var local = timeProvider.ToLocal(value);
 
         // Short date, long time
         return includeMilliseconds
@@ -71,21 +72,21 @@ internal static partial class FormatHelpers
             : local.ToString("G", cultureInfo);
     }
 
-    public static string FormatTimeWithOptionalDate(DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
+    public static string FormatTimeWithOptionalDate(TimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
     {
-        var local = value.ToLocalTime();
+        var local = timeProvider.ToLocal(value);
 
         // If the date is today then only return time, otherwise return entire date time text.
         if (local.Date == DateTime.Now.Date)
         {
             // e.g. "08:57:44" (based on user's culture and preferences)
             // Don't include milliseconds as resource server returned time stamp is second precision.
-            return FormatTime(local, includeMilliseconds, cultureInfo);
+            return FormatTime(timeProvider, local, includeMilliseconds, cultureInfo);
         }
         else
         {
             // e.g. "9/02/2024 08:57:44" (based on user's culture and preferences)
-            return FormatDateTime(local, includeMilliseconds, cultureInfo);
+            return FormatDateTime(timeProvider, local, includeMilliseconds, cultureInfo);
         }
     }
 
