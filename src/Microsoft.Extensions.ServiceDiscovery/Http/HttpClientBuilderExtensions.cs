@@ -31,7 +31,8 @@ public static class HttpClientBuilderExtensions
             var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
             var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
             var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
-            return new ResolvingHttpDelegatingHandler(registry);
+            var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();
+            return new ResolvingHttpDelegatingHandler(registry, options);
         });
 
         // Configure the HttpClient to disable gRPC load balancing.
@@ -53,11 +54,11 @@ public static class HttpClientBuilderExtensions
         httpClientBuilder.AddHttpMessageHandler(services =>
         {
             var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
-
             var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
             var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
             var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
-            return new ResolvingHttpDelegatingHandler(registry);
+            var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();
+            return new ResolvingHttpDelegatingHandler(registry, options);
         });
 
         // Configure the HttpClient to disable gRPC load balancing.

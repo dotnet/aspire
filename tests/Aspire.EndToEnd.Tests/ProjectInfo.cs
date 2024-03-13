@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Serialization;
+using Xunit.Abstractions;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -34,7 +35,7 @@ public sealed class ProjectInfo
         return Client.GetStringAsync(url, cancellationToken);
     }
 
-    public async Task WaitForHealthyStatusAsync(string bindingName, CancellationToken cancellationToken = default)
+    public async Task WaitForHealthyStatusAsync(string bindingName, ITestOutputHelper testOutput, CancellationToken cancellationToken = default)
     {
         while (true)
         {
@@ -46,8 +47,9 @@ public sealed class ProjectInfo
                     return;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                testOutput.WriteLine($"WaitForHealthyStatusAsync failed for {bindingName}: {ex}");
                 await Task.Delay(100, cancellationToken);
             }
         }

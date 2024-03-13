@@ -83,7 +83,7 @@ The .NET Aspire SqlClient component supports [Microsoft.Extensions.Configuration
 Also you can pass the `Action<MicrosoftDataSqlClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddSqlServerClient("sqldata", settings => settings.HealthChecks = false);
+builder.AddSqlServerClient("sqldata", settings => settings.HealthChecks = false);
 ```
 
 ## AppHost extensions

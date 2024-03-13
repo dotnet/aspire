@@ -26,10 +26,11 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// <summary>
     /// Gets the connection string for the Postgres database.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>A connection string for the Postgres database.</returns>
-    public string? GetConnectionString()
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
     {
-        if (Parent.GetConnectionString() is { } connectionString)
+        if (await Parent.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false) is { } connectionString)
         {
             return $"{connectionString};Database={DatabaseName}";
         }

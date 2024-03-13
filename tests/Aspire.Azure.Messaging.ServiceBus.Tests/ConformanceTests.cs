@@ -68,11 +68,11 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
     {
         if (key is null)
         {
-            builder.AddAzureServiceBus("sb", ConfigureCredentials);
+            builder.AddAzureServiceBusClient("sb", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureServiceBus(key, ConfigureCredentials);
+            builder.AddKeyedAzureServiceBusClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureMessagingServiceBusSettings settings)

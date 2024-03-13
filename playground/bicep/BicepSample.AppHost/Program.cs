@@ -1,17 +1,32 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Azure;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
 var parameter = builder.AddParameter("val");
 
-var templ = builder.AddBicepTemplate("test", "test.bicep")
+AzureBicepResource? temp00 = null;
+
+var bicep1 = builder.AddBicepTemplate("test", "test.bicep")
                    .WithParameter("test", parameter)
+                   // This trick veries the output reference is working regardless of declaration order
+                   .WithParameter("p2", () => new BicepOutputReference("val0", temp00!))
                    .WithParameter("values", ["one", "two"]);
 
-var kv = builder.AddAzureKeyVault("kv");
+var bicep0 = builder.AddBicepTemplateString("test0",
+            """
+            param location string = ''
+            output val0 string = location
+            """
+            );
+
+temp00 = bicep0.Resource;
+
+var kv = builder.AddAzureKeyVault("kv3");
 var appConfig = builder.AddAzureAppConfiguration("appConfig").WithParameter("sku", "standard");
 var storage = builder.AddAzureStorage("storage");
                     // .RunAsEmulator();
@@ -56,9 +71,9 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(redis)
        .WithReference(serviceBus)
        .WithReference(signalr)
-       .WithEnvironment("bicepValue_test", templ.GetOutput("test"))
-       .WithEnvironment("bicepValue0", templ.GetOutput("val0"))
-       .WithEnvironment("bicepValue1", templ.GetOutput("val1"));
+       .WithEnvironment("bicepValue_test", bicep1.GetOutput("test"))
+       .WithEnvironment("bicepValue0", bicep1.GetOutput("val0"))
+       .WithEnvironment("bicepValue1", bicep1.GetOutput("val1"));
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

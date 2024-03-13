@@ -1,45 +1,57 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// A resource that represents a MySQL container.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-/// <param name="password">The MySQL server root password.</param>
-public class MySqlServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
+public class MySqlServerResource : ContainerResource, IResourceWithConnectionString
 {
+    internal static string PrimaryEndpointName => "tcp";
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RabbitMQServerResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="password">The MySQL server root password, or <see langword="null"/> to generate a random password.</param>
+    public MySqlServerResource(string name, string? password = null) : base(name)
+    {
+        PrimaryEndpoint = new(this, PrimaryEndpointName);
+        PasswordInput = new(this, "password");
+
+        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(password));
+    }
+
+    /// <summary>
+    /// Gets the primary endpoint for the MySQL server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint { get; }
+
+    internal InputReference PasswordInput { get; }
+
     /// <summary>
     /// Gets the MySQL server root password.
     /// </summary>
-    public string Password { get; } = password;
+    public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
+
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"Server={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=root;Password={PasswordInput}");
 
     /// <summary>
     /// Gets the connection string expression for the MySQL server.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"Server={{{Name}.bindings.tcp.host}};Port={{{Name}.bindings.tcp.port}};User ID=root;Password={{{Name}.inputs.password}}";
+        ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the MySQL server.
     /// </summary>
-    /// <returns>A connection string for the MySQL server in the form "Server=host;Port=port;User ID=root;Password=password".</returns>
-    public string? GetConnectionString()
-    {
-        if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException("Expected allocated endpoints!");
-        }
-
-        var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for MySQL.
-
-        var connectionString = $"Server={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};User ID=root;Password=\"{PasswordUtil.EscapePassword(Password)}\"";
-        return connectionString;
-    }
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
+        ConnectionString.GetValueAsync(cancellationToken);
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 
@@ -51,22 +63,5 @@ public class MySqlServerResource(string name, string password) : ContainerResour
     internal void AddDatabase(string name, string databaseName)
     {
         _databases.TryAdd(name, databaseName);
-    }
-
-    internal void WriteToManifest(ManifestPublishingContext context)
-    {
-        context.WriteContainer(this);
-
-        context.Writer.WriteStartObject("inputs");      // "inputs": {
-        context.Writer.WriteStartObject("password");    //   "password": {
-        context.Writer.WriteString("type", "string");   //     "type": "string",
-        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
-        context.Writer.WriteStartObject("default");     //     "default": {
-        context.Writer.WriteStartObject("generate");    //       "generate": {
-        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
-        context.Writer.WriteEndObject();                //       }
-        context.Writer.WriteEndObject();                //     }
-        context.Writer.WriteEndObject();                //   }
-        context.Writer.WriteEndObject();                // }
     }
 }

@@ -10,6 +10,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <PackageOutputPath Condition=" '$(PackageOutputPath)' == '' ">$(ArtifactsShippingPackagesDir)</PackageOutputPath>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddPackageFiles</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -39,8 +40,19 @@
 
   <Target Name="Build" />
 
+  <Target Name="AddPackageFiles" Returns="@(TfmSpecificPackageFile)">
+    <PropertyGroup>
+      <_DcpNuGetRootPath>$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools</_DcpNuGetRootPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <_DcpFiles Include="$(_DcpNuGetRootPath)\**\*" />
+      <TfmSpecificPackageFile Include="@(_DcpFiles)" PackagePath="tools/" />
+    </ItemGroup>
+
+    <Error Condition="@(_DcpFiles->Count()) == 0" Text="No dcp files found in : $(_DcpNuGetRootPath)" />
+  </Target>
+
   <ItemGroup>
-    <None Include="$(NuGetPackageRoot)Microsoft.DeveloperControlPlane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/**/*" Pack="true" PackagePath="tools/" />
     <None Include="Sdk.props" Pack="true" PackagePath="Sdk/" />
     <None Include="Sdk.in.targets" PerformTextReplacement="True" Pack="true" PackagePath="Sdk/" />
     <None Include="Aspire.Hosting.Orchestration.props" pack="true" PackagePath="build/$(PackageId).props" />

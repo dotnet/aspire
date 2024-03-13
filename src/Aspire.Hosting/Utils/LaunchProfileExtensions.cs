@@ -29,7 +29,7 @@ internal static class LaunchProfileExtensions
         return projectMetadata.GetLaunchSettings();
     }
 
-    internal static LaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource)
+    internal static LaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource, bool throwIfNotFound = false)
     {
         string? launchProfileName = projectResource.SelectLaunchProfileName();
         if (string.IsNullOrEmpty(launchProfileName))
@@ -44,11 +44,22 @@ internal static class LaunchProfileExtensions
         }
 
         var found = profiles.TryGetValue(launchProfileName, out var launchProfile);
+        if (!found && throwIfNotFound)
+        {
+            var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
+            throw new DistributedApplicationException(message);
+        }
         return found == true ? launchProfile : null;
     }
 
     private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)
     {
+        // For testing
+        if (projectMetadata.LaunchSettings is { } launchSettings)
+        {
+            return launchSettings;
+        }
+
         if (!File.Exists(projectMetadata.ProjectPath))
         {
             var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);

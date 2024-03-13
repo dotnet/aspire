@@ -19,10 +19,10 @@ dotnet add package Aspire.Microsoft.Azure.Cosmos
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureCosmosDB` extension method to register a `CosmosClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddAzureCosmosDbClient` extension method to register a `CosmosClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureCosmosDB("cosmosConnectionName");
+builder.AddAzureCosmosDbClient("cosmosConnectionName");
 ```
 
 You can then retrieve the `CosmosClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -44,10 +44,10 @@ The .NET Aspire Azure Cosmos DB library provides multiple options to configure t
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureCosmosDB()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureCosmosDbClient()`:
 
 ```csharp
-builder.AddAzureCosmosDB("cosmosConnectionName");
+builder.AddAzureCosmosDbClient("cosmosConnectionName");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
@@ -99,13 +99,13 @@ The .NET Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions
 You can also pass the `Action<AzureCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-    builder.AddAzureCosmosDB("cosmosConnectionName", settings => settings.Tracing = false);
+builder.AddAzureCosmosDbClient("cosmosConnectionName", settings => settings.Tracing = false);
 ```
 
-You can also setup the [CosmosClientOptions](https://learn.microsoft.com/dotnet/api/microsoft.azure.cosmos.cosmosclientoptions) using the optional `Action<CosmosClientOptions> configureClientOptions` parameter of the `AddAzureCosmosDB` method. For example, to set the `ApplicationName` "User-Agent" header suffix for all requests issues by this client:
+You can also setup the [CosmosClientOptions](https://learn.microsoft.com/dotnet/api/microsoft.azure.cosmos.cosmosclientoptions) using the optional `Action<CosmosClientOptions> configureClientOptions` parameter of the `AddAzureCosmosDbClient` method. For example, to set the `ApplicationName` "User-Agent" header suffix for all requests issues by this client:
 
 ```csharp
-    builder.AddAzureCosmosDB("cosmosConnectionName", configureClientOptions: clientOptions => clientOptions.ApplicationName = "myapp");
+builder.AddAzureCosmosDbClient("cosmosConnectionName", configureClientOptions: clientOptions => clientOptions.ApplicationName = "myapp");
 ```
 
 ## AppHost extensions
@@ -144,7 +144,7 @@ When the AppHost starts up a local container running the Azure CosmosDB will als
 
 ```csharp
 // Service code
-builder.AddCosmosDB("cosmos");
+builder.AddAzureCosmosDbClient("cosmos");
 ```
 
 ## Additional documentation

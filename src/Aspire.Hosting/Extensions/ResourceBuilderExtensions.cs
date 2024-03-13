@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -34,6 +33,25 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
+    /// <param name="value">The value of the environment variable.</param>
+    /// <returns>A resource configured with the specified environment variable.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, in ExpressionInterpolatedStringHandler value)
+        where T : IResourceWithEnvironment
+    {
+        var expression = value.GetExpression();
+
+        return builder.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables[name] = expression;
+        });
+    }
+
+    /// <summary>
+    /// Adds an environment variable to the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
     /// <param name="callback">A callback that allows for deferred execution of a specific environment variable. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>A resource configured with the specified environment variable.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : IResourceWithEnvironment
@@ -54,6 +72,18 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Allows for the population of environment variables on a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
+    /// <returns>A resource configured with the environment variable callback.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Func<EnvironmentCallbackContext, Task> callback) where T : IResourceWithEnvironment
+    {
+        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
+    }
+
+    /// <summary>
     /// Adds an environment variable to the resource with the endpoint for <paramref name="endpointReference"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -65,17 +95,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[name] = endpointReference.ValueExpression;
-                return;
-            }
-
-            var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
-
-            context.EnvironmentVariables[name] = replaceLocalhostWithContainerHost
-            ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.Value, builder.ApplicationBuilder.Configuration)
-            : endpointReference.Value;
+            context.EnvironmentVariables[name] = endpointReference;
         });
     }
 
@@ -91,14 +111,48 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[name] = parameter.Resource.ValueExpression;
-                return;
-            }
-
-            context.EnvironmentVariables[name] = parameter.Resource.Value;
+            context.EnvironmentVariables[name] = parameter.Resource;
         });
+    }
+
+    /// <summary>
+    /// Adds the arguments to be passed to a container resource when the container is started.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="args">The arguments to be passed to the container when it is started.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : IResourceWithArgs
+    {
+        return builder.WithArgs(context => context.Args.AddRange(args));
+    }
+
+    /// <summary>
+    /// Adds a callback to be executed with a list of command-line arguments when a container resource is started.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Action<CommandLineArgsCallbackContext> callback) where T : IResourceWithArgs
+    {
+        return builder.WithArgs(context =>
+        {
+            callback(context);
+            return Task.CompletedTask;
+        });
+    }
+
+    /// <summary>
+    /// Adds a callback to be executed with a list of command-line arguments when a container resource is started.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Func<CommandLineArgsCallbackContext, Task> callback) where T : IResourceWithArgs
+    {
+        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(callback));
     }
 
     /// <summary>
@@ -109,6 +163,19 @@ public static class ResourceBuilderExtensions
     /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Action<ManifestPublishingContext> callback) where T : IResource
+    {
+        // You can only ever have one manifest publishing callback, so it must be a replace operation.
+        return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Registers an async callback which is invoked when manifest is generated for the app model.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Func<ManifestPublishingContext, Task> callback) where T : IResource
     {
         // You can only ever have one manifest publishing callback, so it must be a replace operation.
         return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
@@ -127,43 +194,23 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ConnectionStringRedirectAnnotation(resource), ResourceAnnotationMutationBehavior.Replace);
     }
 
-    private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
-    {
-        // An ambiguous endpoint is where any scheme (
-        return endpoints.GroupBy(e => e.UriScheme).Any(g => g.Count() > 1);
-    }
-
-    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback<T>(IResourceBuilder<T> builder, EndpointReferenceAnnotation endpointReferencesAnnotation)
-        where T : IResourceWithEnvironment
+    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation)
     {
         return (context) =>
         {
-            var name = endpointReferencesAnnotation.Resource.Name;
-
-            var allocatedEndPoints = endpointReferencesAnnotation.Resource.Annotations
-                .OfType<AllocatedEndpointAnnotation>()
-                .Where(a => endpointReferencesAnnotation.UseAllEndpoints || endpointReferencesAnnotation.EndpointNames.Contains(a.Name));
-
-            var containsAmbiguousEndpoints = ContainsAmbiguousEndpoints(allocatedEndPoints);
-
-            var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
-            var configuration = builder.ApplicationBuilder.Configuration;
-
-            var i = 0;
-            foreach (var allocatedEndPoint in allocatedEndPoints)
+            var annotation = endpointReferencesAnnotation;
+            var serviceName = annotation.Resource.Name;
+            foreach (var endpoint in annotation.Resource.GetEndpoints())
             {
-                var endpointNameQualifiedUriStringKey = $"services__{name}__{i++}";
-                context.EnvironmentVariables[endpointNameQualifiedUriStringKey] = replaceLocalhostWithContainerHost
-                    ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.EndpointNameQualifiedUriString, configuration)
-                    : allocatedEndPoint.EndpointNameQualifiedUriString;
-
-                if (!containsAmbiguousEndpoints)
+                var endpointName = endpoint.EndpointName;
+                if (!annotation.UseAllEndpoints && !annotation.EndpointNames.Contains(endpointName))
                 {
-                    var uriStringKey = $"services__{name}__{i++}";
-                    context.EnvironmentVariables[uriStringKey] = replaceLocalhostWithContainerHost
-                        ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.UriString, configuration)
-                        : allocatedEndPoint.UriString;
+                    // Skip this endpoint since it's not in the list of endpoints we want to reference.
+                    continue;
                 }
+
+                // Add the endpoint, rewriting localhost to the container host if necessary.
+                context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = endpoint;
             }
         };
     }
@@ -173,7 +220,7 @@ public static class ResourceBuilderExtensions
     /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}."
     /// <para>
     /// Each resource defines the format of the connection string value. The
-    /// underlying connection string value can be retrieved using <see cref="IResourceWithConnectionString.GetConnectionString"/>.
+    /// underlying connection string value can be retrieved using <see cref="IResourceWithConnectionString.GetConnectionStringAsync(CancellationToken)"/>.
     /// </para>
     /// <para>
     /// Connection strings are also resolved by the configuration system (appSettings.json in the AppHost project, or environment variables). If a connection string is not found on the resource, the configuration system will be queried for a connection string
@@ -197,37 +244,13 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            if (context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
-                return;
-            }
-
-            var connectionString = resource.GetConnectionString();
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                if (optional)
-                {
-                    // This is an optional connection string, so we can just return.
-                    return;
-                }
-
-                throw new DistributedApplicationException($"A connection string for '{resource.Name}' could not be retrieved.");
-            }
-
-            if (builder.Resource is ContainerResource)
-            {
-                connectionString = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionString, builder.ApplicationBuilder.Configuration);
-            }
-
-            context.EnvironmentVariables[connectionStringName] = connectionString;
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
         });
     }
 
     /// <summary>
     /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
-    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointIndex}={endpointNameQualifiedUriString}."
+    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -267,7 +290,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
-    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointIndex}={endpointNameQualifiedUriString}."
+    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -297,7 +320,7 @@ public static class ResourceBuilderExtensions
             endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
             builder.WithAnnotation(endpointReferenceAnnotation);
 
-            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(builder, endpointReferenceAnnotation);
+            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation);
             builder.WithEnvironment(callback);
         }
 
@@ -370,8 +393,8 @@ public static class ResourceBuilderExtensions
         if (endpoint != null)
         {
             callback(endpoint);
-
         }
+
         if (endpoint == null && createIfNotExists)
         {
             endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);

@@ -8,7 +8,7 @@ builder.AddServiceDefaults();
 
 builder.Services.AddHttpForwarderWithServiceDiscovery();
 
-builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("http://catalogservice"));
+builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("https+http://catalogservice"));
 
 builder.Services.AddSingleton<BasketServiceClient>()
                 .AddGrpcClient<Basket.BasketClient>(o => o.Address = new("http://basketservice"));

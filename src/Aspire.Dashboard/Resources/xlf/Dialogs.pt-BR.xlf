@@ -4,57 +4,142 @@
     <body>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
-        <target state="new">Apply filter</target>
+        <target state="translated">Aplicar filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogCancelButtonText">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">Cancelar</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogConditionSelectLabel">
         <source>Select a filter condition</source>
-        <target state="new">Select a filter condition</target>
+        <target state="translated">Selecionar uma condição de filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
-        <target state="new">Field</target>
+        <target state="translated">Campo</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
         <source>Remove filter</source>
-        <target state="new">Remove filter</target>
+        <target state="translated">Remover filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogTextValuePlaceholder">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Valor</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryNavigation">
+        <source>Site-wide navigation</source>
+        <target state="translated">Navegação em todo o site</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryPageNavigation">
+        <source>Page navigation</source>
+        <target state="translated">Navegação na página</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryPanels">
+        <source>Panels</source>
+        <target state="translated">Painéis</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDecreasePanelSize">
+        <source>Decrease panel size</source>
+        <target state="translated">Diminuir tamanho do painel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGetHelpLinkText">
+        <source>Go to Microsoft Learn documentation</source>
+        <target state="translated">Ir para a documentação do Microsoft Learn</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToConsoleLogs">
+        <source>Go to Console Logs</source>
+        <target state="translated">Ir para Logs do Console</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToHelp">
+        <source>Go to Help</source>
+        <target state="translated">Ir para Ajuda</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToMetrics">
+        <source>Go to Metrics</source>
+        <target state="translated">Ir para Métricas</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToResources">
+        <source>Go to Resources</source>
+        <target state="translated">Ir para Recursos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToSettings">
+        <source>Go to Settings</source>
+        <target state="translated">Ir para Configurações</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToStructuredLogs">
+        <source>Go to Structured Logs</source>
+        <target state="translated">Ir para Logs Estruturados</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToTraces">
+        <source>Go to Traces</source>
+        <target state="translated">Ir para Rastreamentos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogIncreasePanelSize">
+        <source>Increase panel size</source>
+        <target state="translated">Aumentar o tamanho do painel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogKeyboardShortcutsTitle">
+        <source>Keyboard Shortcuts</source>
+        <target state="translated">Atalhos de Teclado</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogResetPanelSize">
+        <source>Reset panel sizes</source>
+        <target state="translated">Redefinir tamanhos do painel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogTogglePanelOpen">
+        <source>Close panel</source>
+        <target state="translated">Fechar o painel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogTogglePanelOrientation">
+        <source>Toggle panel orientation</source>
+        <target state="translated">Alternar orientação do painel</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
-        <target state="new">Dark</target>
+        <target state="translated">Escuro</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
-        <target state="new">Light</target>
+        <target state="translated">Claro</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
-        <target state="new">System</target>
+        <target state="translated">Sistema</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">
         <source>Theme</source>
-        <target state="new">Theme</target>
+        <target state="translated">Tema</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogVersion">
         <source>Version: {0}</source>
-        <target state="new">Version: {0}</target>
+        <target state="translated">Versão: {0}</target>
         <note>{0} is the dashboard version string</note>
       </trans-unit>
     </body>

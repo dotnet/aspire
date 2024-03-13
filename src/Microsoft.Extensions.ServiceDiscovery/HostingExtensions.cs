@@ -4,8 +4,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery.Internal;
 using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 
 namespace Microsoft.Extensions.Hosting;
@@ -36,10 +38,12 @@ public static class HostingExtensions
     {
         services.AddOptions();
         services.AddLogging();
+        services.TryAddSingleton<ServiceNameParser>();
+        services.TryAddTransient<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
         services.TryAddSingleton<TimeProvider>(static sp => TimeProvider.System);
         services.TryAddSingleton<IServiceEndPointSelectorProvider, RoundRobinServiceEndPointSelectorProvider>();
         services.TryAddSingleton<ServiceEndPointResolverFactory>();
-        services.TryAddSingleton<ServiceEndPointResolverRegistry>();
+        services.TryAddSingleton<ServiceEndPointResolver>(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointResolverFactory>(), sp.GetRequiredService<TimeProvider>()));
         return services;
     }
 
@@ -63,6 +67,7 @@ public static class HostingExtensions
     {
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IServiceEndPointResolverProvider, ConfigurationServiceEndPointResolverProvider>();
+        services.AddTransient<IValidateOptions<ConfigurationServiceEndPointResolverOptions>, ConfigurationServiceEndPointResolverOptionsValidator>();
         if (configureOptions is not null)
         {
             services.Configure(configureOptions);

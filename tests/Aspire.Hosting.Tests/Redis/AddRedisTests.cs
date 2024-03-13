@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Redis;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -23,9 +24,6 @@ public class AddRedisTests
 
         var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
         Assert.Equal("myRedis", containerResource.Name);
-
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(6379, endpoint.ContainerPort);
@@ -55,9 +53,6 @@ public class AddRedisTests
         var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
         Assert.Equal("myRedis", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(6379, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
@@ -74,38 +69,46 @@ public class AddRedisTests
     }
 
     [Fact]
-    public void RedisCreatesConnectionString()
+    public async Task RedisCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "tcp"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("localhost:2000", connectionString);
     }
 
     [Fact]
-    public void VerifyManifest()
+    public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var redis = appBuilder.AddRedis("redis");
 
-        var manifest = ManifestUtils.GetManifest(redis.Resource);
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
 
-        Assert.Equal("container.v0", manifest["type"]?.ToString());
-        Assert.Equal(redis.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+              "image": "redis:7.2.4",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -126,7 +129,7 @@ public class AddRedisTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new RedisCommanderConfigWriterHook();
@@ -134,18 +137,9 @@ public class AddRedisTests
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
-        var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            annotation.Callback(context);
-        }
-
-        Assert.Equal("myredis1:host.docker.internal:5001:0", context.EnvironmentVariables["REDIS_HOSTS"]);
+        Assert.Equal("myredis1:host.docker.internal:5001:0", config["REDIS_HOSTS"]);
     }
 
     [Fact]
@@ -157,8 +151,8 @@ public class AddRedisTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
-        redis2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
+        redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new RedisCommanderConfigWriterHook();
@@ -166,17 +160,8 @@ public class AddRedisTests
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
-        var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in envAnnotations)
-        {
-            annotation.Callback(context);
-        }
-
-        Assert.Equal("myredis1:host.docker.internal:5001:0,myredis2:host.docker.internal:5002:0", context.EnvironmentVariables["REDIS_HOSTS"]);
+        Assert.Equal("myredis1:host.docker.internal:5001:0,myredis2:host.docker.internal:5002:0", config["REDIS_HOSTS"]);
     }
 }

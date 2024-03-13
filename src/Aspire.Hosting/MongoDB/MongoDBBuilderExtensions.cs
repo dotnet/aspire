@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 
@@ -12,10 +11,11 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class MongoDBBuilderExtensions
 {
+    // Internal port is always 27017.
     private const int DefaultContainerPort = 27017;
 
     /// <summary>
-    /// Adds a MongoDB resource to the application model. A container is used for local development.Adds a Kafka resource to the application. A container is used for local development.  This version the package defaults to the 7.0.5 tag of the mongo container image
+    /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.5 tag of the mongo container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -27,9 +27,8 @@ public static class MongoDBBuilderExtensions
 
         return builder
             .AddResource(mongoDBContainer)
-            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
-            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "7.0.5" })
-            .PublishAsContainer();
+            .WithEndpoint(hostPort: port, containerPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
+            .WithImage("mongo", "7.0.5");
     }
 
     /// <summary>
@@ -65,7 +64,7 @@ public static class MongoDBBuilderExtensions
 
         var mongoExpressContainer = new MongoExpressContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(mongoExpressContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "1.0.2-20" })
+                                  .WithImage("mongo-express", "1.0.2-20")
                                   .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                   .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
                                   .ExcludeFromManifest();
@@ -73,22 +72,39 @@ public static class MongoDBBuilderExtensions
         return builder;
     }
 
-    private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, IResource resource)
+    /// <summary>
+    /// Adds a named volume for the data folder to a MongoDb container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithDataVolume(this IResourceBuilder<MongoDBServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data/db", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a MongoDb container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithDataBindMount(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/data/db", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the init folder to a MongoDb container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithInitBindMount(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = true)
+        => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+
+    private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
-        var hostPort = GetResourcePort(resource);
-        
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://host.docker.internal:{hostPort}/?directConnection=true");
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}/?directConnection=true");
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
-
-        static int GetResourcePort(IResource resource)
-        {
-            if (!resource.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-            {
-                throw new DistributedApplicationException(
-                    $"MongoDB resource \"{resource.Name}\" does not have endpoint annotation.");
-            }
-
-            return allocatedEndpoints.Single().Port;
-        }
     }
 }

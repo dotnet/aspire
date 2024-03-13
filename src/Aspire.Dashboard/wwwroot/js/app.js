@@ -22,6 +22,10 @@ window.resetContinuousScrollPosition = function () {
 }
 
 window.initializeContinuousScroll = function () {
+    // Reset to scrolling to the end of the content when initializing.
+    // This needs to be called because the value is remembered across Aspire pages because the browser isn't reloading.
+    resetContinuousScrollPosition();
+
     const container = document.querySelector('.continuous-scroll-overflow');
     if (container == null) {
         return;
@@ -50,6 +54,14 @@ function isScrolledToBottom(container) {
     const marginOfError = 5;
 
     return container.scrollHeight - container.clientHeight <= container.scrollTop + marginOfError;
+}
+
+window.buttonCopyTextToClipboard = function(element) {
+    const text = element.getAttribute("data-text");
+    const precopy = element.getAttribute("data-precopy");
+    const postcopy = element.getAttribute("data-postcopy");
+
+    copyTextToClipboard(element.getAttribute("id"), text, precopy, postcopy);
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
@@ -263,4 +275,74 @@ function registerLocale(serverLocale) {
         }
     };
     Plotly.register(locale);
+}
+
+function isActiveElementInput() {
+    const currentElement = document.activeElement;
+    // fluent components may have shadow roots that contain inputs
+    return currentElement.tagName.toLowerCase() === "input" || currentElement.tagName.toLowerCase().startsWith("fluent") ? isInputElement(currentElement, false) : false;
+}
+
+function isInputElement(element, isRoot, isShadowRoot) {
+    const tag = element.tagName.toLowerCase();
+    // comes from https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
+    // fluent-select does not use <select /> element
+    if (tag === "input" || tag === "textarea" || tag === "select" || tag === "fluent-select") {
+        return true;
+    }
+
+    if (isShadowRoot || isRoot) {
+        const elementChildren = element.children;
+        for (let i = 0; i < elementChildren.length; i++) {
+            if (isInputElement(elementChildren[i], false, isShadowRoot)) {
+                return true;
+            }
+        }
+    }
+
+    const shadowRoot = element.shadowRoot;
+    if (shadowRoot) {
+        const shadowRootChildren = shadowRoot.children;
+        for (let i = 0; i < shadowRootChildren.length; i++) {
+            if (isInputElement(shadowRootChildren[i], false, true)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+window.registerGlobalKeydownListener = function(shortcutManager) {
+    const serializeEvent = function (e) {
+        if (e) {
+            return {
+                key: e.key,
+                code: e.keyCode.toString(),
+                location: e.location,
+                repeat: e.repeat,
+                ctrlKey: e.ctrlKey,
+                shiftKey: e.shiftKey,
+                altKey: e.altKey,
+                metaKey: e.metaKey,
+                type: e.type
+            };
+        }
+    };
+
+    const keydownListener = function (e) {
+        if (!isActiveElementInput()) {
+            shortcutManager.invokeMethodAsync('OnGlobalKeyDown', serializeEvent(e));
+        }
+    }
+
+    window.document.addEventListener('keydown', keydownListener);
+
+    return {
+        keydownListener: keydownListener,
+    }
+}
+
+window.unregisterGlobalKeydownListener = function (keydownListener) {
+    window.document.removeEventListener('keydown', keydownListener);
 }

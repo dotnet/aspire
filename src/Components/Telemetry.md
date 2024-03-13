@@ -28,6 +28,16 @@ Aspire.Azure.Messaging.ServiceBus:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Azure.Search.Documents:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+  - "Azure-Search-Documents"
+- Activity source names:
+  - "Azure.Search.Documents.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Azure.Security.KeyVault:
 - Log categories:
   - "Azure.Core"
@@ -189,6 +199,14 @@ Aspire.MySqlConnector:
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
+Aspire.NATS.Net:
+- Log categories:
+  - "NATS"
+- Activity source names:
+  - none (currently not supported by NATS.Net library)
+- Metric names:
+  - none (currently not supported by NATS.Net library)
+
 Aspire.Npgsql:
 - Log categories:
   - "Npgsql.Command"
@@ -321,6 +339,14 @@ Aspire.RabbitMQ.Client:
   - "Aspire.RabbitMQ.Client"
 - Metric names:
   - none (currently not supported by RabbitMQ.Client library)
+
+Aspire.Seq:
+- Log categories:
+  - "Seq"
+- Activity source names:
+  - N/A (Seq is a telemetry sink, not a telemetry source)
+- Metric names:
+  - N/A (Seq is a telemetry sink, not a telemetry source)
 
 Aspire.StackExchange.Redis:
 - Log categories:

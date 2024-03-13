@@ -45,4 +45,10 @@ internal static class JsonDocumentManifestPublisherExtensions
         var publisher = testProgram.App?.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest") as JsonDocumentManifestPublisher;
         return publisher ?? throw new InvalidOperationException($"Manifest publisher was not {nameof(JsonDocumentManifestPublisher)}");
     }
+
+    public static JsonDocumentManifestPublisher GetManifestPublisher(this IServiceProvider services)
+    {
+        var publisher = services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest") as JsonDocumentManifestPublisher;
+        return publisher ?? throw new InvalidOperationException($"Manifest publisher was not {nameof(JsonDocumentManifestPublisher)}");
+    }
 }

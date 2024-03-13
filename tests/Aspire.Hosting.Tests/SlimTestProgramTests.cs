@@ -46,9 +46,8 @@ public class SlimTestProgramTests
         foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
         {
             var endpoint = projectBuilders.Resource.Annotations.OfType<EndpointAnnotation>().Single();
-            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
-
-            Assert.Equal(endpoint.Port, allocatedEndpoint.Port);
+            Assert.NotNull(endpoint.AllocatedEndpoint);
+            Assert.Equal(endpoint.Port, endpoint.AllocatedEndpoint.Port);
         }
     }
 
@@ -68,9 +67,8 @@ public class SlimTestProgramTests
         foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
         {
             var endpoint = projectBuilders.Resource.Annotations.OfType<EndpointAnnotation>().Single();
-            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
-
-            Assert.Equal(endpoint.Port, allocatedEndpoint.Port);
+            Assert.NotNull(endpoint.AllocatedEndpoint);
+            Assert.Equal(endpoint.Port, endpoint.AllocatedEndpoint.Port);
         }
     }
 }

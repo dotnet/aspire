@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -58,18 +59,6 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         _themeChangedSubscription?.Dispose();
-
-        try
-        {
-            if (_jsModule is not null)
-            {
-                await _jsModule.DisposeAsync();
-            }
-        }
-        catch (JSDisconnectedException)
-        {
-            // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
-        }
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 }

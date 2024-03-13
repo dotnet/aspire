@@ -4,57 +4,142 @@
     <body>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
-        <target state="new">Apply filter</target>
+        <target state="translated">Použít filtr</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogCancelButtonText">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">Zrušit</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogConditionSelectLabel">
         <source>Select a filter condition</source>
-        <target state="new">Select a filter condition</target>
+        <target state="translated">Vyberte podmínku filtru.</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
-        <target state="new">Field</target>
+        <target state="translated">Pole</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
         <source>Remove filter</source>
-        <target state="new">Remove filter</target>
+        <target state="translated">Odebrat filtr</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogTextValuePlaceholder">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Hodnota</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryNavigation">
+        <source>Site-wide navigation</source>
+        <target state="translated">Navigace na úrovni webu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryPageNavigation">
+        <source>Page navigation</source>
+        <target state="translated">Navigace po stránkách</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryPanels">
+        <source>Panels</source>
+        <target state="translated">Panely</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDecreasePanelSize">
+        <source>Decrease panel size</source>
+        <target state="translated">Zmenšit velikost panelu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGetHelpLinkText">
+        <source>Go to Microsoft Learn documentation</source>
+        <target state="translated">Přejít na dokumentaci Microsoft Learn</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToConsoleLogs">
+        <source>Go to Console Logs</source>
+        <target state="translated">Přejít na Protokoly konzoly</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToHelp">
+        <source>Go to Help</source>
+        <target state="translated">Přejít na Nápověda</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToMetrics">
+        <source>Go to Metrics</source>
+        <target state="translated">Přejít na Metriky</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToResources">
+        <source>Go to Resources</source>
+        <target state="translated">Přejít na Zdroje informací</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToSettings">
+        <source>Go to Settings</source>
+        <target state="translated">Přejít na Nastavení</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToStructuredLogs">
+        <source>Go to Structured Logs</source>
+        <target state="translated">Přejít na Strukturované protokoly</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToTraces">
+        <source>Go to Traces</source>
+        <target state="translated">Přejít na Trasování</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogIncreasePanelSize">
+        <source>Increase panel size</source>
+        <target state="translated">Zvětšit velikost panelu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogKeyboardShortcutsTitle">
+        <source>Keyboard Shortcuts</source>
+        <target state="translated">Klávesové zkratky</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogResetPanelSize">
+        <source>Reset panel sizes</source>
+        <target state="translated">Obnovit velikosti panelu</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogTogglePanelOpen">
+        <source>Close panel</source>
+        <target state="translated">Zavřít panel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogTogglePanelOrientation">
+        <source>Toggle panel orientation</source>
+        <target state="translated">Přepnout orientaci panelu</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
-        <target state="new">Dark</target>
+        <target state="translated">Tmavý</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
-        <target state="new">Light</target>
+        <target state="translated">Světlý</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
-        <target state="new">System</target>
+        <target state="translated">Systém</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">
         <source>Theme</source>
-        <target state="new">Theme</target>
+        <target state="translated">Motiv</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogVersion">
         <source>Version: {0}</source>
-        <target state="new">Version: {0}</target>
+        <target state="translated">Verze: {0}</target>
         <note>{0} is the dashboard version string</note>
       </trans-unit>
     </body>

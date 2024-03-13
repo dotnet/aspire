@@ -28,9 +28,9 @@ public class MongoDBDatabaseResource(string name, string databaseName, MongoDBSe
     /// Gets the connection string for the MongoDB database.
     /// </summary>
     /// <returns>A connection string for the MongoDB database.</returns>
-    public string? GetConnectionString()
+    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
     {
-        if (Parent.GetConnectionString() is { } connectionString)
+        if (await Parent.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false) is { } connectionString)
         {
             return connectionString.EndsWith('/') ?
                 $"{connectionString}{DatabaseName}" :

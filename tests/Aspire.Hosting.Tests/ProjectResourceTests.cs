@@ -3,6 +3,8 @@
 
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -11,11 +13,11 @@ namespace Aspire.Hosting.Tests;
 public class ProjectResourceTests
 {
     [Fact]
-    public void AddProjectAddsEnvironmentVariablesAndServiceMetadata()
+    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<TestProject>("projectName");
+        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -23,21 +25,12 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
-        Assert.Equal(5, resource.Annotations.Count);
+        Assert.Equal(7, resource.Annotations.Count);
 
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
 
-        var annotations = resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
         Assert.Collection(config,
             env =>
@@ -87,7 +80,7 @@ public class ProjectResourceTests
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<TestProject>("projectName")
+        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null)
             .WithReplicas(5);
         using var app = appBuilder.Build();
 
@@ -106,8 +99,7 @@ public class ProjectResourceTests
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<Projects.ServiceA>("projectName")
-            .WithLaunchProfile("http");
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: "http");
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -120,32 +112,11 @@ public class ProjectResourceTests
     }
 
     [Fact]
-    public void WithLaunchProfileFailsIfProfileDoesNotExist()
+    public void WithLaunchProfile_ApplicationUrlTrailingSemiColon_Ignore()
     {
-        var appBuilder = CreateBuilder();
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
 
-        var project = appBuilder.AddProject<Projects.ServiceA>("projectName");
-        var ex = Assert.Throws<DistributedApplicationException>(() => project.WithLaunchProfile("not-exist"));
-        Assert.Equal("Launch settings file does not contain 'not-exist' profile.", ex.Message);
-    }
-
-    [Fact]
-    public void WithLaunchProfileFailsIfFileDoesNotExist()
-    {
-        var appBuilder = CreateBuilder();
-
-        var project = appBuilder.AddProject<TestProject>("projectName");
-        var ex = Assert.Throws<DistributedApplicationException>(() => project.WithLaunchProfile("not-exist"));
-        Assert.Equal("Project file 'another-path' was not found.", ex.Message);
-    }
-
-    [Fact]
-    public void ExcludeLaunchProfileAddsAnnotationToProject()
-    {
-        var appBuilder = CreateBuilder();
-
-        appBuilder.AddProject<Projects.ServiceA>("projectName")
-            .ExcludeLaunchProfile();
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: "https");
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -153,25 +124,132 @@ public class ProjectResourceTests
         var projectResources = appModel.GetProjectResources();
 
         var resource = Assert.Single(projectResources);
-        // ExcludeLaunchProfileAnnotation isn't public, so we just check the type name
-        Assert.Contains(resource.Annotations, a => a.GetType().Name == "ExcludeLaunchProfileAnnotation");
+
+        Assert.Collection(
+            resource.Annotations.OfType<EndpointAnnotation>(),
+            a =>
+            {
+                Assert.Equal("https", a.Name);
+                Assert.Equal("https", a.UriScheme);
+                Assert.Equal(7123, a.Port);
+            },
+            a =>
+            {
+                Assert.Equal("http", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5156, a.Port);
+            });
     }
 
     [Fact]
-    public void ProjectWithoutServiceMetadataFailsWithLaunchProfile()
+    public void AddProjectFailsIfFileDoesNotExist()
     {
         var appBuilder = CreateBuilder();
 
-        var project = new ProjectResource("projectName");
-        var projectResource = appBuilder.AddResource(project);
-
-        var ex = Assert.Throws<DistributedApplicationException>(() => projectResource.WithLaunchProfile("not-exist"));
-        Assert.Equal("Project does not contain project metadata.", ex.Message);
+        var ex = Assert.Throws<DistributedApplicationException>(() => appBuilder.AddProject<TestProject>("projectName"));
+        Assert.Equal("Project file 'another-path' was not found.", ex.Message);
     }
 
-    private static IDistributedApplicationBuilder CreateBuilder()
+    [Fact]
+    public void SpecificLaunchProfileFailsIfProfileDoesNotExist()
     {
-        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
+        var appBuilder = CreateBuilder();
+
+        var ex = Assert.Throws<DistributedApplicationException>(() => appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: "not-exist"));
+        Assert.Equal("Launch settings file does not contain 'not-exist' profile.", ex.Message);
+    }
+
+    [Fact]
+    public void ExcludeLaunchProfileAddsAnnotationToProject()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: null);
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+        
+        Assert.Contains(resource.Annotations, a => a is ExcludeLaunchProfileAnnotation);
+    }
+
+    [Fact]
+    public void DisabledForwadedHeadersAddsAnnotationToProject()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwadedHeaders();
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        Assert.Contains(resource.Annotations, a => a is DisableForwardedHeadersAnnotation);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task VerifyManifest(bool disableForwardedHeaders)
+    {
+        var appBuilder = CreateBuilder();
+
+        var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
+        if (disableForwardedHeaders)
+        {
+            project.DisableForwadedHeaders();
+        }
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var manifest = await ManifestUtils.GetManifest(resource);
+
+        var fordwardedHeadersEnvVar = disableForwardedHeaders
+            ? ""
+            : $",{Environment.NewLine}    \"ASPNETCORE_FORWARDEDHEADERS_ENABLED\": \"true\"";
+
+        var expectedManifest = $$"""
+            {
+              "type": "project.v0",
+              "path": "another-path",
+              "env": {
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"{{fordwardedHeadersEnvVar}}
+              },
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http"
+                },
+                "https": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http"
+                }
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    private static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
+    {
+        var args = operation == DistributedApplicationOperation.Publish ? new[] { "--publisher", "manifest" } : Array.Empty<string>();
+        var appBuilder = DistributedApplication.CreateBuilder(args);
         // Block DCP from actually starting anything up as we don't need it for this test.
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
 
@@ -181,5 +259,30 @@ public class ProjectResourceTests
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";
+
+        public LaunchSettings? LaunchSettings { get; set; }
+    }
+
+    private sealed class TestProjectWithLaunchSettings : IProjectMetadata
+    {
+        public string ProjectPath => "another-path";
+
+        public LaunchSettings? LaunchSettings { get; } =
+            new LaunchSettings
+            {
+                Profiles = new()
+                {
+                    ["http"] = new()
+                    {
+                        CommandName = "Project",
+                        LaunchBrowser = true,
+                        ApplicationUrl = "http://localhost:5031",
+                        EnvironmentVariables = new()
+                        {
+                            ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                        }
+                    }
+                }
+            };
     }
 }

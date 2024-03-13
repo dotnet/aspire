@@ -77,6 +77,6 @@ internal sealed partial class MetricsService(MetricsChannel channel, ConfluentKa
         }
     }
 
-    [LoggerMessage(LogLevel.Warning, EventId = 1, Message = "Invalid statistics json payload received: `{json}`")]
+    [LoggerMessage(LogLevel.Warning, EventId = 1, Message = "Invalid statistics json payload received: '{json}'")]
     private static partial void LogDeserializationWarning(ILogger logger, string json);
 }

@@ -18,16 +18,10 @@
 <div class="logs-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect Items="@_applicationViewModels"
-                      OptionValue="@(c => c.Id?.InstanceId)"
-                      OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
-                      @bind-SelectedOption="PageViewModel.SelectedApplication"
-                      @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">
-            <OptionTemplate>
-                <ResourceSelectOptionTemplate ViewModel="@context" />
-            </OptionTemplate>
-        </FluentSelect>
+        <ResourceSelect Resources="_applicationViewModels"
+                        AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
+                        @bind-SelectedResource="PageViewModel.SelectedApplication"
+                        @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
         <FluentSearch @bind-Value="PageViewModel.Filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleClear"
@@ -63,7 +57,12 @@
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()" ViewKey="StructuredLogsList">
+    <SummaryDetailsView
+        DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
+        ShowDetails="SelectedLogEntryProperties is not null"
+        OnDismiss="() => ClearSelectedLogEntry()"
+        ViewKey="StructuredLogsList"
+        SelectedValue="@SelectedLogEntryProperties">
         <Summary>
             <div class="logs-summary-layout">
                 <div class="logs-grid-container continuous-scroll-overflow">
@@ -86,12 +85,12 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                 @if (!string.IsNullOrEmpty(context.TraceId))
                                 {
-                                    <a href="@($"/traces/detail/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
+                                    <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content">
                                         @OtlpHelpers.ToShortenedId(context.TraceId)
                                     </a>
                                 }
                             </TemplateColumn>
-                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
+                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
                                 <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                             </TemplateColumn>
                         </ChildContent>

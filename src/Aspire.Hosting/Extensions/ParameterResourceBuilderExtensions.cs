@@ -25,7 +25,7 @@ public static class ParameterResourceBuilderExtensions
         return builder.AddParameter(name, () =>
         {
             var configurationKey = $"Parameters:{name}";
-            return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key `{configurationKey}` is missing.");
+            return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing.");
         }, secret: secret);
     }
 
@@ -36,7 +36,27 @@ public static class ParameterResourceBuilderExtensions
                                                                      bool connectionString = false)
     {
         var resource = new ParameterResource(name, callback, secret);
+
+        var state = new CustomResourceSnapshot()
+        {
+            ResourceType = "Parameter",
+            Properties = [
+                ("parameter.secret", secret.ToString()),
+                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+            ]
+        };
+
+        try
+        {
+            state = state with { Properties = [.. state.Properties, ("Value", callback())] };
+        }
+        catch (DistributedApplicationException ex)
+        {
+            state = state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
+        }
+
         return builder.AddResource(resource)
+                      .WithInitialState(state)
                       .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource, connectionString));
     }
 
@@ -46,28 +66,18 @@ public static class ParameterResourceBuilderExtensions
 
         if (connectionString)
         {
-            context.Writer.WriteString("connectionString", $"{{{resource.Name}.value}}");
+            context.Writer.WriteString("connectionString", resource.ValueExpression);
         }
 
-        context.Writer.WriteString("value", $"{{{resource.Name}.inputs.value}}");
-        context.Writer.WriteStartObject("inputs");
-        context.Writer.WriteStartObject("value");
-        context.Writer.WriteString("type", "string");
-
-        if (resource.Secret)
-        {
-            context.Writer.WriteBoolean("secret", resource.Secret);
-        }
-
-        context.Writer.WriteEndObject();
-        context.Writer.WriteEndObject();
+        context.Writer.WriteString("value", resource.ValueInputReference.ValueExpression);
+        context.WriteInputs(resource);
     }
 
     /// <summary>
     /// Adds a parameter to the distributed application but wrapped in a resource with a connection string for use with <see cref="ResourceBuilderExtensions.WithReference{TDestination}(IResourceBuilder{TDestination}, IResourceBuilder{IResourceWithConnectionString}, string?, bool)"/>
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
-    /// <param name="name">Name of parameter resource</param>
+    /// <param name="name">Name of parameter resource. The value of the connection string is read from the "ConnectionStrings:{resourcename}" configuration section, for example in appsettings.json or user secrets</param>
     /// <param name="environmentVariableName">Environment variable name to set when WithReference is used.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
@@ -75,7 +85,7 @@ public static class ParameterResourceBuilderExtensions
     {
         var parameterBuilder = builder.AddParameter(name, () =>
         {
-            return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string `{name}` is missing.");
+            return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing.");
         },
         secret: true,
         connectionString: true);

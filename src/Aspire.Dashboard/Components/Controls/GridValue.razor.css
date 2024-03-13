@@ -16,9 +16,10 @@
 }
 
 ::deep .defaultHidden {
-    visibility: hidden;
+    opacity: 0;
+    cursor: pointer;
 }
 
 ::deep:hover .defaultHidden {
-    visibility: visible;
+    opacity: 1;  /* safari has a bug where hover is not always called on an invisible element, so we use opacity instead */
 }

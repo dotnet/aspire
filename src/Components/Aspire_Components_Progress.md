@@ -14,6 +14,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | Azure.AI.OpenAI                         |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ❌           |              ❌                  |
 | Azure.Data.Tables                       |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | Azure.Messaging.ServiceBus              |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
+| Azure.Search.Documents                  |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | Azure.Security.KeyVault                 |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | Azure.Storage.Blobs                     |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | Azure.Storage.Queues                    |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
@@ -25,12 +26,15 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | Oracle.EntityFrameworkCore              |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
 | Confluent.Kafka                         |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ❌            |         ✅           |              ✅                  |
 | Pomelo.EntityFrameworkCore.MySql        |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
+| NATS.Net                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |                      |                      |              ✅                  |
+| Seq                                     |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        N/A           |        N/A           |              ✅                  |
 
 Nomenclature used in the table above:
 
 - ✅ - Requirement is met
 - (blank) - Requirement hasn't been met yet
 - ❌ - Requirement can't be met
+- N/A - Requirement not applicable
 
 ## .NET Aspire Component Requirements
 

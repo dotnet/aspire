@@ -41,6 +41,8 @@ public static class AspireOracleEFCoreExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        builder.EnsureDbContextNotRegistered<TContext>();
+
         var settings = builder.GetDbContextSettings<TContext, OracleEntityFrameworkCoreSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)

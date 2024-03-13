@@ -25,8 +25,15 @@ public static class ExecutableResourceBuilderExtensions
     {
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
 
-        var executable = new ExecutableResource(name, command, workingDirectory, args);
-        return builder.AddResource(executable);
+        var executable = new ExecutableResource(name, command, workingDirectory);
+        return builder.AddResource(executable)
+                      .WithArgs(context =>
+                      {
+                          if (args is not null)
+                          {
+                              context.Args.AddRange(args);
+                          }
+                      });
     }
 
     /// <summary>
@@ -49,26 +56,10 @@ public static class ExecutableResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
     {
-        return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResource(context, builder.Resource));
+        return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResourceAsync(context, builder.Resource));
     }
 
-    /// <summary>
-    /// Adds the arguments to be passed to an executable resource when the executable is started.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="args">The arguments to be passed to the executable when it is started.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ExecutableResource
-    {
-        var annotation = new ExecutableArgsCallbackAnnotation(updatedArgs =>
-        {
-            updatedArgs.AddRange(args);
-        });
-        return builder.WithAnnotation(annotation);
-    }
-
-    private static void WriteExecutableAsDockerfileResource(ManifestPublishingContext context, ExecutableResource executable)
+    private static async Task WriteExecutableAsDockerfileResourceAsync(ManifestPublishingContext context, ExecutableResource executable)
     {
         context.Writer.WriteString("type", "dockerfile.v0");
 
@@ -79,7 +70,7 @@ public static class ExecutableResourceBuilderExtensions
         var manifestFileRelativePathToContextDirectory = context.GetManifestRelativePath(executable.WorkingDirectory);
         context.Writer.WriteString("context", manifestFileRelativePathToContextDirectory);
 
-        context.WriteEnvironmentVariables(executable);
+        await context.WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
         context.WriteBindings(executable, emitContainerPort: true);
     }
 }

@@ -29,7 +29,8 @@ public class ResourceOutgoingPeerResolverTests
             Services = resourceServices,
             ExpectedEndpointsCount = 0,
             Properties = FrozenDictionary<string, Value>.Empty,
-            State = null
+            State = null,
+            Commands = []
         };
     }
 
@@ -43,7 +44,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.False(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [], out _));
+        Assert.False(TryResolvePeerName(resources, [], out _));
     }
 
     [Fact]
@@ -56,7 +57,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.False(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [KeyValuePair.Create("peer.service", "")], out _));
+        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "")], out _));
     }
 
     [Fact]
@@ -69,7 +70,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.False(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [KeyValuePair.Create<string, string>("peer.service", null!)], out _));
+        Assert.False(TryResolvePeerName(resources, [KeyValuePair.Create<string, string>("peer.service", null!)], out _));
     }
 
     [Fact]
@@ -82,7 +83,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.True(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [KeyValuePair.Create("peer.service", "localhost:5000")], out var value));
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "localhost:5000")], out var value));
         Assert.Equal("test", value);
     }
 
@@ -96,7 +97,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.True(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [KeyValuePair.Create("peer.service", "127.0.0.1:5000")], out var value));
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "127.0.0.1:5000")], out var value));
         Assert.Equal("test", value);
     }
 
@@ -110,7 +111,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.True(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [KeyValuePair.Create("peer.service", "127.0.0.1,5000")], out var value));
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "127.0.0.1,5000")], out var value));
         Assert.Equal("test", value);
     }
 
@@ -124,7 +125,12 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.True(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5000")], out var value));
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5000")], out var value));
         Assert.Equal("test", value);
+    }
+
+    private static bool TryResolvePeerName(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? peerName)
+    {
+        return ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, attributes, out peerName);
     }
 }

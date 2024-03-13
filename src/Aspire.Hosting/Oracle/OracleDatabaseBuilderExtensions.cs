@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -22,24 +20,30 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="port">The host port for Oracle Database.</param>
     /// <param name="password">The password for the Oracle Database container. Defaults to a random password.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Use AddOracle instead")]
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
+        return builder.AddOracle(name, port, password);
+    }
 
+    /// <summary>
+    /// Adds a Oracle Server resource to the application model. A container is used for local development. This version the package defaults to the 23.3.0.0 tag of the container-registry.oracle.com/database/free container image
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port for Oracle Server.</param>
+    /// <param name="password">The password for the Oracle Server container. Defaults to a random password.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> AddOracle(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
+    {
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
         return builder.AddResource(oracleDatabaseServer)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
+                      .WithEndpoint(hostPort: port, containerPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
+                      .WithImage("database/free", "23.3.0.0")
+                      .WithImageRegistry("container-registry.oracle.com")
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishMode)
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
-                          }
-                          else
-                          {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, oracleDatabaseServer.Password);
-                          }
+                          context.EnvironmentVariables[PasswordEnvVarName] = oracleDatabaseServer.PasswordInput;
                       })
                       .PublishAsContainer();
     }
@@ -63,12 +67,40 @@ public static class OracleDatabaseBuilderExtensions
     }
 
     /// <summary>
-    /// Changes the Oracle Database Server resource to be published as a container.
+    /// Adds a named volume for the data folder to a OracleDatabaseServer container resource.
     /// </summary>
-    /// <param name="builder">Builder for the underlying <see cref="OracleDatabaseServerResource"/>.</param>
-    /// <returns></returns>
-    public static IResourceBuilder<OracleDatabaseServerResource> PublishAsContainer(this IResourceBuilder<OracleDatabaseServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
-    }
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithDataVolume(this IResourceBuilder<OracleDatabaseServerResource> builder, string? name = null)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/opt/oracle/oradata", true);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a OracleDatabaseServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithDataBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source)
+        => builder.WithBindMount(source, "/opt/oracle/oradata", false);
+
+    /// <summary>
+    /// Adds a bind mount for the init folder to a OracleDatabaseServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithInitBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source, bool isReadOnly = true)
+        => builder.WithBindMount(source, "/opt/oracle/scripts/startup", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the database setup folder to a OracleDatabaseServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> WithDbSetupBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source, bool isReadOnly = true)
+        => builder.WithBindMount(source, "/opt/oracle/scripts/setup", isReadOnly);
 }

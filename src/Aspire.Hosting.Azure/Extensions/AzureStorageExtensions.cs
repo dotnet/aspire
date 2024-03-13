@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Storage;
+using Azure.ResourceManager.Storage.Models;
 
 namespace Aspire.Hosting;
 
@@ -31,6 +33,54 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
+    /// Adds an Azure Storage resource to the application model.This resource can be used to create Azure blob, table, and queue resources.
+    /// </summary>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="configureResource">Callback to configure the storage account.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageConstructResource> AddAzureConstructStorage(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, StorageAccount>? configureResource = null)
+    {
+        var configureConstruct = (ResourceModuleConstruct construct) =>
+        {
+            var storageAccount = construct.AddStorageAccount(
+                name: name,
+                kind: StorageKind.StorageV2,
+                sku: StorageSkuName.StandardGrs
+                );
+
+            storageAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
+            var blobService = new BlobService(construct);
+
+            var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
+            blobRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
+
+            var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
+            tableRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
+
+            var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
+            queueRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
+
+            storageAccount.AddOutput("blobEndpoint", sa => sa.PrimaryEndpoints.BlobUri);
+            storageAccount.AddOutput("queueEndpoint", sa => sa.PrimaryEndpoints.QueueUri);
+            storageAccount.AddOutput("tableEndpoint", sa => sa.PrimaryEndpoints.TableUri);
+
+            if (configureResource != null)
+            {
+                configureResource(construct, storageAccount);
+            }
+        };
+        var resource = new AzureStorageConstructResource(name, configureConstruct);
+
+        return builder.AddResource(resource)
+                      // These ambient parameters are only available in development time.
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
     /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model. This version the package defaults to version 3.29.0 of the mcr.microsoft.com/azure-storage/azurite container image.
     /// </summary>
     /// <param name="builder">The Azure storage resource builder.</param>
@@ -38,9 +88,9 @@ public static class AzureStorageExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureStorageResource> RunAsEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
-        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", containerPort: 10000))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", containerPort: 10001))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", containerPort: 10002))
+        builder.WithEndpoint(name: "blob", containerPort: 10000)
+               .WithEndpoint(name: "queue", containerPort: 10001)
+               .WithEndpoint(name: "table", containerPort: 10002)
                .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "3.29.0" });
 
         if (configureContainer != null)
@@ -141,6 +191,20 @@ public static class AzureStorageExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
+    public static IResourceBuilder<AzureBlobStorageConstructResource> AddBlobs(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
+    {
+        var resource = new AzureBlobStorageConstructResource(name, builder.Resource);
+
+        return builder.ApplicationBuilder.AddResource(resource)
+            .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
@@ -155,9 +219,37 @@ public static class AzureStorageExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
+    public static IResourceBuilder<AzureTableStorageConstructResource> AddTables(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
+    {
+        var resource = new AzureTableStorageConstructResource(name, builder.Resource);
+
+        return builder.ApplicationBuilder.AddResource(resource)
+            .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
+
+        return builder.ApplicationBuilder.AddResource(resource)
+            .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureQueueStorageConstructResource> AddQueues(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
+    {
+        var resource = new AzureQueueStorageConstructResource(name, builder.Resource);
 
         return builder.ApplicationBuilder.AddResource(resource)
             .WithManifestPublishingCallback(resource.WriteToManifest);

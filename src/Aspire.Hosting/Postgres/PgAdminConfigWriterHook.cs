@@ -28,14 +28,14 @@ internal class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
 
         foreach (var postgresInstance in postgresInstances)
         {
-            if (postgresInstance.TryGetAllocatedEndPoints(out var allocatedEndpoints))
+            if (postgresInstance.PrimaryEndpoint.IsAllocated)
             {
-                var endpoint = allocatedEndpoints.Where(ae => ae.Name == "tcp").Single();
+                var endpoint = postgresInstance.PrimaryEndpoint;
 
                 writer.WriteStartObject($"{serverIndex}");
                 writer.WriteString("Name", postgresInstance.Name);
                 writer.WriteString("Group", "Aspire instances");
-                writer.WriteString("Host", "host.docker.internal");
+                writer.WriteString("Host", endpoint.ContainerHost);
                 writer.WriteNumber("Port", endpoint.Port);
                 writer.WriteString("Username", "postgres");
                 writer.WriteString("SSLMode", "prefer");

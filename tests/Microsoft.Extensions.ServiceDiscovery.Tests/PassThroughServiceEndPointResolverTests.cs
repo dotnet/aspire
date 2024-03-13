@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
 /// Tests for <see cref="PassThroughServiceEndPointResolverProvider"/>.
-/// These also cover <see cref="ServiceEndPointResolver"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
+/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
 /// </summary>
 public class PassThroughServiceEndPointResolverTests
 {
@@ -26,7 +26,7 @@ public class PassThroughServiceEndPointResolverTests
             .AddPassThroughServiceEndPointResolver()
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
@@ -49,7 +49,7 @@ public class PassThroughServiceEndPointResolverTests
         {
             InitialData = new Dictionary<string, string?>
             {
-                ["services:basket:0"] = "http://localhost:8080",
+                ["services:basket:http:0"] = "http://localhost:8080",
             }
         };
         var config = new ConfigurationBuilder().Add(configSource);
@@ -58,7 +58,7 @@ public class PassThroughServiceEndPointResolverTests
             .AddServiceDiscovery() // Adds the configuration and pass-through providers.
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
@@ -72,7 +72,7 @@ public class PassThroughServiceEndPointResolverTests
 
             // We expect the basket service to be resolved from Configuration, not the pass-through provider.
             Assert.Single(initialResult.EndPoints);
-            Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndPoints[0].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
         }
     }
 
@@ -83,7 +83,7 @@ public class PassThroughServiceEndPointResolverTests
         {
             InitialData = new Dictionary<string, string?>
             {
-                ["services:basket:0"] = "http://localhost:8080",
+                ["services:basket:default:0"] = "http://localhost:8080",
             }
         };
         var config = new ConfigurationBuilder().Add(configSource);
@@ -92,7 +92,7 @@ public class PassThroughServiceEndPointResolverTests
             .AddServiceDiscovery() // Adds the configuration and pass-through providers.
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://catalog")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
@@ -118,7 +118,7 @@ public class PassThroughServiceEndPointResolverTests
         {
             InitialData = new Dictionary<string, string?>
             {
-                ["services:basket:0"] = "http://localhost:8080",
+                ["services:basket:default:0"] = "http://localhost:8080",
             }
         };
         var config = new ConfigurationBuilder().Add(configSource);
@@ -127,7 +127,7 @@ public class PassThroughServiceEndPointResolverTests
             .AddServiceDiscovery() // Adds the configuration and pass-through providers.
             .BuildServiceProvider();
 
-        var resolver = services.GetRequiredService<ServiceEndPointResolverRegistry>();
+        var resolver = services.GetRequiredService<ServiceEndPointResolver>();
         var endPoints = await resolver.GetEndPointsAsync("catalog", default);
         Assert.Equal(new DnsEndPoint("catalog", 0), endPoints[0].EndPoint);
     }

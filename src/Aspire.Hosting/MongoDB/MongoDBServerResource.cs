@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.MongoDB;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -11,30 +9,32 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "tcp";
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the primary endpoint for the MongoDB server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    private ReferenceExpression ConnectionString =>
+        ReferenceExpression.Create(
+            $"mongodb://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"mongodb://{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+        ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
+    /// <param name="cancellationToken"> Cancellation token. </param>
     /// <returns>A connection string for the MongoDB server in the form "mongodb://host:port".</returns>
-    public string? GetConnectionString()
-    {
-        if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-        {
-            throw new DistributedApplicationException("Expected allocated endpoints!");
-        }
-
-        var allocatedEndpoint = allocatedEndpoints.Single();
-
-        return new MongoDBConnectionStringBuilder()
-            .WithServer(allocatedEndpoint.Address)
-            .WithPort(allocatedEndpoint.Port)
-            .Build();
-    }
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
+        ConnectionString.GetValueAsync(cancellationToken);
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 

@@ -29,12 +29,12 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
         if (mySqlInstances.Count() == 1)
         {
             var singleInstance = mySqlInstances.Single();
-            if (singleInstance.TryGetAllocatedEndPoints(out var allocatedEndPoints))
+            if (singleInstance.PrimaryEndpoint.IsAllocated)
             {
-                var endpoint = allocatedEndPoints.Where(ae => ae.Name == "tcp").Single();
+                var endpoint = singleInstance.PrimaryEndpoint;
                 myAdminResource.Annotations.Add(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
                 {
-                    context.EnvironmentVariables.Add("PMA_HOST", $"host.docker.internal:{endpoint.Port}");
+                    context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.ContainerHost}:{endpoint.Port}");
                     context.EnvironmentVariables.Add("PMA_USER", "root");
                     context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.Password);
                 }));
@@ -51,11 +51,11 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
             writer.WriteLine();
             foreach (var mySqlInstance in mySqlInstances)
             {
-                if (mySqlInstance.TryGetAllocatedEndPoints(out var allocatedEndpoints))
+                if (mySqlInstance.PrimaryEndpoint.IsAllocated)
                 {
-                    var endpoint = allocatedEndpoints.Where(ae => ae.Name == "tcp").Single();
+                    var endpoint = mySqlInstance.PrimaryEndpoint;
                     writer.WriteLine("$i++;");
-                    writer.WriteLine($"$cfg['Servers'][$i]['host'] = 'host.docker.internal:{endpoint.Port}';");
+                    writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.ContainerHost}:{endpoint.Port}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
                     writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");

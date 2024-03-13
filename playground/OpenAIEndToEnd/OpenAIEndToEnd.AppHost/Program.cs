@@ -3,7 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var openai = builder.AddConnectionString("openai");
+builder.AddAzureProvisioning();
+
+var openai = builder.AddAzureOpenAIConstruct("openai")
+                    .AddDeployment(new("gpt-35-turbo", "gpt-35-turbo", "0613"));
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
        .WithReference(openai);

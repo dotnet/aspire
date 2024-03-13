@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -23,7 +23,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
 
-    public string BasePath => "metrics";
+    public string BasePath => DashboardUrls.MetricsBasePath;
     public string SessionStorageKey => "Metrics_PageState";
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
@@ -31,9 +31,11 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public string? ApplicationName { get; set; }
 
     [Parameter]
+    [SupplyParameterFromQuery(Name = "meter")]
     public string? MeterName { get; set; }
 
     [Parameter]
+    [SupplyParameterFromQuery(Name = "instrument")]
     public string? InstrumentName { get; set; }
 
     [Parameter]
@@ -68,7 +70,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThreeHours)], Id = TimeSpan.FromHours(3) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastSixHours)], Id = TimeSpan.FromHours(6) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwelveHours)], Id = TimeSpan.FromHours(12) },
-            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwentyFourHours)], Id = TimeSpan.FromHours(24) },
         };
 
         _selectApplication = new SelectViewModel<ResourceTypeDetails>
@@ -204,37 +205,20 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         return this.AfterViewModelChangedAsync();
     }
 
-    public UrlState GetUrlFromSerializableViewModel(MetricsPageState serializable)
+    public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
     {
-        string path;
-        if (serializable.ApplicationName is not null && serializable.MeterName is not null)
-        {
-            path = serializable.InstrumentName is not null
-                ? $"/{BasePath}/resource/{serializable.ApplicationName}/meter/{serializable.MeterName}/instrument/{serializable.InstrumentName}"
-                : $"/{BasePath}/resource/{serializable.ApplicationName}/meter/{serializable.MeterName}";
-        }
-        else if (serializable.ApplicationName is not null)
-        {
-            path = $"/{BasePath}/resource/{serializable.ApplicationName}";
-        }
-        else
-        {
-            path = $"/{BasePath}";
-        }
+        var duration = PageViewModel.SelectedDuration.Id != s_defaultDuration
+            ? (int?)serializable.DurationMinutes
+            : null;
 
-        var queryParameters = new Dictionary<string, string?>();
+        var url = DashboardUrls.MetricsUrl(
+            resource: serializable.ApplicationName,
+            meter: serializable.MeterName,
+            instrument: serializable.InstrumentName,
+            duration: duration,
+            view: PageViewModel.SelectedViewKind?.ToString());
 
-        if (PageViewModel.SelectedDuration.Id != s_defaultDuration)
-        {
-            queryParameters.Add("duration", serializable.DurationMinutes.ToString(CultureInfo.InvariantCulture));
-        }
-
-        if (PageViewModel.SelectedViewKind is not null)
-        {
-            queryParameters.Add("view", PageViewModel.SelectedViewKind.ToString());
-        }
-
-        return new UrlState(path, queryParameters);
+        return url;
     }
 
     private async Task OnViewChangedAsync(MetricViewKind newView)

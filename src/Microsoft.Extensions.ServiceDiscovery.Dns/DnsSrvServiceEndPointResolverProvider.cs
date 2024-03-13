@@ -10,21 +10,12 @@ using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
-/// <summary>
-/// Provides <see cref="IServiceEndPointResolver"/> instances which resolve endpoints from DNS using SRV queries.
-/// </summary>
-/// <remarks>
-/// Initializes a new <see cref="DnsSrvServiceEndPointResolverProvider"/> instance.
-/// </remarks>
-/// <param name="options">The options.</param>
-/// <param name="logger">The logger.</param>
-/// <param name="dnsClient">The DNS client.</param>
-/// <param name="timeProvider">The time provider.</param>
 internal sealed partial class DnsSrvServiceEndPointResolverProvider(
     IOptionsMonitor<DnsSrvServiceEndPointResolverOptions> options,
     ILogger<DnsSrvServiceEndPointResolver> logger,
     IDnsQuery dnsClient,
-    TimeProvider timeProvider) : IServiceEndPointResolverProvider
+    TimeProvider timeProvider,
+    ServiceNameParser parser) : IServiceEndPointResolverProvider
 {
     private static readonly string s_serviceAccountPath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount");
     private static readonly string s_serviceAccountNamespacePath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount", "namespace");
@@ -32,7 +23,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
     private readonly string? _querySuffix = options.CurrentValue.QuerySuffix ?? GetKubernetesHostDomain();
 
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointResolver? resolver)
+    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
         // If a default namespace is not specified, then this provider will attempt to infer the namespace from the service name, but only when running inside Kubernetes.
         // Kubernetes DNS spec: https://github.com/kubernetes/dns/blob/master/docs/specification.md
@@ -49,7 +40,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
             return false;
         }
 
-        if (!ServiceNameParts.TryParse(serviceName, out var parts))
+        if (!parser.TryParse(serviceName, out var parts))
         {
             DnsServiceEndPointResolverBase.Log.ServiceNameIsNotUriOrDnsName(logger, serviceName);
             resolver = default;

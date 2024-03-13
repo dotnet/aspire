@@ -4,57 +4,142 @@
     <body>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
-        <target state="new">Apply filter</target>
+        <target state="translated">应用筛选器</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogCancelButtonText">
         <source>Cancel</source>
-        <target state="new">Cancel</target>
+        <target state="translated">取消</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogConditionSelectLabel">
         <source>Select a filter condition</source>
-        <target state="new">Select a filter condition</target>
+        <target state="translated">选择筛选条件</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
-        <target state="new">Field</target>
+        <target state="translated">字段</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
         <source>Remove filter</source>
-        <target state="new">Remove filter</target>
+        <target state="translated">移除筛选器</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogTextValuePlaceholder">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">值</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryNavigation">
+        <source>Site-wide navigation</source>
+        <target state="translated">网站范围导航</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryPageNavigation">
+        <source>Page navigation</source>
+        <target state="translated">网页导航</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogCategoryPanels">
+        <source>Panels</source>
+        <target state="translated">面板</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogDecreasePanelSize">
+        <source>Decrease panel size</source>
+        <target state="translated">减小面板大小</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGetHelpLinkText">
+        <source>Go to Microsoft Learn documentation</source>
+        <target state="translated">转到 Microsoft Learn 文档</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToConsoleLogs">
+        <source>Go to Console Logs</source>
+        <target state="translated">转到“控制台日志”</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToHelp">
+        <source>Go to Help</source>
+        <target state="translated">转到“帮助”</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToMetrics">
+        <source>Go to Metrics</source>
+        <target state="translated">转到“指标”</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToResources">
+        <source>Go to Resources</source>
+        <target state="translated">转到“资源”</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToSettings">
+        <source>Go to Settings</source>
+        <target state="translated">转到“设置”</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToStructuredLogs">
+        <source>Go to Structured Logs</source>
+        <target state="translated">转到“结构化日志”</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogGoToTraces">
+        <source>Go to Traces</source>
+        <target state="translated">转到“跟踪”</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogIncreasePanelSize">
+        <source>Increase panel size</source>
+        <target state="translated">增加面板大小</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogKeyboardShortcutsTitle">
+        <source>Keyboard Shortcuts</source>
+        <target state="translated">键盘快捷方式</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogResetPanelSize">
+        <source>Reset panel sizes</source>
+        <target state="translated">重置面板大小</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogTogglePanelOpen">
+        <source>Close panel</source>
+        <target state="translated">关闭面板</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpDialogTogglePanelOrientation">
+        <source>Toggle panel orientation</source>
+        <target state="translated">切换面板方向</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>
-        <target state="new">Dark</target>
+        <target state="translated">深色</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
         <source>Light</source>
-        <target state="new">Light</target>
+        <target state="translated">浅色</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogSystemTheme">
         <source>System</source>
-        <target state="new">System</target>
+        <target state="translated">系统</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">
         <source>Theme</source>
-        <target state="new">Theme</target>
+        <target state="translated">主题</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogVersion">
         <source>Version: {0}</source>
-        <target state="new">Version: {0}</target>
+        <target state="translated">版本: {0}</target>
         <note>{0} is the dashboard version string</note>
       </trans-unit>
     </body>

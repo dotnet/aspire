@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
+using Aspire.V1;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -22,14 +25,16 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_OnCancel_ChannelRemoved()
     {
-        var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        instance.SetInitialDataReceived();
+
         IDashboardClient client = instance;
 
         var cts = new CancellationTokenSource();
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        var (_, subscription) = client.SubscribeResources();
+        var (_, subscription) = await client.SubscribeResourcesAsync(CancellationToken.None);
 
         Assert.Equal(1, instance.OutgoingResourceSubscriberCount);
 
@@ -42,7 +47,7 @@ public sealed class DashboardClientTests
 
         await cts.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask).ConfigureAwait(false);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
     }
@@ -50,12 +55,14 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_OnDispose_ChannelRemoved()
     {
-        var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        instance.SetInitialDataReceived();
+
         IDashboardClient client = instance;
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        var (_, subscription) = client.SubscribeResources();
+        var (_, subscription) = await client.SubscribeResourcesAsync(CancellationToken.None);
 
         Assert.Equal(1, instance.OutgoingResourceSubscriberCount);
 
@@ -70,33 +77,60 @@ public sealed class DashboardClientTests
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask).ConfigureAwait(false);
+        await TaskHelpers.WaitIgnoreCancelAsync(readTask);
     }
 
     [Fact]
     public async Task SubscribeResources_ThrowsIfDisposed()
     {
-        IDashboardClient client = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using IDashboardClient client = new DashboardClient(NullLoggerFactory.Instance, _configuration);
 
         await client.DisposeAsync();
 
-        Assert.Throws<ObjectDisposedException>(client.SubscribeResources);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => client.SubscribeResourcesAsync(CancellationToken.None));
     }
 
     [Fact]
     public async Task SubscribeResources_IncreasesSubscriberCount()
     {
-        var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        instance.SetInitialDataReceived();
+
         IDashboardClient client = instance;
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        _ = client.SubscribeResources();
+        _ = await client.SubscribeResourcesAsync(CancellationToken.None);
 
         Assert.Equal(1, instance.OutgoingResourceSubscriberCount);
 
         await instance.DisposeAsync();
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
+    }
+
+    [Fact]
+    public async Task SubscribeResources_HasInitialData_InitialDataReturned()
+    {
+        await using var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+
+        IDashboardClient client = instance;
+
+        var cts = new CancellationTokenSource();
+
+        var subscribeTask = client.SubscribeResourcesAsync(CancellationToken.None);
+
+        Assert.False(subscribeTask.IsCompleted);
+        Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
+
+        instance.SetInitialDataReceived([new Resource
+        {
+            Name = "test",
+            CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow),
+        }]);
+
+        var (initialData, subscription) = await subscribeTask;
+
+        Assert.Single(initialData);
     }
 }

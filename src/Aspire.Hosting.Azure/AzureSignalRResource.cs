@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class AzureSignalRResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.signalr.bicep"),
+    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.signalr.bicep"),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -18,13 +18,21 @@ public class AzureSignalRResource(string name) :
     /// </summary>
     public BicepOutputReference HostName => new("hostName", this);
 
+    private ReferenceExpression ConnectionString
+        => ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
+
     /// <summary>
     /// Gets the connection string template for the manifest for Azure SignalR.
     /// </summary>
-    public string ConnectionStringExpression => $"Endpoint=https://{HostName.ValueExpression};AuthType=azure";
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
+
     /// <summary>
     /// Gets the connection string for Azure SignalR.
     /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string for Azure SignalR.</returns>
-    public string? GetConnectionString() => $"Endpoint=https://{HostName.Value};AuthType=azure";
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        return ConnectionString.GetValueAsync(cancellationToken);
+    }
 }

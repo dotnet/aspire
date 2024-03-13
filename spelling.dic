@@ -3,6 +3,7 @@ amqp
 apigateway
 apiserver
 appsettings
+azuresearch
 blazor
 brightblack
 brightblue
@@ -31,6 +32,7 @@ microsoft
 mongodb
 mssql
 mysql
+nats
 noreferrer
 noopener
 npgsql
