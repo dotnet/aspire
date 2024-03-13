@@ -12,11 +12,16 @@ using Microsoft.Extensions.Hosting;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Xunit;
+using Aspire.Npgsql.Tests;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class EnrichNpgsqlTests : ConformanceTests
 {
+    public EnrichNpgsqlTests(PostgreSQLContainerFixture containerFixture) : base(containerFixture)
+    {
+    }
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(ConnectionString));
@@ -47,7 +52,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         throw new SkipTestException("Enrich doesn't use ConnectionString");
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void EnrichCanConfigureDbContextOptions()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -86,7 +91,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void EnrichEnablesRetryByDefault()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -119,7 +124,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void EnrichPreservesDefaultWhenMaxRetryCountNotSet()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -163,7 +168,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void EnrichOverridesCustomRetryIfNotDisabled()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -202,7 +207,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void EnrichSupportServiceType()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -220,7 +225,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         Assert.NotNull(context);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void EnrichSupportCustomOptionsLifetime()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
