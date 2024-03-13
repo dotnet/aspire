@@ -7,7 +7,7 @@ param location string = resourceGroup().location
 param keyVaultName string
 
 
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
+resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
 
@@ -32,7 +32,7 @@ resource cosmosDBAccount_5pKmb8KAZ 'Microsoft.DocumentDB/databaseAccounts@2023-0
   }
 }
 
-resource cosmosDBSqlDatabase_q2Ny71tR3 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2022-05-15' = {
+resource cosmosDBSqlDatabase_q2Ny71tR3 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
   parent: cosmosDBAccount_5pKmb8KAZ
   name: 'cosmosdb'
   location: location
@@ -43,7 +43,7 @@ resource cosmosDBSqlDatabase_q2Ny71tR3 'Microsoft.DocumentDB/databaseAccounts/sq
   }
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault_IeF8jZvXV
   name: 'connectionString'
   location: location

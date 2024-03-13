@@ -10,7 +10,7 @@ param principalId string
 param principalName string
 
 
-resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2022-08-01-preview' = {
+resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2020-11-01-preview' = {
   name: toLower(take(concat('sql', uniqueString(resourceGroup().id)), 24))
   location: location
   tags: {
@@ -39,7 +39,7 @@ resource sqlFirewallRule_Kr30BcxQt 'Microsoft.Sql/servers/firewallRules@2020-11-
   }
 }
 
-resource sqlDatabase_nUUkbFiVl 'Microsoft.Sql/servers/databases@2022-08-01-preview' = {
+resource sqlDatabase_nUUkbFiVl 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
   parent: sqlServer_l5O9GRsSn
   name: 'sqldb'
   location: location

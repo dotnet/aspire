@@ -33,5 +33,4 @@ resource roleAssignment_umUNaNdeG 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-output appConfigurationStore_j2IqAZkBh_endpoint string = appConfigurationStore_j2IqAZkBh.properties.endpoint
 output appConfigEndpoint string = appConfigurationStore_j2IqAZkBh.properties.endpoint
