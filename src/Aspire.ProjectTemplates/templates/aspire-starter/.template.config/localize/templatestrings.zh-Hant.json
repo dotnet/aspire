@@ -1,4 +1,4 @@
-{
+﻿{
   "author": "Microsoft",
   "name": ".NET Aspire Starter Application",
   "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
