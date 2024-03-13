@@ -3,7 +3,7 @@
 
 namespace Aspire.Components.Common;
 
-internal sealed class ContainerImageTags
+internal static class ContainerImageTags
 {
     public static (string image, string tag) Redis = ("redis", "7.2.4");
 }
