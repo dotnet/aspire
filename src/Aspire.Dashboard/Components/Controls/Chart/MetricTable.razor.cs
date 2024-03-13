@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Dashboard.Components.Controls.Chart;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -212,21 +213,9 @@ public partial class MetricTable : ChartBase
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            if (_jsModule is { } module)
-            {
-                _jsModule = null;
-                await _waitTaskCancellationTokenSource.CancelAsync();
-                _waitTaskCancellationTokenSource.Dispose();
-                await module.DisposeAsync();
-            }
-        }
-        catch (JSDisconnectedException)
-        {
-            // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
-        }
+        await _waitTaskCancellationTokenSource.CancelAsync();
+        _waitTaskCancellationTokenSource.Dispose();
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 
     public abstract record MetricViewBase

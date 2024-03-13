@@ -192,14 +192,20 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
 
-        try
+        if (_keyboardHandlers is { } h)
         {
-            await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _keyboardHandlers);
+            try
+            {
+                await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", h);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+                // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
+            }
         }
-        catch (JSDisconnectedException)
-        {
-            // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
-        }
+
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        await JSInteropHelpers.SafeDisposeAsync(_keyboardHandlers);
     }
 }
