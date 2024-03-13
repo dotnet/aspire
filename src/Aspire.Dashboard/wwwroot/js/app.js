@@ -22,6 +22,10 @@ window.resetContinuousScrollPosition = function () {
 }
 
 window.initializeContinuousScroll = function () {
+    // Reset to scrolling to the end of the content when initializing.
+    // This needs to be call because the value is remembered when switching between pages.
+    resetContinuousScrollPosition();
+
     const container = document.querySelector('.continuous-scroll-overflow');
     if (container == null) {
         return;
