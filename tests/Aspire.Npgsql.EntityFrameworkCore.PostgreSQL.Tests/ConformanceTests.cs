@@ -47,6 +47,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         "Npgsql.Exception"
     };
 
+    protected override bool CanCreateClientWithoutConnectingToServer => false;
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
