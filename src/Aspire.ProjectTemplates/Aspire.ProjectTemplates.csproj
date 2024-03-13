@@ -11,6 +11,7 @@
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <EnableDefaultItems>false</EnableDefaultItems>
     <Description>.NET Aspire Template Pack for Microsoft Template Engine</Description>
+    <UsingToolTemplateLocalizer>true</UsingToolTemplateLocalizer>
   </PropertyGroup>
 
   <ItemGroup>
