@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -25,22 +24,16 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
-
         var postgresServer = new PostgresServerResource(name, password);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "16.2" })
-                      .WithDefaultPassword()
+                      .WithImage("postgres", "16.2")
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables[PasswordEnvVarName] = context.ExecutionContext.IsPublishMode
-                              ? postgresServer.PasswordInput
-                              : postgresServer.Password;
-                      })
-                      .PublishAsContainer();
+                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordInput;
+                      });
     }
 
     /// <summary>
@@ -68,7 +61,7 @@ public static class PostgresBuilderExtensions
     /// <param name="hostPort">The host port for the application ui.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T: PostgresServerResource
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : PostgresServerResource
     {
         if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().Any())
         {
@@ -81,7 +74,7 @@ public static class PostgresBuilderExtensions
 
         var pgAdminContainer = new PgAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "8.3" })
+                                  .WithImage("dpage/pgadmin4", "8.3")
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithEnvironment(SetPgAdminEnvironmentVariables)
                                   .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
@@ -102,12 +95,32 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Changes the PostgreSQL resource to be published as a container in the manifest.
+    /// Adds a named volume for the data folder to a Postgres container resource.
     /// </summary>
-    /// <param name="builder">The Postgres server resource builder.</param>
-    /// <returns></returns>
-    public static IResourceBuilder<PostgresServerResource> PublishAsContainer(this IResourceBuilder<PostgresServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
-    }
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/postgresql/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a Postgres container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithDataBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the init folder to a Postgres container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<PostgresServerResource> WithInitBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = true)
+        => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
 }

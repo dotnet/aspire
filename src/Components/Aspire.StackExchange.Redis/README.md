@@ -43,10 +43,10 @@ The .NET Aspire StackExchange Redis component provides multiple options to confi
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRedis()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRedisClient()`:
 
 ```csharp
-builder.AddRedis("myRedisConnectionName");
+builder.AddRedisClient("myRedisConnectionName");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
@@ -87,13 +87,13 @@ The Redis component supports [Microsoft.Extensions.Configuration](https://learn.
 You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddRedis("cache", settings => settings.HealthChecks = false);
+builder.AddRedisClient("cache", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedis` method. For example to set the connection timeout:
+You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedisClient` method. For example to set the connection timeout:
 
 ```csharp
-builder.AddRedis("cache", configureOptions: options => options.ConnectTimeout = 3000);
+builder.AddRedisClient("cache", configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
 ## AppHost extensions

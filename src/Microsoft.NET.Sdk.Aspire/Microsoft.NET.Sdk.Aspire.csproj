@@ -5,16 +5,6 @@
   <PropertyGroup>
     <PackageId>$(PackageId).Manifest-$(DotNetAspireManifestVersionBand)</PackageId>
     <Description>.NET Aspire workload manifest</Description>
-
-    <!--
-      the workload testing targets from dotnet/runtime install the manifest nuget with nuget-restore, which fails
-      for this manifest package because PackageType='dotnetplatform'.
-
-      As a temporary workaround, set `PackageType=''` but only for Linux/CI or local runs
-      Because the official workload packages are generated on windows, they will not be
-      affected by this workaround
-    -->
-    <PackageType Condition="'$(ContinuousIntegrationBuild)' != 'true' or ('$(OS)' != 'Windows_NT' and '$(ArchiveTests)' == 'true')" />
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,11 +18,7 @@
 
   <ItemGroup>
     <TextReplacementValue Include="MicrosoftDotnetSdkInternalPackageVersion" NewValue="$(MicrosoftDotnetSdkInternalPackageVersion)" />
-    <TextReplacementValue Include="MicrosoftNETCoreAppRefPackageVersion" NewValue="$(MicrosoftNETCoreAppRefPackageVersion)" />
     <TextReplacementValue Include="DotNetAspireManifestVersionBand" NewValue="$(DotNetAspireManifestVersionBand)" />
-    <TextReplacementValue Include="ASPIRE_DOTNET_VERSION_MAJOR" NewValue="$(_AspireDotNetVersionMajor)" />
-    <TextReplacementValue Include="ASPIRE_DOTNET_VERSION" NewValue="$(_AspireDotNetVersion)" />
-    <TextReplacementValue Include="DCP_VERSION" NewValue="$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)" />
   </ItemGroup>
 
   <Target Name="_CopyAdditionalFIles" AfterTargets="Build">

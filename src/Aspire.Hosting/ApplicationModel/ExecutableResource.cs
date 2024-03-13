@@ -9,21 +9,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="command">The command to execute.</param>
 /// <param name="workingDirectory">The working directory of the executable.</param>
-/// <param name="args">The arguments to pass to the executable.</param>
-public class ExecutableResource(string name, string command, string workingDirectory, string[]? args) : Resource(name), IResourceWithEnvironment, IResourceWithEndpoints
+public class ExecutableResource(string name, string command, string workingDirectory) : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithEndpoints
 {
     /// <summary>
     /// Gets the command associated with this executable resource.
     /// </summary>
-    public string Command { get; } = command;
+    public string Command { get; } = command ?? throw new ArgumentNullException(nameof(command));
 
     /// <summary>
     /// Gets the working directory for the executable resource.
     /// </summary>
-    public string WorkingDirectory { get; } = workingDirectory;
-    
-    /// <summary>
-    /// Gets the command line arguments passed to the executable resource.
-    /// </summary>
-    public string[]? Args { get; } = args;
+    public string WorkingDirectory { get; } = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
 }

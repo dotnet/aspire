@@ -15,7 +15,16 @@ if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 }
 if (!resourcesToSkip.Contains(TestResourceNames.mysql))
 {
-    builder.AddMySqlDataSource("mysqldb");
+    builder.AddMySqlDataSource("mysqldb", settings =>
+    {
+        // add the connection string options required by Pomelo EF Core MySQL
+        var connectionStringBuilder = new MySqlConnector.MySqlConnectionStringBuilder(settings.ConnectionString!)
+        {
+            AllowUserVariables = true,
+            UseAffectedRows = false,
+        };
+        settings.ConnectionString = connectionStringBuilder.ConnectionString;
+    });
     if (!resourcesToSkip.Contains(TestResourceNames.pomelo))
     {
         builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
@@ -57,7 +66,7 @@ if (!resourcesToSkip.Contains(TestResourceNames.kafka))
 
 if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 {
-    builder.AddAzureCosmosDbClient("cosmos");
+    builder.AddAzureCosmosDBClient("cosmos");
 }
 
 var app = builder.Build();

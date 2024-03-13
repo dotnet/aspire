@@ -14,6 +14,9 @@ internal class EnvironmentAnnotation : EnvironmentCallbackAnnotation
 
     public EnvironmentAnnotation(string name, string value) : base(name, () => value)
     {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(value);
+
         _name = name;
         _value = value;
     }

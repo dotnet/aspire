@@ -27,6 +27,8 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <param name="secret">A flag indicating whether the input is secret.</param>
     public InputAnnotation(string name, bool secret = false)
     {
+        ArgumentNullException.ThrowIfNull(name);
+
         Name = name;
         Secret = secret;
     }
@@ -75,6 +77,32 @@ public sealed class InputAnnotation : IResourceAnnotation
 
         return Default.GenerateDefaultValue();
     }
+
+    internal static InputAnnotation CreateDefaultPasswordInput(string? password,
+        bool lower = true, bool upper = true, bool numeric = true, bool special = true,
+        int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
+    {
+        var passwordInput = new InputAnnotation("password", secret: true);
+        passwordInput.Default = new GenerateInputDefault
+        {
+            MinLength = 22, // enough to give 128 bits of entropy
+            Lower = lower,
+            Upper = upper,
+            Numeric = numeric,
+            Special = special,
+            MinLower = minLower,
+            MinUpper = minUpper,
+            MinNumeric = minNumeric,
+            MinSpecial = minSpecial
+        };
+
+        if (password is not null)
+        {
+            passwordInput.SetValueGetter(() => password);
+        }
+
+        return passwordInput;
+    }
 }
 
 /// <summary>
@@ -101,22 +129,86 @@ public abstract class InputDefault
 public sealed class GenerateInputDefault : InputDefault
 {
     /// <summary>
-    /// The minimum length of the generated value.
+    /// Gets or sets the minimum length of the generated value.
     /// </summary>
     public int MinLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to include lowercase alphabet characters in the result.
+    /// </summary>
+    public bool Lower { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to include uppercase alphabet characters in the result.
+    /// </summary>
+    public bool Upper { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to include numeric characters in the result.
+    /// </summary>
+    public bool Numeric { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to include special characters in the result.
+    /// </summary>
+    public bool Special { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the minimum number of lowercase characters in the result.
+    /// </summary>
+    public int MinLower { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum number of uppercase characters in the result.
+    /// </summary>
+    public int MinUpper { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum number of numeric characters in the result.
+    /// </summary>
+    public int MinNumeric { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum number of special characters in the result.
+    /// </summary>
+    public int MinSpecial { get; set; }
 
     /// <inheritdoc/>
     public override void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteStartObject("generate");
         context.Writer.WriteNumber("minLength", MinLength);
+
+        static void WriteBoolIfNotTrue(ManifestPublishingContext context, string propertyName, bool value)
+        {
+            if (value != true)
+            {
+                context.Writer.WriteBoolean(propertyName, value);
+            }
+        }
+
+        WriteBoolIfNotTrue(context, "lower", Lower);
+        WriteBoolIfNotTrue(context, "upper", Upper);
+        WriteBoolIfNotTrue(context, "numeric", Numeric);
+        WriteBoolIfNotTrue(context, "special", Special);
+
+        static void WriteIntIfNotZero(ManifestPublishingContext context, string propertyName, int value)
+        {
+            if (value != 0)
+            {
+                context.Writer.WriteNumber(propertyName, value);
+            }
+        }
+
+        WriteIntIfNotZero(context, "minLower", MinLower);
+        WriteIntIfNotZero(context, "minUpper", MinUpper);
+        WriteIntIfNotZero(context, "minNumeric", MinNumeric);
+        WriteIntIfNotZero(context, "minSpecial", MinSpecial);
+
         context.Writer.WriteEndObject();
     }
 
     /// <inheritdoc/>
-    public override string GenerateDefaultValue()
-    {
-        // https://github.com/Azure/azure-dev/issues/3462 tracks adding more generation options
-        return PasswordGenerator.GenerateRandomLettersValue(MinLength);
-    }
+    public override string GenerateDefaultValue() =>
+        PasswordGenerator.Generate(MinLength, Lower, Upper, Numeric, Special, MinLower, MinUpper, MinNumeric, MinSpecial);
 }

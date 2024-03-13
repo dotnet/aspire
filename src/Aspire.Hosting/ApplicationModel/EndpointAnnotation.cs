@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a endpoint annotation that describes how a service should be bound to a network.
+/// Represents an endpoint annotation that describes how a service should be bound to a network.
 /// </summary>
 /// <remarks>
 /// This class is used to specify the network protocol, port, URI scheme, transport, and other details for a service.
@@ -104,4 +104,14 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     /// <remarks>Defaults to <c>true</c>.</remarks>
     public bool IsProxied { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the endpoint is from a launch profile.
+    /// </summary>
+    internal bool FromLaunchProfile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the allocated endpoint.
+    /// </summary>
+    public AllocatedEndpoint? AllocatedEndpoint { get; set; }
 }

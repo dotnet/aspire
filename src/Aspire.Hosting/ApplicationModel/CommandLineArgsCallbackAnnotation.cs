@@ -14,6 +14,8 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
     /// <param name="callback"> The callback action to be executed.</param>
     public CommandLineArgsCallbackAnnotation(Func<CommandLineArgsCallbackContext, Task> callback)
     {
+        ArgumentNullException.ThrowIfNull(callback);
+
         Callback = callback;
     }
 
@@ -21,8 +23,10 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
     /// Initializes a new instance of the <see cref="CommandLineArgsCallbackAnnotation"/> class with the specified callback action.
     /// </summary>
     /// <param name="callback"> The callback action to be executed.</param>
-    public CommandLineArgsCallbackAnnotation(Action<IList<string>> callback)
+    public CommandLineArgsCallbackAnnotation(Action<IList<object>> callback)
     {
+        ArgumentNullException.ThrowIfNull(callback);
+
         Callback = (c) =>
         {
             callback(c.Args);
@@ -41,12 +45,12 @@ public class CommandLineArgsCallbackAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="args"> The list of command-line arguments.</param>
 /// <param name="cancellationToken"> The cancellation token associated with this execution.</param>
-public sealed class CommandLineArgsCallbackContext(IList<string> args, CancellationToken cancellationToken = default)
+public sealed class CommandLineArgsCallbackContext(IList<object> args, CancellationToken cancellationToken = default)
 {
     /// <summary>
     /// Gets the list of command-line arguments.
     /// </summary>
-    public IList<string> Args { get; } = args;
+    public IList<object> Args { get; } = args ?? throw new ArgumentNullException(nameof(args));
 
     /// <summary>
     /// Gets the cancellation token associated with the callback context.

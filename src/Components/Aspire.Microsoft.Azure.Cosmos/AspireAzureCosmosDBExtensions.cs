@@ -27,13 +27,13 @@ public static class AspireAzureCosmosDBExtensions
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureCosmosDbClient)} instead.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureCosmosDBClient)} instead.")]
     public static void AddAzureCosmosDB(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureCosmosDBSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
-        => AddAzureCosmosDbClient(builder, connectionName, configureSettings, configureClientOptions);
+        => AddAzureCosmosDBClient(builder, connectionName, configureSettings, configureClientOptions);
 
     /// <summary>
     /// Registers <see cref="CosmosClient" /> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -45,7 +45,7 @@ public static class AspireAzureCosmosDBExtensions
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
-    public static void AddAzureCosmosDbClient(
+    public static void AddAzureCosmosDBClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureCosmosDBSettings>? configureSettings = null,

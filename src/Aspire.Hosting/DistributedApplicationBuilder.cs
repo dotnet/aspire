@@ -52,6 +52,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <param name="args">The arguments provided to the builder.</param>
     public DistributedApplicationBuilder(string[] args) : this(new DistributedApplicationOptions { Args = args })
     {
+        ArgumentNullException.ThrowIfNull(args);
     }
 
     /// <summary>
@@ -60,6 +61,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <param name="options">The options for the distributed application.</param>
     public DistributedApplicationBuilder(DistributedApplicationOptions options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         var innerBuilderOptions = new HostApplicationBuilderSettings();
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
@@ -166,6 +169,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <inheritdoc />
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(resource);
+
         if (Resources.FirstOrDefault(r => string.Equals(r.Name, resource.Name, StringComparisons.ResourceName)) is { } existingResource)
         {
             throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists. Resource names are case-insensitive.");
@@ -178,6 +183,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <inheritdoc />
     public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(resource);
+
         var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
         return builder;
     }

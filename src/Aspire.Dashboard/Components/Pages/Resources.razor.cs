@@ -38,13 +38,14 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
+    private bool _isLoading = true;
 
     public Resources()
     {
         _visibleResourceTypes = new(StringComparers.ResourceType);
     }
 
-    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter));
+    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && resource.State != ResourceStates.HiddenState;
 
     protected void OnResourceTypeVisibilityChanged(string resourceType, bool isVisible)
     {
@@ -101,7 +102,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool HasResourcesWithCommands => _resourceByName.Values.Any(r => r.Commands.Any());
+    private bool HasResourcesWithCommands => _resourceByName.Any(r => r.Value.Commands.Any());
 
     private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
@@ -129,6 +130,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 await InvokeAsync(StateHasChanged);
             }
         });
+
+        _isLoading = false;
 
         async Task SubscribeResourcesAsync()
         {
@@ -207,13 +210,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         SelectedResource = null;
     }
 
-    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName.Values);
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
 
     private bool HasMultipleReplicas(ResourceViewModel resource)
     {
         var count = 0;
-        foreach (var item in _resourceByName.Values)
+        foreach (var (_, item) in _resourceByName)
         {
+            if (item.State == ResourceStates.HiddenState)
+            {
+                continue;
+            }
+
             if (item.DisplayName == resource.DisplayName)
             {
                 count++;

@@ -9,7 +9,7 @@ namespace Aspire.Seq;
 /// A diagnostic health check implementation for Seq servers.
 /// </summary>
 /// <param name="seqUri">The URI of the Seq server to check.</param>
-public class SeqHealthCheck(string seqUri) : IHealthCheck
+internal sealed class SeqHealthCheck(string seqUri) : IHealthCheck
 {
     readonly HttpClient _client = new(new SocketsHttpHandler { ActivityHeadersPropagator = null }) { BaseAddress = new Uri(seqUri) };
 

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -8,8 +10,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider
 {
-    // A reference to the allocated endpoint annotation if it exists.
-    private AllocatedEndpointAnnotation? _allocatedEndpointAnnotation;
+    // A reference to the endpoint annotation if it exists.
+    private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;
 
     /// <summary>
@@ -25,7 +27,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets a value indicating whether the endpoint is allocated.
     /// </summary>
-    public bool IsAllocated => _isAllocated ??= _allocatedEndpointAnnotation is not null || GetAllocatedEndpoint() is not null;
+    public bool IsAllocated => _isAllocated ??= GetAllocatedEndpoint() is not null;
 
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
@@ -34,12 +36,12 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
     /// </summary>
-    public string GetExpression(EndpointProperty property = EndpointProperty.Url)
+    internal string GetExpression(EndpointProperty property = EndpointProperty.Url)
     {
         var prop = property switch
         {
             EndpointProperty.Url => "url",
-            EndpointProperty.Host => "host",
+            EndpointProperty.Host or EndpointProperty.IPV4Host => "host",
             EndpointProperty.Port => "port",
             EndpointProperty.Scheme => "scheme",
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
@@ -49,32 +51,66 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     }
 
     /// <summary>
+    /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
+    /// </summary>
+    /// <param name="property"></param>
+    /// <returns></returns>
+    public EndpointReferenceExpression Property(EndpointProperty property)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+
+        return new(this, property);
+    }
+
+    /// <summary>
     /// Gets the port for this endpoint.
     /// </summary>
-    public int Port => AllocatedEndpointAnnotation.Port;
+    public int Port => AllocatedEndpoint.Port;
 
     /// <summary>
     /// Gets the host for this endpoint.
     /// </summary>
-    public string Host => AllocatedEndpointAnnotation.Address ?? "localhost";
+    public string Host => AllocatedEndpoint.Address ?? "localhost";
+
+    /// <summary>
+    /// Gets the container host for this endpoint.
+    /// </summary>
+    public string ContainerHost => AllocatedEndpoint.ContainerHostAddress;
 
     /// <summary>
     /// Gets the scheme for this endpoint.
     /// </summary>
-    public string Scheme => AllocatedEndpointAnnotation.UriScheme;
+    public string Scheme => AllocatedEndpoint.UriScheme;
 
     /// <summary>
     /// Gets the URL for this endpoint.
     /// </summary>
-    public string Url => AllocatedEndpointAnnotation.UriString;
+    public string Url => AllocatedEndpoint.UriString;
 
-    private AllocatedEndpointAnnotation AllocatedEndpointAnnotation =>
-        _allocatedEndpointAnnotation ??= GetAllocatedEndpoint()
+    private AllocatedEndpoint AllocatedEndpoint =>
+        GetAllocatedEndpoint()
         ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
 
-    private AllocatedEndpointAnnotation? GetAllocatedEndpoint() =>
-        Owner.Annotations.OfType<AllocatedEndpointAnnotation>()
-             .SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
+    private AllocatedEndpoint? GetAllocatedEndpoint()
+    {
+        var endpoint = _endpointAnnotation ??= Owner.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
+        return endpoint?.AllocatedEndpoint;
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.
+    /// </summary>
+    /// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
+    /// <param name="endpoint">The endpoint annotation.</param>
+    public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        Owner = owner;
+        EndpointName = endpoint.Name;
+        _endpointAnnotation = endpoint;
+    }
 
     /// <summary>
     /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.
@@ -83,21 +119,52 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="endpointName">The name of the endpoint.</param>
     public EndpointReference(IResourceWithEndpoints owner, string endpointName)
     {
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(endpointName);
+
         Owner = owner;
         EndpointName = endpointName;
     }
+}
+
+/// <summary>
+/// Represents a property expression for an endpoint reference.
+/// </summary>
+/// <param name="endpointReference">The endpoint reference.</param>
+/// <param name="property">The property of the endpoint.</param>
+public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IValueProvider, IManifestExpressionProvider
+{
+    /// <summary>
+    /// Gets the <see cref="EndpointReference"/>.
+    /// </summary>
+    public EndpointReference Owner { get; } = endpointReference ?? throw new ArgumentNullException(nameof(endpointReference));
 
     /// <summary>
-    /// Creates a new instance of <see cref="EndpointReference"/> with the specified allocated endpoint annotation.
+    /// Gets the <see cref="EndpointProperty"/> for the property expression.
     /// </summary>
-    /// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
-    /// <param name="allocatedEndpointAnnotation"> The allocated endpoint annotation.</param>
-    public EndpointReference(IResourceWithEndpoints owner, AllocatedEndpointAnnotation allocatedEndpointAnnotation)
+    public EndpointProperty Property { get; } = property;
+
+    /// <summary>
+    /// Gets the expression of the property of the endpoint.
+    /// </summary>
+    public string ValueExpression =>
+        Owner.GetExpression(Property);
+
+    /// <summary>
+    /// Gets the value of the property of the endpoint.
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken) => Property switch
     {
-        Owner = owner;
-        EndpointName = allocatedEndpointAnnotation.Name;
-        _allocatedEndpointAnnotation = allocatedEndpointAnnotation;
-    }
+        EndpointProperty.Url => new(Owner.Url),
+        EndpointProperty.Host => new(Owner.Host),
+        EndpointProperty.IPV4Host => new("127.0.0.1"),
+        EndpointProperty.Port => new(Owner.Port.ToString(CultureInfo.InvariantCulture)),
+        EndpointProperty.Scheme => new(Owner.Scheme),
+        _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Owner.EndpointName}'.")
+    };
 }
 
 /// <summary>
@@ -113,6 +180,10 @@ public enum EndpointProperty
     /// The host of the endpoint.
     /// </summary>
     Host,
+    /// <summary>
+    /// The IPv4 address of the endpoint.
+    /// </summary>
+    IPV4Host,
     /// <summary>
     /// The port of the endpoint.
     /// </summary>

@@ -1,13 +1,13 @@
 targetScope = 'resourceGroup'
 
 @description('')
-param principalId string
+param location string = resourceGroup().location
 
 @description('')
 param keyVaultName string
 
 @description('')
-param location string = resourceGroup().location
+param principalId string
 
 
 resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
@@ -17,6 +17,9 @@ resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
 resource redisCache_p9fE6TK3F 'Microsoft.Cache/Redis@2020-06-01' = {
   name: toLower(take(concat('cache', uniqueString(resourceGroup().id)), 24))
   location: location
+  tags: {
+    'aspire-resource-name': 'cache'
+  }
   properties: {
     enableNonSslPort: false
     minimumTlsVersion: '1.2'

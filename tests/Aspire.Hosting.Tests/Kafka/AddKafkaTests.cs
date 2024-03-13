@@ -23,9 +23,6 @@ public class AddKafkaTests
         var containerResource = Assert.Single(appModel.Resources.OfType<KafkaServerResource>());
         Assert.Equal("kafka", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(9092, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
@@ -42,25 +39,19 @@ public class AddKafkaTests
     }
 
     [Fact]
-    public void KafkaCreatesConnectionString()
+    public async Task KafkaCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
             .AddKafka("kafka")
-            .WithAnnotation(
-                new AllocatedEndpointAnnotation(KafkaServerResource.PrimaryEndpointName,
-                ProtocolType.Tcp,
-                "localhost",
-                27017,
-                "tcp"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017));
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<KafkaServerResource>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
         Assert.Equal("localhost:27017", connectionString);
         Assert.Equal("{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);

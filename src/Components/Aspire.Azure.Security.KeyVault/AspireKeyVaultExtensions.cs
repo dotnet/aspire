@@ -109,7 +109,24 @@ public static class AspireKeyVaultExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSecurityKeyVaultSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="SecretClientOptions"/>.</param>
     /// <param name="options">An optional <see cref="AzureKeyVaultConfigurationOptions"/> instance to configure the behavior of the configuration provider.</param>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureKeyVaultSecrets)} instead.")]
     public static void AddKeyVaultSecrets(
+        this IConfigurationManager configurationManager,
+        string connectionName,
+        Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
+        Action<SecretClientOptions>? configureClientOptions = null,
+        AzureKeyVaultConfigurationOptions? options = null)
+        => AddAzureKeyVaultSecrets(configurationManager, connectionName, configureSettings, configureClientOptions, options);
+
+    /// <summary>
+    /// Adds the Azure KeyVault secrets to be configuration values in the <paramref name="configurationManager"/>.
+    /// </summary>
+    /// <param name="configurationManager">The <see cref="IConfigurationManager"/> to add the secrets to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSecurityKeyVaultSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="SecretClientOptions"/>.</param>
+    /// <param name="options">An optional <see cref="AzureKeyVaultConfigurationOptions"/> instance to configure the behavior of the configuration provider.</param>
+    public static void AddAzureKeyVaultSecrets(
         this IConfigurationManager configurationManager,
         string connectionName,
         Action<AzureSecurityKeyVaultSettings>? configureSettings = null,

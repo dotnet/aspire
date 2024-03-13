@@ -1,13 +1,13 @@
 targetScope = 'resourceGroup'
 
 @description('')
+param location string = resourceGroup().location
+
+@description('')
 param principalId string
 
 @description('')
 param principalType string
-
-@description('')
-param location string = resourceGroup().location
 
 @description('')
 param storagesku string
@@ -19,6 +19,9 @@ param locationOverride string
 resource storageAccount_65zdmu5tK 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: toLower(take(concat('storage', uniqueString(resourceGroup().id)), 24))
   location: locationOverride
+  tags: {
+    'aspire-resource-name': 'storage'
+  }
   sku: {
     name: storagesku
   }

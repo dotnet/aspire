@@ -52,7 +52,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         var fullyQualifiedManifestPath = Path.GetFullPath(ManifestPath);
         var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
-        var relativePath = Path.GetRelativePath(manifestDirectory, path);
+
+        var normalizedPath = path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        var relativePath = Path.GetRelativePath(manifestDirectory, normalizedPath);
 
         return relativePath.Replace('\\', '/');
     }
@@ -81,28 +83,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             Writer.WriteString("entrypoint", container.Entrypoint);
         }
 
-        if (container.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
-        {
-            var args = new List<string>();
+        // Write args if they are present
+        await WriteCommandLineArgumentsAsync(container).ConfigureAwait(false);
 
-            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, CancellationToken);
-
-            foreach (var callback in argsCallback)
-            {
-                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
-            }
-
-            if (args.Count > 0)
-            {
-                Writer.WriteStartArray("args");
-
-                foreach (var arg in args)
-                {
-                    Writer.WriteStringValue(arg);
-                }
-                Writer.WriteEndArray();
-            }
-        }
+        // Write volume & bind mount details
+        WriteContainerMounts(container);
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container, emitContainerPort: true);
@@ -185,11 +170,48 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString(key, valueString);
             }
 
-            WriteServiceDiscoveryEnvironmentVariables(resource);
-
             WritePortBindingEnvironmentVariables(resource);
 
             Writer.WriteEndObject();
+        }
+    }
+
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <returns></returns>
+    public async Task WriteCommandLineArgumentsAsync(IResource resource)
+    {
+        var args = new List<object>();
+
+        if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
+        {
+            var commandLineArgsContext = new CommandLineArgsCallbackContext(args, CancellationToken);
+
+            foreach (var callback in argsCallback)
+            {
+                await callback.Callback(commandLineArgsContext).ConfigureAwait(false);
+            }
+        }
+
+        if (args.Count > 0)
+        {
+            Writer.WriteStartArray("args");
+
+            foreach (var arg in args)
+            {
+                var valueString = arg switch
+                {
+                    string stringValue => stringValue,
+                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                    _ => throw new DistributedApplicationException($"The value of the argument '{arg}' is not supported.")
+                };
+
+                Writer.WriteStringValue(valueString);
+            }
+
+            Writer.WriteEndArray();
         }
     }
 
@@ -231,40 +253,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// TODO: Doc Comments
     /// </summary>
     /// <param name="resource"></param>
-    public void WriteServiceDiscoveryEnvironmentVariables(IResource resource)
-    {
-        var endpointReferenceAnnotations = resource.Annotations.OfType<EndpointReferenceAnnotation>();
-
-        if (endpointReferenceAnnotations.Any())
-        {
-            foreach (var endpointReferenceAnnotation in endpointReferenceAnnotations)
-            {
-                var endpointNames = endpointReferenceAnnotation.UseAllEndpoints
-                    ? endpointReferenceAnnotation.Resource.Annotations.OfType<EndpointAnnotation>().Select(sb => sb.Name)
-                    : endpointReferenceAnnotation.EndpointNames;
-
-                var endpointAnnotationsGroupedByScheme = endpointReferenceAnnotation.Resource.Annotations
-                    .OfType<EndpointAnnotation>()
-                    .Where(sba => endpointNames.Contains(sba.Name, StringComparers.EndpointAnnotationName))
-                    .GroupBy(sba => sba.UriScheme);
-
-                var i = 0;
-                foreach (var endpointAnnotationGroupedByScheme in endpointAnnotationsGroupedByScheme)
-                {
-                    // HACK: For November we are only going to support a single endpoint annotation
-                    //       per URI scheme per service reference.
-                    var binding = endpointAnnotationGroupedByScheme.Single();
-
-                    Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <param name="resource"></param>
     public void WritePortBindingEnvironmentVariables(IResource resource)
     {
         if (resource.TryGetEndpoints(out var endpoints))
@@ -297,5 +285,66 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
 
         Writer.WriteEndObject();
+    }
+
+    private void WriteContainerMounts(ContainerResource container)
+    {
+        if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))
+        {
+            // Write out details for bind mounts
+            var bindMounts = mounts.Where(mounts => mounts.Type == ContainerMountType.BindMount).ToList();
+            if (bindMounts.Count > 0)
+            {
+                // Bind mounts are written as an array of objects to be consistent with volumes
+                Writer.WriteStartArray("bindMounts");
+
+                foreach (var bindMount in bindMounts)
+                {
+                    Writer.WriteStartObject();
+
+                    Writer.WritePropertyName("source");
+                    var manifestRelativeSource = GetManifestRelativePath(bindMount.Source);
+                    Writer.WriteStringValue(manifestRelativeSource);
+
+                    Writer.WritePropertyName("target");
+                    Writer.WriteStringValue(bindMount.Target.Replace('\\', '/'));
+
+                    Writer.WriteBoolean("readOnly", bindMount.IsReadOnly);
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndArray();
+            }
+
+            // Write out details for volumes
+            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Volume).ToList();
+            if (volumes.Count > 0)
+            {
+                // Volumes are written as an array of objects as anonymous volumes do not have a name
+                Writer.WriteStartArray("volumes");
+
+                foreach (var volume in volumes)
+                {
+                    Writer.WriteStartObject();
+
+                    // This can be null for anonymous volumes
+                    if (volume.Source is not null)
+                    {
+                        Writer.WritePropertyName("name");
+                        Writer.WriteStringValue(volume.Source);
+                    }
+
+                    Writer.WritePropertyName("target");
+                    Writer.WriteStringValue(volume.Target);
+
+                    Writer.WriteBoolean("readOnly", volume.IsReadOnly);
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndArray();
+            }
+        }
     }
 }

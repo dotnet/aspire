@@ -94,6 +94,8 @@ public static class AzureRedisExtensions
         {
             var redisCache = new RedisCache(construct, name: builder.Resource.Name);
 
+            redisCache.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
             var vaultNameParameter = new Parameter("keyVaultName");
             construct.AddParameter(vaultNameParameter);
 
@@ -119,10 +121,7 @@ public static class AzureRedisExtensions
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-            {
-                resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
-            }
+            resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
         }
 
         if (useProvisioner)

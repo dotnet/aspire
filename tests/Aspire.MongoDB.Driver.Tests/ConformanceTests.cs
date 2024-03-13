@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,11 +11,9 @@ using Xunit;
 
 namespace Aspire.MongoDB.Driver.Tests;
 
-public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
+public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>, IClassFixture<MongoDbContainerFixture>
 {
-    private const string ConnectionSting = "mongodb://root:password@localhost:27017/test_db";
-
-    private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
+    private readonly MongoDbContainerFixture _containerFixture;
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -22,7 +21,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanConnectToServer => s_canConnectToServer.Value;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {
@@ -39,6 +38,11 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
         }
         """;
 
+    public ConformanceTests(MongoDbContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
+
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
     {
         ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
@@ -53,12 +57,18 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
     ];
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
-        => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
-        {
+    {
+        var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
+            $"{_containerFixture.GetConnectionString()}test_db" :
+            "mongodb://root:password@localhost:27017/test_db";
+
+        configuration.AddInMemoryCollection(
+            [
             new KeyValuePair<string, string?>(
                 CreateConfigKey("Aspire:MongoDB:Driver", key, "ConnectionString"),
-                ConnectionSting)
-        });
+                connectionString)
+            ]);
+    }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MongoDBSettings>? configure = null, string? key = null)
     {
@@ -106,20 +116,5 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
         Assert.NotNull(mongoDatabase);
 
         T? Resolve<T>() => key is null ? host.Services.GetService<T>() : host.Services.GetKeyedService<T>(key);
-    }
-
-    private static bool GetCanConnect()
-    {
-        var client = new MongoClient(ConnectionSting);
-
-        try
-        {
-            client.ListDatabaseNames();
-            return true;
-        }
-        catch (Exception)
-        {
-            return false;
-        }
     }
 }

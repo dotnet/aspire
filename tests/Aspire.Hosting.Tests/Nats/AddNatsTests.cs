@@ -24,9 +24,6 @@ public class AddNatsTests
         var containerResource = Assert.Single(appModel.Resources.OfType<NatsServerResource>());
         Assert.Equal("nats", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(4222, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
@@ -55,16 +52,13 @@ public class AddNatsTests
         var containerResource = Assert.Single(appModel.Resources.OfType<NatsServerResource>());
         Assert.Equal("nats", containerResource.Name);
 
-        var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-
         var mountAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerMountAnnotation>());
         Assert.Equal("/tmp/dev-data", mountAnnotation.Source);
         Assert.Equal("/data", mountAnnotation.Target);
 
         var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>());
         Assert.NotNull(argsAnnotation.Callback);
-        var args = new List<string>();
+        var args = new List<object>();
         argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         Assert.Equal("-js -sd /data".Split(' '), args);
 

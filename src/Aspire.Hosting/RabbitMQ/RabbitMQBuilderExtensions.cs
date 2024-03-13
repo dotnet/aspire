@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -20,30 +19,34 @@ public static class RabbitMQBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
-        var password = PasswordGenerator.GeneratePassword(6, 6, 2, 2);
-
-        var rabbitMq = new RabbitMQServerResource(name, password);
+        var rabbitMq = new RabbitMQServerResource(name);
         return builder.AddResource(rabbitMq)
-                       .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
-                       .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
-                       .WithDefaultPassword()
-                       .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
-                       .WithEnvironment(context =>
-                       {
-                           context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = context.ExecutionContext.IsPublishMode
-                               ? rabbitMq.PasswordInput
-                               : rabbitMq.Password;
-                       })
-                       .PublishAsContainer();
+                      .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
+                      .WithImage("rabbitmq", "3")
+                      .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
+                      .WithEnvironment(context =>
+                      {
+                          context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordInput;
+                      });
     }
 
     /// <summary>
-    /// Changes the RabbitMQ resource to be published as a container in the manifest.
+    /// Adds a named volume for the data folder to a RabbitMQ container resource.
     /// </summary>
-    /// <param name="builder">Resource builder for <see cref="RabbitMQServerResource"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RabbitMQServerResource> PublishAsContainer(this IResourceBuilder<RabbitMQServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
-    }
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RabbitMQServerResource> WithDataVolume(this IResourceBuilder<RabbitMQServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/rabbitmq", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a RabbitMQ container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RabbitMQServerResource> WithDataBindMount(this IResourceBuilder<RabbitMQServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/lib/rabbitmq", isReadOnly);
 }

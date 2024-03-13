@@ -24,9 +24,6 @@ public class AddOracleTests
         var containerResource = Assert.Single(appModel.GetContainerResources());
         Assert.Equal("orcl", containerResource.Name);
 
-        var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestPublishing.Callback);
-
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("23.3.0.0", containerAnnotation.Tag);
         Assert.Equal("database/free", containerAnnotation.Image);
@@ -92,42 +89,30 @@ public class AddOracleTests
     }
 
     [Fact]
-    public void OracleCreatesConnectionString()
+    public async Task OracleCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracle("orcl")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(OracleDatabaseServerResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        var connectionString = connectionStringResource.GetConnectionString();
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("user id=system;password={orcl.inputs.password};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port};", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("user id=system;password={orcl.inputs.password};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("user id=system;password=", connectionString);
         Assert.EndsWith(";data source=localhost:2000", connectionString);
     }
 
     [Fact]
-    public void OracleCreatesConnectionStringWithDatabase()
+    public async void OracleCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracle("orcl")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation(OracleDatabaseServerResource.PrimaryEndpointName,
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000))
             .AddDatabase("db");
 
         using var app = appBuilder.Build();
@@ -135,9 +120,9 @@ public class AddOracleTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var oracleResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseServerResource>());
-        var oracleConnectionString = oracleResource.GetConnectionString();
+        var oracleConnectionString = oracleResource.GetConnectionStringAsync(default);
         var oracleDatabaseResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseResource>());
-        var dbConnectionString = oracleDatabaseResource.GetConnectionString();
+        var dbConnectionString = await oracleDatabaseResource.GetConnectionStringAsync(default);
 
         Assert.Equal("{orcl.connectionString}/db", oracleDatabaseResource.ConnectionStringExpression);
         Assert.Equal(oracleConnectionString + "/db", dbConnectionString);
@@ -197,7 +182,7 @@ public class AddOracleTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "user id=system;password={oracle.inputs.password};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port};",
+              "connectionString": "user id=system;password={oracle.inputs.password};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}",
               "image": "container-registry.oracle.com/database/free:23.3.0.0",
               "env": {
                 "ORACLE_PWD": "{oracle.inputs.password}"
@@ -216,7 +201,7 @@ public class AddOracleTests
                   "secret": true,
                   "default": {
                     "generate": {
-                      "minLength": 10
+                      "minLength": 22
                     }
                   }
                 }

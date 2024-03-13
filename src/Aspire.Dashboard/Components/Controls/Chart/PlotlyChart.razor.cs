@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components;
 public partial class PlotlyChart : ChartBase
 {
     [Inject]
-    public required IJSRuntime JSRuntime { get; init; }
+    public required IJSRuntime JS { get; init; }
 
     protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
@@ -35,7 +35,7 @@ public partial class PlotlyChart : ChartBase
                 Time = time
             };
 
-            await JSRuntime.InvokeVoidAsync("initializeChart",
+            await JS.InvokeVoidAsync("initializeChart",
                 "plotly-chart-container",
                 traceDtos,
                 xValues,
@@ -45,7 +45,7 @@ public partial class PlotlyChart : ChartBase
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("updateChart",
+            await JS.InvokeVoidAsync("updateChart",
                 "plotly-chart-container",
                 traceDtos,
                 xValues,

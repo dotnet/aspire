@@ -28,7 +28,7 @@ public partial class ResourceSelect
     public string? AriaLabel { get; set; }
 
     [Inject]
-    public required IJSRuntime JSRuntime { get; init; }
+    public required IJSRuntime JS { get; init; }
 
     private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
 
@@ -36,14 +36,22 @@ public partial class ResourceSelect
     /// Workaround for issue in fluent-select web component where the display value of the
     /// selected item doesn't update automatically when the item changes.
     /// </summary>
-    public ValueTask UpdateDisplayValueAsync()
+    public async ValueTask UpdateDisplayValueAsync()
     {
-        if (JSRuntime is null || _resourceSelectComponent is null)
+        if (_resourceSelectComponent is null)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        return JSRuntime.InvokeVoidAsync("updateSelectDisplayValue", _resourceSelectComponent.Element);
+        try
+        {
+            await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
+        }
     }
 
     private string? GetPopupHeight()

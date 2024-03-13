@@ -18,17 +18,18 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
+    private EndpointReferenceExpression ConnectionEndpoint =>
+        PrimaryEndpoint.Property(EndpointProperty.Url);
+
     /// <summary>
     /// Gets the Uri of the Seq endpoint
     /// </summary>
-    public string? GetConnectionString()
-    {
-        return PrimaryEndpoint.Url;
-    }
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
+        => ConnectionEndpoint.GetValueAsync(cancellationToken);
 
     /// <summary>
     /// Gets the connection string expression for the Seq server for the manifest.
     /// </summary>
     public string? ConnectionStringExpression =>
-        PrimaryEndpoint.GetExpression(EndpointProperty.Url);
+        ConnectionEndpoint.ValueExpression;
 }

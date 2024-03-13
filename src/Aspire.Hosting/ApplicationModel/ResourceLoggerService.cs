@@ -20,24 +20,48 @@ public class ResourceLoggerService
     /// </summary>
     /// <param name="resource">The resource name</param>
     /// <returns>An <see cref="ILogger"/>.</returns>
-    public ILogger GetLogger(IResource resource) =>
-        GetResourceLoggerState(resource.Name).Logger;
+    public ILogger GetLogger(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        return GetResourceLoggerState(resource.Name).Logger;
+    }
+
+    /// <summary>
+    /// Gets the logger for the resource to write to.
+    /// </summary>
+    /// <param name="resourceName"></param>
+    /// <returns></returns>
+    public ILogger GetLogger(string resourceName)
+    {
+        ArgumentNullException.ThrowIfNull(resourceName);
+
+        return GetResourceLoggerState(resourceName).Logger;
+    }
 
     /// <summary>
     /// Watch for changes to the log stream for a resource.
     /// </summary>
     /// <param name="resourceName">The resource name</param>
     /// <returns></returns>
-    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(string resourceName) =>
-        GetResourceLoggerState(resourceName).WatchAsync();
+    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(string resourceName)
+    {
+        ArgumentNullException.ThrowIfNull(resourceName);
+
+        return GetResourceLoggerState(resourceName).WatchAsync();
+    }
 
     /// <summary>
     /// Watch for changes to the log stream for a resource.
     /// </summary>
     /// <param name="resource">The resource to watch for logs.</param>
     /// <returns></returns>
-    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(IResource resource) =>
-        WatchAsync(resource.Name);
+    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        return WatchAsync(resource.Name);
+    }
 
     /// <summary>
     /// Completes the log stream for the resource.
@@ -45,11 +69,28 @@ public class ResourceLoggerService
     /// <param name="resource"></param>
     public void Complete(IResource resource)
     {
+        ArgumentNullException.ThrowIfNull(resource);
+
         if (_loggers.TryGetValue(resource.Name, out var logger))
         {
             logger.Complete();
         }
     }
+
+    /// <summary>
+    /// Completes the log stream for the resource.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    public void Complete(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (_loggers.TryGetValue(name, out var logger))
+        {
+            logger.Complete();
+        }
+    }
+
     private ResourceLoggerState GetResourceLoggerState(string resourceName) =>
         _loggers.GetOrAdd(resourceName, _ => new ResourceLoggerState());
 
@@ -76,7 +117,14 @@ public class ResourceLoggerService
         /// Watch for changes to the log stream for a resource.
         /// </summary>
         /// <returns> The log stream for the resource. </returns>
-        public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync() => new LogAsyncEnumerable(this);
+        public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync()
+        {
+            lock (_backlog)
+            {
+                // REVIEW: Performance makes me very sad, but we can optimize this later.
+                return new LogAsyncEnumerable(this, _backlog.ToList());
+            }
+        }
 
         // This provides the fan out to multiple subscribers.
         private Action<(string, bool)>? OnNewLog { get; set; }
@@ -123,19 +171,13 @@ public class ResourceLoggerService
             }
         }
 
-        private sealed class LogAsyncEnumerable(ResourceLoggerState annotation) : IAsyncEnumerable<IReadOnlyList<(string, bool)>>
+        private sealed class LogAsyncEnumerable(ResourceLoggerState annotation, List<(string, bool)> backlogSnapshot) : IAsyncEnumerable<IReadOnlyList<(string, bool)>>
         {
             public async IAsyncEnumerator<IReadOnlyList<(string, bool)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
             {
-                // Yield the backlog first.
-
-                lock (annotation._backlog)
+                if (backlogSnapshot.Count > 0)
                 {
-                    if (annotation._backlog.Count > 0)
-                    {
-                        // REVIEW: Performance makes me very sad, but we can optimize this later.
-                        yield return annotation._backlog.ToList();
-                    }
+                    yield return backlogSnapshot;
                 }
 
                 var channel = Channel.CreateUnbounded<(string, bool)>();

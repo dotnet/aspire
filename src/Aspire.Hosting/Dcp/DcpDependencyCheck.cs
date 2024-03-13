@@ -147,7 +147,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
     {
         // If we don't have any resources that need a container then we
         // don't need to check for a healthy container runtime.
-        if (!_applicationModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
+        if (!_applicationModel.Resources.Any(c => c.IsContainer()))
         {
             return;
         }

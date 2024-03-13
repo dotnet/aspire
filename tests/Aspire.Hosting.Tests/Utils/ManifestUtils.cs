@@ -10,28 +10,13 @@ namespace Aspire.Hosting.Utils;
 
 internal sealed class ManifestUtils
 {
-    public static JsonNode GetManifest(Action<ManifestPublishingContext> writeManifest)
-    {
-        using var ms = new MemoryStream();
-        var writer = new Utf8JsonWriter(ms);
-        writer.WriteStartObject();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        writeManifest(new ManifestPublishingContext(executionContext, Environment.CurrentDirectory, writer));
-        writer.WriteEndObject();
-        writer.Flush();
-        ms.Position = 0;
-        var obj = JsonNode.Parse(ms);
-        Assert.NotNull(obj);
-        return obj;
-    }
-
     public static async Task<JsonNode> GetManifest(IResource resource)
     {
         using var ms = new MemoryStream();
         var writer = new Utf8JsonWriter(ms);
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
         writer.WriteStartObject();
-        await ManifestPublisher.WriteResourceAsync(resource, new ManifestPublishingContext(executionContext, Environment.CurrentDirectory, writer));
+        await ManifestPublisher.WriteResourceAsync(resource, new ManifestPublishingContext(executionContext, Path.Combine(Environment.CurrentDirectory, "manifest.json"), writer));
         writer.WriteEndObject();
         writer.Flush();
         ms.Position = 0;

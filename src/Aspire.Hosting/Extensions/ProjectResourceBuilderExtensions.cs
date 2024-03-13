@@ -13,6 +13,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class ProjectResourceBuilderExtensions
 {
+    private const string AspNetCoreForwaredHeadersEnabledVariableName = "ASPNETCORE_FORWARDEDHEADERS_ENABLED";
+
     /// <summary>
     /// Adds a .NET project to the application model. By default, this will exist in a Projects namespace. e.g. Projects.MyProject.
     /// If the project is not in a Projects namespace, make sure a project reference is added from the AppHost project to the target project.
@@ -92,6 +94,20 @@ public static class ProjectResourceBuilderExtensions
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
 
+        var projectResource = builder.Resource;
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.WithEnvironment(context =>
+            {
+                // If we have any endpoints & the forwarded headers wasn't disabled then add it
+                if (projectResource.GetEndpoints().Any() && !projectResource.Annotations.OfType<DisableForwardedHeadersAnnotation>().Any())
+                {
+                    context.EnvironmentVariables[AspNetCoreForwaredHeadersEnabledVariableName] = "true";
+                }
+            });
+        }
+
         if (excludeLaunchProfile)
         {
             builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
@@ -103,8 +119,6 @@ public static class ProjectResourceBuilderExtensions
             builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
         }
 
-        var projectResource = builder.Resource;
-
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
             // Automatically add EndpointAnnotation to project resources based on ApplicationUrl set in the launch profile.
@@ -114,7 +128,7 @@ public static class ProjectResourceBuilderExtensions
                 return builder;
             }
 
-            var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';') ?? [];
+            var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
             foreach (var url in urlsFromApplicationUrl)
             {
                 var uri = new Uri(url);
@@ -123,6 +137,7 @@ public static class ProjectResourceBuilderExtensions
                 {
                     e.Port = uri.Port;
                     e.UriScheme = uri.Scheme;
+                    e.FromLaunchProfile = true;
                 },
                 createIfNotExists: true);
             }
@@ -206,6 +221,17 @@ public static class ProjectResourceBuilderExtensions
     public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
     {
         throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile. Method will be removed by GA.");
+    }
+
+    /// <summary>
+    /// Configures the project to disable forwarded headers when being published.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> DisableForwadedHeaders(this IResourceBuilder<ProjectResource> builder)
+    {
+        builder.WithAnnotation<DisableForwardedHeadersAnnotation>(ResourceAnnotationMutationBehavior.Replace);
+        return builder;
     }
 
     private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)

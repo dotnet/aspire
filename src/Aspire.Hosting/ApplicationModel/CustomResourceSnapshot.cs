@@ -18,7 +18,7 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// The properties that should show up in the dashboard for this resource.
     /// </summary>
-    public required ImmutableArray<(string Key, string Value)> Properties { get; init; }
+    public required ImmutableArray<(string Key, object? Value)> Properties { get; init; }
 
     /// <summary>
     /// The creation timestamp of the resource.
@@ -31,12 +31,27 @@ public sealed record CustomResourceSnapshot
     public string? State { get; init; }
 
     /// <summary>
+    /// The exit code of the resource.
+    /// </summary>
+    public int? ExitCode { get; init; }
+
+    /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
     /// </summary>
-    public ImmutableArray<(string Name, string Value)> EnvironmentVariables { get; init; } = [];
+    public ImmutableArray<(string Name, string Value, bool IsFromSpec)> EnvironmentVariables { get; init; } = [];
 
     /// <summary>
     /// The URLs that should show up in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<(string Name, string Url)> Urls { get; init; } = [];
+
+    /// <summary>
+    /// The services that should show up in the dashboard for this resource.
+    /// </summary>
+    public ImmutableArray<(string Name, string? AllocatedAddress, int? AllocatedPort)> Services { get; init; } = [];
+
+    /// <summary>
+    /// The endpoints that should show up in the dashboard for this resource.
+    /// </summary>
+    public ImmutableArray<(string EndpointUrl, string ProxyUrl)> Endpoints { get; init; } = [];
 }

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -21,33 +20,17 @@ public static class SqlServerBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
-        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
-        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
-
         var sqlServer = new SqlServerServerResource(name, password);
 
         return builder.AddResource(sqlServer)
                       .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
-                      .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
-                      .WithDefaultPassword()
+                      .WithImage("mssql/server", "2022-latest")
+                      .WithImageRegistry("mcr.microsoft.com")
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = context.ExecutionContext.IsPublishMode
-                              ? sqlServer.PasswordInput
-                              : sqlServer.Password;
-                      })
-                      .PublishAsContainer();
-    }
-
-    /// <summary>
-    /// Changes the SQL Server resource to be published as a container.
-    /// </summary>
-    /// <param name="builder">Builder for the underlying <see cref="SqlServerServerResource"/>.</param>
-    /// <returns></returns>
-    public static IResourceBuilder<SqlServerServerResource> PublishAsContainer(this IResourceBuilder<SqlServerServerResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
+                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordInput;
+                      });
     }
 
     /// <summary>
@@ -67,4 +50,44 @@ public static class SqlServerBuilderExtensions
         return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
                                          .WithManifestPublishingCallback(sqlServerDatabase.WriteToManifest);
     }
+
+    /// <summary>
+    /// Adds a named volume for the log folder to a SqlServer resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithDataVolume(this IResourceBuilder<SqlServerServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/opt/mssql/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the log folder to a SqlServer resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithDataBindMount(this IResourceBuilder<SqlServerServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/opt/mssql/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a named volume for the log folder to a SqlServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithLogsVolume(this IResourceBuilder<SqlServerServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-logs", "/var/opt/mssql/log", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the log folder to a SqlServer container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithLogsBindMount(this IResourceBuilder<SqlServerServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/opt/mssql/log", isReadOnly);
 }

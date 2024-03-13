@@ -17,15 +17,15 @@
           "properties": {
             "ApiKey": {
               "type": "string",
-              "description": "A Seq API key that authenticates the client to the Seq server."
+              "description": "Gets or sets a Seq API key that authenticates the client to the Seq server."
             },
             "HealthChecks": {
               "type": "boolean",
-              "description": "Is the Seq server health check enabled."
+              "description": "Gets or sets a boolean value that indicates whetherthe Seq server health check is enabled or not."
             },
             "ServerUrl": {
               "type": "string",
-              "description": "The base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789\""
+              "description": "Gets or sets the base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789\""
             }
           },
           "description": "Provides the client configuration settings for connecting telemetry to a Seq server."

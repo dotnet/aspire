@@ -1,18 +1,21 @@
 targetScope = 'resourceGroup'
 
 @description('')
+param location string = resourceGroup().location
+
+@description('')
 param principalId string
 
 @description('')
 param principalName string
 
-@description('')
-param location string = resourceGroup().location
-
 
 resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2022-08-01-preview' = {
   name: toLower(take(concat('sql', uniqueString(resourceGroup().id)), 24))
   location: location
+  tags: {
+    'aspire-resource-name': 'sql'
+  }
   properties: {
     version: '12.0'
     minimalTlsVersion: '1.2'

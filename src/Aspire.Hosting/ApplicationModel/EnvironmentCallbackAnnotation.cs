@@ -20,6 +20,9 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     /// <param name="callback">The callback function that returns the value to set the environment variable to.</param>
     public EnvironmentCallbackAnnotation(string name, Func<string> callback)
     {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(callback);
+
         _name = name;
         Callback = (c) =>
         {
@@ -34,6 +37,8 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     /// <param name="callback">The callback action to be executed.</param>
     public EnvironmentCallbackAnnotation(Action<Dictionary<string, object>> callback)
     {
+        ArgumentNullException.ThrowIfNull(callback);
+
         Callback = (c) =>
         {
             callback(c.EnvironmentVariables);
@@ -47,6 +52,8 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     /// <param name="callback">The callback to be invoked.</param>
     public EnvironmentCallbackAnnotation(Action<EnvironmentCallbackContext> callback)
     {
+        ArgumentNullException.ThrowIfNull(callback);
+
         Callback = c =>
         {
             callback(c);
@@ -60,6 +67,8 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     /// <param name="callback">The callback to be invoked.</param>
     public EnvironmentCallbackAnnotation(Func<EnvironmentCallbackContext, Task> callback)
     {
+        ArgumentNullException.ThrowIfNull(callback);
+
         Callback = callback;
     }
 

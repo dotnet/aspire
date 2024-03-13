@@ -24,7 +24,7 @@ public class TestingBuilderTests
         Assert.True(workerEndpoint.Host.Length > 0);
 
         // Get a connection string from a resource
-        var pgConnectionString = app.GetConnectionString("postgres1");
+        var pgConnectionString = await app.GetConnectionStringAsync("postgres1");
         Assert.NotNull(pgConnectionString);
         Assert.True(pgConnectionString.Length > 0);
     }

@@ -1,6 +1,6 @@
 # Aspire.NATS.Net library
 
-Registers [INatsConnection](https://nats-io.github.io/nats.net.v2/api/NATS.Client.Core.INatsConnection.html) in the DI container for connecting NATS server. Enables corresponding health check, metrics, logging and telemetry.
+Registers [INatsConnection](https://nats-io.github.io/nats.net.v2/api/NATS.Client.Core.INatsConnection.html) in the DI container for connecting NATS server. Enables corresponding health check and logging.
 
 ## Getting started
 
@@ -41,10 +41,10 @@ The .NET Aspire NATS component provides multiple options to configure the NATS c
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNats()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNatsClient()`:
 
 ```csharp
-builder.AddNats("myConnection");
+builder.AddNatsClient("myConnection");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
@@ -80,7 +80,7 @@ The .NET Aspire NATS component supports [Microsoft.Extensions.Configuration](htt
 Also you can pass the `Action<NatsClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddNats("nats", settings => settings.HealthChecks = false);
+builder.AddNatsClient("nats", settings => settings.HealthChecks = false);
 ```
 
 ## AppHost extensions

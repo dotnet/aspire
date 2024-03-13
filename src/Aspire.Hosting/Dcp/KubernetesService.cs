@@ -35,6 +35,7 @@ internal interface IKubernetesService
         T obj,
         string logStreamType,
         bool? follow = true,
+        bool? timestamps = false,
         CancellationToken cancellationToken = default) where T : CustomResource;
 }
 
@@ -176,12 +177,14 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
         T obj,
         string logStreamType,
         bool? follow = true,
+        bool? timestamps = false,
         CancellationToken cancellationToken = default) where T : CustomResource
     {
         var resourceType = GetResourceFor<T>();
 
         ImmutableArray<(string name, string value)>? queryParams = [
             (name: "follow", value: follow == true ? "true": "false"),
+            (name: "timestamps", value: timestamps == true ? "true" : "false"),
             (name: "source", value: logStreamType)
         ];
 

@@ -9,9 +9,9 @@ internal sealed class ResourceWithConnectionStringSurrogate(IResource innerResou
 
     public ResourceAnnotationCollection Annotations => innerResource.Annotations;
 
-    public string? GetConnectionString()
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
     {
-        return callback();
+        return new(callback());
     }
 
     public string? ConnectionStringEnvironmentVariable => environmentVariableName;

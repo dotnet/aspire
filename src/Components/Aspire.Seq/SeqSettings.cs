@@ -6,20 +6,20 @@ namespace Aspire.Seq;
 /// <summary>
 /// Provides the client configuration settings for connecting telemetry to a Seq server.
 /// </summary>
-public class SeqSettings
+public sealed class SeqSettings
 {
     /// <summary>
-    /// Is the Seq server health check enabled.
+    /// Gets or sets a boolean value that indicates whetherthe Seq server health check is enabled or not.
     /// </summary>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
-    /// A Seq <i>API key</i> that authenticates the client to the Seq server.
+    /// Gets or sets a Seq <i>API key</i> that authenticates the client to the Seq server.
     /// </summary>
-    public string ApiKey { get; set; } = string.Empty;
+    public string? ApiKey { get; set; }
 
     /// <summary>
-    /// The base URL of the Seq server (including protocol and port). E.g. "https://example.seq.com:6789"
+    /// Gets or sets the base URL of the Seq server (including protocol and port). E.g. "https://example.seq.com:6789"
     /// </summary>
-    public string ServerUrl { get; set; } = string.Empty;
+    public string? ServerUrl { get; set; }
 }
