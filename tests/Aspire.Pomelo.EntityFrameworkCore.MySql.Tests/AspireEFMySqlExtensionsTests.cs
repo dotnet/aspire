@@ -2,21 +2,29 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.MySqlConnector.Tests;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MySqlConnector;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 using Xunit;
 
 namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 
-public class AspireEFMySqlExtensionsTests
+public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 {
-    private const string ConnectionString = "Server=localhost;User ID=root;Database=test";
     private const string ConnectionStringSuffixAddedByPomelo = ";Allow User Variables=True;Use Affected Rows=False";
+    private readonly MySqlContainerFixture _containerFixture;
+    protected string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
+                                            ? _containerFixture.GetConnectionString()
+                                            : "Server=localhost;User ID=root;Password=pass;Database=test";
+
+    public AspireEFMySqlExtensionsTests(MySqlContainerFixture containerFixture)
+        => _containerFixture = containerFixture;
 
     [Fact]
     public void ReadsFromConnectionStringsCorrectly()

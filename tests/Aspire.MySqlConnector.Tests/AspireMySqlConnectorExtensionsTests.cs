@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,9 +10,15 @@ using Xunit;
 
 namespace Aspire.MySqlConnector.Tests;
 
-public class AspireMySqlConnectorExtensionsTests
+public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerFixture>
 {
-    private const string ConnectionString = "Server=localhost;Database=test_aspire_mysql";
+    private readonly MySqlContainerFixture _containerFixture;
+    private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Server=localhost;Database=test_aspire_mysql";
+
+    public AspireMySqlConnectorExtensionsTests(MySqlContainerFixture containerFixture)
+        => _containerFixture = containerFixture;
 
     [Theory]
     [InlineData(true)]
@@ -50,7 +57,7 @@ public class AspireMySqlConnectorExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", "unused")
         ]);
 
-        static void SetConnectionString(MySqlConnectorSettings settings) => settings.ConnectionString = ConnectionString;
+        void SetConnectionString(MySqlConnectorSettings settings) => settings.ConnectionString = ConnectionString;
         if (useKeyed)
         {
             builder.AddKeyedMySqlDataSource("mysql", SetConnectionString);

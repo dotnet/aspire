@@ -134,6 +134,7 @@
     <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.MySql" Version="$(TestcontainersPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.12.0" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0-nightly.20240126.1" />
