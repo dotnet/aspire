@@ -62,8 +62,8 @@ public class AWSCloudFormationResourceTests
 
         var resourceBuilder = builder.AddAWSCloudFormationStack("ExistingStack");
 
-        var projectBuilder = builder.AddProject<Projects.ServiceA>("serviceA")
-                                    .WithReference(resourceBuilder);
+        builder.AddProject<Projects.ServiceA>("serviceA")
+               .WithReference(resourceBuilder);
 
         var resource = resourceBuilder.Resource as CloudFormationStackResource;
         Assert.NotNull(resource);
@@ -80,7 +80,7 @@ public class AWSCloudFormationResourceTests
         }
         """;
 
-        var manifest = ManifestUtils.GetManifest(resource.WriteToManifest);
+        var manifest = ManifestUtils.GetManifest(resource);
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
@@ -91,8 +91,8 @@ public class AWSCloudFormationResourceTests
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 
-        var projectBuilder = builder.AddProject<Projects.ServiceA>("serviceA")
-                                    .WithReference(resourceBuilder);
+        builder.AddProject<Projects.ServiceA>("serviceA")
+               .WithReference(resourceBuilder);
 
         var resource = resourceBuilder.Resource as CloudFormationTemplateResource;
         Assert.NotNull(resource);
@@ -110,7 +110,7 @@ public class AWSCloudFormationResourceTests
         }
         """;
 
-        var manifest = ManifestUtils.GetManifest(resource.WriteToManifest);
+        var manifest = ManifestUtils.GetManifest(resource);
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 }

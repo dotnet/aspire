@@ -113,19 +113,23 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<(string, string)>? properties = null)
+    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<(string, object?)>? properties = null)
     {
         if (properties == null)
         {
-            properties = ImmutableArray.Create<(string, string)>();
+            properties = ImmutableArray.Create<(string, object?)>();
         }
 
-        await notificationService.PublishUpdateAsync(resource, state => state with { State = status, Properties = state.Properties.AddRange(properties) }).ConfigureAwait(false);
+        await notificationService.PublishUpdateAsync(resource, state => state with
+        {
+            State = status,
+            Properties = state.Properties.AddRange(properties)
+        }).ConfigureAwait(false);
     }
 
-    private static ImmutableArray<(string, string)> ConvertOutputToProperties(Stack stack, string? templateFile = null)
+    private static ImmutableArray<(string, object?)> ConvertOutputToProperties(Stack stack, string? templateFile = null)
     {
-        var list = new List<(string, string)>();
+        var list = new List<(string, object?)>();
 
         foreach (var output in stack.Outputs)
         {
