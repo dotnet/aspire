@@ -2,7 +2,7 @@
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<div class="@GetContainerClass()">
+<div class="@GetContainerClass()" style="width: inherit;">
     @if (EnableMasking && IsMasked)
     {
         <span class="cellText">
@@ -26,7 +26,7 @@
     }
     @if (EnableMasking)
     {
-        <FluentButton Appearance="Appearance.Lightweight"
+        <FluentButton Appearance="Appearance.Lightweight"y:
                       IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
                       Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
                       OnClick="ToggleMaskStateAsync"
@@ -35,9 +35,10 @@
     <FluentButton Appearance="Appearance.Lightweight"
                   Id="@_anchorId"
                   Class="defaultHidden"
+                  Style="float: right;"
                   AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, ("aria-label", @Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]))">
         <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
         <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
     </FluentButton>
-    <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top" HideTooltipOnCursorLeave="true">@PreCopyToolTip</FluentTooltip>
+    <FluentTooltip @ref="_tooltipComponent" Anchor="@_anchorId" Position="TooltipPosition.Top" HideTooltipOnCursorLeave="true">@PreCopyToolTip</FluentTooltip>
 </div>
