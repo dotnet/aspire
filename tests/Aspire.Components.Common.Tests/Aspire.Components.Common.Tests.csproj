@@ -3,9 +3,13 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsTestSupportProject>true</IsTestSupportProject>
+    <!-- BUILDING_FOR_TESTS is used to control visibility of ContainerImageTags -->
+    <DefineConstants>$(DefineConstants);BUILDING_TESTS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Shared\ContainerImageTags.cs" />
+
     <PackageReference Include="JsonSchema.Net" />
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />

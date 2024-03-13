@@ -115,7 +115,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         var key = useKeyed ? "redis" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", key, "ConnectionString"), "unused"),
-            new KeyValuePair<string, string?>("ConnectionStrings:redis", ConnectionString))
+            new KeyValuePair<string, string?>("ConnectionStrings:redis", ConnectionString)
         ]);
 
         if (useKeyed)

@@ -5,6 +5,8 @@
     <IsAspireHost>true</IsAspireHost>
     <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
     <NoWarn>$(NoWarn),CS8002</NoWarn>
+    <!-- BUILDING_FOR_TESTS is used to control visibility of ContainerImageTags -->
+    <DefineConstants>$(DefineConstants);BUILDING_TESTS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +22,8 @@
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
+    <!-- Aspire.Components.Common.Tests is not referenced, so include this directly -->
+    <Compile Include="..\..\src\Shared\ContainerImageTags.cs" Link="ContainerImageTags.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
   </ItemGroup>
 

@@ -24,6 +24,7 @@
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
+    <Compile Include="$(SharedDir)ContainerImageTags.cs" Link="Utils\ContainerImageTags.cs" />
     <Compile Include="$(SharedDir)ValueStopwatch\*.cs" LinkBase="Utils" />
     <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
   </ItemGroup>

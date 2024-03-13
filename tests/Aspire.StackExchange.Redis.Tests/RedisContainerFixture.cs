@@ -19,7 +19,7 @@ public sealed class RedisContainerFixture : IAsyncLifetime
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
             Container = new RedisBuilder()
-                            .WithImage("redis:7.2.4")
+                            .WithImage($"{ContainerImageTags.Redis.image}:{ContainerImageTags.Redis.tag}")
                             .Build();
             await Container.StartAsync();
         }
@@ -29,8 +29,6 @@ public sealed class RedisContainerFixture : IAsyncLifetime
     {
         if (Container is not null)
         {
-            (string stdout, string stderr) = await Container.GetLogsAsync();
-            Console.WriteLine ($"Container logs:{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
             await Container.DisposeAsync();
         }
     }
