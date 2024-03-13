@@ -18,6 +18,11 @@ public static class ConsoleStresser
         Console.WriteLine("==============");
         Console.WriteLine();
 
+        Console.WriteLine("UTF-8 characters:");
+        Console.WriteLine("Emojis: \U0001F600, \U0001F680, \U0001F4A9");
+        Console.WriteLine("Chinese: \u8fd9\u662f\u4e00\u4e2a\u4e2d\u6587\u5b57\u7b26\u4e32"); // "This is a Chinese string"
+        Console.WriteLine();
+
         Console.WriteLine("Entire URL in one segment:");
         Console.Write("\x1b[36mhttp://localhost:7000\x1b[0m");
         Console.WriteLine();
