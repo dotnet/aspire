@@ -13,10 +13,10 @@ public class ManifestMetadataAnnotation(string name, object value) : IResourceAn
     /// <summary>
     /// Name of metadata entry.
     /// </summary>
-    public string Name { get; } = name;
+    public string Name { get; } = name ?? throw new ArgumentNullException(nameof(name));
 
     /// <summary>
     /// Value of metadata entry.
     /// </summary>
-    public object Value { get; } = value;
+    public object Value { get; } = value ?? throw new ArgumentNullException(nameof(value));
 }

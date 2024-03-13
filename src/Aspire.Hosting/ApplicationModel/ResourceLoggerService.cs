@@ -20,32 +20,48 @@ public class ResourceLoggerService
     /// </summary>
     /// <param name="resource">The resource name</param>
     /// <returns>An <see cref="ILogger"/>.</returns>
-    public ILogger GetLogger(IResource resource) =>
-        GetResourceLoggerState(resource.Name).Logger;
+    public ILogger GetLogger(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        return GetResourceLoggerState(resource.Name).Logger;
+    }
 
     /// <summary>
     /// Gets the logger for the resource to write to.
     /// </summary>
     /// <param name="resourceName"></param>
     /// <returns></returns>
-    public ILogger GetLogger(string resourceName) =>
-        GetResourceLoggerState(resourceName).Logger;
+    public ILogger GetLogger(string resourceName)
+    {
+        ArgumentNullException.ThrowIfNull(resourceName);
+
+        return GetResourceLoggerState(resourceName).Logger;
+    }
 
     /// <summary>
     /// Watch for changes to the log stream for a resource.
     /// </summary>
     /// <param name="resourceName">The resource name</param>
     /// <returns></returns>
-    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(string resourceName) =>
-        GetResourceLoggerState(resourceName).WatchAsync();
+    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(string resourceName)
+    {
+        ArgumentNullException.ThrowIfNull(resourceName);
+
+        return GetResourceLoggerState(resourceName).WatchAsync();
+    }
 
     /// <summary>
     /// Watch for changes to the log stream for a resource.
     /// </summary>
     /// <param name="resource">The resource to watch for logs.</param>
     /// <returns></returns>
-    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(IResource resource) =>
-        WatchAsync(resource.Name);
+    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        return WatchAsync(resource.Name);
+    }
 
     /// <summary>
     /// Completes the log stream for the resource.
@@ -53,6 +69,8 @@ public class ResourceLoggerService
     /// <param name="resource"></param>
     public void Complete(IResource resource)
     {
+        ArgumentNullException.ThrowIfNull(resource);
+
         if (_loggers.TryGetValue(resource.Name, out var logger))
         {
             logger.Complete();
@@ -65,6 +83,8 @@ public class ResourceLoggerService
     /// <param name="name">The name of the resource.</param>
     public void Complete(string name)
     {
+        ArgumentNullException.ThrowIfNull(name);
+
         if (_loggers.TryGetValue(name, out var logger))
         {
             logger.Complete();

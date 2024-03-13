@@ -19,5 +19,10 @@ public static class CustomResourceExtensions
     /// <returns>The resource builder.</returns>
     public static IResourceBuilder<TResource> WithInitialState<TResource>(this IResourceBuilder<TResource> builder, CustomResourceSnapshot initialSnapshot)
         where TResource : IResource
-        => builder.WithAnnotation(new ResourceSnapshotAnnotation(initialSnapshot), ResourceAnnotationMutationBehavior.Replace);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(initialSnapshot);
+
+        return builder.WithAnnotation(new ResourceSnapshotAnnotation(initialSnapshot), ResourceAnnotationMutationBehavior.Replace);
+    }
 }

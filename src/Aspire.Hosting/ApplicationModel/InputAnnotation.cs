@@ -27,6 +27,8 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <param name="secret">A flag indicating whether the input is secret.</param>
     public InputAnnotation(string name, bool secret = false)
     {
+        ArgumentNullException.ThrowIfNull(name);
+
         Name = name;
         Secret = secret;
     }

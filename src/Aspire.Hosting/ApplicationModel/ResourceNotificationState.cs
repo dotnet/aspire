@@ -11,5 +11,5 @@ public class ResourceSnapshotAnnotation(CustomResourceSnapshot initialSnapshot) 
     /// <summary>
     /// The initial snapshot of the resource.
     /// </summary>
-    public CustomResourceSnapshot InitialSnapshot { get; } = initialSnapshot;
+    public CustomResourceSnapshot InitialSnapshot { get; } = initialSnapshot ?? throw new ArgumentNullException(nameof(initialSnapshot));
 }

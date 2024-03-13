@@ -13,7 +13,7 @@ public sealed class InputReference(IResource owner, string inputName) : IManifes
     /// <summary>
     /// Gets the owner of the input.
     /// </summary>
-    public IResource Owner { get; } = owner;
+    public IResource Owner { get; } = owner ?? throw new ArgumentNullException(nameof(owner));
 
     /// <summary>
     /// Gets the instance of the input annotation.
@@ -23,7 +23,7 @@ public sealed class InputReference(IResource owner, string inputName) : IManifes
     /// <summary>
     /// Gets the name of the input associated with the input reference.
     /// </summary>
-    public string InputName => inputName;
+    public string InputName { get; } = inputName ?? throw new ArgumentNullException(nameof(inputName));
 
     /// <inheritdoc/>
     public string ValueExpression => $"{{{Owner.Name}.inputs.{InputName}}}";
