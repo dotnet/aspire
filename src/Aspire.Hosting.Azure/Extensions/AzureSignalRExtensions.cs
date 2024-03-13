@@ -45,6 +45,8 @@ public static class AzureSignalRExtensions
             service.AssignProperty(x => x.Kind, "'SignalR'");
             service.AddOutput("hostName", x => x.HostName);
 
+            service.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
             var appServerRole = service.AssignRole(RoleDefinition.SignalRAppServer);
             appServerRole.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
             appServerRole.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);

@@ -13,6 +13,9 @@ param principalType string
 resource signalRService_hoCuRhvyj 'Microsoft.SignalRService/signalR@2020-06-01' = {
   name: toLower(take(concat('signalr', uniqueString(resourceGroup().id)), 24))
   location: location
+  tags: {
+    'aspire-resource-name': 'signalr'
+  }
   sku: {
     name: 'Free_F1'
     capacity: 1
