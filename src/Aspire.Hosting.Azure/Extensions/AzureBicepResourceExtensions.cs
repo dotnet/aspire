@@ -188,8 +188,22 @@ public static class AzureBicepResourceExtensions
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value)
         where T : AzureBicepResource
     {
+        return builder.WithParameter(name, value.Resource);
+    }
+
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, ParameterResource value)
+        where T : AzureBicepResource
+    {
         BicepParameterNameValidator.ThrowIfInvalid(name);
-        builder.Resource.Parameters[name] = value.Resource;
+        builder.Resource.Parameters[name] = value;
         return builder;
     }
 

@@ -94,7 +94,7 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <param name="minNumeric">The minimum number of numeric characters in the result.</param>
     /// <param name="minSpecial">The minimum number of special characters in the result.</param>
     /// <returns>The created <see cref="InputAnnotation"/> for generating a random password.</returns>
-    public static InputAnnotation CreateDefaultPasswordInput(string? password,
+    public static InputAnnotation CreateDefaultPasswordInput(string? password = null,
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
         int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
     {

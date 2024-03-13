@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// A interface that allows the value to be provided for an environment variable.
+/// An interface that allows the value to be provided for an environment variable.
 /// </summary>
 public interface IValueProvider
 {
