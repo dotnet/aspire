@@ -33,7 +33,7 @@
     }
 }
 
-<FluentOverflow>
+<FluentOverflow Style="overflow-x: visible;">
     <ChildContent>
         @for (var i = 0; i < displayedEndpoints.Count; i++)
         {
@@ -57,7 +57,7 @@
         }
     </ChildContent>
     <MoreButtonTemplate Context="overflow">
-        <FluentBadge>
+        <FluentBadge Appearance="Appearance.Accent" Style="pointer-events: none; user-select: none;">
             @($"+{overflow.ItemsOverflow.Count()}")
         </FluentBadge>
     </MoreButtonTemplate>
