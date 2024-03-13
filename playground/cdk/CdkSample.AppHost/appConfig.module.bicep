@@ -13,6 +13,9 @@ param principalType string
 resource appConfigurationStore_j2IqAZkBh 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
   name: toLower(take(concat('appConfig', uniqueString(resourceGroup().id)), 24))
   location: location
+  tags: {
+    'aspire-resource-name': 'appConfig'
+  }
   sku: {
     name: 'standard'
   }

@@ -46,6 +46,8 @@ public static class AzureAppConfigurationExtensions
             appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
             appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
 
+            store.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
             if (configureResource != null)
             {
                 var resource = (AzureAppConfigurationConstructResource)construct.Resource;
