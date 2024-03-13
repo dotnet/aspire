@@ -99,7 +99,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
         }
     }
 
-    [Fact]
+    [RequiresDockerFact]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
     public void DbContextPoolingRegistersIDbContextPool()
     {
@@ -109,7 +109,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
         Assert.NotNull(pool);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void DbContextCanBeAlwaysResolved()
     {
         using IHost host = CreateHostWithComponent();

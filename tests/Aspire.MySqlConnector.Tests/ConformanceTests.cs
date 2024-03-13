@@ -31,6 +31,7 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     protected override bool SupportsKeyedRegistrations => true;
 
+    protected override bool CanCreateClientWithoutConnectingToServer => false;
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
@@ -91,7 +92,7 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
         command.ExecuteScalar();
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(null)]
     [InlineData("key")]
     public void BothDataSourceAndConnectionCanBeResolved(string? key)

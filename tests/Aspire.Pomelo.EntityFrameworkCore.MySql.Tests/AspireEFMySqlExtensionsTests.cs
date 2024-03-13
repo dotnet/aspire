@@ -23,7 +23,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     public AspireEFMySqlExtensionsTests(MySqlContainerFixture containerFixture)
         => _containerFixture = containerFixture;
 
-    [Fact]
+    [RequiresDockerFact]
     public void ReadsFromConnectionStringsCorrectly()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -40,7 +40,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         Assert.Equal(ConnectionString + ConnectionStringSuffixAddedByPomelo, context.Database.GetDbConnection().ConnectionString);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void ConnectionStringCanBeSetInCode()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -60,7 +60,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         Assert.DoesNotContain("unused", actualConnectionString);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void ConnectionNameWinsOverConfigSection()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -81,7 +81,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         Assert.DoesNotContain("unused", actualConnectionString);
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void CanConfigureDbContextOptions()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -123,7 +123,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
-    [Fact]
+    [RequiresDockerFact]
     public void CanConfigureDbContextOptionsWithoutRetry()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -162,7 +162,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
@@ -185,7 +185,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         Assert.Equal("DbContext<TestDbContext> is already registered. Please ensure 'services.AddDbContext<TestDbContext>()' is not used when calling 'AddMySqlDbContext()' or use the corresponding 'Enrich' method.", exception.Message);
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void DoesntThrowWhenDbContextIsRegisteredBeforeAspireComponentProduction(bool useServiceType)
