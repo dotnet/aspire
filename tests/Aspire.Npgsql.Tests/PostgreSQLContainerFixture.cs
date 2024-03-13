@@ -18,7 +18,9 @@ public sealed class PostgreSQLContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
-            Container = new PostgreSqlBuilder().Build();
+            Container = new PostgreSqlBuilder()
+                .WithImage("postgres:16.2")
+                .Build();
             await Container.StartAsync();
         }
     }
