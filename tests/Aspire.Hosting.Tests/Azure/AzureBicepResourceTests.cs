@@ -422,6 +422,29 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task AddSignalRConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var signalr = builder.AddAzureSignalRConstruct("signalr");
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+              "path": "signalr.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifest(signalr.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
     public async Task AsAzureSqlDatabase()
     {
         var builder = DistributedApplication.CreateBuilder();

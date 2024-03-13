@@ -22,6 +22,7 @@ builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");
 builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
 builder.AddAzureServiceBusClient("sb");
 builder.AddAzureSearchClient("search");
+builder.Services.AddSignalR().AddAzureSignalR(builder.Configuration.GetConnectionString("signalr"));
 
 var app = builder.Build();
 
@@ -45,7 +46,7 @@ app.MapGet("/",
             sqlRows = await TestSqlServerAsync(sqlContext),
             npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
             serviceBus = await TestServiceBusAsync(sbc),
-            search = await TestSearchAsync(search)
+            search = await TestSearchAsync(search),
         };
     });
 app.Run();
