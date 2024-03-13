@@ -40,19 +40,11 @@ public static class AzureAppConfigurationExtensions
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var store = new AppConfigurationStore(construct, name: name);
-
-            // PROBLEM #1: We don't seem to have the ability to set the SKU, assigning this property does nothing.
-            //             https://github.com/Azure/azure-sdk-for-net/issues/42623
-            store.AssignProperty(x => x.SkuName, "Standard");
-
-            // HACK: We should have a built in role here.
-            var appConfigurationDataOwnerRoleDefinition = new RoleDefinition("5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b");
-            var appConfigurationDataOwnerRoleAssignemnt = store.AssignRole(appConfigurationDataOwnerRoleDefinition);
+            var store = new AppConfigurationStore(construct, name: name, skuName: "standard");
+            store.AddOutput("appConfigEndpoint", x => x.Endpoint);
+            var appConfigurationDataOwnerRoleAssignemnt = store.AssignRole(RoleDefinition.AppConfigurationDataOwner);
             appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
             appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
-
-            // PROBLEM: Firewall rules?
 
             if (configureResource != null)
             {
