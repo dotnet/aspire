@@ -50,17 +50,24 @@ public class PublishAsDockerfileTests
     }
 
     [Fact]
-    public async Task PublishAsDockerFileThrowsWhenBuildArgHasNoEnvVarValue()
+    public async Task PublishAsDockerFileConfiguresManifestWithBuildArgsThatHaveNoValue()
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var frontend = builder.AddNpmApp("frontend", "../NodeFrontend", "watch")
+        var frontend = builder.AddNpmApp("frontend", "NodeFrontend", "watch")
             .PublishAsDockerFile(buildArgs: [
-                new DockerBuildArg("THIS_SHOULD_THROW_AS_THERE_IS_NO_ENV_VAR_VALUE")
+                new DockerBuildArg("SOME_ARG")
             ]);
 
         Assert.True(frontend.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
 
-        await Assert.ThrowsAsync<DistributedApplicationException>(async () => await ManifestUtils.GetManifest(frontend.Resource));
+        var manifest = await ManifestUtils.GetManifest(frontend.Resource);
+
+        Assert.NotNull(manifest);
+        Assert.Equal("dockerfile.v0", manifest?["type"]?.ToString());
+        Assert.Equal("NodeFrontend/Dockerfile", manifest?["path"]?.ToString());
+        Assert.Equal("NodeFrontend", manifest?["context"]?.ToString());
+        Assert.Equal("development", manifest?["env"]?["NODE_ENV"]?.ToString());
+        Assert.Null(manifest?["buildArgs"]?["SOME_ARG"]?.ToString());
     }
 }

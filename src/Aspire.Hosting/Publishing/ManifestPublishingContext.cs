@@ -284,10 +284,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     string stringValue => stringValue,
                     IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-
-                    _ => Environment.GetEnvironmentVariable(buildArg.Name) ??
-                        throw new DistributedApplicationException(
-                            $"No value was given for {buildArg.Name} in the Dockerfile build args or as an environment variable.")
+                    _ => null
                 };
 
                 Writer.WriteString(buildArg.Name, valueString);
