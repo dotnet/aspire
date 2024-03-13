@@ -24,7 +24,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Set RunSettingsFilePath property which is read by VSTest. -->
-    <RunSettingsFilePath>$(RepositoryEngineeringDir).runsettings</RunSettingsFilePath>
+    <RunSettingsFilePath Condition="'$(RunSettingsFilePath)' == ''">$(RepositoryEngineeringDir).runsettings</RunSettingsFilePath>
+    <!-- Redirect test logs into a subfolder -->
+    <TestResultsLogDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsLogDir)', 'TestLogs'))</TestResultsLogDir>
     <!-- We don't want to use the workload for AppHost projects in this repo -->
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
 
