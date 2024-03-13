@@ -21,7 +21,7 @@ public class AzureResourceExtensionsTests
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
         Assert.Equal(computedPath, volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
-        Assert.Equal(ContainerMountType.Bind, volumeAnnotation.Type);
+        Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
     }
 
     [Fact]
