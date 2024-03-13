@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
+using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
@@ -12,12 +13,13 @@ using Xunit;
 
 namespace Aspire.MySqlConnector.Tests;
 
-public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnectorSettings>
+public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnectorSettings>, IClassFixture<MySqlContainerFixture>
 {
-    private const string ConnectionSting = "Host=localhost;Database=test_aspire_mysql;Username=root;Password=password";
+    private readonly MySqlContainerFixture _containerFixture;
 
-    private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
+    // private const string ConnectionSting = "Host=localhost;Database=test_aspire_mysql;Username=root;Password=password";
 
+    private string ConnectionSting => _containerFixture.GetConnectionString();
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/mysql-net/MySqlConnector/blob/d895afc013a5849d33a123a7061442e2cbb9ce76/src/MySqlConnector/Utilities/ActivitySourceHelper.cs#L61
@@ -33,7 +35,7 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanConnectToServer => s_canConnectToServer.Value;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {
@@ -53,6 +55,9 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
             ("""{"Aspire": { "MySqlConnector":{ "Metrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
             ("""{"Aspire": { "MySqlConnector":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
+
+    public ConformanceTests(MySqlContainerFixture containerFixture)
+        => _containerFixture = containerFixture;
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
@@ -128,31 +133,5 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
         SkipIfCanNotConnectToServer();
 
         RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
-    }
-
-    private static bool GetCanConnect()
-    {
-        using MySqlConnection connection = new(ConnectionSting);
-
-        try
-        {
-            // clear the database from the connection string so we can create it
-            var builder = new MySqlConnectionStringBuilder(connection.ConnectionString);
-            string dbName = connection.Database;
-            builder.Database = null;
-
-            using var noDatabaseConnection = new MySqlConnection(builder.ConnectionString);
-
-            noDatabaseConnection.Open();
-
-            using var cmd = new MySqlCommand($"CREATE DATABASE IF NOT EXISTS `{dbName}`", noDatabaseConnection);
-            cmd.ExecuteNonQuery();
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-
-        return true;
     }
 }

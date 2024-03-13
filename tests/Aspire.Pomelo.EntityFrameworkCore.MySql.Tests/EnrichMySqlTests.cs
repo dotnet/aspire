@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.MySqlConnector.Tests;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
@@ -19,6 +20,10 @@ namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 public class EnrichMySqlTests : ConformanceTests
 {
     public static readonly MySqlServerVersion DefaultVersion = new(new Version(8, 2, 0));
+
+    public EnrichMySqlTests(MySqlContainerFixture containerFixture) : base(containerFixture)
+    {
+    }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<PomeloEntityFrameworkCoreMySqlSettings>? configure = null, string? key = null)
     {

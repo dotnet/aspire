@@ -9,9 +9,13 @@ using Xunit;
 
 namespace Aspire.MySqlConnector.Tests;
 
-public class AspireMySqlConnectorExtensionsTests
+public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerFixture>
 {
-    private const string ConnectionString = "Server=localhost;Database=test_aspire_mysql";
+    private readonly MySqlContainerFixture _containerFixture;
+    private string ConnectionString => _containerFixture.GetConnectionString();
+
+    public AspireMySqlConnectorExtensionsTests(MySqlContainerFixture containerFixture)
+        => _containerFixture = containerFixture;
 
     [Theory]
     [InlineData(true)]
@@ -50,7 +54,7 @@ public class AspireMySqlConnectorExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", "unused")
         ]);
 
-        static void SetConnectionString(MySqlConnectorSettings settings) => settings.ConnectionString = ConnectionString;
+        void SetConnectionString(MySqlConnectorSettings settings) => settings.ConnectionString = ConnectionString;
         if (useKeyed)
         {
             builder.AddKeyedMySqlDataSource("mysql", SetConnectionString);
