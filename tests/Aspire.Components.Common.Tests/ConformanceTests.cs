@@ -98,6 +98,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [InlineData(false)]
     public void HealthChecksRegistersHealthCheckService(bool enabled)
     {
+        SkipIfRequiredServerConnectionCanNotBeEstablished();
         SkipIfHealthChecksAreNotSupported();
 
         using IHost host = CreateHostWithComponent(options => SetHealthCheck(options, enabled));
@@ -110,6 +111,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [ConditionalFact]
     public async Task EachKeyedComponentRegistersItsOwnHealthCheck()
     {
+        SkipIfRequiredServerConnectionCanNotBeEstablished();
         SkipIfHealthChecksAreNotSupported();
         SkipIfKeyedRegistrationIsNotSupported();
 
@@ -150,6 +152,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [InlineData(false)]
     public void MetricsRegistersMeterProvider(bool enabled)
     {
+        SkipIfRequiredServerConnectionCanNotBeEstablished();
         SkipIfMetricsAreNotSupported();
 
         using IHost host = CreateHostWithComponent(options => SetMetrics(options, enabled));
@@ -300,6 +303,7 @@ public abstract class ConformanceTests<TService, TOptions>
     [InlineData("key")]
     public async Task HealthCheckReportsExpectedStatus(string? key)
     {
+        SkipIfRequiredServerConnectionCanNotBeEstablished();
         SkipIfHealthChecksAreNotSupported();
 
         // DisableRetries so the test doesn't take so long retrying when the server isn't available.

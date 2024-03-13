@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
+    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +13,8 @@
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis.OutputCaching\Aspire.StackExchange.Redis.OutputCaching.csproj" />
 
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+
+    <PackageReference Include="TestContainers.Redis" />
   </ItemGroup>
 
 </Project>
