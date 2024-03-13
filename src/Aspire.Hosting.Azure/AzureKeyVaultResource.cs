@@ -38,8 +38,7 @@ public class AzureKeyVaultResource(string name) :
 /// A resource that represents an Azure Key Vault.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct"></param>
-public class AzureKeyVaultConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString
+public class AzureKeyVaultConstructResource(string name) : AzureConstructResource(name), IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the "vaultUri" output reference for the Azure Key Vault resource.

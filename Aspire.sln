@@ -347,6 +347,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stress.TelemetryService", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stress.ApiService", "playground\Stress\Stress.ApiService\Stress.ApiService.csproj", "{1167077B-F696-4A1C-BB0B-6EF70D530BB8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.Provisioning", "Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj", "{6E5F97D0-AC89-44E7-AB56-FEC91DD5172A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -901,6 +903,10 @@ Global
 		{1167077B-F696-4A1C-BB0B-6EF70D530BB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1167077B-F696-4A1C-BB0B-6EF70D530BB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1167077B-F696-4A1C-BB0B-6EF70D530BB8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E5F97D0-AC89-44E7-AB56-FEC91DD5172A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E5F97D0-AC89-44E7-AB56-FEC91DD5172A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E5F97D0-AC89-44E7-AB56-FEC91DD5172A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E5F97D0-AC89-44E7-AB56-FEC91DD5172A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1067,6 +1073,7 @@ Global
 		{A74C1916-231A-410A-B718-A0E7BDB1DD7F} = {CFDA7AC5-251C-43C7-B334-71AE8040A147}
 		{9114FFB4-328C-43FC-B2E4-EB6A16659113} = {CFDA7AC5-251C-43C7-B334-71AE8040A147}
 		{1167077B-F696-4A1C-BB0B-6EF70D530BB8} = {CFDA7AC5-251C-43C7-B334-71AE8040A147}
+		{6E5F97D0-AC89-44E7-AB56-FEC91DD5172A} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

@@ -71,7 +71,7 @@ public static class AzureStorageExtensions
                 configureResource(construct, storageAccount);
             }
         };
-        var resource = new AzureStorageConstructResource(name, configureConstruct);
+        var resource = new AzureStorageConstructResource(name) { ConfigureConstruct = configureConstruct };
 
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.

@@ -178,7 +178,7 @@ public static class AzurePostgresExtensions
             }
         };
 
-        var resource = new AzurePostgresConstructResource(builder.Resource, configureConstruct);
+        var resource = new AzurePostgresConstructResource(builder.Resource) { ConfigureConstruct = configureConstruct };
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
                                                         .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                                                         .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
