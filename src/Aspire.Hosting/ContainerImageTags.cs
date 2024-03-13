@@ -6,4 +6,5 @@ namespace Aspire.Components.Common;
 internal static class ContainerImageTags
 {
     public static (string Image, string Tag) Redis = ("redis", "7.2.4");
+    public static (string Image, string Tag) PostgreSql = ("postgres", "16.2");
 }

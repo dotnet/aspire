@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common;
 using Aspire.Components.Common.Tests;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -19,7 +20,7 @@ public sealed class PostgreSQLContainerFixture : IAsyncLifetime
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
             Container = new PostgreSqlBuilder()
-                .WithImage("postgres:16.2")
+                .WithImage($"{ContainerImageTags.PostgreSql.image}:{ContainerImageTags.PostgreSql.tag}")
                 .Build();
             await Container.StartAsync();
         }

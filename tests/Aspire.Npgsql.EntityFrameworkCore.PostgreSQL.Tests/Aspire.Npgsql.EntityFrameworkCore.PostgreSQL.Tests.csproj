@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Shared\ContainerImageTags.cs" />
     <Compile Include="..\Aspire.Npgsql.Tests\PostgreSQLContainerFixture.cs" />
     <None Include="$(RepoRoot)src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
