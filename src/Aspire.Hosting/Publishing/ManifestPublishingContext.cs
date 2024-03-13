@@ -269,29 +269,28 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
     }
 
-    internal void WriteDockerBuildArgs(DockerBuildArg[] buildArgs)
+    internal void WriteDockerBuildArgs(IEnumerable<DockerBuildArg>? buildArgs)
     {
-        if (buildArgs is { Length: > 0 })
+        var args = buildArgs?.ToArray() ?? [];
+        if (args is { Length: > 0 })
         {
             Writer.WriteStartObject("buildArgs");
 
-            for (var i = 0; i < buildArgs.Length; i++)
+            for (var i = 0; i < args.Length; i++)
             {
-                var buildArg = buildArgs[i];
+                var buildArg = args[i];
 
-                var value = buildArg.Value;
-                if (string.IsNullOrEmpty(value))
+                var valueString = buildArg.Value switch
                 {
-                    value = Environment.GetEnvironmentVariable(buildArg.Name);
-                }
+                    string stringValue => stringValue,
+                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
 
-                if (string.IsNullOrEmpty(value))
-                {
-                    throw new DistributedApplicationException(
-                        $"No value was given for {buildArg.Name} in the Dockerfile build args or as an environment variable.");
-                }
+                    _ => Environment.GetEnvironmentVariable(buildArg.Name) ??
+                        throw new DistributedApplicationException(
+                            $"No value was given for {buildArg.Name} in the Dockerfile build args or as an environment variable.")
+                };
 
-                Writer.WriteString(buildArg.Name, buildArg.Value);
+                Writer.WriteString(buildArg.Name, valueString);
             }
 
             Writer.WriteEndObject();

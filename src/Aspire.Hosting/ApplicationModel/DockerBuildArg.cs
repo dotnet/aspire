@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The required name of the arg.</param>
 /// <param name="value">The optional value of the arg, when omitted the value is populated from the corresponding environment variable.</param>
-public sealed class DockerBuildArg(string name, string? value = null)
+public sealed class DockerBuildArg(string name, object? value = null)
 {
     /// <summary>
     /// Gets or initializes the name part of the <c>docker builder --build-arg &lt;NAME&gt;[=&lt;VALUE&gt;]</c>.
@@ -19,5 +19,5 @@ public sealed class DockerBuildArg(string name, string? value = null)
     /// <summary>
     /// Gets or initializes the value part of the <c>docker builder --build-arg &lt;NAME&gt;[=&lt;VALUE&gt;]</c>.
     /// </summary>
-    public string? Value { get; init; } = value;
+    public object? Value { get; init; } = value;
 }
