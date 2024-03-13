@@ -71,7 +71,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(cosmosdb)
     .WithReference(pgsqldb)
     .WithReference(sb)
-    .WithReference(appConfig);
+    .WithReference(appConfig)
     .WithReference(search);
 
 // This project is only added in playground projects to support development/debugging

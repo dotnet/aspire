@@ -181,6 +181,24 @@
         "principalType": ""
       }
     },
+    "appConfig": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appConfig.outputs.appConfigEndpoint}",
+      "path": "appConfig.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "search": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{search.outputs.connectionString}",
+      "path": "search.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
@@ -194,7 +212,9 @@
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
         "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
-        "ConnectionStrings__servicebus": "{servicebus.connectionString}"
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "ConnectionStrings__appConfig": "{appConfig.connectionString}",
+        "ConnectionStrings__search": "{search.connectionString}"
       },
       "bindings": {
         "http": {
