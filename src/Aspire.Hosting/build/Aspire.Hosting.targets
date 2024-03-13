@@ -4,6 +4,8 @@
     <!-- Similar to ASP.NET Core and Worker apps, set the default CWD of orchestrator projects to be the project directory. -->
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
     <_AspireIntermediatePath>$(IntermediateOutputPath)Aspire\</_AspireIntermediatePath>
+    <AspireVersion>@Version@</AspireVersion>
+    <AspireVersion Condition="$(AspireVersion) == '@Version@'">$(Version)</AspireVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,7 +47,7 @@
 
 namespace Projects%3B
 
-[global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>$(MicrosoftDotnetSdkInternalPackageVersion)<![CDATA[")]
+[global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>$(AspireVersion)<![CDATA[")]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
@@ -93,7 +95,7 @@ public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 
 namespace Projects%3B
 
-[global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>$(MicrosoftDotnetSdkInternalPackageVersion)<![CDATA[")]
+[global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>$(AspireVersion)<![CDATA[")]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 internal static class ]]>%(ClassName)<![CDATA[

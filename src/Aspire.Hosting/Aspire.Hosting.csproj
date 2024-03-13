@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="**/*.props;**/*.targets" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="**/*.props;**/*.targets" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" PerformTextReplacement="True" />
   </ItemGroup>
 
   <ItemGroup>
@@ -61,6 +61,12 @@
 
   <ItemGroup>
     <Protobuf Include="Dashboard\proto\resource_service.proto" GrpcServices="Server" Access="Internal" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Copy the package version into Aspire.Hosting.targets,
+         this is required to correctly version generated code. -->
+    <TextReplacementValue Include="Version" NewValue="$(Version)" />
   </ItemGroup>
 
 </Project>
