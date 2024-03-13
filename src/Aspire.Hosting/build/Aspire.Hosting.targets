@@ -26,7 +26,6 @@
         <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.String]::Copy(%(_AspireProjectResource.AspireProjectMetadataTypeName)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <ProjectPath>$([System.IO.Path]::GetFullPath(%(_AspireProjectResource.Identity)))</ProjectPath>
-        <AspireVersion></AspireVersion>
       </AspireProjectMetadataSource>
 		</ItemGroup>
   </Target>
@@ -46,7 +45,7 @@
 
 namespace Projects%3B
 
-[global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>%(AspireVersion)<![CDATA[")]
+[global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>$(MicrosoftDotnetSdkInternalPackageVersion)<![CDATA[")]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
@@ -95,7 +94,7 @@ public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 
 namespace Projects%3B
 
-[global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>%(AspireVersion)<![CDATA[")]
+[global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>$(MicrosoftDotnetSdkInternalPackageVersion)<![CDATA[")]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 internal static class ]]>%(ClassName)<![CDATA[
