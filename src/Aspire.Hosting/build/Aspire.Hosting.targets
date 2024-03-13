@@ -51,7 +51,7 @@ namespace Projects%3B
 public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>$(MicrosoftDotnetSdkInternalPackageVersion)<![CDATA[")]
-    public string ProjectPath { get%3B } = """]]>%(ProjectPath)<![CDATA["""%3B
+    public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>
       </AspireProjectMetadataSource>
@@ -100,7 +100,7 @@ namespace Projects%3B
 internal static class ]]>%(ClassName)<![CDATA[
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", "]]>$(MicrosoftDotnetSdkInternalPackageVersion)<![CDATA[")]
-    public static string ProjectPath { get%3B } = """]]>%(ProjectPath)<![CDATA["""%3B
+    public static string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>
       </AspireHostProjectMetadataSource>
