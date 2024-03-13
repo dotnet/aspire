@@ -10,7 +10,7 @@ param principalId string
 param principalType string
 
 
-resource signalRService_hoCuRhvyj 'Microsoft.SignalRService/signalR@2020-06-01' = {
+resource signalRService_hoCuRhvyj 'Microsoft.SignalRService/signalR@2022-02-01' = {
   name: toLower(take(concat('signalr', uniqueString(resourceGroup().id)), 24))
   location: location
   tags: {
