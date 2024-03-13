@@ -16,9 +16,6 @@ namespace Aspire.MySqlConnector.Tests;
 public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnectorSettings>, IClassFixture<MySqlContainerFixture>
 {
     private readonly MySqlContainerFixture _containerFixture;
-
-    // private const string ConnectionSting = "Host=localhost;Database=test_aspire_mysql;Username=root;Password=password";
-
     private string ConnectionSting => _containerFixture.GetConnectionString();
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -119,15 +116,13 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
         T? Resolve<T>() => key is null ? host.Services.GetService<T>() : host.Services.GetKeyedService<T>(key);
     }
 
-    [ConditionalFact]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
     {
-        SkipIfCanNotConnectToServer();
-
         RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
     }
 
-    [ConditionalFact]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource_Keyed()
     {
         SkipIfCanNotConnectToServer();
