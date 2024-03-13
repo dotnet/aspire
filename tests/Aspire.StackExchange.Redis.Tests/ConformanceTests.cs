@@ -24,7 +24,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override string[] RequiredLogCategories => ["StackExchange.Redis"];
+    protected override string[] RequiredLogCategories => ["StackExchange.Redis.ConnectionMultiplexer"];
 
     // https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/e4cb523a4a3592e1a1adf30f3596025bfd8978e3/src/OpenTelemetry.Instrumentation.StackExchangeRedis/StackExchangeRedisConnectionInstrumentation.cs#L34
     protected override string ActivitySourceName => "OpenTelemetry.Instrumentation.StackExchangeRedis";
