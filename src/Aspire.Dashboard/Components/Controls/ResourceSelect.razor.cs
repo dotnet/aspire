@@ -28,7 +28,7 @@ public partial class ResourceSelect
     public string? AriaLabel { get; set; }
 
     [Inject]
-    public required IJSRuntime JSRuntime { get; init; }
+    public required IJSRuntime JS { get; init; }
 
     private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
 
@@ -38,14 +38,14 @@ public partial class ResourceSelect
     /// </summary>
     public async ValueTask UpdateDisplayValueAsync()
     {
-        if (JSRuntime is null || _resourceSelectComponent is null)
+        if (_resourceSelectComponent is null)
         {
             return;
         }
 
         try
         {
-            await JSRuntime.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
+            await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
         }
         catch (JSDisconnectedException)
         {
