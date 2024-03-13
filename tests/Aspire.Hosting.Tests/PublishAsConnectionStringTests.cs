@@ -7,7 +7,8 @@ using System.Text.Json;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
-public class PublishAsConnnectionStringTests
+
+public class PublishAsConnectionStringTests
 {
     [Fact]
     public async Task PublishAsConnectionStringConfiguresManifestAsParameter()

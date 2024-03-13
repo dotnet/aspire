@@ -115,6 +115,46 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureExecutablesWithDockerfileAndBuildArgsProduceDockerfilev0Manifest()
+    {
+        using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
+        program.NodeAppBuilder!.WithHttpsEndpoint(containerPort: 3000, env: "HTTPS_PORT")
+            .PublishAsDockerFile(buildArgs: [
+                new DockerBuildArg("HTTP_PROXY", "http://10.20.30.2:1234"),
+                new DockerBuildArg("FTP_PROXY", "http://40.50.60.5:456")
+            ]);
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        // NPM app should still be executable.v0
+        var npmapp = resources.GetProperty("npmapp");
+        Assert.Equal("executable.v0", npmapp.GetProperty("type").GetString());
+        Assert.DoesNotContain("\\", npmapp.GetProperty("workingDirectory").GetString());
+
+        // Node app should now be dockerfile.v0
+        var nodeapp = resources.GetProperty("nodeapp");
+        Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
+        Assert.True(nodeapp.TryGetProperty("path", out _));
+        Assert.True(nodeapp.TryGetProperty("context", out _));
+        Assert.True(nodeapp.TryGetProperty("env", out var env));
+        Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
+
+        var buildArgs = nodeapp.GetProperty("buildArgs");
+        Assert.Equal("http://10.20.30.2:1234", buildArgs.GetProperty("HTTP_PROXY").GetString());
+        Assert.Equal("http://40.50.60.5:456", buildArgs.GetProperty("FTP_PROXY").GetString());
+
+        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("containerPort").GetInt32());
+        Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
+        Assert.Equal("{nodeapp.bindings.https.port}", env.GetProperty("HTTPS_PORT").GetString());
+    }
+
+    [Fact]
     public void ExcludeLaunchProfileOmitsBindings()
     {
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions

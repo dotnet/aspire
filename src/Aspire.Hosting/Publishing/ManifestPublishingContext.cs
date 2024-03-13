@@ -269,6 +269,35 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
     }
 
+    internal void WriteDockerBuildArgs(DockerBuildArg[] buildArgs)
+    {
+        if (buildArgs is { Length: > 0 })
+        {
+            Writer.WriteStartObject("buildArgs");
+
+            for (var i = 0; i < buildArgs.Length; i++)
+            {
+                var buildArg = buildArgs[i];
+
+                var value = buildArg.Value;
+                if (string.IsNullOrEmpty(value))
+                {
+                    value = Environment.GetEnvironmentVariable(buildArg.Name);
+                }
+
+                if (string.IsNullOrEmpty(value))
+                {
+                    throw new DistributedApplicationException(
+                        $"No value was given for {buildArg.Name} in the Dockerfile build args or as an environment variable.");
+                }
+
+                Writer.WriteString(buildArg.Name, buildArg.Value);
+            }
+
+            Writer.WriteEndObject();
+        }
+    }
+
     internal void WriteManifestMetadata(IResource resource)
     {
         if (!resource.TryGetAnnotationsOfType<ManifestMetadataAnnotation>(out var metadataAnnotations))
