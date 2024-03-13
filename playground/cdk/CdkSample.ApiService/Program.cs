@@ -3,6 +3,8 @@
 
 using System.Text.Json;
 using Azure.Messaging.ServiceBus;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Indexes.Models;
 using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 using Microsoft.EntityFrameworkCore;
@@ -19,22 +21,33 @@ builder.AddRedisClient("cache");
 builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");
 builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
 builder.AddAzureServiceBusClient("sb");
+builder.AddAzureSearchClient("search");
 
 var app = builder.Build();
 
-app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClient sc, IConnectionMultiplexer connection, CosmosContext cosmosContext, NpgsqlContext npgsqlContext, ServiceBusClient sbc) =>
-{
-    return new
+app.MapGet("/",
+    async (
+        BlobServiceClient bsc,
+        SqlContext sqlContext,
+        SecretClient sc,
+        IConnectionMultiplexer connection,
+        CosmosContext cosmosContext,
+        NpgsqlContext npgsqlContext,
+        ServiceBusClient sbc,
+        SearchIndexClient search) =>
     {
-        cosmosDocuments = await TestCosmosAsync(cosmosContext),
-        redisEntries = await TestRedisAsync(connection),
-        secretChecked = await TestSecretAsync(sc),
-        blobFiles = await TestBlobStorageAsync(bsc),
-        sqlRows = await TestSqlServerAsync(sqlContext),
-        npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
-        serviceBus = await TestServiceBusAsync(sbc)
-    };
-});
+        return new
+        {
+            cosmosDocuments = await TestCosmosAsync(cosmosContext),
+            redisEntries = await TestRedisAsync(connection),
+            secretChecked = await TestSecretAsync(sc),
+            blobFiles = await TestBlobStorageAsync(bsc),
+            sqlRows = await TestSqlServerAsync(sqlContext),
+            npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
+            serviceBus = await TestServiceBusAsync(sbc),
+            search = await TestSearchAsync(search)
+        };
+    });
 app.Run();
 
 static async Task<IEnumerable<Entry>> TestRedisAsync(IConnectionMultiplexer connection)
@@ -127,6 +140,39 @@ static async Task<List<Entry>> TestCosmosAsync(CosmosContext context)
 
     var entries = await context.Entries.ToListAsync();
     return entries;
+}
+
+static async Task<SearchResourceCounter> TestSearchAsync(SearchIndexClient search)
+{
+    // Build the index
+    const string IndexName = "mydocs";
+    var fields = new FieldBuilder().Build(typeof(SimpleDocument));
+    SearchIndex index = new(IndexName, fields);
+    index = await search.CreateOrUpdateIndexAsync(index);
+
+    // Upload a few documents
+    var entries = search.GetSearchClient(IndexName);
+    await entries.UploadDocumentsAsync(
+        [
+            new SimpleDocument($"Foo:{DateTimeOffset.UtcNow}"),
+            new SimpleDocument($"Bar:{DateTimeOffset.UtcNow}"),
+            new SimpleDocument($"Baz:{DateTimeOffset.UtcNow}")
+        ],
+        new() { ThrowOnAnyError = true });
+
+    // Get the service stats that probably won't show the documents
+    // right away, but you'd eventually see them increment on multiple requests
+    SearchServiceStatistics stats = await search.GetServiceStatisticsAsync();
+    return stats.Counters.DocumentCounter;
+}
+
+public class SimpleDocument(string name)
+{
+    [SimpleField(IsKey = true)]
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+
+    [SearchableField]
+    public string? Name { get; set; } = name;
 }
 
 public class NpgsqlContext(DbContextOptions<NpgsqlContext> options) : DbContext(options)

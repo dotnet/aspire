@@ -16,7 +16,9 @@ param principalType string
 resource serviceBusNamespace_amM9gJ0Ya 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
   name: toLower(take(concat('servicebus', uniqueString(resourceGroup().id)), 24))
   location: location
-  sku: sku
+  sku: {
+    name: sku
+  }
   properties: {
     minimumTlsVersion: '1.2'
   }
