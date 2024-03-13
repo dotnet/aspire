@@ -42,6 +42,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
     };
 
     protected string ConnectionString => _containerFixture.GetConnectionString();
+    protected override bool CanCreateClientWithoutConnectingToServer => false;
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
