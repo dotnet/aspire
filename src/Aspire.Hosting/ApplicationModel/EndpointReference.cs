@@ -57,6 +57,8 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <returns></returns>
     public EndpointReferenceExpression Property(EndpointProperty property)
     {
+        ArgumentNullException.ThrowIfNull(property);
+
         return new(this, property);
     }
 
@@ -102,6 +104,9 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="endpoint">The endpoint annotation.</param>
     public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint)
     {
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(endpoint);
+
         Owner = owner;
         EndpointName = endpoint.Name;
         _endpointAnnotation = endpoint;
@@ -114,6 +119,9 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="endpointName">The name of the endpoint.</param>
     public EndpointReference(IResourceWithEndpoints owner, string endpointName)
     {
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(endpointName);
+
         Owner = owner;
         EndpointName = endpointName;
     }
@@ -129,7 +137,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <summary>
     /// Gets the <see cref="EndpointReference"/>.
     /// </summary>
-    public EndpointReference Owner { get; } = endpointReference;
+    public EndpointReference Owner { get; } = endpointReference ?? throw new ArgumentNullException(nameof(endpointReference));
 
     /// <summary>
     /// Gets the <see cref="EndpointProperty"/> for the property expression.

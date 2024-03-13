@@ -292,7 +292,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))
         {
             // Write out details for bind mounts
-            var bindMounts = mounts.Where(mounts => mounts.Type == ContainerMountType.Bind).ToList();
+            var bindMounts = mounts.Where(mounts => mounts.Type == ContainerMountType.BindMount).ToList();
             if (bindMounts.Count > 0)
             {
                 // Bind mounts are written as an array of objects to be consistent with volumes
@@ -318,7 +318,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
 
             // Write out details for volumes
-            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Named).ToList();
+            var volumes = mounts.Where(mounts => mounts.Type == ContainerMountType.Volume).ToList();
             if (volumes.Count > 0)
             {
                 // Volumes are written as an array of objects as anonymous volumes do not have a name

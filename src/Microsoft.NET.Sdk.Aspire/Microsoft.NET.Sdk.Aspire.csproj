@@ -18,11 +18,7 @@
 
   <ItemGroup>
     <TextReplacementValue Include="MicrosoftDotnetSdkInternalPackageVersion" NewValue="$(MicrosoftDotnetSdkInternalPackageVersion)" />
-    <TextReplacementValue Include="MicrosoftNETCoreAppRefPackageVersion" NewValue="$(MicrosoftNETCoreAppRefPackageVersion)" />
     <TextReplacementValue Include="DotNetAspireManifestVersionBand" NewValue="$(DotNetAspireManifestVersionBand)" />
-    <TextReplacementValue Include="ASPIRE_DOTNET_VERSION_MAJOR" NewValue="$(_AspireDotNetVersionMajor)" />
-    <TextReplacementValue Include="ASPIRE_DOTNET_VERSION" NewValue="$(_AspireDotNetVersion)" />
-    <TextReplacementValue Include="DCP_VERSION" NewValue="$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)" />
   </ItemGroup>
 
   <Target Name="_CopyAdditionalFIles" AfterTargets="Build">

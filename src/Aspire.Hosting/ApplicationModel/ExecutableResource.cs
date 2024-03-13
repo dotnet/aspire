@@ -14,10 +14,10 @@ public class ExecutableResource(string name, string command, string workingDirec
     /// <summary>
     /// Gets the command associated with this executable resource.
     /// </summary>
-    public string Command { get; } = command;
+    public string Command { get; } = command ?? throw new ArgumentNullException(nameof(command));
 
     /// <summary>
     /// Gets the working directory for the executable resource.
     /// </summary>
-    public string WorkingDirectory { get; } = workingDirectory;
+    public string WorkingDirectory { get; } = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
 }

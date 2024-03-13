@@ -61,6 +61,8 @@ var sb = builder.AddAzureServiceBusConstruct("servicebus")
 
 var appConfig = builder.AddAzureAppConfigurationConstruct("appConfig");
 
+var search = builder.AddAzureConstructSearch("search");
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(blobs)
     .WithReference(sqldb)
@@ -70,6 +72,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(pgsqldb)
     .WithReference(sb)
     .WithReference(appConfig);
+    .WithReference(search);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Hosting.Properties;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -12,14 +13,23 @@ namespace Aspire.Hosting.ApplicationModel;
 public sealed class ContainerMountAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Instantiates a mount annotation that specifies the source and target paths for a mount.
+    /// Instantiates a mount annotation that specifies the details for a container mount.
     /// </summary>
-    /// <param name="source">The source path of the mount.</param>
+    /// <param name="source">The source path if a bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
     /// <param name="target">The target path of the mount.</param>
     /// <param name="type">The type of the mount.</param>
     /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
-    public ContainerMountAnnotation(string source, string target, ContainerMountType type, bool isReadOnly)
+    public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly)
     {
+        if (type == ContainerMountType.BindMount && string.IsNullOrEmpty(source))
+        {
+            throw new ArgumentNullException(nameof(source), Resources.ContainerMountBindMountsRequireSourceExceptionMessage);
+        }
+        if (type == ContainerMountType.Volume && string.IsNullOrEmpty(source) && isReadOnly)
+        {
+            throw new ArgumentException(Resources.ContainerMountAnonymousVolumesReadOnlyExceptionMessage, nameof(isReadOnly));
+        }
+
         Source = source;
         Target = target;
         Type = type;
@@ -27,24 +37,24 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Gets or sets the source of the mount.
+    /// Gets the source of the bind mount or name if a volume. Can be <c>null</c> if the mount is an anonymous volume.
     /// </summary>
-    public string Source { get; set; }
+    public string? Source { get; }
 
     /// <summary>
-    /// Gets or sets the target of the mount.
+    /// Gets the target of the mount.
     /// </summary>
-    public string Target { get; set; }
+    public string Target { get; }
 
     /// <summary>
-    /// Gets or sets the type of the mount.
+    /// Gets the type of the mount.
     /// </summary>
-    public ContainerMountType Type { get; set; }
+    public ContainerMountType Type { get; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the volume mount is read-only.
+    /// Gets a value indicating whether the volume mount is read-only.
     /// </summary>
-    public bool IsReadOnly { get; set; }
+    public bool IsReadOnly { get; }
 }
 
 /// <summary>
@@ -53,11 +63,11 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
 public enum ContainerMountType
 {
     /// <summary>
-    /// A local folder that is mounted into the container.
+    /// A local directory or file that is mounted into the container.
     /// </summary>
-    Bind,
+    BindMount,
     /// <summary>
-    /// A named volume.
+    /// A volume.
     /// </summary>
-    Named
+    Volume
 }

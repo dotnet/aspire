@@ -16,6 +16,10 @@ public class ReferenceExpression : IValueProvider, IManifestExpressionProvider
 
     private ReferenceExpression(string format, IValueProvider[] valueProviders, string[] manifestExpressions)
     {
+        ArgumentNullException.ThrowIfNull(format);
+        ArgumentNullException.ThrowIfNull(valueProviders);
+        ArgumentNullException.ThrowIfNull(manifestExpressions);
+
         Format = format;
         ValueProviders = valueProviders;
         _manifestExpressions = manifestExpressions;

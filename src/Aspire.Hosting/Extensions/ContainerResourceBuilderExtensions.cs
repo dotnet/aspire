@@ -42,13 +42,26 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The source name of the volume.</param>
-    /// <param name="target">The target path where the file or directory is mounted in the container.</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <param name="name">The name of the volume.</param>
+    /// <param name="target">The target path where the volume is mounted in the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if the volume should be mounted as read-only.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
+    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string name, string target, bool isReadOnly = false) where T : ContainerResource
     {
-        var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.Named, isReadOnly);
+        var annotation = new ContainerMountAnnotation(name, target, ContainerMountType.Volume, isReadOnly);
+        return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Adds an anonymous volume to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="target">The target path where the volume is mounted in the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, string target) where T : ContainerResource
+    {
+        var annotation = new ContainerMountAnnotation(null, target, ContainerMountType.Volume, false);
         return builder.WithAnnotation(annotation);
     }
 
@@ -63,7 +76,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
     {
-        var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.Bind, isReadOnly);
+        var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.BindMount, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
 

@@ -47,7 +47,7 @@ public class ExecutableResourceTests
         """
         {
           "type": "executable.v0",
-          "workingDirectory": "net8.0",
+          "workingDirectory": ".",
           "command": "python",
           "args": [
             "app.py",
