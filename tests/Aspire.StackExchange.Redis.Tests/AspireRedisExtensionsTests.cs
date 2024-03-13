@@ -239,14 +239,14 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_profilingSessionProvider")]
     static extern ref Func<ProfilingSession>? GetProfiler(ConnectionMultiplexer? @this);
 
-    [RequiresDockerFact]
+    [Fact]
     public void KeyedServiceRedisInstrumentation()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
         builder.AddKeyedRedisClient("redis", settings =>
         {
-            settings.ConnectionString = ConnectionString;
+            settings.ConnectionString = "localhost";
             settings.Tracing = true;
         });
         var host = builder.Build();
