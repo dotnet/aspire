@@ -28,6 +28,12 @@ public static class Extensions
             http.UseServiceDiscovery();
         });
 
+        // Uncomment the following to restrict the allowed schemes for service discovery.
+        // builder.Services.Configure<ServiceDiscoveryOptions>(options =>
+        // {
+        //     options.AllowedSchemes = ["https"];
+        // });
+
         return builder;
     }
 
@@ -44,7 +50,6 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                        .AddHttpClientInstrumentation()
-                       .AddProcessInstrumentation()
                        .AddRuntimeInstrumentation();
             })
             .WithTracing(tracing =>
@@ -56,8 +61,11 @@ public static class Extensions
                 }
 
                 tracing.AddAspNetCoreInstrumentation()
-                       .AddGrpcClientInstrumentation()
-                       .AddHttpClientInstrumentation();
+                    // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
+                    //.AddGrpcClientInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    // Add instrumentation for the AWS .NET SDK.
+                    .AddAWSInstrumentation();
             });
 
         builder.AddOpenTelemetryExporters();
