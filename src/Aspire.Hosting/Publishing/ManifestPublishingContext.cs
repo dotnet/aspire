@@ -271,7 +271,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     internal void WriteDockerBuildArgs(IEnumerable<DockerBuildArg>? buildArgs)
     {
-        var args = buildArgs?.ToArray() ?? [];
+        var args = buildArgs?.ToArray();
         if (args is { Length: > 0 })
         {
             Writer.WriteStartObject("buildArgs");
