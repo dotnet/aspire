@@ -23,11 +23,13 @@ var blobs = storage.AddBlobs("blobs");
 var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct().AddDatabase("sqldb");
 
 var signaturesecret = builder.AddParameter("signaturesecret");
-var keyvault = builder.AddAzureKeyVaultConstruct("mykv", (construct, keyVault) =>
+#pragma warning disable CA2252 // This API requires opting into preview features
+var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 {
     var secret = new KeyVaultSecret(construct, name: "mysecret");
     secret.AssignProperty(x => x.Properties.Value, signaturesecret);
 });
+#pragma warning restore CA2252 // This API requires opting into preview features
 
 var cache = builder.AddRedis("cache").AsAzureRedisConstruct();
 
