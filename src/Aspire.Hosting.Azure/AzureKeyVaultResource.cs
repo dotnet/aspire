@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureConstruct"></param>
-public class AzureKeyVaultConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString
+public class AzureKeyVaultResource(string name, Action<ResourceModuleConstruct> configureConstruct) : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the "vaultUri" output reference for the Azure Key Vault resource.

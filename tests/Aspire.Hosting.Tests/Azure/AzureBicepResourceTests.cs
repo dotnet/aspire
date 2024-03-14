@@ -469,27 +469,9 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var keyVault = builder.AddAzureKeyVault("keyVault");
+        var mykv = builder.AddAzureKeyVault("mykv");
 
-        keyVault.Resource.Outputs["vaultUri"] = "https://myvault";
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.keyvault.bicep", keyVault.Resource.TemplateResourceName);
-        Assert.Equal("keyVault", keyVault.Resource.Name);
-        Assert.Equal("keyvault", keyVault.Resource.Parameters["vaultName"]);
-        Assert.Equal("https://myvault", await keyVault.Resource.GetConnectionStringAsync());
-        Assert.Equal("{keyVault.outputs.vaultUri}", keyVault.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public async Task AddKeyVaultConstruct()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        global::Azure.Provisioning.KeyVaults.KeyVault? cdkKeyVault = null;
-        var mykv = builder.AddAzureKeyVaultConstruct("mykv", (construct, cdkResource) =>
-        {
-            cdkKeyVault = cdkResource;
-        });
+        var manifest = await ManifestUtils.GetManifestWithBicep(mykv.Resource);
 
         var expectedManifest = """
             {
@@ -502,12 +484,51 @@ public class AzureBicepResourceTests
               }
             }
             """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        Assert.Equal("mykv", mykv.Resource.Name);
-        var manifest = await ManifestUtils.GetManifest(mykv.Resource);
-        Assert.Equal(expectedManifest, manifest.ToString());
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
 
-        Assert.NotNull(cdkKeyVault);
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource keyVault_IKWI2x0B5 'Microsoft.KeyVault/vaults@2022-07-01' = {
+              name: toLower(take(concat('mykv', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'mykv'
+              }
+              properties: {
+                tenantId: tenant().tenantId
+                sku: {
+                  name: 'standard'
+                  family: 'A'
+                }
+                enableRbacAuthorization: true
+              }
+            }
+
+            resource roleAssignment_Z4xb36awa 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: keyVault_IKWI2x0B5
+              name: guid(keyVault_IKWI2x0B5.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            output vaultUri string = keyVault_IKWI2x0B5.properties.vaultUri
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
     [Fact]

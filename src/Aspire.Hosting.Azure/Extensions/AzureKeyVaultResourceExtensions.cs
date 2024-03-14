@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.Versioning;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Authorization;
@@ -18,9 +19,23 @@ public static class AzureKeyVaultResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
+    {
+#pragma warning disable CA2252 // This API requires opting into preview features
+        return builder.AddAzureKeyVault(name, (_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
+    }
+
+    /// <summary>
+    /// Adds an Azure Key Vault resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureKeyVaultConstructResource> AddAzureKeyVaultConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, KeyVault>? configureResource = null)
+    [RequiresPreviewFeatures]
+    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureKeyVaultResource>, ResourceModuleConstruct, KeyVault>? configureResource = null)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -35,10 +50,12 @@ public static class AzureKeyVaultResourceExtensions
 
             if (configureResource != null)
             {
-                configureResource(construct, keyVault);
+                var resource = (AzureKeyVaultResource)construct.Resource;
+                var resourceBuilder = builder.CreateResourceBuilder(resource);
+                configureResource(resourceBuilder, construct, keyVault);
             }
         };
-        var resource = new AzureKeyVaultConstructResource(name, configureConstruct);
+        var resource = new AzureKeyVaultResource(name, configureConstruct);
 
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
