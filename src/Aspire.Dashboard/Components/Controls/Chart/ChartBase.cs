@@ -114,7 +114,7 @@ public abstract class ChartBase : ComponentBase
             var end = CalcOffset(pointIndex - 1, startDate, pointDuration);
             firstPointEndTime ??= end;
 
-            xValues.Add(TimeProvider.ToLocal(end));
+            xValues.Add(TimeProvider.ToLocalDateTimeOffset(end));
 
             if (!TryCalculateHistogramPoints(dimensions, start, end, traces))
             {
@@ -133,7 +133,7 @@ public abstract class ChartBase : ComponentBase
 
         if (tickUpdate && TryCalculateHistogramPoints(dimensions, firstPointEndTime!.Value, inProgressDataTime, traces))
         {
-            xValues.Add(TimeProvider.ToLocal(inProgressDataTime));
+            xValues.Add(TimeProvider.ToLocalDateTimeOffset(inProgressDataTime));
         }
 
         ChartTrace? previousValues = null;
@@ -303,7 +303,7 @@ public abstract class ChartBase : ComponentBase
             var end = CalcOffset(pointIndex - 1, startDate, pointDuration);
             firstPointEndTime ??= end;
 
-            xValues.Add(TimeProvider.ToLocal(end));
+            xValues.Add(TimeProvider.ToLocalDateTimeOffset(end));
 
             if (TryCalculatePoint(dimensions, start, end, out var tickPointValue))
             {
@@ -321,7 +321,7 @@ public abstract class ChartBase : ComponentBase
         if (tickUpdate && TryCalculatePoint(dimensions, firstPointEndTime!.Value, inProgressDataTime, out var inProgressPointValue))
         {
             yValues.Add(inProgressPointValue);
-            xValues.Add(TimeProvider.ToLocal(inProgressDataTime));
+            xValues.Add(TimeProvider.ToLocalDateTimeOffset(inProgressDataTime));
         }
 
         var trace = new ChartTrace

@@ -13,6 +13,11 @@ internal static class TimeProviderExtensions
         return dateTime;
     }
 
+    public static DateTimeOffset ToLocalDateTimeOffset(this TimeProvider timeProvider, DateTimeOffset utcDateTimeOffset)
+    {
+        return TimeZoneInfo.ConvertTime(utcDateTimeOffset, timeProvider.LocalTimeZone);
+    }
+
     public static DateTime ToLocal(this TimeProvider timeProvider, DateTime dateTime)
     {
         if (dateTime.Kind == DateTimeKind.Local)
