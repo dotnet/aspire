@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Components.Common;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
