@@ -39,16 +39,17 @@ public class DashboardUrlsTests
 
         Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test:contains:value&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", singleFilterUrl);
 
-        var multipleFiltersUrl = DashboardUrls.StructuredLogsUrl(
+        var multipleFiltersIncludingSpacesUrl = DashboardUrls.StructuredLogsUrl(
             resource: $"resource{PlaceholderInput}",
             logLevel: "error",
             filters: LogFilterFormatter.SerializeLogFiltersToString([
                 new LogFilter { Condition = FilterCondition.Contains, Field = "test", Value = "value" },
+                new LogFilter { Condition = FilterCondition.GreaterThan, Field = "fieldWithSpacedValue", Value = "!! multiple words here !!" },
                 new LogFilter { Condition = FilterCondition.NotEqual, Field = "name", Value = "nameValue" },
             ]),
             traceId: PlaceholderInput,
             spanId: PlaceholderInput);
-        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test:contains:value%2Bname:!equals:nameValue&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", multipleFiltersUrl);
+        Assert.Equal($"/structuredlogs/resource/resource{PlaceholderAllCharactersEncoded}?logLevel=error&filters=test:contains:value%2BfieldWithSpacedValue:gt:%21%21%20multiple%20words%20here%20%21%21%2Bname:!equals:nameValue&traceId={PlaceholderAllButExclamationMarkEncoded}&spanId={PlaceholderAllButExclamationMarkEncoded}", multipleFiltersIncludingSpacesUrl);
     }
 
     [Fact]
