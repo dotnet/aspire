@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.Versioning;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Authorization;
@@ -19,9 +20,21 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
+    {
+        return builder.AddAzureStorage(name, static (_, _, _) => { });
+    }
+
+    /// <summary>
+    /// Adds an Azure Storage resource to the application model.This resource can be used to create Azure blob, table, and queue resources.
+    /// </summary>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="name">The name of the resource.</param>
     /// <param name="configureResource">Callback to configure the storage account.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureStorageResource> AddAzureConstructStorage(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, StorageAccount>? configureResource = null)
+    [RequiresPreviewFeatures]
+    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount>? configureResource = null)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -50,7 +63,9 @@ public static class AzureStorageExtensions
 
             if (configureResource != null)
             {
-                configureResource(construct, storageAccount);
+                var resource = (AzureStorageResource)construct.Resource;
+                var resourceBuilder = builder.CreateResourceBuilder(resource);
+                configureResource(resourceBuilder, construct, storageAccount);
             }
         };
         var resource = new AzureStorageResource(name, configureConstruct);
@@ -159,9 +174,9 @@ public static class AzureStorageExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureBlobStorageConstructResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, string name)
+    public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
-        var resource = new AzureBlobStorageConstructResource(name, builder.Resource);
+        var resource = new AzureBlobStorageResource(name, builder.Resource);
 
         return builder.ApplicationBuilder.AddResource(resource)
             .WithManifestPublishingCallback(resource.WriteToManifest);
@@ -173,9 +188,9 @@ public static class AzureStorageExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureTableStorageConstructResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, string name)
+    public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
-        var resource = new AzureTableStorageConstructResource(name, builder.Resource);
+        var resource = new AzureTableStorageResource(name, builder.Resource);
 
         return builder.ApplicationBuilder.AddResource(resource)
             .WithManifestPublishingCallback(resource.WriteToManifest);
@@ -187,9 +202,9 @@ public static class AzureStorageExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureQueueStorageConstructResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, string name)
+    public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
-        var resource = new AzureQueueStorageConstructResource(name, builder.Resource);
+        var resource = new AzureQueueStorageResource(name, builder.Resource);
 
         return builder.ApplicationBuilder.AddResource(resource)
             .WithManifestPublishingCallback(resource.WriteToManifest);

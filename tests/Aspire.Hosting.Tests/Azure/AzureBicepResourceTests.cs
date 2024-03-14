@@ -856,47 +856,13 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var storage = builder.AddAzureStorage("storage");
-
-        storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
-        storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
-        storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
-
-        var blob = storage.AddBlobs("blob");
-        var queue = storage.AddQueues("queue");
-        var table = storage.AddTables("table");
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.storage.bicep", storage.Resource.TemplateResourceName);
-        Assert.Equal("storage", storage.Resource.Name);
-        Assert.Equal("storage", storage.Resource.Parameters["storageName"]);
-
-        Assert.Equal("https://myblob", await blob.Resource.GetConnectionStringAsync());
-        Assert.Equal("https://myqueue", await queue.Resource.GetConnectionStringAsync());
-        Assert.Equal("https://mytable", await table.Resource.GetConnectionStringAsync());
-        Assert.Equal("{storage.outputs.blobEndpoint}", blob.Resource.ConnectionStringExpression);
-        Assert.Equal("{storage.outputs.queueEndpoint}", queue.Resource.ConnectionStringExpression);
-        Assert.Equal("{storage.outputs.tableEndpoint}", table.Resource.ConnectionStringExpression);
-
-        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
-        Assert.Equal("{storage.outputs.blobEndpoint}", blobManifest["connectionString"]?.ToString());
-
-        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
-        Assert.Equal("{storage.outputs.queueEndpoint}", queueManifest["connectionString"]?.ToString());
-
-        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
-        Assert.Equal("{storage.outputs.tableEndpoint}", tableManifest["connectionString"]?.ToString());
-    }
-
-    [Fact]
-    public async Task AddAzureConstructStorage()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
         var storagesku = builder.AddParameter("storagesku");
-        var storage = builder.AddAzureConstructStorage("storage", (_, sa) =>
+#pragma warning disable CA2252 // This API requires opting into preview features
+        var storage = builder.AddAzureStorage("storage", (_, _, sa) =>
         {
             sa.AssignProperty(x => x.Sku.Name, storagesku);
         });
+#pragma warning restore CA2252 // This API requires opting into preview features
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
@@ -953,6 +919,84 @@ public class AzureBicepResourceTests
             """;
         var tableManifest = await ManifestUtils.GetManifest(table.Resource);
         Assert.Equal(expectedTableManifest, tableManifest.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+            @description('')
+            param storagesku string
+
+
+            resource storageAccount_65zdmu5tK 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+              name: toLower(take(concat('storage', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'storage'
+              }
+              sku: {
+                name: storagesku
+              }
+              kind: 'StorageV2'
+              properties: {
+                accessTier: 'Hot'
+              }
+            }
+
+            resource blobService_24WqMwYy8 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
+              parent: storageAccount_65zdmu5tK
+              name: 'default'
+              properties: {
+              }
+            }
+
+            resource roleAssignment_ryHNwVXTs 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: storageAccount_65zdmu5tK
+              name: guid(storageAccount_65zdmu5tK.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            resource roleAssignment_hqRD0luQx 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: storageAccount_65zdmu5tK
+              name: guid(storageAccount_65zdmu5tK.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            resource roleAssignment_5PGf5zmoW 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: storageAccount_65zdmu5tK
+              name: guid(storageAccount_65zdmu5tK.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            output blobEndpoint string = storageAccount_65zdmu5tK.properties.primaryEndpoints.blob
+            output queueEndpoint string = storageAccount_65zdmu5tK.properties.primaryEndpoints.queue
+            output tableEndpoint string = storageAccount_65zdmu5tK.properties.primaryEndpoints.table
+
+            """;
+
+        var path = storageManifest["path"]!.ToString();
+        var bicep = await File.ReadAllTextAsync(path);
+        Assert.Equal(expectedBicep, bicep);
     }
 
     [Fact]
