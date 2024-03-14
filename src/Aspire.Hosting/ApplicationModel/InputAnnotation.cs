@@ -85,7 +85,7 @@ public sealed class InputAnnotation : IResourceAnnotation
         var passwordInput = new InputAnnotation("password", secret: true);
         passwordInput.Default = new GenerateInputDefault
         {
-            MinLength = 22, // enough to give 128 bits of entropy
+            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
             Lower = lower,
             Upper = upper,
             Numeric = numeric,

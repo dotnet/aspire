@@ -30,6 +30,10 @@ public class DistributedCacheConformanceTests : ConformanceTests
         }
     }
 
+    public DistributedCacheConformanceTests(RedisContainerFixture containerFixture) : base(containerFixture)
+    {
+    }
+
     [ConditionalFact]
     public async Task WorksWithOpenTelemetryTracing()
     {

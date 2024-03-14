@@ -29,6 +29,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
     public required IJSRuntime JS { get; init; }
 
     [Inject]
@@ -46,7 +49,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [Inject]
     public required ShortcutManager ShortcutManager { get; init; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         // Theme change can be triggered from the settings dialog. This logic applies the new theme to the browser window.
         // Note that this event could be raised from a settings dialog opened in a different browser window.
@@ -74,6 +77,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 return ValueTask.CompletedTask;
             });
         }
+
+        var result = await JS.InvokeAsync<string>("window.getBrowserTimeZone");
+        TimeProvider.SetBrowserTimeZone(result);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

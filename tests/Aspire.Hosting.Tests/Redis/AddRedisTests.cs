@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Components.Common;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -35,8 +36,8 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("7.2.4", containerAnnotation.Tag);
-        Assert.Equal("redis", containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.Redis.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.Redis.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -63,8 +64,8 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("7.2.4", containerAnnotation.Tag);
-        Assert.Equal("redis", containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.Redis.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.Redis.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -93,11 +94,11 @@ public class AddRedisTests
 
         var manifest = await ManifestUtils.GetManifest(redis.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-              "image": "redis:7.2.4",
+              "image": "{{ContainerImageTags.Redis.Image}}:{{ContainerImageTags.Redis.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",

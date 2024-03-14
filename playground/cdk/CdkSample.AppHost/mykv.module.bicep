@@ -13,7 +13,7 @@ param principalType string
 param signaturesecret string
 
 
-resource keyVault_IKWI2x0B5 'Microsoft.KeyVault/vaults@2023-02-01' = {
+resource keyVault_IKWI2x0B5 'Microsoft.KeyVault/vaults@2022-07-01' = {
   name: toLower(take(concat('mykv', uniqueString(resourceGroup().id)), 24))
   location: location
   tags: {
@@ -39,7 +39,7 @@ resource roleAssignment_Z4xb36awa 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource keyVaultSecret_7ClrhkRcM 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+resource keyVaultSecret_7ClrhkRcM 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault_IKWI2x0B5
   name: 'mysecret'
   location: location

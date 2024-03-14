@@ -55,6 +55,8 @@ public static class AzureServiceBusExtensions
         {
             var serviceBusNamespace = new ServiceBusNamespace(construct, name: name);
 
+            serviceBusNamespace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
             serviceBusNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
 
             var serviceBusDataOwnerRole = serviceBusNamespace.AssignRole(RoleDefinition.ServiceBusDataOwner);
