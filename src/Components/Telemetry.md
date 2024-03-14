@@ -203,7 +203,7 @@ Aspire.NATS.Net:
 - Log categories:
   - "NATS"
 - Activity source names:
-  - none (currently not supported by NATS.Net library)
+  - "NATS.Net"
 - Metric names:
   - none (currently not supported by NATS.Net library)
 

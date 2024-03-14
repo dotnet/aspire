@@ -19,6 +19,7 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireNatsClientExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:NATS:Net";
+    private const string ActivityNameSource = "NATS.Net";
 
     /// <summary>
     /// Registers <see cref="INatsConnection"/> service for connecting NATS server with NATS client.
@@ -108,6 +109,16 @@ public static class AspireNatsClientExtensions
                 failureStatus: default,
                 tags: default,
                 timeout: default));
+        }
+
+        if (settings.Tracing)
+        {
+            builder.Services
+                .AddOpenTelemetry()
+                .WithTracing(tracer =>
+                {
+                    tracer.AddSource(ActivityNameSource);
+                });
         }
     }
 
