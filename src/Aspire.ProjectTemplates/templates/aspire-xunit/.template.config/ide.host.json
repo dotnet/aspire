@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/ide.host",
-  "icon": "ide/AspireTests.ico",
+  "icon": "ide/AspireXunit.ico",
   "displayOverviewPage": "0",
   "unsupportedHosts": [
     {
