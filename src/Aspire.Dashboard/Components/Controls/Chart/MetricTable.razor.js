@@ -1,4 +1,4 @@
-﻿/*
+/*
  Announces row text of the specified indices to screen readers using an offscreen div
  */
 export function announceDataGridRows(dataGridContainerId, indices) {
@@ -21,7 +21,8 @@ export function announceDataGridRows(dataGridContainerId, indices) {
         const rowText = getRowText(dataGridContainerId, index);
         if (rowText) {
             const newItem = document.createElement("li");
-            newItem.innerHTML = rowText;
+            const textNode = document.createTextNode(rowText);
+            newItem.appendChild(textNode);
             list.appendChild(newItem);
         }
     });
