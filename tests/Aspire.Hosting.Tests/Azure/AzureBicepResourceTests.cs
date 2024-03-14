@@ -447,6 +447,29 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task AddSignalRConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var signalr = builder.AddAzureSignalRConstruct("signalr");
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+              "path": "signalr.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifest(signalr.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
     public async Task AsAzureSqlDatabase()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -603,7 +626,7 @@ public class AzureBicepResourceTests
         // Verify that when PublishAs variant is used, connection string acquisition
         // still uses the local endpoint.
         postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
-        var expectedConnectionString = $"Host=localhost;Port=1234;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
+        var expectedConnectionString = $"Host=localhost;Port=1234;Username=postgres;Password={postgres.Resource.Password}";
         Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync(default));
 
         Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);

@@ -116,7 +116,7 @@ public class AddPostgresTests
 
         var connectionString = await postgres.Resource.GetConnectionStringAsync();
         Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}", postgres.Resource.ConnectionStringExpression);
-        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}", connectionString);
+        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={postgres.Resource.Password}", connectionString);
     }
 
     [Fact]

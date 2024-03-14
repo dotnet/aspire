@@ -22,8 +22,9 @@ builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
 builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");
 builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
-builder.AddAzureServiceBusClient("sb");
+builder.AddAzureServiceBusClient("servicebus");
 builder.AddAzureSearchClient("search");
+builder.Services.AddSignalR().AddNamedAzureSignalR("signalr");
 
 builder.Services.AddAzureClients(clients =>
 {

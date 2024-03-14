@@ -22,6 +22,10 @@ window.resetContinuousScrollPosition = function () {
 }
 
 window.initializeContinuousScroll = function () {
+    // Reset to scrolling to the end of the content when initializing.
+    // This needs to be called because the value is remembered across Aspire pages because the browser isn't reloading.
+    resetContinuousScrollPosition();
+
     const container = document.querySelector('.continuous-scroll-overflow');
     if (container == null) {
         return;

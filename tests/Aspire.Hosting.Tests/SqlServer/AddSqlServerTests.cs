@@ -69,7 +69,7 @@ public class AddSqlServerTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        var password = PasswordUtil.EscapePassword(connectionStringResource.Password);
+        var password = connectionStringResource.Password;
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true", connectionString);
         Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression);
@@ -90,7 +90,7 @@ public class AddSqlServerTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerDatabaseResource>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        var password = PasswordUtil.EscapePassword(connectionStringResource.Parent.Password);
+        var password = connectionStringResource.Parent.Password;
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true;Database=mydb", connectionString);
         Assert.Equal("{sqlserver.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression);

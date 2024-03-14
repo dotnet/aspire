@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
 
     <PackageReference Include="Microsoft.Azure.AppConfiguration.AspNetCore" />
+    <PackageReference Include="Microsoft.Azure.SignalR" />
   </ItemGroup>
 
 </Project>
