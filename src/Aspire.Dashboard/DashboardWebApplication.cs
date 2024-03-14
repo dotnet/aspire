@@ -110,7 +110,7 @@ public class DashboardWebApplication : IAsyncDisposable
 
         // Time zone is set by the browser.
         builder.Services.AddScoped<TimeProvider>(s => s.GetRequiredService<BrowserTimeProvider>());
-        builder.Services.AddScoped<BrowserTimeProvider>(s => new BrowserTimeProvider());
+        builder.Services.AddScoped<BrowserTimeProvider>(s => new BrowserTimeProvider(s.GetRequiredService<ILoggerFactory>()));
 
         builder.Services.AddLocalization();
 
