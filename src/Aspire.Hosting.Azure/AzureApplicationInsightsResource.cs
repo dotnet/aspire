@@ -21,7 +21,8 @@ public class AzureApplicationInsightsResource(string name) :
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Application Insights resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 
     /// <summary>
     /// Gets the connection string for the Azure Application Insights resource.

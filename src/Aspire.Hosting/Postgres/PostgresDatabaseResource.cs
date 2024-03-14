@@ -21,24 +21,16 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// <summary>
     /// Gets the connection string expression for the Postgres database for the manifest.
     /// </summary>
-    public string ConnectionStringExpression => $"{{{Parent.Name}.connectionString}};Database={DatabaseName}";
+    public ReferenceExpression ConnectionStringExpression =>
+       ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
 
     /// <summary>
     /// Gets the connection string for the Postgres database.
     /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>A connection string for the Postgres database.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (await Parent.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false) is { } connectionString)
-        {
-            return $"{connectionString};Database={DatabaseName}";
-        }
-        else
-        {
-            throw new DistributedApplicationException("Parent resource connection string was null.");
-        }
-    }
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default) =>
+        ConnectionStringExpression.GetValueAsync(cancellationToken);
 
     /// <summary>
     /// Gets the database name.

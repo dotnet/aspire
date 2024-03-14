@@ -15,4 +15,7 @@ internal sealed class ResourceWithConnectionStringSurrogate(IResource innerResou
     }
 
     public string? ConnectionStringEnvironmentVariable => environmentVariableName;
+
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"");
 }

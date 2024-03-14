@@ -42,8 +42,8 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// <summary>
     /// Gets the connection string expression for the MySQL server.
     /// </summary>
-    public string ConnectionStringExpression =>
-        ConnectionString.ValueExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        ConnectionString;
 
     /// <summary>
     /// Gets the connection string for the MySQL server.

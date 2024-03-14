@@ -25,8 +25,8 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
-    public string ConnectionStringExpression =>
-        ConnectionString.ValueExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        ConnectionString;
 
     /// <summary>
     /// Gets the connection string for the MongoDB server.

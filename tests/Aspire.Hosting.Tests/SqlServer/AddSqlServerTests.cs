@@ -72,7 +72,7 @@ public class AddSqlServerTests
         var password = connectionStringResource.Password;
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true", connectionString);
-        Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public class AddSqlServerTests
         var password = connectionStringResource.Parent.Password;
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true;Database=mydb", connectionString);
-        Assert.Equal("{sqlserver.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("{sqlserver.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -186,8 +186,8 @@ public class AddSqlServerTests
         Assert.Equal("customers1", db1.Resource.DatabaseName);
         Assert.Equal("customers2", db2.Resource.DatabaseName);
 
-        Assert.Equal("{sqlserver1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{sqlserver1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{sqlserver1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{sqlserver1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class AddSqlServerTests
         Assert.Equal("imports", db1.Resource.DatabaseName);
         Assert.Equal("imports", db2.Resource.DatabaseName);
 
-        Assert.Equal("{sqlserver1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{sqlserver2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{sqlserver1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{sqlserver2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 }

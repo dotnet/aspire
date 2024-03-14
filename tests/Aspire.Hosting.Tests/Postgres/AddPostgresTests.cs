@@ -114,8 +114,10 @@ public class AddPostgresTests
         var postgres = appBuilder.AddPostgres("postgres")
                                  .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
-        var connectionString = await postgres.Resource.GetConnectionStringAsync();
-        Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}", postgres.Resource.ConnectionStringExpression);
+        var connectionStringResource = postgres.Resource as IResourceWithConnectionString;
+
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+        Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={postgres.Resource.Password}", connectionString);
     }
 
@@ -136,7 +138,7 @@ public class AddPostgresTests
         var postgresDatabaseResource = Assert.Single(appModel.Resources.OfType<PostgresDatabaseResource>());
         var dbConnectionString = await postgresDatabaseResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("{postgres.connectionString};Database=db", postgresDatabaseResource.ConnectionStringExpression);
+        Assert.Equal("{postgres.connectionString};Database=db", postgresDatabaseResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(postgresConnectionString + ";Database=db", dbConnectionString);
     }
 
@@ -345,8 +347,8 @@ public class AddPostgresTests
         Assert.Equal("customers1", db1.Resource.DatabaseName);
         Assert.Equal("customers2", db2.Resource.DatabaseName);
 
-        Assert.Equal("{postgres1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{postgres1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{postgres1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{postgres1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -363,7 +365,7 @@ public class AddPostgresTests
         Assert.Equal("imports", db1.Resource.DatabaseName);
         Assert.Equal("imports", db2.Resource.DatabaseName);
 
-        Assert.Equal("{postgres1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{postgres2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{postgres1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{postgres2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 }

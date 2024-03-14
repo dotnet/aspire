@@ -27,8 +27,8 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     /// <summary>
     /// Gets the connection string expression for the NATS server for the manifest.
     /// </summary>
-    public string? ConnectionStringExpression =>
-        ConnectionString.ValueExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        ConnectionString;
 
     /// <summary>
     /// Gets the connection string (NATS_URL) for the NATS server.

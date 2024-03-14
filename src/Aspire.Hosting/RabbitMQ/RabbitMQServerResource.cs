@@ -43,8 +43,8 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// <summary>
     /// Gets the connection string expression for the RabbitMQ server for the manifest.
     /// </summary>
-    public string ConnectionStringExpression =>
-        ConnectionString.ValueExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        ConnectionString;
 
     /// <summary>
     /// Gets the connection string for the RabbitMQ server.

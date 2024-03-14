@@ -42,8 +42,8 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// <summary>
     /// Gets the connection string expression for the Oracle Database server.
     /// </summary>
-    public string ConnectionStringExpression =>
-        ConnectionString.ValueExpression;
+    public ReferenceExpression ConnectionStringExpression =>
+        ConnectionString;
 
     /// <summary>
     /// Gets the connection string for the Oracle Database server.

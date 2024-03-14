@@ -13,7 +13,8 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     /// </summary>
     /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
     /// <returns>The connection string associated with the resource, when one is available.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default);
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default) =>
+        ConnectionStringExpression.GetValueAsync(cancellationToken);
 
     string IManifestExpressionProvider.ValueExpression => ConnectionStringReferenceExpression;
 
@@ -22,7 +23,7 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     /// <summary>
     /// Describes the connection string format string used for this resource in the manifest.
     /// </summary>
-    public string? ConnectionStringExpression => null;
+    public ReferenceExpression ConnectionStringExpression { get; }
 
     /// <summary>
     /// The expression used in the manifest to reference the connection string.

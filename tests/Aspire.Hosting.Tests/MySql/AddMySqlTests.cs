@@ -101,7 +101,7 @@ public class AddMySqlTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("Server=localhost;Port=2000;User ID=root;Password=", connectionString);
     }
 
@@ -123,7 +123,7 @@ public class AddMySqlTests
         var dbConnectionString = await mySqlDatabaseResource.GetConnectionStringAsync(default);
 
         Assert.Equal(mySqlConnectionString + ";Database=db", dbConnectionString);
-        Assert.Equal("{mysql.connectionString};Database=db", mySqlDatabaseResource.ConnectionStringExpression);
+        Assert.Equal("{mysql.connectionString};Database=db", mySqlDatabaseResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -293,8 +293,8 @@ public class AddMySqlTests
         Assert.Equal("customers1", db1.Resource.DatabaseName);
         Assert.Equal("customers2", db2.Resource.DatabaseName);
 
-        Assert.Equal("{mysql1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{mysql1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{mysql1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{mysql1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -311,7 +311,7 @@ public class AddMySqlTests
         Assert.Equal("imports", db1.Resource.DatabaseName);
         Assert.Equal("imports", db2.Resource.DatabaseName);
 
-        Assert.Equal("{mysql1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{mysql2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{mysql1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{mysql2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 }

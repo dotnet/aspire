@@ -322,13 +322,11 @@ public class WithReferenceTests
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
 
-    private sealed class TestResource(string name) : IResourceWithConnectionString
+    private sealed class TestResource(string name) : Resource(name), IResourceWithConnectionString
     {
-        public string Name => name;
-
         public string? ConnectionString { get; set; }
 
-        public ResourceAnnotationCollection Annotations => throw new NotImplementedException();
+        public ReferenceExpression ConnectionStringExpression => throw new NotImplementedException();
 
         public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
         {

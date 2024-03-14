@@ -42,7 +42,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <summary>
     /// Gets the connection string expression for the PostgreSQL server for the manifest.
     /// </summary>
-    public string? ConnectionStringExpression
+    public ReferenceExpression ConnectionStringExpression
     {
         get
         {
@@ -51,7 +51,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return ConnectionString.ValueExpression;
+            return ConnectionString;
         }
     }
 
@@ -67,7 +67,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
             return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
         }
 
-        return ConnectionString.GetValueAsync(cancellationToken);
+        return ConnectionStringExpression.GetValueAsync(cancellationToken);
     }
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);

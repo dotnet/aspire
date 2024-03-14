@@ -43,7 +43,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// <summary>
     /// Gets the connection string expression for the SQL Server for the manifest.
     /// </summary>
-    public string? ConnectionStringExpression
+    public ReferenceExpression ConnectionStringExpression
     {
         get
         {
@@ -52,7 +52,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
                 return connectionStringAnnotation.Resource.ConnectionStringExpression;
             }
 
-            return ConnectionString.ValueExpression;
+            return ConnectionString;
         }
     }
 
