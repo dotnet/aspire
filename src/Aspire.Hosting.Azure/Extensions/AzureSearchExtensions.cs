@@ -15,22 +15,6 @@ namespace Aspire.Hosting;
 public static class AzureSearchExtensions
 {
     /// <summary>
-    /// Adds an Azure Search resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchResource}"/>.</returns>
-    public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
-    {
-        var resource = new AzureSearchResource(name);
-        return builder.AddResource(resource)
-                .WithParameter("name", resource.CreateBicepResourceName())
-                .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                .WithManifestPublishingCallback(resource.WriteToManifest);
-    }
-
-    /// <summary>
     /// Adds an Azure AI Search service resource to the application model.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
