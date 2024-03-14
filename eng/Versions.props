@@ -40,9 +40,9 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.2</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <MicrosoftExtensionsFeaturesPackageVersion>8.0.3</MicrosoftExtensionsFeaturesPackageVersion>
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.2</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
-    <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.2</MicrosoftEntityFrameworkCoreDesignPackageVersion>
-    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.2</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
-    <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.2</MicrosoftEntityFrameworkCoreToolsPackageVersion>
+    <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.3</MicrosoftEntityFrameworkCoreDesignPackageVersion>
+    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.3</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
+    <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.3</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.3.24158.8</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
   </PropertyGroup>
 </Project>
