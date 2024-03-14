@@ -870,6 +870,9 @@ public class AzureBicepResourceTests
 
         // Check storage resource.
         Assert.Equal("storage", storage.Resource.Name);
+
+        var storageManifest = await ManifestUtils.GetManifestWithBicep(storage.Resource);
+
         var expectedStorageManifest = """
             {
               "type": "azure.bicep.v0",
@@ -881,44 +884,7 @@ public class AzureBicepResourceTests
               }
             }
             """;
-        var storageManifest = await ManifestUtils.GetManifest(storage.Resource);
-        Assert.Equal(expectedStorageManifest, storageManifest.ToString());
-
-        // Check blob resource.
-        var blob = storage.AddBlobs("blob");
-        Assert.Equal("https://myblob", await blob.Resource.GetConnectionStringAsync());
-        var expectedBlobManifest = """
-            {
-              "type": "value.v0",
-              "connectionString": "{storage.outputs.blobEndpoint}"
-            }
-            """;
-        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
-        Assert.Equal(expectedBlobManifest, blobManifest.ToString());
-
-        // Check queue resource.
-        var queue = storage.AddQueues("queue");
-        Assert.Equal("https://myqueue", await queue.Resource.GetConnectionStringAsync());
-        var expectedQueueManifest = """
-            {
-              "type": "value.v0",
-              "connectionString": "{storage.outputs.queueEndpoint}"
-            }
-            """;
-        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
-        Assert.Equal(expectedQueueManifest, queueManifest.ToString());
-
-        // Check table resource.
-        var table = storage.AddTables("table");
-        Assert.Equal("https://mytable", await table.Resource.GetConnectionStringAsync());
-        var expectedTableManifest = """
-            {
-              "type": "value.v0",
-              "connectionString": "{storage.outputs.tableEndpoint}"
-            }
-            """;
-        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
-        Assert.Equal(expectedTableManifest, tableManifest.ToString());
+        Assert.Equal(expectedStorageManifest, storageManifest.ManifestNode.ToString());
 
         var expectedBicep = """
             targetScope = 'resourceGroup'
@@ -993,10 +959,45 @@ public class AzureBicepResourceTests
             output tableEndpoint string = storageAccount_65zdmu5tK.properties.primaryEndpoints.table
 
             """;
+        Assert.Equal(expectedBicep, storageManifest.BicepText);
 
-        var path = storageManifest["path"]!.ToString();
-        var bicep = await File.ReadAllTextAsync(path);
-        Assert.Equal(expectedBicep, bicep);
+
+        // Check blob resource.
+        var blob = storage.AddBlobs("blob");
+        Assert.Equal("https://myblob", await blob.Resource.GetConnectionStringAsync());
+        var expectedBlobManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.blobEndpoint}"
+            }
+            """;
+        var blobManifest = await ManifestUtils.GetManifest(blob.Resource);
+        Assert.Equal(expectedBlobManifest, blobManifest.ToString());
+
+        // Check queue resource.
+        var queue = storage.AddQueues("queue");
+        Assert.Equal("https://myqueue", await queue.Resource.GetConnectionStringAsync());
+        var expectedQueueManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.queueEndpoint}"
+            }
+            """;
+        var queueManifest = await ManifestUtils.GetManifest(queue.Resource);
+        Assert.Equal(expectedQueueManifest, queueManifest.ToString());
+
+        // Check table resource.
+        var table = storage.AddTables("table");
+        Assert.Equal("https://mytable", await table.Resource.GetConnectionStringAsync());
+        var expectedTableManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{storage.outputs.tableEndpoint}"
+            }
+            """;
+        var tableManifest = await ManifestUtils.GetManifest(table.Resource);
+        Assert.Equal(expectedTableManifest, tableManifest.ToString());
+
     }
 
     [Fact]
