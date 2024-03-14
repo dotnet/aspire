@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureConstruct"></param>
-public class AzureAppConfigurationConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+public class AzureAppConfigurationResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {
