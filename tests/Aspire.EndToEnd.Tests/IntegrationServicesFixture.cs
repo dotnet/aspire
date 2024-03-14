@@ -302,7 +302,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 foreach (var srcFile in logFiles)
                 {
                     var dstFile = Path.Combine(dcpLogPath, Path.GetFileName(srcFile));
-                    File.Copy(srcFile, dstFile, overwrite: true);
+                    try
+                    {
+                        File.Copy(srcFile, dstFile, overwrite: true);
+                        Console.WriteLine ($"Copied {srcFile} to {dstFile}");
+                    } catch (IOException ioex) {
+                        Console.WriteLine ($"Failed to copy {srcFile} to {dstFile}: {ioex.Message}");
+                    }
                 }
             }
         }
