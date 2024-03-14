@@ -271,8 +271,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     internal void WriteDockerBuildArgs(IEnumerable<DockerBuildArg>? buildArgs)
     {
-        var args = buildArgs?.ToArray();
-        if (args is { Length: > 0 })
+        if (buildArgs?.ToArray() is { Length: > 0 } args)
         {
             Writer.WriteStartObject("buildArgs");
 
@@ -284,7 +283,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     string stringValue => stringValue,
                     IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    null => null,
+                    null => null, // null means let docker build pull from env var.
                     _ => buildArg.Value.ToString()
                 };
 
