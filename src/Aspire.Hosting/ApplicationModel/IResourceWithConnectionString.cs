@@ -16,7 +16,7 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default) =>
         ConnectionStringExpression.GetValueAsync(cancellationToken);
 
-    string IManifestExpressionProvider.ValueExpression => ConnectionStringReferenceExpression;
+    string IManifestExpressionProvider.ValueExpression => $"{{{Name}.connectionString}}";
 
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => GetConnectionStringAsync(cancellationToken);
 
@@ -24,11 +24,6 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     /// Describes the connection string format string used for this resource in the manifest.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression { get; }
-
-    /// <summary>
-    /// The expression used in the manifest to reference the connection string.
-    /// </summary>
-    public string ConnectionStringReferenceExpression => $"{{{Name}.connectionString}}";
 
     /// <summary>
     /// The environment variable name to use for the connection string.

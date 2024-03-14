@@ -327,6 +327,6 @@ public class WithReferenceTests
         public string? ConnectionString { get; set; }
 
         public ReferenceExpression ConnectionStringExpression =>
-            ReferenceExpression.Create($"{ConnectionString ?? ""}");
+            ReferenceExpression.Create($"{ConnectionString}");
     }
 }

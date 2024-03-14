@@ -18,23 +18,12 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
-    private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
-            $"mongodb://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
-
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ConnectionString;
-
-    /// <summary>
-    /// Gets the connection string for the MongoDB server.
-    /// </summary>
-    /// <param name="cancellationToken"> Cancellation token. </param>
-    /// <returns>A connection string for the MongoDB server in the form "mongodb://host:port".</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
-        ConnectionString.GetValueAsync(cancellationToken);
+        ReferenceExpression.Create(
+            $"mongodb://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 
