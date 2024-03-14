@@ -245,7 +245,7 @@ public class DashboardWebApplication : IAsyncDisposable
 
         builder.Configuration.AddInMemoryCollection(initialValues);
 
-        // Use ConfigurationLoader to augment the endpoint's that Kestrel created from configuration
+        // Use ConfigurationLoader to augment the endpoints that Kestrel created from configuration
         // with extra settings. e.g., UseOtlpConnection for the OTLP endpoint.
         builder.WebHost.ConfigureKestrel((context, serverOptions) =>
         {
