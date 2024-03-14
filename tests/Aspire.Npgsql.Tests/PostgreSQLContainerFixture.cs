@@ -13,7 +13,7 @@ public sealed class PostgreSQLContainerFixture : IAsyncLifetime
     public PostgreSqlContainer? Container { get; private set; }
 
     public string GetConnectionString() => Container?.GetConnectionString() ??
-        throw new InvalidOperationException("The test container was not initialized. Docker support: {RequiresDockerTheoryAttribute.IsSupported}");
+        throw new InvalidOperationException("The test container was not initialized.");
 
     public async Task InitializeAsync()
     {
