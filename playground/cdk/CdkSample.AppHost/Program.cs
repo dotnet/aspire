@@ -61,7 +61,7 @@ var sb = builder.AddAzureServiceBusConstruct("servicebus")
     .AddSubscription("topic1", "subscription2")
     .AddTopic("topic3", new[] { "sub1", "sub2" });
 
-var appConfig = builder.AddAzureAppConfigurationConstruct("appConfig");
+var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
 var search = builder.AddAzureConstructSearch("search");
 
