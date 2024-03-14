@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureConstruct"></param>
-public class AzureSignalRConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+public class AzureSignalRResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {

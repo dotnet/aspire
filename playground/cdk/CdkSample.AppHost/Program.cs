@@ -67,7 +67,7 @@ var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
 var search = builder.AddAzureConstructSearch("search");
 
-var signalr = builder.AddAzureSignalRConstruct("signalr");
+var signalr = builder.AddAzureSignalR("signalr");
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(signalr)

@@ -532,11 +532,13 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public async Task AddSignalRConstruct()
+    public async Task AddAzureSignalR()
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var signalr = builder.AddAzureSignalRConstruct("signalr");
+        var signalr = builder.AddAzureSignalR("signalr");
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(signalr.Resource);
 
         var expectedManifest = """
             {
@@ -549,9 +551,61 @@ public class AzureBicepResourceTests
               }
             }
             """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var manifest = await ManifestUtils.GetManifest(signalr.Resource);
-        Assert.Equal(expectedManifest, manifest.ToString());
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource signalRService_hoCuRhvyj 'Microsoft.SignalRService/signalR@2022-02-01' = {
+              name: toLower(take(concat('signalr', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'signalr'
+              }
+              sku: {
+                name: 'Free_F1'
+                capacity: 1
+              }
+              kind: 'SignalR'
+              properties: {
+                features: [
+                  {
+                    flag: 'ServiceMode'
+                    value: 'Default'
+                  }
+                ]
+                cors: {
+                  allowedOrigins: [
+                    '*'
+                  ]
+                }
+              }
+            }
+
+            resource roleAssignment_O1jxNBUgA 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: signalRService_hoCuRhvyj
+              name: guid(signalRService_hoCuRhvyj.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            output hostName string = signalRService_hoCuRhvyj.properties.hostName
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
     [Fact]
