@@ -44,7 +44,9 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();
 
-        Assert.Equal(ConnectionString, dataSource.ConnectionString);
+        string actualConnectionString = dataSource.ConnectionString;
+        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString).ConnectionString;
+        Assert.Equal(expectedConnectionString, actualConnectionString);
     }
 
     [Theory]
@@ -72,7 +74,9 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();
 
-        Assert.Equal(ConnectionString, dataSource.ConnectionString);
+        string actualConnectionString = dataSource.ConnectionString;
+        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString).ConnectionString;
+        Assert.Equal(expectedConnectionString, actualConnectionString);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
@@ -104,7 +108,9 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();
 
-        Assert.Equal(ConnectionString, dataSource.ConnectionString);
+        string actualConnectionString = dataSource.ConnectionString;
+        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString).ConnectionString;
+        Assert.Equal(expectedConnectionString, actualConnectionString);
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }

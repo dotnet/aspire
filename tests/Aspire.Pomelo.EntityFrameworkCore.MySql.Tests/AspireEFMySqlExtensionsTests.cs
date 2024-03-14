@@ -42,7 +42,9 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
-        Assert.Equal(ConnectionString + ConnectionStringSuffixAddedByPomelo, context.Database.GetDbConnection().ConnectionString);
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString + ConnectionStringSuffixAddedByPomelo).ConnectionString;
+        Assert.Equal(expectedConnectionString, actualConnectionString);
     }
 
     [Fact]
@@ -60,7 +62,8 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString + ConnectionStringSuffixAddedByPomelo, actualConnectionString);
+        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString + ConnectionStringSuffixAddedByPomelo).ConnectionString;
+        Assert.Equal(expectedConnectionString, actualConnectionString);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", actualConnectionString);
     }
@@ -81,7 +84,8 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString + ConnectionStringSuffixAddedByPomelo, actualConnectionString);
+        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString + ConnectionStringSuffixAddedByPomelo).ConnectionString;
+        Assert.Equal(expectedConnectionString, actualConnectionString);
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", actualConnectionString);
     }
@@ -117,7 +121,8 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 
         // ensure the connection string from config was respected
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString + ";Allow User Variables=True;Default Command Timeout=123;Use Affected Rows=False", actualConnectionString);
+        var expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString + ";Allow User Variables=True;Default Command Timeout=123;Use Affected Rows=False").ConnectionString;
+        Assert.Equal(expectedConnectionString, actualConnectionString);
 
         // ensure the retry strategy is enabled and set to its default value
         Assert.NotNull(extension.ExecutionStrategyFactory);
@@ -159,7 +164,8 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 
         // ensure the connection string from config was respected
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString + ";Allow User Variables=True;Default Command Timeout=123;Use Affected Rows=False", actualConnectionString);
+        var expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString + ";Allow User Variables=True;Default Command Timeout=123;Use Affected Rows=False").ConnectionString;
+        Assert.Equal(expectedConnectionString, actualConnectionString);
 
         // ensure no retry strategy was registered
         Assert.Null(extension.ExecutionStrategyFactory);
