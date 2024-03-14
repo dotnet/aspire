@@ -20,7 +20,7 @@ public sealed class RedisContainerFixture : IAsyncLifetime
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
             Container = new RedisBuilder()
-                            .WithImage($"{ContainerImageTags.Redis.image}:{ContainerImageTags.Redis.tag}")
+                            .WithImage($"{ContainerImageTags.Redis.Image}:{ContainerImageTags.Redis.Tag}")
                             .Build();
             await Container.StartAsync();
         }

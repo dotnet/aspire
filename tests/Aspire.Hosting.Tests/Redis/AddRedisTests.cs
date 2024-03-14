@@ -36,8 +36,8 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ContainerImageTags.Redis.tag, containerAnnotation.Tag);
-        Assert.Equal(ContainerImageTags.Redis.image, containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.Redis.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.Redis.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -64,8 +64,8 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ContainerImageTags.Redis.tag, containerAnnotation.Tag);
-        Assert.Equal(ContainerImageTags.Redis.image, containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.Redis.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.Redis.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -98,7 +98,7 @@ public class AddRedisTests
             {
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-              "image": "{{ContainerImageTags.Redis.image}}:{{ContainerImageTags.Redis.tag}}",
+              "image": "{{ContainerImageTags.Redis.Image}}:{{ContainerImageTags.Redis.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",

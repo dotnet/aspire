@@ -25,7 +25,7 @@ public static class RedisBuilderExtensions
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
                       .WithEndpoint(hostPort: port, containerPort: 6379, name: RedisResource.PrimaryEndpointName)
-                      .WithImage(ContainerImageTags.Redis.image, ContainerImageTags.Redis.tag);
+                      .WithImage(ContainerImageTags.Redis.Image, ContainerImageTags.Redis.Tag);
     }
 
     /// <summary>
