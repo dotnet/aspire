@@ -20,4 +20,12 @@ public sealed class NatsClientSettings
     /// The default value is <see langword="true"/>.
     /// </value>
     public bool HealthChecks { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
+    public bool Tracing { get; set; } = true;
 }
