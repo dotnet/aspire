@@ -59,6 +59,8 @@ var sb = builder.AddAzureServiceBusConstruct("servicebus")
     .AddSubscription("topic1", "subscription2")
     .AddTopic("topic3", new[] { "sub1", "sub2" });
 
+var appConfig = builder.AddAzureAppConfigurationConstruct("appConfig");
+
 var search = builder.AddAzureConstructSearch("search");
 
 var signalr = builder.AddAzureSignalRConstruct("signalr");
@@ -72,6 +74,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(cosmosdb)
     .WithReference(pgsqldb)
     .WithReference(sb)
+    .WithReference(appConfig)
     .WithReference(search);
 
 // This project is only added in playground projects to support development/debugging

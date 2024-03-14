@@ -31,3 +31,31 @@ public class AzureAppConfigurationResource(string name) :
     public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
         => Endpoint.GetValueAsync(cancellationToken);
 }
+
+/// <summary>
+/// A resource that represents Azure App Configuration.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="configureConstruct"></param>
+public class AzureAppConfigurationConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
+    IResourceWithConnectionString
+{
+    /// <summary>
+    /// Gets the appConfigEndpoint output reference for the Azure App Configuration resource.
+    /// </summary>
+    public BicepOutputReference Endpoint => new("appConfigEndpoint", this);
+
+    /// <summary>
+    /// Gets the connection string template for the manifest for the Azure App Configuration resource.
+    /// </summary>
+    public string ConnectionStringExpression => Endpoint.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string for the Azure App Configuration resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the Azure App Configuration resource.</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
+        => Endpoint.GetValueAsync(cancellationToken);
+}
