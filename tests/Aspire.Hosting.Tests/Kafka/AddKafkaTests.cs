@@ -50,11 +50,11 @@ public class AddKafkaTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<KafkaServerResource>());
-        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<KafkaServerResource>()) as IResourceWithConnectionString;
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
         Assert.Equal("localhost:27017", connectionString);
-        Assert.Equal("{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]

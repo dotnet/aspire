@@ -35,23 +35,12 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// </summary>
     public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
-    private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
-            $"Server={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=root;Password={PasswordInput}");
-
     /// <summary>
     /// Gets the connection string expression for the MySQL server.
     /// </summary>
-    public string ConnectionStringExpression =>
-        ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the MySQL server.
-    /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
-        ConnectionString.GetValueAsync(cancellationToken);
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create(
+            $"Server={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=root;Password={PasswordInput}");
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 

@@ -51,12 +51,13 @@ public class AddRabbitMQTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
+        var rabbitMqResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
+        var connectionStringResource = rabbitMqResource as IResourceWithConnectionString;
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        var password = connectionStringResource.Password;
+        var password = rabbitMqResource.Password;
 
         Assert.Equal($"amqp://guest:{password}@localhost:27011", connectionString);
-        Assert.Equal("amqp://guest:{rabbit.inputs.password}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("amqp://guest:{rabbit.inputs.password}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]

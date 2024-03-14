@@ -101,9 +101,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     public void WriteConnectionString(IResource resource)
     {
         if (resource is IResourceWithConnectionString resourceWithConnectionString &&
-            resourceWithConnectionString.ConnectionStringExpression is string connectionString)
+            resourceWithConnectionString.ConnectionStringExpression is { } connectionString)
         {
-            Writer.WriteString("connectionString", connectionString);
+            Writer.WriteString("connectionString", connectionString.ValueExpression);
         }
     }
 
