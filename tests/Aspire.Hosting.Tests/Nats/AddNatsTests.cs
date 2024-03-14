@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Utils;
 using System.Net.Sockets;
+using Aspire.Components.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -34,8 +35,9 @@ public class AddNatsTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("2", containerAnnotation.Tag);
-        Assert.Equal("nats", containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.Nats.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.Nats.Image, containerAnnotation.Image);
+
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -72,8 +74,8 @@ public class AddNatsTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("2", containerAnnotation.Tag);
-        Assert.Equal("nats", containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.Nats.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.Nats.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -95,11 +97,11 @@ public class AddNatsTests
 
         var manifest = await ManifestUtils.GetManifest(nats.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "nats://{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
-              "image": "nats:2",
+              "image": "{{ContainerImageTags.Nats.Image}}:{{ContainerImageTags.Nats.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",

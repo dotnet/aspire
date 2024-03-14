@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common;
 using Aspire.Components.Common.Tests;
 using Testcontainers.Nats;
 using Xunit;
@@ -19,7 +20,7 @@ public sealed class NatsContainerFixture : IAsyncLifetime
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
             Container = new NatsBuilder()
-                .WithImage("nats:2")
+                .WithImage($"{ContainerImageTags.Nats.Image}:{ContainerImageTags.Nats.Tag}")
                 .Build();
             await Container.StartAsync();
         }

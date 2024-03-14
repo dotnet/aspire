@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using NATS.Client.Core;
+using OpenTelemetry.Trace;
 using Xunit;
 
 namespace Aspire.NATS.Net.Tests;
@@ -114,55 +115,28 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         Assert.DoesNotContain("unused", connection.Opts.Url);
     }
 
-    [RequiresDockerFact]
-    public async Task AddNatsClient_HealthCheckShouldBeRegisteredWhenEnabled()
-    {
-        var builder = CreateBuilder(DefaultConnectionString);
-
-        builder.AddNatsClient(DefaultConnectionName, settings =>
-        {
-            settings.HealthChecks = true;
-        });
-
-        var host = builder.Build();
-
-        var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
-
-        var healthCheckReport = await healthCheckService.CheckHealthAsync();
-
-        var healthCheckName = "NATS";
-
-        Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
-    }
-
-    [RequiresDockerFact]
-    public void AddNatsClient_HealthCheckShouldNotBeRegisteredWhenDisabled()
-    {
-        var builder = CreateBuilder(DefaultConnectionString);
-
-        builder.AddNatsClient(DefaultConnectionName, settings =>
-        {
-            settings.HealthChecks = false;
-        });
-
-        var host = builder.Build();
-
-        var healthCheckService = host.Services.GetService<HealthCheckService>();
-
-        Assert.Null(healthCheckService);
-    }
-
-    [RequiresDockerFact]
-    public async Task AddKeyedNatsClient_HealthCheckShouldBeRegisteredWhenEnabled()
+    [RequiresDockerTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddNatsClient_HealthCheckShouldBeRegisteredWhenEnabled(bool useKeyed)
     {
         var key = DefaultConnectionName;
-
         var builder = CreateBuilder(DefaultConnectionString);
 
-        builder.AddKeyedNatsClient(key, settings =>
+        if (useKeyed)
         {
-            settings.HealthChecks = true;
-        });
+            builder.AddKeyedNatsClient(key, settings =>
+            {
+                settings.HealthChecks = true;
+            });
+        }
+        else
+        {
+            builder.AddNatsClient(DefaultConnectionName, settings =>
+            {
+                settings.HealthChecks = true;
+            });
+        }
 
         var host = builder.Build();
 
@@ -170,26 +144,65 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
 
         var healthCheckReport = await healthCheckService.CheckHealthAsync();
 
-        var healthCheckName = $"NATS_{key}";
+        var healthCheckName = useKeyed ? $"NATS_{key}" : "NATS";
 
         Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
     }
 
-    [RequiresDockerFact]
-    public void AddKeyedNatsClient_HealthCheckShouldNotBeRegisteredWhenDisabled()
+    [RequiresDockerTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddNatsClient_HealthCheckShouldNotBeRegisteredWhenDisabled(bool useKeyed)
     {
         var builder = CreateBuilder(DefaultConnectionString);
 
-        builder.AddKeyedNatsClient(DefaultConnectionName, settings =>
+        if (useKeyed)
         {
-            settings.HealthChecks = false;
-        });
+            builder.AddKeyedNatsClient(DefaultConnectionName, settings =>
+            {
+                settings.HealthChecks = false;
+            });
+        }
+        else
+        {
+            builder.AddNatsClient(DefaultConnectionName, settings =>
+            {
+                settings.HealthChecks = false;
+            });
+        }
 
         var host = builder.Build();
 
         var healthCheckService = host.Services.GetService<HealthCheckService>();
 
         Assert.Null(healthCheckService);
+    }
+
+    [RequiresDockerFact]
+    public async Task NatsInstrumentationEndToEnd()
+    {
+        var builder = CreateBuilder(DefaultConnectionString);
+
+        builder.AddNatsClient(DefaultConnectionName, settings =>
+        {
+            settings.Tracing = true;
+        });
+
+        var notifier = new ActivityNotifier();
+        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
+
+        var host = builder.Build();
+        host.Start();
+
+        var nats = host.Services.GetRequiredService<INatsConnection>();
+        await nats.PublishAsync("test");
+
+        await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Single(notifier.ExportedActivities);
+
+        var activity = notifier.ExportedActivities[0];
+        Assert.Equal("test publish", activity.OperationName);
+        Assert.Contains(activity.Tags, kvp => kvp.Key == "messaging.system" && kvp.Value == "nats");
     }
 
     private static HostApplicationBuilder CreateBuilder(string connectionString)
