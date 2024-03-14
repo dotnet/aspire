@@ -28,8 +28,8 @@ public class AddPostgresTests
         Assert.Equal("myPostgres", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ContainerImageTags.PostgreSql.tag, containerAnnotation.Tag);
-        Assert.Equal(ContainerImageTags.PostgreSql.image, containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.PostgreSql.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.PostgreSql.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -75,8 +75,8 @@ public class AddPostgresTests
         Assert.Equal("myPostgres", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ContainerImageTags.PostgreSql.tag, containerAnnotation.Tag);
-        Assert.Equal(ContainerImageTags.PostgreSql.image, containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.PostgreSql.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.PostgreSql.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -156,8 +156,8 @@ public class AddPostgresTests
         Assert.Equal("postgres", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ContainerImageTags.PostgreSql.tag, containerAnnotation.Tag);
-        Assert.Equal(ContainerImageTags.PostgreSql.image, containerAnnotation.Image);
+        Assert.Equal(ContainerImageTags.PostgreSql.Tag, containerAnnotation.Tag);
+        Assert.Equal(ContainerImageTags.PostgreSql.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -203,7 +203,7 @@ public class AddPostgresTests
             {
               "type": "container.v0",
               "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username=postgres;Password={pg.inputs.password}",
-              "image": "{{ContainerImageTags.PostgreSql.image}}:{{ContainerImageTags.PostgreSql.tag}}",
+              "image": "{{ContainerImageTags.PostgreSql.Image}}:{{ContainerImageTags.PostgreSql.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
