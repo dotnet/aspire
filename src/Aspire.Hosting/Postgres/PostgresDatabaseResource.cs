@@ -25,14 +25,6 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
        ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
 
     /// <summary>
-    /// Gets the connection string for the Postgres database.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>A connection string for the Postgres database.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default) =>
-        ConnectionStringExpression.GetValueAsync(cancellationToken);
-
-    /// <summary>
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = databaseName;

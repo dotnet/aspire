@@ -136,7 +136,8 @@ public class AddPostgresTests
         var postgresResource = Assert.Single(appModel.Resources.OfType<PostgresServerResource>());
         var postgresConnectionString = await postgresResource.GetConnectionStringAsync();
         var postgresDatabaseResource = Assert.Single(appModel.Resources.OfType<PostgresDatabaseResource>());
-        var dbConnectionString = await postgresDatabaseResource.GetConnectionStringAsync(default);
+        var postgresDatabaseConnectionStringResource = (IResourceWithConnectionString)postgresDatabaseResource;
+        var dbConnectionString = await postgresDatabaseConnectionStringResource.GetConnectionStringAsync();
 
         Assert.Equal("{postgres.connectionString};Database=db", postgresDatabaseResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(postgresConnectionString + ";Database=db", dbConnectionString);

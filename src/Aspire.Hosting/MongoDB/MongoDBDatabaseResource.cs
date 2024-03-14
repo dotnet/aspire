@@ -25,13 +25,6 @@ public class MongoDBDatabaseResource(string name, string databaseName, MongoDBSe
     public MongoDBServerResource Parent => parent;
 
     /// <summary>
-    /// Gets the connection string for the MongoDB database.
-    /// </summary>
-    /// <returns>A connection string for the MongoDB database.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
-        ConnectionStringExpression.GetValueAsync(cancellationToken);
-
-    /// <summary>
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = databaseName;
