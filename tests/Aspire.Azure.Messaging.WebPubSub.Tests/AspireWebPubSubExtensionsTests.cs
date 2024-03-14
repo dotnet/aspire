@@ -26,11 +26,11 @@ public class AspireWebPubSubExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureWebPubSub("wps", "hub1");
+            builder.AddKeyedAzureWebPubSubHub("wps", "hub1");
         }
         else
         {
-            builder.AddAzureWebPubSub("wps", "hub1");
+            builder.AddAzureWebPubSubHub("wps", "hub1");
         }
 
         var host = builder.Build();
@@ -53,11 +53,11 @@ public class AspireWebPubSubExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureWebPubSub("wps", "hub1", settings => settings.ConnectionString = ConnectionString);
+            builder.AddKeyedAzureWebPubSubHub("wps", "hub1", settings => settings.ConnectionString = ConnectionString);
         }
         else
         {
-            builder.AddAzureWebPubSub("wps", "hub1", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureWebPubSubHub("wps", "hub1", settings => settings.ConnectionString = ConnectionString);
         }
 
         var host = builder.Build();
@@ -83,11 +83,11 @@ public class AspireWebPubSubExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureWebPubSub("wps", "hub1");
+            builder.AddKeyedAzureWebPubSubHub("wps", "hub1");
         }
         else
         {
-            builder.AddAzureWebPubSub("wps", "hub1");
+            builder.AddAzureWebPubSubHub("wps", "hub1");
         }
 
         var host = builder.Build();
@@ -111,11 +111,11 @@ public class AspireWebPubSubExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureWebPubSub("wps", "hub1");
+            builder.AddKeyedAzureWebPubSubHub("wps", "hub1");
         }
         else
         {
-            builder.AddAzureWebPubSub("wps", "hub1");
+            builder.AddAzureWebPubSubHub("wps", "hub1");
         }
 
         var host = builder.Build();

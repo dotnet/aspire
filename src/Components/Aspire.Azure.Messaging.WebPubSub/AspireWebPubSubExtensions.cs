@@ -33,7 +33,7 @@ public static class AspireWebPubSubExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{WebPubSubServiceClient, WebPubSubServiceClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.Messaging.WebPubSub" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingWebPubSubSettings.ConnectionString"/> nor <see cref="AzureMessagingWebPubSubSettings.Endpoint"/> is provided.</exception>
-    public static void AddAzureWebPubSub(
+    public static void AddAzureWebPubSubHub(
         this IHostApplicationBuilder builder,
         string connectionName,
         string hubName,
@@ -53,7 +53,7 @@ public static class AspireWebPubSubExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{WebPubSubServiceClient, WebPubSubServiceClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.Messaging.WebPubSub:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingWebPubSubSettings.ConnectionString"/> nor <see cref="AzureMessagingWebPubSubSettings.Endpoint"/> is provided.</exception>
-    public static void AddKeyedAzureWebPubSub(
+    public static void AddKeyedAzureWebPubSubHub(
         this IHostApplicationBuilder builder,
         string name,
         string hubName,

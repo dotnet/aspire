@@ -2,7 +2,7 @@ using Azure.Messaging.WebPubSub;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddAzureWebPubSub("wps1", "chatForAspire");
+builder.AddAzureWebPubSubHub("wps1", "chatForAspire");
 
 // Add services to the container.
 builder.Services.AddRazorPages();
