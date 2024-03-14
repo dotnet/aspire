@@ -118,9 +118,11 @@ public class AddMySqlTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var mySqlResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
-        var mySqlConnectionString = await mySqlResource.GetConnectionStringAsync(default);
+        var mySqlConnectionStringResource = (IResourceWithConnectionString)mySqlResource;
+        var mySqlConnectionString = await mySqlConnectionStringResource.GetConnectionStringAsync();
         var mySqlDatabaseResource = Assert.Single(appModel.Resources.OfType<MySqlDatabaseResource>());
-        var dbConnectionString = await mySqlDatabaseResource.GetConnectionStringAsync(default);
+        var mySqlDatabaseConnectionStringResource = (IResourceWithConnectionString)mySqlDatabaseResource;
+        var dbConnectionString = await mySqlDatabaseConnectionStringResource.GetConnectionStringAsync();
 
         Assert.Equal(mySqlConnectionString + ";Database=db", dbConnectionString);
         Assert.Equal("{mysql.connectionString};Database=db", mySqlDatabaseResource.ConnectionStringExpression.ValueExpression);

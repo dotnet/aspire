@@ -45,13 +45,6 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     public ReferenceExpression ConnectionStringExpression =>
         ConnectionString;
 
-    /// <summary>
-    /// Gets the connection string for the Oracle Database server.
-    /// </summary>
-    /// <returns>A connection string for the Oracle Database server in the form "user id=system;password=password;data source=host:port".</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
-        ConnectionString.GetValueAsync(cancellationToken);
-
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 
     /// <summary>

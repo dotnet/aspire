@@ -235,11 +235,13 @@ public class AzureBicepResourceTests
 
         appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
 
+        var connectionStringResource = (IResourceWithConnectionString)appInsights.Resource;
+
         Assert.Equal("Aspire.Hosting.Azure.Bicep.appinsights.bicep", appInsights.Resource.TemplateResourceName);
         Assert.Equal("appInsights", appInsights.Resource.Name);
         Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
         Assert.True(appInsights.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
-        Assert.Equal("myinstrumentationkey", await appInsights.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
         var appInsightsManifest = await ManifestUtils.GetManifest(appInsights.Resource);

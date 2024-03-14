@@ -24,14 +24,6 @@ public class AzureApplicationInsightsResource(string name) :
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{ConnectionString}");
 
-    /// <summary>
-    /// Gets the connection string for the Azure Application Insights resource.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure Application Insights resource.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-        => ConnectionString.GetValueAsync(cancellationToken);
-
     // UseAzureMonitor is looks for this specific environment variable name.
     string IResourceWithConnectionString.ConnectionStringEnvironmentVariable => "APPLICATIONINSIGHTS_CONNECTION_STRING";
 }

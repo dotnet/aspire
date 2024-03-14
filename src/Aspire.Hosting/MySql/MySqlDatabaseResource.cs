@@ -22,15 +22,7 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
     /// Gets the connection string expression for the MySQL database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create(
-           $"{Parent};Database={DatabaseName}");
-
-    /// <summary>
-    /// Gets the connection string for the MySQL database.
-    /// </summary>
-    /// <returns>A connection string for the MySQL database.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
-        ConnectionStringExpression.GetValueAsync(cancellationToken);
+       ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
 
     /// <summary>
     /// Gets the database name.

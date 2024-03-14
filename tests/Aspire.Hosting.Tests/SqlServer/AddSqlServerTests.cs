@@ -88,9 +88,10 @@ public class AddSqlServerTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerDatabaseResource>());
-        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        var password = connectionStringResource.Parent.Password;
+        var sqlResource = Assert.Single(appModel.Resources.OfType<SqlServerDatabaseResource>());
+        var connectionStringResource = (IResourceWithConnectionString)sqlResource;
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
+        var password = sqlResource.Parent.Password;
 
         Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true;Database=mydb", connectionString);
         Assert.Equal("{sqlserver.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression.ValueExpression);
