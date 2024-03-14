@@ -953,45 +953,14 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
         var serviceBus = builder.AddAzureServiceBus("sb");
 
-        serviceBus
-            .AddQueue("queue1")
-            .AddQueue("queue2")
-            .AddTopic("t1", ["s1", "s2"])
-            .AddTopic("t2", [])
-            .AddTopic("t3", ["s3"]);
-
-        serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
-
-        var queuesCallback = serviceBus.Resource.Parameters["queues"] as Func<object?>;
-        var topicsCallback = serviceBus.Resource.Parameters["topics"] as Func<object?>;
-        Assert.NotNull(queuesCallback);
-        Assert.NotNull(topicsCallback);
-        var queues = queuesCallback() as IEnumerable<string>;
-        var topics = topicsCallback() as JsonNode;
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.servicebus.bicep", serviceBus.Resource.TemplateResourceName);
-        Assert.Equal("sb", serviceBus.Resource.Name);
-        Assert.Equal("sb", serviceBus.Resource.Parameters["serviceBusNamespaceName"]);
-        Assert.NotNull(queues);
-        Assert.Equal(["queue1", "queue2"], queues);
-        Assert.NotNull(topics);
-        Assert.Equal("""[{"name":"t1","subscriptions":["s1","s2"]},{"name":"t2","subscriptions":[]},{"name":"t3","subscriptions":["s3"]}]""", topics.ToJsonString());
-        Assert.Equal("mynamespaceEndpoint", await serviceBus.Resource.GetConnectionStringAsync(default));
-        Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public async Task AddAzureServiceBusConstruct()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var serviceBus = builder.AddAzureServiceBusConstruct("sb");
-
+#pragma warning disable CA2252 // This API requires opting into preview features
         serviceBus
             .AddQueue("queue1")
             .AddQueue("queue2")
             .AddTopic("t1")
             .AddTopic("t2")
             .AddSubscription("t1", "s3");
+#pragma warning restore CA2252 // This API requires opting into preview features
 
         serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 
@@ -999,7 +968,7 @@ public class AzureBicepResourceTests
         Assert.Equal("mynamespaceEndpoint", await serviceBus.Resource.GetConnectionStringAsync());
         Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
 
-        var manifest = await ManifestUtils.GetManifest(serviceBus.Resource);
+        var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
         var expected = """
             {
               "type": "azure.bicep.v0",
@@ -1011,7 +980,92 @@ public class AzureBicepResourceTests
               }
             }
             """;
-        Assert.Equal(expected, manifest.ToString());
+        Assert.Equal(expected, manifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param sku string = 'Standard'
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource serviceBusNamespace_RuSlLOK64 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
+              name: toLower(take(concat('sb', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'sb'
+              }
+              sku: {
+                name: sku
+              }
+              properties: {
+                minimumTlsVersion: '1.2'
+              }
+            }
+
+            resource roleAssignment_IS9HJzhT8 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: serviceBusNamespace_RuSlLOK64
+              name: guid(serviceBusNamespace_RuSlLOK64.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            resource serviceBusQueue_XlB4dhrJO 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+              parent: serviceBusNamespace_RuSlLOK64
+              name: 'queue1'
+              location: location
+              properties: {
+              }
+            }
+
+            resource serviceBusQueue_Q6ytJFbRX 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+              parent: serviceBusNamespace_RuSlLOK64
+              name: 'queue2'
+              location: location
+              properties: {
+              }
+            }
+
+            resource serviceBusTopic_Ghv0Edotu 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = {
+              parent: serviceBusNamespace_RuSlLOK64
+              name: 't1'
+              location: location
+              properties: {
+              }
+            }
+
+            resource serviceBusSubscription_uPeK9Nyv8 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2022-10-01-preview' = {
+              parent: serviceBusTopic_Ghv0Edotu
+              name: 's3'
+              location: location
+              properties: {
+              }
+            }
+
+            resource serviceBusTopic_v5qGIuxZg 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = {
+              parent: serviceBusNamespace_RuSlLOK64
+              name: 't2'
+              location: location
+              properties: {
+              }
+            }
+
+            output serviceBusEndpoint string = serviceBusNamespace_RuSlLOK64.properties.serviceBusEndpoint
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
     [Fact]
