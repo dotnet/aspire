@@ -21,6 +21,7 @@ namespace Aspire.StackExchange.Redis.Tests;
 
 public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
 {
+    private const string TestingEndpoint = "localhost";
     private readonly RedisContainerFixture _containerFixture;
     private string ConnectionString => _containerFixture.GetConnectionString();
 
@@ -137,46 +138,39 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.DoesNotContain("unused", connection.Configuration);
     }
 
-    [RequiresDockerTheory]
-    [InlineData(true, false)]
-    [InlineData(false, false)]
-    public void AbortOnConnectFailDefaultsForDefaultConfiguration(bool useKeyed, bool expectedAbortOnConnect)
-    {
-        IEnumerable<KeyValuePair<string, string?>> configs =
-        [
-            new KeyValuePair<string, string?>("ConnectionStrings:redis", ConnectionString)
-        ];
-        AbortOnConnectFailDefaultsImplementation(useKeyed, configs, expectedAbortOnConnect);
-    }
+    public static IEnumerable<object[]> AbortOnConnectFailData =>
+    [
+        [true, GetDefaultConfiguration(), false],
+        [false, GetDefaultConfiguration(), false],
 
-    [RequiresDockerTheory]
-    [InlineData(true, true)]
-    [InlineData(false, true)]
-    public void AbortOnConnectFailDefaultsForSetsTrueConfig(bool useKeyed, bool expectedAbortOnConnect)
-    {
-        IEnumerable<KeyValuePair<string, string?>> configs =
-        [
-            new KeyValuePair<string, string?>("ConnectionStrings:redis", ConnectionString),
-            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", useKeyed ? "redis" : null, "ConfigurationOptions:AbortOnConnectFail"), "true")
-        ];
-        AbortOnConnectFailDefaultsImplementation(useKeyed, configs, expectedAbortOnConnect);
-    }
+        [true, GetSetsTrueConfig(true), true],
+        [false, GetSetsTrueConfig(false), true],
 
-    [RequiresDockerTheory]
-    [InlineData(true, true, true)]
-    [InlineData(false, true, true)]
-    [InlineData(true, false, false)]
-    [InlineData(false, false, false)]
-    public void AbortOnConnectFailDefaultsForAbortConnectSetting(bool useKeyed, bool abortConnect, bool expectedAbortOnConnect)
-    {
-        IEnumerable<KeyValuePair<string, string?>> configs =
-        [
-            new KeyValuePair<string, string?>("ConnectionStrings:redis", $"{ConnectionString},abortConnect={(abortConnect ? "true" : "false")}")
-        ];
-        AbortOnConnectFailDefaultsImplementation(useKeyed, configs, expectedAbortOnConnect);
-    }
+        [true, GetConnectionString(abortConnect: true), true],
+        [false, GetConnectionString(abortConnect: true), true],
+        [true, GetConnectionString(abortConnect: false), false],
+        [false, GetConnectionString(abortConnect: false), false],
+    ];
 
-    private static void AbortOnConnectFailDefaultsImplementation(bool useKeyed, IEnumerable<KeyValuePair<string, string?>> configValues, bool expectedAbortOnConnect)
+    private static IEnumerable<KeyValuePair<string, string?>> GetDefaultConfiguration() =>
+    [
+        new KeyValuePair<string, string?>("ConnectionStrings:redis", TestingEndpoint)
+    ];
+
+    private static IEnumerable<KeyValuePair<string, string?>> GetSetsTrueConfig(bool useKeyed) =>
+    [
+        new KeyValuePair<string, string?>("ConnectionStrings:redis", TestingEndpoint),
+        new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", useKeyed ? "redis" : null, "ConfigurationOptions:AbortOnConnectFail"), "true")
+    ];
+
+    private static IEnumerable<KeyValuePair<string, string?>> GetConnectionString(bool abortConnect) =>
+    [
+        new KeyValuePair<string, string?>("ConnectionStrings:redis", $"{TestingEndpoint},abortConnect={(abortConnect ? "true" : "false")}")
+    ];
+
+    [Theory]
+    [MemberData(nameof(AbortOnConnectFailData))]
+    public void AbortOnConnectFailDefaults(bool useKeyed, IEnumerable<KeyValuePair<string, string?>> configValues, bool expectedAbortOnConnect)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection(configValues);
