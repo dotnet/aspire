@@ -23,5 +23,5 @@
     <InternalsVisibleTo Include="AspireStarterApplication.1.Tests" />
   </ItemGroup>
   
-  <!--endif-->
+  <!--#endif -->
 </Project>

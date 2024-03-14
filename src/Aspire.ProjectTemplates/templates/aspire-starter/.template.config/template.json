@@ -45,7 +45,7 @@
           ]
         },
         {
-          "condition": "(CreateTestsProject)",
+          "condition": "(!CreateTestsProject)",
           "exclude": [
             "AspireStarterApplication.1.Tests/**/*.*"
           ]
@@ -344,6 +344,10 @@
     },
     {
       "path": "AspireStarterApplication.1.Web\\AspireStarterApplication.1.Web.csproj"
+    },
+    {
+      "path": "AspireStarterApplication.1.Tests\\AspireStarterApplication.1.Tests.csproj",
+      "condition": "(CreateTestsProject)"
     }
   ],
   "postActions": [
