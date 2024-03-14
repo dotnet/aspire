@@ -19,7 +19,7 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
     public SqlServerServerResource Parent { get; } = parent;
 
     /// <summary>
-    /// Gets the connection string expression for the SQL Server database for use in the manifest.
+    /// Gets the connection string expression for the SQL Server database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{Parent};Database={DatabaseName}");

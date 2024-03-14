@@ -37,7 +37,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
     /// <summary>
-    /// Gets the connection string expression for the RabbitMQ server for the manifest.
+    /// Gets the connection string expression for the RabbitMQ server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(

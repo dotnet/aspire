@@ -41,7 +41,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
             $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordInput};TrustServerCertificate=true");
 
     /// <summary>
-    /// Gets the connection string expression for the SQL Server for the manifest.
+    /// Gets the connection string expression for the SQL Server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression
     {

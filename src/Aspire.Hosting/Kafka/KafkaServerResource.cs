@@ -21,7 +21,7 @@ public class KafkaServerResource(string name) : ContainerResource(name), IResour
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
-    /// Gets the connection string expression for Kafka broker for the manifest.
+    /// Gets the connection string expression for the Kafka broker.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create(

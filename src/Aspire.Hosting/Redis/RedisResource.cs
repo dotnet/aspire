@@ -23,7 +23,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 
     /// <summary>
-    /// Gets the connection string expression for the Redis server for the manifest.
+    /// Gets the connection string expression for the Redis server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression
     {

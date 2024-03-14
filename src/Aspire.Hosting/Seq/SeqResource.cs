@@ -19,7 +19,7 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
-    /// Gets the connection string expression for the Seq server for the manifest.
+    /// Gets the connection string expression for the Seq server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");

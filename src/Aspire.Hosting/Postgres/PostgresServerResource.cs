@@ -40,7 +40,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
             $"Host={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};Username=postgres;Password={PasswordInput}");
 
     /// <summary>
-    /// Gets the connection string expression for the PostgreSQL server for the manifest.
+    /// Gets the connection string expression for the PostgreSQL server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression
     {

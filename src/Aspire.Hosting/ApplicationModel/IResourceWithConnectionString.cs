@@ -21,7 +21,7 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => GetConnectionStringAsync(cancellationToken);
 
     /// <summary>
-    /// Describes the connection string format string used for this resource in the manifest.
+    /// Describes the connection string format string used for this resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression { get; }
 

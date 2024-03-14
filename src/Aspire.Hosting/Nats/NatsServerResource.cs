@@ -21,7 +21,7 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
-    /// Gets the connection string expression for the NATS server for the manifest.
+    /// Gets the connection string expression for the NATS server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(

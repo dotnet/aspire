@@ -19,7 +19,7 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     public PostgresServerResource Parent { get; } = postgresParentResource;
 
     /// <summary>
-    /// Gets the connection string expression for the Postgres database for the manifest.
+    /// Gets the connection string expression for the Postgres database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
