@@ -20,8 +20,9 @@ builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
 builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");
 builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
-builder.AddAzureServiceBusClient("sb");
+builder.AddAzureServiceBusClient("servicebus");
 builder.AddAzureSearchClient("search");
+builder.Services.AddSignalR().AddNamedAzureSignalR("signalr");
 
 var app = builder.Build();
 
@@ -45,7 +46,7 @@ app.MapGet("/",
             sqlRows = await TestSqlServerAsync(sqlContext),
             npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
             serviceBus = await TestServiceBusAsync(sbc),
-            search = await TestSearchAsync(search)
+            search = await TestSearchAsync(search),
         };
     });
 app.Run();
@@ -99,10 +100,10 @@ static async Task<List<string>> TestBlobStorageAsync(BlobServiceClient bsc)
 
 static async Task<ServiceBusReceivedMessage> TestServiceBusAsync(ServiceBusClient sbc)
 {
-    await using var sender = sbc.CreateSender("myqueue");
+    await using var sender = sbc.CreateSender("queue1");
     await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"));
 
-    await using var receiver = sbc.CreateReceiver("myqueue");
+    await using var receiver = sbc.CreateReceiver("queue1");
     return await receiver.ReceiveMessageAsync();
 }
 

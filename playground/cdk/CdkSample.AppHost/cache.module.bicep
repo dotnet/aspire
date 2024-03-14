@@ -10,7 +10,7 @@ param keyVaultName string
 param principalId string
 
 
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
+resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
 
@@ -31,7 +31,7 @@ resource redisCache_p9fE6TK3F 'Microsoft.Cache/Redis@2020-06-01' = {
   }
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault_IeF8jZvXV
   name: 'connectionString'
   location: location

@@ -61,7 +61,10 @@ var sb = builder.AddAzureServiceBusConstruct("servicebus")
 
 var search = builder.AddAzureConstructSearch("search");
 
+var signalr = builder.AddAzureSignalRConstruct("signalr");
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
+    .WithReference(signalr)
     .WithReference(blobs)
     .WithReference(sqldb)
     .WithReference(keyvault)
