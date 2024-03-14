@@ -69,9 +69,7 @@ public static class Extensions
                 tracing.AddAspNetCoreInstrumentation()
                     // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
                     //.AddGrpcClientInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    // Add instrumentation for the AWS .NET SDK.
-                    .AddAWSInstrumentation();
+                    .AddHttpClientInstrumentation();
             });
 
         builder.AddOpenTelemetryExporters();
