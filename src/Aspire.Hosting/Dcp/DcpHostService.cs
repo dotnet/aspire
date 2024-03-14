@@ -183,7 +183,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
         // Set an environment variable to contain session info that should be deleted when DCP is done
         // Currently this contains the Unix socket for logging and the kubeconfig
-        dcpProcessSpec.EnvironmentVariables.Add("DCP_SESSION_FOLDER", locations.DcpSessionDir);
+        dcpProcessSpec.EnvironmentVariables.TryAdd("DCP_SESSION_FOLDER", locations.DcpSessionDir);
         return dcpProcessSpec;
     }
 

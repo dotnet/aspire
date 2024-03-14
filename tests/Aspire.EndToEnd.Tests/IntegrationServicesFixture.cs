@@ -288,6 +288,23 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 _appHostProcess.StandardInput.WriteLine("Stop");
             }
             await _appHostProcess.WaitForExitAsync();
+
+            if (BuildEnvironment.IsRunningOnCI)
+            {
+                string dcpLogPath = Path.Combine(BuildEnvironment.LogRootPath, "dcp");
+                if (!Directory.Exists(dcpLogPath))
+                {
+                    Directory.CreateDirectory(dcpLogPath);
+                }
+
+                var logFiles = Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_err_*", SearchOption.AllDirectories)
+                                .Concat(Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_out_*", SearchOption.AllDirectories));
+                foreach (var srcFile in logFiles)
+                {
+                    var dstFile = Path.Combine(dcpLogPath, Path.GetFileName(srcFile));
+                    File.Copy(srcFile, dstFile, overwrite: true);
+                }
+            }
         }
     }
 

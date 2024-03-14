@@ -15,7 +15,11 @@ internal sealed class Locations
 
     private string GetOrCreateBasePath()
     {
-        _basePath ??= Directory.CreateTempSubdirectory("aspire.").FullName;
+        _basePath ??= Environment.GetEnvironmentVariable("DCP_SESSION_FOLDER");
+        if (string.IsNullOrEmpty(_basePath))
+        {
+            _basePath = Directory.CreateTempSubdirectory("aspire.").FullName;
+        }
         return _basePath;
     }
 }

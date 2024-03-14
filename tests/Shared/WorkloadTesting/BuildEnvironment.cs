@@ -143,6 +143,10 @@ public class BuildEnvironment
             {
                 Directory.CreateDirectory(LogRootPath);
             }
+
+            string dcpSessionDir = Path.Combine(LogRootPath, "dcp-session-dir");
+            EnvVars["DCP_SESSION_FOLDER"] = dcpSessionDir;
+            Directory.CreateDirectory(dcpSessionDir);
         }
         else
         {
