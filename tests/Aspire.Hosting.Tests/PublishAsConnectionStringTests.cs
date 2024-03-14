@@ -19,9 +19,23 @@ public class PublishAsConnectionStringTests
 
         var manifest = await ManifestUtils.GetManifest(redis.Resource);
 
-        Assert.NotNull(manifest);
-        Assert.Equal("parameter.v0", manifest?["type"]?.ToString());
-        Assert.Equal("{redis.value}", manifest?["connectionString"]?.ToString());
-        Assert.Equal("{redis.inputs.value}", manifest?["value"]?.ToString());
+        var expected =
+            """
+            {
+              "type": "parameter.v0",
+              "connectionString": "{redis.value}",
+              "value": "{redis.inputs.value}",
+              "inputs": {
+                "value": {
+                  "type": "string",
+                  "secret": true
+                }
+              }
+            }
+            """;
+
+        var actual = manifest.ToString();
+
+        Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
     }
 }

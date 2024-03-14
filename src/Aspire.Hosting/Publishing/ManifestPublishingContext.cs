@@ -284,7 +284,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     string stringValue => stringValue,
                     IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    _ => null
+                    null => null,
+                    _ => buildArg.Value.ToString()
                 };
 
                 Writer.WriteString(buildArg.Name, valueString);

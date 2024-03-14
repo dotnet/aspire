@@ -20,11 +20,21 @@ public class PublishAsDockerfileTests
 
         var manifest = await ManifestUtils.GetManifest(frontend.Resource);
 
-        Assert.NotNull(manifest);
-        Assert.Equal("dockerfile.v0", manifest?["type"]?.ToString());
-        Assert.Equal("NodeFrontend/Dockerfile", manifest?["path"]?.ToString());
-        Assert.Equal("NodeFrontend", manifest?["context"]?.ToString());
-        Assert.Equal("development", manifest?["env"]?["NODE_ENV"]?.ToString());
+        var expected =
+            $$"""
+            {
+              "type": "dockerfile.v0",
+              "path": "NodeFrontend/Dockerfile",
+              "context": "NodeFrontend",
+              "env": {
+                "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}"
+              }
+            }
+            """;
+
+        var actual = manifest.ToString();
+
+        Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
     }
 
     [Fact]
@@ -34,19 +44,37 @@ public class PublishAsDockerfileTests
 
         var frontend = builder.AddNpmApp("frontend", "NodeFrontend", "watch")
             .PublishAsDockerFile(buildArgs: [
-                new DockerBuildArg("SOME_ARG", "TEST")
+                new DockerBuildArg("SOME_STRING", "Test"),
+                new DockerBuildArg("SOME_BOOL", true),
+                new DockerBuildArg("SOME_NUMBER", 7),
+                new DockerBuildArg("SOME_NONVALUE"),
             ]);
 
         Assert.True(frontend.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out _));
 
         var manifest = await ManifestUtils.GetManifest(frontend.Resource);
 
-        Assert.NotNull(manifest);
-        Assert.Equal("dockerfile.v0", manifest?["type"]?.ToString());
-        Assert.Equal("NodeFrontend/Dockerfile", manifest?["path"]?.ToString());
-        Assert.Equal("NodeFrontend", manifest?["context"]?.ToString());
-        Assert.Equal("development", manifest?["env"]?["NODE_ENV"]?.ToString());
-        Assert.Equal("TEST", manifest?["buildArgs"]?["SOME_ARG"]?.ToString());
+        var expected =
+            $$"""
+            {
+              "type": "dockerfile.v0",
+              "path": "NodeFrontend/Dockerfile",
+              "context": "NodeFrontend",
+              "buildArgs": {
+                "SOME_STRING": "Test",
+                "SOME_BOOL": "{{bool.TrueString}}",
+                "SOME_NUMBER": "7",
+                "SOME_NONVALUE": null
+              },
+              "env": {
+                "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}"
+              }
+            }
+            """;
+
+        var actual = manifest.ToString();
+
+        Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
     }
 
     [Fact]
@@ -63,11 +91,23 @@ public class PublishAsDockerfileTests
 
         var manifest = await ManifestUtils.GetManifest(frontend.Resource);
 
-        Assert.NotNull(manifest);
-        Assert.Equal("dockerfile.v0", manifest?["type"]?.ToString());
-        Assert.Equal("NodeFrontend/Dockerfile", manifest?["path"]?.ToString());
-        Assert.Equal("NodeFrontend", manifest?["context"]?.ToString());
-        Assert.Equal("development", manifest?["env"]?["NODE_ENV"]?.ToString());
-        Assert.Null(manifest?["buildArgs"]?["SOME_ARG"]?.ToString());
+        var expected =
+            $$"""
+            {
+              "type": "dockerfile.v0",
+              "path": "NodeFrontend/Dockerfile",
+              "context": "NodeFrontend",
+              "buildArgs": {
+                "SOME_ARG": null
+              },
+              "env": {
+                "NODE_ENV": "{{builder.Environment.EnvironmentName.ToLowerInvariant()}}"
+              }
+            }
+            """;
+
+        var actual = manifest.ToString();
+
+        Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
     }
 }
