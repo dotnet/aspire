@@ -269,6 +269,31 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
     }
 
+    internal void WriteDockerBuildArgs(IEnumerable<DockerBuildArg>? buildArgs)
+    {
+        if (buildArgs?.ToArray() is { Length: > 0 } args)
+        {
+            Writer.WriteStartObject("buildArgs");
+
+            for (var i = 0; i < args.Length; i++)
+            {
+                var buildArg = args[i];
+
+                var valueString = buildArg.Value switch
+                {
+                    string stringValue => stringValue,
+                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                    null => null, // null means let docker build pull from env var.
+                    _ => buildArg.Value.ToString()
+                };
+
+                Writer.WriteString(buildArg.Name, valueString);
+            }
+
+            Writer.WriteEndObject();
+        }
+    }
+
     internal void WriteManifestMetadata(IResource resource)
     {
         if (!resource.TryGetAnnotationsOfType<ManifestMetadataAnnotation>(out var metadataAnnotations))
