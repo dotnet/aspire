@@ -29,7 +29,7 @@
     <PackageVersion Include="Azure.ResourceManager.Resources" Version="1.8.0-alpha.20240309.1" />
     <PackageVersion Include="Azure.Provisioning" Version="1.0.0-alpha.20240313.1" />
     <!-- ASP.NET Core dependencies -->
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Certificate" Version="8.0.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificatePackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreOpenApiPackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="$(MicrosoftExtensionsCachingStackExchangeRedisPackageVersion)" />

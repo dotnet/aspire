@@ -196,17 +196,20 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        var handler = new SocketsHttpHandler();
-        handler.SslOptions.RemoteCertificateValidationCallback = (message, cert, chain, errors) =>
-        {
-            clientCallbackCert = (X509Certificate2)cert!;
-            return true;
-        };
-        handler.SslOptions.ClientCertificates = new X509CertificateCollection(new[] { TestCertificateLoader.GetTestCertificate("eku.client.pfx") });
-
         using var channel = GrpcChannel.ForAddress($"https://{app.OtlpServiceEndPointAccessor().EndPoint}", new()
         {
-            HttpHandler = handler
+            HttpHandler = new SocketsHttpHandler()
+            {
+                SslOptions =
+                {
+                    RemoteCertificateValidationCallback = (message, cert, chain, errors) =>
+                    {
+                        clientCallbackCert = (X509Certificate2)cert!;
+                        return true;
+                    },
+                    ClientCertificates = new X509CertificateCollection(new [] { TestCertificateLoader.GetTestCertificate("eku.client.pfx") })
+                }
+            }
         });
         var client = new LogsService.LogsServiceClient(channel);
 
