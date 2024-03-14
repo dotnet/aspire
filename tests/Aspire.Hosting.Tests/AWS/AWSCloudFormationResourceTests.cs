@@ -56,7 +56,7 @@ public class AWSCloudFormationResourceTests
     }
 
     [Fact]
-    public void ManifestAWSCloudFormationStackResourceTest()
+    public async Task ManifestAWSCloudFormationStackResourceTest()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -80,12 +80,12 @@ public class AWSCloudFormationResourceTests
         }
         """;
 
-        var manifest = ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource);
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
-    public void ManifestAWSCloudFormationTemplateResourceTest()
+    public async Task ManifestAWSCloudFormationTemplateResourceTest()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -101,7 +101,7 @@ public class AWSCloudFormationResourceTests
         {
           "type": "aws.cloudformation.template.v0",
           "stack-name": "NewStack",
-          "template-path": "net8.0/cf.template",
+          "template-path": "cf.template",
           "references": [
             {
               "target-resource": "serviceA"
@@ -110,7 +110,7 @@ public class AWSCloudFormationResourceTests
         }
         """;
 
-        var manifest = ManifestUtils.GetManifest(resource);
+        var manifest = await ManifestUtils.GetManifest(resource);
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 }
