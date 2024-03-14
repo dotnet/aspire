@@ -28,6 +28,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required IDialogService DialogService { get; init; }
     [Inject]
     public required IToastService ToastService { get; init; }
+    [Inject]
+    public required TimeProvider TimeProvider { get; init; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
