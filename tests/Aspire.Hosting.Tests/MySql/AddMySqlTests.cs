@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.MySql;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Aspire.Hosting.MySql;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests.Utils;
 
@@ -27,8 +27,8 @@ public class AddMySqlTests
         Assert.Equal("mysql", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("8.3.0", containerAnnotation.Tag);
-        Assert.Equal("mysql", containerAnnotation.Image);
+        Assert.Equal(MySqlContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(MySqlContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -64,8 +64,8 @@ public class AddMySqlTests
         Assert.Equal("mysql", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("8.3.0", containerAnnotation.Tag);
-        Assert.Equal("mysql", containerAnnotation.Image);
+        Assert.Equal(MySqlContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(MySqlContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -138,11 +138,11 @@ public class AddMySqlTests
         var mySqlManifest = await ManifestUtils.GetManifest(mysql.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
-              "image": "mysql:8.3.0",
+              "image": "{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
               "env": {
                 "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}"
               },

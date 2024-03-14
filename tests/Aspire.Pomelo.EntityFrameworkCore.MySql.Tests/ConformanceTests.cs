@@ -3,6 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
+using Aspire.Hosting.MySql;
 using Aspire.MySqlConnector.Tests;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
     protected string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                             ? _containerFixture.GetConnectionString()
                                             : "Server=localhost;User ID=root;Password=pass;Database=test";
+    protected readonly string ServerVersion = $"{MySqlContainerImageTags.Tag}-{MySqlContainerImageTags.Image}";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -79,7 +81,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[2]
         {
             new("Aspire:Pomelo:EntityFrameworkCore:MySql:ConnectionString", ConnectionString),
-            new("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", "8.2.0-mysql")
+            new("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", ServerVersion)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<PomeloEntityFrameworkCoreMySqlSettings>? configure = null, string? key = null)

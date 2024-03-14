@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.MySql;
 using Testcontainers.MySql;
 using Xunit;
 
@@ -21,7 +22,7 @@ public sealed class MySqlContainerFixture : IAsyncLifetime
             // testcontainers uses mongo:mongo by default,
             // resetting that for tests
             Container = new MySqlBuilder()
-                .WithImage("mysql:8.3.0")
+                .WithImage($"{MySqlContainerImageTags.Image}:{MySqlContainerImageTags.Tag}")
                 .Build();
             await Container.StartAsync();
         }

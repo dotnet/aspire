@@ -27,7 +27,7 @@ public static class MySqlBuilderExtensions
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
                       .WithEndpoint(hostPort: port, containerPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
-                      .WithImage("mysql", "8.3.0")
+                      .WithImage(MySqlContainerImageTags.Image, MySqlContainerImageTags.Tag)
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordInput;
@@ -89,7 +89,7 @@ public static class MySqlBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> WithDataVolume(this IResourceBuilder<MySqlServerResource> builder, string? name = null, bool isReadOnly = false)
         => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/mysql", isReadOnly);
- 
+
     /// <summary>
     /// Adds a bind mount for the data folder to a MySql container resource.
     /// </summary>
