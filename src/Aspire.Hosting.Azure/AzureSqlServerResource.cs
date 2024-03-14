@@ -49,8 +49,7 @@ public class AzureSqlServerResource(SqlServerServerResource innerResource) :
 /// Represents an Azure Sql Server resource.
 /// </summary>
 /// <param name="innerResource">The <see cref="SqlServerServerResource"/> that this resource wraps.</param>
-/// <param name="configureConstruct"></param>
-public class AzureSqlServerConstructResource(SqlServerServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct) : AzureConstructResource(innerResource.Name, configureConstruct), IResourceWithConnectionString
+public class AzureSqlServerConstructResource(SqlServerServerResource innerResource) : AzureConstructResource(innerResource.Name), IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the fully qualified domain name (FQDN) output reference from the bicep template for the Azure SQL Server resource.

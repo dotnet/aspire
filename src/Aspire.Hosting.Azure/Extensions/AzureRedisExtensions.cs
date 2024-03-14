@@ -113,7 +113,7 @@ public static class AzureRedisExtensions
             }
         };
 
-        var resource = new AzureRedisConstructResource(builder.Resource, configureConstruct);
+        var resource = new AzureRedisConstructResource(builder.Resource) { ConfigureConstruct = configureConstruct };
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
                                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)

@@ -11,9 +11,8 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Storage resource.
 /// </summary>
 /// <param name="name"></param>
-/// <param name="configureConstruct"></param>
-public class AzureStorageConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+public class AzureStorageConstructResource(string name) :
+    AzureConstructResource(name),
     IResourceWithEndpoints
 {
     private EndpointReference EmulatorBlobEndpoint => new(this, "blob");

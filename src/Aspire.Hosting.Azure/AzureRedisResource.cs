@@ -44,9 +44,8 @@ public class AzureRedisResource(RedisResource innerResource) :
 /// Represents an Azure Redis resource.
 /// </summary>
 /// <param name="innerResource">The inner resource.</param>
-/// <param name="configureConstruct"></param>
-public class AzureRedisConstructResource(RedisResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(innerResource.Name, configureConstruct),
+public class AzureRedisConstructResource(RedisResource innerResource) :
+    AzureConstructResource(innerResource.Name),
     IResourceWithConnectionString
 {
     /// <summary>

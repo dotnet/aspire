@@ -54,7 +54,7 @@ public static class AzureKeyVaultResourceExtensions
                 configureResource(construct, keyVault);
             }
         };
-        var resource = new AzureKeyVaultConstructResource(name, configureConstruct);
+        var resource = new AzureKeyVaultConstructResource(name) { ConfigureConstruct = configureConstruct };
 
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.

@@ -57,8 +57,8 @@ public class AzureCosmosDBResource(string name) :
 /// <summary>
 /// A resource that represents an Azure Cosmos DB.
 /// </summary>
-public class AzureCosmosDBConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(name, configureConstruct),
+public class AzureCosmosDBConstructResource(string name) :
+    AzureConstructResource(name),
     IResourceWithConnectionString,
     IResourceWithEndpoints
 {
@@ -158,7 +158,7 @@ public static class AzureCosmosExtensions
             }
         };
 
-        var resource = new AzureCosmosDBConstructResource(name, configureConstruct);
+        var resource = new AzureCosmosDBConstructResource(name) { ConfigureConstruct = configureConstruct };
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);

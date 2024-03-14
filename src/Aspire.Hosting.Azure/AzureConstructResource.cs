@@ -12,13 +12,12 @@ namespace Aspire.Hosting;
 /// An Aspire resource that supports use of Azure Provisioning APIs to create Azure resources.
 /// </summary>
 /// <param name="name"></param>
-/// <param name="configureConstruct"></param>
-public class AzureConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
+public class AzureConstructResource(string name) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
-    /// <summary>
+    // /// <summary>
     /// Callback for configuring construct.
-    /// </summary>
-    public Action<ResourceModuleConstruct> ConfigureConstruct { get; } = configureConstruct;
+    // /// </summary>
+    internal Action<ResourceModuleConstruct>? ConfigureConstruct { get; set; }
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
@@ -30,7 +29,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
 
         var resourceModuleConstruct = new ResourceModuleConstruct(this, configuration);
 
-        ConfigureConstruct(resourceModuleConstruct);
+        // ConfigureConstruct(resourceModuleConstruct);
 
         // WARNING: GetParameters currently returns more than one instance of the same
         //          parameter. Its the only API that gives us what we need (a list of
@@ -73,11 +72,10 @@ public static class AzureConstructResourceExtensions
     /// </summary>
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">The name of the resource being added.</param>
-    /// <param name="configureConstruct">A callback used to configure the construct resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct> configureConstruct)
+    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name)
     {
-        var resource = new AzureConstructResource(name, configureConstruct);
+        var resource = new AzureConstructResource(name);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }

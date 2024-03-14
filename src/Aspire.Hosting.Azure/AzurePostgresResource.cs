@@ -44,9 +44,8 @@ public class AzurePostgresResource(PostgresServerResource innerResource) :
 /// Represents an resource for Azure Postgres Flexible Server.
 /// </summary>
 /// <param name="innerResource"><see cref="PostgresServerResource"/> that this resource wraps.</param>
-/// <param name="configureConstruct">Callback to configure construct.</param>
-public class AzurePostgresConstructResource(PostgresServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
-    AzureConstructResource(innerResource.Name, configureConstruct),
+public class AzurePostgresConstructResource(PostgresServerResource innerResource) :
+    AzureConstructResource(innerResource.Name),
     IResourceWithConnectionString
 {
     /// <summary>

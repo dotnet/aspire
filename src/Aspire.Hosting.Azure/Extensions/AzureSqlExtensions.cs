@@ -118,7 +118,7 @@ public static class AzureSqlExtensions
             }
         };
 
-        var resource = new AzureSqlServerConstructResource(builder.Resource, configureConstruct);
+        var resource = new AzureSqlServerConstructResource(builder.Resource) { ConfigureConstruct = configureConstruct };
         var azureSqlDatabase = builder.ApplicationBuilder.CreateResourceBuilder(resource);
         azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                         .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
