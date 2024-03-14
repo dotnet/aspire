@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureConstruct">Configures the underlying Azure resource using the CDK.</param>
-public class AzureOpenAIConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+public class AzureOpenAIResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {

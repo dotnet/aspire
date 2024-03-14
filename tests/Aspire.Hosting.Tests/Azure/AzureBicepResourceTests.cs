@@ -1167,24 +1167,78 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         var openai = builder.AddAzureOpenAI("openai")
-            .WithDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
+            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
 
-        openai.Resource.Outputs["connectionString"] = "myopenaiconnectionstring";
+        var manifest = await ManifestUtils.GetManifestWithBicep(openai.Resource);
 
-        var callback = openai.Resource.Parameters["deployments"] as Func<object?>;
-        var deployments = callback?.Invoke() as JsonArray;
-        var deployment = deployments?.FirstOrDefault();
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{openai.outputs.connectionString}",
+              "path": "openai.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.openai.bicep", openai.Resource.TemplateResourceName);
-        Assert.Equal("openai", openai.Resource.Name);
-        Assert.Equal("myopenaiconnectionstring", await openai.Resource.GetConnectionStringAsync(default));
-        Assert.Equal("{openai.outputs.connectionString}", openai.Resource.ConnectionStringExpression);
-        Assert.NotNull(deployment);
-        Assert.Equal("mymodel", deployment["name"]?.ToString());
-        Assert.Equal("Basic", deployment["sku"]?["name"]?.ToString());
-        Assert.Equal(4, deployment["sku"]?["capacity"]?.GetValue<int>());
-        Assert.Equal("OpenAI", deployment["model"]?["format"]?.ToString());
-        Assert.Equal("gpt-35-turbo", deployment["model"]?["name"]?.ToString());
-        Assert.Equal("0613", deployment["model"]?["version"]?.ToString());
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource cognitiveServicesAccount_6g8jyEjX5 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+              name: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
+              location: location
+              kind: 'OpenAI'
+              sku: {
+                name: 'S0'
+              }
+              properties: {
+                customSubDomainName: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
+                publicNetworkAccess: 'Enabled'
+              }
+            }
+
+            resource roleAssignment_X7ie0XqR2 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: cognitiveServicesAccount_6g8jyEjX5
+              name: guid(cognitiveServicesAccount_6g8jyEjX5.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            resource cognitiveServicesAccountDeployment_paT2Ndfh7 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+              parent: cognitiveServicesAccount_6g8jyEjX5
+              name: 'mymodel'
+              sku: {
+                name: 'Basic'
+                capacity: 4
+              }
+              properties: {
+                model: {
+                  name: 'gpt-35-turbo'
+                  format: 'OpenAI'
+                  version: '0613'
+                }
+              }
+            }
+
+            output connectionString string = 'Endpoint=${cognitiveServicesAccount_6g8jyEjX5.properties.endpoint}'
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
     }
 }
