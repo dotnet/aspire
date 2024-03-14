@@ -124,9 +124,9 @@ public class AddOracleTests
         var oracleConnectionString = oracleConnectionStringResource.GetConnectionStringAsync();
         var oracleDatabaseResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseResource>());
         var oracleDatabaseConnectionStringResource = (IResourceWithConnectionString)oracleDatabaseResource;
-        var dbConnectionString = await oracleConnectionStringResource.GetConnectionStringAsync();
+        var dbConnectionString = await oracleDatabaseConnectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("{orcl.connectionString}/db", oracleDatabaseResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{orcl.connectionString}/db", oracleDatabaseConnectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(oracleConnectionString + "/db", dbConnectionString);
     }
 
