@@ -18,22 +18,6 @@ public static class AzureKeyVaultResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
-    {
-        var resource = new AzureKeyVaultResource(name);
-        return builder.AddResource(resource)
-                    .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                    .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                    .WithParameter("vaultName", resource.CreateBicepResourceName())
-                    .WithManifestPublishingCallback(resource.WriteToManifest);
-    }
-
-    /// <summary>
-    /// Adds an Azure Key Vault resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureKeyVaultConstructResource> AddAzureKeyVaultConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, KeyVault>? configureResource = null)
