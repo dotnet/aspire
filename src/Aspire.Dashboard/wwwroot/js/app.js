@@ -314,26 +314,41 @@ function isInputElement(element, isRoot, isShadowRoot) {
 }
 
 window.registerGlobalKeydownListener = function(shortcutManager) {
-    const serializeEvent = function (e) {
-        if (e) {
-            return {
-                key: e.key,
-                code: e.keyCode.toString(),
-                location: e.location,
-                repeat: e.repeat,
-                ctrlKey: e.ctrlKey,
-                shiftKey: e.shiftKey,
-                altKey: e.altKey,
-                metaKey: e.metaKey,
-                type: e.type
-            };
-        }
-    };
+    function hasNoModifiers(keyboardEvent) {
+        return !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey && !keyboardEvent.shiftKey;
+    }
+
+    function isOnlyShiftPressed(keyboardEvent) {
+        return keyboardEvent.shiftKey && !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey;
+    }
 
     const keydownListener = function (e) {
-        if (!isActiveElementInput()) {
-            shortcutManager.invokeMethodAsync('OnGlobalKeyDown', serializeEvent(e));
+        if (isActiveElementInput()) return;
+        // list of shortcut enum codes is in src/Aspire.Dashboard/Model/IGlobalKeydownListener.cs
+        // to serialize an enum from js->dotnet, we must pass the enum's integer value, not its name
+        let shortcut = null;
+
+        if (isOnlyShiftPressed(e)) {
+            /* general shortcuts */
+            if (e.key === "?") shortcut = 100; // help
+            else if (e.key === "S") shortcut = 110; // settings
+
+            /* panel shortcuts */
+            else if (e.key === "T") shortcut = 300; // toggle panel orientation
+            else if (e.key === "X") shortcut = 310; // close panel
+            else if (e.key === "R") shortcut = 320; // reset panel sizes
+            else if (e.key === "+") shortcut = 330; // increase panel size
+            else if (e.key === "_" || e.key === "-") shortcut = 340; // decrease panel size
         }
+        else if (hasNoModifiers(e)) {
+            if (e.key === "r") shortcut = 200; // go to resources
+            else if (e.key === "c") shortcut = 210; // go to console logs
+            else if (e.key === "s") shortcut = 220; // go to structured logs
+            else if (e.key === "t") shortcut = 230; // go to traces
+            else if (e.key === "m") shortcut = 240; // go to metrics
+        }
+
+        if (shortcut) shortcutManager.invokeMethodAsync('OnGlobalKeyDown', shortcut);
     }
 
     window.document.addEventListener('keydown', keydownListener);
