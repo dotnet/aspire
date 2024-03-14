@@ -104,6 +104,18 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
+    public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name)
+    {
+#pragma warning disable CA2252 // This API requires opting into preview features
+        return builder.AddQueue(name, (_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="name">The name of the queue.</param>
     /// <param name="configureQueue">Optional callback to customize the queue.</param>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusQueue>? configureQueue = default)
@@ -117,12 +129,37 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
+    public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name)
+    {
+#pragma warning disable CA2252 // This API requires opting into preview features
+        return builder.AddTopic(name, (_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="name">The name of the topic.</param>
     /// <param name="configureTopic">Optional callback to customize the topic.</param>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusTopic>? configureTopic = default)
     {
         builder.Resource.Topics.Add((name, configureTopic));
         return builder;
+    }
+
+    /// <summary>
+    /// Adds an Azure Service Bus Topic resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Service Bus resource builder.</param>
+    /// <param name="topicName">The name of the topic.</param>
+    /// <param name="subscriptionName">The name of the subscription.</param>
+    public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
+    {
+#pragma warning disable CA2252 // This API requires opting into preview features
+        return builder.AddSubscription(topicName, subscriptionName, (_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
