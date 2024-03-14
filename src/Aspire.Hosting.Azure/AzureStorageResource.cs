@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name"></param>
 /// <param name="configureConstruct"></param>
-public class AzureStorageConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+public class AzureStorageResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithEndpoints
 {

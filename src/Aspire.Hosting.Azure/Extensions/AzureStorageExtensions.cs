@@ -21,7 +21,7 @@ public static class AzureStorageExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="configureResource">Callback to configure the storage account.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureStorageConstructResource> AddAzureConstructStorage(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, StorageAccount>? configureResource = null)
+    public static IResourceBuilder<AzureStorageResource> AddAzureConstructStorage(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, StorageAccount>? configureResource = null)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -53,7 +53,7 @@ public static class AzureStorageExtensions
                 configureResource(construct, storageAccount);
             }
         };
-        var resource = new AzureStorageConstructResource(name, configureConstruct);
+        var resource = new AzureStorageResource(name, configureConstruct);
 
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
@@ -159,7 +159,7 @@ public static class AzureStorageExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureBlobStorageConstructResource> AddBlobs(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
+    public static IResourceBuilder<AzureBlobStorageConstructResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureBlobStorageConstructResource(name, builder.Resource);
 
@@ -173,7 +173,7 @@ public static class AzureStorageExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureTableStorageConstructResource> AddTables(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
+    public static IResourceBuilder<AzureTableStorageConstructResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureTableStorageConstructResource(name, builder.Resource);
 
@@ -187,7 +187,7 @@ public static class AzureStorageExtensions
     /// <param name="builder"></param>
     /// <param name="name"></param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureQueueStorageConstructResource> AddQueues(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
+    public static IResourceBuilder<AzureQueueStorageConstructResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureQueueStorageConstructResource(name, builder.Resource);
 
