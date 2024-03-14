@@ -64,7 +64,7 @@ public class DashboardWebApplication : IAsyncDisposable
 
         var dashboardConfig = LoadDashboardConfig(builder.Configuration);
 
-        ConfigureKestrelEndpoints(builder, dashboardConfig.BrowserUris, dashboardConfig.OtlpUri, otlpAuthMode: dashboardConfig.OtlpAuthMode);
+        ConfigureKestrelEndpoints(builder, dashboardConfig);
 
         var browserHttpsPort = dashboardConfig.BrowserUris.FirstOrDefault(IsHttps)?.Port;
         var isAllHttps = browserHttpsPort is not null && IsHttps(dashboardConfig.OtlpUri);
@@ -206,35 +206,37 @@ public class DashboardWebApplication : IAsyncDisposable
 
     // Kestrel endpoints are loaded from configuration. This is done so that advanced configuration of endpoints is
     // possible from the caller. e.g., using environment variables to configure each endpoint's TLS certificate.
-    private void ConfigureKestrelEndpoints(WebApplicationBuilder builder, Uri[] dashboardUris, Uri otlpUri, OtlpAuthMode otlpAuthMode)
+    private void ConfigureKestrelEndpoints(WebApplicationBuilder builder, DashboardStartupConfiguration dashboardStartupConfig)
     {
         // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
         // to Kestrel's schema for loading endpoints from configuration.
-        var browserEndpointNames = new List<string>();
+        var browserEndpointNames = new List<string>(capacity: dashboardStartupConfig.BrowserUris.Length);
         var initialValues = new Dictionary<string, string?>();
-        AddEndpointConfiguration(initialValues, "Otlp", otlpUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: otlpAuthMode == OtlpAuthMode.ClientCertificate);
-        if (dashboardUris.Length == 1)
+        AddEndpointConfiguration(initialValues, "Otlp", dashboardStartupConfig.OtlpUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardStartupConfig.OtlpAuthMode == OtlpAuthMode.ClientCertificate);
+        if (dashboardStartupConfig.BrowserUris.Length == 1)
         {
             browserEndpointNames.Add("Browser");
-            AddEndpointConfiguration(initialValues, "Browser", dashboardUris[0].OriginalString);
+            AddEndpointConfiguration(initialValues, "Browser", dashboardStartupConfig.BrowserUris[0].OriginalString);
         }
         else
         {
-            for (var i = 0; i < dashboardUris.Length; i++)
+            for (var i = 0; i < dashboardStartupConfig.BrowserUris.Length; i++)
             {
                 var name = $"Browser{i}";
                 browserEndpointNames.Add(name);
-                AddEndpointConfiguration(initialValues, name, dashboardUris[i].OriginalString);
+                AddEndpointConfiguration(initialValues, name, dashboardStartupConfig.BrowserUris[i].OriginalString);
             }
         }
 
         static void AddEndpointConfiguration(Dictionary<string, string?> values, string endpointName, string url, HttpProtocols? protocols = null, bool requiredClientCertificate = false)
         {
             values[$"Kestrel:Endpoints:{endpointName}:Url"] = url;
+
             if (protocols != null)
             {
                 values[$"Kestrel:Endpoints:{endpointName}:Protocols"] = protocols.ToString();
             }
+
             if (requiredClientCertificate)
             {
                 values[$"Kestrel:Endpoints:{endpointName}:ClientCertificateMode"] = ClientCertificateMode.RequireCertificate.ToString();
@@ -243,7 +245,7 @@ public class DashboardWebApplication : IAsyncDisposable
 
         builder.Configuration.AddInMemoryCollection(initialValues);
 
-        // Use ConfigurationLoader to augment the endpoint's Kestrel created from configuration
+        // Use ConfigurationLoader to augment the endpoint's that Kestrel created from configuration
         // with extra settings. e.g., UseOtlpConnection for the OTLP endpoint.
         builder.WebHost.ConfigureKestrel((context, serverOptions) =>
         {
@@ -288,17 +290,17 @@ public class DashboardWebApplication : IAsyncDisposable
         }
     }
 
-    private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardConfiguration dashboardConfig)
+    private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardStartupConfiguration dashboardStartupConfig)
     {
         builder.Services
-            .AddAuthentication(OtlpCompositeAuthenticationDefaults.AuthenticationScheme)
+            .AddAuthentication(defaultScheme: OtlpCompositeAuthenticationDefaults.AuthenticationScheme)
             .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o =>
             {
-                o.OtlpAuthMode = dashboardConfig.OtlpAuthMode;
+                o.OtlpAuthMode = dashboardStartupConfig.OtlpAuthMode;
             })
             .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o =>
             {
-                o.OtlpApiKey = dashboardConfig.OtlpApiKey;
+                o.OtlpApiKey = dashboardStartupConfig.OtlpApiKey;
             })
             .AddScheme<OtlpConnectionAuthenticationHandlerOptions, OtlpConnectionAuthenticationHandler>(OtlpConnectionAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddCertificate(options =>
@@ -347,7 +349,7 @@ public class DashboardWebApplication : IAsyncDisposable
 
     private static bool IsHttps(Uri uri) => string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 
-    private static DashboardConfiguration LoadDashboardConfig(IConfiguration configuration)
+    private static DashboardStartupConfiguration LoadDashboardConfig(IConfiguration configuration)
     {
         var browserUris = configuration.GetUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
         if (browserUris.Length == 0)
@@ -366,7 +368,7 @@ public class DashboardWebApplication : IAsyncDisposable
 
         if (configuration[DashboardOtlpAuthModeVariableName] is { } v)
         {
-            if (!Enum.TryParse(v, out otlpAuthMode))
+            if (!Enum.TryParse(v, ignoreCase: true, out otlpAuthMode))
             {
                 throw new InvalidOperationException($"Unknown {nameof(OtlpAuthMode)} value: {v}");
             }
@@ -397,7 +399,7 @@ public class DashboardWebApplication : IAsyncDisposable
             otlpAuthMode = OtlpAuthMode.None;
         }
 
-        return new DashboardConfiguration
+        return new DashboardStartupConfiguration
         {
             BrowserUris = browserUris,
             OtlpUri = otlpUris[0],

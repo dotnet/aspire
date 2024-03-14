@@ -5,7 +5,7 @@ using Aspire.Dashboard.Authentication;
 
 namespace Aspire.Dashboard;
 
-public sealed class DashboardConfiguration
+public sealed class DashboardStartupConfiguration
 {
     public required Uri[] BrowserUris { get; init; }
     public required Uri OtlpUri { get; init; }

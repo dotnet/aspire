@@ -25,28 +25,23 @@ public sealed class OtlpCompositeAuthenticationHandler : AuthenticationHandler<O
             return connectionResult;
         }
 
-        if (Options.OtlpAuthMode == OtlpAuthMode.ApiKey)
+        var scheme = Options.OtlpAuthMode switch
         {
-            var apiKeyResult = await Context.AuthenticateAsync(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-            if (apiKeyResult.Failure != null)
-            {
-                return apiKeyResult;
-            }
-        }
-        else if (Options.OtlpAuthMode == OtlpAuthMode.ClientCertificate)
+            OtlpAuthMode.ApiKey => OtlpApiKeyAuthenticationDefaults.AuthenticationScheme,
+            OtlpAuthMode.ClientCertificate => CertificateAuthenticationDefaults.AuthenticationScheme,
+            _ => null
+        };
+
+        if (scheme is not null)
         {
-            var certificateResult = await Context.AuthenticateAsync(CertificateAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-            if (certificateResult.Failure != null)
+            var result = await Context.AuthenticateAsync(scheme).ConfigureAwait(false);
+            if (result.Failure is not null)
             {
-                return certificateResult;
+                return result;
             }
         }
 
-        var claims = new List<Claim>
-        {
-            new Claim(OtlpAuthorization.OtlpClaimName, bool.TrueString)
-        };
-        var id = new ClaimsIdentity(claims);
+        var id = new ClaimsIdentity([new Claim(OtlpAuthorization.OtlpClaimName, bool.TrueString)]);
 
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(id), Scheme.Name));
     }

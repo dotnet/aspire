@@ -22,10 +22,16 @@ public class OtlpApiKeyAuthenticationHandler : AuthenticationHandler<OtlpApiKeyA
             throw new InvalidOperationException("OTLP API key is not configured.");
         }
 
-        var apiKey = Context.Request.Headers[ApiKeyHeaderName].ToString();
-        if (Options.OtlpApiKey != apiKey)
+        if (Context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKey))
         {
-            return Task.FromResult(AuthenticateResult.Fail("Incoming API key doesn't match required API key."));
+            if (Options.OtlpApiKey != apiKey)
+            {
+                return Task.FromResult(AuthenticateResult.Fail("Incoming API key doesn't match required API key."));
+            }
+        }
+        else
+        {
+            return Task.FromResult(AuthenticateResult.Fail($"API key from '{ApiKeyHeaderName}' header is missing."));
         }
 
         return Task.FromResult(AuthenticateResult.NoResult());
