@@ -327,6 +327,6 @@ public class WithReferenceTests
         public string? ConnectionString { get; set; }
 
         public ReferenceExpression ConnectionStringExpression =>
-            ReferenceExpression.Create($"{ConnectionString ?? throw new InvalidOperationException("ConnectionString is not set.")}");
+            ReferenceExpression.Create($"{ConnectionString ?? ""}");
     }
 }
