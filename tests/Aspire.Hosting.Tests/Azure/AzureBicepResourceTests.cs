@@ -961,7 +961,6 @@ public class AzureBicepResourceTests
             """;
         Assert.Equal(expectedBicep, storageManifest.BicepText);
 
-
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
         Assert.Equal("https://myblob", await blob.Resource.GetConnectionStringAsync());
