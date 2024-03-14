@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource</param>
 /// <param name="configureConstruct">Callback to configure the Azure AI Search resource.</param>
-public class AzureSearchConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+public class AzureSearchResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {

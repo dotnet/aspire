@@ -65,7 +65,7 @@ var sb = builder.AddAzureServiceBusConstruct("servicebus")
 
 var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
-var search = builder.AddAzureConstructSearch("search");
+var search = builder.AddAzureSearch("search");
 
 var signalr = builder.AddAzureSignalR("signalr");
 

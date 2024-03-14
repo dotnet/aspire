@@ -1143,25 +1143,12 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var search = builder.AddAzureSearch("search");
-
-        search.Resource.Outputs["connectionString"] = "mysearchconnectionstring";
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.search.bicep", search.Resource.TemplateResourceName);
-        Assert.Equal("search", search.Resource.Name);
-        Assert.Equal("mysearchconnectionstring", await search.Resource.GetConnectionStringAsync(default));
-        Assert.Equal("{search.outputs.connectionString}", search.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public async Task AddAzureSearchConstruct()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
         // Add search and parameterize the SKU
         var sku = builder.AddParameter("searchSku");
-        var search = builder.AddAzureConstructSearch("search", (_, search) =>
+#pragma warning disable CA2252 // This API requires opting into preview features
+        var search = builder.AddAzureSearch("search", (_, _, search) =>
             search.AssignProperty(me => me.SkuName, sku));
+#pragma warning restore CA2252 // This API requires opting into preview features
 
         // Pretend we deployed it
         const string fakeConnectionString = "mysearchconnectionstring";
@@ -1171,6 +1158,8 @@ public class AzureBicepResourceTests
         Assert.Equal("search", search.Resource.Name);
         Assert.Equal("{search.outputs.connectionString}", search.Resource.ConnectionStringExpression);
         Assert.Equal(fakeConnectionString, await search.Resource.GetConnectionStringAsync());
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(search.Resource);
 
         // Validate the manifest
         var expectedManifest =
@@ -1186,8 +1175,65 @@ public class AzureBicepResourceTests
               }
             }
             """;
-        var actualManifest = (await ManifestUtils.GetManifest(search.Resource)).ToString();
-        Assert.Equal(expectedManifest, actualManifest);
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+            @description('')
+            param searchSku string
+
+
+            resource searchService_7WkaGluF0 'Microsoft.Search/searchServices@2023-11-01' = {
+              name: toLower(take(concat('search', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'search'
+              }
+              sku: {
+                name: 'basic'
+              }
+              properties: {
+                replicaCount: 1
+                partitionCount: 1
+                hostingMode: 'default'
+                disableLocalAuth: true
+              }
+            }
+
+            resource roleAssignment_7uytIREoa 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: searchService_7WkaGluF0
+              name: guid(searchService_7WkaGluF0.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            resource roleAssignment_QpFzCj55x 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: searchService_7WkaGluF0
+              name: guid(searchService_7WkaGluF0.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            output connectionString string = 'Endpoint=https://${searchService_7WkaGluF0.name}.search.windows.net'
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
     [Fact]
