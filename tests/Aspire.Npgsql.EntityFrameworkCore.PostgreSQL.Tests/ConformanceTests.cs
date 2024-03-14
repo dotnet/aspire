@@ -14,8 +14,11 @@ namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
+    // in the future it can become a static property that reads the value from Env Var
     protected readonly PostgreSQLContainerFixture _containerFixture;
-    protected string ConnectionString => _containerFixture.GetConnectionString();
+    protected string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
+                                            ? _containerFixture.GetConnectionString()
+                                            : "Host=localhost;Database=test;Username=postgres;Password=postgres";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -105,7 +108,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         }
     }
 
-    [RequiresDockerFact]
+    [Fact]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
     public void DbContextPoolingRegistersIDbContextPool()
     {
@@ -116,7 +119,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         Assert.NotNull(pool);
     }
 
-    [RequiresDockerFact]
+    [Fact]
     public void DbContextCanBeAlwaysResolved()
     {
         using IHost host = CreateHostWithComponent();

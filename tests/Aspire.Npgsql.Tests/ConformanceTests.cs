@@ -15,7 +15,9 @@ namespace Aspire.Npgsql.Tests;
 public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
     private readonly PostgreSQLContainerFixture _containerFixture;
-    private string ConnectionString => _containerFixture.GetConnectionString();
+    private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Host=localhost;Database=test_aspire_npgsql;Username=postgres;Password=postgres";
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/npgsql/npgsql/blob/ef9db1ffe9e432c1562d855b46dfac3514726b1b/src/Npgsql.OpenTelemetry/TracerProviderBuilderExtensions.cs#L18
@@ -94,7 +96,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         command.ExecuteScalar();
     }
 
-    [RequiresDockerTheory]
+    [Theory]
     [InlineData(null)]
     [InlineData("key")]
     public void BothDataSourceAndConnectionCanBeResolved(string? key)
