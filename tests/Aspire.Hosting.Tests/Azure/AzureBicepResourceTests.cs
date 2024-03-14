@@ -177,7 +177,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public async Task AddAppConfiguration()
+    public async Task AddAzureAppConfiguration()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -190,6 +190,31 @@ public class AzureBicepResourceTests
         Assert.Equal("appconfig", appConfig.Resource.Parameters["configName"]);
         Assert.Equal("https://myendpoint", await appConfig.Resource.GetConnectionStringAsync(default));
         Assert.Equal("{appConfig.outputs.appConfigEndpoint}", appConfig.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public async Task AddAzureAppConfigurationConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var appConfig = builder.AddAzureAppConfigurationConstruct("appConfig");
+        appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
+        Assert.Equal("https://myendpoint", await appConfig.Resource.GetConnectionStringAsync(default));
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{appConfig.outputs.appConfigEndpoint}",
+              "path": "appConfig.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifest(appConfig.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]
@@ -419,6 +444,29 @@ public class AzureBicepResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
 
         Assert.NotNull(cdkKeyVault);
+    }
+
+    [Fact]
+    public async Task AddSignalRConstruct()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var signalr = builder.AddAzureSignalRConstruct("signalr");
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+              "path": "signalr.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        var manifest = await ManifestUtils.GetManifest(signalr.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Fact]

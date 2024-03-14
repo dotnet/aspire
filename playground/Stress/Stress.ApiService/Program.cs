@@ -7,6 +7,8 @@ builder.AddServiceDefaults();
 
 var app = builder.Build();
 
+app.Lifetime.ApplicationStarted.Register(ConsoleStresser.Stress);
+
 app.MapGet("/", () => "Hello world");
 
 app.Run();

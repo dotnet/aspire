@@ -30,6 +30,9 @@ public partial class TraceDetail : ComponentBase
     [Inject]
     public required IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers { get; set; }
 
+    [Inject]
+    public required TimeProvider TimeProvider { get; set; }
+
     protected override void OnInitialized()
     {
         foreach (var resolver in OutgoingPeerResolvers)

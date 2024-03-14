@@ -181,10 +181,28 @@
         "principalType": ""
       }
     },
+    "appConfig": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appConfig.outputs.appConfigEndpoint}",
+      "path": "appConfig.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "search": {
       "type": "azure.bicep.v0",
       "connectionString": "{search.outputs.connectionString}",
       "path": "search.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "signalr": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+      "path": "signalr.module.bicep",
       "params": {
         "principalId": "",
         "principalType": ""
@@ -197,6 +215,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "ConnectionStrings__signalr": "{signalr.connectionString}",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
         "ConnectionStrings__sqldb": "{sqldb.connectionString}",
         "ConnectionStrings__mykv": "{mykv.connectionString}",
@@ -204,6 +223,7 @@
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
         "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
         "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "ConnectionStrings__appConfig": "{appConfig.connectionString}",
         "ConnectionStrings__search": "{search.connectionString}"
       },
       "bindings": {

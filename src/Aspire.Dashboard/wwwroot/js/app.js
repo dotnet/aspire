@@ -346,3 +346,9 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
 window.unregisterGlobalKeydownListener = function (keydownListener) {
     window.document.removeEventListener('keydown', keydownListener);
 }
+
+window.getBrowserTimeZone = function () {
+    const options = Intl.DateTimeFormat().resolvedOptions();
+
+    return options.timeZone;
+}

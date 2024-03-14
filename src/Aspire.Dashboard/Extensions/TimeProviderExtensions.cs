@@ -12,4 +12,26 @@ internal static class TimeProviderExtensions
 
         return dateTime;
     }
+
+    public static DateTimeOffset ToLocalDateTimeOffset(this TimeProvider timeProvider, DateTimeOffset utcDateTimeOffset)
+    {
+        return TimeZoneInfo.ConvertTime(utcDateTimeOffset, timeProvider.LocalTimeZone);
+    }
+
+    public static DateTime ToLocal(this TimeProvider timeProvider, DateTime dateTime)
+    {
+        if (dateTime.Kind == DateTimeKind.Local)
+        {
+            return dateTime;
+        }
+        if (dateTime.Kind == DateTimeKind.Unspecified)
+        {
+            throw new InvalidOperationException("Unable to convert unspecified DateTime to local time.");
+        }
+
+        var local = TimeZoneInfo.ConvertTimeFromUtc(dateTime, timeProvider.LocalTimeZone);
+        local = DateTime.SpecifyKind(local, DateTimeKind.Local);
+
+        return local;
+    }
 }

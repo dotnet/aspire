@@ -19,7 +19,7 @@
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
             <div>
-                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@FormatHelpers.FormatDateTime(_trace.FirstSpan.StartTime, includeMilliseconds: true)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, includeMilliseconds: true)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
