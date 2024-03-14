@@ -118,41 +118,23 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public async Task AddAzureCosmosDb()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
-        cosmos.AddDatabase("mydatabase");
-
-        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
-
-        var databases = cosmos.Resource.Parameters["databases"] as IEnumerable<string>;
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.cosmosdb.bicep", cosmos.Resource.TemplateResourceName);
-        Assert.Equal("cosmos", cosmos.Resource.Name);
-        Assert.Equal("cosmos", cosmos.Resource.Parameters["databaseAccountName"]);
-        Assert.NotNull(databases);
-        Assert.Equal(["mydatabase"], databases);
-        Assert.Equal("mycosmosconnectionstring", await cosmos.Resource.GetConnectionStringAsync());
-        Assert.Equal("{cosmos.secretOutputs.connectionString}", cosmos.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public async Task AddAzureCosmosDbConstruct()
+    public async Task AddAzureCosmosDB()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
-        var cosmos = builder.AddAzureCosmosDBConstruct("cosmos", (resource, construct, account, databases) =>
+#pragma warning disable CA2252 // This API requires opting into preview features
+        var cosmos = builder.AddAzureCosmosDB("cosmos", (resource, construct, account, databases) =>
         {
             callbackDatabases = databases;
         });
+#pragma warning restore CA2252 // This API requires opting into preview features
         cosmos.AddDatabase("mydatabase");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
-        var manifest = await ManifestUtils.GetManifest(cosmos.Resource);
+        var manifest = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
         var expectedManifest = """
                                {
                                  "type": "azure.bicep.v0",
@@ -163,8 +145,65 @@ public class AzureBicepResourceTests
                                  }
                                }
                                """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        Assert.Equal(expectedManifest, manifest.ToString());
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param keyVaultName string
+
+
+            resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource cosmosDBAccount_5pKmb8KAZ 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+              name: toLower(take(concat('cosmos', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'cosmos'
+              }
+              kind: 'GlobalDocumentDB'
+              properties: {
+                databaseAccountOfferType: 'Standard'
+                consistencyPolicy: {
+                  defaultConsistencyLevel: 'Session'
+                }
+                locations: [
+                  {
+                    locationName: location
+                    failoverPriority: 0
+                  }
+                ]
+              }
+            }
+
+            resource cosmosDBSqlDatabase_TRuxXYh2M 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+              parent: cosmosDBAccount_5pKmb8KAZ
+              name: 'mydatabase'
+              location: location
+              properties: {
+                resource: {
+                  id: 'mydatabase'
+                }
+              }
+            }
+
+            resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+              parent: keyVault_IeF8jZvXV
+              name: 'connectionString'
+              location: location
+              properties: {
+                value: 'AccountEndpoint=${cosmosDBAccount_5pKmb8KAZ.properties.documentEndpoint};AccountKey=${cosmosDBAccount_5pKmb8KAZ.listkeys(cosmosDBAccount_5pKmb8KAZ.apiVersion).primaryMasterKey}'
+              }
+            }
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
 
         Assert.NotNull(callbackDatabases);
         Assert.Collection(

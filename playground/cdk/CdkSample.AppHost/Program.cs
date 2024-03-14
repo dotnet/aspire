@@ -6,7 +6,7 @@ using Azure.Provisioning.KeyVaults;
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
 
-var cosmosdb = builder.AddAzureCosmosDBConstruct("cosmos").AddDatabase("cosmosdb");
+var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
