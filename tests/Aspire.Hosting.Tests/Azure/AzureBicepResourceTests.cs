@@ -6,7 +6,6 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.CosmosDB;
-using Azure.Provisioning.Sql;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Xunit;
@@ -609,49 +608,13 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public async Task AsAzureSqlDatabase()
+    public async void AsAzureSqlDatabase()
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        IResourceBuilder<AzureSqlServerResource>? azureSql = null;
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase(resource =>
-        {
-            azureSql = resource;
-        });
-        sql.AddDatabase("db", "dbName");
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("db", "dbName");
 
-        Assert.NotNull(azureSql);
-        azureSql.Resource.Outputs["sqlServerFqdn"] = "myserver";
-
-        var databasesCallback = azureSql.Resource.Parameters["databases"] as Func<object?>;
-        Assert.NotNull(databasesCallback);
-        var databases = databasesCallback() as IEnumerable<string>;
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.sql.bicep", azureSql.Resource.TemplateResourceName);
-        Assert.Equal("sql", sql.Resource.Name);
-        Assert.Equal("sql", azureSql.Resource.Parameters["serverName"]);
-        Assert.NotNull(databases);
-        Assert.Equal(["dbName"], databases);
-        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
-        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public async void AsAzureSqlDatabaseConstruct()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        global::Azure.Provisioning.Sql.SqlServer? cdkSqlServer = null;
-        AzureSqlServerConstructResource? azureSql = null;
-        List<SqlDatabase>? cdkSqlDatabases = null;
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct((construct, sqlServer, databases) =>
-        {
-            azureSql = construct.Resource as AzureSqlServerConstructResource;
-            cdkSqlServer = sqlServer;
-            cdkSqlDatabases = databases.ToList();
-        });
-        sql.AddDatabase("db", "dbName");
-
+        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource.Parent);
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
@@ -678,14 +641,75 @@ public class AzureBicepResourceTests
               }
             }
             """;
-        var manifest = await ManifestUtils.GetManifest(sql.Resource);
-        Assert.Equal(expectedManifest, manifest.ToString());
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        Assert.NotNull(cdkSqlServer);
-        Assert.NotNull(azureSql);
-        Assert.NotNull(cdkSqlDatabases);
-        Assert.Equal("dbName", cdkSqlDatabases[0].Properties.Name);
-        Assert.Equal("sql", sql.Resource.Name);
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalName string
+
+            @description('')
+            param principalType string
+
+
+            resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2020-11-01-preview' = {
+              name: toLower(take(concat('sql', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'sql'
+              }
+              properties: {
+                version: '12.0'
+                minimalTlsVersion: '1.2'
+                publicNetworkAccess: 'Enabled'
+                administrators: {
+                  administratorType: 'ActiveDirectory'
+                  principalType: principalType
+                  login: principalName
+                  sid: principalId
+                  tenantId: subscription().tenantId
+                  azureADOnlyAuthentication: true
+                }
+              }
+            }
+
+            resource sqlFirewallRule_Kr30BcxQt 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+              parent: sqlServer_l5O9GRsSn
+              name: 'AllowAllAzureIps'
+              properties: {
+                startIpAddress: '0.0.0.0'
+                endIpAddress: '0.0.0.0'
+              }
+            }
+
+            resource sqlFirewallRule_fA0ew2DcB 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+              parent: sqlServer_l5O9GRsSn
+              name: 'fw'
+              properties: {
+                startIpAddress: '0.0.0.0'
+                endIpAddress: '255.255.255.255'
+              }
+            }
+
+            resource sqlDatabase_F6FwuheAS 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
+              parent: sqlServer_l5O9GRsSn
+              name: 'dbName'
+              location: location
+              properties: {
+              }
+            }
+
+            output sqlServerFqdn string = sqlServer_l5O9GRsSn.properties.fullyQualifiedDomainName
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
     [Fact]

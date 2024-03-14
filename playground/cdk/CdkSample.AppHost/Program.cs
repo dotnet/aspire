@@ -20,7 +20,7 @@ var storage = builder.AddAzureStorage("storage", (_, _, account) =>
 
 var blobs = storage.AddBlobs("blobs");
 
-var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabaseConstruct().AddDatabase("sqldb");
+var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
 
 var signaturesecret = builder.AddParameter("signaturesecret");
 #pragma warning disable CA2252 // This API requires opting into preview features
