@@ -151,8 +151,7 @@ public class ResourceNotificationTests
         IResourceWithEnvironment,
         IResourceWithConnectionString
     {
-        public ReferenceExpression ConnectionStringExpression => throw new NotImplementedException();
-
-        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) => new("CustomConnectionString");
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"CustomConnectionString");
     }
 }

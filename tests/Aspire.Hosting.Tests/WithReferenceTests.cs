@@ -326,11 +326,7 @@ public class WithReferenceTests
     {
         public string? ConnectionString { get; set; }
 
-        public ReferenceExpression ConnectionStringExpression => throw new NotImplementedException();
-
-        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
-        {
-            return new(ConnectionString);
-        }
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"{ConnectionString ?? throw new InvalidOperationException("ConnectionString is not set.")}");
     }
 }

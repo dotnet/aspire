@@ -145,8 +145,7 @@ public class AzureBicepProvisionerTests
         Resource(name),
         IResourceWithConnectionString
     {
-        public ReferenceExpression ConnectionStringExpression => throw new NotImplementedException();
-
-        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) => new(connectionString);
+        public ReferenceExpression ConnectionStringExpression =>
+           ReferenceExpression.Create($"{connectionString}");
     }
 }
