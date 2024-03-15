@@ -74,12 +74,12 @@ builder.Build().Run();
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
   </PropertyGroup>
 
-  <Import Project="{repoRoot}\src\Aspire.Hosting\build\Aspire.Hosting.props" />
+  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.props" />
 </Project>
 """);
             File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"), $"""
 <Project>
-  <Import Project="{repoRoot}\src\Aspire.Hosting\build\Aspire.Hosting.targets" />
+  <Import Project="{repoRoot}\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" />
   <Import Project="{repoRoot}\src\Aspire.Hosting.Sdk\SDK\Sdk.targets" />
 </Project>
 """);
