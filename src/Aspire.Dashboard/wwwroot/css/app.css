@@ -389,10 +389,10 @@ fluent-data-grid-cell.no-ellipsis {
 
 .endpoint-button {
     height: unset;
-    font-size: 12px;
-    line-height: 16px;
+    font-size: var(--type-ramp-minus-1-font-size);
+    line-height: var(--type-ramp-minus-1-line-height);
 }
 
 .endpoint-button::part(control) {
-    padding: 1px 3px;
+    padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
