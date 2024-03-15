@@ -17,9 +17,6 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    // IConnectionMultiplexer can be created only via call to ConnectionMultiplexer.Connect
-    protected override bool CanCreateClientWithoutConnectingToServer => false;
-
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
