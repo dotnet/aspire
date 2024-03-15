@@ -6,7 +6,7 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
-internal sealed partial class LogParser(bool convertTimestampsFromUtc)
+internal sealed partial class LogParser(TimeProvider timeProvider, bool convertTimestampsFromUtc)
 {
     private string? _parentTimestamp;
     private Guid? _parentId;
@@ -33,7 +33,7 @@ internal sealed partial class LogParser(bool convertTimestampsFromUtc)
         var isFirstLine = false;
         string? timestamp = null;
 
-        if (TimestampParser.TryColorizeTimestamp(content, convertTimestampsFromUtc, out var timestampParseResult))
+        if (TimestampParser.TryColorizeTimestamp(timeProvider, content, convertTimestampsFromUtc, out var timestampParseResult))
         {
             isFirstLine = true;
             content = timestampParseResult.ModifiedText;

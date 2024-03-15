@@ -211,7 +211,7 @@ public class AzureBicepResourceTests
             );
 
         Assert.Equal("cosmos", cosmos.Resource.Name);
-        Assert.Equal("mycosmosconnectionstring", await cosmos.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
     }
 
     [Fact]
@@ -224,6 +224,10 @@ public class AzureBicepResourceTests
         Assert.Equal("https://myendpoint", await appConfig.Resource.GetConnectionStringAsync(default));
 
         var manifest = await ManifestUtils.GetManifestWithBicep(appConfig.Resource);
+
+        var connectionStringResource = (IResourceWithConnectionString)appConfig.Resource;
+
+        Assert.Equal("https://myendpoint", await connectionStringResource.GetConnectionStringAsync());
 
         var expectedManifest = """
             {
@@ -289,12 +293,14 @@ public class AzureBicepResourceTests
 
         appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
 
+        var connectionStringResource = (IResourceWithConnectionString)appInsights.Resource;
+
         Assert.Equal("Aspire.Hosting.Azure.Bicep.appinsights.bicep", appInsights.Resource.TemplateResourceName);
         Assert.Equal("appInsights", appInsights.Resource.Name);
         Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
         Assert.True(appInsights.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
-        Assert.Equal("myinstrumentationkey", await appInsights.Resource.GetConnectionStringAsync(default));
-        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression);
+        Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
+        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
         var appInsightsManifest = await ManifestUtils.GetManifest(appInsights.Resource);
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsightsManifest["connectionString"]?.ToString());
@@ -1080,9 +1086,11 @@ public class AzureBicepResourceTests
 
         serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 
+        var connectionStringResource = (IResourceWithConnectionString)serviceBus.Resource;
+
         Assert.Equal("sb", serviceBus.Resource.Name);
-        Assert.Equal("mynamespaceEndpoint", await serviceBus.Resource.GetConnectionStringAsync());
-        Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
+        Assert.Equal("mynamespaceEndpoint", await connectionStringResource.GetConnectionStringAsync());
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", connectionStringResource.ConnectionStringExpression.ValueExpression);
 
         var manifest = await ManifestUtils.GetManifestWithBicep(serviceBus.Resource);
         var expected = """
@@ -1296,7 +1304,10 @@ public class AzureBicepResourceTests
 
         // Check blob resource.
         var blob = storage.AddBlobs("blob");
-        Assert.Equal("https://myblob", await blob.Resource.GetConnectionStringAsync());
+
+        var connectionStringBlobResource = (IResourceWithConnectionString)blob.Resource;
+
+        Assert.Equal("https://myblob", await connectionStringBlobResource.GetConnectionStringAsync());
         var expectedBlobManifest = """
             {
               "type": "value.v0",
@@ -1308,7 +1319,10 @@ public class AzureBicepResourceTests
 
         // Check queue resource.
         var queue = storage.AddQueues("queue");
-        Assert.Equal("https://myqueue", await queue.Resource.GetConnectionStringAsync());
+
+        var connectionStringQueueResource = (IResourceWithConnectionString)queue.Resource;
+
+        Assert.Equal("https://myqueue", await connectionStringQueueResource.GetConnectionStringAsync());
         var expectedQueueManifest = """
             {
               "type": "value.v0",
@@ -1320,7 +1334,10 @@ public class AzureBicepResourceTests
 
         // Check table resource.
         var table = storage.AddTables("table");
-        Assert.Equal("https://mytable", await table.Resource.GetConnectionStringAsync());
+
+        var connectionStringTableResource = (IResourceWithConnectionString)table.Resource;
+
+        Assert.Equal("https://mytable", await connectionStringTableResource.GetConnectionStringAsync());
         var expectedTableManifest = """
             {
               "type": "value.v0",
@@ -1348,10 +1365,12 @@ public class AzureBicepResourceTests
         const string fakeConnectionString = "mysearchconnectionstring";
         search.Resource.Outputs["connectionString"] = fakeConnectionString;
 
+        var connectionStringResource = (IResourceWithConnectionString)search.Resource;
+
         // Validate the resource
         Assert.Equal("search", search.Resource.Name);
-        Assert.Equal("{search.outputs.connectionString}", search.Resource.ConnectionStringExpression);
-        Assert.Equal(fakeConnectionString, await search.Resource.GetConnectionStringAsync());
+        Assert.Equal("{search.outputs.connectionString}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(fakeConnectionString, await connectionStringResource.GetConnectionStringAsync());
 
         var manifest = await ManifestUtils.GetManifestWithBicep(search.Resource);
 

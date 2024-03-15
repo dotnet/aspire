@@ -22,17 +22,8 @@ public class AzureRedisResource(RedisResource innerResource, Action<ResourceModu
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Redis resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Redis resource.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure Redis resource.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        return ConnectionString.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 
     /// <inheritdoc/>
     public override string Name => innerResource.Name;

@@ -21,23 +21,8 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     /// <summary>
     /// Gets the connection string expression for the Oracle Database.
     /// </summary>
-    public string ConnectionStringExpression => $"{{{Parent.Name}.connectionString}}/{DatabaseName}";
-
-    /// <summary>
-    /// Gets the connection string for the Oracle Database.
-    /// </summary>
-    /// <returns>A connection string for the Oracle Database.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
-    {
-        if (await Parent.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false) is { } connectionString)
-        {
-            return $"{connectionString}/{DatabaseName}";
-        }
-        else
-        {
-            throw new DistributedApplicationException("Parent resource connection string was null.");
-        }
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+       ReferenceExpression.Create($"{Parent}/{DatabaseName}");
 
     /// <summary>
     /// Gets the database name.

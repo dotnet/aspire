@@ -23,14 +23,8 @@ public class AzureOpenAIResource(string name, Action<ResourceModuleConstruct> co
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the resource.
-    /// </summary>
-    /// <returns>The connection string for the resource.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
-        => ConnectionString.GetValueAsync(cancellationToken);
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.

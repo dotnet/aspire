@@ -52,7 +52,7 @@
                         <GridValue Value="@(context.KnownProperty?.DisplayName ?? context.Key)" ToolTip="@context.Key" />
                     </TemplateColumn>
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
-                        <GridValue Value="@GetDisplayedValue(context)" ToolTip="@context.Tooltip" />
+                        <GridValue Value="@GetDisplayedValue(TimeProvider, context)" ToolTip="@context.Tooltip" />
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>

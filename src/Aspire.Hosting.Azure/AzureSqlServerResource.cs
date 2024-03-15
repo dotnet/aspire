@@ -17,25 +17,12 @@ public class AzureSqlServerResource(SqlServerServerResource innerResource, Actio
     /// </summary>
     public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
 
-    private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
-            $"Server=tcp:{FullyQualifiedDomainName},1433;Encrypt=True;Authentication=\"Active Directory Default\"");
-
     /// <summary>
     /// Gets the connection template for the manifest for the Azure SQL Server resource.
     /// </summary>
-    public string ConnectionStringExpression =>
-        ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure SQL Server resource.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure SQL Server resource.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        return ConnectionString.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create(
+            $"Server=tcp:{FullyQualifiedDomainName},1433;Encrypt=True;Authentication=\"Active Directory Default\"");
 
     /// <inheritdoc/>
     public override string Name => innerResource.Name;

@@ -10,8 +10,10 @@ builder.Services.AddHttpForwarderWithServiceDiscovery();
 
 builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("https+http://catalogservice"));
 
+var isHttps = Environment.GetEnvironmentVariable("DOTNET_LAUNCHPROFILE") == "https";
+
 builder.Services.AddSingleton<BasketServiceClient>()
-                .AddGrpcClient<Basket.BasketClient>(o => o.Address = new("https+http://basketservice"));
+                .AddGrpcClient<Basket.BasketClient>(o => o.Address = new($"{(isHttps ? "https" : "http")}://basketservice"));
 
 builder.Services.AddRazorComponents();
 

@@ -25,16 +25,6 @@ public class AzureSearchResource(string name, Action<ResourceModuleConstruct> co
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure AI Search resource.
-    /// </summary>
-    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the resource.</returns>
-    /// <remarks>
-    /// This connection string will assume you're deploying to public Azure.
-    /// </remarks>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default) =>
-        await ConnectionString.GetValueAsync(cancellationToken).ConfigureAwait(false);
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 }

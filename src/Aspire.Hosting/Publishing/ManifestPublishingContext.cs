@@ -101,9 +101,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     public void WriteConnectionString(IResource resource)
     {
         if (resource is IResourceWithConnectionString resourceWithConnectionString &&
-            resourceWithConnectionString.ConnectionStringExpression is string connectionString)
+            resourceWithConnectionString.ConnectionStringExpression is { } connectionString)
         {
-            Writer.WriteString("connectionString", connectionString);
+            Writer.WriteString("connectionString", connectionString.ValueExpression);
         }
     }
 
@@ -266,6 +266,31 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                 Writer.WriteString(endpoint.EnvironmentVariable, $"{{{resource.Name}.bindings.{endpoint.Name}.port}}");
             }
+        }
+    }
+
+    internal void WriteDockerBuildArgs(IEnumerable<DockerBuildArg>? buildArgs)
+    {
+        if (buildArgs?.ToArray() is { Length: > 0 } args)
+        {
+            Writer.WriteStartObject("buildArgs");
+
+            for (var i = 0; i < args.Length; i++)
+            {
+                var buildArg = args[i];
+
+                var valueString = buildArg.Value switch
+                {
+                    string stringValue => stringValue,
+                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                    null => null, // null means let docker build pull from env var.
+                    _ => buildArg.Value.ToString()
+                };
+
+                Writer.WriteString(buildArg.Name, valueString);
+            }
+
+            Writer.WriteEndObject();
         }
     }
 

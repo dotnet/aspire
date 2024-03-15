@@ -20,15 +20,6 @@ public class AzureKeyVaultResource(string name, Action<ResourceModuleConstruct> 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
-    public string ConnectionStringExpression => VaultUri.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Key Vault resource.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure Key Vault resource.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        return VaultUri.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{VaultUri}");
 }

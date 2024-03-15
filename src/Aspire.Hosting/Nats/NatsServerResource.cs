@@ -20,21 +20,10 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
-    private ReferenceExpression ConnectionString =>
+    /// <summary>
+    /// Gets the connection string expression for the NATS server.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(
             $"{PrimaryNatsSchemeName}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
-
-    /// <summary>
-    /// Gets the connection string expression for the NATS server for the manifest.
-    /// </summary>
-    public string? ConnectionStringExpression =>
-        ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string (NATS_URL) for the NATS server.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token. </param>
-    /// <returns>A connection string for the NATS server in the form "nats://host:port".</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) =>
-        ConnectionString.GetValueAsync(cancellationToken);
 }

@@ -40,29 +40,17 @@ public class AzureStorageResource(string name, Action<ResourceModuleConstruct> c
     /// </summary>
     public bool IsEmulator => this.IsContainer();
 
-    internal string? GetTableConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(tablePort: EmulatorTableEndpoint.Port)
-        : TableEndpoint.Value;
+    internal ReferenceExpression GetTableConnectionString() => IsEmulator
+        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(tablePort: EmulatorTableEndpoint.Port)}")
+        : ReferenceExpression.Create($"{TableEndpoint}");
 
-    internal async ValueTask<string?> GetTableConnectionStringAsync(CancellationToken cancellationToken = default) => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(tablePort: EmulatorTableEndpoint.Port)
-        : await TableEndpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+    internal ReferenceExpression GetQueueConnectionString() => IsEmulator
+        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(queuePort: EmulatorQueueEndpoint.Port)}")
+        : ReferenceExpression.Create($"{QueueEndpoint}");
 
-    internal string? GetQueueConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(queuePort: EmulatorQueueEndpoint.Port)
-        : QueueEndpoint.Value;
-
-    internal async ValueTask<string?> GetQueueConnectionStringAsync(CancellationToken cancellationToken = default) => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(queuePort: EmulatorQueueEndpoint.Port)
-        : await QueueEndpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
-
-    internal string? GetBlobConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port)
-        : BlobEndpoint.Value;
-
-    internal async ValueTask<string?> GetBlobConnectionStringAsync(CancellationToken cancellationToken = default) => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port)
-        : await BlobEndpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+    internal ReferenceExpression GetBlobConnectionString() => IsEmulator
+        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port)}")
+        : ReferenceExpression.Create($"{BlobEndpoint}");
 }
 
 file static class AzureStorageEmulatorConnectionString

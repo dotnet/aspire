@@ -4,6 +4,7 @@
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
@@ -16,6 +17,9 @@ public sealed partial class LogViewer
     private readonly TaskCompletionSource _whenDomReady = new();
     private readonly CancellationSeries _cancellationSeries = new();
     private IJSObjectReference? _jsModule;
+
+    [Inject]
+    public required TimeProvider TimeProvider { get; init; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -30,7 +34,7 @@ public sealed partial class LogViewer
     internal async Task SetLogSourceAsync(IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> batches, bool convertTimestampsFromUtc)
     {
         var cancellationToken = await _cancellationSeries.NextAsync();
-        var logParser = new LogParser(convertTimestampsFromUtc);
+        var logParser = new LogParser(TimeProvider, convertTimestampsFromUtc);
 
         // Ensure we are able to write to the DOM.
         await _whenDomReady.Task;

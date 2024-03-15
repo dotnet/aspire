@@ -216,7 +216,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             meter: serializable.MeterName,
             instrument: serializable.InstrumentName,
             duration: duration,
-            view: PageViewModel.SelectedViewKind?.ToString());
+            view: serializable.ViewKind);
 
         return url;
     }

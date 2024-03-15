@@ -173,10 +173,8 @@ public class WithEnvironmentTests
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
-        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-        {
-            return new(connectionString);
-        }
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"{connectionString}");
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
