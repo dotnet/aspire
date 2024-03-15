@@ -109,6 +109,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
 
+            // Watch for changes to the resource state.
+            WatchResourceChanges(cancellationToken);
+
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
@@ -117,9 +120,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
             }
-
-            // Watch for changes to the resource state.
-            WatchResourceChanges(cancellationToken);
         }
         finally
         {
