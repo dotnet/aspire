@@ -8,6 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Instrumentation.StackExchangeRedis;
+
+//using OpenTelemetry.Instrumentation.StackExchangeRedis;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
 using StackExchange.Redis.Configuration;
@@ -134,12 +137,24 @@ public static class AspireRedisExtensions
         if (serviceKey is null)
         {
             builder.Services.AddSingleton<IConnectionMultiplexer>(
-                sp => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName)));
+                sp =>
+                {
+                    var connection = ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName));
+                    var instrumentation = sp.GetService<StackExchangeRedisInstrumentation>();
+                    instrumentation?.AddConnection(connection);
+                    return connection;
+                });
         }
         else
         {
             builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(serviceKey,
-                (sp, key) => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName)));
+                (sp, key) =>
+                {
+                    var connection = ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName));
+                    var instrumentation = sp.GetService<StackExchangeRedisInstrumentation>();
+                    instrumentation?.AddConnection(connection);
+                    return connection;
+                });
         }
 
         if (settings.Tracing)
@@ -148,18 +163,22 @@ public static class AspireRedisExtensions
             if (serviceKey is null)
             {
                 builder.Services.AddOpenTelemetry()
-                .WithTracing(t =>
-                {
-                    t.AddRedisInstrumentation();
-                });
+                    .WithTracing(t =>
+                    {
+                        //t.AddRedisInstrumentation();
+                        t.AddSource(typeof(StackExchangeRedisInstrumentation).Assembly.GetName().Name!);
+                        t.ConfigureRedisInstrumentation(seri => { });
+                    });
             }
             else
             {
                 builder.Services.AddOpenTelemetry()
-                .WithTracing(t =>
-                {
-                    t.AddRedisInstrumentationWithKeyedService(serviceKey);
-                });
+                    .WithTracing(t =>
+                    {
+                        //t.AddRedisInstrumentationWithKeyedService(serviceKey);
+                        t.AddSource(typeof(StackExchangeRedisInstrumentation).Assembly.GetName().Name!);
+                        t.ConfigureRedisInstrumentation(seri => { });
+                    });
             }
         }
 
