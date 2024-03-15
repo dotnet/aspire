@@ -210,6 +210,8 @@ public class AzureBicepResourceTests
             (database) => Assert.Equal("mydatabase", database.Properties.Name)
             );
 
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
         Assert.Equal("cosmos", cosmos.Resource.Name);
         Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
     }
@@ -221,7 +223,7 @@ public class AzureBicepResourceTests
 
         var appConfig = builder.AddAzureAppConfiguration("appConfig");
         appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
-        Assert.Equal("https://myendpoint", await appConfig.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("https://myendpoint", await appConfig.Resource.ConnectionStringExpression.GetValueAsync(default));
 
         var manifest = await ManifestUtils.GetManifestWithBicep(appConfig.Resource);
 
