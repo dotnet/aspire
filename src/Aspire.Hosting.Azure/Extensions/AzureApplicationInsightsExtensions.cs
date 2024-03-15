@@ -30,11 +30,11 @@ public static class AzureApplicationInsightsExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
+    /// Adds an Azure Application Insights resource to the application model.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="configureResource">Optional callback to configure the Service Bus namespace.</param>
+    /// <param name="configureResource">Optional callback to configure the Application Insights resource.</param>
     /// <returns></returns>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureApplicationInsightsResource>, ResourceModuleConstruct>? configureResource = null)
