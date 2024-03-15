@@ -378,3 +378,21 @@ fluent-switch.table-switch::part(label) {
 fluent-data-grid-cell.no-ellipsis {
     text-overflow: unset !important;
 }
+
+.endpoint-overflow {
+    overflow-x: visible !important;
+}
+
+.endpoint-overflow .fluent-overflow-more {
+    display: flex;
+}
+
+.endpoint-button {
+    height: unset;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.endpoint-button::part(control) {
+    padding: 1px 3px;
+}
