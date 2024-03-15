@@ -18,10 +18,4 @@
     <PackageReference Include="Aspire.Hosting" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
   </ItemGroup>
 
-  <!--#if (CreateTestsProject) -->
-  <ItemGroup>
-    <InternalsVisibleTo Include="AspireStarterApplication.1.Tests" />
-  </ItemGroup>
-  
-  <!--#endif -->
 </Project>

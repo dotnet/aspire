@@ -11,19 +11,13 @@ public class IntegrationTest1
     //        <ProjectReference Include="../MyAspireApp.AppHost/MyAspireApp.AppHost.csproj" />
     //    </ItemGroup>
     //
-    // 2. Update the target AppHost project to allow this test project to see its internals, e.g.:
-    //
-    //    <ItemGroup>
-    //        <InternalsVisibleTo Include="Aspire.Tests1" />
-    //    </ItemGroup>
-    //
-    // 3. Uncomment the following example test:
+    // 2. Uncomment the following example test and update 'Projects.MyAspireApp_AppHost' to match your AppHost project:
     // 
     // [Fact]
     // public async Task GetWebResourceRootReturnsOkStatusCode()
     // {
     //     // Arrange
-    //     var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
+    //     var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.MyAspireApp_AppHost>();
     //     await using var app = await appHost.BuildAsync();
     //     await app.StartAsync();
 
