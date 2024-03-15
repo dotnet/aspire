@@ -36,10 +36,10 @@ var cache = builder.AddRedis("cache").AsAzureRedis();
 var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
 var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
 var pgsqldb = builder.AddPostgres("pgsql")
-                   .AsAzurePostgresFlexibleServerConstruct(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
+                   .AsAzurePostgresFlexibleServer(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
                    .AddDatabase("pgsqldb");
 
-var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServerConstruct();
+var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
 
 #pragma warning disable CA2252 // This API requires opting into preview features
 var sb = builder.AddAzureServiceBus("servicebus")

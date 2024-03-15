@@ -754,91 +754,35 @@ public class AzureBicepResourceTests
         var pwd = builder.AddParameter("pwd", secret: true);
 
         IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
-        var postgres = builder.AddPostgres("postgres").AsAzurePostgresFlexibleServer(usr, pwd, (resource) =>
+#pragma warning disable CA2252 // This API requires opting into preview features
+        var postgres = builder.AddPostgres("postgres").AsAzurePostgresFlexibleServer((resource, _, _) =>
         {
             Assert.NotNull(resource);
             azurePostgres = resource;
-        });
+        },
+        usr, pwd
+        );
+#pragma warning restore CA2252 // This API requires opting into preview features
         postgres.AddDatabase("db", "dbName");
 
-        Assert.NotNull(azurePostgres);
-
-        var databasesCallback = azurePostgres.Resource.Parameters["databases"] as Func<object?>;
-        Assert.NotNull(databasesCallback);
-        var databases = databasesCallback() as IEnumerable<string>;
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
-        Assert.Equal("postgres", postgres.Resource.Name);
-        Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
-        Assert.Same(usr.Resource, azurePostgres.Resource.Parameters["administratorLogin"]);
-        Assert.Same(pwd.Resource, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
-        Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
-        Assert.NotNull(databases);
-        Assert.Equal(["dbName"], databases);
+        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
 
         // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        Assert.NotNull(azurePostgres);
         azurePostgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
         Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
-
-        Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public async Task PublishAsAzurePostgresFlexibleServer()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        builder.Configuration["Parameters:usr"] = "user";
-        builder.Configuration["Parameters:pwd"] = "password";
-
-        var usr = builder.AddParameter("usr");
-        var pwd = builder.AddParameter("pwd", secret: true);
-
-        IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
-        var postgres = builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer(usr, pwd, (resource) =>
-        {
-            azurePostgres = resource;
-        });
-        postgres.AddDatabase("db");
-
-        Assert.NotNull(azurePostgres);
-
-        var databasesCallback = azurePostgres.Resource.Parameters["databases"] as Func<object?>;
-        Assert.NotNull(databasesCallback);
-        var databases = databasesCallback() as IEnumerable<string>;
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
-        Assert.Equal("postgres", postgres.Resource.Name);
-        Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
-        Assert.Same(usr.Resource, azurePostgres.Resource.Parameters["administratorLogin"]);
-        Assert.Same(pwd.Resource, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
-        Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
-        Assert.NotNull(databases);
-        Assert.Equal(["db"], databases);
-
-        // Verify that when PublishAs variant is used, connection string acquisition
-        // still uses the local endpoint.
-        postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
-        var expectedConnectionString = $"Host=localhost;Port=1234;Username=postgres;Password={postgres.Resource.Password}";
-        Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync(default));
-
-        Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
-
-        var manifest = await ManifestUtils.GetManifest(postgres.Resource);
 
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "connectionString": "{postgres.secretOutputs.connectionString}",
-              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "path": "postgres.module.bicep",
               "params": {
-                "serverName": "postgres",
+                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{usr.value}",
                 "administratorLoginPassword": "{pwd.value}",
-                "databases": [
-                  "db"
-                ]
+                "principalType": ""
               },
               "inputs": {
                 "password": {
@@ -853,7 +797,149 @@ public class AzureBicepResourceTests
               }
             }
             """;
-        Assert.Equal(expectedManifest, manifest.ToString());
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param administratorLogin string
+
+            @secure()
+            @description('')
+            param administratorLoginPassword string
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param keyVaultName string
+
+            @description('')
+            param principalType string
+
+
+            resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource postgreSqlFlexibleServer_NYWb9Nbel 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
+              name: toLower(take(concat('postgres', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'postgres'
+              }
+              sku: {
+                name: 'Standard_B1ms'
+                tier: 'Burstable'
+              }
+              properties: {
+                administratorLogin: administratorLogin
+                administratorLoginPassword: administratorLoginPassword
+                version: '16'
+                storage: {
+                  storageSizeGB: 32
+                }
+                backup: {
+                  backupRetentionDays: 7
+                  geoRedundantBackup: 'Disabled'
+                }
+                highAvailability: {
+                  mode: 'Disabled'
+                }
+                availabilityZone: '1'
+              }
+            }
+
+            resource postgreSqlFirewallRule_2vbo6vMGo 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+              parent: postgreSqlFlexibleServer_NYWb9Nbel
+              name: 'AllowAllAzureIps'
+              properties: {
+                startIpAddress: '0.0.0.0'
+                endIpAddress: '0.0.0.0'
+              }
+            }
+
+            resource postgreSqlFirewallRule_oFtHmDYkz 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+              parent: postgreSqlFlexibleServer_NYWb9Nbel
+              name: 'AllowAllIps'
+              properties: {
+                startIpAddress: '0.0.0.0'
+                endIpAddress: '255.255.255.255'
+              }
+            }
+
+            resource postgreSqlFlexibleServerDatabase_TDYmKfyJc 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
+              parent: postgreSqlFlexibleServer_NYWb9Nbel
+              name: 'dbName'
+              properties: {
+              }
+            }
+
+            resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+              parent: keyVault_IeF8jZvXV
+              name: 'connectionString'
+              location: location
+              properties: {
+                value: 'Host=${postgreSqlFlexibleServer_NYWb9Nbel.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+              }
+            }
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task PublishAsAzurePostgresFlexibleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+        var postgres = builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer(usr, pwd);
+        postgres.AddDatabase("db");
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        // Verify that when PublishAs variant is used, connection string acquisition
+        // still uses the local endpoint.
+        postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
+        var expectedConnectionString = $"Host=localhost;Port=1234;Username=postgres;Password={postgres.Resource.Password}";
+        Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync(default));
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{postgres.secretOutputs.connectionString}",
+              "path": "postgres.module.bicep",
+              "params": {
+                "principalId": "",
+                "keyVaultName": "",
+                "administratorLogin": "{usr.value}",
+                "administratorLoginPassword": "{pwd.value}",
+                "principalType": ""
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 22
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
     }
 
     [Fact]
@@ -862,20 +948,20 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         var postgres = builder.AddPostgres("postgres1")
-            .PublishAsAzurePostgresFlexibleServer();
+            .PublishAsAzurePostgresFlexibleServer(configureResource: (_, _, _) => { }, useProvisioner: false); // Because of InternalsVisibleTo
 
         var manifest = await ManifestUtils.GetManifest(postgres.Resource);
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "connectionString": "{postgres1.secretOutputs.connectionString}",
-              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "path": "postgres1.module.bicep",
               "params": {
-                "serverName": "postgres1",
+                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{postgres1.inputs.username}",
                 "administratorLoginPassword": "{postgres1.inputs.password}",
-                "databases": []
+                "principalType": ""
               },
               "inputs": {
                 "password": {
@@ -905,20 +991,20 @@ public class AzureBicepResourceTests
         var param = builder.AddParameter("param");
 
         postgres = builder.AddPostgres("postgres2")
-            .PublishAsAzurePostgresFlexibleServer(administratorLogin: param);
+            .PublishAsAzurePostgresFlexibleServer(administratorLogin: param, configureResource: (_, _, _) => { }, useProvisioner: false); // Because of InternalsVisibleTo
 
         manifest = await ManifestUtils.GetManifest(postgres.Resource);
         expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "connectionString": "{postgres2.secretOutputs.connectionString}",
-              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "path": "postgres2.module.bicep",
               "params": {
-                "serverName": "postgres2",
+                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{param.value}",
                 "administratorLoginPassword": "{postgres2.inputs.password}",
-                "databases": []
+                "principalType": ""
               },
               "inputs": {
                 "password": {
@@ -936,20 +1022,20 @@ public class AzureBicepResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
 
         postgres = builder.AddPostgres("postgres3")
-            .PublishAsAzurePostgresFlexibleServer(administratorLoginPassword: param);
+            .PublishAsAzurePostgresFlexibleServer(administratorLoginPassword: param, configureResource: (_, _, _) => { }, useProvisioner: false); // Because of InternalsVisibleTo
 
         manifest = await ManifestUtils.GetManifest(postgres.Resource);
         expectedManifest = """
             {
               "type": "azure.bicep.v0",
               "connectionString": "{postgres3.secretOutputs.connectionString}",
-              "path": "aspire.hosting.azure.bicep.postgres.bicep",
+              "path": "postgres3.module.bicep",
               "params": {
-                "serverName": "postgres3",
+                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{postgres3.inputs.username}",
                 "administratorLoginPassword": "{param.value}",
-                "databases": []
+                "principalType": ""
               },
               "inputs": {
                 "password": {

@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="innerResource"><see cref="PostgresServerResource"/> that this resource wraps.</param>
 /// <param name="configureConstruct">Callback to configure construct.</param>
-public class AzurePostgresConstructResource(PostgresServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
+public class AzurePostgresResource(PostgresServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(innerResource.Name, configureConstruct),
     IResourceWithConnectionString
 {
