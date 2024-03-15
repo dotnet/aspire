@@ -5,6 +5,7 @@
     <IsAspireHost>true</IsAspireHost>
     <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
     <NoWarn>$(NoWarn),CS8002</NoWarn>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
   <ItemGroup>

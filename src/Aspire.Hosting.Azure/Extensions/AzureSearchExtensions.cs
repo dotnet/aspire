@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.Versioning;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Authorization;
@@ -15,21 +16,17 @@ namespace Aspire.Hosting;
 public static class AzureSearchExtensions
 {
     /// <summary>
-    /// Adds an Azure Search resource to the application model.
+    /// Adds an Azure AI Search service resource to the application model.
     /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchResource}"/>.</returns>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="name">The name of the Azure AI Search resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
     {
-        var resource = new AzureSearchResource(name);
-        return builder.AddResource(resource)
-                .WithParameter("name", resource.CreateBicepResourceName())
-                .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                .WithManifestPublishingCallback(resource.WriteToManifest);
+#pragma warning disable CA2252 // This API requires opting into preview features
+        return builder.AddAzureSearch(name, (_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
     }
-
     /// <summary>
     /// Adds an Azure AI Search service resource to the application model.
     /// </summary>
@@ -37,12 +34,13 @@ public static class AzureSearchExtensions
     /// <param name="name">The name of the Azure AI Search resource.</param>
     /// <param name="configureResource">Callback to configure the Azure AI Search resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
-    public static IResourceBuilder<AzureSearchConstructResource> AddAzureConstructSearch(
+    [RequiresPreviewFeatures]
+    public static IResourceBuilder<AzureSearchResource> AddAzureSearch(
         this IDistributedApplicationBuilder builder,
         string name,
-        Action<ResourceModuleConstruct, SearchService>? configureResource = null)
+        Action<IResourceBuilder<AzureSearchResource>, ResourceModuleConstruct, SearchService>? configureResource = null)
     {
-        AzureSearchConstructResource resource = new(name, ConfigureSearch);
+        AzureSearchResource resource = new(name, ConfigureSearch);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
@@ -75,7 +73,9 @@ public static class AzureSearchExtensions
 
             if (configureResource is not null)
             {
-                configureResource(construct, search);
+                var resource = (AzureSearchResource)construct.Resource;
+                var resourceBuilder = builder.CreateResourceBuilder(resource);
+                configureResource(resourceBuilder, construct, search);
             }
         }
     }

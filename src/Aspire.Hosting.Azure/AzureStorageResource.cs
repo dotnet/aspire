@@ -12,56 +12,10 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name"></param>
 /// <param name="configureConstruct"></param>
-public class AzureStorageConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+public class AzureStorageResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithEndpoints
 {
-    private EndpointReference EmulatorBlobEndpoint => new(this, "blob");
-    private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
-    private EndpointReference EmulatorTableEndpoint => new(this, "table");
-
-    /// <summary>
-    /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
-    /// </summary>
-    public BicepOutputReference BlobEndpoint => new("blobEndpoint", this);
-
-    /// <summary>
-    /// Gets the "queueEndpoint" output reference from the bicep template for the Azure Storage resource.
-    /// </summary>
-    public BicepOutputReference QueueEndpoint => new("queueEndpoint", this);
-
-    /// <summary>
-    /// Gets the "tableEndpoint" output reference from the bicep template for the Azure Storage resource.
-    /// </summary>
-    public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
-
-    /// <summary>
-    /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
-    /// </summary>
-    public bool IsEmulator => this.IsContainer();
-
-    internal ReferenceExpression GetTableConnectionString() => IsEmulator
-        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(tablePort: EmulatorTableEndpoint.Port)}")
-        : ReferenceExpression.Create($"{TableEndpoint}");
-
-    internal ReferenceExpression GetQueueConnectionString() => IsEmulator
-        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(queuePort: EmulatorQueueEndpoint.Port)}")
-        : ReferenceExpression.Create($"{QueueEndpoint}");
-
-    internal ReferenceExpression GetBlobConnectionString() => IsEmulator
-        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port)}")
-        : ReferenceExpression.Create($"{BlobEndpoint}");
-}
-
-/// <summary>
-/// Represents an Azure Storage resource.
-/// </summary>
-/// <param name="name"></param>
-public class AzureStorageResource(string name) :
-    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.storage.bicep"),
-    IResourceWithEndpoints
-{
-    // Emulator container endpoints
     private EndpointReference EmulatorBlobEndpoint => new(this, "blob");
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
     private EndpointReference EmulatorTableEndpoint => new(this, "table");
