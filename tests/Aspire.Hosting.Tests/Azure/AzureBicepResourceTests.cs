@@ -427,7 +427,7 @@ public class AzureBicepResourceTests
 
         var redis = builder.AddRedis("cache")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
-            .PublishAsAzureRedis(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
+            .PublishAsAzureRedis();
 
         Assert.True(redis.Resource.IsContainer());
 
@@ -960,7 +960,7 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         var postgres = builder.AddPostgres("postgres1")
-            .PublishAsAzurePostgresFlexibleServer(configureResource: (_, _, _) => { }, useProvisioner: false); // Because of InternalsVisibleTo
+            .PublishAsAzurePostgresFlexibleServer(); // Because of InternalsVisibleTo
 
         var manifest = await ManifestUtils.GetManifest(postgres.Resource);
         var expectedManifest = """
@@ -1003,7 +1003,7 @@ public class AzureBicepResourceTests
         var param = builder.AddParameter("param");
 
         postgres = builder.AddPostgres("postgres2")
-            .PublishAsAzurePostgresFlexibleServer(administratorLogin: param, configureResource: (_, _, _) => { }, useProvisioner: false); // Because of InternalsVisibleTo
+            .PublishAsAzurePostgresFlexibleServer(administratorLogin: param);
 
         manifest = await ManifestUtils.GetManifest(postgres.Resource);
         expectedManifest = """
@@ -1034,7 +1034,7 @@ public class AzureBicepResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
 
         postgres = builder.AddPostgres("postgres3")
-            .PublishAsAzurePostgresFlexibleServer(administratorLoginPassword: param, configureResource: (_, _, _) => { }, useProvisioner: false); // Because of InternalsVisibleTo
+            .PublishAsAzurePostgresFlexibleServer(administratorLoginPassword: param);
 
         manifest = await ManifestUtils.GetManifest(postgres.Resource);
         expectedManifest = """

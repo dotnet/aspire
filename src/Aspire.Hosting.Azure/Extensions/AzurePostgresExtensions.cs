@@ -55,7 +55,7 @@ public static class AzurePostgresExtensions
         return builder;
     }
 
-    internal static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
+    internal static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerInternal(
         this IResourceBuilder<PostgresServerResource> builder,
         IResourceBuilder<ParameterResource>? administratorLogin = null,
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null,
@@ -150,7 +150,7 @@ public static class AzurePostgresExtensions
         IResourceBuilder<ParameterResource>? administratorLogin = null,
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
     {
-        return builder.PublishAsAzurePostgresFlexibleServer(
+        return builder.PublishAsAzurePostgresFlexibleServerInternal(
             administratorLogin,
             administratorLoginPassword,
             configureResource,
@@ -210,7 +210,7 @@ public static class AzurePostgresExtensions
         IResourceBuilder<ParameterResource>? administratorLogin = null,
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
     {
-        return builder.PublishAsAzurePostgresFlexibleServer(
+        return builder.PublishAsAzurePostgresFlexibleServerInternal(
             administratorLogin,
             administratorLoginPassword,
             configureResource,
