@@ -65,6 +65,8 @@ var search = builder.AddAzureSearch("search");
 
 var signalr = builder.AddAzureSignalR("signalr");
 
+var appInsights = builder.AddAzureApplicationInsights("appInsights");
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(signalr)
     .WithReference(blobs)
@@ -75,7 +77,8 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(pgsqldb)
     .WithReference(sb)
     .WithReference(appConfig)
-    .WithReference(search);
+    .WithReference(search)
+    .WithReference(appInsights);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
