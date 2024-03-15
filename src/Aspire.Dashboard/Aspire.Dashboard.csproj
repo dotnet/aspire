@@ -183,5 +183,6 @@
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Utils\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Utils\KnownResourceTypes.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Otlp\Storage\CircularBuffer.cs" />
+    <Compile Include="$(SharedDir)LogParsingConstants.cs" Link="Utils\LogParsingConstants.cs" />
   </ItemGroup>
 </Project>
