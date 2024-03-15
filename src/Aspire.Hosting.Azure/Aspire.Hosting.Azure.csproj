@@ -6,6 +6,7 @@
     <PackageTags>aspire hosting azure</PackageTags>
     <Description>Azure resource types for .NET Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
   <ItemGroup>

@@ -94,9 +94,7 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.PublishAsAzureSqlDatabase((_, _, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
@@ -118,9 +116,7 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AsAzureSqlDatabase((_, _, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>

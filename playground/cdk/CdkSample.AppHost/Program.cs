@@ -10,26 +10,22 @@ var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
-#pragma warning disable CA2252 // This API requires opting into preview features
 var storage = builder.AddAzureStorage("storage", (_, _, account) =>
 {
     account.AssignProperty(sa => sa.Sku.Name, sku);
     account.AssignProperty(sa => sa.Location, locationOverride);
 });
-#pragma warning restore CA2252 // This API requires opting into preview features
 
 var blobs = storage.AddBlobs("blobs");
 
 var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
 
 var signaturesecret = builder.AddParameter("signaturesecret");
-#pragma warning disable CA2252 // This API requires opting into preview features
 var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 {
     var secret = new KeyVaultSecret(construct, name: "mysecret");
     secret.AssignProperty(x => x.Properties.Value, signaturesecret);
 });
-#pragma warning restore CA2252 // This API requires opting into preview features
 
 var cache = builder.AddRedis("cache").AsAzureRedis();
 
@@ -41,7 +37,6 @@ var pgsqldb = builder.AddPostgres("pgsql")
 
 var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
 
-#pragma warning disable CA2252 // This API requires opting into preview features
 var sb = builder.AddAzureServiceBus("servicebus")
     .AddQueue("queue1",
         (_, construct, queue) =>
@@ -63,7 +58,6 @@ var sb = builder.AddAzureServiceBus("servicebus")
         })
     .AddSubscription("topic1", "subscription2")
     .AddTopic("topic3", new[] { "sub1", "sub2" });
-#pragma warning restore CA2252 // This API requires opting into preview features
 
 var appConfig = builder.AddAzureAppConfiguration("appConfig");
 

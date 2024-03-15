@@ -22,9 +22,7 @@ public static class AzureKeyVaultResourceExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddAzureKeyVault(name, (_, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>

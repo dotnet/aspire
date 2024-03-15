@@ -122,12 +122,10 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
-#pragma warning disable CA2252 // This API requires opting into preview features
         var cosmos = builder.AddAzureCosmosDB("cosmos", (resource, construct, account, databases) =>
         {
             callbackDatabases = databases;
         });
-#pragma warning restore CA2252 // This API requires opting into preview features
         cosmos.AddDatabase("mydatabase");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
@@ -650,9 +648,17 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("db", "dbName");
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, _, _) =>
+        {
+            azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
+        });
+        sql.AddDatabase("db", "dbName");
 
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource.Parent);
+        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
+
+        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
+
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
@@ -762,7 +768,6 @@ public class AzureBicepResourceTests
         var pwd = builder.AddParameter("pwd", secret: true);
 
         IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
-#pragma warning disable CA2252 // This API requires opting into preview features
         var postgres = builder.AddPostgres("postgres").AsAzurePostgresFlexibleServer((resource, _, _) =>
         {
             Assert.NotNull(resource);
@@ -770,7 +775,6 @@ public class AzureBicepResourceTests
         },
         usr, pwd
         );
-#pragma warning restore CA2252 // This API requires opting into preview features
         postgres.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
@@ -1077,14 +1081,12 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
         var serviceBus = builder.AddAzureServiceBus("sb");
 
-#pragma warning disable CA2252 // This API requires opting into preview features
         serviceBus
             .AddQueue("queue1")
             .AddQueue("queue2")
             .AddTopic("t1")
             .AddTopic("t2")
             .AddSubscription("t1", "s3");
-#pragma warning restore CA2252 // This API requires opting into preview features
 
         serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 
@@ -1200,12 +1202,10 @@ public class AzureBicepResourceTests
         var builder = DistributedApplication.CreateBuilder();
 
         var storagesku = builder.AddParameter("storagesku");
-#pragma warning disable CA2252 // This API requires opting into preview features
         var storage = builder.AddAzureStorage("storage", (_, _, sa) =>
         {
             sa.AssignProperty(x => x.Sku.Name, storagesku);
         });
-#pragma warning restore CA2252 // This API requires opting into preview features
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
@@ -1358,10 +1358,8 @@ public class AzureBicepResourceTests
 
         // Add search and parameterize the SKU
         var sku = builder.AddParameter("searchSku");
-#pragma warning disable CA2252 // This API requires opting into preview features
         var search = builder.AddAzureSearch("search", (_, _, search) =>
             search.AssignProperty(me => me.SkuName, sku));
-#pragma warning restore CA2252 // This API requires opting into preview features
 
         // Pretend we deployed it
         const string fakeConnectionString = "mysearchconnectionstring";

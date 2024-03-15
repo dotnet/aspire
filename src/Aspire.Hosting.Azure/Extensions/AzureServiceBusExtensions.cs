@@ -23,9 +23,7 @@ public static class AzureServiceBusExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddAzureServiceBus(name, (_, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
@@ -106,9 +104,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the queue.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddQueue(name, (_, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
@@ -131,9 +127,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddTopic(name, (_, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
@@ -157,9 +151,7 @@ public static class AzureServiceBusExtensions
     /// <param name="subscriptionName">The name of the subscription.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddSubscription(topicName, subscriptionName, (_, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>

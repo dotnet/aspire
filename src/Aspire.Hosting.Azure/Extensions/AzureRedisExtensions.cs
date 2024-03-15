@@ -22,9 +22,7 @@ public static class AzureRedisExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.PublishAsAzureRedis((_, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
@@ -107,9 +105,7 @@ public static class AzureRedisExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AsAzureRedis((_, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
