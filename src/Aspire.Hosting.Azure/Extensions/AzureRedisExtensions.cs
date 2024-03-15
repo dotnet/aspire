@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.Versioning;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -18,11 +19,24 @@ public static class AzureRedisExtensions
     /// Configures the resource to be published as Azure Cache for Redis when deployed via Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
+    public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
+    {
+#pragma warning disable CA2252 // This API requires opting into preview features
+        return builder.PublishAsAzureRedis((_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
+    }
+
+    /// <summary>
+    /// Configures the resource to be published as Azure Cache for Redis when deployed via Azure Developer CLI.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <param name="configureResource">Callback to configure Azure resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    public static IResourceBuilder<RedisResource> PublishAsAzureRedisConstruct(this IResourceBuilder<RedisResource> builder, Action<ResourceModuleConstruct, RedisCache>? configureResource = null)
+    [RequiresPreviewFeatures]
+    public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null)
     {
-        return builder.PublishAsAzureRedisConstruct(configureResource);
+        return builder.PublishAsAzureRedis(configureResource);
     }
 
     /// <summary>
@@ -32,7 +46,7 @@ public static class AzureRedisExtensions
     /// <param name="configureResource">Callback to configure Azure resource.</param>
     /// <param name="useProvisioner"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    internal static IResourceBuilder<RedisResource> PublishAsAzureRedisConstruct(this IResourceBuilder<RedisResource> builder, Action<ResourceModuleConstruct, RedisCache>? configureResource = null, bool useProvisioner = false)
+    internal static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null, bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -53,11 +67,13 @@ public static class AzureRedisExtensions
 
             if (configureResource != null)
             {
-                configureResource(construct, redisCache);
+                var resource = (AzureRedisResource)construct.Resource;
+                var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
+                configureResource(resourceBuilder, construct, redisCache);
             }
         };
 
-        var resource = new AzureRedisConstructResource(builder.Resource, configureConstruct);
+        var resource = new AzureRedisResource(builder.Resource, configureConstruct);
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
                                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
@@ -88,10 +104,23 @@ public static class AzureRedisExtensions
     /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
+    public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
+    {
+#pragma warning disable CA2252 // This API requires opting into preview features
+        return builder.AsAzureRedis((_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
+    }
+
+    /// <summary>
+    /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <param name="configureResource">Callback to configure Azure resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    public static IResourceBuilder<RedisResource> AsAzureRedisConstruct(this IResourceBuilder<RedisResource> builder, Action<ResourceModuleConstruct, RedisCache>? configureResource = null)
+    [RequiresPreviewFeatures]
+    public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null)
     {
-        return builder.PublishAsAzureRedisConstruct(configureResource, useProvisioner: true);
+        return builder.PublishAsAzureRedis(configureResource, useProvisioner: true);
     }
 }

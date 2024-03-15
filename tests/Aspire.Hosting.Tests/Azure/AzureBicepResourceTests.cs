@@ -415,38 +415,20 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public async Task PublishAsRedisPublishesRedisAsAzureRedis()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var redis = builder.AddRedis("cache")
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
-            .PublishAsAzureRedis();
-
-        Assert.True(redis.Resource.IsContainer());
-
-        Assert.Equal("localhost:12455", await redis.Resource.GetConnectionStringAsync());
-
-        var manifest = await ManifestUtils.GetManifest(redis.Resource);
-
-        Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
-        Assert.Equal("{cache.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
-    }
-
-    [Fact]
     public async Task PublishAsRedisPublishesRedisAsAzureRedisConstruct()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var redis = builder.AddRedis("cache")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
-            .PublishAsAzureRedisConstruct(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
+            .PublishAsAzureRedis(useProvisioner: false); // Resolving abiguity due to InternalsVisibleTo
 
         Assert.True(redis.Resource.IsContainer());
 
         Assert.Equal("localhost:12455", await redis.Resource.GetConnectionStringAsync());
 
-        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+        var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
+
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
@@ -459,8 +441,56 @@ public class AzureBicepResourceTests
               }
             }
             """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        Assert.Equal(expectedManifest, manifest.ToString());
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param keyVaultName string
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource redisCache_p9fE6TK3F 'Microsoft.Cache/Redis@2020-06-01' = {
+              name: toLower(take(concat('cache', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'cache'
+              }
+              properties: {
+                enableNonSslPort: false
+                minimumTlsVersion: '1.2'
+                sku: {
+                  name: 'Basic'
+                  family: 'C'
+                  capacity: 1
+                }
+              }
+            }
+
+            resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+              parent: keyVault_IeF8jZvXV
+              name: 'connectionString'
+              location: location
+              properties: {
+                value: '${redisCache_p9fE6TK3F.properties.hostName},ssl=true,password=${redisCache_p9fE6TK3F.listKeys(redisCache_p9fE6TK3F.apiVersion).primaryKey}'
+              }
+            }
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
     [Fact]

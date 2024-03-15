@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="innerResource">The inner resource.</param>
 /// <param name="configureConstruct"></param>
-public class AzureRedisConstructResource(RedisResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
+public class AzureRedisResource(RedisResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(innerResource.Name, configureConstruct),
     IResourceWithConnectionString
 {

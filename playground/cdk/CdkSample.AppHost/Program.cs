@@ -31,7 +31,7 @@ var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 });
 #pragma warning restore CA2252 // This API requires opting into preview features
 
-var cache = builder.AddRedis("cache").AsAzureRedisConstruct();
+var cache = builder.AddRedis("cache").AsAzureRedis();
 
 var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
 var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
