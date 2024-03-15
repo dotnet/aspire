@@ -160,7 +160,7 @@ public static class AzureCosmosExtensions
     }
 }
 
-file static class AzureCosmosDBEmulatorConnectionString
+internal static class AzureCosmosDBEmulatorConnectionString
 {
     public static string Create(int port) => $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://127.0.0.1:{port};DisableServerCertificateValidation=True;";
 }
