@@ -4,6 +4,7 @@
 using System.Data.Common;
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -120,12 +121,12 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
     }
 
     [RequiresDockerFact]
-    public Task TracingEnablesTheRightActivitySource()
-        => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null));
+    public void TracingEnablesTheRightActivitySource()
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null)));
 
     [RequiresDockerFact]
-    public Task TracingEnablesTheRightActivitySource_Keyed()
-        => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: "key"));
+    public void TracingEnablesTheRightActivitySource_Keyed()
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: "key")));
 
     private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
     {
