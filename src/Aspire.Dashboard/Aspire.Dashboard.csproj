@@ -171,7 +171,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Aspire.Hosting.Core\Dashboard\proto\resource_service.proto" GrpcServices="Client" Access="Internal">
+    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto" GrpcServices="Client" Access="Internal">
       <Link>Protos\resource_service.proto</Link>
     </Protobuf>
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />

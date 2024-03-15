@@ -10,9 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Aspire.Hosting.Core\Dcp\Process\ProcessResult.cs" Link="Provisioning\Utils\ProcessResult.cs" />
-    <Compile Include="..\Aspire.Hosting.Core\Dcp\Process\ProcessSpec.cs" Link="Provisioning\Utils\ProcessSpec.cs" />
-    <Compile Include="..\Aspire.Hosting.Core\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessResult.cs" Link="Provisioning\Utils\ProcessResult.cs" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Provisioning\Utils\ProcessSpec.cs" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
     <Compile Include="..\Shared\ValueStopwatch\ValueStopwatch.cs" Link="Provisioning\ValueStopwatch.cs" />
   </ItemGroup>
