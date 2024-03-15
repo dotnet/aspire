@@ -56,7 +56,7 @@ public class Class1
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="{repoRoot}\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="{repoRoot}\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\Library\Library.csproj" />
   </ItemGroup>
