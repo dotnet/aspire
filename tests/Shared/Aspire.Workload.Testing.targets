@@ -150,6 +150,7 @@
 <![CDATA[
       <Project>
         <PropertyGroup>
+          <NetCurrent>$(NetCurrent)</NetCurrent>
           <PackageVersion>$(PackageVersion)</PackageVersion>
           <MicrosoftExtensionsHostingAbstractionsPackageVersion>$(MicrosoftExtensionsHostingAbstractionsPackageVersion)</MicrosoftExtensionsHostingAbstractionsPackageVersion>
           <MicrosoftExtensionsHostingPackageVersion>$(MicrosoftExtensionsHostingPackageVersion)</MicrosoftExtensionsHostingPackageVersion>

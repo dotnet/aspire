@@ -1,4 +1,4 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.props', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-  <Import Project="Directory.Packages.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="..\Directory.Packages.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
 </Project>

@@ -9,7 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TestingAppHost1.MyWebApp\TestingAppHost1.MyWebApp.csproj" />
     <ProjectReference Include="..\TestingAppHost1.MyWorker\TestingAppHost1.MyWorker.csproj" />
   </ItemGroup>

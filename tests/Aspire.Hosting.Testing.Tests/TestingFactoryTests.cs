@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
-using Aspire.Hosting.Tests.Helpers;
+//using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -12,7 +12,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Program> fixture)
 {
     private readonly DistributedApplication _app = fixture.Application;
 
-    [LocalOnlyFact]
+    [Fact]
     public async void HasEndPoints()
     {
         // Get an endpoint from a resource
@@ -26,7 +26,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Program> fixture)
         Assert.True(pgConnectionString.Length > 0);
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public void CanGetResources()
     {
         var appModel = _app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -34,7 +34,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Program> fixture)
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task HttpClientGetTest()
     {
         var httpClient = _app.CreateHttpClient("mywebapp1");

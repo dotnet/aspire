@@ -18,10 +18,8 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.GrpcNetClient" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
-  </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj" />
+    <NonComponentReferenceForTests Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
 
 </Project>

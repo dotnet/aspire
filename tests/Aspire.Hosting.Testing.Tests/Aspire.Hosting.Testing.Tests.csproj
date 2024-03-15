@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <OutputType>exe</OutputType>
+    <TestProjectsRootPath Condition="'$(TestProjectsRootPath)' == ''">$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), '..'))</TestProjectsRootPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,10 +15,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
-    <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Testing" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.assert" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(TestProjectsRootPath)TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
   </ItemGroup>
 
 </Project>

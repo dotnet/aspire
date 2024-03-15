@@ -2,7 +2,7 @@
   <PropertyGroup>
     <IsTestSupportProject>true</IsTestSupportProject>
     <NetCurrent>net8.0</NetCurrent>
-    <PackageVersion>8.0.0-dev</PackageVersion>
+    <AspirePackageVersion>8.0.0-dev</AspirePackageVersion>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 

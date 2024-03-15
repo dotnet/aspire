@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
-using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -10,7 +9,7 @@ namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests
 {
-    [LocalOnlyFact]
+    [Fact]
     public async Task HasEndPoints()
     {
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
@@ -29,7 +28,7 @@ public class TestingBuilderTests
         Assert.True(pgConnectionString.Length > 0);
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task CanGetResources()
     {
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
@@ -42,7 +41,7 @@ public class TestingBuilderTests
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task HttpClientGetTest()
     {
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
