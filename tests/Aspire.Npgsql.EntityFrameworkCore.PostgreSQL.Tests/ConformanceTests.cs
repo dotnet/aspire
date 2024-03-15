@@ -15,7 +15,7 @@ namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
     // in the future it can become a static property that reads the value from Env Var
-    protected readonly PostgreSQLContainerFixture _containerFixture;
+    private readonly PostgreSQLContainerFixture _containerFixture;
     protected string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                             ? _containerFixture.GetConnectionString()
                                             : "Host=localhost;Database=test;Username=postgres;Password=postgres";
