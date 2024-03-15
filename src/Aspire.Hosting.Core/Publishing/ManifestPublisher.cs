@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class ManifestPublisher(ILogger<ManifestPublisher> logger,
+internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
                                IOptions<PublishingOptions> options,
                                IHostApplicationLifetime lifetime,
                                DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher
@@ -27,7 +27,7 @@ internal sealed class ManifestPublisher(ILogger<ManifestPublisher> logger,
         _lifetime.StopApplication();
     }
 
-    private async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    protected virtual async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         if (_options.Value.OutputPath == null)
         {
@@ -45,7 +45,7 @@ internal sealed class ManifestPublisher(ILogger<ManifestPublisher> logger,
         _logger.LogInformation("Published manifest to: {ManifestPath}", fullyQualifiedPath);
     }
 
-    private async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used.");
         var context = new ManifestPublishingContext(_executionContext, manifestPath, jsonWriter, cancellationToken);

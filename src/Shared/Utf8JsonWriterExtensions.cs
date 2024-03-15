@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Utils;
 /// <summary>
 /// Extensions to the <see cref="Utf8JsonWriter"/> type.
 /// </summary>
-public static class Utf8JsonWriterExtensions
+internal static class Utf8JsonWriterExtensions
 {
     /// <summary>
     /// Writes a string array to the JSON writer, if the array is not null or empty.
