@@ -195,6 +195,32 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             },
             cancellationToken);
 
+        Task.Run(async () =>
+        {
+            await foreach (var subscribers in loggerService.WatchAnySubscribersAsync())
+            {
+                if (subscribers.AnySubscribers)
+                {
+                    if (_containersMap.TryGetValue(subscribers.Name, out var container))
+                    {
+                        StartLogStream(container);
+                    }
+                    else if (_executablesMap.TryGetValue(subscribers.Name, out var executable))
+                    {
+                        StartLogStream(executable);
+                    }
+                }
+                else
+                {
+                    if (_logStreams.TryRemove(subscribers.Name, out var cts))
+                    {
+                        cts.Cancel();
+                    }
+                }
+            }
+        },
+        cancellationToken);
+
         async Task WatchKubernetesResource<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
         {
             var retryUntilCancelled = new RetryStrategyOptions()
@@ -273,6 +299,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         cts.Cancel();
                     }
 
+                    // Complete the log stream
+                    loggerService.Complete(resource.Metadata.Name);
+
                     // TODO: Handle resource deletion
                     if (_logger.IsEnabled(LogLevel.Trace))
                     {
@@ -294,8 +323,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                     // Notifications are associated with the application model resource, so we need to update with that context
                     await notificationService.PublishUpdateAsync(appModelResource, resource.Metadata.Name, s => snapshotFactory(resource, s)).ConfigureAwait(false);
-
-                    StartLogStream(resource);
                 }
 
                 // Update all child resources of containers
@@ -365,7 +392,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     }
 
                     // Pump the logs from the enumerable into the logger
-                    var logger = loggerService.GetLogger(resource.Metadata.Name);
+                    var logger = loggerService.GetStreamingLogger(resource.Metadata.Name);
 
                     await foreach (var batch in enumerable.WithCancellation(cts.Token))
                     {
@@ -384,11 +411,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error streaming logs for {ResourceName}", resource.Metadata.Name);
-                }
-                finally
-                {
-                    // Complete the log stream
-                    loggerService.Complete(resource.Metadata.Name);
                 }
             },
             cts.Token);
