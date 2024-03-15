@@ -23,7 +23,9 @@ public static class AzureOpenAIExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name)
     {
+#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddAzureOpenAI(name, (_, _, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>

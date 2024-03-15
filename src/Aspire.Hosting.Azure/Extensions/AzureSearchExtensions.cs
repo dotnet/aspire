@@ -23,7 +23,9 @@ public static class AzureSearchExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
     {
+#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddAzureSearch(name, (_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
     }
     /// <summary>
     /// Adds an Azure AI Search service resource to the application model.

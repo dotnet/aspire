@@ -56,7 +56,9 @@ public static class AzureCosmosExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(this IDistributedApplicationBuilder builder, string name)
     {
+#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddAzureCosmosDB(name, static (_, _, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
     }
     /// <summary>
     /// Adds an Azure Cosmos DB connection to the application model.

@@ -169,11 +169,13 @@ public static class AzurePostgresExtensions
         IResourceBuilder<ParameterResource>? administratorLogin = null,
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
     {
+#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.PublishAsAzurePostgresFlexibleServer(
             (_, _, _) => { },
             administratorLogin: administratorLogin,
             administratorLoginPassword
             );
+#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
@@ -188,7 +190,9 @@ public static class AzurePostgresExtensions
         IResourceBuilder<ParameterResource>? administratorLogin = null,
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
     {
+#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AsAzurePostgresFlexibleServer((_, _, _) => { }, administratorLogin, administratorLoginPassword);
+#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>

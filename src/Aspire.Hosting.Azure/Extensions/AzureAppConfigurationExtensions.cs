@@ -22,7 +22,9 @@ public static class AzureAppConfigurationExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name)
     {
+#pragma warning disable CA2252 // This API requires opting into preview features
         return builder.AddAzureAppConfiguration(name, (_, _, _) => { });
+#pragma warning restore CA2252 // This API requires opting into preview features
     }
 
     /// <summary>
