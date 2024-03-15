@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="ContainerMountAnonymousVolumesReadOnlyExceptionMessage">
         <source>Anonymous volumes cannot be read-only.</source>
-        <target state="new">Anonymous volumes cannot be read-only.</target>
+        <target state="translated">익명 볼륨은 읽기 전용일 수 없습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
-        <target state="new">Bind mounts must specify a source path.</target>
+        <target state="translated">바인딩 탑재는 원본 경로를 지정해야 합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">

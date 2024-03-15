@@ -53,6 +53,11 @@ public class ReferenceExpression : IValueProvider, IManifestExpressionProvider
     /// <returns></returns>
     public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
+        if (Format.Length == 0)
+        {
+            return null;
+        }
+
         var args = new object?[ValueProviders.Count];
         for (var i = 0; i < ValueProviders.Count; i++)
         {
@@ -104,7 +109,7 @@ public ref struct ExpressionInterpolatedStringHandler(int literalLength, int for
     /// Appends a formatted value to the expression.
     /// </summary>
     /// <param name="value"></param>
-    public readonly void AppendFormatted(string value)
+    public readonly void AppendFormatted(string? value)
     {
         _builder.Append(value);
     }

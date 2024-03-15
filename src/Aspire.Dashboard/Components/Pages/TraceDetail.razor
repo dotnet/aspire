@@ -110,6 +110,10 @@
                                                 {
                                                     icon = new Icons.Filled.Size16.Database();
                                                 }
+                                                else if (context.Span.Attributes.HasKey("messaging.system"))
+                                                {
+                                                    icon = new Icons.Filled.Size16.Mail();
+                                                }
                                                 else
                                                 {
                                                     // Everything else.

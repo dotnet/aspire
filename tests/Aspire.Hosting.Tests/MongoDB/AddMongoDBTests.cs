@@ -81,13 +81,16 @@ public class AddMongoDBTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<MongoDBDatabaseResource>());
-        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        var dbResource = Assert.Single(appModel.Resources.OfType<MongoDBDatabaseResource>());
+        var serverResource = dbResource.Parent as IResourceWithConnectionString;
+        var connectionStringResource = dbResource as IResourceWithConnectionString;
+        Assert.NotNull(connectionStringResource);
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("mongodb://localhost:27017", await connectionStringResource.Parent.GetConnectionStringAsync(default));
-        Assert.Equal("mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", connectionStringResource.Parent.ConnectionStringExpression);
+        Assert.Equal("mongodb://localhost:27017", await serverResource.GetConnectionStringAsync());
+        Assert.Equal("mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", serverResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal("mongodb://localhost:27017/mydatabase", connectionString);
-        Assert.Equal("{mongodb.connectionString}/mydatabase", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("{mongodb.connectionString}/mydatabase", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -181,8 +184,8 @@ public class AddMongoDBTests
         Assert.Equal("customers1", db1.Resource.DatabaseName);
         Assert.Equal("customers2", db2.Resource.DatabaseName);
 
-        Assert.Equal("{mongo1.connectionString}/customers1", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{mongo1.connectionString}/customers2", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{mongo1.connectionString}/customers1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{mongo1.connectionString}/customers2", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -199,7 +202,7 @@ public class AddMongoDBTests
         Assert.Equal("imports", db1.Resource.DatabaseName);
         Assert.Equal("imports", db2.Resource.DatabaseName);
 
-        Assert.Equal("{mongo1.connectionString}/imports", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{mongo2.connectionString}/imports", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{mongo1.connectionString}/imports", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{mongo2.connectionString}/imports", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 }

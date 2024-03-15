@@ -23,7 +23,7 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
     {
         var value = await Resource.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
-        if (value is null && !Optional)
+        if (string.IsNullOrEmpty(value) && !Optional)
         {
             throw new DistributedApplicationException($"The connection string for the resource '{Resource.Name}' is not available.");
         }

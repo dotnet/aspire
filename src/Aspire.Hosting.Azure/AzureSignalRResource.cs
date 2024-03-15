@@ -18,23 +18,11 @@ public class AzureSignalRResource(string name) :
     /// </summary>
     public BicepOutputReference HostName => new("hostName", this);
 
-    private ReferenceExpression ConnectionString
-        => ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
-
     /// <summary>
     /// Gets the connection string template for the manifest for Azure SignalR.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for Azure SignalR.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for Azure SignalR.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        return ConnectionString.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
 }
 
 /// <summary>
@@ -51,21 +39,9 @@ public class AzureSignalRConstructResource(string name, Action<ResourceModuleCon
     /// </summary>
     public BicepOutputReference HostName => new("hostName", this);
 
-    private ReferenceExpression ConnectionString
-        => ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
-
     /// <summary>
     /// Gets the connection string template for the manifest for Azure SignalR.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for Azure SignalR.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for Azure SignalR.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        return ConnectionString.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
 }

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Web;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace Aspire.Dashboard.Utils;
@@ -24,7 +23,7 @@ internal static class DashboardUrls
         var url = $"/{ConsoleLogBasePath}";
         if (resource != null)
         {
-            url += $"/resource/{HttpUtility.UrlEncode(resource)}";
+            url += $"/resource/{Uri.EscapeDataString(resource)}";
         }
 
         return url;
@@ -35,7 +34,7 @@ internal static class DashboardUrls
         var url = $"/{MetricsBasePath}";
         if (resource != null)
         {
-            url += $"/resource/{HttpUtility.UrlEncode(resource)}";
+            url += $"/resource/{Uri.EscapeDataString(resource)}";
         }
         if (meter is not null)
         {
@@ -63,7 +62,7 @@ internal static class DashboardUrls
         var url = $"/{StructuredLogsBasePath}";
         if (resource != null)
         {
-            url += $"/resource/{HttpUtility.UrlEncode(resource)}";
+            url += $"/resource/{Uri.EscapeDataString(resource)}";
         }
         if (logLevel != null)
         {
@@ -91,7 +90,7 @@ internal static class DashboardUrls
         var url = $"/{TracesBasePath}";
         if (resource != null)
         {
-            url += $"/resource/{HttpUtility.UrlEncode(resource)}";
+            url += $"/resource/{Uri.EscapeDataString(resource)}";
         }
 
         return url;
@@ -99,6 +98,6 @@ internal static class DashboardUrls
 
     public static string TraceDetailUrl(string traceId)
     {
-        return $"/{TracesBasePath}/detail/{HttpUtility.UrlEncode(traceId)}";
+        return $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
     }
 }

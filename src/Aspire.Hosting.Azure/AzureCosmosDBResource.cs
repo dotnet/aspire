@@ -36,22 +36,10 @@ public class AzureCosmosDBResource(string name) :
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string to use for this database.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string to use for this database.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (IsEmulator)
-        {
-            return new(AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port));
-        }
-
-        return ConnectionString.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        IsEmulator
+        ? ReferenceExpression.Create($"{AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port)}")
+        : ReferenceExpression.Create($"{ConnectionString}");
 }
 
 /// <summary>
@@ -79,22 +67,10 @@ public class AzureCosmosDBConstructResource(string name, Action<ResourceModuleCo
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string to use for this database.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string to use for this database.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (IsEmulator)
-        {
-            return new(AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port));
-        }
-
-        return ConnectionString.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        IsEmulator
+        ? ReferenceExpression.Create($"{AzureCosmosDBEmulatorConnectionString.Create(EmulatorEndpoint.Port)}")
+        : ReferenceExpression.Create($"{ConnectionString}");
 }
 
 /// <summary>

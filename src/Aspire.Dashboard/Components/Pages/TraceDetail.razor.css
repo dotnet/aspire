@@ -45,7 +45,6 @@
     border: 0;
     border-radius: 0;
     vertical-align: middle;
-    height: 100%;
 }
 
 ::deep .trace-view-grid fluent-data-grid-cell[grid-column="2"] fluent-divider {

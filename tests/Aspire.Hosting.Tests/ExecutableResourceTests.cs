@@ -63,9 +63,7 @@ public class ExecutableResourceTests
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
-        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-        {
-            return new(connectionString);
-        }
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"{connectionString}");
     }
 }

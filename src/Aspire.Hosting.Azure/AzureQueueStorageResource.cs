@@ -23,22 +23,8 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Queue Storage resource.
     /// </summary>
-    public string ConnectionStringExpression => Parent.QueueEndpoint.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Queue Storage resource.
-    ///</summary>
-    ///<param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    ///<returns> The connection string for the Azure Queue Storage resource.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (Parent.ProvisioningTaskCompletionSource is not null)
-        {
-            await Parent.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return Parent.GetQueueConnectionString();
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        Parent.GetQueueConnectionString();
 
     internal void WriteToManifest(ManifestPublishingContext context)
     {
@@ -64,22 +50,8 @@ public class AzureQueueStorageConstructResource(string name, AzureStorageConstru
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Queue Storage resource.
     /// </summary>
-    public string ConnectionStringExpression => Parent.QueueEndpoint.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Blob Storage resource.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure Blob Storage resource.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (Parent.ProvisioningTaskCompletionSource is not null)
-        {
-            await Parent.ProvisioningTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        return Parent.GetQueueConnectionString();
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        Parent.GetQueueConnectionString();
 
     internal void WriteToManifest(ManifestPublishingContext context)
     {

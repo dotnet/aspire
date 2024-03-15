@@ -50,16 +50,19 @@ public static class ExecutableResourceBuilderExtensions
 
     /// <summary>
     /// Adds annotation to <see cref="ExecutableResource" /> to support containerization during deployment.
+    /// The resulting container image is built, and when the optional <paramref name="buildArgs"/> are provided
+    /// they're used with <c>docker build --build-arg</c>.
     /// </summary>
     /// <typeparam name="T">Type of executable resource</typeparam>
     /// <param name="builder">Resource builder</param>
+    /// <param name="buildArgs">The optional build arguments, used with <c>docker build --build-args</c>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
+    public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder, IEnumerable<DockerBuildArg>? buildArgs = null) where T : ExecutableResource
     {
-        return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResourceAsync(context, builder.Resource));
+        return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResourceAsync(context, builder.Resource, buildArgs));
     }
 
-    private static async Task WriteExecutableAsDockerfileResourceAsync(ManifestPublishingContext context, ExecutableResource executable)
+    private static async Task WriteExecutableAsDockerfileResourceAsync(ManifestPublishingContext context, ExecutableResource executable, IEnumerable<DockerBuildArg>? buildArgs = null)
     {
         context.Writer.WriteString("type", "dockerfile.v0");
 
@@ -69,6 +72,11 @@ public static class ExecutableResourceBuilderExtensions
 
         var manifestFileRelativePathToContextDirectory = context.GetManifestRelativePath(executable.WorkingDirectory);
         context.Writer.WriteString("context", manifestFileRelativePathToContextDirectory);
+
+        if (buildArgs is not null)
+        {
+            context.WriteDockerBuildArgs(buildArgs);
+        }
 
         await context.WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
         context.WriteBindings(executable, emitContainerPort: true);

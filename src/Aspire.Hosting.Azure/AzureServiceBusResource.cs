@@ -25,17 +25,8 @@ public class AzureServiceBusResource(string name) :
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Service Bus endpoint.
     /// </summary>
-    public string ConnectionStringExpression => ServiceBusEndpoint.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Service Bus endpoint.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure Service Bus endpoint.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        return ServiceBusEndpoint.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ServiceBusEndpoint}");
 }
 
 /// <summary>
@@ -58,15 +49,6 @@ public class AzureServiceBusConstructResource(string name, Action<ResourceModule
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Service Bus endpoint.
     /// </summary>
-    public string ConnectionStringExpression => ServiceBusEndpoint.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Service Bus endpoint.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure Service Bus endpoint.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        return ServiceBusEndpoint.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ServiceBusEndpoint}");
 }

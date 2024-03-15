@@ -16,29 +16,13 @@ public class MongoDBDatabaseResource(string name, string databaseName, MongoDBSe
     /// <summary>
     /// Gets the connection string expression for the MongoDB database.
     /// </summary>
-    public string ConnectionStringExpression
-        => $"{{{Parent.Name}.connectionString}}/{DatabaseName}";
+    public ReferenceExpression ConnectionStringExpression
+        => ReferenceExpression.Create($"{Parent}/{DatabaseName}");
 
     /// <summary>
     /// Gets the parent MongoDB container resource.
     /// </summary>
     public MongoDBServerResource Parent => parent;
-
-    /// <summary>
-    /// Gets the connection string for the MongoDB database.
-    /// </summary>
-    /// <returns>A connection string for the MongoDB database.</returns>
-    public async ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
-    {
-        if (await Parent.GetConnectionStringAsync(cancellationToken).ConfigureAwait(false) is { } connectionString)
-        {
-            return connectionString.EndsWith('/') ?
-                $"{connectionString}{DatabaseName}" :
-                $"{connectionString}/{DatabaseName}";
-        }
-
-        throw new DistributedApplicationException("Parent resource connection string was null.");
-    }
 
     /// <summary>
     /// Gets the database name.
