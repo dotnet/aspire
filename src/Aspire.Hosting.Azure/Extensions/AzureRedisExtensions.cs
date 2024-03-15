@@ -36,7 +36,7 @@ public static class AzureRedisExtensions
     [RequiresPreviewFeatures]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null)
     {
-        return builder.PublishAsAzureRedis(configureResource);
+        return builder.PublishAsAzureRedisInternal(configureResource);
     }
 
     /// <summary>
