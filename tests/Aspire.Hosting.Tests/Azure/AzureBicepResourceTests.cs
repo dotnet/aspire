@@ -295,17 +295,76 @@ public class AzureBicepResourceTests
 
         var connectionStringResource = (IResourceWithConnectionString)appInsights.Resource;
 
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.appinsights.bicep", appInsights.Resource.TemplateResourceName);
         Assert.Equal("appInsights", appInsights.Resource.Name);
-        Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
-        Assert.True(appInsights.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
         Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
-        var appInsightsManifest = await ManifestUtils.GetManifest(appInsights.Resource);
-        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsightsManifest["connectionString"]?.ToString());
-        Assert.Equal("azure.bicep.v0", appInsightsManifest["type"]?.ToString());
-        Assert.Equal("aspire.hosting.azure.bicep.appinsights.bicep", appInsightsManifest["path"]?.ToString());
+        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
+        var expectedManifest = """
+           {
+             "type": "azure.bicep.v0",
+             "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+             "path": "appInsights.module.bicep",
+             "params": {
+               "principalId": "",
+               "principalType": ""
+             }
+           }
+           """;
+        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param logAnalyticsWorkspaceId string = ''
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param applicationType string = 'web'
+
+            @description('')
+            param kind string = 'web'
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource operationalInsightsWorkspace_fo9MneV12 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'appInsights'
+              }
+              properties: {
+                sku: {
+                  name: 'PerGB2018'
+                }
+              }
+            }
+
+            resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
+              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'appInsights'
+              }
+              kind: kind
+              properties: {
+                Application_Type: applicationType
+                WorkspaceResourceId: (empty(logAnalyticsWorkspaceId) ? operationalInsightsWorkspace_fo9MneV12.id : logAnalyticsWorkspaceId)
+              }
+            }
+
+            output appInsightsConnectionString string = applicationInsightsComponent_fo9MneV12.properties.ConnectionString
+
+            """;
+        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
     }
 
     [Fact]
@@ -1550,82 +1609,6 @@ public class AzureBicepResourceTests
             }
 
             output connectionString string = 'Endpoint=${cognitiveServicesAccount_6g8jyEjX5.properties.endpoint}'
-
-            """;
-        Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AddAzureApplicationInsights()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var appInsights = builder.AddAzureApplicationInsights("appInsights");
-
-        var manifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
-              "path": "appInsights.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalType": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            targetScope = 'resourceGroup'
-
-            @description('')
-            param logAnalyticsWorkspaceId string = ''
-
-            @description('')
-            param location string = resourceGroup().location
-
-            @description('')
-            param applicationType string = 'web'
-
-            @description('')
-            param kind string = 'web'
-
-            @description('')
-            param principalId string
-
-            @description('')
-            param principalType string
-
-
-            resource operationalInsightsWorkspace_fo9MneV12 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
-              location: location
-              tags: {
-                'aspire-resource-name': 'appInsights'
-              }
-              properties: {
-                sku: {
-                  name: 'PerGB2018'
-                }
-              }
-            }
-
-            resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
-              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
-              location: location
-              tags: {
-                'aspire-resource-name': 'appInsights'
-              }
-              kind: kind
-              properties: {
-                Application_Type: applicationType
-                WorkspaceResourceId: (empty(logAnalyticsWorkspaceId) ? operationalInsightsWorkspace_fo9MneV12.id : logAnalyticsWorkspaceId)
-              }
-            }
-
-            output appInsightsConnectionString string = applicationInsightsComponent_fo9MneV12.properties.ConnectionString
 
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
