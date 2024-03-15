@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Testing;
 
@@ -57,8 +58,9 @@ public static class DistributedApplicationExtensions
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
     public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default) => new(GetEndpointUriStringCore(app, resourceName, endpointName));
 
-    private static IResource GetResource(DistributedApplication app, string resourceName)
+    static IResource GetResource(DistributedApplication app, string resourceName)
     {
+        ThrowIfNotStarted(app);
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var resources = applicationModel.Resources;
@@ -72,7 +74,7 @@ public static class DistributedApplicationExtensions
         return resource;
     }
 
-    private static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default)
+    static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default)
     {
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithEndpoints resourceWithEndpoints)
@@ -96,6 +98,15 @@ public static class DistributedApplicationExtensions
         }
 
         return endpoint.Url;
+    }
+
+    static void ThrowIfNotStarted(DistributedApplication app)
+    {
+        var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+        if (!lifetime.ApplicationStarted.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("The application has not started.");
+        }
     }
 
     static EndpointReference? GetEndpointOrDefault(IResourceWithEndpoints resourceWithEndpoints, string endpointName)
