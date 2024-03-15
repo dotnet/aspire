@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
+internal sealed class ManifestPublisher(ILogger<ManifestPublisher> logger,
                                IOptions<PublishingOptions> options,
                                IHostApplicationLifetime lifetime,
                                DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher
@@ -21,13 +21,13 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
     public Utf8JsonWriter? JsonWriter { get; set; }
 
-    public virtual async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         await PublishInternalAsync(model, cancellationToken).ConfigureAwait(false);
         _lifetime.StopApplication();
     }
 
-    protected virtual async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    private async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         if (_options.Value.OutputPath == null)
         {
@@ -45,7 +45,7 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
         _logger.LogInformation("Published manifest to: {ManifestPath}", fullyQualifiedPath);
     }
 
-    protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used.");
         var context = new ManifestPublishingContext(_executionContext, manifestPath, jsonWriter, cancellationToken);

@@ -6,7 +6,7 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal class GenericResourceSnapshot(CustomResourceSnapshot state) : ResourceSnapshot
+internal sealed class GenericResourceSnapshot(CustomResourceSnapshot state) : ResourceSnapshot
 {
     public override string ResourceType => state.ResourceType;
 

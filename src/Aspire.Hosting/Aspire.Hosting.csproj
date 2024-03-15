@@ -2,13 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <OutputType>Library</OutputType>
     <IsPackable>true</IsPackable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>ASPIRE_EVENTSOURCE</DefineConstants>
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
     <PackageTags>aspire hosting</PackageTags>
-    <Description>Core API and abstractions for the .NET Aspire application model.</Description>
+    <Description>APIs for the .NET Aspire application model.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,22 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
-    <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
-    <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
-    <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
-    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
-    <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
-    <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
-    <Compile Include="$(SharedDir)ValueStopwatch\*.cs" LinkBase="Utils" />
-    <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Grpc.AspNetCore" />
-    <PackageReference Include="KubernetesClient" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <ProjectReference Include="..\Aspire.Hosting.Core\Aspire.Hosting.Core.csproj" />
   </ItemGroup>
 
   <!-- Download DCP orchestrator components for local development -->
@@ -40,27 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Testing" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Protobuf Include="Dashboard\proto\resource_service.proto" GrpcServices="Server" Access="Internal" />
   </ItemGroup>
 
 </Project>
