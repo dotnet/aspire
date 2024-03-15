@@ -57,6 +57,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         {
             _visibleResourceTypes.TryRemove(resourceType, out _);
         }
+
+        ClearSelectedResource();
+    }
+
+    private void HandleSearchFilterChanged()
+    {
+        ClearSelectedResource();
     }
 
     private bool? AreAllTypesVisible
