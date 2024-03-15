@@ -343,6 +343,8 @@ internal sealed class AzureProvisioner(
 
         var resourceMap = new Dictionary<string, ArmResource>();
 
+        var appHostDirectory = configuration["AppHost:Directory"] ?? throw new DistributedApplicationException("AppHost:Directory configuration not set.");
+
         return new ProvisioningContext(
                     credential,
                     armClient,
@@ -352,7 +354,9 @@ internal sealed class AzureProvisioner(
                     resourceMap,
                     location,
                     principal,
-                    userSecrets);
+                    userSecrets,
+                    appHostDirectory
+                    );
     }
 
     internal static async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)

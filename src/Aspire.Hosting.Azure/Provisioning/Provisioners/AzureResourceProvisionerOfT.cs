@@ -24,7 +24,8 @@ internal sealed class ProvisioningContext(
     IReadOnlyDictionary<string, ArmResource> resourceMap,
     AzureLocation location,
     UserPrincipal principal,
-    JsonObject userSecrets)
+    JsonObject userSecrets,
+    string appHostDirectory)
 {
     public TokenCredential Credential => credential;
     public ArmClient ArmClient => armClient;
@@ -35,6 +36,7 @@ internal sealed class ProvisioningContext(
     public AzureLocation Location => location;
     public UserPrincipal Principal => principal;
     public JsonObject UserSecrets => userSecrets;
+    public string AppHostDirectory => appHostDirectory;
 }
 
 internal interface IAzureResourceProvisioner

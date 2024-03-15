@@ -126,7 +126,7 @@ internal sealed class BicepProvisioner(
         var azPath = FindFullPathFromPath("az") ??
             throw new InvalidOperationException("Azure CLI not found in PATH");
 
-        var template = resource.GetBicepTemplateFile();
+        var template = resource.GetBicepTemplateFile(context.AppHostDirectory);
 
         var path = template.Path;
 
