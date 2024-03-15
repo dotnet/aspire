@@ -1,0 +1,12 @@
+<Project>
+  <ItemGroup>
+    <ProjectReference Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
+    <PackageReference Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" Include="@(ComponentReferenceForTests)" />
+
+    <ProjectReference Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" Include="@(NonComponentReferenceForTests -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" IsAspireProjectResource="false" />
+    <PackageReference Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" Include="@(NonComponentReferenceForTests)" />
+  </ItemGroup>
+
+  <Import Project="Directory.Build.Helix.targets" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="..\Directory.Build.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+</Project>

@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <IsTestSupportProject>true</IsTestSupportProject>
+    <NetCurrent>net8.0</NetCurrent>
+    <PackageVersion>8.0.0-dev</PackageVersion>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <Import Project="Directory.Build.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="..\Directory.Build.props" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+</Project>
