@@ -21,12 +21,37 @@
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
     <Compile Include="..\Shared\WorkloadTesting\*.cs" Link="WorkloadTestingCommon" />
+  </ItemGroup>
 
+  <ItemGroup>
+    <!--<TestProject Include="..\testproject" TargetDir="testproject" />-->
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(PatchedNuGetConfigPath)" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\TestingAppHost1\**\*" Link="testassets\TestingAppHost1\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(PatchedNuGetConfigPath)" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
   </ItemGroup>
+
+  <!--<Target Name="_CopyTestProjects" BeforeTargets="GetCopyToOutputDirectoryItems" Inputs="%(TestProject.Identity)" Outputs="testassets/%(TestProject.TargetDir)">-->
+  <Target Name="_CopyTestProjects" AfterTargets="Build" Inputs="%(TestProject.Identity)" Outputs="testassets/%(TestProject.TargetDir)">
+    <!--<PropertyGroup>-->
+      <!--<_TestProjectWildCard>%(TestProject.Identity)\**\*</_TestProjectWildCard>-->
+      <!--<_TestProjectTargetDir>%(TestProject.TargetDir)</_TestProjectTargetDir>-->
+    <!--</PropertyGroup>-->
+    <!--<ItemGroup>-->
+      <!--<_FilesToCopy Include="%(TestProject.Identity)\**\*" TargetPath="%(RecursiveDir)%(FileName)%(Extension)" />-->
+    <!--</ItemGroup>-->
+
+    <!--<Copy SourceFiles="@(_FilesToCopy)"-->
+          <!--DestinationFiles="@(_FilesToCopy -> '$(OutputPath)\testassets\%(TargetPath)')" />-->
+
+    <ItemGroup>
+      <!--<None Include="$(_TestProjectWildCard)" LinkBase="@(TestProject -> 'testassets\%(TargetDir)')" CopyToOutputDirectory="PreserveNewest" />-->
+      <!--<None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(PatchedNuGetConfigPath)" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />-->
+      <!--<None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\%(TestProject.TargetDir)\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />-->
+    </ItemGroup>
+  </Target>
 </Project>
