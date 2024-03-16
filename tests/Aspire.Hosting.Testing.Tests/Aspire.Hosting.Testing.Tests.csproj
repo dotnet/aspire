@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <NonComponentReferenceForTests Include="Aspire.Hosting" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 

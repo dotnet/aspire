@@ -12,7 +12,7 @@
   <Import Project="Directory.Build.Helix.targets" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
 
   <!-- NOTE: These lines are only required because we are using P2P references, not NuGet. They will not exist in real apps. -->
-  <Import Project="..\..\src\Aspire.Hosting\build\Aspire.Hosting.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+  <Import Project="..\..\src\Aspire.Hosting\build\Aspire.Hosting.AppHost.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
   <Import Project="..\..\src\Aspire.Hosting.Sdk\SDK\Sdk.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
 
 </Project>

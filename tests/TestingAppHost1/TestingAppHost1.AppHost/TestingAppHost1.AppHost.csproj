@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <NonComponentReferenceForTests Include="Aspire.Hosting" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
   </ItemGroup>
 
   <ItemGroup>

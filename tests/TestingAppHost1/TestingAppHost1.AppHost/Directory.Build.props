@@ -4,6 +4,6 @@
   <Import Project="..\Directory.Build.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
 
   <!-- NOTE: This line is only required because we are using P2P references, not NuGet. It will not exist in real apps. -->
-  <Import Project="..\..\..\src\Aspire.Hosting\build\Aspire.Hosting.props" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+  <Import Project="..\..\..\src\Aspire.Hosting\build\Aspire.Hosting.AppHost.props" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
 
 </Project>
