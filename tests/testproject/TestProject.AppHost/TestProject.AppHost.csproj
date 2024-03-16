@@ -14,7 +14,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
     <PackageReference Include="Aspire.Hosting.Azure" />
-    <PackageReference Include="Aspire.Hosting" />
+    <PackageReference Include="Aspire.Hosting.AppHost" />
   </ItemGroup>
 
   <ItemGroup>
