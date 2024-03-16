@@ -38,8 +38,7 @@
     <HelixPostCommand Include="docker container ls --all" />
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
 
-    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="/p:VSTestTestCaseFilter=FullyQualifiedName~AspireHostingTestingTestsAsync" />
-    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="/p:VSTestTestCaseFilter=FullyQualifiedName~AspireHostingTestingTestsAsync" />
+    <!--<_TestRunCommandArguments Include="/p:VSTestTestCaseFilter=FullyQualifiedName~AspireHostingTestingTestsAsync" />-->
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsWorkloadTests->Count()) > 0">
