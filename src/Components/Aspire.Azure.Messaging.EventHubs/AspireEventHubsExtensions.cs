@@ -6,6 +6,7 @@ using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -74,6 +75,34 @@ public static class AspireEventHubsExtensions
             .AddClient(builder, configurationSectionName, configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
     }
+
+    public static void AddAzureEventHubConsumerClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureMessagingEventHubsSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<EventHubConsumerClient, EventHubConsumerClientOptions>>? configureClientBuilder = null)
+    {
+        new EventHubConsumerClientComponent()
+            .AddClient(builder, DefaultConfigSectionName + nameof(EventHubConsumerClient),
+                configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    public static void AddKeyedAzureEventHubConsumerClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureMessagingEventHubsSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<EventHubConsumerClient, EventHubConsumerClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        string configurationSectionName = EventHubConsumerClientComponent
+            .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName +
+                                                    nameof(EventHubConsumerClient));
+
+        new EventHubConsumerClientComponent()
+            .AddClient(builder, configurationSectionName, configureSettings,
+                configureClientBuilder, connectionName: name, serviceKey: name);
+    }
 }
 
 internal abstract class EventHubsComponent<TClient, TClientOptions> :
@@ -90,7 +119,7 @@ internal abstract class EventHubsComponent<TClient, TClientOptions> :
     }
 
     protected override bool GetHealthCheckEnabled(AzureMessagingEventHubsSettings settings)
-        => !string.IsNullOrEmpty(settings.HealthCheckQueueName) || !string.IsNullOrEmpty(settings.HealthCheckTopicName);
+        => false;
 
     protected override TokenCredential? GetTokenCredential(AzureMessagingEventHubsSettings settings)
         => settings.Credential;

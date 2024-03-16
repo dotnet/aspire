@@ -40,19 +40,14 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     public string? ConsumerGroup { get; set; }
 
     /// <summary>
+    /// Gets or sets the connection string used to connect to the Azure Blob Storage. This is required when the Event Processor is used.
+    /// </summary>
+    public string? BlobClientConnectionString { get; set; }
+
+    /// <summary>
     /// Gets or sets the credential used to authenticate to the Service Bus namespace.
     /// </summary>
     public TokenCredential? Credential { get; set; }
-
-    /// <summary>
-    /// Name of the queue used by the health check. Mandatory to get health checks enabled.
-    /// </summary>
-    public string? HealthCheckQueueName { get; set; }
-
-    /// <summary>
-    /// Name of the topic used by the health check. Mandatory to get health checks enabled.
-    /// </summary>
-    public string? HealthCheckTopicName { get; set; }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.

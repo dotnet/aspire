@@ -256,13 +256,14 @@ internal sealed class AzureProvisioner(
 
     private async Task<ProvisioningContext> GetProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken)
     {
-        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
-        {
-            ExcludeManagedIdentityCredential = true,
-            ExcludeWorkloadIdentityCredential = true,
-            ExcludeAzurePowerShellCredential = true,
-            CredentialProcessTimeout = TimeSpan.FromSeconds(15)
-        });
+        // var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+        // {
+        //     ExcludeManagedIdentityCredential = true,
+        //     ExcludeWorkloadIdentityCredential = true,
+        //     ExcludeAzurePowerShellCredential = true,
+        //     CredentialProcessTimeout = TimeSpan.FromSeconds(15)
+        // });
+        var credential = new AzureCliCredential();
 
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 

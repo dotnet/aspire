@@ -4,9 +4,13 @@
 using Aspire;
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Consumer;
+using Azure.Messaging.EventHubs.Producer;
 
 [assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs", typeof(AzureMessagingEventHubsSettings))]
-[assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs:ClientOptions", typeof(EventHubConnectionOptions))] // TODO: this is temporary
+[assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs:EventHubConsumerClient:ClientOptions", typeof(EventHubConsumerClientOptions))]
+[assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs:EventHubProducerClient:ClientOptions", typeof(EventHubProducerClientOptions))]
+[assembly: ConfigurationSchema("Aspire:Azure:Messaging:EventHubs:EventProcessorClient:ClientOptions", typeof(EventProcessorClientOptions))]
 
 [assembly: LoggingCategories(
     "Azure",

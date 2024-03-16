@@ -30,11 +30,11 @@ public static class AzureEventHubsExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
+    /// Adds an Azure Event Hubs Namespace resource to the application model. This resource can be used to create hub resources.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="configureResource">Optional callback to configure the Service Bus namespace.</param>
+    /// <param name="configureResource">Optional callback to configure the Event Hubs namespace.</param>
     /// <returns></returns>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, string name,
@@ -74,10 +74,10 @@ public static class AzureEventHubsExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
-    /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the queue.</param>
+    /// <param name="builder">The Azure Event Hubs resource builder.</param>
+    /// <param name="name">The name of the hub.</param>
     public static IResourceBuilder<AzureEventHubsResource> AddHub(this IResourceBuilder<AzureEventHubsResource> builder, string name)
     {
 #pragma warning disable CA2252 // This API requires opting into preview features
@@ -86,11 +86,11 @@ public static class AzureEventHubsExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Service Bus Queue resource to the application model. This resource requires an <see cref="AzureServiceBusResource"/> to be added to the application model.
+    /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
-    /// <param name="builder">The Azure Service Bus resource builder.</param>
-    /// <param name="name">The name of the queue.</param>
-    /// <param name="configureQueue">Optional callback to customize the queue.</param>
+    /// <param name="builder">The Azure Event Hubs resource builder.</param>
+    /// <param name="name">The name of the hub.</param>
+    /// <param name="configureQueue">Optional callback to customize the hub.</param>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<AzureEventHubsResource> AddHub(this IResourceBuilder<AzureEventHubsResource> builder,
         string name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? configureQueue)

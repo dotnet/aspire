@@ -30,36 +30,9 @@
                 "EventHubs": {
                   "type": "object",
                   "properties": {
-                    "ClientOptions": {
-                      "type": "object",
-                      "properties": {
-                        "ConnectionIdleTimeout": {
-                          "type": "string",
-                          "format": "duration",
-                          "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
-                        },
-                        "CustomEndpointAddress": {
-                          "type": "string",
-                          "format": "uri",
-                          "description": "The address to use for establishing a connection to the Event Hubs service, allowing network requests to be\nrouted through any application gateways or other paths needed for the host environment."
-                        },
-                        "ReceiveBufferSizeInBytes": {
-                          "type": "integer",
-                          "description": "The size of the buffer used for receiving information via the active transport."
-                        },
-                        "SendBufferSizeInBytes": {
-                          "type": "integer",
-                          "description": "The size of the buffer used for sending information via the active transport."
-                        },
-                        "TransportType": {
-                          "enum": [
-                            "AmqpTcp",
-                            "AmqpWebSockets"
-                          ],
-                          "description": "The type of protocol and transport that will be used for communicating with the Event Hubs\nservice."
-                        }
-                      },
-                      "description": "The set of options that can be specified when creating an 'Azure.Messaging.EventHubs.EventHubConnection' to configure its behavior."
+                    "BlobClientConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets the connection string used to connect to the Azure Blob Storage. This is required when the Event Processor is used."
                     },
                     "ConnectionString": {
                       "type": "string",
@@ -69,17 +42,281 @@
                       "type": "string",
                       "description": "Gets or sets the name of the consumer group."
                     },
+                    "EventHubConsumerClient": {
+                      "type": "object",
+                      "properties": {
+                        "ClientOptions": {
+                          "type": "object",
+                          "properties": {
+                            "ConnectionOptions": {
+                              "type": "object",
+                              "properties": {
+                                "ConnectionIdleTimeout": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
+                                },
+                                "CustomEndpointAddress": {
+                                  "type": "string",
+                                  "format": "uri",
+                                  "description": "The address to use for establishing a connection to the Event Hubs service, allowing network requests to be\nrouted through any application gateways or other paths needed for the host environment."
+                                },
+                                "ReceiveBufferSizeInBytes": {
+                                  "type": "integer",
+                                  "description": "The size of the buffer used for receiving information via the active transport."
+                                },
+                                "SendBufferSizeInBytes": {
+                                  "type": "integer",
+                                  "description": "The size of the buffer used for sending information via the active transport."
+                                },
+                                "TransportType": {
+                                  "enum": [
+                                    "AmqpTcp",
+                                    "AmqpWebSockets"
+                                  ],
+                                  "description": "The type of protocol and transport that will be used for communicating with the Event Hubs\nservice."
+                                }
+                              },
+                              "description": "The options used for configuring the connection to the Event Hubs service."
+                            },
+                            "Identifier": {
+                              "type": "string",
+                              "description": "A unique name used to identify the consumer.  If null or empty, a GUID will be used as the\nidentifier."
+                            },
+                            "RetryOptions": {
+                              "type": "object",
+                              "properties": {
+                                "Delay": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
+                                },
+                                "MaximumDelay": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The maximum permissible delay between retry attempts."
+                                },
+                                "MaximumRetries": {
+                                  "type": "integer",
+                                  "description": "The maximum number of retry attempts before considering the associated operation\nto have failed."
+                                },
+                                "Mode": {
+                                  "enum": [
+                                    "Fixed",
+                                    "Exponential"
+                                  ],
+                                  "description": "The approach to use for calculating retry delays."
+                                },
+                                "TryTimeout": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
+                                }
+                              },
+                              "description": "The set of options to use for determining whether a failed operation should be retried and,\nif so, the amount of time to wait between retry attempts.  These options also control the\namount of time allowed for reading events and other interactions with the Event Hubs service."
+                            }
+                          },
+                          "description": "The set of options that can be specified when creating an 'Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient' to configure its behavior."
+                        }
+                      }
+                    },
                     "EventHubName": {
                       "type": "string",
                       "description": "Gets or sets the name of the Event Hub."
                     },
-                    "HealthCheckQueueName": {
-                      "type": "string",
-                      "description": "Name of the queue used by the health check. Mandatory to get health checks enabled."
+                    "EventHubProducerClient": {
+                      "type": "object",
+                      "properties": {
+                        "ClientOptions": {
+                          "type": "object",
+                          "properties": {
+                            "ConnectionOptions": {
+                              "type": "object",
+                              "properties": {
+                                "ConnectionIdleTimeout": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
+                                },
+                                "CustomEndpointAddress": {
+                                  "type": "string",
+                                  "format": "uri",
+                                  "description": "The address to use for establishing a connection to the Event Hubs service, allowing network requests to be\nrouted through any application gateways or other paths needed for the host environment."
+                                },
+                                "ReceiveBufferSizeInBytes": {
+                                  "type": "integer",
+                                  "description": "The size of the buffer used for receiving information via the active transport."
+                                },
+                                "SendBufferSizeInBytes": {
+                                  "type": "integer",
+                                  "description": "The size of the buffer used for sending information via the active transport."
+                                },
+                                "TransportType": {
+                                  "enum": [
+                                    "AmqpTcp",
+                                    "AmqpWebSockets"
+                                  ],
+                                  "description": "The type of protocol and transport that will be used for communicating with the Event Hubs\nservice."
+                                }
+                              },
+                              "description": "The options used for configuring the connection to the Event Hubs service."
+                            },
+                            "Identifier": {
+                              "type": "string",
+                              "description": "A unique name used to identify the consumer.  If null or empty, a GUID will be used as the\nidentifier."
+                            },
+                            "RetryOptions": {
+                              "type": "object",
+                              "properties": {
+                                "Delay": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
+                                },
+                                "MaximumDelay": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The maximum permissible delay between retry attempts."
+                                },
+                                "MaximumRetries": {
+                                  "type": "integer",
+                                  "description": "The maximum number of retry attempts before considering the associated operation\nto have failed."
+                                },
+                                "Mode": {
+                                  "enum": [
+                                    "Fixed",
+                                    "Exponential"
+                                  ],
+                                  "description": "The approach to use for calculating retry delays."
+                                },
+                                "TryTimeout": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
+                                }
+                              },
+                              "description": "The set of options to use for determining whether a failed operation should be retried and,\nif so, the amount of time to wait between retry attempts.  These options also control the\namount of time allowed for publishing events and other interactions with the Event Hubs service."
+                            }
+                          },
+                          "description": "The set of options that can be specified when creating an 'Azure.Messaging.EventHubs.Producer.EventHubProducerClient' to configure its behavior."
+                        }
+                      }
                     },
-                    "HealthCheckTopicName": {
-                      "type": "string",
-                      "description": "Name of the topic used by the health check. Mandatory to get health checks enabled."
+                    "EventProcessorClient": {
+                      "type": "object",
+                      "properties": {
+                        "ClientOptions": {
+                          "type": "object",
+                          "properties": {
+                            "CacheEventCount": {
+                              "type": "integer",
+                              "description": "The maximum number of events that will be read from the Event Hubs service and held in a local memory\ncache when reading is active and events are being emitted to an enumerator for processing."
+                            },
+                            "ConnectionOptions": {
+                              "type": "object",
+                              "properties": {
+                                "ConnectionIdleTimeout": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
+                                },
+                                "CustomEndpointAddress": {
+                                  "type": "string",
+                                  "format": "uri",
+                                  "description": "The address to use for establishing a connection to the Event Hubs service, allowing network requests to be\nrouted through any application gateways or other paths needed for the host environment."
+                                },
+                                "ReceiveBufferSizeInBytes": {
+                                  "type": "integer",
+                                  "description": "The size of the buffer used for receiving information via the active transport."
+                                },
+                                "SendBufferSizeInBytes": {
+                                  "type": "integer",
+                                  "description": "The size of the buffer used for sending information via the active transport."
+                                },
+                                "TransportType": {
+                                  "enum": [
+                                    "AmqpTcp",
+                                    "AmqpWebSockets"
+                                  ],
+                                  "description": "The type of protocol and transport that will be used for communicating with the Event Hubs\nservice."
+                                }
+                              },
+                              "description": "Gets or sets the options used for configuring the connection to the Event Hubs service."
+                            },
+                            "Identifier": {
+                              "type": "string",
+                              "description": "A unique name used to identify the event processor.  If null or empty, a GUID will be used as the\nidentifier."
+                            },
+                            "LoadBalancingStrategy": {
+                              "enum": [
+                                "Balanced",
+                                "Greedy"
+                              ],
+                              "description": "The strategy that an event processor will use to make decisions about\npartition ownership when performing load balancing to share work with\nother event processors."
+                            },
+                            "LoadBalancingUpdateInterval": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The desired amount of time to allow between load balancing verification attempts."
+                            },
+                            "MaximumWaitTime": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The maximum amount of time to wait for an event to become available for a given partition before emitting\nan empty event."
+                            },
+                            "PartitionOwnershipExpirationInterval": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The desired amount of time to consider a partition owned by a specific event processor\ninstance before the ownership is considered stale and the partition becomes eligible to be\nrequested by another event processor that wishes to assume responsibility for processing it."
+                            },
+                            "PrefetchCount": {
+                              "type": "integer",
+                              "description": "The number of events that will be eagerly requested from the Event Hubs service and queued locally without regard to\nwhether a read operation is currently active, intended to help maximize throughput by allowing events to be read from\nfrom a local cache rather than waiting on a service request."
+                            },
+                            "PrefetchSizeInBytes": {
+                              "type": "integer",
+                              "description": "The desired number of bytes to attempt to eagerly request from the Event Hubs service and queued locally without regard to\nwhether a read operation is currently active, intended to help maximize throughput by allowing events to be read from\nfrom a local cache rather than waiting on a service request."
+                            },
+                            "RetryOptions": {
+                              "type": "object",
+                              "properties": {
+                                "Delay": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
+                                },
+                                "MaximumDelay": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The maximum permissible delay between retry attempts."
+                                },
+                                "MaximumRetries": {
+                                  "type": "integer",
+                                  "description": "The maximum number of retry attempts before considering the associated operation\nto have failed."
+                                },
+                                "Mode": {
+                                  "enum": [
+                                    "Fixed",
+                                    "Exponential"
+                                  ],
+                                  "description": "The approach to use for calculating retry delays."
+                                },
+                                "TryTimeout": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
+                                }
+                              },
+                              "description": "The set of options to use for determining whether a failed operation should be retried and,\nif so, the amount of time to wait between retry attempts.  These options also control the\namount of time allowed for publishing events and other interactions with the Event Hubs service."
+                            },
+                            "TrackLastEnqueuedEventProperties": {
+                              "type": "boolean",
+                              "description": "Indicates whether or not the consumer should request information on the last enqueued event on the partition\nassociated with a given event, and track that information as events are received."
+                            }
+                          },
+                          "description": "The set of options that can be specified when creating an 'Azure.Messaging.EventHubs.EventProcessorClient' to configure its behavior."
+                        }
+                      }
                     },
                     "Namespace": {
                       "type": "string",
