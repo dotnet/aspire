@@ -151,9 +151,36 @@ internal sealed class AzureProvisioner(
 
         var userSecretsPath = GetUserSecretsPath();
 
-        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
-            : [];
+        JsonObject? userSecrets = null;
+        try
+        {
+            userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
+                ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
+                : [];
+        }
+        catch (JsonException ex)
+        {
+            // If we fail to parse the JSON then we can't really continue because we won't be able to update
+            // the JSON with secrets. So rather than start provisioning on a bad JSON file we exit out. However
+            // to help the user to figure out what is going on we log an error on the main console logger as
+            // well as enumerate through each of the resources and throw up an error in those logs as well.
+
+            logger.LogError(ex, "Failed to read user secrets from '{UserSecretsPath}', is the JSON well-formed?", userSecretsPath);
+
+            foreach (var resource in azureResources)
+            {
+                var resourceLogger = loggerService.GetLogger(resource);
+                resourceLogger.LogError(
+                    ex,
+                    "Failed to provision resource '{ResourceName}' because user secrets file '{UserSecretsPath}' was not valid JSON.",
+                    resource.Name,
+                    userSecretsPath
+                    );
+                resource.ProvisioningTaskCompletionSource?.SetException(ex);
+            }
+
+            throw;
+        }
 
         // Make resources wait on the same provisioning context
         var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(userSecrets, cancellationToken));
