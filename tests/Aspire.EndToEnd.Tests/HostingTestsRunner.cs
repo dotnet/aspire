@@ -73,7 +73,7 @@ public sealed class HostingTestsRunner : IAsyncLifetime
         var stderrComplete = new TaskCompletionSource();
         _appHostProcess = new Process();
 
-        string processArguments = $"run --no-build -- ";
+        string processArguments = $"test --no-build -- ";
         // if (GetResourcesToSkip() is var resourcesToSkip && resourcesToSkip.Count > 0)
         // {
         //     processArguments += $"--skip-resources {string.Join(',', resourcesToSkip)}";
@@ -113,10 +113,10 @@ public sealed class HostingTestsRunner : IAsyncLifetime
             //     projectsParsed.SetResult();
             // }
 
-            if (e.Data?.Contains("Distributed application started") == true)
-            {
-                appRunning.SetResult();
-            }
+            // if (e.Data?.Contains("Distributed application started") == true)
+            // {
+            //     appRunning.SetResult();
+            // }
         };
         _appHostProcess.ErrorDataReceived += (sender, e) =>
         {
