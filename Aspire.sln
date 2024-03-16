@@ -359,6 +359,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stress.ApiService", "playgr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Core", "src\Aspire.Hosting.Core\Aspire.Hosting.Core.csproj", "{E6D60944-F461-45A5-9E34-E410B5298184}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.EventHubs", "src\Components\Aspire.Azure.Messaging.EventHubs\Aspire.Azure.Messaging.EventHubs.csproj", "{FF8D3004-8B58-416E-B301-511DD16AFA5C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -933,6 +935,10 @@ Global
 		{E6D60944-F461-45A5-9E34-E410B5298184}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E6D60944-F461-45A5-9E34-E410B5298184}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E6D60944-F461-45A5-9E34-E410B5298184}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF8D3004-8B58-416E-B301-511DD16AFA5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF8D3004-8B58-416E-B301-511DD16AFA5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF8D3004-8B58-416E-B301-511DD16AFA5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF8D3004-8B58-416E-B301-511DD16AFA5C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1105,6 +1111,7 @@ Global
 		{9114FFB4-328C-43FC-B2E4-EB6A16659113} = {CFDA7AC5-251C-43C7-B334-71AE8040A147}
 		{1167077B-F696-4A1C-BB0B-6EF70D530BB8} = {CFDA7AC5-251C-43C7-B334-71AE8040A147}
 		{E6D60944-F461-45A5-9E34-E410B5298184} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
+		{FF8D3004-8B58-416E-B301-511DD16AFA5C} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
