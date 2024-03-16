@@ -57,7 +57,9 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
 
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
         var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
-        File.Copy(moduleSourcePath, moduleDestinationPath!, true);
+
+        TemplateString = File.ReadAllText(moduleSourcePath);
+        File.WriteAllTextAsync(moduleDestinationPath, TemplateString);
 
         return new BicepTemplateFile(moduleDestinationPath, directory is null);
     }
