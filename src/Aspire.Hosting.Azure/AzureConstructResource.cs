@@ -59,7 +59,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
 
         TemplateString = File.ReadAllText(moduleSourcePath);
-        File.WriteAllTextAsync(moduleDestinationPath, TemplateString);
+        File.WriteAllText(moduleDestinationPath, TemplateString);
 
         return new BicepTemplateFile(moduleDestinationPath, directory is null);
     }
