@@ -58,10 +58,23 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
         var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
 
-        TemplateString = File.ReadAllText(moduleSourcePath);
-        File.WriteAllText(moduleDestinationPath, TemplateString);
+        File.Copy(moduleSourcePath, moduleDestinationPath, true);
 
         return new BicepTemplateFile(moduleDestinationPath, directory is null);
+    }
+
+    private string? _generatedBicep;
+
+    /// <inheritdoc />
+    public override string GetBicepTemplateString()
+    {
+        if (_generatedBicep is null)
+        {
+            var template = GetBicepTemplateFile();
+            _generatedBicep = File.ReadAllText(template.Path);
+        }
+
+        return _generatedBicep;
     }
 }
 
