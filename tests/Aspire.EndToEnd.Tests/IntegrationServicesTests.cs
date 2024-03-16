@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
+// using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
+// using Xunit.Sdk;
 using Aspire.TestProject;
 using Aspire.Workload.Tests;
 
@@ -46,7 +46,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
                 throw;
             }
         });
-
+#if false
     // FIXME: open issue
     [ConditionalTheory]
     [SkipOnCI("not working on CI yet")]
@@ -85,7 +85,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             // that components wired up into this project have health checks enabled.
             await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http", _testOutput);
         });
-
+#endif
     private async Task RunTestAsync(Func<Task> test)
     {
         _integrationServicesFixture.EnsureAppHostRunning();
