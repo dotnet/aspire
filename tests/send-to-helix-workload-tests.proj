@@ -62,7 +62,7 @@
       <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; ; export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH</PreCommands>
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
