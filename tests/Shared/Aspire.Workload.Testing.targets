@@ -149,18 +149,39 @@
       <_PackagePropsContents>
 <![CDATA[
       <Project>
-        <PropertyGroup>
-          <NetCurrent>$(NetCurrent)</NetCurrent>
-          <PackageVersion>$(PackageVersion)</PackageVersion>
-          <MicrosoftExtensionsHostingAbstractionsPackageVersion>$(MicrosoftExtensionsHostingAbstractionsPackageVersion)</MicrosoftExtensionsHostingAbstractionsPackageVersion>
-          <MicrosoftExtensionsHostingPackageVersion>$(MicrosoftExtensionsHostingPackageVersion)</MicrosoftExtensionsHostingPackageVersion>
-        </PropertyGroup>
+        <ItemGroup>
+]]>
+        @(PackageVersion->'    &lt;PackageVersion Include="%(Identity)" Version="%(Version)" /&gt;')
+<![CDATA[
+        </ItemGroup>
       </Project>
 ]]>
       </_PackagePropsContents>
     </PropertyGroup>
 
-    <WriteLinesToFile Lines="$(_PackagePropsContents)" File="$(_TestAssetsOutputDir)\testproject\Directory.Build.Helix.props" Overwrite="true" />
+    <WriteLinesToFile Lines="$(_PackagePropsContents)" File="$(_TestAssetsOutputDir)\Directory.Packages.repo.props" Overwrite="true" />
+
+    <PropertyGroup>
+      <_BuildPropsContents>
+<![CDATA[
+      <Project>
+        <PropertyGroup>
+          <NetCurrent>$(NetCurrent)</NetCurrent>
+          <PackageVersion>$(PackageVersion)</PackageVersion>
+          <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+          <TestcontainersPackageVersion>$(TestcontainersPackageVersion)</TestcontainersPackageVersion>
+          <XunitPackageVersion>$(XunitPackageVersion)</XunitPackageVersion>
+          <XunitRunnerVisualStudioPackageVersion>$(XunitRunnerVisualStudioPackageVersion)</XunitRunnerVisualStudioPackageVersion>
+          <MSTestTestAdapterPackageVersion>$(MSTestTestAdapterPackageVersion)</MSTestTestAdapterPackageVersion>
+          <MicrosoftNETTestSdkPackageVersion>$(MicrosoftNETTestSdkPackageVersion)</MicrosoftNETTestSdkPackageVersion>
+        </PropertyGroup>
+      </Project>
+]]>
+      </_BuildPropsContents>
+    </PropertyGroup>
+
+    <WriteLinesToFile Lines="$(_BuildPropsContents)" File="$(_TestAssetsOutputDir)\Directory.Build.Helix.props" Overwrite="true" />
   </Target>
 
   <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">

@@ -27,9 +27,10 @@
     <!--<TestProject Include="..\testproject" TargetDir="testproject" />-->
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\TestingAppHost1\**\*" Link="testassets\TestingAppHost1\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Aspire.Hosting.Testing.Tests\**\*" Link="testassets\Aspire.Hosting.Testing.Tests\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(PatchedNuGetConfigPath)" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(RepoRoot)Directory.Packages.props" Link="testassets\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />

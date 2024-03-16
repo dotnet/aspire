@@ -2,13 +2,13 @@
   <PropertyGroup>
     <!--<TestsRunningOutsideOfRepo>true</TestsRunningOutsideOfRepo>-->
     <IsTestProject>true</IsTestProject>
-    <NetCurrent>net8.0</NetCurrent>
-    <AspirePackageVersion>8.0.0-dev</AspirePackageVersion>
+    <!--<NetCurrent>net8.0</NetCurrent>-->
+    <!--<AspirePackageVersion>8.0.0-dev</AspirePackageVersion>-->
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-  <Import Project="Directory.Build.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="..\Directory.Build.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
 
   <!-- NOTE: This line is only required because we are using P2P references, not NuGet. It will not exist in real apps. -->
   <Import Project="..\..\src\Aspire.Hosting\build\Aspire.Hosting.props" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
