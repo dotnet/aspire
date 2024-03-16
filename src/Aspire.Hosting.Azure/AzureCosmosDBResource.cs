@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.Versioning;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Cosmos;
@@ -56,9 +56,9 @@ public static class AzureCosmosExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureCosmosDB(name, static (_, _, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
     /// <summary>
     /// Adds an Azure Cosmos DB connection to the application model.
@@ -67,8 +67,8 @@ public static class AzureCosmosExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureCosmosDBResource>, ResourceModuleConstruct, CosmosDBAccount, IEnumerable<CosmosDBSqlDatabase>>? configureResource = null)
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureCosmosDBResource>, ResourceModuleConstruct, CosmosDBAccount, IEnumerable<CosmosDBSqlDatabase>> configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -95,10 +95,7 @@ public static class AzureCosmosExtensions
             var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
             _ = new KeyVaultSecret(construct, "connectionString", cosmosAccount.GetConnectionString());
 
-            if (configureResource != null)
-            {
-                configureResource(azureResourceBuilder, construct, cosmosAccount, cosmosSqlDatabases);
-            }
+            configureResource(azureResourceBuilder, construct, cosmosAccount, cosmosSqlDatabases);
         };
 
         var resource = new AzureCosmosDBResource(name, configureConstruct);

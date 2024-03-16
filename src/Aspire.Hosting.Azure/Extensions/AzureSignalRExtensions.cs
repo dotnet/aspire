@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.Versioning;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Authorization;
@@ -22,9 +22,9 @@ public static class AzureSignalRExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureSignalR(name, (_, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -34,8 +34,8 @@ public static class AzureSignalRExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureSignalRResource>, ResourceModuleConstruct, SignalRService>? configureResource = null)
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureSignalRResource>, ResourceModuleConstruct, SignalRService> configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -49,12 +49,9 @@ public static class AzureSignalRExtensions
             appServerRole.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
             appServerRole.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
 
-            if (configureResource != null)
-            {
-                var resource = (AzureSignalRResource)construct.Resource;
-                var resourceBuilder = builder.CreateResourceBuilder(resource);
-                configureResource(resourceBuilder, construct, service);
-            }
+            var resource = (AzureSignalRResource)construct.Resource;
+            var resourceBuilder = builder.CreateResourceBuilder(resource);
+            configureResource(resourceBuilder, construct, service);
         };
 
         var resource = new AzureSignalRResource(name, configureConstruct);
