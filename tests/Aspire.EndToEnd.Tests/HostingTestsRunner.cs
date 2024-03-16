@@ -17,13 +17,14 @@ namespace Aspire.EndToEnd.Tests;
 /// </summary>
 public sealed class HostingTestsRunner : IAsyncLifetime
 {
-#if TESTS_RUNNING_OUTSIDE_OF_REPO
-    public static bool TestsRunningOutsideOfRepo = true;
-#else
-    public static bool TestsRunningOutsideOfRepo;
-#endif
+//#if TESTS_RUNNING_OUTSIDE_OF_REPO
+    //public static bool TestsRunningOutsideOfRepo = true;
+//#else
+    //public static bool TestsRunningOutsideOfRepo;
+//#endif
+    public static bool TestsRunningOutsideOfRepo = Environment.GetEnvironmentVariable("TestsRunningOutsideOfRepo") == "true";
 
-    // public Dictionary<string, ProjectInfo> Projects => _projects!;
+    //// public Dictionary<string, ProjectInfo> Projects => _projects!;
     public BuildEnvironment BuildEnvironment { get; init; }
     // public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
 
