@@ -316,7 +316,6 @@ internal sealed class AzureProvisioner(
         {
             var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
             resourceGroup = response.Value;
-            location = resourceGroup.Data.Location;
 
             logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
         }
