@@ -35,7 +35,7 @@ public static class AzureKeyVaultResourceExtensions
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureKeyVaultResource>, ResourceModuleConstruct, KeyVault>? configureResource = null)
+    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureKeyVaultResource>, ResourceModuleConstruct, KeyVault>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {

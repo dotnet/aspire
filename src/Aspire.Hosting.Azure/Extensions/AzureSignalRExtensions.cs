@@ -35,7 +35,7 @@ public static class AzureSignalRExtensions
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureSignalRResource>, ResourceModuleConstruct, SignalRService>? configureResource = null)
+    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureSignalRResource>, ResourceModuleConstruct, SignalRService>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {

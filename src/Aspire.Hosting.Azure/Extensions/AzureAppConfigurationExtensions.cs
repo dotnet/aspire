@@ -35,7 +35,7 @@ public static class AzureAppConfigurationExtensions
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureAppConfigurationResource>, ResourceModuleConstruct, AppConfigurationStore>? configureResource = null)
+    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureAppConfigurationResource>, ResourceModuleConstruct, AppConfigurationStore>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {

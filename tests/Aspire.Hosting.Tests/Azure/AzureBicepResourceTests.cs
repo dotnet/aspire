@@ -317,9 +317,6 @@ public class AzureBicepResourceTests
             targetScope = 'resourceGroup'
 
             @description('')
-            param logAnalyticsWorkspaceId string = ''
-
-            @description('')
             param location string = resourceGroup().location
 
             @description('')
@@ -329,24 +326,14 @@ public class AzureBicepResourceTests
             param kind string = 'web'
 
             @description('')
+            param logAnalyticsWorkspaceId string
+
+            @description('')
             param principalId string
 
             @description('')
             param principalType string
 
-
-            resource operationalInsightsWorkspace_fo9MneV12 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
-              location: location
-              tags: {
-                'aspire-resource-name': 'appInsights'
-              }
-              properties: {
-                sku: {
-                  name: 'PerGB2018'
-                }
-              }
-            }
 
             resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
               name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
@@ -357,11 +344,66 @@ public class AzureBicepResourceTests
               kind: kind
               properties: {
                 Application_Type: applicationType
-                WorkspaceResourceId: (empty(logAnalyticsWorkspaceId) ? operationalInsightsWorkspace_fo9MneV12.id : logAnalyticsWorkspaceId)
+                WorkspaceResourceId: logAnalyticsWorkspaceId
               }
             }
 
             output appInsightsConnectionString string = applicationInsightsComponent_fo9MneV12.properties.ConnectionString
+
+            """;
+        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddLogAnalyticsWorkspace()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace("logAnalyticsWorkspace");
+
+        Assert.Equal("logAnalyticsWorkspace", logAnalyticsWorkspace.Resource.Name);
+        Assert.Equal("{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}", logAnalyticsWorkspace.Resource.WorkspaceId.ValueExpression);
+
+        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(logAnalyticsWorkspace.Resource);
+        var expectedManifest = """
+           {
+             "type": "azure.bicep.v0",
+             "path": "logAnalyticsWorkspace.module.bicep",
+             "params": {
+               "principalId": "",
+               "principalType": ""
+             }
+           }
+           """;
+        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource operationalInsightsWorkspace_uzGUFQdnZ 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+              name: toLower(take(concat('logAnalyticsWorkspace', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'logAnalyticsWorkspace'
+              }
+              properties: {
+                sku: {
+                  name: 'PerGB2018'
+                }
+              }
+            }
+
+            output logAnalyticsWorkspaceId string = operationalInsightsWorkspace_uzGUFQdnZ.id
 
             """;
         Assert.Equal(expectedBicep, appInsightsManifest.BicepText);

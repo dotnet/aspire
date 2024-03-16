@@ -6,8 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.ApplicationInsights;
-using Azure.Provisioning.OperationalInsights;
-using Azure.ResourceManager.OperationalInsights.Models;
 
 namespace Aspire.Hosting;
 
@@ -25,7 +23,7 @@ public static class AzureApplicationInsightsExtensions
     public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name)
     {
 #pragma warning disable CA2252
-        return builder.AddAzureApplicationInsights(name, (_, _) => { });
+        return builder.AddAzureApplicationInsights(name, (_, _, _) => { });
 #pragma warning restore CA2252
     }
 
@@ -37,30 +35,28 @@ public static class AzureApplicationInsightsExtensions
     /// <param name="configureResource">Optional callback to configure the Application Insights resource.</param>
     /// <returns></returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureApplicationInsightsResource>, ResourceModuleConstruct>? configureResource = null)
+    public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureApplicationInsightsResource>, ResourceModuleConstruct, ApplicationInsightsComponent>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var workspaceIdParameter = new Parameter("logAnalyticsWorkspaceId", defaultValue: "");
-            construct.AddParameter(workspaceIdParameter);
-
-            var opInsights = new OperationalInsightsWorkspace(construct, name: name, sku: new OperationalInsightsWorkspaceSku(OperationalInsightsWorkspaceSkuName.PerGB2018));
-            opInsights.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
-
             var appInsights = new ApplicationInsightsComponent(construct, name: name);
             appInsights.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
             appInsights.AssignProperty(p => p.ApplicationType, new Parameter("applicationType", defaultValue: "web"));
             appInsights.AssignProperty(p => p.Kind, new Parameter("kind", defaultValue: "web"));
-            appInsights.AssignProperty(
-                p => p.WorkspaceResourceId,
-                $"(empty(logAnalyticsWorkspaceId) ? {opInsights.Name}.id : logAnalyticsWorkspaceId)");
+            appInsights.AssignProperty(p => p.WorkspaceResourceId, new Parameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
 
             appInsights.AddOutput("appInsightsConnectionString", p => p.ConnectionString);
+
+            if (configureResource != null)
+            {
+                var resource = (AzureApplicationInsightsResource)construct.Resource;
+                var resourceBuilder = builder.CreateResourceBuilder(resource);
+                configureResource(resourceBuilder, construct, appInsights);
+            }
         };
         var resource = new AzureApplicationInsightsResource(name, configureConstruct);
 
         return builder.AddResource(resource)
-                      // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);

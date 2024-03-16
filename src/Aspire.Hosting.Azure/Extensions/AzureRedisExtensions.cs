@@ -34,7 +34,7 @@ public static class AzureRedisExtensions
     /// <param name="configureResource">Callback to configure Azure resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null)
+    public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource)
     {
         return builder.PublishAsAzureRedisInternal(configureResource);
     }
@@ -119,7 +119,7 @@ public static class AzureRedisExtensions
     /// <param name="configureResource">Callback to configure Azure resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null)
+    public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource)
     {
         return builder.PublishAsAzureRedisInternal(configureResource, useProvisioner: true);
     }

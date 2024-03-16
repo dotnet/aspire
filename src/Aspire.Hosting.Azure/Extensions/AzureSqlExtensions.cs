@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureSqlExtensions
 {
-    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null, bool useProvisioner = false)
+    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {

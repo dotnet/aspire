@@ -208,13 +208,22 @@
         "principalType": ""
       }
     },
+    "logAnalyticsWorkspace": {
+      "type": "azure.bicep.v0",
+      "path": "logAnalyticsWorkspace.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "appInsights": {
       "type": "azure.bicep.v0",
       "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
       "path": "appInsights.module.bicep",
       "params": {
         "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "logAnalyticsWorkspaceId": "{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}"
       }
     },
     "api": {

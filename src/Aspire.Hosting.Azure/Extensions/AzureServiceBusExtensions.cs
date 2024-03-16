@@ -36,7 +36,7 @@ public static class AzureServiceBusExtensions
     /// <param name="configureResource">Optional callback to configure the Service Bus namespace.</param>
     /// <returns></returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusNamespace>? configureResource = null)
+    public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusNamespace>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {

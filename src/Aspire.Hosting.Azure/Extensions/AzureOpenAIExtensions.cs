@@ -36,7 +36,7 @@ public static class AzureOpenAIExtensions
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureOpenAIResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>>? configureResource = null)
+    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureOpenAIResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {

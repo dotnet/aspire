@@ -34,7 +34,7 @@ public static class AzureStorageExtensions
     /// <param name="configureResource">Callback to configure the storage account.</param>
     /// <returns></returns>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount>? configureResource = null)
+    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {

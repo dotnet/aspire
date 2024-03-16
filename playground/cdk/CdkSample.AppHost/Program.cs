@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Azure;
 using Azure.Provisioning.KeyVaults;
+using Azure.ResourceManager.ApplicationInsights.Models;
+using Azure.ResourceManager.OperationalInsights.Models;
 
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
@@ -65,7 +68,24 @@ var search = builder.AddAzureSearch("search");
 
 var signalr = builder.AddAzureSignalR("signalr");
 
-var appInsights = builder.AddAzureApplicationInsights("appInsights");
+var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace(
+    "logAnalyticsWorkspace",
+    (_, _, logAnalyticsWorkspace) =>
+    {
+        logAnalyticsWorkspace.Properties.Sku = new OperationalInsightsWorkspaceSku(OperationalInsightsWorkspaceSkuName.PerNode);
+    });
+
+var appInsights = builder.AddAzureApplicationInsights(
+    "appInsights",
+    (_, _, appInsights) =>
+{
+    appInsights.AssignProperty(
+        p => p.WorkspaceResourceId,
+        logAnalyticsWorkspace.Resource.WorkspaceId,
+        AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+
+    appInsights.Properties.IngestionMode = IngestionMode.LogAnalytics;
+});
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(signalr)

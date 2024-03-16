@@ -38,7 +38,7 @@ public static class AzureSearchExtensions
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(
         this IDistributedApplicationBuilder builder,
         string name,
-        Action<IResourceBuilder<AzureSearchResource>, ResourceModuleConstruct, SearchService>? configureResource = null)
+        Action<IResourceBuilder<AzureSearchResource>, ResourceModuleConstruct, SearchService>? configureResource)
     {
         AzureSearchResource resource = new(name, ConfigureSearch);
         return builder.AddResource(resource)
