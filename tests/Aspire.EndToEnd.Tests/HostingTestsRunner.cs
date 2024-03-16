@@ -186,7 +186,7 @@ public sealed class HostingTestsRunner : IAsyncLifetime
             using var cmd = new DotNetCommand(BuildEnvironment, _testOutput, label: "build")
                 .WithWorkingDirectory(appHostDirectory);
 
-            (await cmd.ExecuteAsync(CancellationToken.None, $"build -bl:{Path.Combine(BuildEnvironment.LogRootPath, "testproject-build.binlog")} -v m"))
+            (await cmd.ExecuteAsync(CancellationToken.None, $"build -bl:{Path.Combine(BuildEnvironment.LogRootPath, "hosting-test-build.binlog")} -v m"))
                 .EnsureSuccessful();
         }
     }
