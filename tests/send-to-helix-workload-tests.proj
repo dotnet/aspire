@@ -27,6 +27,9 @@
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TEST_LOG_PATH=%HELIX_WORKITEM_UPLOAD_ROOT%/logs" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TEST_LOG_PATH=$HELIX_WORKITEM_UPLOAD_ROOT/logs" />
 
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set VSTestTestCaseFilter=FullyQualifiedName~AspireHostingTestingTestsAsync" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export VSTestTestCaseFilter=FullyQualifiedName~AspireHostingTestingTestsAsync" />
+
     <HelixPreCommand Include="docker info" />
     <HelixPreCommand Include="docker ps" />
     <HelixPreCommand Include="docker container ls --all" />
