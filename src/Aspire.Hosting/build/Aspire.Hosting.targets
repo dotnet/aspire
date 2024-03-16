@@ -3,6 +3,7 @@
   <PropertyGroup>
     <!-- Similar to ASP.NET Core and Worker apps, set the default CWD of orchestrator projects to be the project directory. -->
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
+    <AspireGeneratedClassesVisibility Condition="'$(AspireGeneratedClassesVisibility)' == ''">public</AspireGeneratedClassesVisibility>
     <_AspireIntermediatePath>$(IntermediateOutputPath)Aspire\</_AspireIntermediatePath>
   </PropertyGroup>
 
@@ -41,7 +42,7 @@ namespace Projects%3B
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
-public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
+]]>$(AspireGeneratedClassesVisibility)<![CDATA[ class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 {
     public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
@@ -82,8 +83,9 @@ namespace Projects%3B
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
-internal static class ]]>%(ClassName)<![CDATA[
+]]>$(AspireGeneratedClassesVisibility)<![CDATA[ class ]]>%(ClassName)<![CDATA[
 {
+    private ]]>%(ClassName)<![CDATA[() { }
     public static string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>

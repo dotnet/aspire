@@ -8,6 +8,7 @@
     <IsTestProject>true</IsTestProject>
     <OutputType>exe</OutputType>
     <TestProjectsRootPath Condition="'$(TestProjectsRootPath)' == ''">$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), '..'))</TestProjectsRootPath>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
   <ItemGroup>
