@@ -24,7 +24,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-       ReferenceExpression.Create($"{Parent.BlobEndpoint}");
+       Parent.GetBlobConnectionString();
 
     /// <summary>
     /// Called by manifest publisher to write manifest resource.

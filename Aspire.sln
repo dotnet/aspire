@@ -357,7 +357,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stress.TelemetryService", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stress.ApiService", "playground\Stress\Stress.ApiService\Stress.ApiService.csproj", "{1167077B-F696-4A1C-BB0B-6EF70D530BB8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Core", "src\Aspire.Hosting.Core\Aspire.Hosting.Core.csproj", "{E6D60944-F461-45A5-9E34-E410B5298184}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.AppHost", "src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj", "{E6D60944-F461-45A5-9E34-E410B5298184}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.EventHubs", "src\Components\Aspire.Azure.Messaging.EventHubs\Aspire.Azure.Messaging.EventHubs.csproj", "{FF8D3004-8B58-416E-B301-511DD16AFA5C}"
 EndProject
