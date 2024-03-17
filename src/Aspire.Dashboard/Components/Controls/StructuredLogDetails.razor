@@ -41,11 +41,11 @@
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral"
                                  Circular="true">
-                        @FilteredCategoryItems.Count()
+                        @FilteredContextItems.Count()
                     </FluentBadge>
                 </div>
                 <PropertyGrid TItem="LogEntryPropertyViewModel"
-                              Items="@FilteredCategoryItems"
+                              Items="@FilteredContextItems"
                               GridTemplateColumns="1fr 2fr"
                               NameColumnValue="(vm) => vm.Name"
                               ValueColumnValue="(vm) => vm.Value"
@@ -53,7 +53,7 @@
                               ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
-            @if (FilteredExceptionItems.Count() > 0)
+            @if (_exceptionAttributes.Count > 0)
             {
                 <FluentAccordionItem Heading="Exception" Expanded="true">
                     <div slot="end">

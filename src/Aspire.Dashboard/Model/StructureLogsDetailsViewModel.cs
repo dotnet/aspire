@@ -8,6 +8,5 @@ namespace Aspire.Dashboard.Model;
 public sealed class StructureLogsDetailsViewModel
 {
     public required OtlpLogEntry LogEntry { get; init; }
-    public required List<LogEntryPropertyViewModel> Properties { get; init; }
     public required string Title { get; init; }
 }

@@ -29,8 +29,8 @@ public partial class StructuredLogDetails
                 vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
         ).AsQueryable();
 
-    private IQueryable<LogEntryPropertyViewModel> FilteredCategoryItems =>
-        _categoryAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
+    private IQueryable<LogEntryPropertyViewModel> FilteredContextItems =>
+        _contextAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
             .Where(vm =>
                 (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
                 vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
@@ -49,40 +49,53 @@ public partial class StructuredLogDetails
     private readonly GridSort<LogEntryPropertyViewModel> _valueSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Value);
 
     private List<KeyValuePair<string, string>> _logEntryAttributes = null!;
-    private List<KeyValuePair<string, string>> _categoryAttributes = null!;
+    private List<KeyValuePair<string, string>> _contextAttributes = null!;
     private List<KeyValuePair<string, string>> _exceptionAttributes = null!;
 
     protected override void OnParametersSet()
     {
-        _categoryAttributes =
+        var attributes = ViewModel.LogEntry.Attributes.ToList();
+
+        _contextAttributes =
         [
-            new KeyValuePair<string, string>("Category", ViewModel.LogEntry.Scope.ScopeName),
-            .. ViewModel.LogEntry.Attributes.Where(a => a.Key is "event.name" or "logrecord.event.id" or "logrecord.event.name"),
+            new KeyValuePair<string, string>("Category", ViewModel.LogEntry.Scope.ScopeName)
         ];
+        MoveAttributes(attributes, _contextAttributes, a => a.Key is "event.name" or "logrecord.event.id" or "logrecord.event.name");
         if (HasTelemetryBaggage(ViewModel.LogEntry.TraceId))
         {
-            _categoryAttributes.Add(new KeyValuePair<string, string>("TraceId", ViewModel.LogEntry.TraceId));
+            _contextAttributes.Add(new KeyValuePair<string, string>("TraceId", ViewModel.LogEntry.TraceId));
         }
         if (HasTelemetryBaggage(ViewModel.LogEntry.SpanId))
         {
-            _categoryAttributes.Add(new KeyValuePair<string, string>("SpanId", ViewModel.LogEntry.SpanId));
+            _contextAttributes.Add(new KeyValuePair<string, string>("SpanId", ViewModel.LogEntry.SpanId));
         }
         if (HasTelemetryBaggage(ViewModel.LogEntry.ParentId))
         {
-            _categoryAttributes.Add(new KeyValuePair<string, string>("ParentId", ViewModel.LogEntry.ParentId));
+            _contextAttributes.Add(new KeyValuePair<string, string>("ParentId", ViewModel.LogEntry.ParentId));
         }
 
-        _exceptionAttributes =
-        [
-            .. ViewModel.LogEntry.Attributes.Where(a => a.Key.StartsWith("exception.", StringComparison.OrdinalIgnoreCase)),
-        ];
+        _exceptionAttributes = [];
+        MoveAttributes(attributes, _contextAttributes, a => a.Key.StartsWith("exception.", StringComparison.OrdinalIgnoreCase));
 
         _logEntryAttributes =
         [
             new KeyValuePair<string, string>("Level", ViewModel.LogEntry.Severity.ToString()),
             new KeyValuePair<string, string>("Message", ViewModel.LogEntry.Message),
-            .. ViewModel.LogEntry.Attributes.Where(a => !_categoryAttributes.Any(ca => ca.Key == a.Key) && !_exceptionAttributes.Any(ca => ca.Key == a.Key)),
+            .. attributes,
         ];
+    }
+
+    private static void MoveAttributes(List<KeyValuePair<string, string>> source, List<KeyValuePair<string, string>> desintation, Func<KeyValuePair<string, string>, bool> predicate)
+    {
+        var insertStart = desintation.Count;
+        for (var i = source.Count - 1; i >= 0; i--)
+        {
+            if (predicate(source[i]))
+            {
+                desintation.Insert(insertStart, source[i]);
+                source.RemoveAt(i);
+            }
+        }
     }
 
     private static bool HasTelemetryBaggage(string value)

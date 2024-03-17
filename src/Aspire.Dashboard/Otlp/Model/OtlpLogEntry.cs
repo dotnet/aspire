@@ -86,32 +86,4 @@ public class OtlpLogEntry
         SeverityNumber.Fatal4 => LogLevel.Critical,
         _ => LogLevel.None
     };
-
-    public Dictionary<string, string> AllProperties()
-    {
-        var props = new Dictionary<string, string>();
-
-        //AddOptionalValue("Application", Application.ApplicationName, props);
-        //AddOptionalValue("Category", Scope.ScopeName, props);
-        //AddOptionalValue("Level", Severity.ToString(), props);
-        //AddOptionalValue("Message", Message, props);
-        //AddOptionalValue("TraceId", TraceId, props);
-        //AddOptionalValue("SpanId", SpanId, props);
-        //AddOptionalValue("OriginalFormat", OriginalFormat, props);
-
-        foreach (var kv in Attributes)
-        {
-            props.TryAdd(kv.Key, kv.Value);
-        }
-
-        return props;
-
-        //static void AddOptionalValue(string name, string? value, Dictionary<string, string> props)
-        //{
-        //    if (!string.IsNullOrEmpty(value))
-        //    {
-        //        props.Add(name, value);
-        //    }
-        //}
-    }
 }

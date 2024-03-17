@@ -178,14 +178,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
         else
         {
-            var entryProperties = entry.AllProperties()
-                .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
-                .ToList();
-
             var logEntryViewModel = new StructureLogsDetailsViewModel
             {
                 LogEntry = entry,
-                Properties = entryProperties,
                 Title = entry.Message
             };
 
