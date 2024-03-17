@@ -1,5 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureProvisioning();
+
 var catalogDb = builder.AddPostgres("postgres")
                        .WithPgAdmin()
                        .AddDatabase("catalogdb");

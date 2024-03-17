@@ -31,8 +31,8 @@
       "connectionString": "{kv3.outputs.vaultUri}",
       "path": "kv3.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "appConfig": {
@@ -40,8 +40,8 @@
       "connectionString": "{appConfig.outputs.appConfigEndpoint}",
       "path": "appConfig.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": "",
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal",
         "sku": "standard"
       }
     },
@@ -49,8 +49,8 @@
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "blob": {
@@ -70,8 +70,9 @@
       "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
       "path": "sql.module.bicep",
       "params": {
-        "principalId": "",
-        "principalName": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalName": "{default-identity.outputs.name}",
+        "principalType": "ServicePrincipal"
       }
     },
     "db": {
@@ -136,7 +137,7 @@
       "connectionString": "{aiwithoutlaw.outputs.appInsightsConnectionString}",
       "path": "aiwithoutlaw.module.bicep",
       "params": {
-        "logAnalyticsWorkspaceId": ""
+        "logAnalyticsWorkspaceId": "{containerAppEnv.outputs.logAnalyticsWorkspaceId}"
       }
     },
     "redis": {
@@ -152,8 +153,8 @@
       "connectionString": "{sb.outputs.serviceBusEndpoint}",
       "path": "sb.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "signalr": {
@@ -161,8 +162,8 @@
       "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
       "path": "signalr.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "api": {
@@ -203,6 +204,49 @@
           "external": true
         }
       }
+    },
+    "containerAppEnv": {
+      "type": "azure.bicep.v0",
+      "path": "containerappenv.module.bicep"
+    },
+    "containerRegistry": {
+      "type": "azure.bicep.v0",
+      "path": "containerregistry.module.bicep"
+    },
+    "default-identity": {
+      "type": "azure.bicep.v0",
+      "path": "default-identity.module.bicep"
+    },
+    "api-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "api-containerapp.module.bicep",
+      "params": {
+        "sql_outputs_sqlServerFqdn": "{sql.outputs.sqlServerFqdn}",
+        "postgres2_secretOutputs_connectionString": "{postgres2.secretOutputs.connectionString}",
+        "cosmos_secretOutputs_connectionString": "{cosmos.secretOutputs.connectionString}",
+        "storage_outputs_blobEndpoint": "{storage.outputs.blobEndpoint}",
+        "storage_outputs_tableEndpoint": "{storage.outputs.tableEndpoint}",
+        "storage_outputs_queueEndpoint": "{storage.outputs.queueEndpoint}",
+        "kv3_outputs_vaultUri": "{kv3.outputs.vaultUri}",
+        "appConfig_outputs_appConfigEndpoint": "{appConfig.outputs.appConfigEndpoint}",
+        "ai_outputs_appInsightsConnectionString": "{ai.outputs.appInsightsConnectionString}",
+        "redis_secretOutputs_connectionString": "{redis.secretOutputs.connectionString}",
+        "sb_outputs_serviceBusEndpoint": "{sb.outputs.serviceBusEndpoint}",
+        "signalr_outputs_hostName": "{signalr.outputs.hostName}",
+        "test_outputs_test": "{test.outputs.test}",
+        "test_outputs_val0": "{test.outputs.val0}",
+        "test_outputs_val1": "{test.outputs.val1}",
+        "default_identity_outputs_id": "{default-identity.outputs.id}",
+        "default_identity_outputs_clientId": "{default-identity.outputs.clientId}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "api_containerImage": "{api.containerImage}"
+      }
+    },
+    "app": {
+      "type": "azure.bicep.v0",
+      "path": "app.module.bicep"
     }
   }
 }

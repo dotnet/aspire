@@ -57,9 +57,10 @@ internal sealed class AzureProvisioner(
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        // TODO: Make this more general purpose
         if (executionContext.IsPublishMode)
         {
+            // TODO: Let the user pick what this is, for now just hard code azure container apps
+            await new AzureContainerAppsInfastructure(executionContext).GenerateAdditionalInfrastructureAsync(appModel, cancellationToken).ConfigureAwait(false);
             return;
         }
 

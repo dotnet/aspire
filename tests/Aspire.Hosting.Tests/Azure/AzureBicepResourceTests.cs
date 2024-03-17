@@ -490,7 +490,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
         var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
-        var expectedManifest = """
+
+        var expectedManifest =
+           """
            {
              "type": "azure.bicep.v0",
              "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
