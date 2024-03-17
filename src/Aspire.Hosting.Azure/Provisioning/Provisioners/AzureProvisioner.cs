@@ -171,10 +171,11 @@ internal sealed class AzureProvisioner(
         {
             try
             {
-                var userSecrets = await provisioningContextLazy.Value.ConfigureAwait(false);
+                var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
+
                 // Ensure directory exists before attempting to create secrets file
                 Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-                await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+                await File.WriteAllTextAsync(userSecretsPath, provisioningContext.UserSecrets.ToString(), cancellationToken).ConfigureAwait(false);
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }
