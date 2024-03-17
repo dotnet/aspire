@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.Versioning;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Authorization;
@@ -23,9 +23,9 @@ public static class AzureOpenAIExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
-        return builder.AddAzureOpenAI(name, (_, _, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        return builder.AddAzureOpenAI(name, null);
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -35,8 +35,8 @@ public static class AzureOpenAIExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureOpenAIResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>>? configureResource = null)
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureOpenAIResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -64,11 +64,8 @@ public static class AzureOpenAIExtensions
                 cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
             }
 
-            if (configureResource != null)
-            {
-                var resourceBuilder = builder.CreateResourceBuilder(resource);
-                configureResource(resourceBuilder, construct, cogServicesAccount, cdkDeployments);
-            }
+            var resourceBuilder = builder.CreateResourceBuilder(resource);
+            configureResource?.Invoke(resourceBuilder, construct, cogServicesAccount, cdkDeployments);
         };
 
         var resource = new AzureOpenAIResource(name, configureConstruct);
