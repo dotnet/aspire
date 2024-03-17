@@ -181,8 +181,8 @@
   <data name="PropertyGridValueColumnHeader" xml:space="preserve">
     <value>Value</value>
   </data>
-  <data name="SpanDetailsService" xml:space="preserve">
-    <value>Service &lt;strong&gt;{0}&lt;/strong&gt;</value>
+  <data name="SpanDetailsResource" xml:space="preserve">
+    <value>Resource &lt;strong&gt;{0}&lt;/strong&gt;</value>
     <comment>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SpanDetailsDuration" xml:space="preserve">
@@ -281,5 +281,13 @@
   </data>
   <data name="Loading" xml:space="preserve">
     <value>Loading...</value>
+  </data>
+  <data name="StructuredLogsDetailsResource" xml:space="preserve">
+    <value>Resource &lt;strong&gt;{0}&lt;/strong&gt;</value>
+    <comment>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
+  </data>
+  <data name="StructuredLogsDetailsTimestamp" xml:space="preserve">
+    <value>Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</value>
+    <comment>{0} is a date. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
 </root>

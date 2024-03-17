@@ -212,15 +212,25 @@
         <target state="translated">Dauer &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
-      <trans-unit id="SpanDetailsService">
-        <source>Service &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="translated">Dienst &lt;strong&gt;{0}&lt;/strong&gt;</target>
+      <trans-unit id="SpanDetailsResource">
+        <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Resource &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Startzeit &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsResource">
+        <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Resource &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsTimestamp">
+        <source>Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note>{0} is a date. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TimeOffsetColumnHeader">
         <source>Time offset</source>

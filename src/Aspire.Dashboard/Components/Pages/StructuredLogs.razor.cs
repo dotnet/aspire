@@ -69,8 +69,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [SupplyParameterFromQuery(Name = "filters")]
     public string? SerializedLogFilters { get; set; }
 
-    public IEnumerable<LogEntryPropertyViewModel>? SelectedLogEntryProperties { get; set; }
-    private OtlpLogEntry? _selectedLogEntry;
+    public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
     private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
@@ -173,23 +172,30 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private void OnShowProperties(OtlpLogEntry entry)
     {
-        if (_selectedLogEntry == entry)
+        if (SelectedLogEntry?.LogEntry == entry)
         {
             ClearSelectedLogEntry();
         }
         else
         {
-            _selectedLogEntry = entry;
-            SelectedLogEntryProperties = entry.AllProperties()
-                                              .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
-                                              .ToList();
+            var entryProperties = entry.AllProperties()
+                .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
+                .ToList();
+
+            var logEntryViewModel = new StructureLogsDetailsViewModel
+            {
+                LogEntry = entry,
+                Properties = entryProperties,
+                Title = entry.Message
+            };
+
+            SelectedLogEntry = logEntryViewModel;
         }
     }
 
     private void ClearSelectedLogEntry()
     {
-        _selectedLogEntry = null;
-        SelectedLogEntryProperties = null;
+        SelectedLogEntry = null;
     }
 
     private async Task OpenFilterAsync(LogFilter? entry)
@@ -263,7 +269,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private string GetRowClass(OtlpLogEntry entry)
     {
-        if (entry == _selectedLogEntry)
+        if (entry == SelectedLogEntry?.LogEntry)
         {
             return "selected-row";
         }
