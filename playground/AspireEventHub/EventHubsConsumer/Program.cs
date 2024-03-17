@@ -1,42 +1,35 @@
 using EventHubsConsumer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-char[] cmds = ['c', 'p', (char)0x27];
-char key;
+Console.WriteLine("EventHub consumer/processor test");
 
-do
+bool useConsumer = Environment.GetEnvironmentVariable("USE_EVENTHUBCONSUMERCLIENT") == "yes";
+
+if (useConsumer)
 {
-    Console.Write("Consumer mode: EventHub[C]onsumerClient or Event[P]rocessorClient? ");
-    key = Console.ReadKey().KeyChar;
+    builder.AddAzureEventHubConsumerClient("eventhubns",
+        settings => { settings.EventHubName = "hub"; });
 
-    if (!cmds.Contains(key))
-    {
-        Console.WriteLine("Invalid mode. Please enter 'C' or 'P', or CTRL+C to exit.");
-    }
-    else if (key == 'c')
-    {
-        builder.AddAzureEventHubConsumerClient("eventhubns", settings =>
+    builder.Services.AddHostedService<Consumer>();
+    Console.WriteLine("Starting EventHubConsumerClient...");
+}
+else
+{
+    builder.AddAzureBlobClient("checkpoints");
+    builder.AddAzureEventProcessorClient("eventhubns",
+        settings =>
         {
             settings.EventHubName = "hub";
+            settings.BlobClientConnectionName = "checkpoints";
         });
-        builder.Services.AddHostedService<Consumer>();
-    }
-    else if (key == 'p')
-    {
-        builder.AddAzureBlobClient("checkpoints");
-        builder.AddAzureEventHubProcessorClient("eventhubns",
-            settings =>
-            {
-                settings.EventHubName = "hub";
-                settings.BlobClientConnectionString = "checkpoints";
-            });
-
-        builder.Services.AddHostedService<Processor>();
-    }
-} while (key != 0x27);
+    builder.Services.AddHostedService<Processor>();
+    Console.WriteLine("Starting EventProcessorClient...");
+}
 
 var host = builder.Build();
 

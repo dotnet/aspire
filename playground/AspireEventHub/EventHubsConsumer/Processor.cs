@@ -3,6 +3,8 @@
 
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Processor;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace EventHubsConsumer;
 
@@ -19,6 +21,12 @@ internal sealed class Processor(EventProcessorClient client, ILogger<Consumer> l
             logger.LogInformation(arg.Data.EventBody.ToString());
             return Task.CompletedTask;
         }
+
+        client.ProcessErrorAsync += args =>
+        {
+            logger.LogError(args.Exception, "Error processing message: {Error}", args.Exception.Message);
+            return Task.CompletedTask;
+        };
 
         await client.StartProcessingAsync(cancellationToken);
     }

@@ -20,13 +20,13 @@ public static class AspireEventHubsExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:Messaging:EventHubs:"; // + nameof(TClient)
 
-    public static void AddAzureEventHubProcessorClient(
+    public static void AddAzureEventProcessorClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureMessagingEventHubsSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>>? configureClientBuilder = null)
     {
-        new EventProcessorClientComponent()
+        new EventProcessorClientComponent(builder.Configuration)
             .AddClient(builder, DefaultConfigSectionName + nameof(EventProcessorClient),
                 configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
@@ -39,11 +39,11 @@ public static class AspireEventHubsExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = EventHubProducerClientComponent
+        string configurationSectionName = EventProcessorClientComponent
             .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName +
-                                                    nameof(EventHubProducerClient));
+                                                    nameof(EventProcessorClient));
 
-        new EventProcessorClientComponent()
+        new EventProcessorClientComponent(builder.Configuration)
             .AddClient(builder, configurationSectionName, configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
     }

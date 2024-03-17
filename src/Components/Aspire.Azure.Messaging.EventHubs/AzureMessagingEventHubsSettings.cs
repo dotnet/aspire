@@ -40,9 +40,9 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     public string? ConsumerGroup { get; set; }
 
     /// <summary>
-    /// Gets or sets the connection string used to connect to the Azure Blob Storage. This is required when the Event Processor is used.
+    /// Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used.
     /// </summary>
-    public string? BlobClientConnectionString { get; set; }
+    public string? BlobClientConnectionName { get; set; }
 
     /// <summary>
     /// Gets or sets the credential used to authenticate to the Service Bus namespace.
