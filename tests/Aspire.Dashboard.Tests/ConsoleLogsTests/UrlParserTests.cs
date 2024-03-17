@@ -63,6 +63,10 @@ public class UrlParserTests
     [InlineData("http://<span>b</span>ing.com", "<a target=\"_blank\" href=\"http://bing.com\">http://<span>b</span>ing.com</a>")]
     [InlineData("ht<span>tp</span>://<span>b</span>ing.com", "<a target=\"_blank\" href=\"http://bing.com\">ht<span>tp</span>://<span>b</span>ing.com</a>")]
     [InlineData("http://<span class=\"url-host\">bing.com</span>:81", "<a target=\"_blank\" href=\"http://bing.com:81\">http://<span class=\"url-host\">bing.com</span>:81</a>")]
+
+    // Known limitations that must be fixed before merge
+    [InlineData("<span>http</span>://bing.com:81", "<a target=\"_blank\" href=\"http://bing.com:81\"><span>http</span>://bing.com:81</a>")]
+    [InlineData("http://bing.com:<span>81</span>", "<a target=\"_blank\" href=\"http://bing.com:81\">http://bing.com:<span>81</span></a>")]
     public void TryParse_IgnoresHtmlWhenMatching(string input, string output)
     {
         var result = UrlParser.TryParse(input, out var modifiedHtml);
