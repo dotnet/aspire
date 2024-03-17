@@ -24,7 +24,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureServiceBus(name, (_, _, _) => { });
+        return builder.AddAzureServiceBus(name, null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -36,7 +36,7 @@ public static class AzureServiceBusExtensions
     /// <param name="configureResource">Optional callback to configure the Service Bus namespace.</param>
     /// <returns></returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusNamespace> configureResource)
+    public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusNamespace>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -53,7 +53,7 @@ public static class AzureServiceBusExtensions
 
             var azureResource = (AzureServiceBusResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
-            configureResource.Invoke(azureResourceBuilder, construct, serviceBusNamespace);
+            configureResource?.Invoke(azureResourceBuilder, construct, serviceBusNamespace);
 
             foreach (var queue in azureResource.Queues)
             {
@@ -107,7 +107,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddQueue(name, (_, _, _) => { });
+        return builder.AddQueue(name, null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -118,7 +118,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the queue.</param>
     /// <param name="configureQueue">Optional callback to customize the queue.</param>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusQueue> configureQueue)
+    public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusQueue>? configureQueue)
     {
         builder.Resource.Queues.Add((name, configureQueue));
         return builder;
@@ -132,7 +132,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddTopic(name, (_, _, _) => { });
+        return builder.AddTopic(name, configureTopic: null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -143,7 +143,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     /// <param name="configureTopic">Optional callback to customize the topic.</param>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusTopic> configureTopic)
+    public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusTopic>? configureTopic)
     {
         builder.Resource.Topics.Add((name, configureTopic));
         return builder;
@@ -158,7 +158,7 @@ public static class AzureServiceBusExtensions
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddSubscription(topicName, subscriptionName, (_, _, _) => { });
+        return builder.AddSubscription(topicName, subscriptionName, null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -170,7 +170,7 @@ public static class AzureServiceBusExtensions
     /// <param name="subscriptionName">The name of the subscription.</param>
     /// <param name="configureSubscription">Optional callback to customize the subscription.</param>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusSubscription> configureSubscription)
+    public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusSubscription>? configureSubscription)
     {
         builder.Resource.Subscriptions.Add((topicName, subscriptionName, configureSubscription));
         return builder;

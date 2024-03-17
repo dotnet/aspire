@@ -23,7 +23,7 @@ public static class AzureRedisExtensions
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.PublishAsAzureRedis((_, _, _) => { });
+        return builder.PublishAsAzureRedis(null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -34,7 +34,7 @@ public static class AzureRedisExtensions
     /// <param name="configureResource">Callback to configure Azure resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache> configureResource)
+    public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource)
     {
         return builder.PublishAsAzureRedisInternal(configureResource);
     }
@@ -46,7 +46,7 @@ public static class AzureRedisExtensions
     /// <param name="configureResource">Callback to configure Azure resource.</param>
     /// <param name="useProvisioner"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    internal static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache> configureResource, bool useProvisioner = false)
+    internal static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource, bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -67,7 +67,7 @@ public static class AzureRedisExtensions
 
             var resource = (AzureRedisResource)construct.Resource;
             var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
-            configureResource(resourceBuilder, construct, redisCache);
+            configureResource?.Invoke(resourceBuilder, construct, redisCache);
         };
 
         var resource = new AzureRedisResource(builder.Resource, configureConstruct);
@@ -105,7 +105,7 @@ public static class AzureRedisExtensions
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AsAzureRedis((_, _, _) => { });
+        return builder.AsAzureRedis(null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -116,7 +116,7 @@ public static class AzureRedisExtensions
     /// <param name="configureResource">Callback to configure Azure resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache> configureResource)
+    public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource)
     {
         return builder.PublishAsAzureRedisInternal(configureResource, useProvisioner: true);
     }

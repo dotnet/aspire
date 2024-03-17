@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureSqlExtensions
 {
-    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>> configureResource, bool useProvisioner = false)
+    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -54,7 +54,7 @@ public static class AzureSqlExtensions
 
             var resource = (AzureSqlServerResource)construct.Resource;
             var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
-            configureResource(resourceBuilder, construct, sqlServer, sqlDatabases);
+            configureResource?.Invoke(resourceBuilder, construct, sqlServer, sqlDatabases);
         };
 
         var resource = new AzureSqlServerResource(builder.Resource, configureConstruct);
@@ -92,7 +92,7 @@ public static class AzureSqlExtensions
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.PublishAsAzureSqlDatabase((_, _, _, _) => { });
+        return builder.PublishAsAzureSqlDatabase(null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -103,7 +103,7 @@ public static class AzureSqlExtensions
     /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>> configureResource)
+    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource)
     {
         return builder.PublishAsAzureSqlDatabase(configureResource, useProvisioner: false);
     }
@@ -116,7 +116,7 @@ public static class AzureSqlExtensions
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AsAzureSqlDatabase((_, _, _, _) => { });
+        return builder.AsAzureSqlDatabase(null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -127,7 +127,7 @@ public static class AzureSqlExtensions
     /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>> configureResource)
+    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource)
     {
         return builder.PublishAsAzureSqlDatabase(configureResource, useProvisioner: true);
     }

@@ -57,7 +57,7 @@ public static class AzurePostgresExtensions
 
     internal static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerInternal(
         this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer> configureResource,
+        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         IResourceBuilder<ParameterResource>? administratorLogin = null,
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null,
         bool useProvisioner = false)
@@ -101,7 +101,7 @@ public static class AzurePostgresExtensions
 
             var azureResource = (AzurePostgresResource)construct.Resource;
             var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);
-            configureResource(azureResourceBuilder, construct, postgres);
+            configureResource?.Invoke(azureResourceBuilder, construct, postgres);
         };
 
         var resource = new AzurePostgresResource(builder.Resource, configureConstruct);
@@ -143,7 +143,7 @@ public static class AzurePostgresExtensions
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer> configureResource,
+        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         IResourceBuilder<ParameterResource>? administratorLogin = null,
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
     {
@@ -167,11 +167,7 @@ public static class AzurePostgresExtensions
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.PublishAsAzurePostgresFlexibleServer(
-            (_, _, _) => { },
-            administratorLogin: administratorLogin,
-            administratorLoginPassword
-            );
+        return builder.PublishAsAzurePostgresFlexibleServer(null, administratorLogin: administratorLogin, administratorLoginPassword);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -188,7 +184,7 @@ public static class AzurePostgresExtensions
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AsAzurePostgresFlexibleServer((_, _, _) => { }, administratorLogin, administratorLoginPassword);
+        return builder.AsAzurePostgresFlexibleServer(null, administratorLogin, administratorLoginPassword);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -203,7 +199,7 @@ public static class AzurePostgresExtensions
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer> configureResource,
+        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         IResourceBuilder<ParameterResource>? administratorLogin = null,
         IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
     {

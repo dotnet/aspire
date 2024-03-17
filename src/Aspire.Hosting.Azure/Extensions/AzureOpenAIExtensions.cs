@@ -24,7 +24,7 @@ public static class AzureOpenAIExtensions
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureOpenAI(name, (_, _, _, _) => { });
+        return builder.AddAzureOpenAI(name, null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -36,7 +36,7 @@ public static class AzureOpenAIExtensions
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureOpenAIResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>> configureResource)
+    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureOpenAIResource>, ResourceModuleConstruct, CognitiveServicesAccount, IEnumerable<CognitiveServicesAccountDeployment>>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -65,7 +65,7 @@ public static class AzureOpenAIExtensions
             }
 
             var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource(resourceBuilder, construct, cogServicesAccount, cdkDeployments);
+            configureResource?.Invoke(resourceBuilder, construct, cogServicesAccount, cdkDeployments);
         };
 
         var resource = new AzureOpenAIResource(name, configureConstruct);

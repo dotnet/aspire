@@ -24,7 +24,7 @@ public static class AzureSearchExtensions
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureSearch(name, (_, _, _) => { });
+        return builder.AddAzureSearch(name, null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
     /// <summary>
@@ -38,7 +38,7 @@ public static class AzureSearchExtensions
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(
         this IDistributedApplicationBuilder builder,
         string name,
-        Action<IResourceBuilder<AzureSearchResource>, ResourceModuleConstruct, SearchService> configureResource)
+        Action<IResourceBuilder<AzureSearchResource>, ResourceModuleConstruct, SearchService>? configureResource)
     {
         AzureSearchResource resource = new(name, ConfigureSearch);
         return builder.AddResource(resource)
@@ -73,7 +73,7 @@ public static class AzureSearchExtensions
 
             var resource = (AzureSearchResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource(resourceBuilder, construct, search);
+            configureResource?.Invoke(resourceBuilder, construct, search);
         }
     }
 }

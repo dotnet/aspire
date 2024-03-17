@@ -23,7 +23,7 @@ public static class AzureAppConfigurationExtensions
     public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureAppConfiguration(name, (_, _, _) => { });
+        return builder.AddAzureAppConfiguration(name, null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -35,7 +35,7 @@ public static class AzureAppConfigurationExtensions
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureAppConfigurationResource>, ResourceModuleConstruct, AppConfigurationStore> configureResource)
+    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureAppConfigurationResource>, ResourceModuleConstruct, AppConfigurationStore>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -49,7 +49,7 @@ public static class AzureAppConfigurationExtensions
 
             var resource = (AzureAppConfigurationResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource(resourceBuilder, construct, store);
+            configureResource?.Invoke(resourceBuilder, construct, store);
         };
 
         var resource = new AzureAppConfigurationResource(name, configureConstruct);

@@ -23,7 +23,7 @@ public static class AzureKeyVaultResourceExtensions
     public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureKeyVault(name, (_, _, _) => { });
+        return builder.AddAzureKeyVault(name, null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -35,7 +35,7 @@ public static class AzureKeyVaultResourceExtensions
     /// <param name="configureResource"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureKeyVaultResource>, ResourceModuleConstruct, KeyVault> configureResource)
+    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureKeyVaultResource>, ResourceModuleConstruct, KeyVault>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -50,7 +50,7 @@ public static class AzureKeyVaultResourceExtensions
 
             var resource = (AzureKeyVaultResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource(resourceBuilder, construct, keyVault);
+            configureResource?.Invoke(resourceBuilder, construct, keyVault);
         };
         var resource = new AzureKeyVaultResource(name, configureConstruct);
 

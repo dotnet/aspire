@@ -24,7 +24,7 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return builder.AddAzureStorage(name, static (_, _, _) => { });
+        return builder.AddAzureStorage(name, null);
 #pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
@@ -36,7 +36,7 @@ public static class AzureStorageExtensions
     /// <param name="configureResource">Callback to configure the storage account.</param>
     /// <returns></returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount> configureResource)
+    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -65,7 +65,7 @@ public static class AzureStorageExtensions
 
             var resource = (AzureStorageResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);
-            configureResource(resourceBuilder, construct, storageAccount);
+            configureResource?.Invoke(resourceBuilder, construct, storageAccount);
         };
         var resource = new AzureStorageResource(name, configureConstruct);
 
