@@ -180,8 +180,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             var logEntryViewModel = new StructureLogsDetailsViewModel
             {
-                LogEntry = entry,
-                Title = entry.Message
+                LogEntry = entry
             };
 
             SelectedLogEntry = logEntryViewModel;
