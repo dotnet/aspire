@@ -60,16 +60,14 @@ public class UrlParserTests
     }
 
     [Theory]
-    [InlineData("https://localhost\x1B[30m:\x1B[30m5173\x1B[30m\x1B[0m", "<a target=\"_blank\" href=\"https://localhost:5173\">https://localhost:5173</a>")]
-    [InlineData("http://localhost\x1B[30m:\x1B[30m5173\x1B[30m\x1B[0m", "<a target=\"_blank\" href=\"http://localhost:5173\">http://localhost:5173</a>")]
-    [InlineData("\u001b[30mSome data\x1B[0m: http://localhost\x1B[30m:\x1B[30m5173\x1B[30m\x1B[0m", "<span class=\"ansi-fg-black\">Some data</span>: <a target=\"_blank\" href=\"http://localhost:5173\">http://localhost:5173</a>")]
-    [InlineData("\x1B[32m→\x1b[0m\tLocal: http://localhost\x1B[34m:\x1B[36m5173\x1B[34m/\x1B[0m", "<span class=\"ansi-fg-green\">→</span>\tLocal: <a target=\"_blank\" href=\"http://localhost:5173/\">http://localhost:5173/</a>")]
-    public void TryParse_IgnoreAnsiSequenceInUrl(string input, string? expectedOutput)
+    [InlineData("http://<span>b</span>ing.com", "<a target=\"_blank\" href=\"http://bing.com\">http://<span>b</span>ing.com</a>")]
+    [InlineData("ht<span>tp</span>://<span>b</span>ing.com", "<a target=\"_blank\" href=\"http://bing.com\">ht<span>tp</span>://<span>b</span>ing.com</a>")]
+    [InlineData("http://<span class=\"url-host\">bing.com</span>:81", "<a target=\"_blank\" href=\"http://bing.com:81\">http://<span class=\"url-host\">bing.com</span>:81</a>")]
+    public void TryParse_IgnoresHtmlWhenMatching(string input, string output)
     {
-        var inputAsHtml = AnsiParser.ConvertToHtml(input).ConvertedText;
-        var result = UrlParser.TryParse(inputAsHtml, out var modifiedText);
+        var result = UrlParser.TryParse(input, out var modifiedHtml);
 
         Assert.True(result);
-        Assert.Equal(expectedOutput, modifiedText);
+        Assert.Equal(output, modifiedHtml);
     }
 }

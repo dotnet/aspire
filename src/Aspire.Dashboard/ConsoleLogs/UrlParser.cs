@@ -11,41 +11,49 @@ public static partial class UrlParser
 {
     private static readonly Regex s_urlRegEx = GenerateUrlRegEx();
 
-    public static bool TryParse(string? text, [NotNullWhen(true)] out string? modifiedText)
+    public static bool TryParse(string? html, [NotNullWhen(true)] out string? modifiedHtml)
     {
-        if (text is not null)
+        modifiedHtml = null;
+
+        if (html is null)
         {
-            var urlMatch = s_urlRegEx.Match(text);
-
-            var builder = new StringBuilder(text.Length * 2);
-
-            var nextCharIndex = 0;
-            while (urlMatch.Success)
-            {
-                if (urlMatch.Index > 0)
-                {
-                    builder.Append(text[(nextCharIndex)..urlMatch.Index]);
-                }
-
-                var url = ReadUrl(text, urlMatch, out nextCharIndex);
-                builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{url}</a>");
-                urlMatch = urlMatch.NextMatch();
-            }
-
-            if (builder.Length > 0)
-            {
-                if (nextCharIndex < text.Length)
-                {
-                    builder.Append(text[(nextCharIndex)..]);
-                }
-
-                modifiedText = builder.ToString();
-                return true;
-            }
+            return false;
         }
 
-        modifiedText = null;
-        return false;
+        var (text, toHtmlIndex) = BuildContext(html);
+
+        var urlMatch = s_urlRegEx.Match(text);
+
+        var builder = new StringBuilder(text.Length * 2);
+
+        var nextCharIndex = 0;
+        while (urlMatch.Success)
+        {
+            if (urlMatch.Index > 0)
+            {
+                builder.Append(text[(nextCharIndex)..urlMatch.Index]);
+            }
+
+            var urlStart = toHtmlIndex[urlMatch.Index];
+            nextCharIndex = toHtmlIndex[urlMatch.Index + urlMatch.Length - 1] + 1;
+            var url = html[urlStart..nextCharIndex];
+
+            builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{urlMatch.Value}\">{url}</a>");
+            urlMatch = urlMatch.NextMatch();
+        }
+
+        if (builder.Length == 0)
+        {
+            return false;
+        }
+
+        if (nextCharIndex < html.Length)
+        {
+            builder.Append(html[(nextCharIndex)..]);
+        }
+
+        modifiedHtml = builder.ToString();
+        return true;
     }
 
     // Regular expression that detects http/https URLs in a log entry
@@ -60,53 +68,38 @@ public static partial class UrlParser
     [GeneratedRegex("\\bhttps?://[-A-Za-z0-9+&@#/%?=~_|$!:,.;]*[A-Za-z0-9+&@#/%=~_|$]")]
     private static partial Regex GenerateUrlRegEx();
 
-    private static string ReadUrl(string text, Match match, out int nextCharIndex)
+    private static (string, int[]) BuildContext(string html)
     {
-        if (TryRemoveXmlTagsFromMatch(text, match.Index, out var noXmlTags, out var removedCharacterCount))
+        var textBuilder = new StringBuilder();
+        var indexLookup = new int[html.Length];
+
+        var textIndex = 0;
+        var htmlIndex = 0;
+        var isInsideTag = false;
+        foreach (var character in html)
         {
-            var noXmlTagsMatch = s_urlRegEx.Match(noXmlTags);
-            nextCharIndex = match.Index + noXmlTagsMatch.Length + removedCharacterCount;
-            return noXmlTagsMatch.Value;
-        }
-        else
-        {
-            nextCharIndex = match.Index + match.Length;
-            return match.Value;
-        }
-    }
-
-    private static bool TryRemoveXmlTagsFromMatch(string text, int index, [NotNullWhen(true)] out string? modifiedText, out int removedCharacterCount)
-    {
-        removedCharacterCount = 0;
-
-        var nextTagStart = text.IndexOfAny(['<', ' '], index);
-        if (nextTagStart < 0 || text[nextTagStart] == ' ')
-        {
-            modifiedText = null;
-            return false;
-        }
-
-        var sb = new StringBuilder();
-
-        while (nextTagStart > 0)
-        {
-            sb.Append(text[index..nextTagStart]);
-
-            var tagEnd = text.IndexOf('>', nextTagStart);
-            if (tagEnd < 0)
+            if (character == '<')
             {
-                break;
+                isInsideTag = true;
             }
 
-            index = tagEnd + 1;
-            removedCharacterCount += index - nextTagStart;
+            if (isInsideTag)
+            {
+                htmlIndex++;
+            }
+            else
+            {
+                indexLookup[textIndex++] = htmlIndex++;
+                textBuilder.Append(character);
+            }
 
-            nextTagStart = text.IndexOf('<', index);
+            if (character == '>')
+            {
+                isInsideTag = false;
+            }
         }
 
-        sb.Append(text[index..]);
-
-        modifiedText = sb.ToString();
-        return true;
+        var text = textBuilder.ToString();
+        return (text, indexLookup);
     }
 }
