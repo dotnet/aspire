@@ -54,6 +54,8 @@ public partial class StructuredLogDetails
 
     protected override void OnParametersSet()
     {
+        // Move some attributes to separate lists, e.g. exception attributes to their own list.
+        // Remaining attributes are displayed along side the message.
         var attributes = ViewModel.LogEntry.Attributes.ToList();
 
         _contextAttributes =
@@ -75,7 +77,7 @@ public partial class StructuredLogDetails
         }
 
         _exceptionAttributes = [];
-        MoveAttributes(attributes, _contextAttributes, a => a.Key.StartsWith("exception.", StringComparison.OrdinalIgnoreCase));
+        MoveAttributes(attributes, _exceptionAttributes, a => a.Key.StartsWith("exception.", StringComparison.OrdinalIgnoreCase));
 
         _logEntryAttributes =
         [
@@ -98,6 +100,7 @@ public partial class StructuredLogDetails
         }
     }
 
+    // Sometimes a parent ID is added and the value is 0000000000. Don't display unhelpful IDs.
     private static bool HasTelemetryBaggage(string value)
     {
         if (string.IsNullOrEmpty(value))
