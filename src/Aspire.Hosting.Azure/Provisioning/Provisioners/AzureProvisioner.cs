@@ -151,39 +151,8 @@ internal sealed class AzureProvisioner(
 
         var userSecretsPath = GetUserSecretsPath();
 
-        JsonObject? userSecrets = null;
-        try
-        {
-            userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-                ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
-                : [];
-        }
-        catch (JsonException ex)
-        {
-            // If we fail to parse the JSON then we can't really continue because we won't be able to update
-            // the JSON with secrets. So rather than start provisioning on a bad JSON file we exit out. However
-            // to help the user to figure out what is going on we log an error on the main console logger as
-            // well as enumerate through each of the resources and throw up an error in those logs as well.
-
-            logger.LogError(ex, "Failed to read user secrets from '{UserSecretsPath}', is the JSON well-formed?", userSecretsPath);
-
-            foreach (var resource in azureResources)
-            {
-                var resourceLogger = loggerService.GetLogger(resource);
-                resourceLogger.LogError(
-                    ex,
-                    "Failed to provision resource '{ResourceName}' because user secrets file '{UserSecretsPath}' was not valid JSON.",
-                    resource.Name,
-                    userSecretsPath
-                    );
-                resource.ProvisioningTaskCompletionSource?.SetException(ex);
-            }
-
-            throw;
-        }
-
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(userSecrets, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(userSecretsPath, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -200,11 +169,19 @@ internal sealed class AzureProvisioner(
         // If we created any resources then save the user secrets
         if (userSecretsPath is not null)
         {
-            // Ensure directory exists before attempting to create secrets file
-            Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var userSecrets = await provisioningContextLazy.Value.ConfigureAwait(false);
+                // Ensure directory exists before attempting to create secrets file
+                Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
+                await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
 
-            logger.LogInformation("Azure resource connection strings saved to user secrets.");
+                logger.LogInformation("Azure resource connection strings saved to user secrets.");
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
+            }
         }
 
         // Set the completion source for all resources
@@ -272,16 +249,21 @@ internal sealed class AzureProvisioner(
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
+            catch (JsonException ex)
+            {
+                resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.Name);
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+            }
             catch (Exception ex)
             {
-                resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
+                resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", resource.Name);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
             }
         }
     }
 
-    private async Task<ProvisioningContext> GetProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken)
+    private async Task<ProvisioningContext> GetProvisioningContextAsync(string? userSecretsPath, CancellationToken cancellationToken)
     {
         var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
         {
@@ -368,6 +350,10 @@ internal sealed class AzureProvisioner(
         var principal = await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
 
         var resourceMap = new Dictionary<string, ArmResource>();
+
+        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
+            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
+            : [];
 
         return new ProvisioningContext(
                     credential,
