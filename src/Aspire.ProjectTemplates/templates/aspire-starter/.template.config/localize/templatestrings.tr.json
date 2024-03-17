@@ -1,13 +1,13 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Starter Application",
+  "name": ".NET Aspire Starter Uygulaması",
   "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
-  "symbols/Framework/description": "The target framework for the project.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
+  "symbols/Framework/description": "Projenin hedef çerçevesi.",
+  "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires Docker)",
   "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires Docker to run locally.",
-  "symbols/CreateTestsProject/displayName": "Create a _tests project",
-  "symbols/CreateTestsProject/description": "Configures whether to create a project for integration tests using the AppHost project.",
+  "symbols/CreateTestsProject/displayName": "Bir _tests projesi oluştur",
+  "symbols/CreateTestsProject/description": "AppHost projesini kullanarak tümleştirme testleri için bir proje oluşturulup oluşturulmayacağını yapılandırır.",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",
@@ -18,9 +18,9 @@
   "symbols/webHttpsPort/description": "Port number to use for the HTTPS endpoint in launchSettings.json of the Web project. This option is only applicable when the parameter no-https is not used.",
   "symbols/apiServiceHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the ApiService project.",
   "symbols/apiServiceHttpsPort/description": "Port number to use for the HTTPS endpoint in launchSettings.json of the ApiService project. This option is only applicable when the parameter no-https is not used.",
-  "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",
-  "symbols/NoHttps/description": "Whether to turn off HTTPS.",
+  "symbols/skipRestore/description": "Belirtilirse, oluşturma sırasında projenin otomatik geri yüklenmesini atlar.",
+  "symbols/NoHttps/description": "HTTPS'nin kapatılıp kapatılmayacağı.",
   "postActions/set-startup-project/description": "Sets the startup project in the solution",
-  "postActions/restore/description": "Restore NuGet packages required by this project.",
-  "postActions/restore/manualInstructions/default/text": "Run 'dotnet restore'"
+  "postActions/restore/description": "Bu projenin gerektirdiği NuGet paketlerini geri yükleyin.",
+  "postActions/restore/manualInstructions/default/text": "'dotnet restore' çalıştır"
 }

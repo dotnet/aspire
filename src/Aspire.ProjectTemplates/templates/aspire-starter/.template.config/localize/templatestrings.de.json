@@ -1,9 +1,9 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Starter Application",
+  "name": ".NET Aspire-Starteranwendung",
   "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
-  "symbols/Framework/description": "The target framework for the project.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
+  "symbols/Framework/description": "Das Zielframework für das Projekt.",
+  "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires Docker)",
   "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires Docker to run locally.",
   "symbols/CreateTestsProject/displayName": "Create a _tests project",
@@ -18,9 +18,9 @@
   "symbols/webHttpsPort/description": "Port number to use for the HTTPS endpoint in launchSettings.json of the Web project. This option is only applicable when the parameter no-https is not used.",
   "symbols/apiServiceHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the ApiService project.",
   "symbols/apiServiceHttpsPort/description": "Port number to use for the HTTPS endpoint in launchSettings.json of the ApiService project. This option is only applicable when the parameter no-https is not used.",
-  "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",
-  "symbols/NoHttps/description": "Whether to turn off HTTPS.",
+  "symbols/skipRestore/description": "Wenn angegeben, wird die automatische Wiederherstellung des Projekts beim Erstellen übersprungen.",
+  "symbols/NoHttps/description": "Ob HTTPS deaktiviert werden soll.",
   "postActions/set-startup-project/description": "Sets the startup project in the solution",
-  "postActions/restore/description": "Restore NuGet packages required by this project.",
-  "postActions/restore/manualInstructions/default/text": "Run 'dotnet restore'"
+  "postActions/restore/description": "„NuGet-Pakete“ wiederherstellen, die für dieses Projekt erforderlich sind.",
+  "postActions/restore/manualInstructions/default/text": "\"dotnet restore\" ausführen"
 }
