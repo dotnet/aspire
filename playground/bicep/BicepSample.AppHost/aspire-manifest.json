@@ -23,15 +23,15 @@
     },
     "test0": {
       "type": "azure.bicep.v0",
-      "path": "../../../../../Users/midenn/AppData/Local/Temp/tmp0cmpqc.tmp.bicep"
+      "path": "test0.bicep"
     },
     "kv3": {
       "type": "azure.bicep.v0",
       "connectionString": "{kv3.outputs.vaultUri}",
       "path": "kv3.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "appConfig": {
@@ -39,8 +39,8 @@
       "connectionString": "{appConfig.outputs.appConfigEndpoint}",
       "path": "appConfig.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": "",
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal",
         "sku": "standard"
       }
     },
@@ -48,8 +48,8 @@
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "blob": {
@@ -69,8 +69,23 @@
       "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
       "path": "sql.module.bicep",
       "params": {
-        "principalId": "",
-        "principalName": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalName": "",
+        "principalType": "ServicePrincipal"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "minLower": 1,
+              "minUpper": 1,
+              "minNumeric": 1
+            }
+          }
+        }
       }
     },
     "db": {
@@ -116,7 +131,7 @@
       "connectionString": "{cosmos.secretOutputs.connectionString}",
       "path": "cosmos.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "keyVaultName": "{cosmos-kv.outputs.name}"
       }
     },
     "ai": {
@@ -124,8 +139,8 @@
       "connectionString": "{ai.outputs.appInsightsConnectionString}",
       "path": "ai.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "redis": {
@@ -142,8 +157,8 @@
       "connectionString": "{sb.outputs.serviceBusEndpoint}",
       "path": "sb.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "signalr": {
@@ -151,8 +166,8 @@
       "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
       "path": "signalr.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "api": {
@@ -189,6 +204,49 @@
           "protocol": "tcp",
           "transport": "http"
         }
+      }
+    },
+    "containerAppEnv": {
+      "type": "azure.bicep.v0",
+      "path": "containerappenv.bicep"
+    },
+    "containerRegistry": {
+      "type": "azure.bicep.v0",
+      "path": "containerregistry.bicep"
+    },
+    "cosmos-kv": {
+      "type": "azure.bicep.v0",
+      "path": "cosmos-kv.bicep"
+    },
+    "default-identity": {
+      "type": "azure.bicep.v0",
+      "path": "default-identity.bicep"
+    },
+    "api-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "api-containerapp.bicep",
+      "params": {
+        "param_0": "{containerAppEnv.outputs.id}",
+        "param_1": "{containerRegistry.outputs.loginServer}",
+        "param_2": "{containerRegistry.outputs.mid}",
+        "param_3": "{api.containerImage}",
+        "param_4": "{sql.outputs.sqlServerFqdn}",
+        "param_5": "{postgres2.secretOutputs.connectionString}",
+        "param_6": "{cosmos.secretOutputs.connectionString}",
+        "param_7": "{storage.outputs.blobEndpoint}",
+        "param_8": "{storage.outputs.tableEndpoint}",
+        "param_9": "{storage.outputs.queueEndpoint}",
+        "param_10": "{kv3.outputs.vaultUri}",
+        "param_11": "{appConfig.outputs.appConfigEndpoint}",
+        "param_12": "{ai.outputs.appInsightsConnectionString}",
+        "param_13": "{redis.secretOutputs.connectionString}",
+        "param_14": "{sb.outputs.serviceBusEndpoint}",
+        "param_15": "{signalr.outputs.hostName}",
+        "param_16": "{test.outputs.test}",
+        "param_17": "{test.outputs.val0}",
+        "param_18": "{test.outputs.val1}",
+        "param_19": "{default-identity.outputs.id}",
+        "param_20": "{default-identity.outputs.clientId}"
       }
     }
   }

@@ -1,16 +1,10 @@
 {
   "resources": {
     "mongo": {
-      "type": "container.v0",
-      "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
-      "image": "mongo:7.0.5",
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "containerPort": 27017
-        }
+      "type": "azure.bicep.v0",
+      "path": "mongo-containerapp.bicep",
+      "params": {
+        "param_0": "{containerAppEnv.outputs.id}"
       }
     },
     "api": {
@@ -33,6 +27,28 @@
           "protocol": "tcp",
           "transport": "http"
         }
+      }
+    },
+    "containerAppEnv": {
+      "type": "azure.bicep.v0",
+      "path": "containerappenv.bicep"
+    },
+    "containerRegistry": {
+      "type": "azure.bicep.v0",
+      "path": "containerregistry.bicep"
+    },
+    "default-identity": {
+      "type": "azure.bicep.v0",
+      "path": "default-identity.bicep"
+    },
+    "api-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "api-containerapp.bicep",
+      "params": {
+        "param_0": "{containerAppEnv.outputs.id}",
+        "param_1": "{containerRegistry.outputs.loginServer}",
+        "param_2": "{containerRegistry.outputs.mid}",
+        "param_3": "{api.containerImage}"
       }
     }
   }

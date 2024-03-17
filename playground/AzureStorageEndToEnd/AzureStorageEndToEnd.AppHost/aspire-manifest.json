@@ -4,8 +4,8 @@
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "blobs": {
@@ -25,13 +25,44 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        },
+        "api": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
         }
+      }
+    },
+    "containerAppEnv": {
+      "type": "azure.bicep.v0",
+      "path": "containerappenv.bicep"
+    },
+    "containerRegistry": {
+      "type": "azure.bicep.v0",
+      "path": "containerregistry.bicep"
+    },
+    "default-identity": {
+      "type": "azure.bicep.v0",
+      "path": "default-identity.bicep"
+    },
+    "api-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "api-containerapp.bicep",
+      "params": {
+        "param_0": "{containerAppEnv.outputs.id}",
+        "param_1": "{containerRegistry.outputs.loginServer}",
+        "param_2": "{containerRegistry.outputs.mid}",
+        "param_3": "{api.containerImage}",
+        "param_4": "{storage.outputs.blobEndpoint}",
+        "param_5": "{default-identity.outputs.id}",
+        "param_6": "{default-identity.outputs.clientId}"
       }
     }
   }
