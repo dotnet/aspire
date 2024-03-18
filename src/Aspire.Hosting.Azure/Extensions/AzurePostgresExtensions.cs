@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.Versioning;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -15,12 +15,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzurePostgresExtensions
 {
-    private static IResourceBuilder<T> WithLoginAndPassword<T>(
-        this IResourceBuilder<T> builder,
-        IResourceBuilder<ParameterResource>? administratorLogin,
-        IResourceBuilder<ParameterResource>? administratorLoginPassword) where T: AzureBicepResource
+    private static IResourceBuilder<T> WithLoginAndPassword<T>(this IResourceBuilder<T> builder, PostgresServerResource postgresResource) where T : AzureBicepResource
     {
-        if (administratorLogin is null)
+        if (postgresResource.UserNameParameter is null)
         {
             const string usernameInput = "username";
             // generate a username since a parameter was not provided
@@ -39,17 +36,17 @@ public static class AzurePostgresExtensions
         }
         else
         {
-            builder.WithParameter("administratorLogin", administratorLogin);
+            builder.WithParameter("administratorLogin", postgresResource.UserNameParameter);
         }
 
-        if (administratorLoginPassword is null)
+        if (postgresResource.PasswordParameter is null)
         {
             // generate a password since a parameter was not provided. Use the existing "password" input from the underlying PostgresServerResource
             builder.WithParameter("administratorLoginPassword", new InputReference(builder.Resource, "password"));
         }
         else
         {
-            builder.WithParameter("administratorLoginPassword", administratorLoginPassword);
+            builder.WithParameter("administratorLoginPassword", postgresResource.PasswordParameter);
         }
 
         return builder;
@@ -57,9 +54,7 @@ public static class AzurePostgresExtensions
 
     internal static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerInternal(
         this IResourceBuilder<PostgresServerResource> builder,
-        IResourceBuilder<ParameterResource>? administratorLogin = null,
-        IResourceBuilder<ParameterResource>? administratorLoginPassword = null,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource = null,
+        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
@@ -99,12 +94,9 @@ public static class AzurePostgresExtensions
             var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
             _ = new KeyVaultSecret(construct, "connectionString", postgres.GetConnectionString(administratorLogin, administratorLoginPassword));
 
-            if (configureResource != null)
-            {
-                var azureResource = (AzurePostgresResource)construct.Resource;
-                var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);
-                configureResource(azureResourceBuilder, construct, postgres);
-            }
+            var azureResource = (AzurePostgresResource)construct.Resource;
+            var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);
+            configureResource?.Invoke(azureResourceBuilder, construct, postgres);
         };
 
         var resource = new AzurePostgresResource(builder.Resource, configureConstruct);
@@ -112,7 +104,7 @@ public static class AzurePostgresExtensions
                                                         .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                                                         .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                                                         .WithManifestPublishingCallback(resource.WriteToManifest)
-                                                        .WithLoginAndPassword(administratorLogin, administratorLoginPassword);
+                                                        .WithLoginAndPassword(builder.Resource);
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
@@ -139,20 +131,14 @@ public static class AzurePostgresExtensions
     /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="administratorLogin"></param>
-    /// <param name="administratorLoginPassword"></param>
-    /// <param name="configureResource">Callback to configure Azure resource.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [RequiresPreviewFeatures]
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer> configureResource,
-        IResourceBuilder<ParameterResource>? administratorLogin = null,
-        IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
+        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource)
     {
         return builder.PublishAsAzurePostgresFlexibleServerInternal(
-            administratorLogin,
-            administratorLoginPassword,
             configureResource,
             useProvisioner: false);
     }
@@ -161,58 +147,40 @@ public static class AzurePostgresExtensions
     /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="administratorLogin"></param>
-    /// <param name="administratorLoginPassword"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
-        this IResourceBuilder<PostgresServerResource> builder,
-        IResourceBuilder<ParameterResource>? administratorLogin = null,
-        IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
+        this IResourceBuilder<PostgresServerResource> builder)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
-        return builder.PublishAsAzurePostgresFlexibleServer(
-            (_, _, _) => { },
-            administratorLogin: administratorLogin,
-            administratorLoginPassword
-            );
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        return builder.PublishAsAzurePostgresFlexibleServer(null);
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
     /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="administratorLogin"></param>
-    /// <param name="administratorLoginPassword"></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
-        this IResourceBuilder<PostgresServerResource> builder,
-        IResourceBuilder<ParameterResource>? administratorLogin = null,
-        IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
+        this IResourceBuilder<PostgresServerResource> builder)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
-        return builder.AsAzurePostgresFlexibleServer((_, _, _) => { }, administratorLogin, administratorLoginPassword);
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        return builder.AsAzurePostgresFlexibleServer(null);
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
     /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="administratorLogin"></param>
-    /// <param name="administratorLoginPassword"></param>
-    /// <param name="configureResource">Callback to configure Azure resource.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [RequiresPreviewFeatures]
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
-        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer> configureResource,
-        IResourceBuilder<ParameterResource>? administratorLogin = null,
-        IResourceBuilder<ParameterResource>? administratorLoginPassword = null)
+        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource)
     {
         return builder.PublishAsAzurePostgresFlexibleServerInternal(
-            administratorLogin,
-            administratorLoginPassword,
             configureResource,
             useProvisioner: true);
     }

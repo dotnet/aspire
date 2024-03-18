@@ -3,12 +3,8 @@
     "cosmos": {
       "type": "azure.bicep.v0",
       "connectionString": "{cosmos.secretOutputs.connectionString}",
-      "path": "aspire.hosting.azure.bicep.cosmosdb.bicep",
+      "path": "cosmos.module.bicep",
       "params": {
-        "databaseAccountName": "cosmos",
-        "databases": [
-          "db2"
-        ],
         "keyVaultName": ""
       }
     },
@@ -18,6 +14,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}"
       },
       "bindings": {

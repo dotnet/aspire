@@ -8,8 +8,8 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// <summary>
 /// A reference to an output parameter of a CloudFormation stack.
 /// </summary>
-/// <param name="name"></param>
-/// <param name="resource"></param>
+/// <param name="name">The name of the output reference.</param>
+/// <param name="resource">The <see cref="ICloudFormationResource"/> resource.</param>
 public class StackOutputReference(string name, ICloudFormationResource resource) : IManifestExpressionProvider, IValueProvider
 {
     /// <summary>

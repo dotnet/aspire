@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Net;
-using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
@@ -45,7 +45,7 @@ public class ResolvingHttpDelegatingHandler : DelegatingHandler
         var originalUri = request.RequestUri;
         IEndPointHealthFeature? epHealth = null;
         Exception? error = null;
-        var responseDuration = ValueStopwatch.StartNew();
+        var startTime = Stopwatch.GetTimestamp();
         if (originalUri?.Host is not null)
         {
             var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
@@ -65,7 +65,7 @@ public class ResolvingHttpDelegatingHandler : DelegatingHandler
         }
         finally
         {
-            epHealth?.ReportHealth(responseDuration.GetElapsedTime(), error); // Report health so that the resolver pipeline can take health and performance into consideration, possibly triggering a circuit breaker?.
+            epHealth?.ReportHealth(Stopwatch.GetElapsedTime(startTime), error); // Report health so that the resolver pipeline can take health and performance into consideration, possibly triggering a circuit breaker?.
             request.RequestUri = originalUri;
         }
     }

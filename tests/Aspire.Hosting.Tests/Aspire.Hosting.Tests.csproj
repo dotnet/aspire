@@ -9,7 +9,6 @@
     -->
     <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
     <NoWarn>$(NoWarn);CS0436;CS8002</NoWarn>
-    <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
   <ItemGroup>

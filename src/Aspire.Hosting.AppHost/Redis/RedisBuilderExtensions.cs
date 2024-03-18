@@ -29,11 +29,11 @@ public static class RedisBuilderExtensions
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="containerName"></param>
-    /// <param name="hostPort"></param>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
+    /// <param name="containerName">Override the container name used for Redis Commander.</param>
+    /// <param name="hostPort">The host port to expose the Redis Commander container image on.</param>
     /// <returns></returns>
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, string? containerName = null, int? hostPort = null)
     {
