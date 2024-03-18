@@ -3,7 +3,10 @@
 
 #pragma warning disable ASPIRE0001 // Because we use the CDK callbacks.
 
+using Aspire.Hosting.Azure;
 using Azure.Provisioning.KeyVaults;
+using Azure.ResourceManager.ApplicationInsights.Models;
+using Azure.ResourceManager.OperationalInsights.Models;
 
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
@@ -67,6 +70,25 @@ var search = builder.AddAzureSearch("search");
 
 var signalr = builder.AddAzureSignalR("signalr");
 
+var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace(
+    "logAnalyticsWorkspace",
+    (_, _, logAnalyticsWorkspace) =>
+    {
+        logAnalyticsWorkspace.Properties.Sku = new OperationalInsightsWorkspaceSku(OperationalInsightsWorkspaceSkuName.PerNode);
+    });
+
+var appInsights = builder.AddAzureApplicationInsights(
+    "appInsights",
+    (_, _, appInsights) =>
+{
+    appInsights.AssignProperty(
+        p => p.WorkspaceResourceId,
+        logAnalyticsWorkspace.Resource.WorkspaceId,
+        AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+
+    appInsights.Properties.IngestionMode = IngestionMode.LogAnalytics;
+});
+
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(signalr)
     .WithReference(blobs)
@@ -77,7 +99,8 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(pgsqldb)
     .WithReference(sb)
     .WithReference(appConfig)
-    .WithReference(search);
+    .WithReference(search)
+    .WithReference(appInsights);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

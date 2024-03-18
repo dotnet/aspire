@@ -218,7 +218,7 @@ public class AzureBicepResourceTests
                 value: 'AccountEndpoint=${cosmosDBAccount_5pKmb8KAZ.properties.documentEndpoint};AccountKey=${cosmosDBAccount_5pKmb8KAZ.listkeys(cosmosDBAccount_5pKmb8KAZ.apiVersion).primaryMasterKey}'
               }
             }
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
 
@@ -299,7 +299,7 @@ public class AzureBicepResourceTests
             }
 
             output appConfigEndpoint string = appConfigurationStore_j2IqAZkBh.properties.endpoint
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -315,17 +315,118 @@ public class AzureBicepResourceTests
 
         var connectionStringResource = (IResourceWithConnectionString)appInsights.Resource;
 
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.appinsights.bicep", appInsights.Resource.TemplateResourceName);
         Assert.Equal("appInsights", appInsights.Resource.Name);
-        Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
-        Assert.True(appInsights.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
         Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
 
-        var appInsightsManifest = await ManifestUtils.GetManifest(appInsights.Resource);
-        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsightsManifest["connectionString"]?.ToString());
-        Assert.Equal("azure.bicep.v0", appInsightsManifest["type"]?.ToString());
-        Assert.Equal("aspire.hosting.azure.bicep.appinsights.bicep", appInsightsManifest["path"]?.ToString());
+        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
+        var expectedManifest = """
+           {
+             "type": "azure.bicep.v0",
+             "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+             "path": "appInsights.module.bicep",
+             "params": {
+               "principalId": "",
+               "principalType": ""
+             }
+           }
+           """;
+        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param applicationType string = 'web'
+
+            @description('')
+            param kind string = 'web'
+
+            @description('')
+            param logAnalyticsWorkspaceId string
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
+              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'appInsights'
+              }
+              kind: kind
+              properties: {
+                Application_Type: applicationType
+                WorkspaceResourceId: logAnalyticsWorkspaceId
+              }
+            }
+
+            output appInsightsConnectionString string = applicationInsightsComponent_fo9MneV12.properties.ConnectionString
+
+            """;
+        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddLogAnalyticsWorkspace()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace("logAnalyticsWorkspace");
+
+        Assert.Equal("logAnalyticsWorkspace", logAnalyticsWorkspace.Resource.Name);
+        Assert.Equal("{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}", logAnalyticsWorkspace.Resource.WorkspaceId.ValueExpression);
+
+        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(logAnalyticsWorkspace.Resource);
+        var expectedManifest = """
+           {
+             "type": "azure.bicep.v0",
+             "path": "logAnalyticsWorkspace.module.bicep",
+             "params": {
+               "principalId": "",
+               "principalType": ""
+             }
+           }
+           """;
+        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource operationalInsightsWorkspace_uzGUFQdnZ 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+              name: toLower(take(concat('logAnalyticsWorkspace', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'logAnalyticsWorkspace'
+              }
+              properties: {
+                sku: {
+                  name: 'PerGB2018'
+                }
+              }
+            }
+
+            output logAnalyticsWorkspaceId string = operationalInsightsWorkspace_uzGUFQdnZ.id
+
+            """;
+        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
     }
 
     [Fact]
@@ -514,7 +615,7 @@ public class AzureBicepResourceTests
                 value: '${redisCache_p9fE6TK3F.properties.hostName},ssl=true,password=${redisCache_p9fE6TK3F.listKeys(redisCache_p9fE6TK3F.apiVersion).primaryKey}'
               }
             }
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -581,7 +682,7 @@ public class AzureBicepResourceTests
             }
 
             output vaultUri string = keyVault_IKWI2x0B5.properties.vaultUri
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -658,7 +759,7 @@ public class AzureBicepResourceTests
             }
 
             output hostName string = signalRService_hoCuRhvyj.properties.hostName
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -771,7 +872,7 @@ public class AzureBicepResourceTests
             }
 
             output sqlServerFqdn string = sqlServer_l5O9GRsSn.properties.fullyQualifiedDomainName
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -919,7 +1020,7 @@ public class AzureBicepResourceTests
                 value: 'Host=${postgreSqlFlexibleServer_NYWb9Nbel.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
               }
             }
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -1211,7 +1312,7 @@ public class AzureBicepResourceTests
             }
 
             output serviceBusEndpoint string = serviceBusNamespace_RuSlLOK64.properties.serviceBusEndpoint
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -1495,7 +1596,7 @@ public class AzureBicepResourceTests
             }
 
             output connectionString string = 'Endpoint=https://${searchService_7WkaGluF0.name}.search.windows.net'
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -1601,7 +1702,7 @@ public class AzureBicepResourceTests
             }
 
             output connectionString string = 'Endpoint=${cognitiveServicesAccount_6g8jyEjX5.properties.endpoint}'
-            
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
