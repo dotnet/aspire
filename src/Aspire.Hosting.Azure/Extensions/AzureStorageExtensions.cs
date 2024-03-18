@@ -84,6 +84,11 @@ public static class AzureStorageExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureStorageResource> RunAsEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
         builder.WithEndpoint(name: "blob", containerPort: 10000)
                .WithEndpoint(name: "queue", containerPort: 10001)
                .WithEndpoint(name: "table", containerPort: 10002)
