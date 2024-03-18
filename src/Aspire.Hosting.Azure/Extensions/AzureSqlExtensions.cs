@@ -103,7 +103,7 @@ public static class AzureSqlExtensions
     /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
     /// </summary>
     /// <param name="builder">The builder for the SQL Server resource.</param>
-    /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Sql.SqlServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null)
@@ -127,7 +127,7 @@ public static class AzureSqlExtensions
     /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
     /// </summary>
     /// <param name="builder">The builder for the SQL Server resource.</param>
-    /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Sql.SqlServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null)

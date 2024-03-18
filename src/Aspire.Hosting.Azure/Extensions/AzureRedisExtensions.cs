@@ -31,7 +31,7 @@ public static class AzureRedisExtensions
     /// Configures the resource to be published as Azure Cache for Redis when deployed via Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure Azure resource.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Redis.RedisCache"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null)
@@ -39,13 +39,6 @@ public static class AzureRedisExtensions
         return builder.PublishAsAzureRedisInternal(configureResource);
     }
 
-    /// <summary>
-    /// Configures the resource to be published as Azure Cache for Redis when deployed via Azure Developer CLI.
-    /// </summary>
-    /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure Azure resource.</param>
-    /// <param name="useProvisioner"></param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     internal static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null, bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
@@ -116,7 +109,7 @@ public static class AzureRedisExtensions
     /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
-    /// <param name="configureResource">Callback to configure Azure resource.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Redis.RedisCache"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource = null)

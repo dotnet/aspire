@@ -38,9 +38,9 @@ public interface IDistributedApplicationLifecycleHook
     /// <remarks>
     /// There is no guarantee that the resources have fully started or are in a working state when this method is called.
     /// </remarks>
-    /// <param name="appModel"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    /// <param name="appModel">The <see cref="DistributedApplicationModel"/> for the distributed application.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;

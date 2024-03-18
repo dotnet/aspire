@@ -139,9 +139,11 @@ public static class AzurePostgresExtensions
     /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="administratorLogin"></param>
-    /// <param name="administratorLoginPassword"></param>
-    /// <param name="configureResource">Callback to configure Azure resource.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
+    /// <param name="administratorLogin">An <see cref="IResourceBuilder{T}"/> for a <see cref="ParameterResource"/> which specifies the
+    ///     administrator login for the Postgres Flexible Server resource that will be created.</param>
+    /// <param name="administratorLoginPassword">An <see cref="IResourceBuilder{T}"/> for a <see cref="ParameterResource"/> which specifies the
+    ///     administrator login password for the Postgres Flexible Server resource that will be created.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
@@ -161,8 +163,10 @@ public static class AzurePostgresExtensions
     /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="administratorLogin"></param>
-    /// <param name="administratorLoginPassword"></param>
+    /// <param name="administratorLogin">An <see cref="IResourceBuilder{T}"/> for a <see cref="ParameterResource"/> which specifies the
+    ///     administrator login for the Postgres Flexible Server resource that will be created.</param>
+    /// <param name="administratorLoginPassword">An <see cref="IResourceBuilder{T}"/> for a <see cref="ParameterResource"/> which specifies the
+    ///     administrator login password for the Postgres Flexible Server resource that will be created.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
@@ -182,8 +186,10 @@ public static class AzurePostgresExtensions
     /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="administratorLogin"></param>
-    /// <param name="administratorLoginPassword"></param>
+    /// <param name="administratorLogin">An <see cref="IResourceBuilder{T}"/> for a <see cref="ParameterResource"/> which specifies the
+    ///     administrator login for the Postgres Flexible Server resource that will be created.</param>
+    /// <param name="administratorLoginPassword">An <see cref="IResourceBuilder{T}"/> for a <see cref="ParameterResource"/> which specifies the
+    ///     administrator login password for the Postgres Flexible Server resource that will be created.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
@@ -199,10 +205,12 @@ public static class AzurePostgresExtensions
     /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
-    /// <param name="administratorLogin"></param>
-    /// <param name="administratorLoginPassword"></param>
-    /// <param name="configureResource">Callback to configure Azure resource.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
+    /// <param name="administratorLogin">An <see cref="IResourceBuilder{T}"/> for a <see cref="ParameterResource"/> which specifies the
+    ///     administrator login for the Postgres Flexible Server resource that will be created.</param>
+    /// <param name="administratorLoginPassword">An <see cref="IResourceBuilder{T}"/> for a <see cref="ParameterResource"/> which specifies the
+    ///     administrator login password for the Postgres Flexible Server resource that will be created.</param>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,

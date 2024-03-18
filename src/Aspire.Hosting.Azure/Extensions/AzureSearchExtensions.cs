@@ -32,7 +32,7 @@ public static class AzureSearchExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the Azure AI Search resource.</param>
-    /// <param name="configureResource">Callback to configure the Azure AI Search resource.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Search.SearchService"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
     [RequiresPreviewFeatures]
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(
