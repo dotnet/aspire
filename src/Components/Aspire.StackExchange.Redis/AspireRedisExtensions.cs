@@ -9,8 +9,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Instrumentation.StackExchangeRedis;
-
-//using OpenTelemetry.Instrumentation.StackExchangeRedis;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
 using StackExchange.Redis.Configuration;
@@ -23,6 +21,8 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireRedisExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:StackExchange:Redis";
+    // Name taken from https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/219e41848a810479c2024c2e48b8cb7ae3a5d3e6/src/OpenTelemetry.Instrumentation.StackExchangeRedis/StackExchangeRedisConnectionInstrumentation.cs#L21
+    private const string ActivitySourceName = "OpenTelemetry.Instrumentation.StackExchangeRedis";
 
     /// <summary>
     /// Registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -147,15 +147,14 @@ public static class AspireRedisExtensions
         {
             // Supports distributed tracing
             // We don't call AddRedisInstrumentation() here as it results in the TelemetryHostedService trying to resolve & connect to IConnectionMultiplexer
-            // via DI on startup which, if Redis is unavailable, can result in an app crash. Instead we add the ActivitySource manually (name taken from
-            // https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/219e41848a810479c2024c2e48b8cb7ae3a5d3e6/src/OpenTelemetry.Instrumentation.StackExchangeRedis/StackExchangeRedisConnectionInstrumentation.cs#L21)
-            // and call ConfigureRedisInstrumentation().
+            // via DI on startup which, if Redis is unavailable, can result in an app crash. Instead we add the ActivitySource manually and call
+            // ConfigureRedisInstrumentation() to ensure .
             if (serviceKey is null)
             {
                 builder.Services.AddOpenTelemetry()
                     .WithTracing(t =>
                     {
-                        t.AddSource(typeof(StackExchangeRedisInstrumentation).Assembly.GetName().Name!);
+                        t.AddSource(ActivitySourceName);
                         t.ConfigureRedisInstrumentation(_ => { });
                     });
             }
@@ -164,7 +163,7 @@ public static class AspireRedisExtensions
                 builder.Services.AddOpenTelemetry()
                     .WithTracing(t =>
                     {
-                        t.AddSource(typeof(StackExchangeRedisInstrumentation).Assembly.GetName().Name!);
+                        t.AddSource(ActivitySourceName);
                         t.ConfigureRedisInstrumentation(_ => { });
                     });
             }
