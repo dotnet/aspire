@@ -889,13 +889,11 @@ public class AzureBicepResourceTests
         var pwd = builder.AddParameter("pwd", secret: true);
 
         IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
-        var postgres = builder.AddPostgres("postgres").AsAzurePostgresFlexibleServer((resource, _, _) =>
+        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer((resource, _, _) =>
         {
             Assert.NotNull(resource);
             azurePostgres = resource;
-        },
-        usr, pwd
-        );
+        });
         postgres.AddDatabase("db", "dbName");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
@@ -1036,7 +1034,7 @@ public class AzureBicepResourceTests
         var usr = builder.AddParameter("usr");
         var pwd = builder.AddParameter("pwd", secret: true);
 
-        var postgres = builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer(usr, pwd);
+        var postgres = builder.AddPostgres("postgres", usr, pwd).PublishAsAzurePostgresFlexibleServer();
         postgres.AddDatabase("db");
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
@@ -1044,7 +1042,7 @@ public class AzureBicepResourceTests
         // Verify that when PublishAs variant is used, connection string acquisition
         // still uses the local endpoint.
         postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
-        var expectedConnectionString = $"Host=localhost;Port=1234;Username=postgres;Password={postgres.Resource.Password}";
+        var expectedConnectionString = $"Host=localhost;Port=1234;Username=user;Password={postgres.Resource.Password}";
         Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync(default));
 
         var expectedManifest = """
@@ -1123,8 +1121,8 @@ public class AzureBicepResourceTests
 
         var param = builder.AddParameter("param");
 
-        postgres = builder.AddPostgres("postgres2")
-            .PublishAsAzurePostgresFlexibleServer(administratorLogin: param);
+        postgres = builder.AddPostgres("postgres2", userName: param)
+            .PublishAsAzurePostgresFlexibleServer();
 
         manifest = await ManifestUtils.GetManifest(postgres.Resource);
         expectedManifest = """
@@ -1154,8 +1152,8 @@ public class AzureBicepResourceTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        postgres = builder.AddPostgres("postgres3")
-            .PublishAsAzurePostgresFlexibleServer(administratorLoginPassword: param);
+        postgres = builder.AddPostgres("postgres3", password: param)
+            .PublishAsAzurePostgresFlexibleServer();
 
         manifest = await ManifestUtils.GetManifest(postgres.Resource);
         expectedManifest = """

@@ -55,6 +55,11 @@ public class AddPostgresTests
             },
             env =>
             {
+                Assert.Equal("POSTGRES_USER", env.Key);
+                Assert.Equal("postgres", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("POSTGRES_PASSWORD", env.Key);
                 Assert.False(string.IsNullOrEmpty(env.Value));
             });
@@ -64,7 +69,10 @@ public class AddPostgresTests
     public async Task AddPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgres("myPostgres", 1234, "pass");
+        appBuilder.Configuration["Parameters:pass"] = "pass";
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddPostgres("myPostgres", password: pass, port: 1234);
 
         using var app = appBuilder.Build();
 
@@ -99,6 +107,11 @@ public class AddPostgresTests
             {
                 Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
                 Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("POSTGRES_USER", env.Key);
+                Assert.Equal("postgres", env.Value);
             },
             env =>
             {
@@ -147,7 +160,10 @@ public class AddPostgresTests
     public async Task AddDatabaseToPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgres("postgres", 1234, "pass").AddDatabase("db");
+        appBuilder.Configuration["Parameters:pass"] = "pass";
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddPostgres("postgres", password: pass, port: 1234).AddDatabase("db");
 
         using var app = appBuilder.Build();
 
@@ -186,6 +202,11 @@ public class AddPostgresTests
             },
             env =>
             {
+                Assert.Equal("POSTGRES_USER", env.Key);
+                Assert.Equal("postgres", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("POSTGRES_PASSWORD", env.Key);
                 Assert.Equal("pass", env.Value);
             });
@@ -209,6 +230,7 @@ public class AddPostgresTests
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                "POSTGRES_USER": "postgres",
                 "POSTGRES_PASSWORD": "{pg.inputs.password}"
               },
               "bindings": {
@@ -241,6 +263,126 @@ public class AddPostgresTests
             }
             """;
         Assert.Equal(expectedManifest, dbManifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithParameters()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var userNameParameter = appBuilder.AddParameter("user");
+        var passwordParameter = appBuilder.AddParameter("pass");
+
+        var pgServer = appBuilder.AddPostgres("pg", userNameParameter, passwordParameter);
+        var serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username={user.value};Password={pass.value}",
+              "image": "postgres:16.2",
+              "env": {
+                "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                "POSTGRES_USER": "{user.value}",
+                "POSTGRES_PASSWORD": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5432
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 22
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
+
+        pgServer = appBuilder.AddPostgres("pg2", userNameParameter);
+        serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
+
+        expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username={user.value};Password={pg2.inputs.password}",
+              "image": "postgres:16.2",
+              "env": {
+                "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                "POSTGRES_USER": "{user.value}",
+                "POSTGRES_PASSWORD": "{pg2.inputs.password}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5432
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 22
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
+
+        pgServer = appBuilder.AddPostgres("pg3", password: passwordParameter);
+        serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
+
+        expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pass.value}",
+              "image": "postgres:16.2",
+              "env": {
+                "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+                "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                "POSTGRES_USER": "postgres",
+                "POSTGRES_PASSWORD": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5432
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 22
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
     }
 
     [Fact]
