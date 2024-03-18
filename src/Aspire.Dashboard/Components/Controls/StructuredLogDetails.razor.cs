@@ -17,37 +17,24 @@ public partial class StructuredLogDetails
 
     private IQueryable<LogEntryPropertyViewModel> FilteredItems =>
         _logEntryAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(vm =>
-                (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-                vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
-        ).AsQueryable();
+            .Where(ApplyFilter).AsQueryable();
 
     private IQueryable<LogEntryPropertyViewModel> FilteredExceptionItems =>
         _exceptionAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(vm =>
-                (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-                vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
-        ).AsQueryable();
+            .Where(ApplyFilter).AsQueryable();
 
     private IQueryable<LogEntryPropertyViewModel> FilteredContextItems =>
         _contextAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(vm =>
-                (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-                vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
-        ).AsQueryable();
+            .Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<LogEntryPropertyViewModel> FilteredApplicationItems =>
+    private IQueryable<LogEntryPropertyViewModel> FilteredResourceItems =>
         ViewModel.LogEntry.Application.AllProperties().Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(vm =>
-                vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-                vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
-        ).AsQueryable();
+            .Where(ApplyFilter).AsQueryable();
 
     private string _filter = "";
 
     private readonly GridSort<LogEntryPropertyViewModel> _nameSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Name);
     private readonly GridSort<LogEntryPropertyViewModel> _valueSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Value);
-
     private List<KeyValuePair<string, string>> _logEntryAttributes = null!;
     private List<KeyValuePair<string, string>> _contextAttributes = null!;
     private List<KeyValuePair<string, string>> _exceptionAttributes = null!;
@@ -98,6 +85,12 @@ public partial class StructuredLogDetails
                 source.RemoveAt(i);
             }
         }
+    }
+
+    private bool ApplyFilter(LogEntryPropertyViewModel vm)
+    {
+        return vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
+            vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true;
     }
 
     // Sometimes a parent ID is added and the value is 0000000000. Don't display unhelpful IDs.

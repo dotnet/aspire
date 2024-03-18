@@ -192,6 +192,21 @@
         <target state="translated">複本集</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceDetailsEndpointsHeader">
+        <source>Endpoints</source>
+        <target state="new">Endpoints</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
+        <source>Environment variables</source>
+        <target state="new">Environment variables</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsResourceHeader">
+        <source>Resource</source>
+        <target state="new">Resource</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
         <source>{0} (replica of {1})</source>
         <target state="translated">{0} ({1} 的複本)</target>
@@ -212,20 +227,55 @@
         <target state="translated">期間 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanDetailsEventsHeader">
+        <source>Events</source>
+        <target state="new">Events</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="new">Resource &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="SpanDetailsResourceHeader">
+        <source>Resource</source>
+        <target state="new">Resource</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsSpanHeader">
+        <source>Span</source>
+        <target state="new">Span</target>
+        <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">開始時間 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="StructuredLogsDetailsContextHeader">
+        <source>Context</source>
+        <target state="new">Context</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsExceptionHeader">
+        <source>Exception</source>
+        <target state="new">Exception</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsLogEntryHeader">
+        <source>Log entry</source>
+        <target state="new">Log entry</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="new">Resource &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsResourceHeader">
+        <source>Resource</source>
+        <target state="new">Resource</target>
+        <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsTimestamp">
         <source>Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</source>

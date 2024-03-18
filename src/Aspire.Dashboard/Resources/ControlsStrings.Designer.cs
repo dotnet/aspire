@@ -403,6 +403,33 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Endpoints.
+        /// </summary>
+        public static string ResourceDetailsEndpointsHeader {
+            get {
+                return ResourceManager.GetString("ResourceDetailsEndpointsHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Environment variables.
+        /// </summary>
+        public static string ResourceDetailsEnvironmentVariablesHeader {
+            get {
+                return ResourceManager.GetString("ResourceDetailsEnvironmentVariablesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource.
+        /// </summary>
+        public static string ResourceDetailsResourceHeader {
+            get {
+                return ResourceManager.GetString("ResourceDetailsResourceHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} (replica of {1}).
         /// </summary>
         public static string ResourceDropdownReplicaAccessibleTitle {
@@ -439,11 +466,38 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Events.
+        /// </summary>
+        public static string SpanDetailsEventsHeader {
+            get {
+                return ResourceManager.GetString("SpanDetailsEventsHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource &lt;strong&gt;{0}&lt;/strong&gt;.
         /// </summary>
         public static string SpanDetailsResource {
             get {
                 return ResourceManager.GetString("SpanDetailsResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource.
+        /// </summary>
+        public static string SpanDetailsResourceHeader {
+            get {
+                return ResourceManager.GetString("SpanDetailsResourceHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Span.
+        /// </summary>
+        public static string SpanDetailsSpanHeader {
+            get {
+                return ResourceManager.GetString("SpanDetailsSpanHeader", resourceCulture);
             }
         }
         
@@ -457,11 +511,47 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Context.
+        /// </summary>
+        public static string StructuredLogsDetailsContextHeader {
+            get {
+                return ResourceManager.GetString("StructuredLogsDetailsContextHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exception.
+        /// </summary>
+        public static string StructuredLogsDetailsExceptionHeader {
+            get {
+                return ResourceManager.GetString("StructuredLogsDetailsExceptionHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log entry.
+        /// </summary>
+        public static string StructuredLogsDetailsLogEntryHeader {
+            get {
+                return ResourceManager.GetString("StructuredLogsDetailsLogEntryHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Resource &lt;strong&gt;{0}&lt;/strong&gt;.
         /// </summary>
         public static string StructuredLogsDetailsResource {
             get {
                 return ResourceManager.GetString("StructuredLogsDetailsResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource.
+        /// </summary>
+        public static string StructuredLogsDetailsResourceHeader {
+            get {
+                return ResourceManager.GetString("StructuredLogsDetailsResourceHeader", resourceCulture);
             }
         }
         
