@@ -18,12 +18,14 @@ For IDE execution to work, two conditions need to be fulfilled:
 1. DCP needs to be told how to contact the IDE (what is the **IDE session endpoint**, specifically).
 1. The `ExecutionType` property for the `Executable` object needs to be set to `IDE` (default is `Process`, which indicates OS process-based execution).
 
-Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE session endpoint is provided to DCP via environment variables (both required if IDE execution is used):
+Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE session endpoint is configured via environment variables:
 
 | Environment variable | Value |
 | ----- | ----- |
-| `DEBUG_SESSION_PORT` | The port DCP should use to talk to the IDE session endpoint. DCP will use `http://localhost:<value of DEBUG_SESSION_PORT>` as the IDE session endpoint base URL. |
-| `DEBUG_SESSION_TOKEN` | Security (bearer) token for talking to the IDE session endpoint. This token will be attached to every request via Authorization HTTP header. |
+| `DEBUG_SESSION_PORT` | The port DCP should use to talk to the IDE session endpoint. DCP will use `http://localhost:<value of DEBUG_SESSION_PORT>` as the IDE session endpoint base URL. Required. |
+| `DEBUG_SESSION_TOKEN` | Security (bearer) token for talking to the IDE session endpoint. This token will be attached to every request via Authorization HTTP header. Required. |
+| `DEBUG_SESSION_PAYLOAD_ENCRYPTION_KEY` | If present, provides base64-encoded, 16-byte key for request and session change notification encryption. See [payload protection](#payload-protection) for more details. Optional. |
+| `DEBUG_SESSION_PAYLOAD_SIGNING_KEY` | If present, provides base64-encode, 64-byte key for request and session change notification signing (integrity checking). See [payload protection](#payload-protection) for more details. Optional. |
 
 > Note: the most important use case for the IDE execution is to facilitate application services debugging. The word "debug" appears in environment variable names that DCP uses to connect to IDE session endpoint, but IDE execution does not always mean that the service is running under a debugger.
 
@@ -32,6 +34,33 @@ Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE s
 It is possible to have a workload that uses both IDE execution for some `Executable` objects, and process execution for other `Executable` objects. Every `Executable` object is treated separately according to the `ExecutionType` spec property.
 
 If multiple replicas are used (created via `ExecutableReplicaSet` objects), all replicas belonging to the same replica set will use the same execution type.
+
+### Payload protection
+
+When requested by the IDE (both `DEBUG_SESSION_PAYLOAD_ENCRYPTION_KEY` and `DEBUG_SESSION_PAYLOAD_SIGNING_KEY` are present), request payloads, run session change notifications, and request responses will be encrypted. In this mode, the regular JSON payload (HTTP request body, HTTP response body, or web socket message) is wrapped in an "encrypted payload" envelope, which is a JSON object with the following structure:
+
+```jsonc
+// An example encrypted payload
+
+{
+    // The encryped, base64-encoded payload.
+    // The source is UTF8-encoded request or notification payload in plain text (JSON) format.
+    // The encryption algorithm is AES with 128-bit key, running in CBC mode, with PKCS7 data padding.
+	"ciphertext": "U2FsdGVkX1/pCiQvVS3rMwUSD8iljlim6qAb461g0uW6i4fhIuZtqyAi0FhQhdfn",
+
+	// The base64-encoded initialization vector for the encryption algorithm.
+    // Every encrypted payload is using a different, randomly generated initialization vector.
+	"iv": "WPqOdWzvd/KCLLhe9AibZQ==",
+
+	// The base64-encoded authentication tag (signature) of the payload.
+	// To compute the signature, (un-encoded) initialization vector and ciphertext
+	// are concatenated, then the signature is computed over the result using HMACSHA256 algorithm..
+	"authentication_tag": "6l4BRohAKHM/TnZUiSY6cw=="
+}
+```
+This object is then serialized using UTF8 encoding and sent instead of regular request, response, or notification payload.
+
+Upon reception of an encrypted payload, both DCP and the IDE compute the signature of the initialization vector and ciphertext pair. If the computed signature does not match the authentication tag in the payload, the payload will be rejected without any additional processing.
 
 ## IDE session endpoint requests
 
@@ -87,7 +116,7 @@ If the execution session is created successfully, the return status code should 
 
 `Location: http://localhost:<IDE endpoint port>/run_session/<new run ID>`
 
-If the session cannot be created, appropriate 4xx or 5xx status code should be returned. The response might also return a description of the problem as part of the status line, or in the response body.
+If the session cannot be created, appropriate 4xx or 5xx status code should be returned. The response might also return a description of the problem as part of the status line, [or in the response body](#error-reporting).
 
 ### Launch configurations
 
@@ -124,7 +153,7 @@ If the session exists and can be stopped, the IDE should reply with 200 OK statu
 
 If the session does not exist, the IDE should reply with 204 No Content.
 
-If the session cannot be stopped, appropriate 4xx or 5xx status code should be returned. The response might also return a description of the problem as part of the status line, or in the response body.
+If the session cannot be stopped, appropriate 4xx or 5xx status code should be returned. The response might also return a description of the problem as part of the status line, [or in the response body](#error-reporting).
 
 ### Subscribe to session change notifications request
 
@@ -208,7 +237,7 @@ The value of the `error` property is an `ErrorDetail` object with the following 
 | `message` | A human-readable message explaining the nature of the error, and providing suggestions for resolution. DCP will display this message as part of the Aspire application host execution log. | Required |
 | `details` | An array of `ErrorDetail` objects providing additional information about the error. | Optional |
 
-## Request versioning
+## Protocol versioning
 
 When making a request to the IDE, DCP will include an `api-version` parameter to indicate the version of the protocol used, for example: 
 
@@ -218,4 +247,4 @@ The version always follows `YYYY-mm-dd` format and allows for older/equal/newer 
 
 If the protocol version is old (no longer supported by the IDE), the IDE should return a 400 Bad Request response with the message indicating that the developer should consider upgrading the Aspire libraries and tooling used by their application.
 
-If the protocol version is newer than the latest the IDE supports, the IDE should make an attempt to parse the request according to its latest supported version. If that fails, it should return 400 Bad Request error.
+If the protocol version is newer than the latest the IDE supports, the IDE should make an attempt to parse the request according to its latest supported version. If that fails, the IDE should return `400 Bad Request` error.
