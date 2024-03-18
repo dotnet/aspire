@@ -20,9 +20,11 @@ public static class AzureApplicationInsightsExtensions
     public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureApplicationInsightsResource(name);
+#pragma warning disable CS0618 // Type or member is obsolete
         return builder.AddResource(resource)
                 .WithParameter("appInsightsName", resource.CreateBicepResourceName())
                 .WithParameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId)
                 .WithManifestPublishingCallback(resource.WriteToManifest);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 }

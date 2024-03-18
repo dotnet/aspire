@@ -215,7 +215,7 @@ internal sealed class CloudFormationStackExecutor(
     ///  wait or delete the stack till it is in a ready state.
     /// </summary>
     /// <param name="stack"></param>
-    /// <param name="cancellation">The <see cref="CancellationToken"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     /// <exception cref="AWSProvisioningException"></exception>
     private async Task<ChangeSetType> DetermineChangeSetTypeAsync(Stack? stack, CancellationToken cancellationToken)
