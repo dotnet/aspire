@@ -65,7 +65,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IDashboardEndpointProvider dashboardEndpointProvider,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
-                                          ResourceLoggerService loggerService)
+                                          ResourceLoggerService loggerService,
+                                          IDcpDependencyCheckService dcpDependencyCheckService)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -106,7 +107,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             PrepareServices();
             PrepareContainers();
-            PrepareExecutables();
+            await PrepareExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
             await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
 
@@ -473,7 +474,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
         string? projectPath = null;
-        executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
+        if (executable.TryGetProjectLaunchConfiguration(out var projectLaunchConfiguration))
+        {
+            projectPath = projectLaunchConfiguration.ProjectPath;
+        }
+        else
+        {
+#pragma warning disable CS0612 // CSharpProjectPathAnnotation is obsolete; remove in Aspire Preview 6
+            executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
+#pragma warning restore CS0612
+        }
 
         string? resourceName = null;
         executable.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
@@ -900,9 +910,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private void PrepareExecutables()
+    private async Task PrepareExecutablesAsync(CancellationToken cancellationToken)
     {
-        PrepareProjectExecutables();
+        await PrepareProjectExecutablesAsync(cancellationToken).ConfigureAwait(false);
         PreparePlainExecutables();
     }
 
@@ -928,9 +938,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private void PrepareProjectExecutables()
+    private async Task PrepareProjectExecutablesAsync(CancellationToken cancellationToken)
     {
         var modelProjectResources = _model.GetProjectResources();
+        var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var project in modelProjectResources)
         {
@@ -943,26 +954,42 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var ers = ExecutableReplicaSet.Create(GetObjectNameForResource(project), replicas, "dotnet");
             var exeSpec = ers.Spec.Template.Spec;
-            IAnnotationHolder annotationHolder = ers.Spec.Template;
-
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
-            annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
+            IAnnotationHolder annotationHolder = ers.Spec.Template;
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
             annotationHolder.Annotate(Executable.ResourceNameAnnotation, project.Name);
+
+            var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+            projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
 
             if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
-                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
-                if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                if (dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionIdeProtocolV1) >= 0)
                 {
-                    annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
+                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+                    if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                    {
+                        projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
+                    }
                 }
-                else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                else
                 {
-                    annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+#pragma warning disable CS0612 // These annotations are obsolete; remove in Aspire Preview 6
+                    annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
+
+                    // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
+                    if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                    {
+                        annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
+                    }
+                    else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                    {
+                        annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+                    }
+#pragma warning restore CS0612
                 }
             }
             else
@@ -1011,6 +1038,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     }
                 }
             }
+
+            // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
+            annotationHolder.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
 
             var exeAppResource = new AppResource(project, ers);
             AddServicesProducedInfo(project, annotationHolder, exeAppResource);
