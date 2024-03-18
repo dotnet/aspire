@@ -186,7 +186,7 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns>A <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
