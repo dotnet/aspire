@@ -3,7 +3,7 @@ parameters:
     type: object
     default:
     - name: TestShop
-      path: src/playground/TestShop/AppHost/AppHost.csproj
+      path: playground/TestShop/AppHost/AppHost.csproj
     - name: BicepSample
       path: playground/bicep/BicepSample.AppHost/BicepSample.AppHost.csproj
 
