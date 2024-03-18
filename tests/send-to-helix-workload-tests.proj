@@ -31,6 +31,7 @@
     <HelixPreCommand Include="docker ps" />
     <HelixPreCommand Include="docker container ls --all" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="ps ax | grep -i dcp" />
 
     <HelixPostCommand Include="docker container ls --all" />
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
