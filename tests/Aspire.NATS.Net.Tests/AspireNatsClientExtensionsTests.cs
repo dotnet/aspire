@@ -15,16 +15,17 @@ namespace Aspire.NATS.Net.Tests;
 public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixture>
 {
     private const string DefaultConnectionName = "nats";
-    private const string ConnectionString = "nats://apire-host:4222";
 
     private readonly NatsContainerFixture _containerFixture;
+    private readonly string _connectionString;
 
     public AspireNatsClientExtensionsTests(NatsContainerFixture containerFixture)
     {
         _containerFixture = containerFixture;
+        _connectionString = RequiresDockerTheoryAttribute.IsSupported
+            ? _containerFixture.GetConnectionString()
+            : "nats://apire-host:4222";
     }
-
-    private string DefaultConnectionString => _containerFixture.GetConnectionString();
 
     [Theory]
     [InlineData(true)]
@@ -33,7 +34,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:nats", ConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:nats", _connectionString)
         ]);
 
         if (useKeyed)
@@ -50,7 +51,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
 
-        Assert.Equal(ConnectionString, connection.Opts.Url);
+        Assert.Equal(_connectionString, connection.Opts.Url);
     }
 
     [Theory]
@@ -63,7 +64,8 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             new KeyValuePair<string, string?>("ConnectionStrings:nats", "unused")
         ]);
 
-        static void SetConnectionString(NatsClientSettings settings) => settings.ConnectionString = ConnectionString;
+        void SetConnectionString(NatsClientSettings settings) => settings.ConnectionString = _connectionString;
+
         if (useKeyed)
         {
             builder.AddKeyedNatsClient("nats", SetConnectionString);
@@ -78,7 +80,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
 
-        Assert.Equal(ConnectionString, connection.Opts.Url);
+        Assert.Equal(_connectionString, connection.Opts.Url);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", connection.Opts.Url);
     }
@@ -93,7 +95,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         var key = useKeyed ? "nats" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Nats:Client", key, "ConnectionString"), "unused"),
-            new KeyValuePair<string, string?>("ConnectionStrings:nats", ConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:nats", _connectionString)
         ]);
 
         if (useKeyed)
@@ -110,7 +112,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
 
-        Assert.Equal(ConnectionString, connection.Opts.Url);
+        Assert.Equal(_connectionString, connection.Opts.Url);
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", connection.Opts.Url);
     }
@@ -121,7 +123,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
     public async Task AddNatsClient_HealthCheckShouldBeRegisteredWhenEnabled(bool useKeyed)
     {
         var key = DefaultConnectionName;
-        var builder = CreateBuilder(DefaultConnectionString);
+        var builder = CreateBuilder(_connectionString);
 
         if (useKeyed)
         {
@@ -154,7 +156,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
     [InlineData(false)]
     public void AddNatsClient_HealthCheckShouldNotBeRegisteredWhenDisabled(bool useKeyed)
     {
-        var builder = CreateBuilder(DefaultConnectionString);
+        var builder = CreateBuilder(_connectionString);
 
         if (useKeyed)
         {
@@ -181,7 +183,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
     [RequiresDockerFact]
     public async Task NatsInstrumentationEndToEnd()
     {
-        var builder = CreateBuilder(DefaultConnectionString);
+        var builder = CreateBuilder(_connectionString);
 
         builder.AddNatsClient(DefaultConnectionName, settings =>
         {
