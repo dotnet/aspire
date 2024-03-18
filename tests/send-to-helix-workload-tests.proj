@@ -42,14 +42,23 @@
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsWorkloadTests->Count()) > 0">
+    <ItemGroup>
+      <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
+
+      <_TestRunCommandArguments Include="dotnet test" />
+      <_TestRunCommandArguments Include="-s .runsettings" />
+      <_TestRunCommandArguments Include="testassets/Aspire.Hosting.Testing.Tests" />
+      <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
+    </ItemGroup>
     <PropertyGroup>
       <_WorkItemTimeoutForWorkloadTests>00:20:00</_WorkItemTimeoutForWorkloadTests>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
       <HelixPostCommands>$(HelixPostCommands);@(HelixPostCommand)</HelixPostCommands>
 
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <!--<_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>-->
+      <!--<_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>-->
+      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
     </PropertyGroup>
 
     <Error Condition="'$(_DotNetCoverageToolPath)' == '' or !Exists($(_DotNetCoverageToolPath))"
