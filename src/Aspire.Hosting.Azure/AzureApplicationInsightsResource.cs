@@ -9,8 +9,9 @@ namespace Aspire.Hosting.Azure;
 /// A resource that represents an Azure Application Insights resource.
 /// </summary>
 /// <param name="name">The resource name.</param>
-public class AzureApplicationInsightsResource(string name) :
-    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.appinsights.bicep"),
+/// <param name="configureConstruct">Callback to configure the Azure Application Insights resource.</param>
+public class AzureApplicationInsightsResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {
     /// <summary>

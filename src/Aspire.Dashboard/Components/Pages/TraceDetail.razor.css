@@ -133,7 +133,7 @@
     padding-left: 0.25rem;
 }
 
-::deep .server-request-icon {
+::deep .span-kind-icon {
     margin-right: 3px;
     vertical-align: text-bottom;
 }
