@@ -118,6 +118,8 @@ public class TestProgram : IDisposable
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
             }
+
+            IntegrationServiceABuilder.WithEnvironment("TEST_LOG_PATH", Environment.GetEnvironmentVariable("TEST_LOG_PATH") ?? "/tmp");
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();

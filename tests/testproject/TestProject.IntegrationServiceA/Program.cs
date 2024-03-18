@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestProject;
+// using Serilog.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
@@ -67,6 +68,15 @@ if (!resourcesToSkip.Contains(TestResourceNames.kafka))
 if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 {
     builder.AddAzureCosmosDBClient("cosmos");
+}
+string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
+if (!string.IsNullOrEmpty(logPath))
+{
+    builder.Logging.AddFile(Path.Combine(logPath, "integrationServiceA.log"));
+}
+else
+{
+    throw new InvalidOperationException("TEST_LOG_PATH environment variable is not set.");
 }
 
 var app = builder.Build();
