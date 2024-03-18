@@ -20,6 +20,6 @@ public sealed class ActivityNotifier : BaseProcessor<Activity>
     public override void OnEnd(Activity data)
     {
         ExportedActivities.Add(data);
-        _taskSource.SetResult();
+        _taskSource.TrySetResult();
     }
 }
