@@ -1,0 +1,33 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Parameters" : {
+        "DefaultVisibilityTimeout" : {
+            "Type" : "Number",
+            "Description" : "The default visiblity timeout for messages in SQS queue."
+        }
+    },
+    "Resources" : {
+        "ChatMessagesQueue" : {
+            "Type" : "AWS::SQS::Queue",
+            "Properties" : {
+                "VisibilityTimeout" : { "Ref" : "DefaultVisibilityTimeout" }
+            }
+        },
+        "ChatTopic" : {
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "Subscription" : [
+                    {"Protocol" : "sqs", "Endpoint" : {"Fn::GetAtt" : [ "ChatMessagesQueue", "Arn"]}}
+                ]
+            }
+        }
+    },
+    "Outputs" : {
+        "ChatMessagesQueueUrl" : {
+            "Value" : { "Ref" : "ChatMessagesQueue" }
+        },
+        "ChatTopicArn" : {
+            "Value" : { "Ref" : "ChatTopic" }
+        }
+    }
+}

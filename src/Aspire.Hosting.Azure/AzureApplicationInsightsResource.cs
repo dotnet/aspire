@@ -9,8 +9,9 @@ namespace Aspire.Hosting.Azure;
 /// A resource that represents an Azure Application Insights resource.
 /// </summary>
 /// <param name="name">The resource name.</param>
-public class AzureApplicationInsightsResource(string name) :
-    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.appinsights.bicep"),
+/// <param name="configureConstruct">Callback to configure the Azure Application Insights resource.</param>
+public class AzureApplicationInsightsResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -21,15 +22,8 @@ public class AzureApplicationInsightsResource(string name) :
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Application Insights resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Application Insights resource.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure Application Insights resource.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-        => ConnectionString.GetValueAsync(cancellationToken);
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 
     // UseAzureMonitor is looks for this specific environment variable name.
     string IResourceWithConnectionString.ConnectionStringEnvironmentVariable => "APPLICATIONINSIGHTS_CONNECTION_STRING";

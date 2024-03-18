@@ -11,8 +11,8 @@ namespace Aspire.Hosting;
 /// <summary>
 /// An Aspire resource that supports use of Azure Provisioning APIs to create Azure resources.
 /// </summary>
-/// <param name="name"></param>
-/// <param name="configureConstruct"></param>
+/// <param name="name">The name of the construct in the Aspire application model.</param>
+/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
 public class AzureConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) : AzureBicepResource(name, templateFile: $"{name}.module.bicep")
 {
     /// <summary>
@@ -57,9 +57,24 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
 
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
         var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
-        File.Copy(moduleSourcePath, moduleDestinationPath!, true);
+
+        File.Copy(moduleSourcePath, moduleDestinationPath, true);
 
         return new BicepTemplateFile(moduleDestinationPath, directory is null);
+    }
+
+    private string? _generatedBicep;
+
+    /// <inheritdoc />
+    public override string GetBicepTemplateString()
+    {
+        if (_generatedBicep is null)
+        {
+            var template = GetBicepTemplateFile();
+            _generatedBicep = File.ReadAllText(template.Path);
+        }
+
+        return _generatedBicep;
     }
 }
 
@@ -156,22 +171,22 @@ public class ResourceModuleConstruct : Infrastructure
     }
 
     /// <summary>
-    /// The Azure cosntruct resource that this resource module construct represents.
+    /// The Azure construct resource that this resource module construct represents.
     /// </summary>
     public AzureConstructResource Resource { get; }
 
     /// <summary>
-    /// TODO:
+    /// The common principalId parameter injected into most Aspire-based Bicep files.
     /// </summary>
     public Parameter PrincipalIdParameter => new Parameter("principalId");
 
     /// <summary>
-    /// TODO:
+    /// The common principalType parameter injected into most Aspire-based Bicep files.
     /// </summary>
     public Parameter PrincipalTypeParameter => new Parameter("principalType");
 
     /// <summary>
-    /// TODO:
+    /// The common principalName parameter injected into some Aspire-based Bicep files.
     /// </summary>
     public Parameter PrincipalNameParameter => new Parameter("principalName");
 }

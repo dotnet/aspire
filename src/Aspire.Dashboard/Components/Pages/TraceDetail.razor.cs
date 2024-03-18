@@ -57,6 +57,26 @@ public partial class TraceDetail : ComponentBase
         });
     }
 
+    private static Icon GetSpanIcon(OtlpSpan span)
+    {
+        switch (span.Kind)
+        {
+            case OtlpSpanKind.Server:
+                return new Icons.Filled.Size16.Server();
+            case OtlpSpanKind.Consumer:
+                if (span.Attributes.HasKey("messaging.system"))
+                {
+                    return new Icons.Filled.Size16.Mailbox();
+                }
+                else
+                {
+                    return new Icons.Filled.Size16.ContentSettings();
+                }
+            default:
+                throw new InvalidOperationException($"Unsupported span kind when resolving icon: {span.Kind}");
+        }
+    }
+
     private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, TraceDetailState state)
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();

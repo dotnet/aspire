@@ -84,6 +84,38 @@ public class AzureBicepProvisionerTests
         Assert.Equal(checkSum0, checkSum1);
     }
 
+    [Theory]
+    [InlineData("1alpha")]
+    [InlineData("-alpha")]
+    [InlineData("")]
+    [InlineData(" alpha")]
+    [InlineData("alpha 123")]
+    public void WithParameterDoesNotAllowParameterNamesWhichAreInvalidBicepIdentifiers(string bicepParameterName)
+    {
+        var ex = Assert.Throws<ArgumentException>(() =>
+        {
+            var builder = DistributedApplication.CreateBuilder();
+            builder.AddAzureConstruct("construct", _ => { })
+                   .WithParameter(bicepParameterName);
+        });
+
+        Assert.Equal("Bicep parameter names must only contain alpha, numeric, and _ characters and must start with an alpha or _ characters. (Parameter 'bicepParameterName')", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("alpha")]
+    [InlineData("a1pha")]
+    [InlineData("_alpha")]
+    [InlineData("__alpha")]
+    [InlineData("alpha1_")]
+    [InlineData("Alpha1_A")]
+    public void WithParameterAllowsParameterNamesWhichAreValidBicepIdentifiers(string bicepParameterName)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddAzureConstruct("construct", _ => { })
+                .WithParameter(bicepParameterName);
+    }
+
     [Fact]
     public async Task ResourceWithSameTemplateButDifferentParametersHaveDifferentChecksums()
     {
@@ -145,6 +177,7 @@ public class AzureBicepProvisionerTests
         Resource(name),
         IResourceWithConnectionString
     {
-        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) => new(connectionString);
+        public ReferenceExpression ConnectionStringExpression =>
+           ReferenceExpression.Create($"{connectionString}");
     }
 }

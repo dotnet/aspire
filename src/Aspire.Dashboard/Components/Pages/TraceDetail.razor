@@ -57,13 +57,13 @@
                     <TemplateColumn Title="Name">
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
                             @{
-                                var isServerKind = context.Span.Kind == OtlpSpanKind.Server;
+                                var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
                                 // Indent the span name based on the depth of the span.
                                 var marginLeft = (context.Depth - 1) * 15;
 
                                 // We want to have consistent margin for both client and server spans.
                                 string spanNameContainerStyle;
-                                if (!isServerKind)
+                                if (!isServerOrConsumer)
                                 {
                                     // Client span has 19px extra content:
                                     // - 5px extra margin-left
@@ -73,7 +73,7 @@
                                 }
                                 else
                                 {
-                                    // Server span has 19px extra content:
+                                    // Span with icon has 19px extra content:
                                     // - 16px icon
                                     // - 3px padding-left
                                     spanNameContainerStyle = string.Empty;
@@ -88,12 +88,12 @@
                                     }
                                 </span>
                                 <span class="span-name-container" style="@spanNameContainerStyle">
-                                    @if (isServerKind)
+                                    @if (isServerOrConsumer)
                                     {
-                                        <FluentIcon Class="server-request-icon"
+                                        <FluentIcon Class="span-kind-icon"
                                                     Color="Color.Custom"
                                                     CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
-                                                    Icon="Icons.Filled.Size16.Server" />
+                                                    Value="@GetSpanIcon(context.Span)" />
                                     }
 
                                     @if (context.IsError)
@@ -109,6 +109,10 @@
                                                 if (context.Span.Attributes.HasKey("db.system"))
                                                 {
                                                     icon = new Icons.Filled.Size16.Database();
+                                                }
+                                                else if (context.Span.Attributes.HasKey("messaging.system"))
+                                                {
+                                                    icon = new Icons.Filled.Size16.Mail();
                                                 }
                                                 else
                                                 {

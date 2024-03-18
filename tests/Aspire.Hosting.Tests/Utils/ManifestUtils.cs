@@ -26,4 +26,22 @@ internal sealed class ManifestUtils
         Assert.NotNull(resourceNode);
         return resourceNode;
     }
+
+    public static async Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource)
+    {
+        var manifestNode = await GetManifest(resource);
+
+        if (!manifestNode.AsObject().TryGetPropertyValue("path", out var pathNode))
+        {
+            throw new ArgumentException("Specified resource does not contain a path property.", nameof(resource));
+        }
+
+        if (pathNode?.ToString() is not { } path || !File.Exists(path))
+        {
+            throw new ArgumentException("Path node in resource is null, empty, or does not exist.", nameof(resource));
+        }
+
+        var bicepText = await File.ReadAllTextAsync(path);
+        return (manifestNode, bicepText);
+    }
 }

@@ -2,29 +2,24 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <OutputType>Library</OutputType>
-    <IsPackable>true</IsPackable>
+    <DefineConstants>$(DefineConstants);ASPIRE_EVENTSOURCE</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>ASPIRE_EVENTSOURCE</DefineConstants>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting</PackageTags>
-    <Description>Core API and abstractions for the .NET Aspire application model.</Description>
+    <Description>Core abstractions for the .NET Aspire application model.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="**/*.props;**/*.targets" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="ChannelExtensions.cs" />
+    <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
-    <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
-    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
-    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
-    <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
-    <Compile Include="$(SharedDir)ValueStopwatch\*.cs" LinkBase="Utils" />
+    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
   </ItemGroup>
 
@@ -34,9 +29,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
-  <!-- Download DCP orchestrator components for local development -->
   <ItemGroup>
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
+    <Protobuf Include="Dashboard\proto\resource_service.proto" GrpcServices="Server" Access="Internal" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,12 +49,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Testing" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Protobuf Include="Dashboard\proto\resource_service.proto" GrpcServices="Server" Access="Internal" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
   </ItemGroup>
 
 </Project>
