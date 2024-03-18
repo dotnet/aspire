@@ -46,16 +46,16 @@ When requested by the IDE (both `DEBUG_SESSION_PAYLOAD_ENCRYPTION_KEY` and `DEBU
     // The encryped, base64-encoded payload.
     // The source is UTF8-encoded request or notification payload in plain text (JSON) format.
     // The encryption algorithm is AES with 128-bit key, running in CBC mode, with PKCS7 data padding.
-	"ciphertext": "U2FsdGVkX1/pCiQvVS3rMwUSD8iljlim6qAb461g0uW6i4fhIuZtqyAi0FhQhdfn",
+    "ciphertext": "U2FsdGVkX1/pCiQvVS3rMwUSD8iljlim6qAb461g0uW6i4fhIuZtqyAi0FhQhdfn",
 
-	// The base64-encoded initialization vector for the encryption algorithm.
+    // The base64-encoded initialization vector for the encryption algorithm.
     // Every encrypted payload is using a different, randomly generated initialization vector.
-	"iv": "WPqOdWzvd/KCLLhe9AibZQ==",
+    "iv": "WPqOdWzvd/KCLLhe9AibZQ==",
 
-	// The base64-encoded authentication tag (signature) of the payload.
-	// To compute the signature, (un-encoded) initialization vector and ciphertext
-	// are concatenated, then the signature is computed over the result using HMACSHA256 algorithm..
-	"authentication_tag": "6l4BRohAKHM/TnZUiSY6cw=="
+    // The base64-encoded authentication tag (signature) of the payload.
+    // To compute the signature, (un-encoded) initialization vector and ciphertext
+    // are concatenated, then the signature is computed over the result using HMACSHA256 algorithm.
+    "authentication_tag": "6l4BRohAKHM/TnZUiSY6cw=="
 }
 ```
 This object is then serialized using UTF8 encoding and sent instead of regular request, response, or notification payload.
