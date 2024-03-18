@@ -79,7 +79,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         });
 
         // Core things
-        _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
+        _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources, this));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
