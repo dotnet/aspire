@@ -10,7 +10,7 @@ parameters:
 steps:
 - ${{ each playground in parameters.playgrounds }}:
   - bash:
-      dotnet run --project ${{ playground.path }} -- --publisher manifest --output-path .
+      dotnet run --project ${{ playground.path }} -- --publisher manifest --output-path ./aspire-manifest.json
     displayName: 'Generate Manifest: ${{ playground.name }}'
 
 - bash: |
