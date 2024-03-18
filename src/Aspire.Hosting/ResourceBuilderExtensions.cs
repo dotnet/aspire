@@ -336,22 +336,6 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="hostPort"></param>
-    /// <param name="scheme"></param>
-    /// <param name="name"></param>
-    /// <param name="env"></param>
-    /// <returns></returns>
-    [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
-    {
-        return builder.WithEndpoint(hostPort: hostPort, scheme: scheme, name: name, env: env);
-    }
-
-    /// <summary>
     /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
@@ -439,23 +423,6 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
     {
         return builder.WithEndpoint(hostPort: hostPort, scheme: "https", name: name, env: env);
-    }
-
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="containerPort"></param>
-    /// <param name="hostPort"></param>
-    /// <param name="scheme"></param>
-    /// <param name="name"></param>
-    /// <param name="env"></param>
-    /// <returns></returns>
-    [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
-    {
-        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: scheme, name: name, env: env);
     }
 
     /// <summary>

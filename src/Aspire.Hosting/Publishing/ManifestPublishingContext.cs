@@ -39,9 +39,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
     /// </summary>
-    /// <param name="path"></param>
-    /// <returns></returns>
-    /// <exception cref="DistributedApplicationException"></exception>
+    /// <param name="path">A path to a file.</param>
+    /// <returns>The specified path as a relative path to the manifest.</returns>
+    /// <exception cref="DistributedApplicationException">Throws when could not get the directory directory name from the output path.</exception>
     [return: NotNullIfNotNull(nameof(path))]
     public string? GetManifestRelativePath(string? path)
     {
@@ -60,10 +60,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Writes JSON elements to the manifest which represent a container resource.
     /// </summary>
-    /// <param name="container"></param>
-    /// <exception cref="DistributedApplicationException"></exception>
+    /// <param name="container">The container resource to written to the manifest.</param>
+    /// <exception cref="DistributedApplicationException">Thrown if the container resource does not contain a <see cref="ContainerImageAnnotation"/>.</exception>
     public async Task WriteContainerAsync(ContainerResource container)
     {
         Writer.WriteString("type", "container.v0");
@@ -97,7 +97,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <summary>
     /// Writes the "connectionString" field for the underlying resource.
     /// </summary>
-    /// <param name="resource"></param>
+    /// <param name="resource">The <see cref="IResource"/>.</param>
     public void WriteConnectionString(IResource resource)
     {
         if (resource is IResourceWithConnectionString resourceWithConnectionString &&
@@ -108,10 +108,12 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Writes endpoints to the resource entry in the manifest based on the resource's
+    /// <see cref="EndpointAnnotation"/> entries in the <see cref="IResource.Annotations"/>
+    /// collection.
     /// </summary>
-    /// <param name="resource"></param>
-    /// <param name="emitContainerPort"></param>
+    /// <param name="resource">The <see cref="IResource"/> that contains <see cref="EndpointAnnotation"/> annotations.</param>
+    /// <param name="emitContainerPort">Flag to determine whether container port is emitted.</param>
     public void WriteBindings(IResource resource, bool emitContainerPort = false)
     {
         if (resource.TryGetEndpoints(out var endpoints))
@@ -141,9 +143,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Writes environment variables to the manifest base on the <see cref="IResource"/> resource's <see cref="EnvironmentCallbackAnnotation"/> annotations."/>
     /// </summary>
-    /// <param name="resource"></param>
+    /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EnvironmentCallbackAnnotation"/> annotations.</param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
         var config = new Dictionary<string, object>();
@@ -177,10 +179,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Writes command line arguments to the manifest based on the <see cref="IResource"/> resource's <see cref="CommandLineArgsCallbackAnnotation"/> annotations.
     /// </summary>
-    /// <param name="resource"></param>
-    /// <returns></returns>
+    /// <param name="resource">The <see cref="IResource"/> that contains <see cref="CommandLineArgsCallbackAnnotation"/> annotations.</param>
+    /// <returns>The <see cref="Task"/> to await for completion.</returns>
     public async Task WriteCommandLineArgumentsAsync(IResource resource)
     {
         var args = new List<object>();
@@ -250,9 +252,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Write environment variables for port bindings related to <see cref="EndpointAnnotation"/> annotations.
     /// </summary>
-    /// <param name="resource"></param>
+    /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     public void WritePortBindingEnvironmentVariables(IResource resource)
     {
         if (resource.TryGetEndpoints(out var endpoints))

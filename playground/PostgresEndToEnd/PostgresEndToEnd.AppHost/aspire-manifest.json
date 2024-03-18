@@ -23,7 +23,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -56,7 +56,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -89,7 +89,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -126,7 +126,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -159,7 +159,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -192,7 +192,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -231,6 +231,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__db1": "{db1.connectionString}",
         "ConnectionStrings__db2": "{db2.connectionString}",
         "ConnectionStrings__db3": "{db3.connectionString}",

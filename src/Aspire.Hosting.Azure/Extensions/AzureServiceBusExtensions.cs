@@ -33,7 +33,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="configureResource">Optional callback to configure the Service Bus namespace.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusNamespace"/> resource.</param>
     /// <returns></returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusNamespace>? configureResource)
@@ -116,7 +116,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
-    /// <param name="configureQueue">Optional callback to customize the queue.</param>
+    /// <param name="configureQueue">Callback to configure the underlying <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusQueue"/> resource.</param>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusQueue>? configureQueue)
     {
@@ -141,7 +141,7 @@ public static class AzureServiceBusExtensions
     /// </summary>
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
-    /// <param name="configureTopic">Optional callback to customize the topic.</param>
+    /// <param name="configureTopic">Callback to configure the underlying <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusTopic"/> resource.</param>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusTopic>? configureTopic)
     {
@@ -168,7 +168,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="topicName">The name of the topic.</param>
     /// <param name="subscriptionName">The name of the subscription.</param>
-    /// <param name="configureSubscription">Optional callback to customize the subscription.</param>
+    /// <param name="configureSubscription">Callback to configure the underlying <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusSubscription"/> resource.</param>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusSubscription>? configureSubscription)
     {

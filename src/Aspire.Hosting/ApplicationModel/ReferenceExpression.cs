@@ -49,7 +49,7 @@ public class ReferenceExpression : IValueProvider, IManifestExpressionProvider
     /// <summary>
     /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
@@ -99,7 +99,7 @@ public ref struct ExpressionInterpolatedStringHandler(int literalLength, int for
     /// <summary>
     /// Appends a literal value to the expression.
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">The literal string value to be appended to the interpolated string.</param>
     public readonly void AppendLiteral(string value)
     {
         _builder.Append(value);
@@ -108,7 +108,7 @@ public ref struct ExpressionInterpolatedStringHandler(int literalLength, int for
     /// <summary>
     /// Appends a formatted value to the expression.
     /// </summary>
-    /// <param name="value"></param>
+    /// <param name="value">The formatted string to be appended to the interpolated string.</param>
     public readonly void AppendFormatted(string? value)
     {
         _builder.Append(value);
@@ -117,7 +117,7 @@ public ref struct ExpressionInterpolatedStringHandler(int literalLength, int for
     /// <summary>
     /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
     /// </summary>
-    /// <param name="valueProvider"></param>
+    /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
     /// <exception cref="InvalidOperationException"></exception>
     public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
     {
