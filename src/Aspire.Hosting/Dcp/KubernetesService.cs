@@ -143,6 +143,7 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
         where T : CustomResource
     {
         var resourceType = GetResourceFor<T>();
+        Console.WriteLine($"Watching {resourceType} in namespace {namespaceParameter}");
         var result = await ExecuteWithRetry(
             DcpApiOperationType.Watch,
             resourceType,
