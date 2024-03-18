@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting redis</PackageTags>
     <Description>Redis® support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)redis-cube-red_white-rgb.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

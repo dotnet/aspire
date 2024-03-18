@@ -96,8 +96,6 @@ builder.AddRedisDistributedCache("cache", configureOptions: options => options.C
 
 ## AppHost extensions
 
-## AppHost extensions
-
 In your AppHost project, install the `Aspire.Hosting.Redis` library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
