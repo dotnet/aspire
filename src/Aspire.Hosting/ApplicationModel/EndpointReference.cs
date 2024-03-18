@@ -53,8 +53,8 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
     /// </summary>
-    /// <param name="property"></param>
-    /// <returns></returns>
+    /// <param name="property">The <see cref="EndpointProperty"/> enum value to use in the reference.</param>
+    /// <returns>An <see cref="EndpointReferenceExpression"/> representing the specified <see cref="EndpointProperty"/>.</returns>
     public EndpointReferenceExpression Property(EndpointProperty property)
     {
         ArgumentNullException.ThrowIfNull(property);
@@ -153,9 +153,9 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <summary>
     /// Gets the value of the property of the endpoint.
     /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="String"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
+    /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken) => Property switch
     {
         EndpointProperty.Url => new(Owner.Url),

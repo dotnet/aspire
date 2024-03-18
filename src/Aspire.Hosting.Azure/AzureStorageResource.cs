@@ -10,8 +10,8 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Storage resource.
 /// </summary>
-/// <param name="name"></param>
-/// <param name="configureConstruct"></param>
+/// <param name="name">The name of the resource.</param>
+/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
 public class AzureStorageResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithEndpoints

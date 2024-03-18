@@ -29,7 +29,7 @@ internal sealed class CloudFormationStackExecutor(
     ///
     /// If a null is returned instead of the stack that implies the stack failed to be created or updated.
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     internal async Task<Stack?> ExecuteTemplateAsync(CancellationToken cancellationToken = default)
     {
@@ -118,7 +118,7 @@ internal sealed class CloudFormationStackExecutor(
     /// <param name="templateParameters"></param>
     /// <param name="templateBody"></param>
     /// <param name="tags"></param>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     /// <exception cref="AWSProvisioningException"></exception>
     private async Task<string?> CreateChangeSetAsync(ChangeSetType changeSetType, List<Parameter> templateParameters, string templateBody, List<Tag> tags, CancellationToken cancellationToken)
@@ -176,7 +176,7 @@ internal sealed class CloudFormationStackExecutor(
     /// </summary>
     /// <param name="changeSetId"></param>
     /// <param name="changeSetType"></param>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     /// <exception cref="AWSProvisioningException"></exception>
     private async Task<Stack> ExecuteChangeSetAsync(string changeSetId, ChangeSetType changeSetType, CancellationToken cancellationToken)
@@ -215,7 +215,7 @@ internal sealed class CloudFormationStackExecutor(
     ///  wait or delete the stack till it is in a ready state.
     /// </summary>
     /// <param name="stack"></param>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     /// <exception cref="AWSProvisioningException"></exception>
     private async Task<ChangeSetType> DetermineChangeSetTypeAsync(Stack? stack, CancellationToken cancellationToken)
@@ -287,7 +287,7 @@ internal sealed class CloudFormationStackExecutor(
     /// left in the stack and it is safe to delete. If the stack is not deleted the recreation of the stack will fail.
     /// </summary>
     /// <param name="stack"></param>
-    /// <param name="cancellation"></param>
+    /// <param name="cancellation">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     /// <exception cref="AWSProvisioningException"></exception>
     private async Task DeleteRollbackCompleteStackAsync(Stack stack, CancellationToken cancellation)
@@ -310,7 +310,7 @@ internal sealed class CloudFormationStackExecutor(
     /// <summary>
     /// Wait till the stack transitions from an in progress state to a stable state.
     /// </summary>
-    /// <param name="cancellation"></param>
+    /// <param name="cancellation">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     /// <exception cref="AWSProvisioningException"></exception>
     private async Task<Stack?> WaitForNoLongerInProgress(CancellationToken cancellation)
@@ -342,7 +342,7 @@ internal sealed class CloudFormationStackExecutor(
     /// Wait for the change set to be created and in success state to begin executing.
     /// </summary>
     /// <param name="changeSetId"></param>
-    /// <param name="cancellation"></param>
+    /// <param name="cancellation">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     /// <exception cref="AWSProvisioningException"></exception>
     private async Task<bool> WaitForChangeSetBeingAvailableAsync(string changeSetId, CancellationToken cancellation)
@@ -386,8 +386,8 @@ internal sealed class CloudFormationStackExecutor(
     /// <summary>
     /// Wait for the CloudFormation stack to get to a stable state after creating or updating the stack.
     /// </summary>
-    /// <param name="minTimeStampForEvents"></param>
-    /// <param name="cancellationToken"></param>
+    /// <param name="minTimeStampForEvents">Minimum timestamp for events.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     private async Task<Stack> WaitStackToCompleteAsync(DateTimeOffset minTimeStampForEvents, CancellationToken cancellationToken)
     {

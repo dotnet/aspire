@@ -12,6 +12,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class PostgresBuilderExtensions
 {
+    private const string UserEnvVarName = "POSTGRES_USER";
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
     /// <summary>
@@ -19,12 +20,17 @@ public static class PostgresBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
+    /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port used when launching the container. If null a random port will be assigned.</param>
-    /// <param name="password">The administrator password used for the container during local development. If null a random password will be generated.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
+    public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
+        string name,
+        IResourceBuilder<ParameterResource>? userName = null,
+        IResourceBuilder<ParameterResource>? password = null,
+        int? port = null)
     {
-        var postgresServer = new PostgresServerResource(name, password);
+        var postgresServer = new PostgresServerResource(name, userName?.Resource, password?.Resource);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage("postgres", "16.2")
@@ -32,7 +38,8 @@ public static class PostgresBuilderExtensions
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordInput;
+                          context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
+                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordReference;
                       });
     }
 

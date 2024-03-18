@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.Versioning;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Sql;
@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureSqlExtensions
 {
-    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null, bool useProvisioner = false)
+    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -52,12 +52,9 @@ public static class AzureSqlExtensions
 
             sqlServer.AddOutput("sqlServerFqdn", x => x.FullyQualifiedDomainName);
 
-            if (configureResource != null)
-            {
-                var resource = (AzureSqlServerResource)construct.Resource;
-                var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
-                configureResource(resourceBuilder, construct, sqlServer, sqlDatabases);
-            }
+            var resource = (AzureSqlServerResource)construct.Resource;
+            var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);
+            configureResource?.Invoke(resourceBuilder, construct, sqlServer, sqlDatabases);
         };
 
         var resource = new AzureSqlServerResource(builder.Resource, configureConstruct);
@@ -94,19 +91,19 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
-        return builder.PublishAsAzureSqlDatabase((_, _, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        return builder.PublishAsAzureSqlDatabase(null);
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
     /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
     /// </summary>
     /// <param name="builder">The builder for the SQL Server resource.</param>
-    /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Sql.SqlServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [RequiresPreviewFeatures]
-    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null)
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource)
     {
         return builder.PublishAsAzureSqlDatabase(configureResource, useProvisioner: false);
     }
@@ -118,19 +115,19 @@ public static class AzureSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
-        return builder.AsAzureSqlDatabase((_, _, _, _) => { });
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        return builder.AsAzureSqlDatabase(null);
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
     /// Configures SQL Server resource to be deployed as Azure SQL Database (server).
     /// </summary>
     /// <param name="builder">The builder for the SQL Server resource.</param>
-    /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Sql.SqlServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [RequiresPreviewFeatures]
-    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource = null)
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource)
     {
         return builder.PublishAsAzureSqlDatabase(configureResource, useProvisioner: true);
     }

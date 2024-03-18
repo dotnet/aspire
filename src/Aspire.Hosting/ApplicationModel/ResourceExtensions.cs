@@ -90,8 +90,8 @@ public static class ResourceExtensions
     /// <summary>
     /// Gets the endpoints for the specified resource.
     /// </summary>
-    /// <param name="resource"></param>
-    /// <returns></returns>
+    /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
+    /// <returns>An enumeration of <see cref="EndpointReference"/> based on the <see cref="EndpointAnnotation"/> annotations from the resources' <see cref="IResource.Annotations"/> collection.</returns>
     public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource)
     {
         if (TryGetAnnotationsOfType<EndpointAnnotation>(resource, out var endpoints))

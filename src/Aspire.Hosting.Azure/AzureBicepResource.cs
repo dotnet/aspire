@@ -127,12 +127,13 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         return File.ReadAllText(TemplateFile);
     }
 
-    // TODO: Make the name bicep safe
+    /// TODO: Remove this method once AppInsights CDK is removed.
     /// <summary>
-    /// TODO: Doc Comments
+    /// Create a Bicep identifier safe version of the resource name.
     /// </summary>
-    /// <returns></returns>
-    public string CreateBicepResourceName() => Name.ToLower();
+    /// <returns>A string which is safe to use as a Bicep identifier.</returns>
+    [Obsolete("This method is obsolete and will be removed before release.")]
+    public string CreateBicepResourceName() => Name.ToLower(); // Insufficient but we don't care because its going to be deleted.
 
     /// <summary>
     /// Writes the resource to the manifest.

@@ -3,9 +3,8 @@
     "signalr1": {
       "type": "azure.bicep.v0",
       "connectionString": "Endpoint=https://{signalr1.outputs.hostName};AuthType=azure",
-      "path": "aspire.hosting.azure.bicep.signalr.bicep",
+      "path": "signalr1.module.bicep",
       "params": {
-        "name": "signalr1",
         "principalId": "",
         "principalType": ""
       }
@@ -16,6 +15,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__signalr1": "{signalr1.connectionString}"
       },
       "bindings": {

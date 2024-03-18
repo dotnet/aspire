@@ -18,7 +18,7 @@ public static class CloudFormationExtensions
     /// <summary>
     /// Add a CloudFormation stack for provisioning application resources.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="stackName">The name of the CloudFormation stack.</param>
     /// <param name="templatePath">The path to the CloudFormation template that defines the CloudFormation stack.</param>
     /// <returns></returns>

@@ -6,7 +6,6 @@
     <PackageTags>aspire hosting azure</PackageTags>
     <Description>Azure resource types for .NET Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <GenerateRequiresPreviewFeaturesAttribute>False</GenerateRequiresPreviewFeaturesAttribute>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +13,6 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Provisioning\Utils\ProcessSpec.cs" />
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
-    <Compile Include="..\Shared\ValueStopwatch\ValueStopwatch.cs" Link="Provisioning\ValueStopwatch.cs" />
   </ItemGroup>
 
   <ItemGroup>

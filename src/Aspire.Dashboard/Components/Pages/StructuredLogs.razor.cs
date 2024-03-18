@@ -152,6 +152,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationChanged = true;
 
+        ClearSelectedLogEntry();
+
         return this.AfterViewModelChangedAsync();
     }
 
@@ -223,6 +225,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             {
                 ViewModel.AddFilter(filter);
             }
+
+            ClearSelectedLogEntry();
         }
 
         return this.AfterViewModelChangedAsync();
@@ -233,6 +237,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         if (args.Value is string newFilter)
         {
             PageViewModel.Filter = newFilter;
+            ClearSelectedLogEntry();
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -250,6 +255,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _filterCts?.Cancel();
         ViewModel.FilterText = string.Empty;
+        ClearSelectedLogEntry();
         StateHasChanged();
     }
 

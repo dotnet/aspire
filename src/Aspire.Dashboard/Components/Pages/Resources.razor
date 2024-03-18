@@ -41,9 +41,10 @@
             </Body>
         </FluentPopover>
         <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                        Immediate="true"
-                        @bind-Value="_filter"
-                        slot="end" />
+                      Immediate="true"
+                      @bind-Value="_filter"
+                      slot="end"
+                      @bind-Value:after="HandleSearchFilterChanged" />
     </FluentToolbar>
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"

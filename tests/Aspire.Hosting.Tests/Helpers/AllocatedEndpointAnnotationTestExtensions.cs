@@ -13,7 +13,7 @@ public static class AllocatedEndpointAnnotationTestExtensions
     /// <param name="client">The <see cref="HttpClient"/> instance to use.</param>
     /// <param name="bindingName">The name of the binding.</param>
     /// <param name="path">The path the request is sent to.</param>
-    /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The string representing the response body.</returns>
     public static async Task<string> HttpGetStringAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, CancellationToken cancellationToken)
         where T : IResourceWithEndpoints
