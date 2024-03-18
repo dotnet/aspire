@@ -195,7 +195,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         }
     }
 
-    public class DcpInfo
+    public sealed class DcpInfo
     {
         [JsonPropertyName("version")]
         public string? Version { get; set; }
@@ -204,7 +204,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         public DcpContainersInfo? Containers { get; set; }
     }
 
-    public class DcpContainersInfo
+    public sealed class DcpContainersInfo
     {
         [JsonPropertyName("runtime")]
         public string? Runtime { get; set; }

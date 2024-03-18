@@ -451,45 +451,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public async Task VerifyOpenAIManifest()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var openai = appBuilder.AddAzureOpenAI("openai")
-            .WithDeployment(new(name: "deployment", modelName: "gpt-35-turbo", modelVersion: "0613"));
-
-        var openaiManifest = await ManifestUtils.GetManifest(openai.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{openai.outputs.connectionString}",
-              "path": "aspire.hosting.azure.bicep.openai.bicep",
-              "params": {
-                "name": "openai",
-                "deployments": [
-                  {
-                    "name": "deployment",
-                    "sku": {
-                      "name": "Standard",
-                      "capacity": 1
-                    },
-                    "model": {
-                      "format": "OpenAI",
-                      "name": "gpt-35-turbo",
-                      "version": "0613"
-                    }
-                  }
-                ],
-                "principalId": "",
-                "principalType": ""
-              }
-            }
-            """;
-
-        Assert.Equal(expectedManifest, openaiManifest.ToString());
-    }
-
-    [Fact]
     public void NodeAppIsExecutableResource()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();

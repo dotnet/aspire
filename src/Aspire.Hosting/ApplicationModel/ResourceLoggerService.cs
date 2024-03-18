@@ -30,8 +30,8 @@ public class ResourceLoggerService
     /// <summary>
     /// Gets the logger for the resource to write to.
     /// </summary>
-    /// <param name="resourceName"></param>
-    /// <returns></returns>
+    /// <param name="resourceName">The name of the resource from the Aspire application model.</param>
+    /// <returns>An <see cref="ILogger"/> which repesents the named resource.</returns>
     public ILogger GetLogger(string resourceName)
     {
         ArgumentNullException.ThrowIfNull(resourceName);
@@ -66,7 +66,7 @@ public class ResourceLoggerService
     /// <summary>
     /// Completes the log stream for the resource.
     /// </summary>
-    /// <param name="resource"></param>
+    /// <param name="resource">The <see cref="IResource"/>.</param>
     public void Complete(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);

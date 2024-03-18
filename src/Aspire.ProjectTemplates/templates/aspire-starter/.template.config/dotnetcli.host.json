@@ -41,9 +41,14 @@
       "UseRedisCache": {
         "longName": "use-redis-cache",
         "shortName": ""
+      },
+      "CreateTestsProject": {
+        "longName": "create-tests-project",
+        "shortName": "t"
       }
     },
     "usageExamples": [
-      "--use-redis-cache"
+      "--use-redis-cache",
+      "--create-tests-project"
     ]
   }

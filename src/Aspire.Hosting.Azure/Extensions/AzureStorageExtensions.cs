@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.Authorization;
@@ -17,19 +18,14 @@ public static class AzureStorageExtensions
     /// <summary>
     /// Adds an Azure Storage resource to the application model.This resource can be used to create Azure blob, table, and queue resources.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="name">The name of the resource.</param>
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
-        var resource = new AzureStorageResource(name);
-
-        return builder.AddResource(resource)
-                      // These ambient parameters are only available in development time.
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                      .WithParameter("storageName", resource.CreateBicepResourceName())
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        return builder.AddAzureStorage(name, null);
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -37,9 +33,10 @@ public static class AzureStorageExtensions
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="configureResource">Callback to configure the storage account.</param>
+    /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Storage.StorageAccount"/> resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureStorageConstructResource> AddAzureConstructStorage(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct, StorageAccount>? configureResource = null)
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -66,12 +63,11 @@ public static class AzureStorageExtensions
             storageAccount.AddOutput("queueEndpoint", sa => sa.PrimaryEndpoints.QueueUri);
             storageAccount.AddOutput("tableEndpoint", sa => sa.PrimaryEndpoints.TableUri);
 
-            if (configureResource != null)
-            {
-                configureResource(construct, storageAccount);
-            }
+            var resource = (AzureStorageResource)construct.Resource;
+            var resourceBuilder = builder.CreateResourceBuilder(resource);
+            configureResource?.Invoke(resourceBuilder, construct, storageAccount);
         };
-        var resource = new AzureStorageConstructResource(name, configureConstruct);
+        var resource = new AzureStorageResource(name, configureConstruct);
 
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
@@ -88,6 +84,11 @@ public static class AzureStorageExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureStorageResource> RunAsEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
         builder.WithEndpoint(name: "blob", containerPort: 10000)
                .WithEndpoint(name: "queue", containerPort: 10001)
                .WithEndpoint(name: "table", containerPort: 10002)
@@ -172,11 +173,11 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Creates a builder for the <see cref="AzureBlobStorageResource"/> which can be referenced to get the Azure Storage blob endpoint for the storage account.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureBlobStorageResource"/>.</returns>
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureBlobStorageResource(name, builder.Resource);
@@ -186,25 +187,11 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Creates a builder for the <see cref="AzureTableStorageResource"/> which can be referenced to get the Azure Storage tables endpoint for the storage account.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<AzureBlobStorageConstructResource> AddBlobs(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
-    {
-        var resource = new AzureBlobStorageConstructResource(name, builder.Resource);
-
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
-    }
-
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureTableStorageResource"/>.</returns>
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
@@ -214,42 +201,14 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Creates a builder for the <see cref="AzureQueueStorageResource"/> which can be referenced to get the Azure Storage queues endpoint for the storage account.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<AzureTableStorageConstructResource> AddTables(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
-    {
-        var resource = new AzureTableStorageConstructResource(name, builder.Resource);
-
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
-    }
-
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>/</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureQueueStorageResource"/>.</returns>
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
-
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
-    }
-
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<AzureQueueStorageConstructResource> AddQueues(this IResourceBuilder<AzureStorageConstructResource> builder, string name)
-    {
-        var resource = new AzureQueueStorageConstructResource(name, builder.Resource);
 
         return builder.ApplicationBuilder.AddResource(resource)
             .WithManifestPublishingCallback(resource.WriteToManifest);

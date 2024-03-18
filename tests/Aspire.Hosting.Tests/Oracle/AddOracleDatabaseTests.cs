@@ -102,7 +102,7 @@ public class AddOracleTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("user id=system;password={orcl.inputs.password};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("user id=system;password={orcl.inputs.password};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("user id=system;password=", connectionString);
         Assert.EndsWith(";data source=localhost:2000", connectionString);
     }
@@ -120,11 +120,13 @@ public class AddOracleTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var oracleResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseServerResource>());
-        var oracleConnectionString = oracleResource.GetConnectionStringAsync(default);
+        var oracleConnectionStringResource = (IResourceWithConnectionString)oracleResource;
+        var oracleConnectionString = oracleConnectionStringResource.GetConnectionStringAsync();
         var oracleDatabaseResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseResource>());
-        var dbConnectionString = await oracleDatabaseResource.GetConnectionStringAsync(default);
+        var oracleDatabaseConnectionStringResource = (IResourceWithConnectionString)oracleDatabaseResource;
+        var dbConnectionString = await oracleDatabaseConnectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("{orcl.connectionString}/db", oracleDatabaseResource.ConnectionStringExpression);
+        Assert.Equal("{orcl.connectionString}/db", oracleDatabaseConnectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal(oracleConnectionString + "/db", dbConnectionString);
     }
 
@@ -255,8 +257,8 @@ public class AddOracleTests
         Assert.Equal("customers1", db1.Resource.DatabaseName);
         Assert.Equal("customers2", db2.Resource.DatabaseName);
 
-        Assert.Equal("{oracle1.connectionString}/customers1", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{oracle1.connectionString}/customers2", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{oracle1.connectionString}/customers1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{oracle1.connectionString}/customers2", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -273,7 +275,7 @@ public class AddOracleTests
         Assert.Equal("imports", db1.Resource.DatabaseName);
         Assert.Equal("imports", db2.Resource.DatabaseName);
 
-        Assert.Equal("{oracle1.connectionString}/imports", db1.Resource.ConnectionStringExpression);
-        Assert.Equal("{oracle2.connectionString}/imports", db2.Resource.ConnectionStringExpression);
+        Assert.Equal("{oracle1.connectionString}/imports", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{oracle2.connectionString}/imports", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 }

@@ -9,35 +9,8 @@ namespace Aspire.Hosting.Azure;
 /// A resource that represents Azure App Configuration.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class AzureAppConfigurationResource(string name) :
-    AzureBicepResource(name, templateResourceName: "Aspire.Hosting.Azure.Bicep.appconfig.bicep"),
-    IResourceWithConnectionString
-{
-    /// <summary>
-    /// Gets the appConfigEndpoint output reference for the Azure App Configuration resource.
-    /// </summary>
-    public BicepOutputReference Endpoint => new("appConfigEndpoint", this);
-
-    /// <summary>
-    /// Gets the connection string template for the manifest for the Azure App Configuration resource.
-    /// </summary>
-    public string ConnectionStringExpression => Endpoint.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure App Configuration resource.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure App Configuration resource.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
-        => Endpoint.GetValueAsync(cancellationToken);
-}
-
-/// <summary>
-/// A resource that represents Azure App Configuration.
-/// </summary>
-/// <param name="name">The name of the resource.</param>
-/// <param name="configureConstruct"></param>
-public class AzureAppConfigurationConstructResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
+public class AzureAppConfigurationResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {
@@ -49,13 +22,6 @@ public class AzureAppConfigurationConstructResource(string name, Action<Resource
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure App Configuration resource.
     /// </summary>
-    public string ConnectionStringExpression => Endpoint.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure App Configuration resource.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>The connection string for the Azure App Configuration resource.</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
-        => Endpoint.GetValueAsync(cancellationToken);
+    public ReferenceExpression ConnectionStringExpression =>
+       ReferenceExpression.Create($"{Endpoint}");
 }
