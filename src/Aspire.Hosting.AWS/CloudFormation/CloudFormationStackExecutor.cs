@@ -387,7 +387,7 @@ internal sealed class CloudFormationStackExecutor(
     /// Wait for the CloudFormation stack to get to a stable state after creating or updating the stack.
     /// </summary>
     /// <param name="minTimeStampForEvents">Minimum timestamp for events.</param>
-    /// <param name="cancellationToken">A cancellation token</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     private async Task<Stack> WaitStackToCompleteAsync(DateTimeOffset minTimeStampForEvents, CancellationToken cancellationToken)
     {
