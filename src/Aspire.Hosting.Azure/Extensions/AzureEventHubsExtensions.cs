@@ -25,7 +25,7 @@ public static class AzureEventHubsExtensions
         this IDistributedApplicationBuilder builder, string name)
     {
 #pragma warning disable CA2252 // This API requires opting into preview features
-        return builder.AddAzureEventHubs(name, (_, _, _) => { });
+        return builder.AddAzureEventHubs(name, null);
 #pragma warning restore CA2252 // This API requires opting into preview features
     }
 
