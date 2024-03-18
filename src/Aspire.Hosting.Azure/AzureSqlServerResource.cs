@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Sql Server resource.
 /// </summary>
 /// <param name="innerResource">The <see cref="SqlServerServerResource"/> that this resource wraps.</param>
-/// <param name="configureConstruct"></param>
+/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
 public class AzureSqlServerResource(SqlServerServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct) : AzureConstructResource(innerResource.Name, configureConstruct), IResourceWithConnectionString
 {
     /// <summary>

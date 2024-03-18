@@ -11,7 +11,7 @@ public interface IValueProvider
     /// <summary>
     /// Gets the value for use as an environment variable.
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns></returns>
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default);
 }
