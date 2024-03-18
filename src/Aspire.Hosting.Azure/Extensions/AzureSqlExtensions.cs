@@ -13,10 +13,12 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureSqlExtensions
 {
-    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, bool useProvisioner = false)
+    internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, IResourceBuilder<ParameterResource>? existingSqlServerResourceId = null, bool useProvisioner = false)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
+            SqlServer? sqlServer = null;
+
             var sqlServer = new SqlServer(construct, builder.Resource.Name);
 
             sqlServer.AssignProperty(x => x.Administrators.AdministratorType, "'ActiveDirectory'");
@@ -89,7 +91,7 @@ public static class AzureSqlExtensions
     /// </summary>
     /// <param name="builder">The builder for the SQL Server resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder)
+    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, IResourceBuilder<ParameterResource>? existingSqlServerResourceId = null)
     {
 #pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.PublishAsAzureSqlDatabase(null);
@@ -103,7 +105,7 @@ public static class AzureSqlExtensions
     /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource)
+    public static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, IResourceBuilder<ParameterResource>? existingSqlServerResourceId = null)
     {
         return builder.PublishAsAzureSqlDatabase(configureResource, useProvisioner: false);
     }
@@ -127,7 +129,7 @@ public static class AzureSqlExtensions
     /// <param name="configureResource">Callback to customize the Azure resources that will be provisioned in Azure.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource)
+    public static IResourceBuilder<SqlServerServerResource> AsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, IResourceBuilder<ParameterResource>? existingSqlServerResourceId = null)
     {
         return builder.PublishAsAzureSqlDatabase(configureResource, useProvisioner: true);
     }
