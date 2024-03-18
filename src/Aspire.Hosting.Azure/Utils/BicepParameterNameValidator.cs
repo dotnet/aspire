@@ -9,7 +9,7 @@ internal static partial class BicepParameterNameValidator
 {
     // See rules from Bicep's highlightjs implementation:
     // https://github.com/Azure/bicep/blob/a992bdf2d4d7c5c7dec684b7d0de4db9cb260f8a/src/highlightjs/src/bicep.ts#L12
-    [GeneratedRegex("^[a-z_][a-z0-9_]*$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex("^[a-z_][a-z0-9_]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex GetBicepParameterExpression();
 
     internal static void ThrowIfInvalid(string bicepParameterName)
