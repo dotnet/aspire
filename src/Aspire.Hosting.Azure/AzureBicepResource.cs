@@ -131,7 +131,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <summary>
     /// Create a Bicep identifier safe version of the resource name.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A string which is safe to use as a Bicep identifier.</returns>
     [Obsolete("This method is obsolete and will be removed before release.")]
     public string CreateBicepResourceName() => Name.ToLower(); // Insufficient but we don't care because its going to be deleted.
 

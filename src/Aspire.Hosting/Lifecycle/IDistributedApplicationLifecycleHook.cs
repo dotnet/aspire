@@ -14,7 +14,7 @@ public interface IDistributedApplicationLifecycleHook
     /// Executes before the distributed application starts.
     /// </summary>
     /// <param name="appModel">The distributed application model.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -25,7 +25,7 @@ public interface IDistributedApplicationLifecycleHook
     /// Executes after the orchestrator allocates endpoints for resources in the application model.
     /// </summary>
     /// <param name="appModel">The distributed application model.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
