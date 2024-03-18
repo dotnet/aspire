@@ -45,9 +45,10 @@
     <ItemGroup>
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
+      <_TestRunCommandArguments Include="cd testassets/Aspire.Hosting.Testing.Tests &amp;&amp;" />
+      <_TestRunCommandArguments Include="dotnet build -bl:${TEST_LOG_PATH}build.binlog &amp;&amp;" />
       <_TestRunCommandArguments Include="dotnet test" />
       <_TestRunCommandArguments Include="-s .runsettings" />
-      <_TestRunCommandArguments Include="testassets/Aspire.Hosting.Testing.Tests" />
       <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
     </ItemGroup>
     <PropertyGroup>
