@@ -128,6 +128,7 @@ stages:
             repoLogPath: $(Build.Arcade.LogsPath)
             repoTestResultsPath: $(Build.Arcade.TestResultsPath)
             isWindows: false
+        - template: /eng/pipelines/templates/CheckPlaygroundManifests.yml
 
 
 # ----------------------------------------------------------------
@@ -171,3 +172,4 @@ stages:
           displayName: Init toolset
 
         - template: /eng/pipelines/templates/VerifyCoverageReport.yml
+
