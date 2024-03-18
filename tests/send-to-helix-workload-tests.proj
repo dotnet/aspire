@@ -46,10 +46,10 @@
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
       <_TestRunCommandArguments Include="cd testassets/Aspire.Hosting.Testing.Tests &amp;&amp;" />
-      <_TestRunCommandArguments Include="dotnet build -bl:${TEST_LOG_PATH}build.binlog &amp;&amp;" />
+      <_TestRunCommandArguments Include="dotnet build -bl:${TEST_LOG_PATH}/build.binlog &amp;&amp;" />
       <_TestRunCommandArguments Include="dotnet test" />
       <_TestRunCommandArguments Include="-s .runsettings" />
-      <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
+      <_TestRunCommandArguments Include="--results-directory $(_HelixLogsPath)" />
     </ItemGroup>
     <PropertyGroup>
       <_WorkItemTimeoutForWorkloadTests>00:20:00</_WorkItemTimeoutForWorkloadTests>
