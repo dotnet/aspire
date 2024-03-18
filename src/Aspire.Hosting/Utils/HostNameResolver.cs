@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Utils;
 /// <summary>
 /// Helpers to resolve host names when running in a containers.
 /// </summary>
-public class HostNameResolver
+internal class HostNameResolver
 {
     /// <summary>
     /// Resolves the "localhost" with the container host name.

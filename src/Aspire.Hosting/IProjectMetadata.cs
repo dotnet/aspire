@@ -21,7 +21,7 @@ public interface IProjectMetadata : IResourceAnnotation
 }
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
-internal class ProjectMetadata(string projectPath) : IProjectMetadata
+internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
     public string ProjectPath { get; } = projectPath;
 }

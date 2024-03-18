@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Web;
 using Aspire.Dashboard.Model.Otlp;
 
 namespace Aspire.Dashboard.Extensions;
@@ -23,12 +22,13 @@ public static class LogFilterFormatter
             _ => null
         };
 
-        return $"{filter.Field}:{condition}:{HttpUtility.UrlEncode(filter.Value)}";
+        return $"{filter.Field}:{condition}:{Uri.EscapeDataString(filter.Value)}";
     }
 
     public static string SerializeLogFiltersToString(IEnumerable<LogFilter> filters)
     {
-        return string.Join('+', filters.Select(SerializeLogFilterToString));
+        // "%2B" is the escaped form of +
+        return string.Join("%2B", filters.Select(SerializeLogFilterToString));
     }
 
     private static LogFilter? DeserializeLogFilterFromString(string filterString)
@@ -59,7 +59,7 @@ public static class LogFilterFormatter
             return null;
         }
 
-        var value = HttpUtility.UrlDecode(parts[2]);
+        var value = Uri.UnescapeDataString(parts[2]);
 
         return new LogFilter { Condition = condition.Value, Field = field, Value = value };
     }
@@ -67,7 +67,7 @@ public static class LogFilterFormatter
     public static List<LogFilter> DeserializeLogFiltersFromString(string filtersString)
     {
         return filtersString
-            .Split(' ') // + turns into space from query parameter (' ')
+            .Split('+') // + turns into space from query parameter (' ')
             .Select(DeserializeLogFilterFromString)
             .Where(filter => filter is not null)
             .Cast<LogFilter>()

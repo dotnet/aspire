@@ -38,7 +38,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
     /// Resolves and returns service endpoints for the specified service.
     /// </summary>
     /// <param name="serviceName">The service name.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The resolved service endpoints.</returns>
     public async ValueTask<ServiceEndPointCollection> GetEndPointsAsync(string serviceName, CancellationToken cancellationToken)
     {

@@ -151,6 +151,7 @@ public class ResourceNotificationTests
         IResourceWithEnvironment,
         IResourceWithConnectionString
     {
-        public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken) => new("CustomConnectionString");
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"CustomConnectionString");
     }
 }

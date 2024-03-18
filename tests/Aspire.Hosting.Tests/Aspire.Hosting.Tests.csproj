@@ -3,12 +3,17 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsAspireHost>true</IsAspireHost>
+    <!--
+      CS0436: The type 'type' conflicts with the imported type 'type2'. StringComparers exists in both Aspire.Hosting and Aspire.Hosting.AppHost.
+      CS8002: Referenced assembly does not have a strong name. MongoDB.Driver package is unsigned
+    -->
     <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn),CS8002</NoWarn>
+    <NoWarn>$(NoWarn);CS0436;CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj" IsAspireProjectResource="false" />    
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" IsAspireProjectResource="false" />
 
@@ -20,6 +25,7 @@
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
   </ItemGroup>
 

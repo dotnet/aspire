@@ -14,7 +14,7 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
     private const string ConnectionSting = "nats://apire-host:4222";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
-    protected override string ActivitySourceName => "Nats.Client";
+    protected override string ActivitySourceName => "NATS.Net";
     protected override string[] RequiredLogCategories => ["NATS.Client"];
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NatsClientSettings>? configure = null, string? key = null)
     {
@@ -44,7 +44,7 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
         => options.HealthChecks = enabled;
 
     protected override void SetTracing(NatsClientSettings options, bool enabled)
-        => throw new NotImplementedException();
+        => options.Tracing = enabled;
 
     protected override void SetMetrics(NatsClientSettings options, bool enabled)
         => throw new NotImplementedException();

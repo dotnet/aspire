@@ -1,0 +1,173 @@
+{
+  "resources": {
+    "stress-apiservice": {
+      "type": "project.v0",
+      "path": "../Stress.ApiService/Stress.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+      },
+      "bindings": {
+        "http-5180": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5181": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5182": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5183": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5184": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5185": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5186": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5187": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5188": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5189": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5190": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5191": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5192": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5193": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5194": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5195": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5196": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5197": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5198": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5199": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5200": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5201": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5202": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5203": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5204": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5205": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5206": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5207": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5208": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "http-5209": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "stress-telemetryservice": {
+      "type": "project.v0",
+      "path": "../Stress.TelemetryService/Stress.TelemetryService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      }
+    }
+  }
+}
