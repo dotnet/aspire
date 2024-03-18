@@ -18,9 +18,8 @@ resource operationalInsightsWorkspace_uzGUFQdnZ 'Microsoft.OperationalInsights/w
   }
   properties: {
     sku: {
-      name: 'PerGB2018'
+      name: 'PerNode'
     }
-    retentionInDays: 10
   }
 }
 

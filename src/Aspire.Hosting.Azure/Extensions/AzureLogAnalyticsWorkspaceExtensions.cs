@@ -1,7 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.Versioning;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.OperationalInsights;
@@ -22,9 +22,9 @@ public static class AzureLogAnalyticsWorkspaceExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureLogAnalyticsWorkspaceResource> AddAzureLogAnalyticsWorkspace(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable CA2252
+#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureLogAnalyticsWorkspace(name, (_, _, _) => { });
-#pragma warning restore CA2252
+#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public static class AzureLogAnalyticsWorkspaceExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="configureResource">Optional callback to configure the Azure Log Analytics Workspace resource.</param>
     /// <returns></returns>
-    [RequiresPreviewFeatures]
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureLogAnalyticsWorkspaceResource> AddAzureLogAnalyticsWorkspace(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureLogAnalyticsWorkspaceResource>, ResourceModuleConstruct, OperationalInsightsWorkspace>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>

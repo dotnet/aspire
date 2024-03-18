@@ -29,7 +29,7 @@ resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2
   properties: {
     Application_Type: applicationType
     WorkspaceResourceId: logAnalyticsWorkspaceId
-    IngestionMode: 'ApplicationInsightsWithDiagnosticSettings'
+    IngestionMode: 'LogAnalytics'
   }
 }
 
