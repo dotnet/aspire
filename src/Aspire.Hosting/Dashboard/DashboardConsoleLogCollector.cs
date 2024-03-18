@@ -124,6 +124,8 @@ internal sealed partial class DashboardConsoleLogCollector : IHostedService
 
     private async Task WatchLogs(ResourceSnapshot resourceSnapshot, CancellationToken cancellationToken)
     {
+        const string DashboardConsolePrefix = "(Dashboard)";
+
         try
         {
             var consoleLogsSubscription = _dashboardServiceData.SubscribeConsoleLogs(resourceSnapshot.Name);
@@ -136,8 +138,6 @@ internal sealed partial class DashboardConsoleLogCollector : IHostedService
             {
                 foreach (var log in item)
                 {
-                    const string DashboardConsolePrefix = "(Dashboard)";
-
                     var match = LogParsingConstants.Rfc3339RegEx.Match(log.Content);
                     var resolvedContent = match.Success ? log.Content.Substring(match.Length + 1) : log.Content;
                     var output = $"{DashboardConsolePrefix} {resolvedContent}";
