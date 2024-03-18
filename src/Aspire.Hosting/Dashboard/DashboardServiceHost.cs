@@ -87,6 +87,8 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services.AddSingleton(resourceNotificationService);
             builder.Services.AddSingleton(resourceLoggerService);
 
+            builder.Services.AddHostedService<DashboardConsoleLogCollector>();
+
             builder.WebHost.ConfigureKestrel(ConfigureKestrel);
 
             _app = builder.Build();
