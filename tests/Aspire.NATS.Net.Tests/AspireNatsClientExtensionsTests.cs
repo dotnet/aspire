@@ -117,7 +117,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         Assert.DoesNotContain("unused", connection.Opts.Url);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task AddNatsClient_HealthCheckShouldBeRegisteredWhenEnabled(bool useKeyed)
@@ -151,7 +151,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void AddNatsClient_HealthCheckShouldNotBeRegisteredWhenDisabled(bool useKeyed)
