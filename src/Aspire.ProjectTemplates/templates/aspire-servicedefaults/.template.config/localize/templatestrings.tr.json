@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Service Defaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "name": ".NET Aspire Hizmet Varsayılanları",
+  "description": ".NET Aspire hizmet varsayılanları projesi oluşturmak için bir proje şablonu.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
   "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
   "symbols/skipRestore/description": "Belirtilirse, oluşturma sırasında projenin otomatik geri yüklenmesini atlar.",

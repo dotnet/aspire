@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Service Defaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "name": "Padrões do serviço .NET Server",
+  "description": "Um modelo de projeto para criar um projeto padrão do serviço .NET Aspire.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net8.0/description": "Destino net8.0",
   "symbols/skipRestore/description": "Se especificado, ignora a restauração automática do projeto sendo criado.",
