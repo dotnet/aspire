@@ -39,8 +39,8 @@ var sqlServer = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("db
 
 var administratorLogin = builder.AddParameter("administratorLogin");
 var administratorLoginPassword = builder.AddParameter("administratorLoginPassword", secret: true);
-var pg = builder.AddPostgres("postgres2")
-                .AsAzurePostgresFlexibleServer(administratorLogin, administratorLoginPassword)
+var pg = builder.AddPostgres("postgres2", administratorLogin, administratorLoginPassword)
+                .AsAzurePostgresFlexibleServer()
                 .AddDatabase("db2");
 
 var cosmosDb = builder.AddAzureCosmosDB("cosmos")
