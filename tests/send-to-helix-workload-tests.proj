@@ -46,6 +46,7 @@
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
       <_TestRunCommandArguments Include="cd testassets/Aspire.Hosting.Testing.Tests &amp;&amp;" />
+      <_TestRunCommandArguments Include="cp ../../.runsettings . &amp;&amp;" />
       <_TestRunCommandArguments Include="dotnet build -bl:${TEST_LOG_PATH}/build.binlog &amp;&amp;" />
       <_TestRunCommandArguments Include="dotnet test" />
       <_TestRunCommandArguments Include="-s .runsettings" />
