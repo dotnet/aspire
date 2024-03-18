@@ -14,5 +14,5 @@ steps:
     displayName: 'Generate Manifest: ${{ playground.name }}'
 
 - bash: |
-    git diff-index --quiet --cached HEAD --
-  displayName: 'Check manifest variations'
+    git diff --exit-code
+  displayName: 'Checking for manifest variations'

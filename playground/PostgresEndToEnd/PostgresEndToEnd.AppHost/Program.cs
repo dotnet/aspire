@@ -4,7 +4,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Abstract resources.
-var db1 = builder.AddPostgres("pg1").WithPgAdmin().AddDatabase("db1");
+var db1 = builder.AddPostgres("pg11").WithPgAdmin().AddDatabase("db1");
 var db2 = builder.AddPostgres("pg2").WithPgAdmin().AddDatabase("db2");
 var pg3 = builder.AddPostgres("pg3").WithPgAdmin();
 var db3 = pg3.AddDatabase("db3");
