@@ -136,18 +136,19 @@ internal sealed partial class DashboardConsoleLogCollector : IHostedService
             {
                 foreach (var log in item)
                 {
+                    const string DashboardConsolePrefix = "(Dashboard)";
+
                     var match = LogParsingConstants.Rfc3339RegEx.Match(log.Content);
                     var resolvedContent = match.Success ? log.Content.Substring(match.Length + 1) : log.Content;
+                    var output = $"{DashboardConsolePrefix} {resolvedContent}";
 
                     if (!log.IsErrorMessage)
                     {
-                        Console.Write("(Dashboard) ");
-                        Console.WriteLine(resolvedContent);
+                        Console.WriteLine(output);
                     }
                     else
                     {
-                        Console.Error.Write("(Dashboard) ");
-                        Console.Error.WriteLine(resolvedContent);
+                        Console.Error.WriteLine(output);
                     }
                 }
             }
