@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
 if (!string.IsNullOrEmpty(logPath))
 {
-    builder.Logging.AddFile(Path.Combine(logPath, "integrationServiceA.log"));
+    builder.Logging.AddFile(Path.Combine(logPath, "servicea.log"));
 }
 else
 {
