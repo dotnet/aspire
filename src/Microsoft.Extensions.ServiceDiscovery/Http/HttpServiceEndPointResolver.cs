@@ -26,7 +26,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
     /// Resolves and returns a service endpoint for the specified request.
     /// </summary>
     /// <param name="request">The request message.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The resolved service endpoint.</returns>
     /// <exception cref="InvalidOperationException">The request had no <see cref="HttpRequestMessage.RequestUri"/> set or a suitable endpoint could not be found.</exception>
     public async ValueTask<ServiceEndPoint> GetEndpointAsync(HttpRequestMessage request, CancellationToken cancellationToken)

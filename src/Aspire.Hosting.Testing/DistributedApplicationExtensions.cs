@@ -32,7 +32,7 @@ public static class DistributedApplicationExtensions
     /// </summary>
     /// <param name="app">The application.</param>
     /// <param name="resourceName">The resource name.</param>
-    /// <param name="cancellationToken"> The cancellationToken to observe while waiting for the task to complete.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The connection string for the specified resource.</returns>
     /// <exception cref="ArgumentException">The resource was not found or does not expose a connection string.</exception>
     public static ValueTask<string?> GetConnectionStringAsync(this DistributedApplication app, string resourceName, CancellationToken cancellationToken = default)

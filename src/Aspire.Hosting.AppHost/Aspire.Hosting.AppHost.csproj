@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting</PackageTags>
+    <Description>APIs for the .NET Aspire application model.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="**/*.props;**/*.targets" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <!-- Download DCP orchestrator components for local development -->
+  <ItemGroup>
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+  </ItemGroup>
+
+</Project>
