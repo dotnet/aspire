@@ -103,7 +103,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <summary>
     /// Get the bicep template as a string. Does not write to disk.
     /// </summary>
-    public string GetBicepTemplateString()
+    public virtual string GetBicepTemplateString()
     {
         if (TemplateString is not null)
         {

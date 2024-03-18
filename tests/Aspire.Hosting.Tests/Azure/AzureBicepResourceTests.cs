@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRE0001 // Because we are testing CDK callbacks.
+
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Tests.Utils;
@@ -114,6 +116,24 @@ public class AzureBicepResourceTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBEmulator()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("emulator", e => e.AllocatedEndpoint = new(e, "localost", 10001));
+        });
+
+        Assert.True(cosmos.Resource.IsContainer());
+
+        var cs = AzureCosmosDBEmulatorConnectionString.Create(10001);
+
+        Assert.Equal(cs, cosmos.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
     [Fact]
@@ -1295,6 +1315,37 @@ public class AzureBicepResourceTests
 
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureStorageEmulator()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
+        {
+            e.WithEndpoint("blob", e => e.AllocatedEndpoint = new(e, "localhost", 10000));
+            e.WithEndpoint("queue", e => e.AllocatedEndpoint = new(e, "localhost", 10001));
+            e.WithEndpoint("table", e => e.AllocatedEndpoint = new(e, "localhost", 10002));
+        });
+
+        Assert.True(storage.Resource.IsContainer());
+
+        var blob = storage.AddBlobs("blob");
+        var queue = storage.AddQueues("queue");
+        var table = storage.AddTables("table");
+
+        var blobqs = AzureStorageEmulatorConnectionString.Create(blobPort: 10000);
+        var queueqs = AzureStorageEmulatorConnectionString.Create(queuePort: 10001);
+        var tableqs = AzureStorageEmulatorConnectionString.Create(tablePort: 10002);
+
+        Assert.Equal(blobqs, blob.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(queueqs, queue.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal(tableqs, table.Resource.ConnectionStringExpression.ValueExpression);
+
+        Assert.Equal(blobqs, await ((IResourceWithConnectionString)blob.Resource).GetConnectionStringAsync());
+        Assert.Equal(queueqs, await ((IResourceWithConnectionString)queue.Resource).GetConnectionStringAsync());
+        Assert.Equal(tableqs, await ((IResourceWithConnectionString)table.Resource).GetConnectionStringAsync());
     }
 
     [Fact]

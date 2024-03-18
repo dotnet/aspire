@@ -21,7 +21,7 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
     public Utf8JsonWriter? JsonWriter { get; set; }
 
-    public virtual async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         await PublishInternalAsync(model, cancellationToken).ConfigureAwait(false);
         _lifetime.StopApplication();

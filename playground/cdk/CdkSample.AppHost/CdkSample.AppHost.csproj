@@ -7,7 +7,6 @@
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
     <UserSecretsId>44b9bf37-1892-4852-8b5f-153e3ac5d24c</UserSecretsId>
-    <EnablePreviewFeatures>True</EnablePreviewFeatures>
   </PropertyGroup>
 
   <ItemGroup>

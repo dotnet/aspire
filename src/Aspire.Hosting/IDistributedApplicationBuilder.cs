@@ -46,7 +46,7 @@ public interface IDistributedApplicationBuilder
     /// <typeparam name="T">The type of resource to add.</typeparam>
     /// <param name="resource">The resource to add.</param>
     /// <returns>A builder for configuring the added resource.</returns>
-    /// <exception cref="DistributedApplicationException">Thrown when a resource with the same name already exists.</exception>
+    /// TODO eerhardt DistributedApplicationExceptionThrown when a resource with the same name already exists.
     IResourceBuilder<T> AddResource<T>(T resource) where T : IResource;
 
     /// <summary>

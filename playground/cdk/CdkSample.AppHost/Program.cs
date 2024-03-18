@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIRE0001 // Because we use the CDK callbacks.
+
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.KeyVaults;
 using Azure.ResourceManager.ApplicationInsights.Models;
