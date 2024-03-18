@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Azure.Messaging.EventHubs;
+using Azure.Core;
 using Azure.Core.Extensions;
 //using Azure.Identity;
 using Azure.Messaging.EventHubs;
@@ -45,12 +46,7 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
 
                 // todo: add more settings and clientoptions validation; also we should use a deterministic ID for the processor
 
-                var blobConnectionString =
-                    builderConfiguration.GetConnectionString(settings.BlobClientConnectionName);
-
-                Uri blobUri = new Uri($"{blobConnectionString}/checkpoints"); // fixme: this should be a compound name including the consumer group name ideally
-                var blobClient = new BlobContainerClient(blobUri, cred);
-                blobClient.CreateIfNotExists(); // this works, but the processor client fails to create blobs later?
+                var blobClient = GetBlobContainerClient(settings, cred);
 
                 var processor = !string.IsNullOrEmpty(connectionString)
                     ? new EventProcessorClient(blobClient,
@@ -59,11 +55,33 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
                         settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.Namespace,
                         settings.EventHubName, cred, options);
 
-                // ...
-
                 return processor;
 
             }, requiresCredential: false);
 
+    }
+
+    private BlobContainerClient GetBlobContainerClient(AzureMessagingEventHubsSettings settings, TokenCredential cred)
+    {
+        var blobConnectionString =
+            builderConfiguration.GetConnectionString(
+                settings.BlobClientConnectionName ??
+                throw new InvalidOperationException(
+                    "A EventProcessorClient could not be configured. " +
+                    $"There is no connection string saved to Configuration with the name {settings.BlobClientConnectionName}."));
+
+        // FIXME: ideally this should be pulled from services; but thar be dragons.
+        // There is no reliable way to get the blob service client from the services collection
+        var blobUriBuilder = new BlobUriBuilder(new Uri(blobConnectionString!));
+
+        // consumer group and blob container names have similar constraints (alphanumeric, hyphen) but we should sanitize nonetheless
+        var suffix = (string.IsNullOrWhiteSpace(settings.ConsumerGroup)) ? "default" : settings.ConsumerGroup;
+        blobUriBuilder.BlobContainerName = $"checkpoints-{suffix}"; // TODO: should be unique to this consumer group
+
+        var blobUri = blobUriBuilder.ToUri();
+        var blobClient = new BlobContainerClient(blobUri, cred);
+        blobClient.CreateIfNotExists();
+
+        return blobClient;
     }
 }
