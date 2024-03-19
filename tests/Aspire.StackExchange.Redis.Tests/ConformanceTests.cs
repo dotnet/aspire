@@ -15,6 +15,8 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 {
     private readonly RedisContainerFixture _containerFixture;
 
+    protected string ConnectionString => _containerFixture.GetConnectionString();
+
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
