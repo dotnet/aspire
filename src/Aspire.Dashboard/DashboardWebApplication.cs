@@ -171,6 +171,8 @@ public class DashboardWebApplication : IAsyncDisposable
             //_app.UseHsts();
         }
 
+        _app.UseStatusCodePagesWithReExecute("/error/{0}");
+
         if (isAllHttps)
         {
             _app.UseHttpsRedirection();

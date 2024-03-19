@@ -2,14 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../Routes.resx">
     <body>
-      <trans-unit id="RoutesNotFoundDescription">
-        <source>Sorry, there's nothing at this address.</source>
-        <target state="translated">Questo indirizzo non contiene nulla.</target>
+      <trans-unit id="NotFoundDescription">
+        <source>Not found</source>
+        <target state="new">Not found</target>
         <note />
       </trans-unit>
-      <trans-unit id="RoutesPageTitle">
+      <trans-unit id="NotFoundDetails">
+        <source>The page you requested could not be found</source>
+        <target state="new">The page you requested could not be found</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NotFoundPageTitle">
         <source>Not found</source>
-        <target state="translated">Non trovata</target>
+        <target state="new">Not found</target>
         <note />
       </trans-unit>
     </body>
