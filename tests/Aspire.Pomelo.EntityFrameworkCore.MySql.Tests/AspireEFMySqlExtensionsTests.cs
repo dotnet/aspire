@@ -23,7 +23,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                             ? _containerFixture.GetConnectionString()
                                             : "Server=localhost;User ID=root;Password=pass;Database=test";
-    private readonly string _serverVersion = $"{MySqlContainerImageTags.Tag}-{MySqlContainerImageTags.Image}";
+    private readonly string _serverVersion = $"{MySqlContainerImageTags.Tag}-mysql";
 
     public AspireEFMySqlExtensionsTests(MySqlContainerFixture containerFixture)
         => _containerFixture = containerFixture;
