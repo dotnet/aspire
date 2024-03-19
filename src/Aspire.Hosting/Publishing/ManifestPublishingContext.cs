@@ -281,15 +281,38 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             {
                 var buildArg = args[i];
 
-                var valueString = buildArg.Value switch
-                {
-                    string stringValue => stringValue,
-                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
-                    null => null, // null means let docker build pull from env var.
-                    _ => buildArg.Value.ToString()
-                };
+                Writer.WritePropertyName(buildArg.Name);
 
-                Writer.WriteString(buildArg.Name, valueString);
+                var value = buildArg.Value;
+                if (value is null) // null means let docker build pull from env var.
+                {
+                    Writer.WriteNullValue();
+                    continue;
+                }
+
+                if (value is string stringValue)
+                {
+                    Writer.WriteStringValue(stringValue);
+                    continue;
+                }
+
+                if (value is IManifestExpressionProvider manifestExpression)
+                {
+                    Writer.WriteStringValue(manifestExpression.ValueExpression);
+                    continue;
+                }
+
+                if (value is bool boolValue)
+                {
+                    Writer.WriteBooleanValue(boolValue);
+                    continue;
+                }
+
+                if (value?.ToString() is { } toStringValue)
+                {
+                    Writer.WriteStringValue(toStringValue);
+                    continue;
+                }
             }
 
             Writer.WriteEndObject();

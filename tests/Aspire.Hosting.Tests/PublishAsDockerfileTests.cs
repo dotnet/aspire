@@ -62,7 +62,7 @@ public class PublishAsDockerfileTests
               "context": "NodeFrontend",
               "buildArgs": {
                 "SOME_STRING": "Test",
-                "SOME_BOOL": "{{bool.TrueString}}",
+                "SOME_BOOL": true,
                 "SOME_NUMBER": "7",
                 "SOME_NONVALUE": null
               },
