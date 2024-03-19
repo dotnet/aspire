@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -181,30 +182,33 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
     }
 
     [RequiresDockerFact]
-    public async Task NatsInstrumentationEndToEnd()
+    public void NatsInstrumentationEndToEnd()
     {
-        var builder = CreateBuilder(_connectionString);
-
-        builder.AddNatsClient(DefaultConnectionName, settings =>
+        RemoteExecutor.Invoke(async (connectionString) =>
         {
-            settings.Tracing = true;
-        });
+            var builder = CreateBuilder(connectionString);
 
-        var notifier = new ActivityNotifier();
-        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
+            builder.AddNatsClient(DefaultConnectionName, settings =>
+            {
+                settings.Tracing = true;
+            });
 
-        var host = builder.Build();
-        host.Start();
+            var notifier = new ActivityNotifier();
+            builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
 
-        var nats = host.Services.GetRequiredService<INatsConnection>();
-        await nats.PublishAsync("test");
+            var host = builder.Build();
+            host.Start();
 
-        await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
-        Assert.Single(notifier.ExportedActivities);
+            var nats = host.Services.GetRequiredService<INatsConnection>();
+            await nats.PublishAsync("test");
 
-        var activity = notifier.ExportedActivities[0];
-        Assert.Equal("test publish", activity.OperationName);
-        Assert.Contains(activity.Tags, kvp => kvp.Key == "messaging.system" && kvp.Value == "nats");
+            await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Single(notifier.ExportedActivities);
+
+            var activity = notifier.ExportedActivities[0];
+            Assert.Equal("test publish", activity.OperationName);
+            Assert.Contains(activity.Tags, kvp => kvp.Key == "messaging.system" && kvp.Value == "nats");
+        }, _connectionString).Dispose();
     }
 
     private static HostApplicationBuilder CreateBuilder(string connectionString)
