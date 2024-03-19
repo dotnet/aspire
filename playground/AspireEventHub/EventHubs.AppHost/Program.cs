@@ -6,7 +6,7 @@ var blob = builder.AddAzureStorage("ehstorage")
     .AddBlobs("checkpoints");
 
 var eventHub = builder.AddAzureEventHubs("eventhubns")
-    .AddHub("hub");
+    .AddEventHub("hub");
 
 builder.AddProject<Projects.EventHubsConsumer>("consumer")
     .WithReference(eventHub)

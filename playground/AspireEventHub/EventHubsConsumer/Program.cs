@@ -1,6 +1,5 @@
 using Azure.Identity;
 using EventHubsConsumer;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -35,13 +34,6 @@ else
             settings.EventHubName = "hub";
             settings.BlobClientConnectionName = "checkpoints";
             settings.Credential = new AzureCliCredential();
-        }, clientBuilder =>
-        {
-            clientBuilder.ConfigureOptions(options =>
-            {
-                // FIXME: should be able to configure this automatically? nsname-hubname-consumergroupname ?
-                options.Identifier = "eventhubns-hub-default";
-            });
         });
     builder.Services.AddHostedService<Processor>();
     Console.WriteLine("Starting EventProcessorClient...");

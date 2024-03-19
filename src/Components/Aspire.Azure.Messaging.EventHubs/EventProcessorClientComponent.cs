@@ -4,7 +4,6 @@
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
 using Azure.Core.Extensions;
-//using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Storage.Blobs;
@@ -37,16 +36,16 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
                         $"A EventHubProducerClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
                 }
 
-                if (string.IsNullOrEmpty(settings.BlobClientConnectionName))
+                if (string.IsNullOrEmpty(settings.EventHubName))
                 {
-                    // throw an invalid operation exception if the blob client connection string is not provided
                     throw new InvalidOperationException(
-                                               $"A EventProcessorClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'BlobClientConnectionName' in the '{configurationSectionName}' configuration section.");
+                        $"A EventProcessorClient could not be configured. Ensure a valid EventHubName was provided in the '{configurationSectionName}' configuration section.");
                 }
 
-                // todo: add more settings and clientoptions validation; also we should use a deterministic ID for the processor
+                // configure processor identifier
+                options.Identifier ??= $"{settings.EventHubName}-{settings.ConsumerGroup ?? "default"}";
 
-                var blobClient = GetBlobContainerClient(settings, cred);
+                var blobClient = GetBlobContainerClient(settings, cred, configurationSectionName);
 
                 var processor = !string.IsNullOrEmpty(connectionString)
                     ? new EventProcessorClient(blobClient,
@@ -61,14 +60,23 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
 
     }
 
-    private BlobContainerClient GetBlobContainerClient(AzureMessagingEventHubsSettings settings, TokenCredential cred)
+    private BlobContainerClient GetBlobContainerClient(
+        AzureMessagingEventHubsSettings settings, TokenCredential cred, string configurationSectionName)
     {
+        if (string.IsNullOrEmpty(settings.BlobClientConnectionName))
+        {
+            // throw an invalid operation exception if the blob client connection name is not provided
+            throw new InvalidOperationException(
+                $"A EventProcessorClient could not be configured. Ensure a valid connection name was provided in the '{configurationSectionName}' configuration section.");
+        }
+
         var blobConnectionString =
             builderConfiguration.GetConnectionString(
-                settings.BlobClientConnectionName ??
+                settings.BlobClientConnectionName) ??
                 throw new InvalidOperationException(
                     "A EventProcessorClient could not be configured. " +
-                    $"There is no connection string saved to Configuration with the name {settings.BlobClientConnectionName}."));
+                    $"There is no connection string in Configuration with the name {settings.BlobClientConnectionName}. " +
+                    "Are you sure you defined a Blob resource with this name in your AppHost?");
 
         // FIXME: ideally this should be pulled from services; but thar be dragons.
         // There is no reliable way to get the blob service client from the services collection

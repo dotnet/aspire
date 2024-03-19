@@ -17,7 +17,7 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
     internal List<(string Name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? Configure)> Hubs { get; } = [];
 
     /// <summary>
-    /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Storage resource.
+    /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Event Hubs resource.
     /// </summary>
     public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
 

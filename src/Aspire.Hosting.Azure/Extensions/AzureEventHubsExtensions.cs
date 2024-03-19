@@ -16,7 +16,7 @@ namespace Aspire.Hosting;
 public static class AzureEventHubsExtensions
 {
     /// <summary>
-    /// Adds an Azure Event Hubs Namespace resource to the application model. This resource can be used to create hub resources.
+    /// Adds an Azure Event Hubs Namespace resource to the application model. This resource can be used to create Event Hub resources.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
@@ -30,7 +30,7 @@ public static class AzureEventHubsExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Event Hubs Namespace resource to the application model. This resource can be used to create hub resources.
+    /// Adds an Azure Event Hubs Namespace resource to the application model. This resource can be used to create Event Hub resources.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
@@ -42,24 +42,24 @@ public static class AzureEventHubsExtensions
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var serviceBusNamespace = new EventHubsNamespace(construct, name: name);
+            var eventHubsNamespace = new EventHubsNamespace(construct, name: name);
 
-            serviceBusNamespace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            eventHubsNamespace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
-            serviceBusNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
+            eventHubsNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
 
-            var serviceBusDataOwnerRole = serviceBusNamespace.AssignRole(RoleDefinition.EventHubsDataOwner);
+            var serviceBusDataOwnerRole = eventHubsNamespace.AssignRole(RoleDefinition.EventHubsDataOwner);
             serviceBusDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
-            serviceBusNamespace.AddOutput("serviceBusEndpoint", sa => sa.ServiceBusEndpoint);
+            eventHubsNamespace.AddOutput("serviceBusEndpoint", sa => sa.ServiceBusEndpoint);
 
             var azureResource = (AzureEventHubsResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
-            configureResource?.Invoke(azureResourceBuilder, construct, serviceBusNamespace);
+            configureResource?.Invoke(azureResourceBuilder, construct, eventHubsNamespace);
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(construct, name: hub.Name, parent: serviceBusNamespace);
+                var hubResource = new EventHub(construct, name: hub.Name, parent: eventHubsNamespace);
                 hub.Configure?.Invoke(azureResourceBuilder, construct, hubResource);
             }
             
@@ -77,11 +77,11 @@ public static class AzureEventHubsExtensions
     /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
-    /// <param name="name">The name of the hub.</param>
-    public static IResourceBuilder<AzureEventHubsResource> AddHub(this IResourceBuilder<AzureEventHubsResource> builder, string name)
+    /// <param name="name">The name of the Event Hub.</param>
+    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, string name)
     {
 #pragma warning disable CA2252 // This API requires opting into preview features
-        return builder.AddHub(name, (_, _, _) => { });
+        return builder.AddEventHub(name, null);
 #pragma warning restore CA2252 // This API requires opting into preview features
     }
 
@@ -89,13 +89,13 @@ public static class AzureEventHubsExtensions
     /// Adds an Azure Event Hubs hub resource to the application model. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
-    /// <param name="name">The name of the hub.</param>
-    /// <param name="configureQueue">Optional callback to customize the hub.</param>
+    /// <param name="name">The name of the Event Hub.</param>
+    /// <param name="configureHub">Optional callback to customize the Event Hub.</param>
     [RequiresPreviewFeatures]
-    public static IResourceBuilder<AzureEventHubsResource> AddHub(this IResourceBuilder<AzureEventHubsResource> builder,
-        string name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? configureQueue)
+    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder,
+        string name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? configureHub)
     {
-        builder.Resource.Hubs.Add((name, configureQueue));
+        builder.Resource.Hubs.Add((name, configureHub));
         return builder;
     }
 }
