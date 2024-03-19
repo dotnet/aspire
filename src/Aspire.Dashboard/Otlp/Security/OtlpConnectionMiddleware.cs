@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.Connections;
 
-namespace Aspire.Dashboard.Authentication.OtlpConnection;
+namespace Aspire.Dashboard.Otlp.Security;
 
 /// <summary>
 /// This connection middleware registers an OTLP feature on the connection.

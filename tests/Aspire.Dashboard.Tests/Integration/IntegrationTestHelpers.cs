@@ -19,20 +19,14 @@ public static class IntegrationTestHelpers
 {
     private static readonly X509Certificate2 s_testCertificate = TestCertificateLoader.GetTestCertificate();
 
-    public static DashboardWebApplication CreateDashboardWebApplication(
-        ITestOutputHelper testOutputHelper,
-        Action<Dictionary<string, string?>>? additionalConfiguration = null,
-        ITestSink? testSink = null)
+    public static DashboardWebApplication CreateDashboardWebApplication(ITestOutputHelper testOutputHelper, ITestSink? testSink = null)
     {
-        var initialData = new Dictionary<string, string?>
-        {
-            [DashboardWebApplication.DashboardUrlVariableName] = "http://127.0.0.1:0",
-            [DashboardWebApplication.DashboardOtlpUrlVariableName] = "http://127.0.0.1:0"
-        };
-        additionalConfiguration?.Invoke(initialData);
-
         var config = new ConfigurationManager()
-            .AddInMemoryCollection(initialData).Build();
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPNETCORE_URLS"] = "https://127.0.0.1:0",
+                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0"
+            }).Build();
 
         var dashboardWebApplication = new DashboardWebApplication(builder =>
         {
