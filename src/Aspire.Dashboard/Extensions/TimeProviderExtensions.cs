@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
+
 namespace Aspire.Dashboard.Extensions;
 
 internal static class TimeProviderExtensions
 {
-    public static DateTime ToLocal(this TimeProvider timeProvider, DateTimeOffset utcDateTimeOffset)
+    public static DateTime ToLocal(this BrowserTimeProvider timeProvider, DateTimeOffset utcDateTimeOffset)
     {
         var dateTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTimeOffset.UtcDateTime, timeProvider.LocalTimeZone);
         dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Local);
@@ -13,12 +15,12 @@ internal static class TimeProviderExtensions
         return dateTime;
     }
 
-    public static DateTimeOffset ToLocalDateTimeOffset(this TimeProvider timeProvider, DateTimeOffset utcDateTimeOffset)
+    public static DateTimeOffset ToLocalDateTimeOffset(this BrowserTimeProvider timeProvider, DateTimeOffset utcDateTimeOffset)
     {
         return TimeZoneInfo.ConvertTime(utcDateTimeOffset, timeProvider.LocalTimeZone);
     }
 
-    public static DateTime ToLocal(this TimeProvider timeProvider, DateTime dateTime)
+    public static DateTime ToLocal(this BrowserTimeProvider timeProvider, DateTime dateTime)
     {
         if (dateTime.Kind == DateTimeKind.Local)
         {

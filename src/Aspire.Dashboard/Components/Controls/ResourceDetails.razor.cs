@@ -26,7 +26,7 @@ public partial class ResourceDetails
     public required ILogger<ResourceDetails> Logger { get; init; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; init; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
 
@@ -144,7 +144,7 @@ public partial class ResourceDetails
         }
     }
 
-    private static string GetDisplayedValue(TimeProvider timeProvider, SummaryValue summaryValue)
+    private static string GetDisplayedValue(BrowserTimeProvider timeProvider, SummaryValue summaryValue)
     {
         string value;
         if (summaryValue.Value.HasStringValue)

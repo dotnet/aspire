@@ -34,7 +34,7 @@ public abstract class ChartBase : ComponentBase
     public required IInstrumentUnitResolver InstrumentUnitResolver { get; init; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; init; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }
