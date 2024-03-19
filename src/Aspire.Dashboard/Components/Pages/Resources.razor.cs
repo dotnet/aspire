@@ -29,7 +29,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     [Inject]
     public required IToastService ToastService { get; init; }
     [Inject]
-    public required TimeProvider TimeProvider { get; init; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
