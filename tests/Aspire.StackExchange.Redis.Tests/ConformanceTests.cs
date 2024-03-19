@@ -15,6 +15,8 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 {
     private readonly RedisContainerFixture _containerFixture;
 
+    protected string ConnectionString => _containerFixture.GetConnectionString();
+
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // IConnectionMultiplexer can be created only via call to ConnectionMultiplexer.Connect

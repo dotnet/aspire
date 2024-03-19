@@ -11,7 +11,11 @@ namespace Aspire.Components.Common.Tests;
 /// </summary>
 public sealed class ActivityNotifier : BaseProcessor<Activity>
 {
-    private readonly TaskCompletionSource _taskSource = new TaskCompletionSource();
+    // RunContinuationsAsynchronously because OnEnd gets invoked on the thread creating the Activity.
+    // Running more test code on this thread can cause deadlocks in the case where the Activity is created on a "drain thread" (ex. Redis)
+    // and the test method disposes the Host on that same thread. Disposing the Host will dispose the Instrumentation, which tries joining
+    // with the "drain thread".
+    private readonly TaskCompletionSource _taskSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public Task ActivityReceived => _taskSource.Task;
 
