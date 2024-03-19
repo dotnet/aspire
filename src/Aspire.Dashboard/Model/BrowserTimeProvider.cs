@@ -6,10 +6,11 @@ namespace Aspire.Dashboard.Model;
 /// <summary>
 /// This time provider is used to provide the time zone information from the browser to the server.
 /// It is a different type because we want to log setting the timezone, and we want a distinct type
-/// to register with DI. This time provider must be scoped to the user's session. And the built-in
-/// TimeProvider registration must be singleton for the system (used by auth).
+/// to register with DI:
+/// - BrowserTimeProvider must be scoped to the user's session.
+/// - The built-in TimeProvider registration must be singleton for the system time (used by auth).
 /// </summary>
-public sealed class BrowserTimeProvider : TimeProvider
+public class BrowserTimeProvider : TimeProvider
 {
     private readonly ILogger _logger;
     private TimeZoneInfo? _browserLocalTimeZone;
