@@ -46,7 +46,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
         "MySqlConnector.MySqlDataSource",
     };
 
-    protected override bool CanCreateClientWithoutConnectingToServer => false;
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
@@ -130,15 +129,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
 
     private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
     {
-        var fixture = new MySqlContainerFixture();
+        await using var fixture = new MySqlContainerFixture();
         await fixture.InitializeAsync();
-        try
-        {
-            test(new ConformanceTests(fixture));
-        }
-        finally
-        {
-            await fixture.DisposeAsync();
-        }
+        test(new ConformanceTests(fixture));
     }
 }

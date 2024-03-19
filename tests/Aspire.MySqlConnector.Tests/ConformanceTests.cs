@@ -33,7 +33,6 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanCreateClientWithoutConnectingToServer => false;
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
@@ -128,15 +127,8 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
     {
-        var fixture = new MySqlContainerFixture();
+        await using var fixture = new MySqlContainerFixture();
         await fixture.InitializeAsync();
-        try
-        {
-            test(new ConformanceTests(fixture));
-        }
-        finally
-        {
-            await fixture.DisposeAsync();
-        }
+        test(new ConformanceTests(fixture));
     }
 }
