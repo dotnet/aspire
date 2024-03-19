@@ -35,8 +35,8 @@ public class AddMongoDBTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("7.0.5", containerAnnotation.Tag);
-        Assert.Equal("mongo", containerAnnotation.Image);
+        Assert.Equal(MongoDBContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(MongoDBContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -63,8 +63,8 @@ public class AddMongoDBTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("7.0.5", containerAnnotation.Tag);
-        Assert.Equal("mongo", containerAnnotation.Image);
+        Assert.Equal(MongoDBContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(MongoDBContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -122,11 +122,11 @@ public class AddMongoDBTests
         var mongoManifest = await ManifestUtils.GetManifest(mongo.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
-              "image": "mongo:7.0.5",
+              "image": "{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
