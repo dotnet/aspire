@@ -137,7 +137,6 @@ Aspire.Microsoft.EntityFrameworkCore.Cosmos:
   - "Microsoft.EntityFrameworkCore.Query",
 - Activity source names:
   - "Azure.Cosmos.Operation"
-  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
 - Metric names:
   - "Microsoft.EntityFrameworkCore":
     - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
@@ -164,7 +163,7 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
   - "Microsoft.EntityFrameworkCore.Query"
   - "Microsoft.EntityFrameworkCore.Update"
 - Activity source names:
-  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
+  - "OpenTelemetry.Instrumentation.SqlClient"
 - Metric names:
   - "Microsoft.EntityFrameworkCore":
     - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
@@ -281,7 +280,7 @@ Aspire.Oracle.EntityFrameworkCore:
   - "Microsoft.EntityFrameworkCore.Query"
   - "Microsoft.EntityFrameworkCore.Update"
 - Activity source names:
-  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
+  - N/A
 - Metric names:
   - "Microsoft.EntityFrameworkCore":
     - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"

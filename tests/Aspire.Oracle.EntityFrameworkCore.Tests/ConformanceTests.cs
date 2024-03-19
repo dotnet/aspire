@@ -3,7 +3,6 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,8 +17,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    // https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/cb5b2193ef9cacc0b9ef699e085022577551bf85/src/OpenTelemetry.Instrumentation.EntityFrameworkCore/Implementation/EntityFrameworkDiagnosticListener.cs#L38
-    protected override string ActivitySourceName => "OpenTelemetry.Instrumentation.EntityFrameworkCore";
+    protected override string ActivitySourceName => throw new NotImplementedException();
 
     protected override string[] RequiredLogCategories => new string[]
     {
@@ -72,7 +70,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         => options.HealthChecks = enabled;
 
     protected override void SetTracing(OracleEntityFrameworkCoreSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => throw new NotImplementedException();
 
     protected override void SetMetrics(OracleEntityFrameworkCoreSettings options, bool enabled)
         => options.Metrics = enabled;
@@ -105,13 +103,5 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
 
         Assert.NotNull(dbContext);
-    }
-
-    [ConditionalFact]
-    public void TracingEnablesTheRightActivitySource()
-    {
-        SkipIfCanNotConnectToServer();
-
-        RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
     }
 }

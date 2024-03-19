@@ -12,7 +12,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -138,7 +137,6 @@ public static class AspireAzureEFCoreCosmosDBExtensions
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
-                tracerProviderBuilder.AddEntityFrameworkCoreInstrumentation();
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
             });
         }
