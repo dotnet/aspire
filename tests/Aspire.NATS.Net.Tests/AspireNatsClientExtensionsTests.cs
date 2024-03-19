@@ -182,10 +182,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         {
             var builder = CreateBuilder(connectionString);
 
-            builder.AddNatsClient(DefaultConnectionName, settings =>
-            {
-                settings.Tracing = true;
-            });
+            builder.AddNatsClient(DefaultConnectionName);
 
             var notifier = new ActivityNotifier();
             builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
