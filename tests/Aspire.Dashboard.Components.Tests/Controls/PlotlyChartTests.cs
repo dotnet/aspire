@@ -7,6 +7,7 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
@@ -24,7 +25,7 @@ public class PlotlyChartTests : TestContext
         // Arrange
         Services.AddLocalization();
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        Services.AddSingleton<TimeProvider, TestTimeProvider>();
+        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
 
         var model = new InstrumentViewModel();
 
@@ -48,7 +49,7 @@ public class PlotlyChartTests : TestContext
 
         Services.AddLocalization();
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        Services.AddSingleton<TimeProvider, TestTimeProvider>();
+        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
 
         var options = new TelemetryOptions();
         var instrument = new OtlpInstrument
@@ -106,9 +107,13 @@ public class PlotlyChartTests : TestContext
         }
     }
 
-    private sealed class TestTimeProvider : TimeProvider
+    private sealed class TestTimeProvider : BrowserTimeProvider
     {
         private TimeZoneInfo? _localTimeZone;
+
+        public TestTimeProvider() : base(NullLoggerFactory.Instance)
+        {
+        }
 
         public override DateTimeOffset GetUtcNow()
         {

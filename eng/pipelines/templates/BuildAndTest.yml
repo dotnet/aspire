@@ -6,6 +6,8 @@ parameters:
     type: string
   - name: buildConfig
     type: string
+  - name: repoArtifactsPath
+    type: string
   - name: repoLogPath
     type: string
   - name: repoTestResultsPath
@@ -43,17 +45,9 @@ steps:
   - ${{ if ne(parameters.skipTests, 'true') }}:
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
-              --output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
+              --output ${{ parameters.repoTestResultsPath }}/NonHelix.cobertura.xml
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
-
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '$(Build.SourcesDirectory)/artifacts/TestResults'
-        PublishLocation: Container
-        ArtifactName: 'TestResults_NonHelix_$(Agent.Os)_$(Agent.JobName)'
-      displayName: Publish non-helix TestResults
-      condition: always()
 
     - ${{ if ne(parameters.isWindows, 'true') }}:
       # E2E tests are disabled on windows for now
@@ -65,47 +59,53 @@ steps:
                 --projects $(Build.SourcesDirectory)/tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj
         displayName: Install sdk+workload for testing
 
-    - template: /eng/pipelines/templates/send-to-helix.yml
-      parameters:
-        HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
-        HelixProjectArguments: /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+    # Helix captures code coverage information and, once tests are complete, the code coverage information is
+    # downloaded to <repo root>/artifacts/helixresults folder.
+    # **** NOTE: Disabling Helix tests for Linux for now as there is an issue with the Ubuntu queue. TODO: Enable once the issue is resolved.
+    - ${{ if eq(parameters.isWindows, 'true') }}:
+      - template: /eng/pipelines/templates/send-to-helix.yml
+        parameters:
+          HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
+          HelixProjectArguments: /p:Configuration=${{ parameters.buildConfig }} /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
-        ${{ if eq(parameters.isWindows, 'true') }}:
-          ${{ if eq(variables['System.TeamProject'], 'public') }}:
-            HelixTargetQueues: Windows.11.Amd64.Client.Open
-          ${{ if eq(variables['System.TeamProject'], 'internal') }}:
-            HelixTargetQueues: Windows.11.Amd64.Client
-        ${{ if ne(parameters.isWindows, 'true') }}:
-          ${{ if eq(variables['System.TeamProject'], 'public') }}:
-            HelixTargetQueues: Ubuntu.2204.Amd64.Open
-          ${{ if eq(variables['System.TeamProject'], 'internal') }}:
-            HelixTargetQueues: Ubuntu.2204.Amd64
+          ${{ if eq(parameters.isWindows, 'true') }}:
+            ${{ if eq(variables['System.TeamProject'], 'public') }}:
+              HelixTargetQueues: Windows.11.Amd64.Client.Open
+            ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+              HelixTargetQueues: Windows.11.Amd64.Client
+          ${{ if ne(parameters.isWindows, 'true') }}:
+            ${{ if eq(variables['System.TeamProject'], 'public') }}:
+              HelixTargetQueues: Ubuntu.2204.Amd64.Open
+            ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+              HelixTargetQueues: Ubuntu.2204.Amd64
 
-        IsWindows: ${{ parameters.isWindows }}
-        ${{ if eq(variables['System.TeamProject'], 'public') }}:
-          Creator: $(Build.DefinitionName)
-        HelixBuild: $(Build.BuildNumber)
-        HelixAccessToken: $(HelixApiAccessToken)
+          IsWindows: ${{ parameters.isWindows }}
+          ${{ if eq(variables['System.TeamProject'], 'public') }}:
+            Creator: $(Build.DefinitionName)
+          HelixBuild: $(Build.BuildNumber)
+          HelixAccessToken: $(HelixApiAccessToken)
 
     - task: CopyFiles@2
       inputs:
-        Contents: '${{ parameters.repoTestResultsPath }}/**/*.cobertura.xml'
-        TargetFolder: '${{ parameters.repoTestResultsPath }}/collected'
+        Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
         flattenFolders: true
-      displayName: Gather coverage results (cobertura.xml)
+      displayName: Gather code coverage results
 
-    - script: $(Build.SourcesDirectory)/.dotnet/dotnet dotnet-coverage merge
-              ${{ parameters.repoTestResultsPath }}/collected/*.cobertura.xml
-              --output-format cobertura
-              --output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
-      displayName: Merge code coverage reports
+    - ${{ if eq(parameters.runAsPublic, 'true') }}:
+      - task: PublishPipelineArtifact@1
+        displayName: Publish coverage results (cobertura.xml)
+        inputs:
+          targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
+          artifactName: '$(Agent.JobName)_CodeCoverageResults'
+          publishLocation: 'pipeline'
 
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
-        PublishLocation: Container
-        ArtifactName: CodeCoverageResults
-      displayName: Publish coverage results (cobertura.xml)
+    - ${{ if ne(parameters.runAsPublic, 'true') }}:
+      - task: 1ES.PublishPipelineArtifact@1
+        displayName: Publish code coverage results
+        inputs:
+          targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
+          artifactName: '$(Agent.JobName)_CodeCoverageResults'
 
   - ${{ if eq(parameters.isWindows, 'true') }}:
     - script: ${{ parameters.buildScript }}
@@ -129,9 +129,17 @@ steps:
         $(_InternalBuildArgs)
       displayName: Build Workloads
 
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathToPublish: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
-        artifactName: VSDropInsertion
-        artifactType: container
-      displayName: Publish VSDrop MSIs
+    - ${{ if eq(parameters.runAsPublic, 'true') }}:
+      - task: PublishPipelineArtifact@1
+        displayName: Publish VSDrop MSIs
+        inputs:
+          targetPath: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
+          artifactName: VSDropInsertion
+          publishLocation: 'pipeline'
+
+    - ${{ if ne(parameters.runAsPublic, 'true') }}:
+      - task: 1ES.PublishPipelineArtifact@1
+        displayName: Publish VSDrop MSIs
+        inputs:
+          targetPath: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
+          artifactName: VSDropInsertion

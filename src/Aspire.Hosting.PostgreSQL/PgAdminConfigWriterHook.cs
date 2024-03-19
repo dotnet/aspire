@@ -8,7 +8,7 @@ using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.Postgres;
 
-internal class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
+internal sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {

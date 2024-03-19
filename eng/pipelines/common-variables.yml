@@ -10,7 +10,7 @@ variables:
   - name: _InternalBuildArgs
     value: ''
 
-  - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
+  - ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
     - name: _RunAsPublic
       value: False
     - name: _RunAsInternal
