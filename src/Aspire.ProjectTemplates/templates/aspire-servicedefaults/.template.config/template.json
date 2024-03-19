@@ -22,7 +22,7 @@
   },
   "precedence": "8000",
   "identity": "Aspire.ServiceDefaults.CSharp.8.0",
-  "thirdPartyNotices": "https://aka.ms/aspire/1.0-third-party-notices",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
   "groupIdentity": "Aspire.ServiceDefaults",
   "constraints": {
     "aspire": {
