@@ -180,8 +180,6 @@ internal sealed class AzureProvisioner(
         {
             try
             {
-                var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
-
                 var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
                 // Ensure directory exists before attempting to create secrets file
