@@ -13,7 +13,7 @@ public partial class StructuredLogDetails
     public required StructureLogsDetailsViewModel ViewModel { get; set; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; init; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     private IQueryable<LogEntryPropertyViewModel> FilteredItems =>
         _logEntryAttributes.Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
