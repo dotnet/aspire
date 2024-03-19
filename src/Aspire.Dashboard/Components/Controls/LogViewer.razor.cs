@@ -19,7 +19,7 @@ public sealed partial class LogViewer
     private IJSObjectReference? _jsModule;
 
     [Inject]
-    public required TimeProvider TimeProvider { get; init; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
