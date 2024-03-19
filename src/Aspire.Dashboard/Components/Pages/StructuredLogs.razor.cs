@@ -51,7 +51,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]

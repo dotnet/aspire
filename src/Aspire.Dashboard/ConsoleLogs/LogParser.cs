@@ -6,7 +6,7 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
-internal sealed partial class LogParser(TimeProvider timeProvider, bool convertTimestampsFromUtc)
+internal sealed partial class LogParser(BrowserTimeProvider timeProvider, bool convertTimestampsFromUtc)
 {
     private string? _parentTimestamp;
     private Guid? _parentId;
