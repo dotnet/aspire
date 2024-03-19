@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Nats;
 using Aspire.Hosting.Utils;
 using System.Net.Sockets;
-using Aspire.Components.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -35,8 +35,8 @@ public class AddNatsTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ContainerImageTags.Nats.Tag, containerAnnotation.Tag);
-        Assert.Equal(ContainerImageTags.Nats.Image, containerAnnotation.Image);
+        Assert.Equal(NatsContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
 
         Assert.Null(containerAnnotation.Registry);
     }
@@ -74,8 +74,8 @@ public class AddNatsTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ContainerImageTags.Nats.Tag, containerAnnotation.Tag);
-        Assert.Equal(ContainerImageTags.Nats.Image, containerAnnotation.Image);
+        Assert.Equal(NatsContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -101,7 +101,7 @@ public class AddNatsTests
             {
               "type": "container.v0",
               "connectionString": "nats://{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
-              "image": "{{ContainerImageTags.Nats.Image}}:{{ContainerImageTags.Nats.Tag}}",
+              "image": "{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
