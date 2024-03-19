@@ -148,13 +148,16 @@ public static class AspireRedisExtensions
             // Supports distributed tracing
             // We don't call AddRedisInstrumentation() here as it results in the TelemetryHostedService trying to resolve & connect to IConnectionMultiplexer
             // via DI on startup which, if Redis is unavailable, can result in an app crash. Instead we add the ActivitySource manually and call
-            // ConfigureRedisInstrumentation() to ensure the Redis instrumentation services are registered. Then when creating the IConnectionMultiplexer,
-            // we register the connection with the StackExchangeRedisInstrumentation object.
+            // ConfigureRedisInstrumentation() and AddInstrumentation() to ensure the Redis instrumentation services are registered. Then when creating the
+            // IConnectionMultiplexer, we register the connection with the StackExchangeRedisInstrumentation object.
             builder.Services.AddOpenTelemetry()
                 .WithTracing(t =>
                 {
                     t.AddSource(ActivitySourceName);
+                    // This ensures the core Redis instrumentation services from OpenTelemetry.Instrumentation.StackExchangeRedis are added
                     t.ConfigureRedisInstrumentation(_ => { });
+                    // This ensures that any logic performed by the AddInstrumentation method is executed (this is usually called by AddRedisInstrumentation())
+                    t.AddInstrumentation(sp => sp.GetRequiredService<StackExchangeRedisInstrumentation>());
                 });
         }
 
