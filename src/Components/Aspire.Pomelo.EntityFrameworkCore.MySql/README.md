@@ -106,7 +106,13 @@ or
 
 ## AppHost extensions
 
-In your AppHost project, register a MySQL container and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.MySql` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.MySql
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a MySQL container and consume the connection using the following methods:
 
 ```csharp
 var mysqldb = builder.AddMySql("mysql").AddDatabase("mysqldb");

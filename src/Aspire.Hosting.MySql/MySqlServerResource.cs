@@ -11,7 +11,7 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     internal static string PrimaryEndpointName => "tcp";
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RabbitMQServerResource"/> class.
+    /// Initializes a new instance of the <see cref="MySqlServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="password">The MySQL server root password, or <see langword="null"/> to generate a random password.</param>
