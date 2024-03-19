@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting\ContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.AppHost\ContainerImageTags.cs" />
 
     <None Include="$(RepoRoot)src\Components\Aspire.Npgsql\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
