@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Redis;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -52,8 +53,8 @@ public class ContainerResourceBuilderTests
     public void WithImageTagMutatesImageTag()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis(ContainerImageTags.Redis.Image).WithImageTag(ContainerImageTags.Redis.Tag);
-        Assert.Equal(ContainerImageTags.Redis.Tag, redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
+        var redis = builder.AddRedis(RedisContainerImageTags.Image).WithImageTag(RedisContainerImageTags.Tag);
+        Assert.Equal(RedisContainerImageTags.Tag, redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
     }
 
     [Fact]
@@ -78,7 +79,7 @@ public class ContainerResourceBuilderTests
         var builder = DistributedApplication.CreateBuilder();
         var container = builder.AddResource(new TestContainerResource("testcontainer"));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageTag(ContainerImageTags.Redis.Tag));
+        var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageTag(RedisContainerImageTags.Tag));
         Assert.Equal("The resource 'testcontainer' does not have a container image specified. Use WithImage to specify the container image and tag.", exception.Message);
     }
 

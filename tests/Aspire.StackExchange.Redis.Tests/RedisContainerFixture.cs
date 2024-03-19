@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting;
+using Aspire.Hosting.Redis;
 using Testcontainers.Redis;
 using Xunit;
 
@@ -20,7 +20,7 @@ public sealed class RedisContainerFixture : IAsyncLifetime
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
             Container = new RedisBuilder()
-                            .WithImage($"{ContainerImageTags.Redis.Image}:{ContainerImageTags.Redis.Tag}")
+                            .WithImage($"{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}")
                             .Build();
             await Container.StartAsync();
         }

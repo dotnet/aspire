@@ -60,7 +60,13 @@ builder.AddSeqEndpoint("seq", settings => {
 
 ## AppHost extensions
 
-In your AppHost project, register a Seq server and propagate its configuration using the following methods (note that you must accept the [Seq End User Licence Agreement](https://datalust.co/doc/eula-current.pdf) for Seq to start):
+In your AppHost project, install the `Aspire.Hosting.Seq` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.Seq
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a Seq server and propagate its configuration using the following methods (note that you must accept the [Seq End User Licence Agreement](https://datalust.co/doc/eula-current.pdf) for Seq to start):
 
 ```csharp
 var seq = builder.AddSeq("seq");
