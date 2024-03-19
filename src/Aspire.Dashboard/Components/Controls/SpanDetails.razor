@@ -7,7 +7,7 @@
 <div class="span-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
         <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsService, ViewModel.Span.Source.ApplicationName))
+            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.ApplicationName))
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div>
@@ -27,10 +27,9 @@
     </FluentToolbar>
     <div class="property-grid-container">
         <FluentAccordion>
-            <FluentAccordionItem Heading="Span" Expanded="true">
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsSpanHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredItems.Count()
                     </FluentBadge>
                 </div>
@@ -43,15 +42,14 @@
                               ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="Application" Expanded="true">
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsResourceHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
-                        @FilteredApplicationItems.Count()
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredResourceItems.Count()
                     </FluentBadge>
                 </div>
                 <PropertyGrid TItem="SpanPropertyViewModel"
-                              Items="@FilteredApplicationItems"
+                              Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
                               NameColumnValue="(vm) => vm.Name"
                               ValueColumnValue="(vm) => vm.Value"
@@ -59,10 +57,9 @@
                               ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="Events" Expanded="true">
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsEventsHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredSpanEvents.Count()
                     </FluentBadge>
                 </div>

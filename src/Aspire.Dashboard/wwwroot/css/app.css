@@ -176,7 +176,7 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     grid-area: main;
 }
 
-.span-id {
+.pane-details-subtext {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
