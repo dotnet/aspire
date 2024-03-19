@@ -383,11 +383,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.SqlServer", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EventHubs", "EventHubs", "{0C581E20-7C27-48E8-AB18-417937FD3438}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventHubs.AppHost", "playground\AspireEventHub\EventHubs.AppHost\EventHubs.AppHost.csproj", "{AB5E66AE-0F41-47B6-A84B-4DFA974AC296}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventHubs.AppHost", "playground\AspireEventHub\EventHubs.AppHost\EventHubs.AppHost.csproj", "{AB5E66AE-0F41-47B6-A84B-4DFA974AC296}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventHubsApi", "playground\AspireEventHub\EventHubsApi\EventHubsApi.csproj", "{E1BEEE96-1735-4ADC-9A3D-A7375337100A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventHubsApi", "playground\AspireEventHub\EventHubsApi\EventHubsApi.csproj", "{E1BEEE96-1735-4ADC-9A3D-A7375337100A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventHubsConsumer", "playground\AspireEventHub\EventHubsConsumer\EventHubsConsumer.csproj", "{351B03C2-C582-4489-AC7E-FDE0BD0EF6E3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventHubsConsumer", "playground\AspireEventHub\EventHubsConsumer\EventHubsConsumer.csproj", "{351B03C2-C582-4489-AC7E-FDE0BD0EF6E3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.EventHubs", "src\Components\Aspire.Azure.Messaging.EventHubs\Aspire.Azure.Messaging.EventHubs.csproj", "{F586CEF6-FECD-4686-90FF-97219A2AC85A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1019,6 +1021,10 @@ Global
 		{351B03C2-C582-4489-AC7E-FDE0BD0EF6E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{351B03C2-C582-4489-AC7E-FDE0BD0EF6E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{351B03C2-C582-4489-AC7E-FDE0BD0EF6E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F586CEF6-FECD-4686-90FF-97219A2AC85A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F586CEF6-FECD-4686-90FF-97219A2AC85A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F586CEF6-FECD-4686-90FF-97219A2AC85A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F586CEF6-FECD-4686-90FF-97219A2AC85A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1206,6 +1212,7 @@ Global
 		{AB5E66AE-0F41-47B6-A84B-4DFA974AC296} = {0C581E20-7C27-48E8-AB18-417937FD3438}
 		{E1BEEE96-1735-4ADC-9A3D-A7375337100A} = {0C581E20-7C27-48E8-AB18-417937FD3438}
 		{351B03C2-C582-4489-AC7E-FDE0BD0EF6E3} = {0C581E20-7C27-48E8-AB18-417937FD3438}
+		{F586CEF6-FECD-4686-90FF-97219A2AC85A} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
