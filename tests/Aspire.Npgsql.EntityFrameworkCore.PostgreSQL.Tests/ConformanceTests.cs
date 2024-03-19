@@ -134,15 +134,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
 
     private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
     {
-        var fixture = new PostgreSQLContainerFixture();
+        await using var fixture = new PostgreSQLContainerFixture();
         await fixture.InitializeAsync();
-        try
-        {
-            test(new ConformanceTests(fixture));
-        }
-        finally
-        {
-            await fixture.DisposeAsync();
-        }
+        test(new ConformanceTests(fixture));
     }
 }
