@@ -34,7 +34,7 @@
     background: var(--console-background-color);
     color: var(--console-font-color);
     font-family: 'Cascadia Mono', Consolas, monospace;
-    font-size: 12px;
+    font-size: 13px;
     margin: 16px 0 0 0;
     padding-bottom: 24px;
     line-height: 20px;
@@ -42,13 +42,11 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    counter-reset: line-number 0;
 }
 
 ::deep .line-row-container {
     width: 100%;
     overflow: hidden;
-    counter-increment: line-number 1;
 }
 
 ::deep .line-row {
@@ -79,10 +77,8 @@
     align-self: flex-start;
     flex-shrink: 0;
     color: var(--line-number-color);
-}
-
-::deep .line-number::before {
-    content: counter(line-number);
+    user-select: none;
+    cursor: default;
 }
 
 ::deep .content {
