@@ -7,21 +7,108 @@ namespace Aspire.Hosting.Tests.Azure;
 
 public class AzureResourceExtensionsTests
 {
-    [Fact]
-    public void AzureStorageUserEmulatorCallbackWithUsePersistenceResultsInVolumeAnnotation()
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AzureStorageUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath(bool? isReadOnly)
     {
         var builder = DistributedApplication.CreateBuilder();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
-            builder.UsePersistence("mydata");
+            if (isReadOnly.HasValue)
+            {
+                builder.WithDataBindMount(isReadOnly: isReadOnly.Value);
+            }
+            else
+            {
+                builder.WithDataBindMount();
+            }
         });
 
-        var computedPath = Path.GetFullPath("mydata");
-
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal(computedPath, volumeAnnotation.Source);
+        Assert.Equal(".azurite/storage", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AzureStorageUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotation(bool? isReadOnly)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
+        {
+            if (isReadOnly.HasValue)
+            {
+                builder.WithDataBindMount("mydata", isReadOnly: isReadOnly.Value);
+            }
+            else
+            {
+                builder.WithDataBindMount("mydata");
+            }
+        });
+
+        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        Assert.Equal("mydata", volumeAnnotation.Source);
+        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AzureStorageUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotationWithDefaultName(bool? isReadOnly)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
+        {
+            if (isReadOnly.HasValue)
+            {
+                builder.WithDataVolume(isReadOnly: isReadOnly.Value);
+            }
+            else
+            {
+                builder.WithDataVolume();
+            }
+        });
+
+        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        Assert.Equal("storage-data", volumeAnnotation.Source);
+        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AzureStorageUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotation(bool? isReadOnly)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
+        {
+            if (isReadOnly.HasValue)
+            {
+                builder.WithDataVolume("mydata", isReadOnly: isReadOnly.Value);
+            }
+            else
+            {
+                builder.WithDataVolume("mydata");
+            }
+        });
+
+        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        Assert.Equal("mydata", volumeAnnotation.Source);
+        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
 
     [Fact]
