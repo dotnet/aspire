@@ -122,11 +122,11 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null)));
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: "key")));
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
 
     private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
     {
