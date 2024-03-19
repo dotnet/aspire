@@ -19,7 +19,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
     protected string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                             ? _containerFixture.GetConnectionString()
                                             : "Server=localhost;User ID=root;Password=pass;Database=test";
-    protected readonly string ServerVersion = $"{MySqlContainerImageTags.Tag}-{MySqlContainerImageTags.Image}";
+    protected readonly string ServerVersion = $"{MySqlContainerImageTags.Tag}-mysql";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
