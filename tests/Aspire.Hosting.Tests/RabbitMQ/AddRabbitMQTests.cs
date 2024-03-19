@@ -43,8 +43,11 @@ public class AddRabbitMQTests
     public async Task RabbitMQCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
+        appBuilder.Configuration["Parameters:pass"] = "pass1";
+
+        var pass = appBuilder.AddParameter("pass");
         appBuilder
-            .AddRabbitMQ("rabbit")
+            .AddRabbitMQ("rabbit", password: pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27011));
 
         using var app = appBuilder.Build();
@@ -54,10 +57,9 @@ public class AddRabbitMQTests
         var rabbitMqResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
         var connectionStringResource = rabbitMqResource as IResourceWithConnectionString;
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        var password = rabbitMqResource.Password;
 
-        Assert.Equal($"amqp://guest:{password}@localhost:27011", connectionString);
-        Assert.Equal("amqp://guest:{rabbit.inputs.password}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("amqp://guest:pass1@localhost:27011", connectionString);
+        Assert.Equal("amqp://guest:{pass.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -76,6 +78,123 @@ public class AddRabbitMQTests
               "env": {
                 "RABBITMQ_DEFAULT_USER": "guest",
                 "RABBITMQ_DEFAULT_PASS": "{rabbit.inputs.password}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5672
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 22,
+                      "special": false
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithParameters()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var userNameParameter = appBuilder.AddParameter("user");
+        var passwordParameter = appBuilder.AddParameter("pass");
+
+        var rabbit = appBuilder.AddRabbitMQ("rabbit", userNameParameter, passwordParameter);
+        var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "amqp://{user.value}:{pass.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
+              "image": "rabbitmq:3",
+              "env": {
+                "RABBITMQ_DEFAULT_USER": "{user.value}",
+                "RABBITMQ_DEFAULT_PASS": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5672
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 22,
+                      "special": false
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        rabbit = appBuilder.AddRabbitMQ("rabbit2", userNameParameter);
+        manifest = await ManifestUtils.GetManifest(rabbit.Resource);
+
+        expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "amqp://{user.value}:{rabbit2.inputs.password}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
+              "image": "rabbitmq:3",
+              "env": {
+                "RABBITMQ_DEFAULT_USER": "{user.value}",
+                "RABBITMQ_DEFAULT_PASS": "{rabbit2.inputs.password}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5672
+                }
+              },
+              "inputs": {
+                "password": {
+                  "type": "string",
+                  "secret": true,
+                  "default": {
+                    "generate": {
+                      "minLength": 22,
+                      "special": false
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        rabbit = appBuilder.AddRabbitMQ("rabbit3", password: passwordParameter);
+        manifest = await ManifestUtils.GetManifest(rabbit.Resource);
+
+        expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "amqp://guest:{pass.value}@{rabbit3.bindings.tcp.host}:{rabbit3.bindings.tcp.port}",
+              "image": "rabbitmq:3",
+              "env": {
+                "RABBITMQ_DEFAULT_USER": "guest",
+                "RABBITMQ_DEFAULT_PASS": "{pass.value}"
               },
               "bindings": {
                 "tcp": {
