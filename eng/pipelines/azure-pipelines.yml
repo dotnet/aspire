@@ -209,12 +209,11 @@ extends:
       parameters:
         validateDependsOn:
         - build
-        publishingInfraVersion: 3
+        publishAssetsImmediately: true
         enableSymbolValidation: false
         enableSigningValidation: false
         enableNugetValidation: false
         enableSourceLinkValidation: false
-        # these param values come from the DotNet-Winforms-SDLValidation-Params azdo variable group
         SDLValidationParameters:
           enable: false
           params: ' -SourceToolsList $(_TsaSourceToolsList)
