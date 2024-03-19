@@ -121,24 +121,18 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task AddNatsClient_HealthCheckShouldBeRegisteredWhenEnabled(bool useKeyed)
+    public async Task AddNatsClient_HealthCheckShouldBeRegisteredByDefault(bool useKeyed)
     {
         var key = DefaultConnectionName;
         var builder = CreateBuilder(_connectionString);
 
         if (useKeyed)
         {
-            builder.AddKeyedNatsClient(key, settings =>
-            {
-                settings.HealthChecks = true;
-            });
+            builder.AddKeyedNatsClient(key);
         }
         else
         {
-            builder.AddNatsClient(DefaultConnectionName, settings =>
-            {
-                settings.HealthChecks = true;
-            });
+            builder.AddNatsClient(DefaultConnectionName);
         }
 
         var host = builder.Build();
