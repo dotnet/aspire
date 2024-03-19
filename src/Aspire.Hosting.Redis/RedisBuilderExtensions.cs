@@ -55,22 +55,34 @@ public static class RedisBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a Redis container resource.
+    /// Adds a named volume for the data folder to a Redis container resource and enables Redis persistence.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data", isReadOnly);
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data", isReadOnly)
+                  .WithPersistence(TimeSpan.FromSeconds(60));
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a Redis container resource.
+    /// Adds a bind mount for the data folder to a Redis container resource and enables Redis persistence.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/data", isReadOnly);
+        => builder.WithBindMount(source, "/data", isReadOnly)
+                  .WithPersistence(TimeSpan.FromSeconds(60));
+
+    /// <summary>
+    /// Configures the persistence settings for a Redis container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="interval">The interval between snapshot exports.</param>
+    /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder, TimeSpan interval, long keysChangedThreshold = 1)
+        => builder.WithAnnotation(new RedisPersistenceCommandLineArgsCallbackAnnotation(interval, keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace);
 }
