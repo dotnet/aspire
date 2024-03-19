@@ -14,7 +14,7 @@ internal static partial class FormatHelpers
     // There are an unbound number of CultureInfo instances so we don't want to use it as the key.
     // Someone could have also customized their culture so we don't want to use the name as the key.
     // This struct contains required information from the culture that is used in cached format strings.
-    private record struct CultureDetailsKey(string LongTimePattern, string ShortDatePattern, string NumberDecimalSeparator);
+    private readonly record struct CultureDetailsKey(string LongTimePattern, string ShortDatePattern, string NumberDecimalSeparator);
     private sealed record MillisecondFormatStrings(string LongTimePattern, string ShortDateLongTimePattern);
     private static readonly ConcurrentDictionary<CultureDetailsKey, MillisecondFormatStrings> s_formatStrings = new();
 
@@ -31,16 +31,16 @@ internal static partial class FormatHelpers
             return new MillisecondFormatStrings(longTimePatternWithMilliseconds, k.ShortDatePattern + " " + longTimePatternWithMilliseconds);
         });
 
-        static string GetLongTimePatternWithMillisecondsCore(CultureDetailsKey cultureInfo)
+        static string GetLongTimePatternWithMillisecondsCore(CultureDetailsKey key)
         {
             // From https://learn.microsoft.com/dotnet/standard/base-types/how-to-display-milliseconds-in-date-and-time-values
 
             // Gets the long time pattern, which is something like "h:mm:ss tt" (en-US), "H:mm:ss" (ja-JP), "HH:mm:ss" (fr-FR).
-            var longTimePattern = cultureInfo.LongTimePattern;
+            var longTimePattern = key.LongTimePattern;
 
             // Create a format similar to .fff but based on the current culture.
             // Intentionally use fff here instead of FFF so output has a consistent length.
-            var millisecondFormat = $"'{cultureInfo.NumberDecimalSeparator}'fff";
+            var millisecondFormat = $"'{key.NumberDecimalSeparator}'fff";
 
             // Append millisecond pattern to current culture's long time pattern.
             return MatchSecondsInTimeFormatPattern().Replace(longTimePattern, $"$1{millisecondFormat}");
