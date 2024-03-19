@@ -187,7 +187,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             var notifier = new ActivityNotifier();
             builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
 
-            var host = builder.Build();
+            using var host = builder.Build();
             host.Start();
 
             var nats = host.Services.GetRequiredService<INatsConnection>();
