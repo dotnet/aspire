@@ -169,7 +169,7 @@ public class AddSqlServerTests
             {
               "type": "container.v0",
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true",
-              "image": "mcr.microsoft.com/mssql/server:2022-latest",
+              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
               "env": {
                 "ACCEPT_EULA": "Y",
                 "MSSQL_SA_PASSWORD": "{pass.value}"

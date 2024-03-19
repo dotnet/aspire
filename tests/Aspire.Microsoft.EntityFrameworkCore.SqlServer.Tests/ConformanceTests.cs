@@ -3,6 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
+using Aspire.SqlServer.Tests;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
@@ -12,10 +13,14 @@ using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
-public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityFrameworkCoreSqlServerSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityFrameworkCoreSqlServerSettings>, IClassFixture<SqlServerContainerFixture>
 {
-    protected const string ConnectionString = "Host=fake;Database=catalog";
+    private readonly SqlServerContainerFixture _containerFixture;
+    protected string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
+                                            ? _containerFixture.GetConnectionString()
+                                            : "Host=fake;Database=catalog";
 
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/open-telemetry/opentelemetry-dotnet/blob/031ed48714e16ba4a5b099b6e14647994a0b9c1b/src/OpenTelemetry.Instrumentation.SqlClient/Implementation/SqlActivitySourceHelper.cs#L31
@@ -61,6 +66,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
+    public ConformanceTests(SqlServerContainerFixture fixture)
+        => _containerFixture = fixture;
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
@@ -81,10 +89,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
 
     protected override void TriggerActivity(TestDbContext service)
     {
-        if (service.Database.CanConnect())
-        {
-            service.Database.EnsureCreated();
-        }
+        service.Database.EnsureCreated();
     }
 
     [Fact]
@@ -108,11 +113,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
         Assert.NotNull(dbContext);
     }
 
-    [ConditionalFact]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
-    {
-        SkipIfCanNotConnectToServer();
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
-        RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+    private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
+    {
+        await using var fixture = new SqlServerContainerFixture();
+        await fixture.InitializeAsync();
+        test(new ConformanceTests(fixture));
     }
 }
