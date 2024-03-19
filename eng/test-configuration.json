@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "defaultOnFailure": "fail",
+  "localRerunCount": 1,
+  "retryOnRules": [
+    { "testAssembly": { "wildcard": "Aspire.EndToEnd.*" }, "failureMessage": { "regex": "App run failed" } },
+    { "testAssembly": { "wildcard": "Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.*" } },
+    { "testAssembly": { "wildcard": "Aspire.Microsoft.EntityFrameworkCore.SqlServer.*" } }
+  ]
+}
