@@ -27,6 +27,7 @@
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Polly" />
   </ItemGroup>
 
   <ItemGroup>
