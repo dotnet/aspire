@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
@@ -12,7 +13,6 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -52,7 +52,9 @@ internal sealed class DashboardServiceHost : IHostedService
         IConfiguration configuration,
         DistributedApplicationExecutionContext executionContext,
         ILoggerFactory loggerFactory,
-        IConfigureOptions<LoggerFilterOptions> loggerOptions)
+        IConfigureOptions<LoggerFilterOptions> loggerOptions,
+        ResourceNotificationService resourceNotificationService,
+        ResourceLoggerService resourceLoggerService)
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
@@ -82,6 +84,8 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services.AddSingleton(applicationModel);
             builder.Services.AddSingleton(kubernetesService);
             builder.Services.AddSingleton<DashboardServiceData>();
+            builder.Services.AddSingleton(resourceNotificationService);
+            builder.Services.AddSingleton(resourceLoggerService);
 
             builder.WebHost.ConfigureKestrel(ConfigureKestrel);
 
@@ -147,11 +151,11 @@ internal sealed class DashboardServiceHost : IHostedService
     /// </remarks>
     public async Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
     {
-        var stopwatch = ValueStopwatch.StartNew();
+        var startTime = Stopwatch.GetTimestamp();
 
         var uri = await _resourceServiceUri.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        var elapsed = stopwatch.GetElapsedTime();
+        var elapsed = Stopwatch.GetElapsedTime(startTime);
 
         if (elapsed > TimeSpan.FromSeconds(2))
         {

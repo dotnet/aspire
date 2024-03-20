@@ -21,6 +21,8 @@ internal static class KnownProperties
         public const string State = "resource.state";
         public const string ExitCode = "resource.exitCode";
         public const string CreateTime = "resource.createTime";
+        public const string Source = "resource.source";
+        public const string ConnectionString = "resource.connectionString";
     }
 
     public static class Container

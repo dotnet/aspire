@@ -6,40 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
-
-internal enum ContainerRuntimeHealthCheckFailures : int
-{
-    /// <summary>
-    /// Represents the error code for when the check for a valid container runtime timed out.
-    /// </summary>
-    Unresponsive = 125,
-
-    /// <summary>
-    /// Represents the error code for when the container runtime is installed, but isn't healthy.
-    /// </summary>
-    Unhealthy = 126,
-
-    /// <summary>
-    /// Represents the exit code indicating that a prerequisite for running the application are missing.
-    /// </summary>
-    PrerequisiteMissing = 127
-}
-
-internal enum DcpVersionCheckFailures: int
-{
-    /// <summary>
-    /// Represents the exit code indicating that the version of DCP is too low or too high.
-    /// </summary>
-    DcpVersionIncompatible = 128,
-
-    /// <summary>
-    /// Represents the exit code indicating that the DCP version check failed.
-    /// </summary>
-    DcpVersionFailed = 129,
-}
 
 /// <summary>
 /// Represents a distributed application that implements the <see cref="IHost"/> and <see cref="IAsyncDisposable"/> interfaces.
@@ -48,19 +16,16 @@ internal enum DcpVersionCheckFailures: int
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
-    private readonly string[] _args;
-    private readonly ILogger<DistributedApplication> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
     /// </summary>
     /// <param name="host">The <see cref="IHost"/> instance.</param>
-    /// <param name="args">The command-line arguments.</param>
-    public DistributedApplication(IHost host, string[] args)
+    public DistributedApplication(IHost host)
     {
+        ArgumentNullException.ThrowIfNull(host);
+
         _host = host;
-        _logger = host.Services.GetRequiredService<ILogger<DistributedApplication>>();
-        _args = args;
     }
 
     /// <summary>
@@ -76,6 +41,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>A new instance of <see cref="IDistributedApplicationBuilder"/>.</returns>
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         var builder = new DistributedApplicationBuilder(new DistributedApplicationOptions() { Args = args });
         return builder;
     }
@@ -87,6 +54,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
     public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         var builder = new DistributedApplicationBuilder(options);
         return builder;
     }
@@ -99,7 +68,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <summary>
     /// Disposes the distributed application by disposing the <see cref="IHost"/>.
     /// </summary>
-    public void Dispose()
+    public virtual void Dispose()
     {
         _host.Dispose();
     }
@@ -108,26 +77,26 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// Asynchronously disposes the distributed application by disposing the <see cref="IHost"/>.
     /// </summary>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    public ValueTask DisposeAsync()
+    public virtual ValueTask DisposeAsync()
     {
         return ((IAsyncDisposable)_host).DisposeAsync();
     }
 
     /// <inheritdoc cref="IHost.StartAsync" />
-    public async Task StartAsync(CancellationToken cancellationToken = default)
+    public virtual async Task StartAsync(CancellationToken cancellationToken = default)
     {
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc cref="IHost.StopAsync" />
-    public async Task StopAsync(CancellationToken cancellationToken = default)
+    public virtual async Task StopAsync(CancellationToken cancellationToken = default)
     {
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc cref="HostingAbstractionsHostExtensions.RunAsync" />
-    public async Task RunAsync(CancellationToken cancellationToken = default)
+    public virtual async Task RunAsync(CancellationToken cancellationToken = default)
     {
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);

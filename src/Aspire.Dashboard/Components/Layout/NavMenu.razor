@@ -1,36 +1,34 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Layout> Loc
 @inject IDashboardClient DashboardClient
 
-<FluentAppBar>
+<FluentAppBar PopoverShowSearch="false">
     @if (DashboardClient.IsEnabled)
     {
         <FluentAppBarItem
-            Href="/"
+            Href="@DashboardUrls.ResourcesUrl()"
             Match="NavLinkMatch.All"
-            Icon="ResourcesIcon()"
-            SecondaryIcon="ResourcesIcon(secondary: true)"
+            IconRest="ResourcesIcon()"
+            IconActive="ResourcesIcon(active: true)"
             Text="@Loc[nameof(Layout.NavMenuResourcesTab)]" />
-        <FluentAppBarItem
-            Href="/consolelogs"
-            Icon="ConsoleLogsIcon()"
-            SecondaryIcon="ConsoleLogsIcon(secondary: true)"
+    <FluentAppBarItem Href="@DashboardUrls.ConsoleLogsUrl()"
+            IconRest="ConsoleLogsIcon()"
+            IconActive="ConsoleLogsIcon(active: true)"
             Text="@Loc[nameof(Layout.NavMenuConsoleLogsTab)]" />
     }
-    <FluentAppBarItem
-        Href="/structuredlogs"
-        Icon="StructuredLogsIcon()"
-        SecondaryIcon="StructuredLogsIcon(secondary: true)"
+    <FluentAppBarItem Href="@DashboardUrls.StructuredLogsUrl()"
+        IconRest="StructuredLogsIcon()"
+        IconActive="StructuredLogsIcon(active: true)"
         Text="@Loc[nameof(Layout.NavMenuStructuredLogsTab)]" />
-    <FluentAppBarItem
-        Href="/traces"
-        Icon="TracesIcon()"
-        SecondaryIcon="TracesIcon(secondary: true)"
+    <FluentAppBarItem Href="@DashboardUrls.TracesUrl()"
+        IconRest="TracesIcon()"
+        IconActive="TracesIcon(active: true)"
         Text="@Loc[nameof(Layout.NavMenuTracesTab)]" />
     <FluentAppBarItem
-        Href="/metrics"
-        Icon="MetricsIcon()"
-        SecondaryIcon="MetricsIcon(secondary: true)"
+        Href="@DashboardUrls.MetricsUrl()"
+        IconRest="MetricsIcon()"
+        IconActive="MetricsIcon(active: true)"
         Text="@Loc[nameof(Layout.NavMenuMetricsTab)]" />
 </FluentAppBar>

@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.Components.Common.Tests;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
@@ -19,17 +20,24 @@ using Xunit;
 
 namespace Aspire.StackExchange.Redis.Tests;
 
-public class AspireRedisExtensionsTests
+public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
 {
-    [ConditionalFact]
+    private const string TestingEndpoint = "localhost";
+    private readonly RedisContainerFixture _containerFixture;
+    private string ConnectionString => _containerFixture.GetConnectionString();
+
+    public AspireRedisExtensionsTests(RedisContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
+
+    [RequiresDockerFact]
     public void AllowsConfigureConfigurationOptions()
     {
-        AspireRedisHelpers.SkipIfCanNotConnectToServer();
-
         var builder = Host.CreateEmptyApplicationBuilder(null);
-        AspireRedisHelpers.PopulateConfiguration(builder.Configuration);
+        PopulateConfiguration(builder.Configuration);
 
-        builder.AddRedis("redis");
+        builder.AddRedisClient("redis");
 
         builder.Services.Configure<ConfigurationOptions>(options =>
         {
@@ -42,25 +50,23 @@ public class AspireRedisExtensionsTests
         Assert.Contains("aspire-test-user", connection.Configuration);
     }
 
-    [ConditionalTheory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
     {
-        AspireRedisHelpers.SkipIfCanNotConnectToServer();
-
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:myredis", AspireRedisHelpers.TestingEndpoint)
+            new KeyValuePair<string, string?>("ConnectionStrings:myredis", ConnectionString)
         ]);
 
         if (useKeyed)
         {
-            builder.AddKeyedRedis("myredis");
+            builder.AddKeyedRedisClient("myredis");
         }
         else
         {
-            builder.AddRedis("myredis");
+            builder.AddRedisClient("myredis");
         }
 
         var host = builder.Build();
@@ -68,29 +74,27 @@ public class AspireRedisExtensionsTests
             host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("myredis") :
             host.Services.GetRequiredService<IConnectionMultiplexer>();
 
-        Assert.Contains(AspireRedisHelpers.TestingEndpoint, connection.Configuration);
+        Assert.Contains(ConnectionString, connection.Configuration);
     }
 
-    [ConditionalTheory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
     {
-        AspireRedisHelpers.SkipIfCanNotConnectToServer();
-
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:redis", "unused")
         ]);
 
-        static void SetConnectionString(StackExchangeRedisSettings settings) => settings.ConnectionString = AspireRedisHelpers.TestingEndpoint;
+        void SetConnectionString(StackExchangeRedisSettings settings) => settings.ConnectionString = ConnectionString;
         if (useKeyed)
         {
-            builder.AddKeyedRedis("redis", SetConnectionString);
+            builder.AddKeyedRedisClient("redis", SetConnectionString);
         }
         else
         {
-            builder.AddRedis("redis", SetConnectionString);
+            builder.AddRedisClient("redis", SetConnectionString);
         }
 
         var host = builder.Build();
@@ -98,33 +102,31 @@ public class AspireRedisExtensionsTests
             host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis") :
             host.Services.GetRequiredService<IConnectionMultiplexer>();
 
-        Assert.Contains(AspireRedisHelpers.TestingEndpoint, connection.Configuration);
+        Assert.Contains(ConnectionString, connection.Configuration);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", connection.Configuration);
     }
 
-    [ConditionalTheory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed)
     {
-        AspireRedisHelpers.SkipIfCanNotConnectToServer();
-
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
         var key = useKeyed ? "redis" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", key, "ConnectionString"), "unused"),
-            new KeyValuePair<string, string?>("ConnectionStrings:redis", AspireRedisHelpers.TestingEndpoint)
+            new KeyValuePair<string, string?>("ConnectionStrings:redis", ConnectionString)
         ]);
 
         if (useKeyed)
         {
-            builder.AddKeyedRedis("redis");
+            builder.AddKeyedRedisClient("redis");
         }
         else
         {
-            builder.AddRedis("redis");
+            builder.AddRedisClient("redis");
         }
 
         var host = builder.Build();
@@ -132,7 +134,7 @@ public class AspireRedisExtensionsTests
             host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis") :
             host.Services.GetRequiredService<IConnectionMultiplexer>();
 
-        Assert.Contains(AspireRedisHelpers.TestingEndpoint, connection.Configuration);
+        Assert.Contains(ConnectionString, connection.Configuration);
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", connection.Configuration);
     }
@@ -153,18 +155,18 @@ public class AspireRedisExtensionsTests
 
     private static IEnumerable<KeyValuePair<string, string?>> GetDefaultConfiguration() =>
     [
-        new KeyValuePair<string, string?>("ConnectionStrings:redis", AspireRedisHelpers.TestingEndpoint)
+        new KeyValuePair<string, string?>("ConnectionStrings:redis", TestingEndpoint)
     ];
 
     private static IEnumerable<KeyValuePair<string, string?>> GetSetsTrueConfig(bool useKeyed) =>
     [
-        new KeyValuePair<string, string?>("ConnectionStrings:redis", AspireRedisHelpers.TestingEndpoint),
+        new KeyValuePair<string, string?>("ConnectionStrings:redis", TestingEndpoint),
         new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", useKeyed ? "redis" : null, "ConfigurationOptions:AbortOnConnectFail"), "true")
     ];
 
     private static IEnumerable<KeyValuePair<string, string?>> GetConnectionString(bool abortConnect) =>
     [
-        new KeyValuePair<string, string?>("ConnectionStrings:redis", $"{AspireRedisHelpers.TestingEndpoint},abortConnect={(abortConnect ? "true" : "false")}")
+        new KeyValuePair<string, string?>("ConnectionStrings:redis", $"{TestingEndpoint},abortConnect={(abortConnect ? "true" : "false")}")
     ];
 
     [Theory]
@@ -176,11 +178,11 @@ public class AspireRedisExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedRedis("redis");
+            builder.AddKeyedRedisClient("redis");
         }
         else
         {
-            builder.AddRedis("redis");
+            builder.AddRedisClient("redis");
         }
 
         var host = builder.Build();
@@ -237,7 +239,7 @@ public class AspireRedisExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        builder.AddKeyedRedis("redis", settings =>
+        builder.AddKeyedRedisClient("redis", settings =>
         {
             settings.ConnectionString = "localhost";
             settings.Tracing = true;
@@ -253,38 +255,44 @@ public class AspireRedisExtensionsTests
         Assert.NotNull(profiler);
     }
 
-    [ConditionalFact]
-    public async Task KeyedServiceRedisInstrumentationEndToEnd()
+    [RequiresDockerFact]
+    public void KeyedServiceRedisInstrumentationEndToEnd()
     {
-        AspireRedisHelpers.SkipIfCanNotConnectToServer();
-
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:redis", AspireRedisHelpers.TestingEndpoint)
+        RemoteExecutor.Invoke(async (connectionString) =>
+        {
+            var builder = Host.CreateEmptyApplicationBuilder(null);
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("ConnectionStrings:redis", connectionString)
             ]);
 
-        var notifier = new ActivityNotifier();
-        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
-        // set the FlushInterval to to zero so the Activity gets created immediately
-        builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
+            var notifier = new ActivityNotifier();
+            builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
+            // set the FlushInterval to to zero so the Activity gets created immediately
+            builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
 
-        builder.AddKeyedRedis("redis");
-        var host = builder.Build();
+            builder.AddKeyedRedisClient("redis");
+            using var host = builder.Build();
 
-        // We start the host to make it build TracerProvider.
-        // If we don't, nothing gets reported!
-        host.Start();
+            // We start the host to make it build TracerProvider.
+            // If we don't, nothing gets reported!
+            host.Start();
 
-        var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
-        var database = connectionMultiplexer.GetDatabase();
-        database.StringGet("key");
+            var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
+            var database = connectionMultiplexer.GetDatabase();
+            database.StringGet("key");
 
-        await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
+            await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
 
-        Assert.Single(notifier.ExportedActivities);
+            Assert.Single(notifier.ExportedActivities);
 
-        var activity = notifier.ExportedActivities[0];
-        Assert.Equal("GET", activity.OperationName);
-        Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
+            var activity = notifier.ExportedActivities[0];
+            Assert.Equal("GET", activity.OperationName);
+            Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
+        }, ConnectionString).Dispose();
     }
+
+    private void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
+        configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", key, "ConnectionString"), ConnectionString)
+        ]);
 }

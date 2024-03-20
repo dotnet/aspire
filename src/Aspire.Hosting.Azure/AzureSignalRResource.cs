@@ -9,8 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an Azure SignalR resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class AzureSignalRResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.signalr.bicep"),
+/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
+public class AzureSignalRResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -21,10 +22,6 @@ public class AzureSignalRResource(string name) :
     /// <summary>
     /// Gets the connection string template for the manifest for Azure SignalR.
     /// </summary>
-    public string ConnectionStringExpression => $"Endpoint=https://{HostName.ValueExpression};AuthType=azure";
-    /// <summary>
-    /// Gets the connection string for Azure SignalR.
-    /// </summary>
-    /// <returns>The connection string for Azure SignalR.</returns>
-    public string? GetConnectionString() => $"Endpoint=https://{HostName.Value};AuthType=azure";
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"Endpoint=https://{HostName};AuthType=azure");
 }

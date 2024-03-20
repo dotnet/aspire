@@ -33,10 +33,31 @@ public static class AspireRabbitMQExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="IConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client" section.</remarks>
-    public static void AddRabbitMQ(this IHostApplicationBuilder builder, string connectionName, Action<RabbitMQClientSettings>? configureSettings = null, Action<IConnectionFactory>? configureConnectionFactory = null)
-        => AddRabbitMQ(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddRabbitMQClient)} instead.")]
+    public static void AddRabbitMQ(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<RabbitMQClientSettings>? configureSettings = null,
+        Action<ConnectionFactory>? configureConnectionFactory = null)
+        => AddRabbitMQClient(builder, connectionName, configureSettings, configureConnectionFactory);
+
+    /// <summary>
+    /// Registers <see cref="IConnection"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging, and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client" section.</remarks>
+    public static void AddRabbitMQClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<RabbitMQClientSettings>? configureSettings = null,
+        Action<ConnectionFactory>? configureConnectionFactory = null)
+        => AddRabbitMQClient(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -45,20 +66,41 @@ public static class AspireRabbitMQExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="IConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client:{name}" section.</remarks>
-    public static void AddKeyedRabbitMQ(this IHostApplicationBuilder builder, string name, Action<RabbitMQClientSettings>? configureSettings = null, Action<IConnectionFactory>? configureConnectionFactory = null)
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedRabbitMQClient)} instead.")]
+    public static void AddKeyedRabbitMQ(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<RabbitMQClientSettings>? configureSettings = null,
+        Action<ConnectionFactory>? configureConnectionFactory = null)
+        => AddKeyedRabbitMQClient(builder, name, configureSettings, configureConnectionFactory);
+
+    /// <summary>
+    /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging, and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client:{name}" section.</remarks>
+    public static void AddKeyedRabbitMQClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<RabbitMQClientSettings>? configureSettings = null,
+        Action<ConnectionFactory>? configureConnectionFactory = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddRabbitMQ(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
+        AddRabbitMQClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
     }
 
-    private static void AddRabbitMQ(
+    private static void AddRabbitMQClient(
         IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<RabbitMQClientSettings>? configureSettings,
-        Action<IConnectionFactory>? configureConnectionFactory,
+        Action<ConnectionFactory>? configureConnectionFactory,
         string connectionName,
         object? serviceKey)
     {
@@ -168,12 +210,12 @@ public static class AspireRabbitMQExtensions
         var resiliencePipeline = resiliencePipelineBuilder.Build();
 
         using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
-        AddRabbitMQTags(activity);
+        AddRabbitMQTags(activity, factory.Uri);
 
         return resiliencePipeline.Execute(static factory =>
         {
             using var connectAttemptActivity = s_activitySource.StartActivity("rabbitmq connect attempt", ActivityKind.Client);
-            AddRabbitMQTags(connectAttemptActivity, "connect");
+            AddRabbitMQTags(connectAttemptActivity, factory.Uri, "connect");
 
             try
             {
@@ -184,7 +226,7 @@ public static class AspireRabbitMQExtensions
                 if (connectAttemptActivity is not null)
                 {
                     connectAttemptActivity.AddTag("exception.message", ex.Message);
-                    // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property. 
+                    // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property.
                     // See https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
                     // and https://github.com/open-telemetry/opentelemetry-specification/pull/697#discussion_r453662519
                     connectAttemptActivity.AddTag("exception.stacktrace", ex.ToString());
@@ -196,13 +238,15 @@ public static class AspireRabbitMQExtensions
         }, factory);
     }
 
-    private static void AddRabbitMQTags(Activity? activity, string? operation = null)
+    private static void AddRabbitMQTags(Activity? activity, Uri address, string? operation = null)
     {
         if (activity is null)
         {
             return;
         }
 
+        activity.AddTag("server.address", address.Host);
+        activity.AddTag("server.port", address.Port);
         activity.AddTag("messaging.system", "rabbitmq");
         if (operation is not null)
         {

@@ -79,12 +79,18 @@ The .NET Aspire MySQL component supports [Microsoft.Extensions.Configuration](ht
 Also you can pass the `Action<MySqlConnectorSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddMySqlDataSource("mysql", settings => settings.HealthChecks = false);
+builder.AddMySqlDataSource("mysql", settings => settings.HealthChecks = false);
 ```
 
 ## AppHost extensions
 
-In your AppHost project, register a MySQL database and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.MySql` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.MySql
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a MySQL database and consume the connection using the following methods:
 
 ```csharp
 var mysqldb = builder.AddMySql("mysql").AddDatabase("mysqldb");

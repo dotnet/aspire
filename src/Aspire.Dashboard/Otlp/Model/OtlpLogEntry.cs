@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Otlp.Storage;
 using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -9,45 +10,50 @@ namespace Aspire.Dashboard.Otlp.Model;
 [DebuggerDisplay("TimeStamp = {TimeStamp}, Severity = {Severity}, Message = {Message}")]
 public class OtlpLogEntry
 {
-    public KeyValuePair<string, string>[] Properties { get; }
+    public KeyValuePair<string, string>[] Attributes { get; }
     public DateTime TimeStamp { get; }
     public uint Flags { get; }
     public LogLevel Severity { get; }
     public string Message { get; }
     public string SpanId { get; }
     public string TraceId { get; }
+    public string ParentId { get; }
     public string? OriginalFormat { get; }
     public OtlpApplication Application { get; }
     public OtlpScope Scope { get; }
 
-    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope)
+    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryOptions options)
     {
-        var properties = new List<KeyValuePair<string, string>>();
-        foreach (var kv in record.Attributes)
+        string? originalFormat = null;
+        string? parentId = null;
+        Attributes = record.Attributes.ToKeyValuePairs(options, filter: attribute =>
         {
-            switch (kv.Key)
+            switch (attribute.Key)
             {
                 case "{OriginalFormat}":
-                    OriginalFormat = kv.Value.GetString();
-                    break;
+                    originalFormat = attribute.Value.GetString();
+                    return false;
+                case "ParentId":
+                    parentId = attribute.Value.GetString();
+                    return false;
                 case "SpanId":
                 case "TraceId":
                     // Explicitly ignore these
-                    break;
+                    return false;
                 default:
-                    properties.Add(KeyValuePair.Create(kv.Key, kv.Value.GetString()));
-                    break;
+                    return true;
             }
-        }
-        Properties = properties.ToArray();
+        });
 
         TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
 
-        Message = record.Body.GetString();
+        Message = OtlpHelpers.TruncateString(record.Body.GetString(), options.AttributeLengthLimit);
+        OriginalFormat = originalFormat;
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
+        ParentId = parentId ?? string.Empty;
         Application = logApp;
         Scope = scope;
     }
@@ -80,32 +86,4 @@ public class OtlpLogEntry
         SeverityNumber.Fatal4 => LogLevel.Critical,
         _ => LogLevel.None
     };
-
-    public Dictionary<string, string> AllProperties()
-    {
-        var props = new Dictionary<string, string>();
-
-        AddOptionalValue("Application", Application.ApplicationName, props);
-        AddOptionalValue("Category", Scope.ScopeName, props);
-        AddOptionalValue("Level", Severity.ToString(), props);
-        AddOptionalValue("Message", Message, props);
-        AddOptionalValue("TraceId", TraceId, props);
-        AddOptionalValue("SpanId", SpanId, props);
-        AddOptionalValue("OriginalFormat", OriginalFormat, props);
-
-        foreach (var kv in Properties)
-        {
-            props.TryAdd(kv.Key, kv.Value);
-        }
-
-        return props;
-
-        static void AddOptionalValue(string name, string? value, Dictionary<string, string> props)
-        {
-            if (!string.IsNullOrEmpty(value))
-            {
-                props.Add(name, value);
-            }
-        }
-    }
 }

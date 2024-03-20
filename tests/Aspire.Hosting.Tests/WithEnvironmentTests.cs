@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
+using Aspire.Hosting.Tests.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -9,35 +9,21 @@ namespace Aspire.Hosting.Tests;
 public class WithEnvironmentTests
 {
     [Fact]
-    public void EnvironmentReferencingEndpointPopulatesWithBindingUrl()
+    public async Task EnvironmentReferencingEndpointPopulatesWithBindingUrl()
     {
         using var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint(
+            "mybinding",
+            e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         testProgram.ServiceBBuilder.WithEnvironment("myName", testProgram.ServiceABuilder.GetEndpoint("mybinding"));
 
         testProgram.Build();
 
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));
         Assert.Equal(1, servicesKeysCount);
@@ -45,7 +31,7 @@ public class WithEnvironmentTests
     }
 
     [Fact]
-    public void SimpleEnvironmentWithNameAndValue()
+    public async Task SimpleEnvironmentWithNameAndValue()
     {
         using var testProgram = CreateTestProgram();
 
@@ -53,17 +39,7 @@ public class WithEnvironmentTests
 
         testProgram.Build();
 
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));
         Assert.Equal(1, servicesKeysCount);
@@ -71,7 +47,7 @@ public class WithEnvironmentTests
     }
 
     [Fact]
-    public void EnvironmentCallbackPopulatesValueWhenCalled()
+    public async Task EnvironmentCallbackPopulatesValueWhenCalled()
     {
         using var testProgram = CreateTestProgram();
 
@@ -82,16 +58,7 @@ public class WithEnvironmentTests
         environmentValue = "value2";
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));
         Assert.Equal(1, servicesKeysCount);
@@ -99,7 +66,7 @@ public class WithEnvironmentTests
     }
 
     [Fact]
-    public void EnvironmentCallbackPopulatesValueWhenParameterResourceProvided()
+    public async Task EnvironmentCallbackPopulatesValueWhenParameterResourceProvided()
     {
         using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Configuration["Parameters:parameter"] = "MY_PARAMETER_VALUE";
@@ -109,22 +76,13 @@ public class WithEnvironmentTests
 
         testProgram.Build();
 
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource);
 
         Assert.Contains(config, kvp => kvp.Key == "MY_PARAMETER" && kvp.Value == "MY_PARAMETER_VALUE");
     }
 
     [Fact]
-    public void EnvironmentCallbackPopulatesWithExpressionPlaceholderWhenPublishingManifest()
+    public async Task EnvironmentCallbackPopulatesWithExpressionPlaceholderWhenPublishingManifest()
     {
         using var testProgram = CreateTestProgram();
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
@@ -133,22 +91,14 @@ public class WithEnvironmentTests
 
         testProgram.Build();
 
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource,
+            DistributedApplicationOperation.Publish);
 
         Assert.Contains(config, kvp => kvp.Key == "MY_PARAMETER" && kvp.Value == "{parameter.value}");
     }
 
     [Fact]
-    public void EnvironmentCallbackThrowsWhenParameterValueMissingInDcpMode()
+    public async Task EnvironmentCallbackThrowsWhenParameterValueMissingInDcpMode()
     {
         using var testProgram = CreateTestProgram();
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
@@ -159,23 +109,13 @@ public class WithEnvironmentTests
 
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource));
 
-        var exception = Assert.Throws<DistributedApplicationException>(() =>
-        {
-            foreach (var annotation in annotations)
-            {
-                annotation.Callback(context);
-            }
-        });
-
-        Assert.Equal("Parameter resource could not be used because configuration key `Parameters:parameter` is missing.", exception.Message);
+        Assert.Equal("Parameter resource could not be used because configuration key 'Parameters:parameter' is missing.", exception.Message);
     }
 
     [Fact]
-    public void ComplexEnvironmentCallbackPopulatesValueWhenCalled()
+    public async Task ComplexEnvironmentCallbackPopulatesValueWhenCalled()
     {
         using var testProgram = CreateTestProgram();
 
@@ -189,20 +129,53 @@ public class WithEnvironmentTests
         environmentValue = "value2";
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "myName" && kvp.Value == "value2");
     }
+
+    [Fact]
+    public async Task EnvironmentVariableExpressions()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var test = builder.AddResource(new TestResource("test", "connectionString"));
+
+        var container = builder.AddContainer("container1", "image")
+                               .WithHttpEndpoint(name: "primary")
+                               .WithEndpoint("primary", ep =>
+                               {
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90);
+                               });
+
+        var endpoint = container.GetEndpoint("primary");
+
+        var containerB = builder.AddContainer("container2", "imageB")
+                                .WithEnvironment("URL", $"{endpoint}/foo")
+                                .WithEnvironment("PORT", $"{endpoint.Property(EndpointProperty.Port)}")
+                                .WithEnvironment("HOST", $"{test.Resource};name=1");
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerB.Resource);
+        var manifestConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerB.Resource, DistributedApplicationOperation.Publish);
+
+        Assert.Equal(3, config.Count);
+        Assert.Equal($"http://localhost:90/foo", config["URL"]);
+        Assert.Equal("90", config["PORT"]);
+        Assert.Equal("connectionString;name=1", config["HOST"]);
+
+        Assert.Equal(3, manifestConfig.Count);
+        Assert.Equal("{container1.bindings.primary.url}/foo", manifestConfig["URL"]);
+        Assert.Equal("{container1.bindings.primary.port}", manifestConfig["PORT"]);
+        Assert.Equal("{test.connectionString};name=1", manifestConfig["HOST"]);
+    }
+
+    private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
+    {
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"{connectionString}");
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
 }

@@ -9,8 +9,9 @@ namespace Aspire.Hosting.Azure;
 /// Represents an resource for Azure Postgres Flexible Server.
 /// </summary>
 /// <param name="innerResource"><see cref="PostgresServerResource"/> that this resource wraps.</param>
-public class AzurePostgresResource(PostgresServerResource innerResource) :
-    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.postgres.bicep"),
+/// <param name="configureConstruct">Callback to configure construct.</param>
+public class AzurePostgresResource(PostgresServerResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(innerResource.Name, configureConstruct),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -21,13 +22,8 @@ public class AzurePostgresResource(PostgresServerResource innerResource) :
     /// <summary>
     /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Postgres Flexible Server.
-    /// </summary>
-    /// <returns>The connection string.</returns>
-    public string? GetConnectionString() => ConnectionString.Value;
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 
     /// <inheritdoc/>
     public override string Name => innerResource.Name;

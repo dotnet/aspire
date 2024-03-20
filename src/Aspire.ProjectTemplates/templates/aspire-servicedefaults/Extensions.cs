@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -28,6 +29,12 @@ public static class Extensions
             http.UseServiceDiscovery();
         });
 
+        // Uncomment the following to restrict the allowed schemes for service discovery.
+        // builder.Services.Configure<ServiceDiscoveryOptions>(options =>
+        // {
+        //     options.AllowedSchemes = ["https"];
+        // });
+
         return builder;
     }
 
@@ -43,9 +50,8 @@ public static class Extensions
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
-                       .AddHttpClientInstrumentation()
-                       .AddProcessInstrumentation()
-                       .AddRuntimeInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation();
             })
             .WithTracing(tracing =>
             {
@@ -56,8 +62,9 @@ public static class Extensions
                 }
 
                 tracing.AddAspNetCoreInstrumentation()
-                       .AddGrpcClientInstrumentation()
-                       .AddHttpClientInstrumentation();
+                    // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
+                    //.AddGrpcClientInstrumentation()
+                    .AddHttpClientInstrumentation();
             });
 
         builder.AddOpenTelemetryExporters();

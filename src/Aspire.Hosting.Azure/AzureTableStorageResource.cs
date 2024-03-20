@@ -23,13 +23,8 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Table Storage resource.
     /// </summary>
-    public string ConnectionStringExpression => Parent.TableEndpoint.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Table Storage resource.
-    /// </summary>
-    /// <returns>The connection string for the Azure Table Storage resource.</returns>
-    public string? GetConnectionString() => Parent.GetTableConnectionString();
+    public ReferenceExpression ConnectionStringExpression =>
+        Parent.GetTableConnectionString();
 
     internal void WriteToManifest(ManifestPublishingContext context)
     {

@@ -23,13 +23,8 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Queue Storage resource.
     /// </summary>
-    public string ConnectionStringExpression => Parent.QueueEndpoint.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Queue Storage resource.
-    ///</summary>
-    ///<returns> The connection string for the Azure Queue Storage resource.</returns>
-    public string? GetConnectionString() => Parent.GetQueueConnectionString();
+    public ReferenceExpression ConnectionStringExpression =>
+        Parent.GetQueueConnectionString();
 
     internal void WriteToManifest(ManifestPublishingContext context)
     {

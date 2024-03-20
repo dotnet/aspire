@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -22,6 +23,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<ResourceServiceViewModel> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }
     public required FrozenDictionary<string, Value> Properties { get; init; }
+    public required ImmutableArray<CommandViewModel> Commands { get; init; }
 
     internal bool MatchesFilter(string filter)
     {
@@ -29,11 +31,16 @@ public sealed class ResourceViewModel
         return Name.Contains(filter, StringComparisons.UserTextSearch);
     }
 
-    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, ConcurrentDictionary<string, ResourceViewModel> allResources)
     {
         var count = 0;
-        foreach (var item in allResources)
+        foreach (var (_, item) in allResources)
         {
+            if (item.State == ResourceStates.HiddenState)
+            {
+                continue;
+            }
+
             if (item.DisplayName == resource.DisplayName)
             {
                 count++;
@@ -45,6 +52,25 @@ public sealed class ResourceViewModel
         }
 
         return resource.DisplayName;
+    }
+}
+
+public sealed class CommandViewModel
+{
+    public string CommandType { get; }
+    public string DisplayName { get; }
+    public string? ConfirmationMessage { get; }
+    public Value? Parameter { get; }
+
+    public CommandViewModel(string commandType, string displayName, string? confirmationMessage, Value? parameter)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
+
+        CommandType = commandType;
+        DisplayName = displayName;
+        ConfirmationMessage = confirmationMessage;
+        Parameter = parameter;
     }
 }
 
@@ -107,4 +133,5 @@ public static class ResourceStates
     public const string FailedToStartState = "FailedToStart";
     public const string StartingState = "Starting";
     public const string RunningState = "Running";
+    public const string HiddenState = "Hidden";
 }

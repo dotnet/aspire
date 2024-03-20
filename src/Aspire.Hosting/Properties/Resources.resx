@@ -117,6 +117,12 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="ContainerMountAnonymousVolumesReadOnlyExceptionMessage" xml:space="preserve">
+    <value>Anonymous volumes cannot be read-only.</value>
+  </data>
+  <data name="ContainerMountBindMountsRequireSourceExceptionMessage" xml:space="preserve">
+    <value>Bind mounts must specify a source path.</value>
+  </data>
   <data name="ContainerRuntimePrerequisiteMissingExceptionMessage" xml:space="preserve">
     <value>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</value>
   </data>

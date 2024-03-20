@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a endpoint annotation that describes how a service should be bound to a network.
+/// Represents an endpoint annotation that describes how a service should be bound to a network.
 /// </summary>
 /// <remarks>
 /// This class is used to specify the network protocol, port, URI scheme, transport, and other details for a service.
@@ -15,6 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class EndpointAnnotation : IResourceAnnotation
 {
+    private string? _transport;
     /// <summary>
     /// Initializes a new instance of <see cref="EndpointAnnotation"/>.
     /// </summary>
@@ -41,7 +42,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
 
         Protocol = protocol;
         UriScheme = uriScheme;
-        Transport = transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
+        _transport = transport;
         Name = name;
         Port = port;
         ContainerPort = containerPort ?? port;
@@ -81,7 +82,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Transport that is being used (e.g. http, http2, http3 etc).
     /// </summary>
-    public string Transport { get; set; }
+    public string Transport
+    {
+        get => _transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
+        set => _transport = value;
+    }
 
     /// <summary>
     /// Indicates that this endpoint should be exposed externally at publish time.
@@ -99,4 +104,14 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// </summary>
     /// <remarks>Defaults to <c>true</c>.</remarks>
     public bool IsProxied { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the endpoint is from a launch profile.
+    /// </summary>
+    internal bool FromLaunchProfile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the allocated endpoint.
+    /// </summary>
+    public AllocatedEndpoint? AllocatedEndpoint { get; set; }
 }

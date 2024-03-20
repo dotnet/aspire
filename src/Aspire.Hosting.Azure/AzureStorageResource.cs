@@ -10,10 +10,16 @@ namespace Aspire.Hosting.Azure;
 /// <summary>
 /// Represents an Azure Storage resource.
 /// </summary>
-/// <param name="name"></param>
-public class AzureStorageResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.storage.bicep")
+/// <param name="name">The name of the resource.</param>
+/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
+public class AzureStorageResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
+    IResourceWithEndpoints
 {
+    private EndpointReference EmulatorBlobEndpoint => new(this, "blob");
+    private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
+    private EndpointReference EmulatorTableEndpoint => new(this, "table");
+
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
@@ -34,27 +40,20 @@ public class AzureStorageResource(string name) :
     /// </summary>
     public bool IsEmulator => this.IsContainer();
 
-    internal string? GetTableConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(tablePort: GetEmulatorPort("table"))
-        : TableEndpoint.Value;
+    internal ReferenceExpression GetTableConnectionString() => IsEmulator
+        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(tablePort: EmulatorTableEndpoint.Port)}")
+        : ReferenceExpression.Create($"{TableEndpoint}");
 
-    internal string? GetQueueConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(queuePort: GetEmulatorPort("queue"))
-        : QueueEndpoint.Value;
+    internal ReferenceExpression GetQueueConnectionString() => IsEmulator
+        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(queuePort: EmulatorQueueEndpoint.Port)}")
+        : ReferenceExpression.Create($"{QueueEndpoint}");
 
-    internal string? GetBlobConnectionString() => IsEmulator
-        ? AzureStorageEmulatorConnectionString.Create(blobPort: GetEmulatorPort("blob"))
-        : BlobEndpoint.Value;
-
-    private int GetEmulatorPort(string endpointName) =>
-        Annotations
-            .OfType<AllocatedEndpointAnnotation>()
-            .FirstOrDefault(x => x.Name == endpointName)
-            ?.Port
-        ?? throw new DistributedApplicationException($"Azure storage resource does not have endpoint annotation with name '{endpointName}'.");
+    internal ReferenceExpression GetBlobConnectionString() => IsEmulator
+        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port)}")
+        : ReferenceExpression.Create($"{BlobEndpoint}");
 }
 
-file static class AzureStorageEmulatorConnectionString
+internal static class AzureStorageEmulatorConnectionString
 {
     // Use defaults from https://learn.microsoft.com/azure/storage/common/storage-configure-connection-string#connect-to-the-emulator-account-using-the-shortcut
     private const string ConnectionStringHeader = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;";

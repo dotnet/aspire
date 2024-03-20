@@ -25,11 +25,11 @@ public class AspireServiceBusExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureServiceBus("sb");
+            builder.AddKeyedAzureServiceBusClient("sb");
         }
         else
         {
-            builder.AddAzureServiceBus("sb");
+            builder.AddAzureServiceBusClient("sb");
         }
 
         var host = builder.Build();
@@ -52,11 +52,11 @@ public class AspireServiceBusExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureServiceBus("sb", settings => settings.ConnectionString = ConnectionString);
+            builder.AddKeyedAzureServiceBusClient("sb", settings => settings.ConnectionString = ConnectionString);
         }
         else
         {
-            builder.AddAzureServiceBus("sb", settings => settings.ConnectionString = ConnectionString);
+            builder.AddAzureServiceBusClient("sb", settings => settings.ConnectionString = ConnectionString);
         }
 
         var host = builder.Build();
@@ -82,11 +82,11 @@ public class AspireServiceBusExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureServiceBus("sb");
+            builder.AddKeyedAzureServiceBusClient("sb");
         }
         else
         {
-            builder.AddAzureServiceBus("sb");
+            builder.AddAzureServiceBusClient("sb");
         }
 
         var host = builder.Build();
@@ -110,11 +110,11 @@ public class AspireServiceBusExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureServiceBus("sb");
+            builder.AddKeyedAzureServiceBusClient("sb");
         }
         else
         {
-            builder.AddAzureServiceBus("sb");
+            builder.AddAzureServiceBusClient("sb");
         }
 
         var host = builder.Build();

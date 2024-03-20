@@ -2,59 +2,69 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../Resources.resx">
     <body>
+      <trans-unit id="ContainerMountAnonymousVolumesReadOnlyExceptionMessage">
+        <source>Anonymous volumes cannot be read-only.</source>
+        <target state="new">Anonymous volumes cannot be read-only.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
+        <source>Bind mounts must specify a source path.</source>
+        <target state="new">Bind mounts must specify a source path.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</source>
-        <target state="new">Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</target>
+        <target state="translated">'{0}' kapsayıcı çalışma zamanı bulunamadı. Kapsayıcı çalışma zamanı denetimi hatası: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
         <source>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</source>
-        <target state="new">Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</target>
+        <target state="translated">'{0}' kapsayıcı çalışma zamanı bulundu, ancak iyi durumda değil. Kapsayıcı çalışma zamanı denetiminden gelen hata: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnresponsiveExceptionMessage">
         <source>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</source>
-        <target state="new">Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</target>
+        <target state="translated">'{0}' Kapsayıcı çalışma zamanı bulundu ancak yanıt vermiyor. '{0}' komutu {1} saniye sonra döndürülemedi.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check had an unexpected error {0}.</source>
-        <target state="new">Application orchestrator dependency check had an unexpected error {0}.</target>
+        <target state="translated">Uygulama düzenleyicisi bağımlılık denetiminde beklenmeyen bir hata oluştu {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckFailedMessage">
         <source>The application orchestrator version could not be determined. Continuing.</source>
-        <target state="new">The application orchestrator version could not be determined. Continuing.</target>
+        <target state="translated">Uygulama düzenleyicisi sürümü belirlenemedi. Devam ediyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooHighMessage">
         <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
-        <target state="new">Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</target>
+        <target state="translated">.NET Aspire iş yükünün uyumsuz bir sürümü bulundu (uygulamayı çalıştırmak için {0} uygulama düzenleyicisi sürümü gereklidir).</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
         <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
-        <target state="new">Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</target>
+        <target state="translated">Uygulamayı çalıştırmak için .NET Aspire iş yükünün daha yeni bir sürümü gereklidir. Almak için 'dotnet iş yükü güncelleştirmesini' çalıştırın.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
         <source>Launch profile is specified but launch settings file is not present.</source>
-        <target state="new">Launch profile is specified but launch settings file is not present.</target>
+        <target state="translated">Başlatma profili belirtildi, ancak başlatma ayarları dosyası yok.</target>
         <note />
       </trans-unit>
       <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">
         <source>Launch settings file does not contain '{0}' profile.</source>
-        <target state="new">Launch settings file does not contain '{0}' profile.</target>
+        <target state="translated">Başlatma ayarları dosyası '{0}' profilini içermiyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectDoesNotContainMetadataExceptionMessage">
         <source>Project does not contain project metadata.</source>
-        <target state="new">Project does not contain project metadata.</target>
+        <target state="translated">Proje, proje meta verilerini içermiyor.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotFoundExceptionMessage">
         <source>Project file '{0}' was not found.</source>
-        <target state="new">Project file '{0}' was not found.</target>
+        <target state="translated">'{0}' proje dosyası bulunamadı.</target>
         <note />
       </trans-unit>
     </body>

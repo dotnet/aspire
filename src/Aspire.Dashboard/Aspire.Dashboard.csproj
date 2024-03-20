@@ -3,10 +3,9 @@
   <PropertyGroup>
     <!-- This list of runtimes needs to match the set of runtimes specified in eng/workloads/workloads.csproj -->
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
-    <OutputType>Exe</OutputType>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Enable System.GC.DynamicAdaptationMode to get a GC that dynamically adapts to the application's memory use. -->
+    <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
     <!--
       CS1591: Missing XML comment for publicly visible type or member 'Type_or_Member'
       CS8002: Referenced assembly does not have a strong name
@@ -24,6 +23,7 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
   </ItemGroup>
@@ -180,7 +180,9 @@
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Utils\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Utils\KnownResourceTypes.cs" />
+    <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Otlp\Storage\CircularBuffer.cs" />
   </ItemGroup>
 </Project>

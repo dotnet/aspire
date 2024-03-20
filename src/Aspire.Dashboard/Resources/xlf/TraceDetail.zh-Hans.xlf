@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="TraceDetailDepthHeader">
         <source>Depth</source>
-        <target state="new">Depth</target>
+        <target state="translated">深度</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailDurationHeader">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">持续时间</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} Traces</source>
-        <target state="new">{0} Traces</target>
+        <target state="translated">{0} 跟踪</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
         <source>Resources</source>
-        <target state="new">Resources</target>
+        <target state="translated">资源</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
         <source>Total spans</source>
-        <target state="new">Total spans</target>
+        <target state="translated">总跨度</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTraceNotFound">
         <source>Trace "{0}" not found</source>
-        <target state="new">Trace "{0}" not found</target>
+        <target state="translated">找不到跟踪“{0}”</target>
         <note>{0} is an identifier</note>
       </trans-unit>
       <trans-unit id="TraceDetailTraceStartHeader">
         <source>Trace detail</source>
-        <target state="new">Trace detail</target>
+        <target state="translated">跟踪详细信息</target>
         <note />
       </trans-unit>
     </body>

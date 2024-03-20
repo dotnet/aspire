@@ -22,6 +22,10 @@ window.resetContinuousScrollPosition = function () {
 }
 
 window.initializeContinuousScroll = function () {
+    // Reset to scrolling to the end of the content when initializing.
+    // This needs to be called because the value is remembered across Aspire pages because the browser isn't reloading.
+    resetContinuousScrollPosition();
+
     const container = document.querySelector('.continuous-scroll-overflow');
     if (container == null) {
         return;
@@ -50,6 +54,14 @@ function isScrolledToBottom(container) {
     const marginOfError = 5;
 
     return container.scrollHeight - container.clientHeight <= container.scrollTop + marginOfError;
+}
+
+window.buttonCopyTextToClipboard = function(element) {
+    const text = element.getAttribute("data-text");
+    const precopy = element.getAttribute("data-precopy");
+    const postcopy = element.getAttribute("data-postcopy");
+
+    copyTextToClipboard(element.getAttribute("id"), text, precopy, postcopy);
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
@@ -333,4 +345,10 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
 
 window.unregisterGlobalKeydownListener = function (keydownListener) {
     window.document.removeEventListener('keydown', keydownListener);
+}
+
+window.getBrowserTimeZone = function () {
+    const options = Intl.DateTimeFormat().resolvedOptions();
+
+    return options.timeZone;
 }

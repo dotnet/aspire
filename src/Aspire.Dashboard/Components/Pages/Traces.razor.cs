@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -39,7 +40,18 @@ public partial class Traces
     [Inject]
     public required IDialogService DialogService { get; set; }
 
-    private string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; set; }
+
+    private string GetNameTooltip(OtlpTrace trace)
+    {
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);
+        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTraceId)], trace.TraceId);
+
+        return tooltip;
+    }
+
+    private string GetSpansTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
     {
         var count = applicationSpans.Count();
         var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
@@ -100,7 +112,7 @@ public partial class Traces
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigationManager.NavigateTo($"/traces/resource/{_selectedApplication.Name}");
+        NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: _selectedApplication.Name));
         _applicationChanged = true;
 
         return Task.CompletedTask;

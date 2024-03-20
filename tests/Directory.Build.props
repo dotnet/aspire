@@ -1,6 +1,7 @@
 <Project>
 
   <Import Project="..\Directory.Build.props" />
+  <Import Project="Shared\Aspire.Workload.Testing.props" Condition="'$(IsWorkloadTestProject)' == 'true'" />
 
   <PropertyGroup>
     <!--

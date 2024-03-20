@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Dashboard.Components.Controls.Chart;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -13,7 +14,7 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class MetricTable : ChartBase
 {
-    private SortedList<DateTime, MetricViewBase> _metrics = [];
+    private SortedList<DateTimeOffset, MetricViewBase> _metrics = [];
     private string _unitColumnHeader = string.Empty;
     private IJSObjectReference? _jsModule;
 
@@ -28,7 +29,7 @@ public partial class MetricTable : ChartBase
     [Inject]
     public required IJSRuntime JS { get; init; }
 
-    protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTime> xValues, bool tickUpdate, DateTime inProgressDataTime)
+    protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
         if (!Equals(_instrument?.Name, InstrumentViewModel.Instrument?.Name) || _showCount != InstrumentViewModel.ShowCount)
         {
@@ -71,9 +72,9 @@ public partial class MetricTable : ChartBase
         }
     }
 
-    private SortedList<DateTime, MetricViewBase> UpdateMetrics(out ISet<DateTime> addedXValues, List<ChartTrace> traces, List<DateTime> xValues)
+    private SortedList<DateTimeOffset, MetricViewBase> UpdateMetrics(out ISet<DateTimeOffset> addedXValues, List<ChartTrace> traces, List<DateTimeOffset> xValues)
     {
-        var newMetrics = new SortedList<DateTime, MetricViewBase>();
+        var newMetrics = new SortedList<DateTimeOffset, MetricViewBase>();
 
         _unitColumnHeader = traces.First().Name;
 
@@ -81,7 +82,7 @@ public partial class MetricTable : ChartBase
         {
             var xValue = xValues[i];
 
-            KeyValuePair<DateTime, MetricViewBase>? previousMetric = newMetrics.LastOrDefault(dt => dt.Key < xValue);
+            KeyValuePair<DateTimeOffset, MetricViewBase>? previousMetric = newMetrics.LastOrDefault(dt => dt.Key < xValue);
 
             if (IsHistogramInstrument() && !_showCount)
             {
@@ -158,7 +159,7 @@ public partial class MetricTable : ChartBase
             }
         }
 
-        DateTime? latestCurrentMetric = _metrics.Keys.LastOrDefault();
+        DateTimeOffset? latestCurrentMetric = _metrics.Keys.LastOrDefault();
         addedXValues = newMetrics.Keys.Where(newKey => newKey > latestCurrentMetric).ToHashSet();
         return newMetrics;
     }
@@ -212,26 +213,14 @@ public partial class MetricTable : ChartBase
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            if (_jsModule is { } module)
-            {
-                _jsModule = null;
-                await _waitTaskCancellationTokenSource.CancelAsync();
-                _waitTaskCancellationTokenSource.Dispose();
-                await module.DisposeAsync();
-            }
-        }
-        catch (JSDisconnectedException)
-        {
-            // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
-        }
+        await _waitTaskCancellationTokenSource.CancelAsync();
+        _waitTaskCancellationTokenSource.Dispose();
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 
     public abstract record MetricViewBase
     {
-        public required DateTime DateTime { get; set; }
+        public required DateTimeOffset DateTime { get; set; }
     }
 
     public record MetricValueView : MetricViewBase

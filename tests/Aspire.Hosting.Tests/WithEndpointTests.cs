@@ -8,6 +8,9 @@ namespace Aspire.Hosting.Tests;
 
 public class WithEndpointTests
 {
+    // copied from /src/Shared/StringComparers.cs to avoid ambiguous reference since StringComparers exists internally in multiple Hosting assemblies.
+    private static StringComparison EndpointAnnotationName => StringComparison.OrdinalIgnoreCase;
+
     [Fact]
     public void WithEndpointInvokesCallback()
     {
@@ -18,7 +21,8 @@ public class WithEndpointTests
             endpoint.Port = 2000;
         });
 
-        var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>().Single();
+        var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
         Assert.Equal(2000, endpoint.Port);
     }
 
@@ -35,7 +39,8 @@ public class WithEndpointTests
         createIfNotExists: false);
 
         Assert.False(executed);
-        Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
+        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var annotations));
+        Assert.DoesNotContain(annotations, e => string.Equals(e.Name, "mybinding", EndpointAnnotationName));
     }
 
     [Fact]
@@ -115,6 +120,24 @@ public class WithEndpointTests
         Assert.Equal(3001, endpoints[0].ContainerPort);
         Assert.Equal("http", endpoints[0].UriScheme);
         Assert.Equal("PORT", endpoints[0].EnvironmentVariable);
+    }
+
+    [Fact]
+    public void GettingContainerHostNameFailsIfNoContainerHostNameSet()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("app", "image")
+            .WithEndpoint("ep", e =>
+            {
+                e.AllocatedEndpoint = new(e, "localhost", 8031);
+            });
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+        {
+            return container.GetEndpoint("ep").ContainerHost;
+        });
+
+        Assert.Equal("The endpoint \"ep\" has no associated container host name.", ex.Message);
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithEndpointTests>(args);

@@ -1,5 +1,6 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons;
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inherits LayoutComponentBase
 
 <div class="layout">
@@ -7,7 +8,7 @@
         <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo"
                       title="@Loc[nameof(Layout.MainLayoutAspire)]"
                       aria-label="@Loc[nameof(Layout.MainLayoutAspire)]">
-            <img src="/Logo.svg" />
+            <FluentIcon Value="@(new AspireIcons.Size24.Logo())" />
         </FluentAnchor>
     </div>
 
@@ -32,6 +33,7 @@
     </FluentHeader>
     <NavMenu />
     <FluentBodyContent Class="custom-body-content">
+        <FluentToastProvider />
         @Body
     </FluentBodyContent>
 

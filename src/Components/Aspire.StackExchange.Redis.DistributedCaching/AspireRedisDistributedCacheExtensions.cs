@@ -29,7 +29,7 @@ public static class AspireRedisDistributedCacheExtensions
     /// </remarks>
     public static void AddRedisDistributedCache(this IHostApplicationBuilder builder, string connectionName, Action<StackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
     {
-        builder.AddRedis(connectionName, configureSettings, configureOptions);
+        builder.AddRedisClient(connectionName, configureSettings, configureOptions);
 
         builder.AddRedisDistributedCacheCore((RedisCacheOptions options, IServiceProvider sp) =>
         {
@@ -52,7 +52,7 @@ public static class AspireRedisDistributedCacheExtensions
     /// </remarks>
     public static void AddKeyedRedisDistributedCache(this IHostApplicationBuilder builder, string name, Action<StackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
     {
-        builder.AddKeyedRedis(name, configureSettings, configureOptions);
+        builder.AddKeyedRedisClient(name, configureSettings, configureOptions);
 
         builder.AddRedisDistributedCacheCore((RedisCacheOptions options, IServiceProvider sp) =>
         {

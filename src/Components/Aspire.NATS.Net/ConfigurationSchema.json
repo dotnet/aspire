@@ -1,0 +1,44 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "NATS": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "NATS": {
+          "type": "object",
+          "properties": {
+            "Net": {
+              "type": "object",
+              "properties": {
+                "ConnectionString": {
+                  "type": "string",
+                  "description": "Gets or sets the connection string of the NATS cluster to connect to."
+                },
+                "HealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the NATS health check is enabled or not.",
+                  "default": true
+                },
+                "Tracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                  "default": true
+                }
+              },
+              "description": "Provides the client configuration settings for connecting to a NATS cluster."
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object"
+}

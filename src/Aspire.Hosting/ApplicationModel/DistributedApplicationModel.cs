@@ -15,5 +15,5 @@ public class DistributedApplicationModel(IResourceCollection resources)
     /// <summary>
     /// Gets the collection of resources associated with the distributed application.
     /// </summary>
-    public IResourceCollection Resources { get; } = resources;
+    public IResourceCollection Resources { get; } = resources ?? throw new ArgumentNullException(nameof(resources));
 }

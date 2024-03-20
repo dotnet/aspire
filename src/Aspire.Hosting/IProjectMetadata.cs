@@ -15,10 +15,13 @@ public interface IProjectMetadata : IResourceAnnotation
     /// Gets the fully-qualified path to the project.
     /// </summary>
     public string ProjectPath { get; }
+
+    // This is for testing
+    internal LaunchSettings? LaunchSettings => null;
 }
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
-internal class ProjectMetadata(string projectPath) : IProjectMetadata
+internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
     public string ProjectPath { get; } = projectPath;
 }

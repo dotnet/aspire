@@ -34,7 +34,7 @@ internal sealed class MockKubernetesService : IKubernetesService
         throw new NotImplementedException();
     }
 
-    public Task<Stream> GetLogStreamAsync<T>(T obj, string logStreamType, bool? follow = true, CancellationToken cancellationToken = default) where T : CustomResource
+    public Task<Stream> GetLogStreamAsync<T>(T obj, string logStreamType, bool? follow = true, bool? timestamps = false, CancellationToken cancellationToken = default) where T : CustomResource
     {
         throw new NotImplementedException();
     }

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
@@ -95,6 +96,120 @@ public class MetricsTests
     }
 
     [Fact]
+    public void AddMetrics_AttributeLimits_LimitsApplied()
+    {
+        // Arrange
+        var repository = CreateRepository(attributeCountLimit: 5, attributeLengthLimit: 16);
+
+        var metricAttributes = new List<KeyValuePair<string, string>>();
+        var meterAttributes = new List<KeyValuePair<string, string>>();
+
+        for (var i = 0; i < 10; i++)
+        {
+            var value = GetValue((i + 1) * 5);
+            metricAttributes.Add(new KeyValuePair<string, string>($"Metric_Key{i}", value));
+            meterAttributes.Add(new KeyValuePair<string, string>($"Meter_Key{i}", value));
+        }
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter", attributes: meterAttributes),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: metricAttributes)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationServiceId = applications[0].InstanceId,
+            InstrumentName = "test",
+            MeterName = "test-meter",
+            StartTime = DateTime.MinValue,
+            EndTime = DateTime.MaxValue
+        })!;
+
+        Assert.Collection(MemoryMarshal.ToEnumerable(instrument.Parent.Attributes),
+            p =>
+            {
+                Assert.Equal("Meter_Key0", p.Key);
+                Assert.Equal("01234", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Meter_Key1", p.Key);
+                Assert.Equal("0123456789", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Meter_Key2", p.Key);
+                Assert.Equal("012345678901234", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Meter_Key3", p.Key);
+                Assert.Equal("0123456789012345", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Meter_Key4", p.Key);
+                Assert.Equal("0123456789012345", p.Value);
+            });
+
+        var dimensionAttributes = instrument.Dimensions.Single().Key;
+
+        Assert.Collection(MemoryMarshal.ToEnumerable(dimensionAttributes),
+            p =>
+            {
+                Assert.Equal("Metric_Key0", p.Key);
+                Assert.Equal("01234", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Metric_Key1", p.Key);
+                Assert.Equal("0123456789", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Metric_Key2", p.Key);
+                Assert.Equal("012345678901234", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Metric_Key3", p.Key);
+                Assert.Equal("0123456789012345", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Metric_Key4", p.Key);
+                Assert.Equal("0123456789012345", p.Value);
+            });
+    }
+
+    [Fact]
     public void RoundtripSeconds()
     {
         var start = s_testTime.AddMinutes(1);
@@ -184,7 +299,7 @@ public class MetricsTests
     public void AddMetrics_Capacity_ValuesRemoved()
     {
         // Arrange
-        var repository = CreateRepository(maxMetricsCount: 3);
+        var repository = CreateRepository(metricsCountLimit: 3);
 
         // Act
         var addContext = new AddContext();
@@ -262,7 +377,7 @@ public class MetricsTests
     private static void AssertDimensionValues(Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> dimensions, ReadOnlyMemory<KeyValuePair<string, string>> key, int valueCount)
     {
         var scope = dimensions[key];
-        Assert.True(Enumerable.SequenceEqual(key.ToArray(), scope.Attributes), "Key and attributes don't match.");
+        Assert.True(Enumerable.SequenceEqual(MemoryMarshal.ToEnumerable(key), scope.Attributes), "Key and attributes don't match.");
 
         Assert.Equal(valueCount, scope.Values.Count);
     }

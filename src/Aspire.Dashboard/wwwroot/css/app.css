@@ -45,9 +45,6 @@ fluent-toolbar[orientation=horizontal] {
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
     --kbd-background-color: var(--neutral-layer-4);
 
-    /* overrides of default fluentui-blazor styling */
-    --disabled-opacity: 0.7 !important;
-
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
 }
 
@@ -66,13 +63,22 @@ fluent-toolbar[orientation=horizontal] {
 
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
-    --disabled-opacity: 0.85 !important;
 
     color-scheme: dark;
 }
 
 [data-theme="light"] {
     color-scheme: light;
+}
+
+fluent-select.resource-list {
+    /* overrides of default fluentui-blazor styling */
+    --disabled-opacity: 0.7;
+}
+
+[data-theme="dark"] fluent-select.resource-list {
+    /* overrides of default fluentui-blazor styling */
+    --disabled-opacity: 0.85;
 }
 
 h1 {
@@ -105,8 +111,21 @@ h1 {
     overflow: auto;
 }
 
-fluent-data-grid .empty-content-cell {
-    height: 100px;
+fluent-data-grid .empty-content-cell,
+fluent-data-grid .loading-content-cell {
+    padding: calc(var(--design-unit) * 5px);
+    display: flex;
+    align-items: center;
+}
+
+/*
+    Default LoadingContent template has align-items set to start, so the
+    text doesn't line up with the spinner properly. It is set via inline style
+    so we need to use !important to override it.
+*/
+fluent-data-grid .loading-content-cell .stack-horizontal {
+    align-items: center !important;
+    column-gap: calc(var(--design-unit) * 2px) !important;
 }
 
 .custom-body-content {
@@ -157,7 +176,7 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     grid-area: main;
 }
 
-.span-id {
+.pane-details-subtext {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
@@ -341,4 +360,39 @@ fluent-switch.table-switch::part(label) {
 .total-items-footer {
     padding-left: calc(var(--design-unit) * 2.5px);
     padding-bottom: calc(var(--design-unit) * 2.5px);
+}
+
+/* Align the toast with the top of the body/bottom of the header
+   and the right edge of the filter box
+*/
+.layout .fluent-toast-provider.position-topright {
+    top: 50px;
+    right: calc(var(--design-unit) * 1.5px);
+}
+
+
+/* Some of the data-columns (e.g. logs and details in the resource page)
+   should not have ellipsis as this is unnecessary and a bit distracting.
+   !important is required to override the fluentui-blazor styling.
+*/
+fluent-data-grid-cell.no-ellipsis {
+    text-overflow: unset !important;
+}
+
+.endpoint-overflow {
+    overflow-x: visible !important;
+}
+
+.endpoint-overflow .fluent-overflow-more {
+    display: flex;
+}
+
+.endpoint-button {
+    height: unset;
+    font-size: var(--type-ramp-minus-1-font-size);
+    line-height: var(--type-ramp-minus-1-line-height);
+}
+
+.endpoint-button::part(control) {
+    padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }

@@ -3,11 +3,11 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting orleans</PackageTags>
     <Description>Orleans support for .NET Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
   </ItemGroup>
 

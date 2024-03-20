@@ -215,4 +215,18 @@
   <data name="ResourcesDetailsStateProperty" xml:space="preserve">
     <value>State</value>
   </data>
+  <data name="ResourceCommandFailed" xml:space="preserve">
+    <value>"{0}" command failed</value>
+    <comment>{0} is the display name of the command that failed</comment>
+  </data>
+  <data name="ResourceCommandSuccess" xml:space="preserve">
+    <value>"{0}" command succeeded</value>
+    <comment>{0} is the display name of the command that succeeded</comment>
+  </data>
+  <data name="ResourceCommandToastViewLogs" xml:space="preserve">
+    <value>View Logs</value>
+  </data>
+  <data name="ResourcesCommandsColumnHeader" xml:space="preserve">
+    <value>Commands</value>
+  </data>
 </root>

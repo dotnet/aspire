@@ -84,7 +84,13 @@ Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set
 
 ## AppHost extensions
 
-In your AppHost project, register a Postgres database and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.PostgreSQL` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.PostgreSQL
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a Postgres database and consume the connection using the following methods:
 
 ```csharp
 var postgresdb = builder.AddPostgres("pg").AddDatabase("postgresdb");

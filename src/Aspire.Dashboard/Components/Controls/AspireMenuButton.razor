@@ -1,0 +1,26 @@
+﻿@namespace Aspire.Dashboard.Components
+@using Aspire.Dashboard.Model
+@using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
+@inherits FluentComponentBase
+@typeparam TItem
+
+<div class="aspire-menubutton-container" style="width:100px;">
+    <FluentButton Id="@_buttonId" Appearance="@ButtonAppearance" aria-haspopup="true" aria-expanded="@_visible" @onclick="ToggleMenu" @onkeydown="OnKeyDown" Disabled="@(!Items.Any())">
+        @if (string.IsNullOrWhiteSpace(Text))
+        {
+            <FluentIcon Value="@_icon" />
+        }
+        else
+        {
+            @Text
+            <FluentIcon Value="@_icon" Slot="end" />
+        }
+    </FluentButton>
+
+    <FluentMenu Anchor="@_buttonId" aria-labelledby="button" @bind-Open="@_visible" VerticalThreshold="200">
+        @foreach (TItem command in Items)
+        {
+            <FluentMenuItem OnClick="() => HandleItemClicked(command)">@ItemText(command)</FluentMenuItem>
+        }
+    </FluentMenu>
+</div>

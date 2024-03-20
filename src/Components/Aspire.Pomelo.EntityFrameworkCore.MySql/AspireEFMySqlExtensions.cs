@@ -8,8 +8,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using MySqlConnector.Logging;
 using OpenTelemetry.Metrics;
+using Polly;
+using Polly.Registry;
+using Polly.Retry;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 
 namespace Microsoft.Extensions.Hosting;
@@ -65,6 +69,22 @@ public static partial class AspireEFMySqlExtensions
 
         builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
 
+        const string resilienceKey = "Microsoft.Extensions.Hosting.AspireEFMySqlExtensions.ServerVersion";
+        builder.Services.AddResiliencePipeline(resilienceKey, static builder =>
+        {
+            // Values are taken from MySqlRetryingExecutionStrategy.MaxRetryCount and MaxRetryDelay.
+            builder.AddRetry(new RetryStrategyOptions
+            {
+                ShouldHandle = static args => args.Outcome is { Exception: MySqlException { IsTransient: true } }
+                    ? PredicateResult.True()
+                    : PredicateResult.False(),
+                BackoffType = DelayBackoffType.Exponential,
+                MaxRetryAttempts = 6,
+                Delay = TimeSpan.FromSeconds(1),
+                MaxDelay = TimeSpan.FromSeconds(30),
+            });
+        });
+
         ConfigureInstrumentation<TContext>(builder, settings);
 
         void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
@@ -81,7 +101,10 @@ public static partial class AspireEFMySqlExtensions
             if (settings.ServerVersion is null)
             {
                 ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
-                serverVersion = ServerVersion.AutoDetect(connectionString);
+
+                var resiliencePipelineProvider = serviceProvider.GetRequiredService<ResiliencePipelineProvider<string>>();
+                var resiliencePipeline = resiliencePipelineProvider.GetPipeline(resilienceKey);
+                serverVersion = resiliencePipeline.Execute(static cs => ServerVersion.AutoDetect(cs), connectionString);
             }
             else
             {
