@@ -55,7 +55,7 @@
             @{
                 var gridTemplateColumns = HasResourcesWithCommands ? "1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr 1fr" : "1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr";
             }
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="@gridTemplateColumns" RowClass="GetRowClass" Loading="_isLoading">
+            <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="@gridTemplateColumns" RowClass="GetRowClass" Loading="_isLoading">
                 <ChildContent>
                     <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" />
                     <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort">
