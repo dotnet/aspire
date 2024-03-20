@@ -16,7 +16,7 @@ namespace Aspire.MySqlConnector.Tests;
 public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnectorSettings>, IClassFixture<MySqlContainerFixture>
 {
     private readonly MySqlContainerFixture _containerFixture;
-    private string ConnectionSting => RequiresDockerTheoryAttribute.IsSupported
+    private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                         ? _containerFixture.GetConnectionString()
                                         : "Host=localhost;Database=test_aspire_mysql;Username=root;Password=password";
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
@@ -61,7 +61,7 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:MySqlConnector", key, "ConnectionString"), ConnectionSting)
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:MySqlConnector", key, "ConnectionString"), ConnectionString)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MySqlConnectorSettings>? configure = null, string? key = null)
