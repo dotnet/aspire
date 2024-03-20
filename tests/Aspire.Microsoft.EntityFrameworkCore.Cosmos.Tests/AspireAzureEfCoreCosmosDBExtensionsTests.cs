@@ -67,7 +67,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
         builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
                 configureDbContextOptions: optionsBuilder => optionsBuilder.UseCosmos(ConnectionString, "databaseName"),
-                configureSettings: useSettings ? settings => settings.RequestTimeout = 608 : null);
+                configureSettings: useSettings ? settings => settings.RequestTimeout = TimeSpan.FromSeconds(608) : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -107,7 +107,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
                         cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(123));
                     });
                 },
-                configureSettings: useSettings ? settings => settings.RequestTimeout = 300 : null);
+                configureSettings: useSettings ? settings => settings.RequestTimeout = TimeSpan.FromSeconds(300) : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

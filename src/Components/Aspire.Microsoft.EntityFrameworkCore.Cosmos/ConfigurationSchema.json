@@ -58,8 +58,9 @@
                       "description": "Gets or sets a string value that indicates what Azure region this client will run in."
                     },
                     "RequestTimeout": {
-                      "type": "integer",
-                      "description": "Gets or sets the time in seconds to wait for the response to come back from the network peer."
+                      "type": "string",
+                      "format": "duration",
+                      "description": "Gets or sets the time to wait for the response to come back from the network peer."
                     },
                     "Tracing": {
                       "type": "boolean",

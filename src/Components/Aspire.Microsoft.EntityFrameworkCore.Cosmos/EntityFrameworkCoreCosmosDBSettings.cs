@@ -52,7 +52,7 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     public string? Region { get; set; }
 
     /// <summary>
-    /// Gets or sets the time in seconds to wait for the response to come back from the network peer.
+    /// Gets or sets the time to wait for the response to come back from the network peer.
     /// </summary>
-    public int? RequestTimeout { get; set; }
+    public TimeSpan? RequestTimeout { get; set; }
 }

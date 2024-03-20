@@ -109,7 +109,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
             if (settings.RequestTimeout.HasValue)
             {
-                builder.RequestTimeout(TimeSpan.FromSeconds(settings.RequestTimeout.Value));
+                builder.RequestTimeout(settings.RequestTimeout.Value);
             }
         }
     }
