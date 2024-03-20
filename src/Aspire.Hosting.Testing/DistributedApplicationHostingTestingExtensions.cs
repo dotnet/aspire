@@ -1,14 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Testing.Properties;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Testing;
 
 /// <summary>
 /// Extensions for working with <see cref="DistributedApplication"/> in test code.
 /// </summary>
-public static class DistributedApplicationExtensions
+public static class DistributedApplicationHostingTestingExtensions
 {
     /// <summary>
     /// Creates an <see cref="HttpClient"/> configured to communicate with the specified resource.
@@ -40,7 +43,7 @@ public static class DistributedApplicationExtensions
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithConnectionString resourceWithConnectionString)
         {
-            throw new ArgumentException($"Resource '{resourceName}' does not expose a connection string.", nameof(resourceName));
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ResourceDoesNotExposeConnectionStringExceptionMessage, resourceName), nameof(resourceName));
         }
 
         return resourceWithConnectionString.GetConnectionStringAsync(cancellationToken);
@@ -57,8 +60,9 @@ public static class DistributedApplicationExtensions
     /// <exception cref="InvalidOperationException">The resource has no endpoints.</exception>
     public static Uri GetEndpoint(this DistributedApplication app, string resourceName, string? endpointName = default) => new(GetEndpointUriStringCore(app, resourceName, endpointName));
 
-    private static IResource GetResource(DistributedApplication app, string resourceName)
+    static IResource GetResource(DistributedApplication app, string resourceName)
     {
+        ThrowIfNotStarted(app);
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var resources = applicationModel.Resources;
@@ -66,18 +70,18 @@ public static class DistributedApplicationExtensions
 
         if (resource is null)
         {
-            throw new ArgumentException($"Resource '{resourceName}' not found.", nameof(resourceName));
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ResourceNotFoundExceptionMessage, resourceName), nameof(resourceName));
         }
 
         return resource;
     }
 
-    private static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default)
+    static string GetEndpointUriStringCore(DistributedApplication app, string resourceName, string? endpointName = default)
     {
         var resource = GetResource(app, resourceName);
         if (resource is not IResourceWithEndpoints resourceWithEndpoints)
         {
-            throw new InvalidOperationException($"Resource '{resourceName}' has no allocated endpoints.");
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ResourceHasNoAllocatedEndpointsExceptionMessage, resourceName), nameof(resourceName));
         }
 
         EndpointReference? endpoint;
@@ -92,10 +96,19 @@ public static class DistributedApplicationExtensions
 
         if (endpoint is null)
         {
-            throw new ArgumentException($"Endpoint '{endpointName}' for resource '{resourceName}' not found.", nameof(endpointName));
+            throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.EndpointForResourceNotFoundExceptionMessage, endpointName, resourceName), nameof(endpointName));
         }
 
         return endpoint.Url;
+    }
+
+    static void ThrowIfNotStarted(DistributedApplication app)
+    {
+        var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+        if (!lifetime.ApplicationStarted.IsCancellationRequested)
+        {
+            throw new InvalidOperationException(Resources.ApplicationNotStartedExceptionMessage);
+        }
     }
 
     static EndpointReference? GetEndpointOrDefault(IResourceWithEndpoints resourceWithEndpoints, string endpointName)
