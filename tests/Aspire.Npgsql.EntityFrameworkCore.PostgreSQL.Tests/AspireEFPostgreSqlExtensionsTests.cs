@@ -181,9 +181,7 @@ public class AspireEFPostgreSqlExtensionsTests
 
         builder.AddNpgsqlDbContext<TestDbContext>("npgsql",
             configureDbContextOptions: optionsBuilder => optionsBuilder.UseNpgsql(),
-            configureSettings: useSettings
-                                ? settings => settings.CommandTimeout = 123
-                                : null);
+            configureSettings: useSettings ? settings => settings.CommandTimeout = 123 : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

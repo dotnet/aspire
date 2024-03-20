@@ -174,9 +174,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection",
                 configureDbContextOptions: optionsBuilder => optionsBuilder.UseOracle(),
-                configureSettings: useSettings ?
-                                    settings => settings.CommandTimeout = 608
-                                    : null);
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 608 : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -186,7 +184,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var extension = context.Options.FindExtension<OracleOptionsExtension>();
         Assert.NotNull(extension);
 
-        // ensure the command timeout from config was respected
+        // ensure the command timeout was respected
         Assert.Equal(608, extension.CommandTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
@@ -211,9 +209,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection",
                 configureDbContextOptions: optionsBuilder =>
                     optionsBuilder.UseOracle(builder => builder.CommandTimeout(123)),
-                configureSettings: useSettings ?
-                                    settings => settings.CommandTimeout = 300
-                                    : null);
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -223,7 +219,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var extension = context.Options.FindExtension<OracleOptionsExtension>();
         Assert.NotNull(extension);
 
-        // ensure the command timeout from config was respected
+        // ensure the command timeout from builder was respected
         Assert.Equal(123, extension.CommandTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.

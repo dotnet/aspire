@@ -205,7 +205,7 @@ public class AspireEFMySqlExtensionsTests
         if (!useSettings)
         {
             builder.Configuration.AddInMemoryCollection([
-                new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:CommandTimeout", "456"),
+                new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:CommandTimeout", "400"),
             ]);
         }
 
@@ -214,7 +214,7 @@ public class AspireEFMySqlExtensionsTests
             {
                 mySqlBuilder.CommandTimeout(123);
             }),
-            configureSettings: useSettings ? settings => settings.CommandTimeout = 396 : null);
+            configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -224,7 +224,7 @@ public class AspireEFMySqlExtensionsTests
         var extension = context.Options.FindExtension<MySqlOptionsExtension>();
         Assert.NotNull(extension);
 
-        // ensure the command timeout was respected
+        // ensure the command timeout from builder was respected
         Assert.Equal(123, extension.CommandTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.

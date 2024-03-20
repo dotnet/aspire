@@ -67,9 +67,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
         builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
                 configureDbContextOptions: optionsBuilder => optionsBuilder.UseCosmos(ConnectionString, "databaseName"),
-                configureSettings: useSettings ?
-                                    settings => settings.RequestTimeout = 608
-                                    : null);
+                configureSettings: useSettings ? settings => settings.RequestTimeout = 608 : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -79,7 +77,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         var extension = context.Options.FindExtension<CosmosOptionsExtension>();
         Assert.NotNull(extension);
 
-        // Ensure the RequestTimeout from config size was respected
+        // Ensure the RequestTimeout was respected
         Assert.Equal(TimeSpan.FromSeconds(608), extension.RequestTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
@@ -88,7 +86,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void CommandTimeoutFromBuilderWinsOverOthers(bool useSettings)
+    public void RequestTimeoutFromBuilderWinsOverOthers(bool useSettings)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -109,9 +107,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
                         cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(123));
                     });
                 },
-                configureSettings: useSettings ?
-                                    settings => settings.RequestTimeout = 300
-                                    : null);
+                configureSettings: useSettings ? settings => settings.RequestTimeout = 300 : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -121,7 +117,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         var extension = context.Options.FindExtension<CosmosOptionsExtension>();
         Assert.NotNull(extension);
 
-        // Ensure the RequestTimeout from config size was respected
+        // Ensure the RequestTimeout from builder was respected
         Assert.Equal(TimeSpan.FromSeconds(123), extension.RequestTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.

@@ -173,9 +173,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection",
                 configureDbContextOptions: optionsBuilder => optionsBuilder.UseSqlServer(),
-                configureSettings: useSettings ?
-                                    settings => settings.CommandTimeout = 608
-                                    : null);
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 608 : null);
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -185,7 +183,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var extension = context.Options.FindExtension<SqlServerOptionsExtension>();
         Assert.NotNull(extension);
 
-        // ensure the command timeout from config was respected
+        // ensure the command timeout was respected
         Assert.Equal(608, extension.CommandTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
@@ -220,7 +218,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var extension = context.Options.FindExtension<SqlServerOptionsExtension>();
         Assert.NotNull(extension);
 
-        // ensure the command timeout from config was respected
+        // ensure the command timeout from builder was respected
         Assert.Equal(123, extension.CommandTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
