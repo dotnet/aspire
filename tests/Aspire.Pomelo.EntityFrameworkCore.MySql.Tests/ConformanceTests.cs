@@ -5,6 +5,7 @@ using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Aspire.Hosting.MySql;
 using Aspire.MySqlConnector.Tests;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -124,8 +125,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
     }
 
     [RequiresDockerFact]
-    public Task TracingEnablesTheRightActivitySource()
-        => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null));
+    public void TracingEnablesTheRightActivitySource()
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
     private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
     {
