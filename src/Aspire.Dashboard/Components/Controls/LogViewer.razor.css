@@ -50,9 +50,10 @@
 ::deep .line-number {
     padding-left: 10px;
     min-width: 43px;
-    text-align:right;
+    text-align: right;
     align-self: flex-start;
     flex-shrink: 0;
+    color: #808080;
 }
 
 ::deep .line-number::before {
@@ -71,7 +72,7 @@
 }
 
 ::deep .content .timestamp {
-    color: gray;
+    color: #F2F2F2;
 }
 
 ::deep .content a,
