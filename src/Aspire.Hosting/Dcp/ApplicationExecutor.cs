@@ -228,7 +228,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
+                _logger.LogCritical(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
             }
         }
     }
