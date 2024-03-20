@@ -131,18 +131,6 @@ public class AddRabbitMQTests
                   "transport": "tcp",
                   "containerPort": 5672
                 }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "special": false
-                    }
-                  }
-                }
               }
             }
             """;
@@ -202,18 +190,6 @@ public class AddRabbitMQTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 5672
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "special": false
-                    }
-                  }
                 }
               }
             }

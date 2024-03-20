@@ -205,17 +205,6 @@ public class AddMySqlTests
                   "transport": "tcp",
                   "containerPort": 3306
                 }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
-                }
               }
             }
             """;

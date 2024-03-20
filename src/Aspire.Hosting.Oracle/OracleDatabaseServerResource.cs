@@ -18,11 +18,13 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     public OracleDatabaseServerResource(string name, ParameterResource? password) : base(name)
     {
         PrimaryEndpoint = new(this, PrimaryEndpointName);
-        PasswordInput = new(this, "password");
-
         PasswordParameter = password;
 
-        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
+        if (PasswordParameter is null)
+        {
+            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
+            PasswordInput = new(this, "password");
+        }
     }
 
     /// <summary>
@@ -30,7 +32,7 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
-    private InputReference PasswordInput { get; }
+    private InputReference? PasswordInput { get; }
 
     /// <summary>
     /// Gets the parameter that contains the Oracle Database server password.
@@ -40,7 +42,7 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     internal ReferenceExpression PasswordReference =>
         PasswordParameter is not null ?
             ReferenceExpression.Create($"{PasswordParameter}") :
-            ReferenceExpression.Create($"{PasswordInput}");
+            ReferenceExpression.Create($"{PasswordInput!}"); // either PasswordParameter or PasswordInput is non-null
 
     /// <summary>
     /// Gets the connection string expression for the Oracle Database server.

@@ -20,13 +20,15 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     public RabbitMQServerResource(string name, ParameterResource? userName, ParameterResource? password) : base(name)
     {
         PrimaryEndpoint = new(this, PrimaryEndpointName);
-        PasswordInput = new(this, "password");
-
         UserNameParameter = userName;
         PasswordParameter = password;
 
-        // don't use special characters in the password, since it goes into a URI
-        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(special: false));
+        if (PasswordParameter is null)
+        {
+            // don't use special characters in the password, since it goes into a URI
+            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(special: false));
+            PasswordInput = new(this, "password");
+        }
     }
 
     /// <summary>
@@ -44,7 +46,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
             ReferenceExpression.Create($"{UserNameParameter}") :
             ReferenceExpression.Create($"{DefaultUserName}");
 
-    private InputReference PasswordInput { get; }
+    private InputReference? PasswordInput { get; }
 
     /// <summary>
     /// Gets the parameter that contains the PostgreSQL server password.
@@ -54,7 +56,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     internal ReferenceExpression PasswordReference =>
         PasswordParameter is not null ?
             ReferenceExpression.Create($"{PasswordParameter}") :
-            ReferenceExpression.Create($"{PasswordInput}");
+            ReferenceExpression.Create($"{PasswordInput!}"); // either PasswordParameter or PasswordInput is non-null
 
     /// <summary>
     /// Gets the connection string expression for the RabbitMQ server.

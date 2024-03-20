@@ -245,17 +245,6 @@ public class AddOracleTests
                   "transport": "tcp",
                   "containerPort": 1521
                 }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
-                }
               }
             }
             """;

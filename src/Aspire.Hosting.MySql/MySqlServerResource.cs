@@ -18,11 +18,13 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     public MySqlServerResource(string name, ParameterResource? password) : base(name)
     {
         PrimaryEndpoint = new(this, PrimaryEndpointName);
-        PasswordInput = new(this, "password");
-
         PasswordParameter = password;
 
-        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
+        if (PasswordParameter is null)
+        {
+            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
+            PasswordInput = new(this, "password");
+        }
     }
 
     /// <summary>
@@ -30,7 +32,7 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
-    private InputReference PasswordInput { get; }
+    private InputReference? PasswordInput { get; }
 
     /// <summary>
     /// Gets the parameter that contains the MySQL server password.
@@ -40,12 +42,12 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     internal ReferenceExpression PasswordReference =>
         PasswordParameter is not null ?
             ReferenceExpression.Create($"{PasswordParameter}") :
-            ReferenceExpression.Create($"{PasswordInput}");
+            ReferenceExpression.Create($"{PasswordInput!}"); // either PasswordParameter or PasswordInput is non-null
 
     /// <summary>
     /// Gets the MySQL server root password.
     /// </summary>
-    internal string Password => PasswordParameter?.Value ?? PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
+    internal string Password => PasswordParameter?.Value ?? PasswordInput!.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
     /// <summary>
     /// Gets the connection string expression for the MySQL server.

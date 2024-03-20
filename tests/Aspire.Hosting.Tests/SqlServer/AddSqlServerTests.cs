@@ -181,20 +181,6 @@ public class AddSqlServerTests
                   "transport": "tcp",
                   "containerPort": 1433
                 }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "minLower": 1,
-                      "minUpper": 1,
-                      "minNumeric": 1
-                    }
-                  }
-                }
               }
             }
             """;

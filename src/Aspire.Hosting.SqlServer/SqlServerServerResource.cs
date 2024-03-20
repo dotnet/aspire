@@ -18,12 +18,14 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     public SqlServerServerResource(string name, ParameterResource? password) : base(name)
     {
         PrimaryEndpoint = new(this, PrimaryEndpointName);
-        PasswordInput = new(this, "password");
-
         PasswordParameter = password;
 
-        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
-        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(minLower: 1, minUpper: 1, minNumeric: 1));
+        if (PasswordParameter is null)
+        {
+            // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
+            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(minLower: 1, minUpper: 1, minNumeric: 1));
+            PasswordInput = new(this, "password");
+        }
     }
 
     /// <summary>
@@ -31,7 +33,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
-    private InputReference PasswordInput { get; }
+    private InputReference? PasswordInput { get; }
 
     /// <summary>
     /// Gets the parameter that contains the PostgreSQL server password.
@@ -41,7 +43,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     internal ReferenceExpression PasswordReference =>
         PasswordParameter is not null ?
             ReferenceExpression.Create($"{PasswordParameter}") :
-            ReferenceExpression.Create($"{PasswordInput}");
+            ReferenceExpression.Create($"{PasswordInput!}"); // either PasswordParameter or PasswordInput is non-null
 
     private ReferenceExpression ConnectionString =>
         ReferenceExpression.Create(
