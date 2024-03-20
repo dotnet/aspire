@@ -188,15 +188,17 @@ public class AddMySqlTests
         Assert.Single(builder.Resources.OfType<PhpMyAdminContainerResource>());
     }
 
-    [Fact]
-    public async Task SingleMySqlInstanceProducesCorrectMySqlHostsVariable()
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task SingleMySqlInstanceProducesCorrectMySqlHostsVariable(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var mysql = builder.AddMySql("mySql").WithPhpMyAdmin();
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
+        mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new PhpMyAdminConfigWriterHook();
@@ -206,7 +208,7 @@ public class AddMySqlTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin);
 
-        Assert.Equal("host.docker.internal:5001", config["PMA_HOST"]);
+        Assert.Equal($"{containerHost}:5001", config["PMA_HOST"]);
         Assert.NotNull(config["PMA_USER"]);
         Assert.NotNull(config["PMA_PASSWORD"]);
     }
@@ -224,16 +226,18 @@ public class AddMySqlTests
         Assert.Equal("/etc/phpmyadmin/config.user.inc.php", volume.Target);
     }
 
-    [Fact]
-    public void WithPhpMyAdminProducesValidServerConfigFile()
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public void WithPhpMyAdminProducesValidServerConfigFile(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(8081);
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(8081);
 
         // Add fake allocated endpoints.
-        mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
-        mysql2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
+        mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        mysql2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host3"));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -248,8 +252,8 @@ public class AddMySqlTests
         var fileContents = new StreamReader(stream).ReadToEnd();
 
         // check to see that the two hosts are in the file
-        string pattern1 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host.docker.internal:5001';";
-        string pattern2 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host.docker.internal:5002';";
+        string pattern1 = $@"\$cfg\['Servers'\]\[\$i\]\['host'\] = '{containerHost}:5001';";
+        string pattern2 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host3:5002';";
         Match match1 = Regex.Match(fileContents, pattern1);
         Assert.True(match1.Success);
         Match match2 = Regex.Match(fileContents, pattern2);

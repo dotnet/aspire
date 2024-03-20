@@ -75,7 +75,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets the container host for this endpoint.
     /// </summary>
-    public string ContainerHost => AllocatedEndpoint.ContainerHostAddress;
+    public string ContainerHost => AllocatedEndpoint.ContainerHostAddress ?? throw new InvalidOperationException($"The endpoint \"{EndpointName}\" has no associated container host name.");
 
     /// <summary>
     /// Gets the scheme for this endpoint.

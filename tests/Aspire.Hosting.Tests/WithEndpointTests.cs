@@ -122,6 +122,24 @@ public class WithEndpointTests
         Assert.Equal("PORT", endpoints[0].EnvironmentVariable);
     }
 
+    [Fact]
+    public void GettingContainerHostNameFailsIfNoContainerHostNameSet()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("app", "image")
+            .WithEndpoint("ep", e =>
+            {
+                e.AllocatedEndpoint = new(e, "localhost", 8031);
+            });
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+        {
+            return container.GetEndpoint("ep").ContainerHost;
+        });
+
+        Assert.Equal("The endpoint \"ep\" has no associated container host name.", ex.Message);
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithEndpointTests>(args);
 
 }
