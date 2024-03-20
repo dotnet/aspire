@@ -418,12 +418,12 @@ public class DashboardWebApplication : IAsyncDisposable
                     }
                     break;
                 default:
-                    break;
+                    throw new InvalidOperationException($"Unexpected auth mode value: {otlpAuthMode}");
             }
         }
         else
         {
-            otlpAuthMode = OtlpAuthMode.None;
+            throw new InvalidOperationException($"Configuration of OTLP endpoint authentication with {DashboardOtlpAuthModeVariableName} is required. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
         }
 
         return new DashboardStartupConfiguration
