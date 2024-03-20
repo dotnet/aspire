@@ -41,7 +41,7 @@ public partial class Traces
     public required IDialogService DialogService { get; set; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {

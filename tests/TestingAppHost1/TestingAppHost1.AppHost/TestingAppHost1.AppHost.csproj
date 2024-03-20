@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.PostgreSQL" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Redis" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentDatabasePackageTags) postgressql postgres npgsql sql</PackageTags>
+    <PackageTags>$(ComponentDatabasePackageTags) postgresql postgres npgsql sql</PackageTags>
     <Description>A PostgreSQL® client that integrates with Aspire, including health checks, metrics, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)PostgreSQL_logo.3colors.540x557.png</PackageIconFullPath>
   </PropertyGroup>

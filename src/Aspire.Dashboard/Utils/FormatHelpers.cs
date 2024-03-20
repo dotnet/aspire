@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.Utils;
 
@@ -50,7 +51,7 @@ internal static partial class FormatHelpers
 
     private static string GetShortDateLongTimePatternWithMilliseconds(CultureInfo cultureInfo) => GetMillisecondFormatStrings(cultureInfo).ShortDateLongTimePattern;
 
-    public static string FormatTime(TimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
+    public static string FormatTime(BrowserTimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
         var local = timeProvider.ToLocal(value);
@@ -61,7 +62,7 @@ internal static partial class FormatHelpers
             : local.ToString("T", cultureInfo);
     }
 
-    public static string FormatDateTime(TimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
+    public static string FormatDateTime(BrowserTimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
     {
         cultureInfo ??= CultureInfo.CurrentCulture;
         var local = timeProvider.ToLocal(value);
@@ -72,7 +73,7 @@ internal static partial class FormatHelpers
             : local.ToString("G", cultureInfo);
     }
 
-    public static string FormatTimeWithOptionalDate(TimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
+    public static string FormatTimeWithOptionalDate(BrowserTimeProvider timeProvider, DateTime value, bool includeMilliseconds = false, CultureInfo? cultureInfo = null)
     {
         var local = timeProvider.ToLocal(value);
 

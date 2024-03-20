@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
@@ -11,7 +12,7 @@ public static partial class TimestampParser
 {
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
-    public static bool TryColorizeTimestamp(TimeProvider timeProvider, string text, bool convertTimestampsFromUtc, out TimestampParserResult result)
+    public static bool TryColorizeTimestamp(BrowserTimeProvider timeProvider, string text, bool convertTimestampsFromUtc, out TimestampParserResult result)
     {
         var match = s_rfc3339RegEx.Match(text);
 
@@ -32,7 +33,7 @@ public static partial class TimestampParser
         return false;
     }
 
-    private static string ConvertTimestampFromUtc(TimeProvider timeProvider, ReadOnlySpan<char> timestamp)
+    private static string ConvertTimestampFromUtc(BrowserTimeProvider timeProvider, ReadOnlySpan<char> timestamp)
     {
         if (DateTimeOffset.TryParse(timestamp, out var dateTimeUtc))
         {

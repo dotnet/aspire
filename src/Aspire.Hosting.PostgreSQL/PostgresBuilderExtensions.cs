@@ -105,7 +105,7 @@ public static class PostgresBuilderExtensions
     /// Adds a named volume for the data folder to a Postgres container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)
