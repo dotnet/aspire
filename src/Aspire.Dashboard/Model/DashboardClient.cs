@@ -374,9 +374,18 @@ internal sealed class DashboardClient : IDashboardClient
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
             cancellationToken: combinedTokens.Token);
 
-        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
+        // Write incoming logs to a channel, and then read from that channel to yield the logs.
+        // We do this to batch logs together and enforce a minimum read interval.
+        var channel = Channel.CreateUnbounded<IReadOnlyList<(string Content, bool IsErrorMessage)>>(
+            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
+
+        var readTask = Task.Run(async () =>
         {
-            var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
+            try
+            {
+                await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
+                {
+                    var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
 
                     for (var i = 0; i < logLines.Length; i++)
                     {
@@ -393,7 +402,7 @@ internal sealed class DashboardClient : IDashboardClient
             }
         }, combinedTokens.Token);
 
-        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token))
+        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
         {
             if (batch.Count == 1)
             {

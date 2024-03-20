@@ -193,7 +193,7 @@ public class ResourceLoggerService
 
                 try
                 {
-                    await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken))
+                    await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
                     {
                         yield return entry;
                     }

@@ -224,7 +224,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     _logger.LogDebug("Starting watch over DCP {ResourceType} resources", typeof(T).Name);
 
-                    await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken))
+                    await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
                     {
                         await semaphore.WaitAsync(pipelineCancellationToken).ConfigureAwait(false);
 

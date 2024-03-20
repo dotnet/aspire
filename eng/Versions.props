@@ -10,6 +10,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
+    <MicrosoftDotnetSdkInternalPackageVersion>9.0.100-preview.1.24073.29</MicrosoftDotnetSdkInternalPackageVersion>
     <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
     <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
     <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>

@@ -113,7 +113,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 
             try
             {
-                await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
+                await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
                 {
                     yield return item;
                 }

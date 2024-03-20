@@ -10,7 +10,7 @@ public sealed class DistributedApplicationFixture<TEntryPoint> : DistributedAppl
     {
         if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
         {
-            throw new SkipException("These tests can only run in local environments.");
+            throw SkipException.ForSkip("These tests can only run in local environments.");
         }
     }
 

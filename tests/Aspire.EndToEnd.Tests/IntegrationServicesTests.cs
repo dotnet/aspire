@@ -56,7 +56,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     {
         if (resourceName == TestResourceNames.cosmos && RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            throw new SkipException($"Skipping '{resourceName}' test because the emulator isn't supported on macOS ARM64.");
+            throw SkipException.ForSkip($"Skipping '{resourceName}' test because the emulator isn't supported on macOS ARM64.");
         }
 
         return VerifyComponentWorks(resourceName);
