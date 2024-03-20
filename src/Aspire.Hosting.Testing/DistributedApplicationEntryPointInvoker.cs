@@ -97,10 +97,6 @@ internal sealed class DistributedApplicationEntryPointInvoker
                     // build to throw
                     _appTcs.TrySetException(new InvalidOperationException($"The entry point exited without building a {nameof(DistributedApplication)}."));
                 }
-                catch (TargetInvocationException tie) when (tie.InnerException?.GetType().Name == "HostAbortedException")
-                {
-                    // The host was stopped by our own logic
-                }
                 catch (TargetInvocationException tie)
                 {
                     exception = tie.InnerException ?? tie;
