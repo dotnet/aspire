@@ -140,8 +140,6 @@ public static partial class AspireEFPostgreSqlExtensions
                 .WithTracing(tracerProviderBuilder =>
                 {
                     tracerProviderBuilder.AddNpgsql();
-
-                    // defining exporters is outside of the scope of a Component
                 });
         }
 

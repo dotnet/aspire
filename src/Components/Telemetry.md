@@ -69,7 +69,7 @@ Aspire.Confluent.Kafka:
 - Log categories:
   - "Aspire.Confluent.Kafka"
 - Activity source names:
-  - N/A
+  - none (currently not supported by Confluent.Kafka library)
 - Metric names:
   - "Aspire.Confluent.Kafka"
     - "messaging.kafka.consumer.queue.message_count"
@@ -280,7 +280,7 @@ Aspire.Oracle.EntityFrameworkCore:
   - "Microsoft.EntityFrameworkCore.Query"
   - "Microsoft.EntityFrameworkCore.Update"
 - Activity source names:
-  - N/A
+  - none (currently not supported by Oracle.EntityFrameworkCore library)
 - Metric names:
   - "Microsoft.EntityFrameworkCore":
     - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
