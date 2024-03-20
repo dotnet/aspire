@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Net;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -28,6 +32,68 @@ public class StartupTests
         // Assert
         AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
+    }
+
+    [Fact]
+    public async Task Configuration_BrowserAndOtlpEndpointSame_EndPointPortsAssigned()
+    {
+        // Arrange
+        DashboardWebApplication? app = null;
+        try
+        {
+            await ServerRetryHelper.BindPortsWithRetry(async port =>
+            {
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+                    additionalConfiguration: initialData =>
+                    {
+                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
+                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"http://127.0.0.1:{port}";
+                    });
+
+                // Act
+                await app.StartAsync();
+            }, NullLogger.Instance);
+
+            // Assert
+            Debug.Assert(app != null);
+            Assert.Equal(app.BrowserEndPointAccessor().EndPoint.Port, app.OtlpServiceEndPointAccessor().EndPoint.Port);
+
+            // Check browser access
+            using var httpClient = new HttpClient { BaseAddress = new Uri($"http://{app.BrowserEndPointAccessor().EndPoint}") };
+            var request = new HttpRequestMessage(HttpMethod.Get, "/") { Version = HttpVersion.Version20, VersionPolicy = HttpVersionPolicy.RequestVersionExact };
+            var response = await httpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            // Check OTLP service
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.BrowserEndPointAccessor().EndPoint}", _testOutputHelper);
+            var client = new LogsService.LogsServiceClient(channel);
+            var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest());
+            Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                await app.DisposeAsync();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Configuration_NoOtlpAuthMode_Error()
+    {
+        // Arrange & Act
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+                additionalConfiguration: data =>
+                {
+                    data.Remove(DashboardWebApplication.DashboardOtlpAuthModeVariableName);
+                });
+        });
+
+        // Assert
+        Assert.Equal("Configuration of OTLP endpoint authentication with DOTNET_DASHBOARD_OTLP_AUTH_MODE is required. Possible values: None, ApiKey, ClientCertificate", ex.Message);
     }
 
     [Fact]
