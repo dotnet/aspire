@@ -231,7 +231,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogCritical(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
+                _logger.LogCritical(ex, "Watch task over kubernetes {ResourceType} resources terminated unexpectedly. Check to ensure dcpd process is running.", typeof(T).Name);
             }
         }
     }
