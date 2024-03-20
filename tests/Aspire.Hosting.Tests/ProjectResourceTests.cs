@@ -60,6 +60,13 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_EXPORTER_OTLP_HEADERS", env.Key);
+                var parts = env.Value.Split('=');
+                Assert.Equal("x-otlp-api-key", parts[0]);
+                Assert.True(Guid.TryParse(parts[1], out _));
+            },
+            env =>
+            {
                 Assert.Equal("DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION", env.Key);
                 Assert.Equal("true", env.Value);
             },
