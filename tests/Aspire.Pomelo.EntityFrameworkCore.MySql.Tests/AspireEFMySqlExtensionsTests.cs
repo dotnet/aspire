@@ -83,12 +83,16 @@ public class AspireEFMySqlExtensionsTests
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", "8.2.0-mysql"),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "true"),
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:CommandTimeout", "123")
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "true")
         ]);
 
         builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>
-            optionsBuilder.UseMySql(new MySqlServerVersion(new Version(8, 2, 0))));
+        {
+            optionsBuilder.UseMySql(new MySqlServerVersion(new Version(8, 2, 0)), mySqlBuilder =>
+            {
+                mySqlBuilder.CommandTimeout(123);
+            });
+        });
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
