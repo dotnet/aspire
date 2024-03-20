@@ -15,6 +15,8 @@ using k8s;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Retry;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -156,25 +158,48 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         async Task WatchKubernetesResource<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
         {
+            var retryUntilCancelled = new RetryStrategyOptions()
+            {
+                ShouldHandle = new PredicateBuilder().HandleInner<EndOfStreamException>(),
+                BackoffType = DelayBackoffType.Constant,
+                MaxRetryAttempts = int.MaxValue,
+                UseJitter = true,
+                MaxDelay = TimeSpan.FromSeconds(30),
+                OnRetry = (retry) =>
+                {
+                    _logger.LogDebug(
+                        retry.Outcome.Exception,
+                        "Long poll watch operation was ended by server after {LongPollDurationInMs} milliseconds.",
+                        retry.Duration.TotalMilliseconds
+                        );
+                    return ValueTask.CompletedTask;
+                }
+            };
+
+            var pipeline = new ResiliencePipelineBuilder().AddRetry(retryUntilCancelled).Build();
+
             try
             {
-                await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
+                await pipeline.ExecuteAsync(async (pipelineCancellationToken) =>
                 {
-                    await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken))
+                    {
+                        await semaphore.WaitAsync(pipelineCancellationToken).ConfigureAwait(false);
 
-                    try
-                    {
-                        await handler(eventType, resource).ConfigureAwait(false);
+                        try
+                        {
+                            await handler(eventType, resource).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
                     }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }
+                }, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (OperationCanceledException)
             {
-                _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
+                _logger.LogDebug("Watch resource operation was cancelled.");
             }
         }
     }
