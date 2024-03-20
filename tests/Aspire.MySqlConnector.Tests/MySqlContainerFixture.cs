@@ -19,8 +19,6 @@ public sealed class MySqlContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
-            // testcontainers uses mongo:mongo by default,
-            // resetting that for tests
             Container = new MySqlBuilder()
                 .WithImage($"{MySqlContainerImageTags.Image}:{MySqlContainerImageTags.Tag}")
                 .Build();
