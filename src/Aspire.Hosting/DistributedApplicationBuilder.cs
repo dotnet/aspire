@@ -26,6 +26,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructingEventName = "DistributedApplicationBuilderConstructing";
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
+    private const string DisableOtlpApiKeyAuthKey = "DOTNET_DISABLE_OTLP_API_KEY_AUTH";
+
     private readonly HostApplicationBuilder _innerBuilder;
 
     /// <inheritdoc />
@@ -72,9 +74,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
-        // Make the app host directory available to the application via configuration
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
+            // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory
         });
 
@@ -117,6 +119,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         LogBuilderConstructed(this);
     }
 
+    private static bool IsOtlpApiKeyAuthDisabled(IConfiguration configuration)
+    {
+        return configuration.GetBool(DisableOtlpApiKeyAuthKey) ?? false;
+    }
+
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
@@ -154,6 +161,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 .Select(g => g.Key))
             {
                 throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
+            }
+
+            if (!IsOtlpApiKeyAuthDisabled(_innerBuilder.Configuration))
+            {
+                // Set a random API key for the OTLP exporter.
+                // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
+                _innerBuilder.Configuration.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["AppHost:OtlpApiKey"] = Guid.NewGuid().ToString()
+                    }
+                );
             }
 
             var application = new DistributedApplication(_innerBuilder.Build());

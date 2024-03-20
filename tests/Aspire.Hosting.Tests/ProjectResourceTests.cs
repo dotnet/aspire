@@ -5,6 +5,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -60,6 +61,13 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_EXPORTER_OTLP_HEADERS", env.Key);
+                var parts = env.Value.Split('=');
+                Assert.Equal("x-otlp-api-key", parts[0]);
+                Assert.True(Guid.TryParse(parts[1], out _));
+            },
+            env =>
+            {
                 Assert.Equal("DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION", env.Key);
                 Assert.Equal("true", env.Value);
             },
@@ -73,6 +81,34 @@ public class ProjectResourceTests
                 Assert.Equal("LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT", env.Key);
                 Assert.Equal("yyyy-MM-ddTHH:mm:ss.fffffff ", env.Value);
             });
+    }
+
+    [Theory]
+    [InlineData("true", false)]
+    [InlineData("1", false)]
+    [InlineData("false", true)]
+    [InlineData("0", true)]
+    [InlineData(null, true)]
+    public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata_OtlpAuthDisabledSetting(string? value, bool hasHeader)
+    {
+        var appBuilder = CreateBuilder();
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["DOTNET_DISABLE_OTLP_API_KEY_AUTH"] = value
+        });
+
+        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+        Assert.Equal("projectName", resource.Name);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        Assert.Equal(hasHeader, config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"));
     }
 
     [Fact]

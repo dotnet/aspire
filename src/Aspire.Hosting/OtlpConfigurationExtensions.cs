@@ -44,6 +44,11 @@ public static class OtlpConfigurationExtensions
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";
 
+            if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+            {
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={otlpApiKey}";
+            }
+
             // Set a small batch schedule delay in development.
             // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
             if (environment.IsDevelopment())

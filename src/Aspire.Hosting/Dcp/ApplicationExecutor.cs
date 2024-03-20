@@ -686,6 +686,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
+
+            if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+            {
+                context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_AUTH_MODE"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
+                context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_API_KEY"] = otlpApiKey;
+            }
         }));
     }
 
@@ -755,6 +761,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 Value = aspnetcoreEnvironment
             }
         ];
+
+        if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+        {
+            dashboardExecutableSpec.Env.AddRange([
+                new()
+                {
+                    Name = "DOTNET_DASHBOARD_OTLP_API_KEY",
+                    Value = otlpApiKey
+                },
+                new()
+                {
+                    Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
+                    Value = "ApiKey" // Matches value in OtlpAuthMode enum.
+                }
+            ]);
+        }
 
         var dashboardExecutable = new Executable(dashboardExecutableSpec)
         {
