@@ -19,11 +19,12 @@ namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 {
     private const string ConnectionStringSuffixAddedByPomelo = ";Allow User Variables=True;Use Affected Rows=False";
+    private static readonly MySqlServerVersion s_serverVersion = new(new Version(MySqlContainerImageTags.Tag));
+    private static readonly string s_serverVersionString = s_serverVersion.ToString();
     private readonly MySqlContainerFixture _containerFixture;
     private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                             ? _containerFixture.GetConnectionString()
                                             : "Server=localhost;User ID=root;Password=pass;Database=test";
-    private readonly string _serverVersion = $"{MySqlContainerImageTags.Tag}-mysql";
 
     public AspireEFMySqlExtensionsTests(MySqlContainerFixture containerFixture)
         => _containerFixture = containerFixture;
@@ -33,7 +34,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", _serverVersion),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString)
         ]);
 
@@ -52,7 +53,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", _serverVersion),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", "unused")
         ]);
 
@@ -73,7 +74,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", _serverVersion),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ConnectionString", "unused"),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString)
         ]);
@@ -95,14 +96,14 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", _serverVersion),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
             new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "true")
         ]);
 
         builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>
         {
-            optionsBuilder.UseMySql(new MySqlServerVersion(new Version(MySqlContainerImageTags.Tag)), mySqlBuilder =>
+            optionsBuilder.UseMySql(s_serverVersion, mySqlBuilder =>
             {
                 mySqlBuilder.CommandTimeout(123);
             });
@@ -138,14 +139,14 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", _serverVersion),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
             new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "false")
         ]);
 
         builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>
         {
-            optionsBuilder.UseMySql(new MySqlServerVersion(new Version(MySqlContainerImageTags.Tag)), mySqlBuilder =>
+            optionsBuilder.UseMySql(s_serverVersion, mySqlBuilder =>
             {
                 mySqlBuilder.CommandTimeout(123);
             });
@@ -185,11 +186,11 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 
         if (useServiceType)
         {
-            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMySql(ConnectionString, new MySqlServerVersion(new Version(MySqlContainerImageTags.Tag))));
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMySql(ConnectionString, s_serverVersion));
         }
         else
         {
-            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMySql(ConnectionString, new MySqlServerVersion(new Version(MySqlContainerImageTags.Tag))));
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMySql(ConnectionString, s_serverVersion));
         }
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.AddMySqlDbContext<TestDbContext>("mysql"));
@@ -208,11 +209,11 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 
         if (useServiceType)
         {
-            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMySql(ConnectionString, new MySqlServerVersion(new Version(MySqlContainerImageTags.Tag))));
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(options => options.UseMySql(ConnectionString, s_serverVersion));
         }
         else
         {
-            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMySql(ConnectionString, new MySqlServerVersion(new Version(MySqlContainerImageTags.Tag))));
+            builder.Services.AddDbContextPool<TestDbContext>(options => options.UseMySql(ConnectionString, s_serverVersion));
         }
 
         var exception = Record.Exception(() => builder.AddMySqlDbContext<TestDbContext>("mysql"));
