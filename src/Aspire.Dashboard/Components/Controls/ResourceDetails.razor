@@ -37,10 +37,9 @@
     </FluentToolbar>
     <div class="property-grid-container">
         <FluentAccordion>
-            <FluentAccordionItem Heading="Resource" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredResourceValues.Count()
                     </FluentBadge>
                 </div>
@@ -57,10 +56,9 @@
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="Endpoints" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredEndpoints.Count()
                     </FluentBadge>
                 </div>
@@ -88,10 +86,9 @@
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="Environment variables" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredItems.Count()
                     </FluentBadge>
                 </div>

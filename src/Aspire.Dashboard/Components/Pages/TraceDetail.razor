@@ -47,9 +47,9 @@
             SelectedValue="@SelectedSpan">
             <DetailsTitleTemplate>
                 @{ var shortedSpanId = OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId); }
-                <div class="span-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
+                <div class="pane-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
                     @SelectedSpan!.Title
-                    <span class="span-id">@shortedSpanId</span>
+                    <span class="pane-details-subtext">@shortedSpanId</span>
                 </div>
             </DetailsTitleTemplate>
             <Summary>
