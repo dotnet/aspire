@@ -1,15 +1,40 @@
 .log-overflow {
+    --console-theme-black: #0C0C0C;
+    --console-theme-blue: #0037DA;
+    --console-theme-cyan: #3A96DD;
+    --console-theme-green: #13A10E;
+    --console-theme-magenta: #CD13E8;
+    --console-theme-bg-red: #F80F24;
+    --console-theme-fg-red: #C50F1F;
+    --console-theme-white: #CCCCCC;
+    --console-theme-yellow: #C19C00;
+
+    --console-theme-bright-black: #767676;
+    --console-theme-bright-blue: #3B78FF;
+    --console-theme-bright-cyan: #61D6D6;
+    --console-theme-bright-green: #16C60C;
+    --console-theme-bright-magenta: #DA01FA;
+    --console-theme-bright-red: #E74856;
+    --console-theme-bright-white: #F2F2F2;
+    --console-theme-bright-yellow: #F9F1A5;
+
+    --line-number-color: #848484;
+    --timestamp-color: var(--line-number-color);
+    --console-background-color: var(--console-theme-black);
+    --console-background-color-hover: #1D1D1D;
+    --console-font-color: var(--console-theme-white);
+
     height: 100%;
     width: 100%;
     overflow: auto;
-    background-color: #0C0C0C;
+    background-color: var(--console-background-color);
 }
 
 ::deep .log-container {
-    background: #0C0C0C;
-    color: #CCCCCC;
+    background: var(--console-background-color);
+    color: var(--console-font-color);
     font-family: 'Cascadia Mono', Consolas, monospace;
-    font-size: 0.75rem;
+    font-size: 12px;
     margin: 16px 0 0 0;
     padding-bottom: 24px;
     line-height: 20px;
@@ -20,12 +45,8 @@
     counter-reset: line-number 0;
 }
 
-::deep .initial-text {
-    padding-left: 12px;
-}
-
 ::deep .line-row-container {
-    width:100%;
+    width: 100%;
     overflow: hidden;
     counter-increment: line-number 1;
 }
@@ -38,6 +59,10 @@
     display: flex;
     flex-direction: row;
     flex-grow: 1;
+}
+
+::deep .line-row:hover {
+    background-color: var(--console-background-color-hover);
 }
 
 ::deep .line-area {
@@ -53,7 +78,7 @@
     text-align: right;
     align-self: flex-start;
     flex-shrink: 0;
-    color: #808080;
+    color: var(--line-number-color);
 }
 
 ::deep .line-number::before {
@@ -62,7 +87,7 @@
 
 ::deep .content {
     word-break: break-all;
-    margin-left: 1em;
+    margin-left: 20px;
     position: relative;
     margin-right: 6px;
     user-select: text;
@@ -72,13 +97,13 @@
 }
 
 ::deep .content .timestamp {
-    color: #F2F2F2;
+    color: var(--timestamp-color);
 }
 
 ::deep .content a,
 ::deep .content a:active,
 ::deep .content a:visited {
-    color: #CCCCCC;
+    color: var(--console-font-color);
     text-decoration: none;
 }
 
@@ -95,97 +120,97 @@
 }
 
 ::deep .ansi-fg-black {
-    color: #0C0C0C;
+    color: var(--console-theme-black);
 }
 
 ::deep .ansi-fg-blue {
-    color: #0037DA;
+    color: var(--console-theme-blue);
 }
 
 ::deep .ansi-fg-cyan {
-    color: #3A96DD;
+    color: var(--console-theme-cyan);
 }
 
 ::deep .ansi-fg-green {
-    color: #13A10E;
+    color: var(--console-theme-green);
 }
 
 ::deep .ansi-fg-magenta {
-    color: #CD13E8;
+    color: var(--console-theme-magenta);
 }
 
 ::deep .ansi-fg-red {
-    color: #C50F1F;
+    color: var(--console-theme-fg-red);
 }
 
 ::deep .ansi-fg-white {
-    color: #CCCCCC;
+    color: var(--console-theme-white);
 }
 
 ::deep .ansi-fg-yellow {
-    color: #C19C00;
+    color: var(--console-theme-yellow);
 }
 
 ::deep .ansi-fg-brightblack {
-    color: #767676;
+    color: var(--console-theme-bright-black);
 }
 
 ::deep .ansi-fg-brightblue {
-    color: #3B78FF;
+    color: var(--console-theme-bright-blue);
 }
 
 ::deep .ansi-fg-brightcyan {
-    color: #61D6D6;
+    color: var(--console-theme-bright-cyan);
 }
 
 ::deep .ansi-fg-brightgreen {
-    color: #16C60C;
+    color: var(--console-theme-bright-green);
 }
 
 ::deep .ansi-fg-brightmagenta {
-    color: #DA01FA;
+    color: var(--console-theme-bright-magenta);
 }
 
 ::deep .ansi-fg-brightred {
-    color: #E74856;
+    color: var(--console-theme-bright-red);
 }
 
 ::deep .ansi-fg-brightwhite {
-    color: #F2F2F2;
+    color: var(--console-theme-bright-white);
 }
 
 ::deep .ansi-fg-brightyellow {
-    color: #F9F1A5;
+    color: var(--console-theme-bright-yellow);
 }
 
 ::deep .ansi-bg-black {
-    background-color: #0C0C0C;
+    background-color: var(--console-theme-black);
 }
 
 ::deep .ansi-bg-blue {
-    background-color: #0037DA;
+    background-color: var(--console-theme-blue);
 }
 
 ::deep .ansi-bg-cyan {
-    background-color: #3A96DD;
+    background-color: var(--console-theme-cyan);
 }
 
 ::deep .ansi-bg-green {
-    background-color: #13A10E;
+    background-color: var(--console-theme-green);
 }
 
 ::deep .ansi-bg-magenta {
-    background-color: #CD13E8;
+    background-color: var(--console-theme-magenta);
 }
 
 ::deep .ansi-bg-red {
-    background-color: #f80f24;
+    background-color: var(--console-theme-bg-red);
 }
 
 ::deep .ansi-bg-white {
-    background-color: #CCCCCC;
+    background-color: var(--console-theme-white);
 }
 
 ::deep .ansi-bg-yellow {
-    background-color: #C19C00;
+    background-color: var(--console-theme-yellow);
 }
