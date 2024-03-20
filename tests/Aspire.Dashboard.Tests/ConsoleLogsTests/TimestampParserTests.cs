@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.ConsoleLogs;
+using Aspire.Dashboard.Model;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.ConsoleLogsTests;
@@ -14,7 +16,7 @@ public class TimestampParserTests
     [InlineData("This is some text without any timestamp")]
     public void TryColorizeTimestamp_DoesNotStartWithTimestamp_ReturnsFalse(string input)
     {
-        var result = TimestampParser.TryColorizeTimestamp(TimeProvider.System, input, convertTimestampsFromUtc: false, out var _);
+        var result = TimestampParser.TryColorizeTimestamp(CreateTimeProvider(), input, convertTimestampsFromUtc: false, out var _);
 
         Assert.False(result);
     }
@@ -26,7 +28,7 @@ public class TimestampParserTests
     [InlineData("With some text before it 2023-10-10T15:05:30.123456789Z", false, null, null)]
     public void TryColorizeTimestamp_ReturnsCorrectResult(string input, bool expectedResult, string? expectedOutput, string? expectedTimestamp)
     {
-        var result = TimestampParser.TryColorizeTimestamp(TimeProvider.System, input, convertTimestampsFromUtc: false, out var parseResult);
+        var result = TimestampParser.TryColorizeTimestamp(CreateTimeProvider(), input, convertTimestampsFromUtc: false, out var parseResult);
 
         Assert.Equal(expectedResult, result);
         Assert.Equal(expectedOutput, parseResult.ModifiedText);
@@ -49,8 +51,13 @@ public class TimestampParserTests
     [InlineData("2023-10-10T15:05:30.123456789")]
     public void TryColorizeTimestamp_SupportedTimestampFormats(string input)
     {
-        var result = TimestampParser.TryColorizeTimestamp(TimeProvider.System, input, convertTimestampsFromUtc: false, out var _);
+        var result = TimestampParser.TryColorizeTimestamp(CreateTimeProvider(), input, convertTimestampsFromUtc: false, out var _);
 
         Assert.True(result);
+    }
+
+    private static BrowserTimeProvider CreateTimeProvider()
+    {
+        return new BrowserTimeProvider(NullLoggerFactory.Instance);
     }
 }

@@ -14,17 +14,11 @@ public partial class SpanDetails
     public required SpanDetailsViewModel ViewModel { get; set; }
 
     private IQueryable<SpanPropertyViewModel> FilteredItems =>
-        ViewModel.Properties.Where(vm =>
-            vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-            vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
-        ).AsQueryable();
+        ViewModel.Properties.Where(ApplyFilter).AsQueryable();
 
-    private IQueryable<SpanPropertyViewModel> FilteredApplicationItems =>
+    private IQueryable<SpanPropertyViewModel> FilteredResourceItems =>
         ViewModel.Span.Source.AllProperties().Select(p => new SpanPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(vm =>
-                vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-                vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
-        ).AsQueryable();
+            .Where(ApplyFilter).AsQueryable();
 
     private IQueryable<OtlpSpanEvent> FilteredSpanEvents =>
         ViewModel.Span.Events.Where(e => e.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)).OrderBy(e => e.Time).AsQueryable();
@@ -33,4 +27,10 @@ public partial class SpanDetails
 
     private readonly GridSort<SpanPropertyViewModel> _nameSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Name);
     private readonly GridSort<SpanPropertyViewModel> _valueSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Value);
+
+    private bool ApplyFilter(SpanPropertyViewModel vm)
+    {
+        return vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
+            vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true;
+    }
 }

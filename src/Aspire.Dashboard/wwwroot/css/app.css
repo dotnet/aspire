@@ -176,7 +176,7 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     grid-area: main;
 }
 
-.span-id {
+.pane-details-subtext {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
@@ -377,4 +377,22 @@ fluent-switch.table-switch::part(label) {
 */
 fluent-data-grid-cell.no-ellipsis {
     text-overflow: unset !important;
+}
+
+.endpoint-overflow {
+    overflow-x: visible !important;
+}
+
+.endpoint-overflow .fluent-overflow-more {
+    display: flex;
+}
+
+.endpoint-button {
+    height: unset;
+    font-size: var(--type-ramp-minus-1-font-size);
+    line-height: var(--type-ramp-minus-1-line-height);
+}
+
+.endpoint-button::part(control) {
+    padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }

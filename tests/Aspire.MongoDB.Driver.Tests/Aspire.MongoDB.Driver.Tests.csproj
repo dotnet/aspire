@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
+
     <None Include="$(RepoRoot)src\Components\Aspire.MongoDB.Driver\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" />

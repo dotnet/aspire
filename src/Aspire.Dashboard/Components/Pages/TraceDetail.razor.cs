@@ -31,7 +31,7 @@ public partial class TraceDetail : ComponentBase
     public required IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers { get; set; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; set; }
 
     protected override void OnInitialized()
     {

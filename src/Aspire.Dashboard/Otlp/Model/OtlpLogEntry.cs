@@ -17,6 +17,7 @@ public class OtlpLogEntry
     public string Message { get; }
     public string SpanId { get; }
     public string TraceId { get; }
+    public string ParentId { get; }
     public string? OriginalFormat { get; }
     public OtlpApplication Application { get; }
     public OtlpScope Scope { get; }
@@ -24,12 +25,16 @@ public class OtlpLogEntry
     public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryOptions options)
     {
         string? originalFormat = null;
+        string? parentId = null;
         Attributes = record.Attributes.ToKeyValuePairs(options, filter: attribute =>
         {
             switch (attribute.Key)
             {
                 case "{OriginalFormat}":
                     originalFormat = attribute.Value.GetString();
+                    return false;
+                case "ParentId":
+                    parentId = attribute.Value.GetString();
                     return false;
                 case "SpanId":
                 case "TraceId":
@@ -48,6 +53,7 @@ public class OtlpLogEntry
         OriginalFormat = originalFormat;
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
+        ParentId = parentId ?? string.Empty;
         Application = logApp;
         Scope = scope;
     }
@@ -80,32 +86,4 @@ public class OtlpLogEntry
         SeverityNumber.Fatal4 => LogLevel.Critical,
         _ => LogLevel.None
     };
-
-    public Dictionary<string, string> AllProperties()
-    {
-        var props = new Dictionary<string, string>();
-
-        AddOptionalValue("Application", Application.ApplicationName, props);
-        AddOptionalValue("Category", Scope.ScopeName, props);
-        AddOptionalValue("Level", Severity.ToString(), props);
-        AddOptionalValue("Message", Message, props);
-        AddOptionalValue("TraceId", TraceId, props);
-        AddOptionalValue("SpanId", SpanId, props);
-        AddOptionalValue("OriginalFormat", OriginalFormat, props);
-
-        foreach (var kv in Attributes)
-        {
-            props.TryAdd(kv.Key, kv.Value);
-        }
-
-        return props;
-
-        static void AddOptionalValue(string name, string? value, Dictionary<string, string> props)
-        {
-            if (!string.IsNullOrEmpty(value))
-            {
-                props.Add(name, value);
-            }
-        }
-    }
 }

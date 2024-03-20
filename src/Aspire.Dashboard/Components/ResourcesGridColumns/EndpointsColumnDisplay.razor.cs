@@ -17,6 +17,8 @@ public partial class EndpointsColumnDisplay
     [Inject]
     public required ILogger<EndpointsColumnDisplay> Logger { get; init; }
 
+    private bool _popoverVisible;
+
     /// <summary>
     /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
     /// </summary>
