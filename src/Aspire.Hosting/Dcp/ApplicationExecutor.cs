@@ -201,6 +201,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 _logger.LogDebug("Watch resource operation was cancelled.");
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
+            }
         }
     }
 
