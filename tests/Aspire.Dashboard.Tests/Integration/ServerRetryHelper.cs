@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
+// Copied from https://github.com/dotnet/aspnetcore/blob/1b2e5286b089fa1cab90ba8692c2df7ca6f9c077/src/Servers/Kestrel/shared/test/ServerRetryHelper.cs
 public static class ServerRetryHelper
 {
     private const int RetryCount = 20;
