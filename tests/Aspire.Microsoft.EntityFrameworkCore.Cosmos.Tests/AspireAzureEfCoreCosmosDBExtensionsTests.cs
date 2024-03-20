@@ -61,7 +61,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         if (!useSettings)
         {
             builder.Configuration.AddInMemoryCollection([
-                new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:RequestTimeout", "608"),
+                new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:RequestTimeout", "00:10:08"),
             ]);
         }
 
