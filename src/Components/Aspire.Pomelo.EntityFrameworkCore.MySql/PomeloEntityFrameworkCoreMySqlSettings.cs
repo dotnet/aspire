@@ -51,7 +51,7 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     public bool Metrics { get; set; } = true;
 
     /// <summary>
-    /// The time in seconds to wait for the command to execute.
+    /// Gets or sets the time in seconds to wait for the command to execute.
     /// </summary>
     public int? CommandTimeout { get; set; }
 }

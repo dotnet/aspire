@@ -56,7 +56,7 @@
                   "properties": {
                     "CommandTimeout": {
                       "type": "integer",
-                      "description": "The time in seconds to wait for the command to execute."
+                      "description": "Gets or sets the time in seconds to wait for the command to execute."
                     },
                     "ConnectionString": {
                       "type": "string",
