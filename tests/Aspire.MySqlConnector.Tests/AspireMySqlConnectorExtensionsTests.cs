@@ -16,6 +16,7 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
     private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                         ? _containerFixture.GetConnectionString()
                                         : "Server=localhost;Database=test_aspire_mysql";
+    private string NormalizedConnectionString => new MySqlConnectionStringBuilder(ConnectionString).ConnectionString;
 
     public AspireMySqlConnectorExtensionsTests(MySqlContainerFixture containerFixture)
         => _containerFixture = containerFixture;
@@ -44,9 +45,7 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();
 
-        string actualConnectionString = dataSource.ConnectionString;
-        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString).ConnectionString;
-        Assert.Equal(expectedConnectionString, actualConnectionString);
+        Assert.Equal(NormalizedConnectionString, dataSource.ConnectionString);
     }
 
     [Theory]
@@ -74,9 +73,7 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();
 
-        string actualConnectionString = dataSource.ConnectionString;
-        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString).ConnectionString;
-        Assert.Equal(expectedConnectionString, actualConnectionString);
+        Assert.Equal(NormalizedConnectionString, dataSource.ConnectionString);
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
@@ -108,9 +105,7 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();
 
-        string actualConnectionString = dataSource.ConnectionString;
-        string expectedConnectionString = new MySqlConnectionStringBuilder(ConnectionString).ConnectionString;
-        Assert.Equal(expectedConnectionString, actualConnectionString);
+        Assert.Equal(NormalizedConnectionString, dataSource.ConnectionString);
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
