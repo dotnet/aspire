@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -97,9 +98,37 @@ public class AddMongoDBTests
     public void WithMongoExpressAddsContainer()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddMongoDB("mongo").WithMongoExpress();
+        builder.AddMongoDB("mongo")
+            .WithMongoExpress();
 
         Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+    }
+
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task WithMongoExpressUsesContainerHost(string containerHost)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000, containerHost))
+            .WithMongoExpress();
+
+        var mongoExpress = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mongoExpress);
+
+        Assert.Collection(env,
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
+                Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
+                Assert.Equal("false", e.Value);
+            });
     }
 
     [Fact]

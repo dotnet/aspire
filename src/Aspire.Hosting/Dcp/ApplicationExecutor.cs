@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
@@ -89,10 +90,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _logStreams = new();
     private readonly ConcurrentDictionary<IResource, bool> _hiddenResources = new();
+    private DcpInfo? _dcpInfo;
+
+    private string DefaultContainerHostName => configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
+
+        _dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
+
+        Debug.Assert(_dcpInfo is not null, "DCP info should not be null at this point");
+
         try
         {
             if (!distributedApplicationOptions.DisableDashboard)
@@ -109,7 +118,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             PrepareServices();
             PrepareContainers();
-            await PrepareExecutablesAsync(cancellationToken).ConfigureAwait(false);
+            PrepareExecutables();
 
             await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
 
@@ -894,7 +903,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
     {
-        var containerHost = HostNameResolver.ReplaceLocalhostWithContainerHost("localhost", configuration);
+        var containerHost = DefaultContainerHostName;
 
         foreach (var appResource in resources)
         {
@@ -917,7 +926,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     sp.EndpointAnnotation,
                     sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
                     (int)svc.AllocatedPort!,
-                    containerHostAddress: containerHost);
+                    containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null);
             }
         }
     }
@@ -960,9 +969,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task PrepareExecutablesAsync(CancellationToken cancellationToken)
+    private void PrepareExecutables()
     {
-        await PrepareProjectExecutablesAsync(cancellationToken).ConfigureAwait(false);
+        PrepareProjectExecutables();
         PreparePlainExecutables();
     }
 
@@ -988,10 +997,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task PrepareProjectExecutablesAsync(CancellationToken cancellationToken)
+    private void PrepareProjectExecutables()
     {
         var modelProjectResources = _model.GetProjectResources();
-        var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var project in modelProjectResources)
         {
@@ -1017,7 +1025,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
-                if (dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionIdeProtocolV1) >= 0)
+                if (_dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionIdeProtocolV1) >= 0)
                 {
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
                     if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
@@ -1312,10 +1320,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         var value = await task.ConfigureAwait(false);
 
-        if (value is not null && isContainer && valueProvider is ConnectionStringReference or EndpointReference)
+        if (value is not null && isContainer && valueProvider is ConnectionStringReference or EndpointReference or HostUrl)
         {
             // If the value is a connection string or endpoint reference, we need to replace localhost with the container host.
-            return HostNameResolver.ReplaceLocalhostWithContainerHost(value, configuration);
+            return ReplaceLocalhostWithContainerHost(value);
         }
 
         return value;
@@ -1755,5 +1763,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
             }
         }
+    }
+
+    private string ReplaceLocalhostWithContainerHost(string value)
+    {
+        // https://stackoverflow.com/a/43541732/45091
+
+        // This configuration value is a workaround for the fact that host.docker.internal is not available on Linux by default.
+        var hostName = DefaultContainerHostName;
+
+        return value.Replace("localhost", hostName, StringComparison.OrdinalIgnoreCase)
+                    .Replace("127.0.0.1", hostName)
+                    .Replace("[::1]", hostName);
     }
 }
