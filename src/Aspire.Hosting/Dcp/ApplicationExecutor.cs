@@ -759,11 +759,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 Name = "ASPNETCORE_ENVIRONMENT",
                 Value = aspnetcoreEnvironment
-            },
-            new()
-            {
-                Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
-                Value = "ApiKey" // Matches value in OtlpAuthMode enum.
             }
         ];
 

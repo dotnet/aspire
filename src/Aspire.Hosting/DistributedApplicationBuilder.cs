@@ -80,9 +80,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Directory"] = AppHostDirectory
         };
 
-        if (_innerBuilder.Configuration[DisableOtlpApiKeyAuthKey] is { } configValue &&
-            bool.TryParse(configValue, out var disableAuth) &&
-            disableAuth)
+        if (!IsOtlpApiKeyAuthDisabled(_innerBuilder.Configuration))
         {
             // Set a random API key for the OTLP exporter.
             // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
@@ -128,6 +126,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton<DistributedApplicationExecutionContext>(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private static bool IsOtlpApiKeyAuthDisabled(IConfiguration configuration)
+    {
+        return configuration[DisableOtlpApiKeyAuthKey] is { } configValue &&
+            bool.TryParse(configValue, out var disableAuth) &&
+            disableAuth;
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)

@@ -36,7 +36,6 @@ public static class OtlpConfigurationExtensions
             }
 
             var url = configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
-
             context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = resource is ContainerResource
                 ? HostNameResolver.ReplaceLocalhostWithContainerHost(url, configuration)
                 : url;
