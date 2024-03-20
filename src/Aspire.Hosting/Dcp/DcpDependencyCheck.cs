@@ -102,13 +102,11 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             }
             catch (Exception ex) when (ex is not DistributedApplicationException)
             {
-                Console.Error.WriteLine(string.Format(
+                throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.DcpDependencyCheckFailedMessage,
                     ex.ToString()
                 ));
-                Environment.Exit((int)DcpVersionCheckFailures.DcpVersionFailed);
-                return null; // Make compiler happy
             }
             finally
             {
@@ -120,7 +118,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         }
         finally
         {
-            this._lock.Release();
+            _lock.Release();
         }
     }
 
@@ -149,11 +147,10 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             {
                 if (dcpVersion < DcpVersion.MinimumVersionInclusive)
                 {
-                    Console.Error.WriteLine(string.Format(
+                    throw new DistributedApplicationException(string.Format(
                         CultureInfo.InvariantCulture,
                         Resources.DcpVersionCheckTooLowMessage
                     ));
-                    Environment.Exit((int)DcpVersionCheckFailures.DcpVersionIncompatible);
                 }
 
                 dcpInfo.Version = dcpVersion;
@@ -190,23 +187,21 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
             if (!installed)
             {
-                Console.Error.WriteLine(string.Format(
+                throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.ContainerRuntimePrerequisiteMissingExceptionMessage,
                     containerRuntime,
                     error
                 ));
-                Environment.Exit((int)ContainerRuntimeHealthCheckFailures.PrerequisiteMissing);
             }
             else if (!running)
             {
-                Console.Error.WriteLine(string.Format(
+                throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.ContainerRuntimeUnhealthyExceptionMessage,
                     containerRuntime,
                     error
                 ));
-                Environment.Exit((int)ContainerRuntimeHealthCheckFailures.Unhealthy);
             }
 
             // If we get to here all is good!
