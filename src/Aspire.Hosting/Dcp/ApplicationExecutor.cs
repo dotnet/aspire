@@ -685,6 +685,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
+            context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_DISABLE_AUTH"] = "1"; // No auth in local dev experience
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
         }));
     }
@@ -738,6 +739,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 Name = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL",
                 Value = grpcEndpointUrl
+            },
+            new() // No auth in local dev experience
+            {
+                Name = "DOTNET_RESOURCE_SERVICE_DISABLE_AUTH",
+                Value = "1"
             },
             new()
             {

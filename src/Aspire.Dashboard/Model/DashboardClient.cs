@@ -3,7 +3,9 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using Aspire.Dashboard.Utils;
 using Aspire.V1;
@@ -33,6 +35,9 @@ namespace Aspire.Dashboard.Model;
 internal sealed class DashboardClient : IDashboardClient
 {
     private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
+    private const string ResourceServiceDisableAuthVariableName = "DOTNET_RESOURCE_SERVICE_DISABLE_AUTH";
+    private const string ResourceServiceClientCertificatePathVariableName = "DOTNET_RESOURCE_SERVICE_CLIENT_CERTIFICATE_PATH";
+    private const string ResourceServiceClientCertificatePasswordVariableName = "DOTNET_RESOURCE_SERVICE_CLIENT_CERTIFICATE_PASSWORD";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
@@ -97,6 +102,28 @@ internal sealed class DashboardClient : IDashboardClient
                 KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
                 KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
             };
+
+            if (!configuration.GetBool(ResourceServiceDisableAuthVariableName, defaultValue: false))
+            {
+                // Auth hasn't been suppressed, so configure it.
+                var certificatePath = configuration[ResourceServiceClientCertificatePathVariableName];
+                var certificatePassword = configuration[ResourceServiceClientCertificatePasswordVariableName];
+
+                if (string.IsNullOrWhiteSpace(certificatePath))
+                {
+                    throw new InvalidOperationException(
+                        $"Resource service auth hasn't been disabled via {ResourceServiceDisableAuthVariableName}, " +
+                        $"and no certificate was provided via {ResourceServiceClientCertificatePathVariableName} and " +
+                        $"{ResourceServiceClientCertificatePasswordVariableName}. Review the dashboard's configuration.");
+                }
+
+                httpHandler.SslOptions = new SslClientAuthenticationOptions
+                {
+                    ClientCertificates = [new X509Certificate(certificatePath, certificatePassword)]
+                };
+
+                configuration.Bind("ResourceServiceClient:Ssl", httpHandler.SslOptions);
+            }
 
             // https://learn.microsoft.com/aspnet/core/grpc/retries
 
