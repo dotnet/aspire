@@ -27,8 +27,8 @@ public class AddPostgresTests
         Assert.Equal("myPostgres", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("16.2", containerAnnotation.Tag);
-        Assert.Equal("postgres", containerAnnotation.Image);
+        Assert.Equal(PostgresContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(PostgresContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -82,8 +82,8 @@ public class AddPostgresTests
         Assert.Equal("myPostgres", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("16.2", containerAnnotation.Tag);
-        Assert.Equal("postgres", containerAnnotation.Image);
+        Assert.Equal(PostgresContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(PostgresContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -174,8 +174,8 @@ public class AddPostgresTests
         Assert.Equal("postgres", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("16.2", containerAnnotation.Tag);
-        Assert.Equal("postgres", containerAnnotation.Image);
+        Assert.Equal(PostgresContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(PostgresContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -222,11 +222,11 @@ public class AddPostgresTests
         var serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username=postgres;Password={pg.inputs.password}",
-              "image": "postgres:16.2",
+              "image": "{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -408,16 +408,18 @@ public class AddPostgresTests
         builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
     }
 
-    [Fact]
-    public void WithPostgresProducesValidServersJsonFile()
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public void WithPostgresProducesValidServersJsonFile(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(8081);
         var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(8081);
 
         // Add fake allocated endpoints.
-        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
-        pg2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
+        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        pg2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
         var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -436,7 +438,7 @@ public class AddPostgresTests
         // Make sure the first server is correct.
         Assert.Equal(pg1.Resource.Name, servers.GetProperty("1").GetProperty("Name").GetString());
         Assert.Equal("Aspire instances", servers.GetProperty("1").GetProperty("Group").GetString());
-        Assert.Equal("host.docker.internal", servers.GetProperty("1").GetProperty("Host").GetString());
+        Assert.Equal(containerHost, servers.GetProperty("1").GetProperty("Host").GetString());
         Assert.Equal(5001, servers.GetProperty("1").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("1").GetProperty("SSLMode").GetString());
@@ -446,7 +448,7 @@ public class AddPostgresTests
         // Make sure the second server is correct.
         Assert.Equal(pg2.Resource.Name, servers.GetProperty("2").GetProperty("Name").GetString());
         Assert.Equal("Aspire instances", servers.GetProperty("2").GetProperty("Group").GetString());
-        Assert.Equal("host.docker.internal", servers.GetProperty("2").GetProperty("Host").GetString());
+        Assert.Equal("host2", servers.GetProperty("2").GetProperty("Host").GetString());
         Assert.Equal(5002, servers.GetProperty("2").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());

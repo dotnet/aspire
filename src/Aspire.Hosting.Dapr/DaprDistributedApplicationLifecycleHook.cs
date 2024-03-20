@@ -144,9 +144,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             return;
                         }
 
-                        var resourceWithEndpoints = (IResourceWithEndpoints)daprCli;
-                        var http = resourceWithEndpoints.GetEndpoint("http");
-                        var grpc = resourceWithEndpoints.GetEndpoint("grpc");
+                        var http = daprCli.GetEndpoint("http");
+                        var grpc = daprCli.GetEndpoint("grpc");
 
                         context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", grpc);
                         context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", http);

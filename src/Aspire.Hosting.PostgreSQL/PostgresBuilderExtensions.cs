@@ -33,7 +33,7 @@ public static class PostgresBuilderExtensions
         var postgresServer = new PostgresServerResource(name, userName?.Resource, password?.Resource);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
-                      .WithImage("postgres", "16.2")
+                      .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
