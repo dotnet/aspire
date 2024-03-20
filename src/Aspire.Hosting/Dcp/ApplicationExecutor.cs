@@ -764,11 +764,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
         {
-            dashboardExecutableSpec.Env.Add(new()
-            {
-                Name = "DOTNET_DASHBOARD_OTLP_API_KEY",
-                Value = otlpApiKey
-            });
+            dashboardExecutableSpec.Env.AddRange([
+                new()
+                {
+                    Name = "DOTNET_DASHBOARD_OTLP_API_KEY",
+                    Value = otlpApiKey
+                },
+                new()
+                {
+                    Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
+                    Value = "ApiKey" // Matches value in OtlpAuthMode enum.
+                }
+            ]);
         }
 
         var dashboardExecutable = new Executable(dashboardExecutableSpec)
