@@ -43,7 +43,9 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
                 }
 
                 // configure processor identifier
-                options.Identifier ??= $"{settings.EventHubName}-{settings.ConsumerGroup ?? "default"}";
+                var slug = Guid.NewGuid().ToString().Substring(24);
+                options.Identifier ??= $"{Environment.MachineName}-{settings.EventHubName}-" +
+                                       $"{settings.ConsumerGroup ?? "default"}-{slug}";
 
                 var blobClient = GetBlobContainerClient(settings, cred, configurationSectionName);
 

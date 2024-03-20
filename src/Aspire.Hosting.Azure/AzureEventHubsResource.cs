@@ -17,13 +17,13 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
     internal List<(string Name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? Configure)> Hubs { get; } = [];
 
     /// <summary>
-    /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Event Hubs resource.
+    /// Gets the "eventHubsEndpoint" output reference from the bicep template for the Azure Event Hubs resource.
     /// </summary>
-    public BicepOutputReference ServiceBusEndpoint => new("serviceBusEndpoint", this);
+    public BicepOutputReference EventHubsEndpoint => new("eventHubsEndpoint", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Event Hubs endpoint.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{ServiceBusEndpoint}");
+        ReferenceExpression.Create($"{EventHubsEndpoint}");
 }
