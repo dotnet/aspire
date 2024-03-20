@@ -35,9 +35,9 @@ public class AddSqlServerTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("2022-latest", containerAnnotation.Tag);
-        Assert.Equal("mssql/server", containerAnnotation.Image);
-        Assert.Equal("mcr.microsoft.com", containerAnnotation.Registry);
+        Assert.Equal(SqlServerContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(SqlServerContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(SqlServerContainerImageTags.Registry, containerAnnotation.Registry);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
@@ -111,11 +111,11 @@ public class AddSqlServerTests
         var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true",
-              "image": "mcr.microsoft.com/mssql/server:2022-latest",
+              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
               "env": {
                 "ACCEPT_EULA": "Y",
                 "MSSQL_SA_PASSWORD": "{sqlserver.inputs.password}"
@@ -165,7 +165,7 @@ public class AddSqlServerTests
         var sqlServer = appBuilder.AddSqlServer("sqlserver", pass);
         var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true",

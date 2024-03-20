@@ -5,6 +5,7 @@ namespace Aspire.Hosting;
 
 internal static class SqlServerContainerImageTags
 {
-    public const string Image = "mcr.microsoft.com/mssql/server";
+    public const string Registry = "mcr.microsoft.com";
+    public const string Image = "mssql/server";
     public const string Tag = "2022-latest";
 }
