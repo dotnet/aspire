@@ -36,6 +36,8 @@ public static class OtlpConfigurationExtensions
             }
 
             var url = configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
+            var apiKey = configuration["AppHost:OtlpApiKey"];
+
             context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = resource is ContainerResource
                 ? HostNameResolver.ReplaceLocalhostWithContainerHost(url, configuration)
                 : url;
@@ -43,7 +45,7 @@ public static class OtlpConfigurationExtensions
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";
-            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = "x-otlp-api-key=abc123";
+            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={apiKey}";
 
             // Set a small batch schedule delay in development.
             // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.

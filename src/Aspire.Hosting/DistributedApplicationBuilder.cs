@@ -72,10 +72,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
-        // Make the app host directory available to the application via configuration
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["AppHost:Directory"] = AppHostDirectory
+            // Make the app host directory available to the application via configuration
+            ["AppHost:Directory"] = AppHostDirectory,
+            // Set a random API key for the OTLP exporter.
+            // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
+            ["AppHost:OtlpApiKey"] = Guid.NewGuid().ToString()
         });
 
         // Core things

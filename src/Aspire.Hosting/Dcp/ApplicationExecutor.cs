@@ -679,6 +679,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
             }
 
+            if (configuration["AppHost:OtlpApiKey"] is not { } otlpApiKey)
+            {
+                throw new DistributedApplicationException("Couldn't find OTLP API key for the app host.");
+            }
+
             // Grab the resource service URL. We need to inject this into the resource.
 
             var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
@@ -687,7 +692,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_AUTH_MODE"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
-            context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_API_KEY"] = "abc123"; // TODO: Replace with actual API key]
+            context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_API_KEY"] = otlpApiKey;
         }));
     }
 
@@ -764,7 +769,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             new()
             {
                 Name = "DOTNET_DASHBOARD_OTLP_API_KEY",
-                Value = "abc123" // TODO: Replace with actual API key
+                Value = configuration["AppHost:OtlpApiKey"]
             }
         ];
 
