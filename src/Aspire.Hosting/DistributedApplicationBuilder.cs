@@ -26,6 +26,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructingEventName = "DistributedApplicationBuilderConstructing";
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
+    private const string DisableOtlpApiKeyAuthKey = "DOTNET_DISABLE_OTLP_API_KEY_AUTH";
+
     private readonly HostApplicationBuilder _innerBuilder;
 
     /// <inheritdoc />
@@ -72,14 +74,22 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
-        _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        var configData = new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
-            ["AppHost:Directory"] = AppHostDirectory,
+            ["AppHost:Directory"] = AppHostDirectory
+        };
+
+        if (_innerBuilder.Configuration[DisableOtlpApiKeyAuthKey] is { } configValue &&
+            bool.TryParse(configValue, out var disableAuth) &&
+            disableAuth)
+        {
             // Set a random API key for the OTLP exporter.
             // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
-            ["AppHost:OtlpApiKey"] = Guid.NewGuid().ToString()
-        });
+            configData["AppHost:OtlpApiKey"] = Guid.NewGuid().ToString();
+        }
+
+        _innerBuilder.Configuration.AddInMemoryCollection(configData);
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
