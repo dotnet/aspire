@@ -229,6 +229,18 @@ public class AddRedisTests
     }
 
     [Fact]
+    public void WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis")
+                              .WithDataVolume(isReadOnly: true);
+
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+
+        Assert.Null(persistenceAnnotation);
+    }
+
+    [Fact]
     public void WithDataBindMountAddsPersistenceAnnotation()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -239,6 +251,18 @@ public class AddRedisTests
 
         Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
         Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+    }
+
+    [Fact]
+    public void WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis")
+                              .WithDataBindMount("myredisdata", isReadOnly: true);
+
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+
+        Assert.Null(persistenceAnnotation);
     }
 
     [Fact]
