@@ -74,20 +74,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
-        var configData = new Dictionary<string, string?>
+        _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory
-        };
-
-        if (!IsOtlpApiKeyAuthDisabled(_innerBuilder.Configuration))
-        {
-            // Set a random API key for the OTLP exporter.
-            // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
-            configData["AppHost:OtlpApiKey"] = Guid.NewGuid().ToString();
-        }
-
-        _innerBuilder.Configuration.AddInMemoryCollection(configData);
+        });
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -130,9 +121,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private static bool IsOtlpApiKeyAuthDisabled(IConfiguration configuration)
     {
-        return configuration[DisableOtlpApiKeyAuthKey] is { } configValue &&
-            bool.TryParse(configValue, out var disableAuth) &&
-            disableAuth;
+        return configuration.GetBool(DisableOtlpApiKeyAuthKey) ?? false;
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
@@ -172,6 +161,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 .Select(g => g.Key))
             {
                 throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
+            }
+
+            if (!IsOtlpApiKeyAuthDisabled(_innerBuilder.Configuration))
+            {
+                // Set a random API key for the OTLP exporter.
+                // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
+                _innerBuilder.Configuration.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["AppHost:OtlpApiKey"] = Guid.NewGuid().ToString()
+                    }
+                );
             }
 
             var application = new DistributedApplication(_innerBuilder.Build());
