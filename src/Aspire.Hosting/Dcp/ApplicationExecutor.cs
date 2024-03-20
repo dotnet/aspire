@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Net.Sockets;
 using System.Text.Json;
-using System.Xml.Linq;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
