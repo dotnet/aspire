@@ -8,6 +8,9 @@ namespace Aspire.Hosting.Tests;
 
 public class WithEndpointTests
 {
+    // copied from /src/Shared/StringComparers.cs to avoid ambiguous reference since StringComparers exists internally in multiple Hosting assemblies.
+    private static StringComparison EndpointAnnotationName => StringComparison.OrdinalIgnoreCase;
+
     [Fact]
     public void WithEndpointInvokesCallback()
     {
@@ -19,7 +22,7 @@ public class WithEndpointTests
         });
 
         var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>()
-            .Where(e => string.Equals(e.Name, "mybinding", StringComparisons.EndpointAnnotationName)).Single();
+            .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
         Assert.Equal(2000, endpoint.Port);
     }
 
@@ -37,7 +40,7 @@ public class WithEndpointTests
 
         Assert.False(executed);
         Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var annotations));
-        Assert.DoesNotContain(annotations, e => string.Equals(e.Name, "mybinding", StringComparisons.EndpointAnnotationName));
+        Assert.DoesNotContain(annotations, e => string.Equals(e.Name, "mybinding", EndpointAnnotationName));
     }
 
     [Fact]
