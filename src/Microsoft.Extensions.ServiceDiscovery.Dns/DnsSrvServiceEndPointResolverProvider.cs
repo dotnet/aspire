@@ -122,6 +122,8 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
 
     private static bool IsInKubernetesCluster()
     {
+        // This logic is based on the Kubernetes C# client logic found here:
+        // https://github.com/kubernetes-client/csharp/blob/52c3c00d4c55b28bdb491a219f4967823a83df2d/src/KubernetesClient/KubernetesClientConfiguration.InCluster.cs#L21
         var host = Environment.GetEnvironmentVariable("KUBERNETES_SERVICE_HOST");
         var port = Environment.GetEnvironmentVariable("KUBERNETES_SERVICE_PORT");
         if (string.IsNullOrEmpty(host) || string.IsNullOrEmpty(port))
