@@ -133,6 +133,14 @@ internal sealed class AzureProvisioner(
             cancellationToken), cancellationToken);
     }
 
+    private static async Task<JsonObject> GetUserSecretsAsync(string? userSecretsPath, CancellationToken cancellationToken)
+    {
+        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
+                          ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
+                          : [];
+        return userSecrets;
+    }
+
     private async Task ProvisionAzureResources(
         IConfiguration configuration,
         ILogger<AzureProvisioner> logger,
@@ -150,9 +158,10 @@ internal sealed class AzureProvisioner(
         }
 
         var userSecretsPath = GetUserSecretsPath();
+        var userSecretsLazy = new Lazy<Task<JsonObject>>(() => GetUserSecretsAsync(userSecretsPath, cancellationToken));
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(userSecretsPath, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(userSecretsLazy, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -171,11 +180,11 @@ internal sealed class AzureProvisioner(
         {
             try
             {
-                var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
+                var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
                 // Ensure directory exists before attempting to create secrets file
                 Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-                await File.WriteAllTextAsync(userSecretsPath, provisioningContext.UserSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+                await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }
@@ -264,7 +273,7 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    private async Task<ProvisioningContext> GetProvisioningContextAsync(string? userSecretsPath, CancellationToken cancellationToken)
+    private async Task<ProvisioningContext> GetProvisioningContextAsync(Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
     {
         var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
         {
@@ -352,9 +361,7 @@ internal sealed class AzureProvisioner(
 
         var resourceMap = new Dictionary<string, ArmResource>();
 
-        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
-            : [];
+        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
         return new ProvisioningContext(
                     credential,

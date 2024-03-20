@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.MongoDB;
 using Testcontainers.MongoDb;
 using Xunit;
 
@@ -21,7 +22,7 @@ public sealed class MongoDbContainerFixture : IAsyncLifetime
             // testcontainers uses mongo:mongo by default,
             // resetting that for tests
             Container = new MongoDbBuilder()
-                .WithImage("mongo:7.0.5")
+                .WithImage($"{MongoDBContainerImageTags.Image}:{MongoDBContainerImageTags.Tag}")
                 .WithUsername(null)
                 .WithPassword(null)
                 .Build();

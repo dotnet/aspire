@@ -61,20 +61,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Sorry, there&apos;s nothing at this address..
+        ///   Looks up a localized string similar to Not found.
         /// </summary>
-        public static string RoutesNotFoundDescription {
+        public static string NotFoundDescription {
             get {
-                return ResourceManager.GetString("RoutesNotFoundDescription", resourceCulture);
+                return ResourceManager.GetString("NotFoundDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The page you requested could not be found.
+        /// </summary>
+        public static string NotFoundDetails {
+            get {
+                return ResourceManager.GetString("NotFoundDetails", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Not found.
         /// </summary>
-        public static string RoutesPageTitle {
+        public static string NotFoundPageTitle {
             get {
-                return ResourceManager.GetString("RoutesPageTitle", resourceCulture);
+                return ResourceManager.GetString("NotFoundPageTitle", resourceCulture);
             }
         }
     }
