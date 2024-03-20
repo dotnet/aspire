@@ -46,6 +46,7 @@ public class PublishAsDockerfileTests
             .PublishAsDockerFile(buildArgs: [
                 new DockerBuildArg("SOME_STRING", "Test"),
                 new DockerBuildArg("SOME_BOOL", true),
+                new DockerBuildArg("SOME_OTHER_BOOL", false),
                 new DockerBuildArg("SOME_NUMBER", 7),
                 new DockerBuildArg("SOME_NONVALUE"),
             ]);
@@ -62,7 +63,8 @@ public class PublishAsDockerfileTests
               "context": "NodeFrontend",
               "buildArgs": {
                 "SOME_STRING": "Test",
-                "SOME_BOOL": true,
+                "SOME_BOOL": "true",
+                "SOME_OTHER_BOOL": "false",
                 "SOME_NUMBER": "7",
                 "SOME_NONVALUE": null
               },
