@@ -59,7 +59,7 @@
                     },
                     "RequestTimeout": {
                       "type": "integer",
-                      "description": "The time in seconds to wait for the response to come back from the network peer"
+                      "description": "Gets or sets the time in seconds to wait for the response to come back from the network peer."
                     },
                     "Tracing": {
                       "type": "boolean",
