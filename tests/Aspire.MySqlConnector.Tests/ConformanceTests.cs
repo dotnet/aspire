@@ -18,7 +18,7 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
     private readonly MySqlContainerFixture _containerFixture;
     private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                         ? _containerFixture.GetConnectionString()
-                                        : "Host=localhost;Database=test_aspire_mysql;Username=root;Password=password";
+                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/mysql-net/MySqlConnector/blob/d895afc013a5849d33a123a7061442e2cbb9ce76/src/MySqlConnector/Utilities/ActivitySourceHelper.cs#L61
