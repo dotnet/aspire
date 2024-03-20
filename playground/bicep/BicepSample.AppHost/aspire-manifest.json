@@ -119,17 +119,6 @@
         "keyVaultName": "",
         "administratorLogin": "{administratorLogin.value}",
         "administratorLoginPassword": "{administratorLoginPassword.value}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
       }
     },
     "db2": {

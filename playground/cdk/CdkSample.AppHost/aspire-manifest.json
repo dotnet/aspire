@@ -123,17 +123,6 @@
         "keyVaultName": "",
         "administratorLogin": "{pgsqlAdministratorLogin.value}",
         "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
       }
     },
     "pgsqldb": {
