@@ -66,7 +66,7 @@ public static class RedisBuilderExtensions
     /// </code>
     /// </remarks>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
     /// <param name="isReadOnly">
     /// A flag that indicates if this is a read-only volume. Setting this to <c>true</c> will disable Redis persistence.<br/>
     /// Defaults to <c>false</c>.
