@@ -209,7 +209,12 @@ public class DashboardWebApplication : IAsyncDisposable
     // possible from the caller. e.g., using environment variables to configure each endpoint's TLS certificate.
     private void ConfigureKestrelEndpoints(WebApplicationBuilder builder, DashboardStartupConfiguration dashboardStartupConfig)
     {
-        var singleEndpoint = dashboardStartupConfig.BrowserUris.Length == 1 && dashboardStartupConfig.BrowserUris[0] == dashboardStartupConfig.OtlpUri;
+        // A single endpoint is configured if URLs are the same and the port isn't dynamic.
+        var singleEndpoint = dashboardStartupConfig.BrowserUris.Length == 1 && dashboardStartupConfig.BrowserUris[0] == dashboardStartupConfig.OtlpUri && dashboardStartupConfig.OtlpUri.Port != 0;
+        if (singleEndpoint && !IsHttps(dashboardStartupConfig.OtlpUri))
+        {
+            throw new InvalidOperationException("HTTPS is required when the dashboard is configured with a shared endpoint for browser access and the OTLP service. Browsers require HTTPS when an endpoint uses HTTP/2.");
+        }
 
         var initialValues = new Dictionary<string, string?>();
         var browserEndpointNames = new List<string>(capacity: dashboardStartupConfig.BrowserUris.Length);
@@ -236,7 +241,7 @@ public class DashboardWebApplication : IAsyncDisposable
         }
         else
         {
-            AddEndpointConfiguration(initialValues, "Otlp", dashboardStartupConfig.OtlpUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardStartupConfig.OtlpAuthMode == OtlpAuthMode.ClientCertificate);
+            AddEndpointConfiguration(initialValues, "Otlp", dashboardStartupConfig.OtlpUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardStartupConfig.OtlpAuthMode == OtlpAuthMode.ClientCertificate);
         }
 
         static void AddEndpointConfiguration(Dictionary<string, string?> values, string endpointName, string url, HttpProtocols? protocols = null, bool requiredClientCertificate = false)
@@ -261,7 +266,6 @@ public class DashboardWebApplication : IAsyncDisposable
         builder.WebHost.ConfigureKestrel((context, serverOptions) =>
         {
             var logger = serverOptions.ApplicationServices.GetRequiredService<ILogger<DashboardWebApplication>>();
-            logger.LogDebug("Configuring Kestrel endpoints.");
 
             var kestrelSection = context.Configuration.GetSection("Kestrel");
             var configurationLoader = serverOptions.Configure(kestrelSection);

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -35,7 +34,7 @@ public class StartupTests
     }
 
     [Fact]
-    public async Task Configuration_BrowserAndOtlpEndpointSame_EndPointPortsAssigned()
+    public async Task Configuration_BrowserAndOtlpEndpointSame_Https_EndPointPortsAssigned()
     {
         // Arrange
         DashboardWebApplication? app = null;
@@ -46,8 +45,8 @@ public class StartupTests
                 app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
                     additionalConfiguration: initialData =>
                     {
-                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
-                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"http://127.0.0.1:{port}";
+                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"https://127.0.0.1:{port}";
                     });
 
                 // Act
@@ -59,16 +58,60 @@ public class StartupTests
             Assert.Equal(app.BrowserEndPointAccessor().EndPoint.Port, app.OtlpServiceEndPointAccessor().EndPoint.Port);
 
             // Check browser access
-            using var httpClient = new HttpClient { BaseAddress = new Uri($"http://{app.BrowserEndPointAccessor().EndPoint}") };
-            var request = new HttpRequestMessage(HttpMethod.Get, "/") { Version = HttpVersion.Version20, VersionPolicy = HttpVersionPolicy.RequestVersionExact };
+            using var httpClient = new HttpClient(new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    return true;
+                }
+            })
+            {
+                BaseAddress = new Uri($"https://{app.BrowserEndPointAccessor().EndPoint}")
+            };
+            var request = new HttpRequestMessage(HttpMethod.Get, "/");
             var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             // Check OTLP service
-            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.BrowserEndPointAccessor().EndPoint}", _testOutputHelper);
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.BrowserEndPointAccessor().EndPoint}", _testOutputHelper);
             var client = new LogsService.LogsServiceClient(channel);
             var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest());
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                await app.DisposeAsync();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Configuration_BrowserAndOtlpEndpointSame_Https_Error()
+    {
+        // Arrange
+        DashboardWebApplication? app = null;
+        try
+        {
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            {
+                await ServerRetryHelper.BindPortsWithRetry(async port =>
+                {
+                    app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+                        additionalConfiguration: initialData =>
+                        {
+                            initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
+                            initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"http://127.0.0.1:{port}";
+                        });
+
+                    // Act
+                    await app.StartAsync();
+                }, NullLogger.Instance);
+            });
+
+            // Assert
+            Assert.Equal("HTTPS is required when the dashboard is configured with a shared endpoint for browser access and the OTLP service. Browsers require HTTPS when an endpoint uses HTTP/2.", ex.Message);
         }
         finally
         {
