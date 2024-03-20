@@ -67,6 +67,7 @@
     user-select: text;
     cursor: text;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 ::deep .content .timestamp {

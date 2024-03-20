@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.Components.Common.Tests;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
@@ -255,36 +256,39 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
     }
 
     [RequiresDockerFact]
-    public async Task KeyedServiceRedisInstrumentationEndToEnd()
+    public void KeyedServiceRedisInstrumentationEndToEnd()
     {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:redis", ConnectionString)
+        RemoteExecutor.Invoke(async (connectionString) =>
+        {
+            var builder = Host.CreateEmptyApplicationBuilder(null);
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("ConnectionStrings:redis", connectionString)
             ]);
 
-        var notifier = new ActivityNotifier();
-        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
-        // set the FlushInterval to to zero so the Activity gets created immediately
-        builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
+            var notifier = new ActivityNotifier();
+            builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
+            // set the FlushInterval to to zero so the Activity gets created immediately
+            builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
 
-        builder.AddKeyedRedisClient("redis");
-        var host = builder.Build();
+            builder.AddKeyedRedisClient("redis");
+            using var host = builder.Build();
 
-        // We start the host to make it build TracerProvider.
-        // If we don't, nothing gets reported!
-        host.Start();
+            // We start the host to make it build TracerProvider.
+            // If we don't, nothing gets reported!
+            host.Start();
 
-        var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
-        var database = connectionMultiplexer.GetDatabase();
-        database.StringGet("key");
+            var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
+            var database = connectionMultiplexer.GetDatabase();
+            database.StringGet("key");
 
-        await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
+            await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
 
-        Assert.Single(notifier.ExportedActivities);
+            Assert.Single(notifier.ExportedActivities);
 
-        var activity = notifier.ExportedActivities[0];
-        Assert.Equal("GET", activity.OperationName);
-        Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
+            var activity = notifier.ExportedActivities[0];
+            Assert.Equal("GET", activity.OperationName);
+            Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
+        }, ConnectionString).Dispose();
     }
 
     private void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>

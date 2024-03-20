@@ -74,6 +74,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly DistributedApplicationModel _model = model;
     private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
+    private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup = GetParentChildLookup(model);
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
     private readonly IOptions<DcpOptions> _options = options;
     private readonly IDashboardEndpointProvider _dashboardEndpointProvider = dashboardEndpointProvider;
@@ -126,6 +127,34 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         finally
         {
             AspireEventSource.Instance.DcpModelCreationStop();
+        }
+    }
+    private static ILookup<IResource?, IResourceWithParent> GetParentChildLookup(DistributedApplicationModel model)
+    {
+        static IResource? SelectParentContainerResource(IResource resource) => resource switch
+        {
+            IResourceWithParent rp => SelectParentContainerResource(rp.Parent),
+            IResource r when r.IsContainer() => r,
+            _ => null
+        };
+
+        // parent -> children lookup
+        return model.Resources.OfType<IResourceWithParent>()
+                              .Select(x => (Child: x, Root: SelectParentContainerResource(x.Parent)))
+                              .Where(x => x.Root is not null)
+                              .ToLookup(x => x.Root, x => x.Child);
+    }
+
+    // Sets the state of the resource's children
+    async Task SetChildResourceStateAsync(IResource resource, string state)
+    {
+        foreach (var child in _parentChildLookup[resource])
+        {
+            await notificationService.PublishUpdateAsync(child, s => s with
+            {
+                State = state
+            })
+            .ConfigureAwait(false);
         }
     }
 
@@ -255,6 +284,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     await notificationService.PublishUpdateAsync(appModelResource, resource.Metadata.Name, s => snapshotFactory(resource, s)).ConfigureAwait(false);
 
                     StartLogStream(resource);
+                }
+
+                // Update all child resources of containers
+                if (resource is Container c && c.Status?.State is string state)
+                {
+                    await SetChildResourceStateAsync(appModelResource, state).ConfigureAwait(false);
                 }
             }
             else
@@ -1375,6 +1410,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 })
                 .ConfigureAwait(false);
 
+                await SetChildResourceStateAsync(cr.ModelResource, "Starting").ConfigureAwait(false);
+
                 try
                 {
                     await CreateContainerAsync(cr, logger, cancellationToken).ConfigureAwait(false);
@@ -1384,6 +1421,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     logger.LogError(ex, "Failed to create container resource {ResourceName}", cr.ModelResource.Name);
 
                     await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+
+                    await SetChildResourceStateAsync(cr.ModelResource, "FailedToStart").ConfigureAwait(false);
                 }
             }
 

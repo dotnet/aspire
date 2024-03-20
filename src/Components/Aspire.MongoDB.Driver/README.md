@@ -88,7 +88,13 @@ Also you can pass the `Action<MongoDBSettings> configureSettings` delegate to se
 
 ## AppHost extensions
 
-In your AppHost project, register a MongoDB database and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.MongoDB` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.MongoDB
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a MongoDB database and consume the connection using the following methods:
 
 ```csharp
 var mongodb = builder.AddMongoDB("mongodb").AddDatabase("mydatabase");

@@ -85,7 +85,13 @@ builder.AddNatsClient("nats", settings => settings.HealthChecks = false);
 
 ## AppHost extensions
 
-In your AppHost project, register a NATS server and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.Nats` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.Nats
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a NATS server and consume the connection using the following methods:
 
 ```csharp
 var nats = builder.AddNats("nats");
