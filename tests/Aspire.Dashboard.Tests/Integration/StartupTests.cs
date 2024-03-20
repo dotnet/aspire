@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -92,26 +93,40 @@ public class StartupTests
     {
         // Arrange
         DashboardWebApplication? app = null;
+        var testSink = new TestSink();
         try
         {
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await ServerRetryHelper.BindPortsWithRetry(async port =>
             {
-                await ServerRetryHelper.BindPortsWithRetry(async port =>
-                {
-                    app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
-                        additionalConfiguration: initialData =>
-                        {
-                            initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
-                            initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"http://127.0.0.1:{port}";
-                        });
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+                    additionalConfiguration: initialData =>
+                    {
+                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
+                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"http://127.0.0.1:{port}";
+                    },
+                    testSink: testSink);
 
-                    // Act
-                    await app.StartAsync();
-                }, NullLogger.Instance);
-            });
+                // Act
+                await app.StartAsync();
+            }, NullLogger.Instance);
 
             // Assert
-            Assert.Equal("HTTPS is required when the dashboard is configured with a shared endpoint for browser access and the OTLP service. Browsers require HTTPS when an endpoint uses HTTP/2.", ex.Message);
+            Assert.Contains(testSink.Writes, w =>
+            {
+                if (w.LoggerName != typeof(DashboardWebApplication).FullName)
+                {
+                    return false;
+                }
+                if (w.LogLevel != LogLevel.Warning)
+                {
+                    return false;
+                }
+                if (!w.Message?.Contains("The dashboard is configured with a shared endpoint for browser access and the OTLP service. The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.") ?? false)
+                {
+                    return false;
+                }
+                return true;
+            });
         }
         finally
         {

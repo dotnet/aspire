@@ -211,10 +211,6 @@ public class DashboardWebApplication : IAsyncDisposable
     {
         // A single endpoint is configured if URLs are the same and the port isn't dynamic.
         var singleEndpoint = dashboardStartupConfig.BrowserUris.Length == 1 && dashboardStartupConfig.BrowserUris[0] == dashboardStartupConfig.OtlpUri && dashboardStartupConfig.OtlpUri.Port != 0;
-        if (singleEndpoint && !IsHttps(dashboardStartupConfig.OtlpUri))
-        {
-            throw new InvalidOperationException("HTTPS is required when the dashboard is configured with a shared endpoint for browser access and the OTLP service. Browsers require HTTPS when an endpoint uses HTTP/2.");
-        }
 
         var initialValues = new Dictionary<string, string?>();
         var browserEndpointNames = new List<string>(capacity: dashboardStartupConfig.BrowserUris.Length);
@@ -286,6 +282,14 @@ public class DashboardWebApplication : IAsyncDisposable
                 if (singleEndpoint)
                 {
                     logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
+
+                    if (!endpointConfiguration.IsHttps)
+                    {
+                        logger.LogWarning(
+                            "The dashboard is configured with a shared endpoint for browser access and the OTLP service. " +
+                            "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
+                    }
+
                     _browserEndPointAccessor = _otlpServiceEndPointAccessor;
                 }
 
