@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Net.Sockets;
 using System.Text.Json;
+using System.Xml.Linq;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
@@ -686,6 +687,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
+            context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_AUTH_MODE"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
+            context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_API_KEY"] = "abc123"; // TODO: Replace with actual API key]
         }));
     }
 
@@ -753,6 +756,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 Name = "ASPNETCORE_ENVIRONMENT",
                 Value = aspnetcoreEnvironment
+            },
+            new()
+            {
+                Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
+                Value = "ApiKey" // Matches value in OtlpAuthMode enum.
+            },
+            new()
+            {
+                Name = "DOTNET_DASHBOARD_OTLP_API_KEY",
+                Value = "abc123" // TODO: Replace with actual API key
             }
         ];
 
