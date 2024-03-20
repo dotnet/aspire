@@ -48,7 +48,7 @@ public static class AzureEventHubsExtensions
 
             eventHubsNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
 
-            var serviceBusDataOwnerRole = eventHubsNamespace.AssignRole(RoleDefinition.EventHubsDataOwner);
+            var eventHubsDataOwnerRole = eventHubsNamespace.AssignRole(RoleDefinition.EventHubsDataOwner);
             serviceBusDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             eventHubsNamespace.AddOutput("serviceBusEndpoint", sa => sa.ServiceBusEndpoint);
