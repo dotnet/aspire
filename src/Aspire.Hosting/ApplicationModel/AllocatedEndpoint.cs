@@ -41,7 +41,7 @@ public class AllocatedEndpoint
     public string Address { get; private set; }
 
     /// <summary>
-    /// The address of the container host.
+    /// The address of the container host. This is only set for containerized services.
     /// </summary>
     public string? ContainerHostAddress { get; private set; }
 

@@ -96,11 +96,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
+        AspireEventSource.Instance.DcpModelCreationStart();
+
         _dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
 
         Debug.Assert(_dcpInfo is not null, "DCP info should not be null at this point");
 
-        AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
             if (!distributedApplicationOptions.DisableDashboard)
