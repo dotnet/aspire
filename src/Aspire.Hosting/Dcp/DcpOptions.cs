@@ -62,6 +62,21 @@ internal sealed class DcpOptions
     /// </summary>
     public int DependencyCheckTimeout { get; set; } = 25;
 
+    /// <summary>
+    /// The suffix to use for resource names when creating resources in DCP.
+    /// </summary>
+    public string? ResourceNameSuffix { get; set; }
+
+    /// <summary>
+    /// Whether to delete resources created by this application when the application is shut down.
+    /// </summary>
+    public bool? DeleteResourcesOnShutdown { get; set; }
+
+    /// <summary>
+    /// Whether to randomize ports used by resources during orchestration.
+    /// </summary>
+    public bool? RandomizePorts { get; set; }
+
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
     {
         string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
@@ -108,6 +123,11 @@ internal sealed class DcpOptions
         else
         {
             DependencyCheckTimeout = coreConfiguration.GetValue<int>("DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT", DependencyCheckTimeout);
+        }
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(ResourceNameSuffix)]))
+        {
+            ResourceNameSuffix = dcpPublisherConfiguration[nameof(ResourceNameSuffix)];
         }
 
         if (string.IsNullOrEmpty(CliPath))

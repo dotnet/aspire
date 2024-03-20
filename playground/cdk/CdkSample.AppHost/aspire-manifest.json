@@ -1,0 +1,262 @@
+{
+  "resources": {
+    "cosmos": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmos.secretOutputs.connectionString}",
+      "path": "cosmos.module.bicep",
+      "params": {
+        "keyVaultName": ""
+      }
+    },
+    "storagesku": {
+      "type": "parameter.v0",
+      "value": "{storagesku.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "locationOverride": {
+      "type": "parameter.v0",
+      "value": "{locationOverride.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "storage": {
+      "type": "azure.bicep.v0",
+      "path": "storage.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "storagesku": "{storagesku.value}",
+        "locationOverride": "{locationOverride.value}"
+      }
+    },
+    "blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "sql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "sql.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalName": ""
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "minLower": 1,
+              "minUpper": 1,
+              "minNumeric": 1
+            }
+          }
+        }
+      }
+    },
+    "sqldb": {
+      "type": "value.v0",
+      "connectionString": "{sql.connectionString};Database=sqldb"
+    },
+    "signaturesecret": {
+      "type": "parameter.v0",
+      "value": "{signaturesecret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "mykv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{mykv.outputs.vaultUri}",
+      "path": "mykv.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "signaturesecret": "{signaturesecret.value}"
+      }
+    },
+    "cache": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cache.secretOutputs.connectionString}",
+      "path": "cache.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": ""
+      }
+    },
+    "pgsqlAdministratorLogin": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLogin.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "pgsqlAdministratorLoginPassword": {
+      "type": "parameter.v0",
+      "value": "{pgsqlAdministratorLoginPassword.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "pgsql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql.secretOutputs.connectionString}",
+      "path": "pgsql.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": "",
+        "administratorLogin": "{pgsqlAdministratorLogin.value}",
+        "administratorLoginPassword": "{pgsqlAdministratorLoginPassword.value}"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "pgsqldb": {
+      "type": "value.v0",
+      "connectionString": "{pgsql.connectionString};Database=pgsqldb"
+    },
+    "pgsql2": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{pgsql2.secretOutputs.connectionString}",
+      "path": "pgsql2.module.bicep",
+      "params": {
+        "principalId": "",
+        "keyVaultName": "",
+        "administratorLogin": "{pgsql2.inputs.username}",
+        "administratorLoginPassword": "{pgsql2.inputs.password}"
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        },
+        "username": {
+          "type": "string",
+          "default": {
+            "generate": {
+              "minLength": 10,
+              "numeric": false,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "servicebus": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}",
+      "path": "servicebus.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "appConfig": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appConfig.outputs.appConfigEndpoint}",
+      "path": "appConfig.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "search": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{search.outputs.connectionString}",
+      "path": "search.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "signalr": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+      "path": "signalr.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "logAnalyticsWorkspace": {
+      "type": "azure.bicep.v0",
+      "path": "logAnalyticsWorkspace.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "appInsights": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+      "path": "appInsights.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "logAnalyticsWorkspaceId": "{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}"
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "ConnectionStrings__signalr": "{signalr.connectionString}",
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "ConnectionStrings__sqldb": "{sqldb.connectionString}",
+        "ConnectionStrings__mykv": "{mykv.connectionString}",
+        "ConnectionStrings__cache": "{cache.connectionString}",
+        "ConnectionStrings__cosmos": "{cosmos.connectionString}",
+        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "ConnectionStrings__appConfig": "{appConfig.connectionString}",
+        "ConnectionStrings__search": "{search.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{appInsights.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

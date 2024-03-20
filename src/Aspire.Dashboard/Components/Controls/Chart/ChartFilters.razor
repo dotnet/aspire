@@ -24,7 +24,7 @@
                                 {
                                     foreach (var item in context.SelectedValues.OrderBy(g => g.Name))
                                     {
-                                        <FluentOverflowItem @key=item>
+                                        <FluentOverflowItem>
                                             <FluentBadge>@item.Name</FluentBadge>
                                         </FluentOverflowItem>
                                     }

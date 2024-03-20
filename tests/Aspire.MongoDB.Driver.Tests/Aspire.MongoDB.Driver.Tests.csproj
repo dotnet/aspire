@@ -4,13 +4,18 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
+
     <None Include="$(RepoRoot)src\Components\Aspire.MongoDB.Driver\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+
+    <PackageReference Include="TestContainers.MongoDb" />
   </ItemGroup>
 
 </Project>

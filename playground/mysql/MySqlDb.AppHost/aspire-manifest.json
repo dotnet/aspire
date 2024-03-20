@@ -4,6 +4,13 @@
       "type": "container.v0",
       "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
       "image": "mysql:8.3.0",
+      "bindMounts": [
+        {
+          "source": "../MySql.ApiService/data",
+          "target": "/docker-entrypoint-initdb.d",
+          "readOnly": false
+        }
+      ],
       "env": {
         "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}",
         "MYSQL_DATABASE": "catalog"
@@ -22,7 +29,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -38,6 +45,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__catalog": "{catalog.connectionString}"
       },
       "bindings": {

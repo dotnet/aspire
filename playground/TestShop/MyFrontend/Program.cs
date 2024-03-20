@@ -8,10 +8,12 @@ builder.AddServiceDefaults();
 
 builder.Services.AddHttpForwarderWithServiceDiscovery();
 
-builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("http://catalogservice"));
+builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("https+http://catalogservice"));
+
+var isHttps = Environment.GetEnvironmentVariable("DOTNET_LAUNCHPROFILE") == "https";
 
 builder.Services.AddSingleton<BasketServiceClient>()
-                .AddGrpcClient<Basket.BasketClient>(o => o.Address = new("http://basketservice"));
+                .AddGrpcClient<Basket.BasketClient>(o => o.Address = new($"{(isHttps ? "https" : "http")}://basketservice"));
 
 builder.Services.AddRazorComponents();
 
@@ -22,13 +24,15 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/error", createScopeForErrors: true);
 }
 
+app.UseHttpsRedirection();
+
 app.UseStaticFiles();
 
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>();
 
-app.MapForwarder("/catalog/images/{id}", "http://catalogservice", "/api/v1/catalog/items/{id}/image");
+app.MapForwarder("/catalog/images/{id}", "https+http://catalogservice", "/api/v1/catalog/items/{id}/image");
 
 app.MapDefaultEndpoints();
 

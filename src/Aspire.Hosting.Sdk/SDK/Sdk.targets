@@ -2,7 +2,7 @@
 
   <!--
   A property-based workload cannot import props files (except AutoImport.props, which has very tight limitations.
-  Instead, we copy everything from Aspire.Hosting.props into these targets.
+  Instead, we copy everything from Aspire.Hosting.AppHost.props into these targets.
   This means they cannot be overridden in the csproj, and may cause ordering issues, particularly StaticWebAssets.
   -->
 

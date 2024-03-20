@@ -21,13 +21,14 @@ partial class Resource
             ResourceType = ValidateNotNull(ResourceType),
             DisplayName = ValidateNotNull(DisplayName),
             Uid = ValidateNotNull(Uid),
-            CreationTimeStamp = CreatedAt.ToDateTime(),
+            CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
             Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
             Endpoints = GetEndpoints(),
             Environment = GetEnvironment(),
             ExpectedEndpointsCount = ExpectedEndpointsCount,
             Services = GetServices(),
-            State = HasState ? State : null
+            State = HasState ? State : null,
+            Commands = GetCommands()
         };
 
         ImmutableArray<ResourceServiceViewModel> GetServices()
@@ -51,6 +52,13 @@ partial class Resource
                 .ToImmutableArray();
         }
 
+        ImmutableArray<CommandViewModel> GetCommands()
+        {
+            return Commands
+                .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.ConfirmationMessage, c.Parameter))
+                .ToImmutableArray();
+        }
+
         T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
         {
             if (value is null)
@@ -60,5 +68,17 @@ partial class Resource
 
             return value;
         }
+    }
+}
+
+partial class ResourceCommandResponse
+{
+    public ResourceCommandResponseViewModel ToViewModel()
+    {
+        return new ResourceCommandResponseViewModel()
+        {
+            ErrorMessage = ErrorMessage,
+            Kind = (Dashboard.Model.ResourceCommandResponseKind)Kind
+        };
     }
 }

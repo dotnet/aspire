@@ -3,13 +3,21 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Resources;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
 
 public partial class LogMessageColumnDisplay
 {
+    private readonly string _copyButtonId = Guid.NewGuid().ToString();
+
+    private bool _hasErrorInfo;
+    private string? _errorInfo;
+
+    protected override void OnInitialized()
+    {
+       _hasErrorInfo = TryGetErrorInformation(out _errorInfo);
+    }
+
     private bool TryGetErrorInformation([NotNullWhen(true)] out string? errorInfo)
     {
         // exception.stacktrace includes the exception message and type.
@@ -36,11 +44,7 @@ public partial class LogMessageColumnDisplay
 
         string? GetProperty(string propertyName)
         {
-            return LogEntry.Properties.GetValue(propertyName);
+            return LogEntry.Attributes.GetValue(propertyName);
         }
     }
-
-    private async Task CopyTextToClipboardAsync(string? text, string id)
-        => await JS.InvokeVoidAsync("copyTextToClipboard", id, text, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString());
-
 }

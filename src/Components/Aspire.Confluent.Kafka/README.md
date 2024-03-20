@@ -126,7 +126,13 @@ You can refer to [`ProducerBuilder<TKey, TValue>`](https://docs.confluent.io/pla
 
 ## AppHost extensions
 
-In your AppHost project, register an Apache Kafka container and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.Kafka` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.Kafka
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register an Apache Kafka container and consume the connection using the following methods:
 
 ```csharp
 var messaging = builder.AddKafka("messaging");

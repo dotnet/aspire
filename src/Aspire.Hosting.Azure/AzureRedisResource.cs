@@ -9,8 +9,9 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Redis resource.
 /// </summary>
 /// <param name="innerResource">The inner resource.</param>
-public class AzureRedisResource(RedisResource innerResource) :
-    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.redis.bicep"),
+/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
+public class AzureRedisResource(RedisResource innerResource, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(innerResource.Name, configureConstruct),
     IResourceWithConnectionString
 {
     /// <summary>
@@ -21,13 +22,8 @@ public class AzureRedisResource(RedisResource innerResource) :
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Redis resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Redis resource.
-    /// </summary>
-    /// <returns>The connection string for the Azure Redis resource.</returns>
-    public string? GetConnectionString() => ConnectionString.Value;
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 
     /// <inheritdoc/>
     public override string Name => innerResource.Name;

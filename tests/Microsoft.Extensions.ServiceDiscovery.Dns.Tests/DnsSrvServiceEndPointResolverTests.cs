@@ -164,8 +164,8 @@ public class DnsSrvServiceEndPointResolverTests
         {
             InitialData = new Dictionary<string, string?>
             {
-                ["services:basket:0"] = "localhost:8080",
-                ["services:basket:1"] = "remotehost:9090",
+                ["services:basket:http:0"] = "localhost:8080",
+                ["services:basket:http:1"] = "remotehost:9090",
             }
         };
         var config = new ConfigurationBuilder().Add(configSource);

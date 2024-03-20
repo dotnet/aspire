@@ -49,7 +49,7 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
 
                 try
                 {
-                    await foreach (var batch in channel.GetBatches(linked.Token).ConfigureAwait(false))
+                    await foreach (var batch in channel.GetBatchesAsync(cancellationToken: linked.Token).ConfigureAwait(false))
                     {
                         yield return batch;
                     }

@@ -61,6 +61,24 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Anonymous volumes cannot be read-only..
+        /// </summary>
+        internal static string ContainerMountAnonymousVolumesReadOnlyExceptionMessage {
+            get {
+                return ResourceManager.GetString("ContainerMountAnonymousVolumesReadOnlyExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bind mounts must specify a source path..
+        /// </summary>
+        internal static string ContainerMountBindMountsRequireSourceExceptionMessage {
+            get {
+                return ResourceManager.GetString("ContainerMountBindMountsRequireSourceExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; could not be found. The error from the container runtime check was: {1}..
         /// </summary>
         internal static string ContainerRuntimePrerequisiteMissingExceptionMessage {

@@ -237,5 +237,11 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
 
         return c;
     }
+
+    public bool LogsAvailable =>
+        this.Status?.State == ContainerState.Running
+        || this.Status?.State == ContainerState.Paused
+        || this.Status?.State == ContainerState.Exited
+        || (this.Status?.State == ContainerState.FailedToStart && this.Status?.ContainerId is not null);
 }
 

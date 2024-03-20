@@ -25,6 +25,9 @@ public partial class ResourceDetails
     [Inject]
     public required ILogger<ResourceDetails> Logger { get; init; }
 
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
 
     private bool _showAll;
@@ -141,7 +144,7 @@ public partial class ResourceDetails
         }
     }
 
-    private static string GetDisplayedValue(SummaryValue summaryValue)
+    private static string GetDisplayedValue(BrowserTimeProvider timeProvider, SummaryValue summaryValue)
     {
         string value;
         if (summaryValue.Value.HasStringValue)
@@ -165,7 +168,7 @@ public partial class ResourceDetails
             // Use try parse to check if a value matches ISO 8601 format. If there is a match then convert to a friendly format.
             if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
-                value = FormatHelpers.FormatDateTime(date, cultureInfo: CultureInfo.CurrentCulture);
+                value = FormatHelpers.FormatDateTime(timeProvider, date, cultureInfo: CultureInfo.CurrentCulture);
             }
         }
 

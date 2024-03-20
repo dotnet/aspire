@@ -37,7 +37,7 @@ public interface IDashboardClient : IAsyncDisposable
     /// Callers are required to manage the lifetime of the subscription,
     /// using cancellation during enumeration.
     /// </remarks>
-    ResourceViewModelSubscription SubscribeResources();
+    Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets a stream of console log messages for the specified resource.
@@ -50,11 +50,13 @@ public interface IDashboardClient : IAsyncDisposable
     /// <para>It is important that callers trigger <paramref name="cancellationToken"/>
     /// so that resources owned by the sequence and its consumers can be freed.</para>
     IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken);
+
+    Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken);
 }
 
 public sealed record ResourceViewModelSubscription(
     ImmutableArray<ResourceViewModel> InitialState,
-    IAsyncEnumerable<ResourceViewModelChange> Subscription);
+    IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> Subscription);
 
 public sealed record ResourceViewModelChange(
     ResourceViewModelChangeType ChangeType,

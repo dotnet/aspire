@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire;
 
@@ -19,19 +20,31 @@ internal static class ChannelExtensions
     /// </remarks>
     /// <typeparam name="T">The type of items in the channel and returned batch.</typeparam>
     /// <param name="channel">The channel to read values from.</param>
+    /// <param name="minReadInterval">The minimum read interval. The enumerable will wait this long before returning the next available result.</param>
     /// <param name="cancellationToken">A token that signals a loss of interest in the operation.</param>
     /// <returns></returns>
-    public static async IAsyncEnumerable<IReadOnlyList<T>> GetBatches<T>(
+    public static async IAsyncEnumerable<IReadOnlyList<T>> GetBatchesAsync<T>(
         this Channel<T> channel,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        TimeSpan? minReadInterval = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        DateTime? lastRead = null;
+
         while (!cancellationToken.IsCancellationRequested)
         {
             List<T>? batch = null;
-
             // Wait until there's something to read, or the channel closes.
             if (await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
             {
+                if (minReadInterval != null && lastRead != null)
+                {
+                    var s = lastRead.Value.Add(minReadInterval.Value) - DateTime.UtcNow;
+                    if (s > TimeSpan.Zero)
+                    {
+                        await Task.Delay(s, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
                 // Read everything in the channel into a batch.
                 while (!cancellationToken.IsCancellationRequested && channel.Reader.TryRead(out var log))
                 {
@@ -41,6 +54,7 @@ internal static class ChannelExtensions
 
                 if (!cancellationToken.IsCancellationRequested && batch is not null)
                 {
+                    lastRead = DateTime.UtcNow;
                     yield return batch;
                 }
             }

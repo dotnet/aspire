@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Otlp.Storage;
 using OpenTelemetry.Proto.Common.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -15,22 +16,20 @@ public class OtlpScope
     public string ScopeName { get; }
     public string Version { get; }
 
-    public KeyValuePair<string, string>[] Properties { get; }
-
-    public string ServiceProperties => Properties.ConcatProperties();
+    public ReadOnlyMemory<KeyValuePair<string, string>> Attributes { get; }
 
     private OtlpScope()
     {
         ScopeName = string.Empty;
-        Properties = Array.Empty<KeyValuePair<string, string>>();
+        Attributes = Array.Empty<KeyValuePair<string, string>>();
         Version = string.Empty;
     }
 
-    public OtlpScope(InstrumentationScope scope)
+    public OtlpScope(InstrumentationScope scope, TelemetryOptions options)
     {
         ScopeName = scope.Name;
 
-        Properties = scope.Attributes.ToKeyValuePairs();
+        Attributes = scope.Attributes.ToKeyValuePairs(options);
         Version = scope.Version;
     }
 }

@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -24,7 +25,7 @@ namespace Aspire.Dashboard.Model;
 /// <para>
 /// If the <c>DOTNET_RESOURCE_SERVICE_ENDPOINT_URL</c> environment variable is not specified, then there's
 /// no known endpoint to connect to, and this dashboard client will be disabled. Calls to
-/// <see cref="IDashboardClient.SubscribeResources"/> and <see cref="IDashboardClient.SubscribeConsoleLogs"/>
+/// <see cref="IDashboardClient.SubscribeResourcesAsync"/> and <see cref="IDashboardClient.SubscribeConsoleLogs"/>
 /// will throw if <see cref="IDashboardClient.IsEnabled"/> is <see langword="false"/>. Callers should
 /// check this property first, before calling these methods.
 /// </para>
@@ -35,14 +36,16 @@ internal sealed class DashboardClient : IDashboardClient
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
-    private readonly TaskCompletionSource _whenConnected = new();
+    private readonly CancellationToken _clientCancellationToken;
+    private readonly TaskCompletionSource _whenConnectedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _initialDataReceivedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<DashboardClient> _logger;
 
-    private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
+    private ImmutableHashSet<Channel<IReadOnlyList<ResourceViewModelChange>>> _outgoingChannels = [];
     private string? _applicationName;
 
     private const int StateDisabled = -1;
@@ -61,6 +64,9 @@ internal sealed class DashboardClient : IDashboardClient
         _loggerFactory = loggerFactory;
         _configuration = configuration;
 
+        // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
+        _clientCancellationToken = _cts.Token;
+
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
         var address = configuration.GetUri(ResourceServiceUrlVariableName);
@@ -68,13 +74,13 @@ internal sealed class DashboardClient : IDashboardClient
         if (address is null)
         {
             _state = StateDisabled;
-            _logger.LogInformation($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
+            _logger.LogDebug($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
             _cts.Cancel();
-            _whenConnected.TrySetCanceled();
+            _whenConnectedTcs.TrySetCanceled();
             return;
         }
 
-        _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
+        _logger.LogDebug("Dashboard configured to connect to: {Address}", address);
 
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
@@ -141,7 +147,7 @@ internal sealed class DashboardClient : IDashboardClient
             return;
         }
 
-        _connection = Task.Run(() => ConnectAndWatchResourcesAsync(_cts.Token), _cts.Token);
+        _connection = Task.Run(() => ConnectAndWatchResourcesAsync(_clientCancellationToken), _clientCancellationToken);
 
         return;
 
@@ -159,11 +165,11 @@ internal sealed class DashboardClient : IDashboardClient
 
                     _applicationName = response.ApplicationName;
 
-                    _whenConnected.TrySetResult();
+                    _whenConnectedTcs.TrySetResult();
                 }
                 catch (Exception ex)
                 {
-                    _whenConnected.TrySetException(ex);
+                    _whenConnectedTcs.TrySetException(ex);
                 }
             }
 
@@ -236,6 +242,8 @@ internal sealed class DashboardClient : IDashboardClient
                                     changes ??= [];
                                     changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                                 }
+
+                                _initialDataReceivedTcs.TrySetResult();
                             }
                             else if (response.KindCase == WatchResourcesUpdate.KindOneofCase.Changes)
                             {
@@ -279,11 +287,8 @@ internal sealed class DashboardClient : IDashboardClient
                         {
                             foreach (var channel in _outgoingChannels)
                             {
-                                // TODO send batches over the channel instead of individual items? They are batched downstream however
-                                foreach (var change in changes)
-                                {
-                                    await channel.Writer.WriteAsync(change, cancellationToken).ConfigureAwait(false);
-                                }
+                                // Channel is unbound so TryWrite always succeeds.
+                                channel.Writer.TryWrite(changes);
                             }
                         }
                     }
@@ -300,7 +305,7 @@ internal sealed class DashboardClient : IDashboardClient
             // If someone is waiting for the connection, we need to ensure connection is starting.
             EnsureInitialized();
 
-            return _whenConnected.Task;
+            return _whenConnectedTcs.Task;
         }
     }
 
@@ -311,41 +316,50 @@ internal sealed class DashboardClient : IDashboardClient
             ?? "Aspire";
     }
 
-    ResourceViewModelSubscription IDashboardClient.SubscribeResources()
+    async Task<ResourceViewModelSubscription> IDashboardClient.SubscribeResourcesAsync(CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
-        var clientCancellationToken = _cts.Token;
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+
+        // Wait for initial data to be received from the server. This allows initial data to be returned with subscription when client is starting.
+        await _initialDataReceivedTcs.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+
+        // There are two types of channel in this class. This is not a gRPC channel.
+        // It's a producer-consumer queue channel, used to push updates to subscribers
+        // without blocking the producer here.
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>(
+            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
         lock (_lock)
         {
-            // There are two types of channel in this class. This is not a gRPC channel.
-            // It's a producer-consumer queue channel, used to push updates to subscribers
-            // without blocking the producer here.
-            var channel = Channel.CreateUnbounded<ResourceViewModelChange>(
-                new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
-
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
             return new ResourceViewModelSubscription(
                 InitialState: _resourceByName.Values.ToImmutableArray(),
-                Subscription: StreamUpdates());
+                Subscription: StreamUpdatesAsync(cts.Token));
+        }
 
-            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
+        async IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> StreamUpdatesAsync([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
+        {
+            try
             {
-                try
+                await foreach (var batch in channel.GetBatchesAsync(minReadInterval: TimeSpan.FromMilliseconds(100), cancellationToken: enumeratorCancellationToken).ConfigureAwait(false))
                 {
-                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(clientCancellationToken, enumeratorCancellationToken);
-
-                    await foreach (var batch in channel.Reader.ReadAllAsync(cts.Token).ConfigureAwait(false))
+                    if (batch.Count == 1)
                     {
-                        yield return batch;
+                        yield return batch[0];
+                    }
+                    else
+                    {
+                        yield return batch.SelectMany(batch => batch).ToList();
                     }
                 }
-                finally
-                {
-                    ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
-                }
+            }
+            finally
+            {
+                cts.Dispose();
+                ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
             }
         }
     }
@@ -354,7 +368,7 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
         var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
@@ -364,12 +378,67 @@ internal sealed class DashboardClient : IDashboardClient
         {
             var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
 
-            for (var i = 0; i < logLines.Length; i++)
-            {
-                logLines[i] = (response.LogLines[i].Text, response.LogLines[i].IsStdErr);
-            }
+                    for (var i = 0; i < logLines.Length; i++)
+                    {
+                        logLines[i] = (response.LogLines[i].Text, response.LogLines[i].IsStdErr);
+                    }
 
-            yield return logLines;
+                    // Channel is unbound so TryWrite always succeeds.
+                    channel.Writer.TryWrite(logLines);
+                }
+            }
+            finally
+            {
+                channel.Writer.TryComplete();
+            }
+        }, combinedTokens.Token);
+
+        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token))
+        {
+            if (batch.Count == 1)
+            {
+                yield return batch[0];
+            }
+            else
+            {
+                yield return batch.SelectMany(batch => batch).ToList();
+            }
+        }
+
+        await readTask.ConfigureAwait(false);
+    }
+
+    public async Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken)
+    {
+        EnsureInitialized();
+
+        var request = new ResourceCommandRequest()
+        {
+            CommandType = command.CommandType,
+            Parameter = command.Parameter,
+            ResourceName = resourceName,
+            ResourceType = resourceType
+        };
+
+        try
+        {
+            using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
+
+            var response = await _client!.ExecuteResourceCommandAsync(request, cancellationToken: combinedTokens.Token);
+
+            return response.ToViewModel();
+        }
+        catch (RpcException ex)
+        {
+            _logger.LogError(ex, "Error executing command \"{CommandType}\" on resource \"{ResourceName}\": {StatusCode}", command.CommandType, resourceName, ex.StatusCode);
+
+            var errorMessage = ex.StatusCode == StatusCode.Unimplemented ? "Command not implemented" : "Unknown error. See logs for details";
+
+            return new ResourceCommandResponseViewModel()
+            {
+                Kind = ResourceCommandResponseKind.Failed,
+                ErrorMessage = errorMessage
+            };
         }
     }
 
@@ -385,21 +454,25 @@ internal sealed class DashboardClient : IDashboardClient
 
             _channel?.Dispose();
 
-            try
+            await TaskHelpers.WaitIgnoreCancelAsync(_connection, _logger, "Unexpected error from connection task.").ConfigureAwait(false);
+        }
+    }
+
+    // Internal for testing.
+    // TODO: Improve this in the future by making the client injected with DI and have it return data.
+    internal void SetInitialDataReceived(IList<Resource>? initialData = null)
+    {
+        if (initialData != null)
+        {
+            lock (_lock)
             {
-                if (_connection is { IsCanceled: false })
+                foreach (var data in initialData)
                 {
-                    await _connection.ConfigureAwait(false);
+                    _resourceByName[data.Name] = data.ToViewModel();
                 }
             }
-            catch (OperationCanceledException)
-            {
-                // Ignore cancellation
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error from connection task.");
-            }
         }
+
+        _initialDataReceivedTcs.TrySetResult();
     }
 }

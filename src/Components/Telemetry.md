@@ -199,6 +199,14 @@ Aspire.MySqlConnector:
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
+Aspire.NATS.Net:
+- Log categories:
+  - "NATS"
+- Activity source names:
+  - "NATS.Net"
+- Metric names:
+  - none (currently not supported by NATS.Net library)
+
 Aspire.Npgsql:
 - Log categories:
   - "Npgsql.Command"
@@ -331,6 +339,14 @@ Aspire.RabbitMQ.Client:
   - "Aspire.RabbitMQ.Client"
 - Metric names:
   - none (currently not supported by RabbitMQ.Client library)
+
+Aspire.Seq:
+- Log categories:
+  - "Seq"
+- Activity source names:
+  - N/A (Seq is a telemetry sink, not a telemetry source)
+- Metric names:
+  - N/A (Seq is a telemetry sink, not a telemetry source)
 
 Aspire.StackExchange.Redis:
 - Log categories:

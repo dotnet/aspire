@@ -1,76 +1,49 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
+using Aspire.Hosting.Tests.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
 public class WithReferenceTests
 {
-    [Fact]
-    public void ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables()
-    {
-        using var testProgram = CreateTestProgram();
-
-        // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
-
-        // Get the service provider.
-        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
-        testProgram.Build();
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
-        Assert.Equal(2, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
-    }
-
-    [Fact]
-    public void ResourceWithConflictingEndpointsProducesFullyScopedEnvironmentVariables()
+    [Theory]
+    [InlineData("mybinding")]
+    [InlineData("MYbinding")]
+    public async Task ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables(string endpointName)
     {
         using var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        // Get the service provider.
+        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint(endpointName));
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
+
+        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
+        Assert.Equal(1, servicesKeysCount);
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding__0" && kvp.Value == "https://localhost:2000");
+    }
+
+    [Fact]
+    public async Task ResourceWithConflictingEndpointsProducesFullyScopedEnvironmentVariables()
+    {
+        using var testProgram = CreateTestProgram();
+
+        // Create a binding and its matching annotation (simulating DCP behavior)
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         // Create a binding and its matching annotation (simulating DCP behavior) - HOWEVER
         // this binding conflicts with the earlier because they have the same scheme.
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "myconflictingbinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("myconflictingbinding",
-            ProtocolType.Tcp,
-            "localhost",
-            3000,
-            "https"
-            ));
-
+        testProgram.ServiceABuilder.WithEndpoint("myconflictingbinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("myconflictingbinding"));
 
@@ -78,48 +51,27 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(2, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "myconflictingbinding://localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding__0" && kvp.Value == "https://localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__myconflictingbinding__0" && kvp.Value == "https://localhost:3000");
     }
 
     [Fact]
-    public void ResourceWithNonConflictingEndpointsProducesAllVariantsOfEnvironmentVariables()
+    public async Task ResourceWithNonConflictingEndpointsProducesAllVariantsOfEnvironmentVariables()
     {
         using var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         // Create a binding and its matching annotation (simulating DCP behavior) - not
         // conflicting because the scheme is different to the first binding.
         testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mynonconflictingbinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mynonconflictingbinding",
-            ProtocolType.Tcp,
-            "localhost",
-            3000,
-            "http"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mynonconflictingbinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
 
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mynonconflictingbinding"));
@@ -128,121 +80,74 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
-        Assert.Equal(4, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__2" && kvp.Value == "mynonconflictingbinding://localhost:3000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__3" && kvp.Value == "http://localhost:3000");
-    }
-
-    [Fact]
-    public void ResourceWithConflictingEndpointsProducesAllEnvironmentVariables()
-    {
-        using var testProgram = CreateTestProgram();
-
-        // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
-
-        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "mybinding2");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding2",
-            ProtocolType.Tcp,
-            "localhost",
-            3000,
-            "https"
-            ));
-
-        // Get the service provider.
-        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder);
-        testProgram.Build();
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(2, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "mybinding2://localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding__0" && kvp.Value == "https://localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__mynonconflictingbinding__0" && kvp.Value == "http://localhost:3000");
     }
 
     [Fact]
-    public void ResourceWithEndpointsProducesAllEnvironmentVariables()
+    public async Task ResourceWithConflictingEndpointsProducesAllEnvironmentVariables()
     {
         using var testProgram = CreateTestProgram();
 
-        // Create a binding and its metching annotation (simulating DCP behavior)
+        // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
-        testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mybinding2");
-        testProgram.ServiceABuilder.WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding2",
-            ProtocolType.Tcp,
-            "localhost",
-            3000,
-            "http"
-            ));
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "mybinding2");
+        testProgram.ServiceABuilder.WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
+
+        // The launch profile adds an "http" endpoint
+        testProgram.ServiceABuilder.WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4000));
 
         // Get the service provider.
         testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder);
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
-        Assert.Equal(4, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__2" && kvp.Value == "mybinding2://localhost:3000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__3" && kvp.Value == "http://localhost:3000");
+        Assert.Equal(3, servicesKeysCount);
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding__0" && kvp.Value == "https://localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding2__0" && kvp.Value == "https://localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__http__0" && kvp.Value == "http://localhost:4000");
     }
 
     [Fact]
-    public void ConnectionStringResourceThrowsWhenMissingConnectionString()
+    public async Task ResourceWithEndpointsProducesAllEnvironmentVariables()
+    {
+        using var testProgram = CreateTestProgram();
+
+        // Create a binding and its metching annotation (simulating DCP behavior)
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mybinding2");
+        testProgram.ServiceABuilder.WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
+
+        // The launch profile adds an "http" endpoint
+        testProgram.ServiceABuilder.WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 4000));
+
+        // Get the service provider.
+        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
+
+        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
+        Assert.Equal(3, servicesKeysCount);
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding__0" && kvp.Value == "https://localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__mybinding2__0" && kvp.Value == "http://localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__http__0" && kvp.Value == "http://localhost:4000");
+    }
+
+    [Fact]
+    public async Task ConnectionStringResourceThrowsWhenMissingConnectionString()
     {
         using var testProgram = CreateTestProgram();
 
@@ -252,23 +157,14 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        Assert.Throws<DistributedApplicationException>(() =>
+        await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
-            foreach (var annotation in annotations)
-            {
-                annotation.Callback(context);
-            }
+            await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
         });
     }
 
     [Fact]
-    public void ConnectionStringResourceOptionalWithMissingConnectionString()
+    public async Task ConnectionStringResourceOptionalWithMissingConnectionString()
     {
         using var testProgram = CreateTestProgram();
 
@@ -277,24 +173,14 @@ public class WithReferenceTests
         testProgram.ServiceBBuilder.WithReference(resource, optional: true);
         testProgram.Build();
 
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(0, servicesKeysCount);
     }
 
     [Fact]
-    public void ParameterAsConnectionStringResourceThrowsWhenConnectionStringSectionMissing()
+    public async Task ParameterAsConnectionStringResourceThrowsWhenConnectionStringSectionMissing()
     {
         using var testProgram = CreateTestProgram();
 
@@ -304,25 +190,16 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        var exception = Assert.Throws<DistributedApplicationException>(() =>
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
-            foreach (var annotation in annotations)
-            {
-                annotation.Callback(context);
-            }
+            var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
         });
 
-        Assert.Equal("Connection string parameter resource could not be used because connection string `missingresource` is missing.", exception.Message);
+        Assert.Equal("Connection string parameter resource could not be used because connection string 'missingresource' is missing.", exception.Message);
     }
 
     [Fact]
-    public void ParameterAsConnectionStringResourceInjectsConnectionStringWhenPresent()
+    public async Task ParameterAsConnectionStringResourceInjectsConnectionStringWhenPresent()
     {
         using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Configuration["ConnectionStrings:resource"] = "test connection string";
@@ -333,22 +210,13 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         Assert.Equal("test connection string", config["ConnectionStrings__resource"]);
     }
 
     [Fact]
-    public void ParameterAsConnectionStringResourceInjectsExpressionWhenPublishingManifest()
+    public async Task ParameterAsConnectionStringResourceInjectsExpressionWhenPublishingManifest()
     {
         using var testProgram = CreateTestProgram();
 
@@ -358,22 +226,13 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource, DistributedApplicationOperation.Publish);
 
         Assert.Equal("{resource.connectionString}", config["ConnectionStrings__resource"]);
     }
 
     [Fact]
-    public void ParameterAsConnectionStringResourceInjectsCorrectEnvWhenPublishingManifest()
+    public async Task ParameterAsConnectionStringResourceInjectsCorrectEnvWhenPublishingManifest()
     {
         using var testProgram = CreateTestProgram();
 
@@ -383,22 +242,13 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource, DistributedApplicationOperation.Publish);
 
         Assert.Equal("{resource.connectionString}", config["MY_ENV"]);
     }
 
     [Fact]
-    public void ConnectionStringResourceWithConnectionString()
+    public async Task ConnectionStringResourceWithConnectionString()
     {
         using var testProgram = CreateTestProgram();
 
@@ -411,16 +261,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
@@ -428,7 +269,7 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ConnectionStringResourceWithConnectionStringOverwriteName()
+    public async Task ConnectionStringResourceWithConnectionStringOverwriteName()
     {
         using var testProgram = CreateTestProgram();
 
@@ -441,16 +282,7 @@ public class WithReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceBBuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
@@ -474,23 +306,14 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void WithReferenceHttpProduceEnvironmentVariables()
+    public async Task WithReferenceHttpProduceEnvironmentVariables()
     {
         using var testProgram = CreateTestProgram();
 
         testProgram.ServiceABuilder.WithReference("petstore", new Uri("https://petstore.swagger.io/"));
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
-        var context = new EnvironmentCallbackContext(executionContext, config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);
@@ -499,17 +322,11 @@ public class WithReferenceTests
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
 
-    private sealed class TestResource(string name) : IResourceWithConnectionString
+    private sealed class TestResource(string name) : Resource(name), IResourceWithConnectionString
     {
-        public string Name => name;
-
         public string? ConnectionString { get; set; }
 
-        public ResourceAnnotationCollection Annotations => throw new NotImplementedException();
-
-        public string? GetConnectionString()
-        {
-            return ConnectionString;
-        }
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"{ConnectionString}");
     }
 }

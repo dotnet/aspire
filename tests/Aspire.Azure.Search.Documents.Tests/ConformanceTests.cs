@@ -64,11 +64,11 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
     {
         if (key is null)
         {
-            builder.AddAzureSearch("search", ConfigureCredentials);
+            builder.AddAzureSearchClient("search", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureSearch(key, ConfigureCredentials);
+            builder.AddKeyedAzureSearchClient(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureSearchSettings settings)

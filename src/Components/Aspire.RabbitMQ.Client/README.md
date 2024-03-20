@@ -18,10 +18,10 @@ dotnet add package Aspire.RabbitMQ.Client
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddRabbitMQ` extension method to register an `IConnection` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddRabbitMQClient` extension method to register an `IConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddRabbitMQ("messaging");
+builder.AddRabbitMQClient("messaging");
 ```
 
 You can then retrieve the `IConnection` instance using dependency injection. For example, to retrieve the connection from a Web API controller:
@@ -41,10 +41,10 @@ The .NET Aspire RabbitMQ component provides multiple options to configure the co
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRabbitMQ()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRabbitMQClient()`:
 
 ```csharp
-builder.AddRabbitMQ("myConnection");
+builder.AddRabbitMQClient("myConnection");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
@@ -80,18 +80,24 @@ The .NET Aspire RabbitMQ component supports [Microsoft.Extensions.Configuration]
 Also you can pass the `Action<RabbitMQClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddRabbitMQ("messaging", settings => settings.HealthChecks = false);
+builder.AddRabbitMQClient("messaging", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [IConnectionFactory](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.IConnectionFactory.html) using the `Action<IConnectionFactory> configureConnectionFactory` delegate parameter of the `AddRabbitMQ` method. For example to set the client provided name for connections:
+You can also setup the [ConnectionFactory](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.ConnectionFactory.html) using the `Action<ConnectionFactory> configureConnectionFactory` delegate parameter of the `AddRabbitMQClient` method. For example to set the client provided name for connections:
 
 ```csharp
-builder.AddRabbitMQ("messaging", configureConnectionFactory: factory => factory.ClientProvidedName = "MyApp");
+builder.AddRabbitMQClient("messaging", configureConnectionFactory: factory => factory.ClientProvidedName = "MyApp");
 ```
 
 ## AppHost extensions
 
-In your AppHost project, register a RabbitMQ server and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.RabbitMQ` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.RabbitMQ
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a RabbitMQ server and consume the connection using the following methods:
 
 ```csharp
 var messaging = builder.AddRabbitMQ("messaging");
@@ -103,7 +109,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method configures a connection in the `MyService` project named `messaging`. In the _Program.cs_ file of `MyService`, the RabbitMQ connection can be consumed using:
 
 ```csharp
-builder.AddRabbitMQ("messaging");
+builder.AddRabbitMQClient("messaging");
 ```
 
 ## Additional documentation

@@ -2,11 +2,11 @@
   "resources": {
     "search": {
       "type": "azure.bicep.v0",
-      "connectionString": "{search.secretOutputs.connectionString}",
-      "path": "aspire.hosting.azure.bicep.search.bicep",
+      "connectionString": "{search.outputs.connectionString}",
+      "path": "search.module.bicep",
       "params": {
-        "name": "search",
-        "keyVaultName": ""
+        "principalId": "",
+        "principalType": ""
       }
     },
     "api": {
@@ -15,6 +15,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__search": "{search.connectionString}"
       },
       "bindings": {

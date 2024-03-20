@@ -12,5 +12,5 @@ public class ConnectionStringRedirectAnnotation(IResourceWithConnectionString re
     /// <summary>
     /// Callback to acquire connection string.
     /// </summary>
-    public IResourceWithConnectionString Resource => resource;
+    public IResourceWithConnectionString Resource { get; } = resource ?? throw new ArgumentNullException(nameof(resource));
 }

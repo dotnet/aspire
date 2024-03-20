@@ -19,10 +19,10 @@ dotnet add package Aspire.Azure.Search.Documents
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureSearch` extension method to register an `SearchIndexClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddAzureSearchClient` extension method to register an `SearchIndexClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureSearch("searchConnectionName");
+builder.AddAzureSearchClient("searchConnectionName");
 ```
 
 You can then retrieve the `SearchIndexClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -62,10 +62,10 @@ The .NET Aspire Azure Azure Search library provides multiple options to configur
 
 ### Use a connection string
 
-A connection can be constructed from the __Keys and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};`. You can provide the name of the connection string when calling `builder.AddAzureSearch()`:
+A connection can be constructed from the __Keys and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};`. You can provide the name of the connection string when calling `builder.AddAzureSearchClient()`:
 
 ```csharp
-builder.AddAzureSearch("searchConnectionName");
+builder.AddAzureSearchClient("searchConnectionName");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
@@ -117,13 +117,13 @@ The .NET Aspire Azure Search library supports [Microsoft.Extensions.Configuratio
 You can also pass the `Action<AzureSearchSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-    builder.AddAzureSearch("searchConnectionName", settings => settings.Tracing = false);
+builder.AddAzureSearchClient("searchConnectionName", settings => settings.Tracing = false);
 ```
 
-You can also setup the [SearchClientOptions](https://learn.microsoft.com/dotnet/api/azure.search.documents.searchclientoptions) using the optional `Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>> configureClientBuilder` parameter of the `AddAzureSearch` method. For example, to set the client ID for this client:
+You can also setup the [SearchClientOptions](https://learn.microsoft.com/dotnet/api/azure.search.documents.searchclientoptions) using the optional `Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>> configureClientBuilder` parameter of the `AddAzureSearchClient` method. For example, to set the client ID for this client:
 
 ```csharp
-    builder.AddAzureSearch("searchConnectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "CLIENT_ID"));
+builder.AddAzureSearchClient("searchConnectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "CLIENT_ID"));
 ```
 
 ## AppHost extensions
@@ -146,7 +146,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddAzureSearch` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:search` config key. The `WithReference` method passes that connection information into a connection string named `search` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureSearch("search");
+builder.AddAzureSearchClient("search");
 ```
 
 ## Additional documentation

@@ -1,11 +1,12 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
 <div class="resource-details-layout">
 
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/consolelogs/resource/{Resource?.Name}")" slot="end">View logs</FluentAnchor>
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">View logs</FluentAnchor>
 
         @if (ShowSpecOnlyToggle)
         {
@@ -36,10 +37,9 @@
     </FluentToolbar>
     <div class="property-grid-container">
         <FluentAccordion>
-            <FluentAccordionItem Heading="Resource" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsResourceHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredResourceValues.Count()
                     </FluentBadge>
                 </div>
@@ -52,14 +52,13 @@
                         <GridValue Value="@(context.KnownProperty?.DisplayName ?? context.Key)" ToolTip="@context.Key" />
                     </TemplateColumn>
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
-                        <GridValue Value="@GetDisplayedValue(context)" ToolTip="@context.Tooltip" />
+                        <GridValue Value="@GetDisplayedValue(TimeProvider, context)" ToolTip="@context.Tooltip" />
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="Endpoints" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredEndpoints.Count()
                     </FluentBadge>
                 </div>
@@ -87,10 +86,9 @@
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="Environment variables" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredItems.Count()
                     </FluentBadge>
                 </div>

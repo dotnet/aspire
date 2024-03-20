@@ -19,10 +19,10 @@ dotnet add package Aspire.Azure.Storage.Queues
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureQueueService` extension method to register a `QueueServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddAzureQueueClient` extension method to register a `QueueServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureQueueService("queue");
+builder.AddAzureQueueClient("queue");
 ```
 
 You can then retrieve the `QueueServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -44,10 +44,10 @@ The .NET Aspire Azure Storage Queues library provides multiple options to config
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureQueueService()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureQueueClient()`:
 
 ```csharp
-builder.AddAzureQueueService("queueConnectionName");
+builder.AddAzureQueueClient("queueConnectionName");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
@@ -105,13 +105,13 @@ The .NET Aspire Azure Storage Queues library supports [Microsoft.Extensions.Conf
 You can also pass the `Action<AzureStorageQueuesSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddAzureQueueService("queue", settings => settings.HealthChecks = false);
+builder.AddAzureQueueClient("queue", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [QueueClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueclientoptions) using the optional `Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>> configureClientBuilder` parameter of the `AddAzureQueueService` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
+You can also setup the [QueueClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueclientoptions) using the optional `Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>> configureClientBuilder` parameter of the `AddAzureQueueClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```csharp
-    builder.AddAzureQueueService("queue", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+builder.AddAzureQueueClient("queue", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
 ## AppHost extensions
@@ -134,7 +134,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddQueues` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:queue` config key. The `WithReference` method passes that connection information into a connection string named `queue` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureQueueService("queue");
+builder.AddAzureQueueClient("queue");
 ```
 
 ## Additional documentation

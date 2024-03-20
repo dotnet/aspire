@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddKeyedRedis("redis");
+builder.AddKeyedRedisClient("redis");
 
 var app = builder.Build();
 

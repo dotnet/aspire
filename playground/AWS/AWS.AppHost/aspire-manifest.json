@@ -1,0 +1,35 @@
+{
+  "resources": {
+    "AspireSampleDevResources": {
+      "type": "aws.cloudformation.template.v0",
+      "stack-name": "AspireSampleDevResources",
+      "template-path": "app-resources.template",
+      "references": [
+        {
+          "TargetResource": "Frontend"
+        }
+      ]
+    },
+    "Frontend": {
+      "type": "project.v0",
+      "path": "../Frontend/Frontend.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ChatTopicArnEnv": "{AspireSampleDevResources.aws.cloudformation.output.ChatTopicArn}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}
