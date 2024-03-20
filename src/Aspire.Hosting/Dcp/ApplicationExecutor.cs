@@ -190,7 +190,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var retryUntilCancelled = new RetryStrategyOptions()
             {
                 ShouldHandle = new PredicateBuilder().HandleInner<EndOfStreamException>(),
-                BackoffType = DelayBackoffType.Constant,
+                BackoffType = DelayBackoffType.Exponential,
                 MaxRetryAttempts = int.MaxValue,
                 UseJitter = true,
                 MaxDelay = TimeSpan.FromSeconds(30),
@@ -198,8 +198,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     _logger.LogDebug(
                         retry.Outcome.Exception,
-                        "Long poll watch operation was ended by server after {LongPollDurationInMs} milliseconds.",
-                        retry.Duration.TotalMilliseconds
+                        "Long poll watch operation was ended by server after {LongPollDurationInMs} milliseconds (iteration {Iteration}).",
+                        retry.Duration.TotalMilliseconds,
+                        retry.AttemptNumber
                         );
                     return ValueTask.CompletedTask;
                 }
@@ -211,6 +212,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 await pipeline.ExecuteAsync(async (pipelineCancellationToken) =>
                 {
+                    _logger.LogDebug("Starting watch over DCP {ResourceType} resources", typeof(T).Name);
+
                     await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken))
                     {
                         await semaphore.WaitAsync(pipelineCancellationToken).ConfigureAwait(false);
