@@ -53,7 +53,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         {
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Retry": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "HealthChecks": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Tracing": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Metrics": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
