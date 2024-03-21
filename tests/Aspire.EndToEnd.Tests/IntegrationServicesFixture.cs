@@ -190,7 +190,11 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             // should really fail and quit after this
             throw new ArgumentException(exceptionMessage);
         }
-        string outputString = output.ToString();
+        string outputString;
+        lock(outputLock)
+        {
+            outputString = output.ToString();
+        }
         Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{outputString}");
 
         var client = CreateHttpClient();
