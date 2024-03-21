@@ -7,6 +7,8 @@
       CS8002: Referenced assembly does not have a strong name. MongoDB.Driver package is unsigned, we ignore that warning on purpose
     -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+
+    <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,6 +42,14 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="D:\src\GitHub\dotnet\aspire\eng\testing\xunit.runner.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="D:\src\GitHub\dotnet\aspire\eng\testing\xunit.runner.json" />
   </ItemGroup>
 
 </Project>
