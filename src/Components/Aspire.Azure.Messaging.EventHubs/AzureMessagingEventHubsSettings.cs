@@ -58,7 +58,7 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     /// Gets or sets the event position to start from in the bound partition. Defaults to <see cref="EventPosition.Latest" />.
     /// </summary>
     /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
-    public EventPosition EventPosition { get; set; } = EventPosition.Latest;
+    public EventPosition EventPosition { get; set; } = EventPosition.Earliest;
 
     /// <summary>
     /// Gets or sets the credential used to authenticate to the Service Bus namespace.
