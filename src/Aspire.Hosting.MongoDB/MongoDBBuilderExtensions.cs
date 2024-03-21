@@ -47,8 +47,7 @@ public static class MongoDBBuilderExtensions
         var mongoDBDatabase = new MongoDBDatabaseResource(name, databaseName, builder.Resource);
 
         return builder.ApplicationBuilder
-            .AddResource(mongoDBDatabase)
-            .WithManifestPublishingCallback(mongoDBDatabase.WriteMongoDBDatabaseToManifest);
+            .AddResource(mongoDBDatabase);
     }
 
     /// <summary>

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;
 
@@ -25,10 +24,4 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         Parent.GetQueueConnectionString();
-
-    internal void WriteToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "value.v0");
-        context.WriteConnectionString(this);
-    }
 }
