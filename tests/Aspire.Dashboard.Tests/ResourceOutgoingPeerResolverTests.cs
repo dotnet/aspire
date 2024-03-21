@@ -185,7 +185,7 @@ public class ResourceOutgoingPeerResolverTests
     {
         public bool IsEnabled => true;
         public Task WhenConnected => Task.CompletedTask;
-        public string ApplicationName => "<marquee>An HTML title!</marquee>";
+        public string ApplicationName => "ApplicationName";
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
