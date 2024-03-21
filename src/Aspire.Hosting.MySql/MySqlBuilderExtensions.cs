@@ -27,7 +27,7 @@ public static class MySqlBuilderExtensions
         var resource = new MySqlServerResource(name, password?.Resource);
         return builder.AddResource(resource)
                       .WithEndpoint(hostPort: port, containerPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
-                      .WithImage("mysql", "8.3.0")
+                      .WithImage(MySqlContainerImageTags.Image, MySqlContainerImageTags.Tag)
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordReference;
