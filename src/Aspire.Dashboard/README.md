@@ -24,9 +24,9 @@ The OTLP endpoint can be secured with [client certificate](https://learn.microso
 
 - `DOTNET_RESOURCE_SERVICE_ENDPOINT_URL` specifies the gRPC endpoint to which the dashboard connects for its data. There's no default. If this variable is unspecified, the dashboard shows OTEL data but no resource list or console logs.
 
-The resource service can be configured to require certificates with the following configuration values:
+The resource service client supports certificates. Set `ResourceServiceClient:AuthMode` to `Certificate`, then add the following configuration:
 
-- `ResourceServiceClient:ClientCertificate:Source` which has one of the following values:
+- `ResourceServiceClient:ClientCertificate:Source` (required) one of:
   - `File` to load the cert from a file path, configured with:
     - `ResourceServiceClient:ClientCertificate:FilePath` (required, string)
     - `ResourceServiceClient:ClientCertificate:Password` (optional, string)
@@ -34,8 +34,9 @@ The resource service can be configured to require certificates with the followin
     - `ResourceServiceClient:ClientCertificate:Subject` (required, string)
     - `ResourceServiceClient:ClientCertificate:KeyStore:Name` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
     - `ResourceServiceClient:ClientCertificate:KeyStore:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
+- `ResourceServiceClient:Ssl` (optional, [`SslClientAuthenticationOptions`](https://learn.microsoft.com/dotnet/api/system.net.security.sslclientauthenticationoptions))
 
-Additional `SslClientAuthenticationOptions` may be configured via configuration in the `ResourceServiceClient:Ssl` key.
+To opt-out of authentication, set `ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
 ## Telemetry Limits
 

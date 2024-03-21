@@ -35,7 +35,6 @@ namespace Aspire.Dashboard.Model;
 internal sealed class DashboardClient : IDashboardClient
 {
     private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
-    private const string ResourceServiceDisableAuthVariableName = "DOTNET_RESOURCE_SERVICE_DISABLE_AUTH";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
@@ -101,7 +100,14 @@ internal sealed class DashboardClient : IDashboardClient
                 KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
             };
 
-            if (!configuration.GetBool(ResourceServiceDisableAuthVariableName, defaultValue: false))
+            var authMode = configuration.GetEnum<ResourceClientAuthMode>("ResourceServiceClient:AuthMode");
+
+            if (authMode == null)
+            {
+                throw new InvalidOperationException("Unable to read ResourceServiceClient:AuthMode. Supported values are Unsecured and Certificate.");
+            }
+
+            if (authMode == ResourceClientAuthMode.Certificate)
             {
                 // Auth hasn't been suppressed, so configure it.
                 var sourceType = configuration.GetEnum<DashboardClientCertificateSource>("ResourceServiceClient:ClientCertificate:Source");
@@ -550,5 +556,11 @@ internal sealed class DashboardClient : IDashboardClient
     {
         File,
         KeyStore
+    }
+
+    private enum ResourceClientAuthMode
+    {
+        Unsecured,
+        Certificate
     }
 }
