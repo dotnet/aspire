@@ -790,20 +790,6 @@ public class AzureBicepResourceTests
                 "principalId": "",
                 "principalName": "",
                 "principalType": ""
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "minLower": 1,
-                      "minUpper": 1,
-                      "minNumeric": 1
-                    }
-                  }
-                }
               }
             }
             """;
@@ -1069,30 +1055,9 @@ public class AzureBicepResourceTests
               "params": {
                 "principalId": "",
                 "keyVaultName": "",
-                "administratorLogin": "{postgres1.inputs.username}",
-                "administratorLoginPassword": "{postgres1.inputs.password}",
+                "administratorLogin": "{postgres1-username.value}",
+                "administratorLoginPassword": "{postgres1-password.value}",
                 "principalType": ""
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
-                },
-                "username": {
-                  "type": "string",
-                  "default": {
-                    "generate": {
-                      "minLength": 10,
-                      "numeric": false,
-                      "special": false
-                    }
-                  }
-                }
               }
             }
             """;
@@ -1113,19 +1078,8 @@ public class AzureBicepResourceTests
                 "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{param.value}",
-                "administratorLoginPassword": "{postgres2.inputs.password}",
+                "administratorLoginPassword": "{postgres2-password.value}",
                 "principalType": ""
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
-                }
               }
             }
             """;
@@ -1143,21 +1097,9 @@ public class AzureBicepResourceTests
               "params": {
                 "principalId": "",
                 "keyVaultName": "",
-                "administratorLogin": "{postgres3.inputs.username}",
+                "administratorLogin": "{postgres3-username.value}",
                 "administratorLoginPassword": "{param.value}",
                 "principalType": ""
-              },
-              "inputs": {
-                "username": {
-                  "type": "string",
-                  "default": {
-                    "generate": {
-                      "minLength": 10,
-                      "numeric": false,
-                      "special": false
-                    }
-                  }
-                }
               }
             }
             """;

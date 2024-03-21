@@ -104,7 +104,7 @@ public class AddMySqlTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("Server=localhost;Port=2000;User ID=root;Password=", connectionString);
     }
 
@@ -144,10 +144,10 @@ public class AddMySqlTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
+              "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
               "image": "{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
               "env": {
-                "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}"
+                "MYSQL_ROOT_PASSWORD": "{mysql-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -155,17 +155,6 @@ public class AddMySqlTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 3306
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
                 }
               }
             }

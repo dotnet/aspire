@@ -130,7 +130,7 @@ public class AddPostgresTests
         var connectionStringResource = postgres.Resource as IResourceWithConnectionString;
 
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
-        Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={postgres.Resource.PasswordParameter.Value}", connectionString);
     }
 
@@ -225,13 +225,13 @@ public class AddPostgresTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username=postgres;Password={pg.inputs.password}",
+              "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username=postgres;Password={pg-password.value}",
               "image": "{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
                 "POSTGRES_USER": "postgres",
-                "POSTGRES_PASSWORD": "{pg.inputs.password}"
+                "POSTGRES_PASSWORD": "{pg-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -239,17 +239,6 @@ public class AddPostgresTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 5432
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
                 }
               }
             }
@@ -305,13 +294,13 @@ public class AddPostgresTests
         expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username={user.value};Password={pg2.inputs.password}",
+              "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username={user.value};Password={pg2-password.value}",
               "image": "postgres:16.2",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
                 "POSTGRES_USER": "{user.value}",
-                "POSTGRES_PASSWORD": "{pg2.inputs.password}"
+                "POSTGRES_PASSWORD": "{pg2-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -319,17 +308,6 @@ public class AddPostgresTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 5432
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
                 }
               }
             }

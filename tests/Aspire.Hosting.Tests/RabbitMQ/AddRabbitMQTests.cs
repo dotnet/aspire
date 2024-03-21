@@ -73,11 +73,11 @@ public class AddRabbitMQTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "amqp://guest:{rabbit.inputs.password}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
+              "connectionString": "amqp://guest:{rabbit-password.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
               "image": "rabbitmq:3",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "guest",
-                "RABBITMQ_DEFAULT_PASS": "{rabbit.inputs.password}"
+                "RABBITMQ_DEFAULT_PASS": "{rabbit-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -85,18 +85,6 @@ public class AddRabbitMQTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 5672
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "special": false
-                    }
-                  }
                 }
               }
             }
@@ -142,11 +130,11 @@ public class AddRabbitMQTests
         expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "amqp://{user.value}:{rabbit2.inputs.password}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
+              "connectionString": "amqp://{user.value}:{rabbit2-password.value}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
               "image": "rabbitmq:3",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "{user.value}",
-                "RABBITMQ_DEFAULT_PASS": "{rabbit2.inputs.password}"
+                "RABBITMQ_DEFAULT_PASS": "{rabbit2-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -154,18 +142,6 @@ public class AddRabbitMQTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 5672
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "special": false
-                    }
-                  }
                 }
               }
             }

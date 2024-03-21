@@ -39,6 +39,11 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     public bool Secret => ValueInput.Secret;
 
     /// <summary>
+    /// Gets or sets a value indicating whether the parameter is a connection string.
+    /// </summary>
+    public bool IsConnectionString { get; set; }
+
+    /// <summary>
     /// Gets the expression used in the manifest to reference the value of the parameter.
     /// </summary>
     public string ValueExpression => $"{{{Name}.value}}";

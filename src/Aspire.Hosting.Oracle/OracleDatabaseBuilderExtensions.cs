@@ -38,9 +38,9 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracle(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
-        password ??= ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
-        var oracleDatabaseServer = new OracleDatabaseServerResource(name, password.Resource);
+        var oracleDatabaseServer = new OracleDatabaseServerResource(name, passwordParameter);
         return builder.AddResource(oracleDatabaseServer)
                       .WithEndpoint(hostPort: port, containerPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
                       .WithImage("database/free", "23.3.0.0")

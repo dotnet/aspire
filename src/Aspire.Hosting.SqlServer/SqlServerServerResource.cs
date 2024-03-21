@@ -14,8 +14,8 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// Initializes a new instance of the <see cref="SqlServerServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="password">A parameter that contains the SQL Sever password, or <see langword="null"/> to generate a random password.</param>
-    public SqlServerServerResource(string name, ParameterResource? password) : base(name)
+    /// <param name="password">A parameter that contains the SQL Sever password.</param>
+    public SqlServerServerResource(string name, ParameterResource password) : base(name)
     {
         ArgumentNullException.ThrowIfNull(password);
 

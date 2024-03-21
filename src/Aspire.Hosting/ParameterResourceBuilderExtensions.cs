@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
@@ -36,6 +35,7 @@ public static class ParameterResourceBuilderExtensions
                                                                      bool connectionString = false)
     {
         var resource = new ParameterResource(name, callback, secret);
+        resource.IsConnectionString = connectionString;
 
         var state = new CustomResourceSnapshot()
         {
@@ -56,53 +56,7 @@ public static class ParameterResourceBuilderExtensions
         }
 
         return builder.AddResource(resource)
-                      .WithInitialState(state)
-                      .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, resource, connectionString));
-    }
-
-    private static void WriteParameterResourceToManifest(ManifestPublishingContext context, ParameterResource resource, bool connectionString)
-    {
-        context.Writer.WriteString("type", "parameter.v0");
-
-        if (connectionString)
-        {
-            context.Writer.WriteString("connectionString", resource.ValueExpression);
-        }
-
-        context.Writer.WriteString("value", resource.ValueExpression);
-        WriteInputs(context, resource);
-    }
-
-    /// <summary>
-    /// Writes the "inputs" annotations for the <see cref="ParameterResource"/>.
-    /// </summary>
-    private static void WriteInputs(ManifestPublishingContext context, ParameterResource resource)
-    {
-        var writer = context.Writer;
-
-        writer.WriteStartObject("inputs");
-
-        var input = resource.ValueInput;
-        writer.WriteStartObject(input.Name);
-
-        // https://github.com/Azure/azure-dev/issues/3487 tracks being able to remove this. All inputs are strings.
-        writer.WriteString("type", "string");
-
-        if (input.Secret)
-        {
-            writer.WriteBoolean("secret", true);
-        }
-
-        if (input.Default is not null)
-        {
-            writer.WriteStartObject("default");
-            input.Default.WriteToManifest(context);
-            writer.WriteEndObject();
-        }
-
-        writer.WriteEndObject();
-
-        writer.WriteEndObject();
+                      .WithInitialState(state);
     }
 
     /// <summary>
@@ -147,7 +101,9 @@ public static class ParameterResourceBuilderExtensions
     {
         // Create a parameter resource that we use to write to the manifest
         var parameter = new ParameterResource(builder.Resource.Name, () => "", secret: true);
-        builder.WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, parameter, connectionString: true));
+        parameter.IsConnectionString = true;
+
+        builder.WithManifestPublishingCallback(context => context.WriteParameterAsync(parameter));
     }
 
     /// <summary>
@@ -163,13 +119,13 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="minUpper">The minimum number of uppercase characters in the result.</param>
     /// <param name="minNumeric">The minimum number of numeric characters in the result.</param>
     /// <param name="minSpecial">The minimum number of special characters in the result.</param>
-    /// <returns>Resource builder for the parameter.</returns>
-    public static IResourceBuilder<ParameterResource> CreateDefaultPasswordParameter(
+    /// <returns>The created <see cref="ParameterResource"/>.</returns>
+    public static ParameterResource CreateDefaultPasswordParameter(
         IDistributedApplicationBuilder builder, string name,
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
         int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
     {
-        return CreateGeneratedParameter(builder, name, secret: true, new GenerateParameterInputDefault
+        var generatedPasswordInput = new GenerateParameterInputDefault
         {
             MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
             Lower = lower,
@@ -180,18 +136,20 @@ public static class ParameterResourceBuilderExtensions
             MinUpper = minUpper,
             MinNumeric = minNumeric,
             MinSpecial = minSpecial
-        });
+        };
+
+        return CreateGeneratedParameter(builder, name, secret: true, generatedPasswordInput);
     }
 
     /// <summary>
-    /// TODO
+    /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="parameterInputDefault"/>.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="secret"></param>
-    /// <param name="parameterInputDefault"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<ParameterResource> CreateGeneratedParameter(
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="secret">Flag indicating whether the parameter should be regarded as secret.</param>
+    /// <param name="parameterInputDefault">The <see cref="GenerateParameterInputDefault"/> that describes how the parameter's value should be generated.</param>
+    /// <returns>The created <see cref="ParameterResource"/>.</returns>
+    public static ParameterResource CreateGeneratedParameter(
         IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterInputDefault parameterInputDefault)
     {
         var parameterResource = new ParameterResource(name, () =>
@@ -202,7 +160,6 @@ public static class ParameterResourceBuilderExtensions
 
         parameterResource.ValueInput.Default = parameterInputDefault;
 
-        return builder.AddResource(parameterResource)
-              .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, parameterResource, connectionString: false));
+        return parameterResource;
     }
 }

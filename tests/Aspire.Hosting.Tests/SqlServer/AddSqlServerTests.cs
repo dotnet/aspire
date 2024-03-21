@@ -114,11 +114,11 @@ public class AddSqlServerTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
               "image": "mcr.microsoft.com/mssql/server:2022-latest",
               "env": {
                 "ACCEPT_EULA": "Y",
-                "MSSQL_SA_PASSWORD": "{sqlserver.inputs.password}"
+                "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -126,20 +126,6 @@ public class AddSqlServerTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 1433
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "minLower": 1,
-                      "minUpper": 1,
-                      "minNumeric": 1
-                    }
-                  }
                 }
               }
             }
