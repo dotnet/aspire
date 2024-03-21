@@ -5,10 +5,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)tests\Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests\SqlServerContainerFixture.cs" />
+
     <None Include="$(RepoRoot)src\Components\Aspire.Microsoft.Data.SqlClient\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+   <PackageReference Include="Testcontainers.MsSql" />
   </ItemGroup>
 
 </Project>

@@ -1,23 +1,35 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
+using Aspire.SqlServer.Tests;
 using Microsoft.Data.SqlClient;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Microsoft.Data.SqlClient.Tests;
 
-public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSqlClientSettings>
+public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSqlClientSettings>, IClassFixture<SqlServerContainerFixture>
 {
+    private readonly SqlServerContainerFixture _containerFixture;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Data Source=fake;Database=master";
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Scoped;
 
     // https://github.com/open-telemetry/opentelemetry-dotnet/blob/031ed48714e16ba4a5b099b6e14647994a0b9c1b/src/OpenTelemetry.Instrumentation.SqlClient/Implementation/SqlActivitySourceHelper.cs#L31
     protected override string ActivitySourceName => "OpenTelemetry.Instrumentation.SqlClient";
 
-    // TODO
-    protected override string[] RequiredLogCategories => Array.Empty<string>();
+    protected override string[] RequiredLogCategories => [
+        "Microsoft.Extensions.Hosting.Internal.ApplicationLifetime",
+        "Microsoft.Extensions.Hosting.Internal.Host",
+        "Microsoft.Hosting.Lifetime"
+    ];
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -42,11 +54,14 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
             ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "ConnectionString": "Con", "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
+    public ConformanceTests(SqlServerContainerFixture containerFixture)
+        => _containerFixture = containerFixture;
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
             new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Microsoft:Data:SqlClient", key, "ConnectionString"),
-                "Data Source=fake;Database=master")
+                ConnectionString)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftDataSqlClientSettings>? configure = null, string? key = null)
@@ -71,5 +86,26 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
         => options.Metrics = enabled;
 
     protected override void TriggerActivity(SqlConnection service)
-        => service.Open();
+    {
+        service.Open();
+        using var command = service.CreateCommand();
+        command.CommandText = "SELECT 1;";
+        command.ExecuteScalar();
+    }
+
+    [RequiresDockerFact]
+    public void TracingEnablesTheRightActivitySource()
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
+
+    [RequiresDockerFact]
+    public void TracingEnablesTheRightActivitySource_Keyed()
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
+
+    private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
+    {
+        await using var fixture = new SqlServerContainerFixture();
+        await fixture.InitializeAsync();
+        test(new ConformanceTests(fixture));
+    }
+
 }
