@@ -54,7 +54,7 @@
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />
       <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')">
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-default')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=default</PreCommands>
@@ -65,7 +65,7 @@
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')-sqlserver">
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-sqlserver')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=sqlserver</PreCommands>
@@ -76,7 +76,7 @@
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')-cosmos">
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-cosmos')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=cosmos</PreCommands>
@@ -87,7 +87,7 @@
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')-oracle">
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-oracle')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=oracle</PreCommands>
