@@ -169,17 +169,7 @@ public static class ParameterResourceBuilderExtensions
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
         int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
     {
-        var passwordParam = builder.AddParameter(name, () =>
-        {
-            var configurationKey = $"Parameters:{name}";
-            return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing.");
-        }, secret: true);
-
-        // TODO: make this simpler, and work with:
-        // * Check Configuration[$"Parameters:{name}"]
-        // * Check Default value, use it if there
-        // * Throw
-        passwordParam.Resource.ValueInput.Default = new GenerateParameterInputDefault
+        return CreateGeneratedParameter(builder, name, secret: true, new GenerateParameterInputDefault
         {
             MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
             Lower = lower,
@@ -190,8 +180,29 @@ public static class ParameterResourceBuilderExtensions
             MinUpper = minUpper,
             MinNumeric = minNumeric,
             MinSpecial = minSpecial
-        };
+        });
+    }
 
-        return passwordParam;
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <param name="secret"></param>
+    /// <param name="parameterInputDefault"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<ParameterResource> CreateGeneratedParameter(
+        IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterInputDefault parameterInputDefault)
+    {
+        var parameterResource = new ParameterResource(name, () =>
+        {
+            var configurationKey = $"Parameters:{name}";
+            return builder.Configuration[configurationKey] ?? parameterInputDefault.GenerateDefaultValue();
+        }, secret);
+
+        parameterResource.ValueInput.Default = parameterInputDefault;
+
+        return builder.AddResource(parameterResource)
+              .WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, parameterResource, connectionString: false));
     }
 }
