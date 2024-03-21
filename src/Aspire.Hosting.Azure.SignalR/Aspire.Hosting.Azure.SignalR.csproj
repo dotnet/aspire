@@ -4,12 +4,11 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting azure</PackageTags>
-    <Description>Azure Redis resource types for .NET Aspire.</Description>
+    <Description>Azure SignalR resource types for .NET Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" />
     <PackageReference Include="Azure.Provisioning" />
   </ItemGroup>
 

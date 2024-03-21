@@ -5,15 +5,11 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting azure</PackageTags>
     <Description>Azure Open AI resource types for .NET Aspire.</Description>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
-    <PackageReference Include="Azure.ResourceManager.Authorization" />
-    <PackageReference Include="Azure.Identity" />
-    <PackageReference Include="Azure.ResourceManager.Resources" />
   </ItemGroup>
 
   <ItemGroup>

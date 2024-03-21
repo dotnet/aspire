@@ -4,8 +4,7 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting azure</PackageTags>
-    <Description>Azure resource types for .NET Aspire.</Description>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Azure Cosmos DB resource types for .NET Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,11 +14,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
-    <PackageReference Include="Azure.ResourceManager.Authorization" />
-    <PackageReference Include="Azure.Identity" />
-    <PackageReference Include="Azure.ResourceManager.KeyVault" />
-    <PackageReference Include="Azure.ResourceManager.Resources" />
-    <PackageReference Include="Azure.Security.KeyVault.Secrets" />
   </ItemGroup>
 
   <ItemGroup>
