@@ -19,35 +19,28 @@ public static class AzurePostgresExtensions
     {
         if (postgresResource.UserNameParameter is null)
         {
-            const string usernameInput = "username";
-            // generate a username since a parameter was not provided
-            builder.WithAnnotation(new InputAnnotation(usernameInput)
-            {
-                Default = new GenerateInputDefault
-                {
-                    MinLength = 10,
-                    // just use letters for the username since it can't start with a number
-                    Numeric = false,
-                    Special = false
-                }
-            });
+            var userParam = builder.ApplicationBuilder.AddParameter($"{builder.Resource.Name}-username");
 
-            builder.WithParameter("administratorLogin", new InputReference(builder.Resource, usernameInput));
+            // TODO: make this simpler, and work with:
+            // * Check Configuration[$"Parameters:{name}"]
+            // * Check Default value, use it if there
+            // * Throw
+            userParam.Resource.ValueInput.Default = new GenerateParameterInputDefault
+            {
+                MinLength = 10,
+                // just use letters for the username since it can't start with a number
+                Numeric = false,
+                Special = false
+            };
+
+            builder.WithParameter("administratorLogin", userParam);
         }
         else
         {
             builder.WithParameter("administratorLogin", postgresResource.UserNameParameter);
         }
 
-        if (postgresResource.PasswordParameter is null)
-        {
-            // generate a password since a parameter was not provided. Use the existing "password" input from the underlying PostgresServerResource
-            builder.WithParameter("administratorLoginPassword", new InputReference(builder.Resource, "password"));
-        }
-        else
-        {
-            builder.WithParameter("administratorLoginPassword", postgresResource.PasswordParameter);
-        }
+        builder.WithParameter("administratorLoginPassword", postgresResource.PasswordParameter);
 
         return builder;
     }

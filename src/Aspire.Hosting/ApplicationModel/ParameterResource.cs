@@ -8,8 +8,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
 {
-    private readonly InputAnnotation _valueInput;
-
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterResource"/>.
     /// </summary>
@@ -21,25 +19,24 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(callback);
 
-        _valueInput = new InputAnnotation("value", secret);
-        _valueInput.SetValueGetter(callback);
-
-        Annotations.Add(_valueInput);
-
-        ValueInputReference = new InputReference(this, "value");
+        ValueInput = new ParameterInput("value", secret);
+        ValueInput.SetValueGetter(callback);
     }
 
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
-    public string Value => _valueInput.Value ?? throw new InvalidOperationException("A Parameter's value cannot be null.");
+    public string Value => ValueInput.Value ?? throw new InvalidOperationException("A Parameter's value cannot be null.");
+
+    /// <summary>
+    /// Gets the <see cref="ParameterInput"/> that represents the value of the parameter.
+    /// </summary>
+    public ParameterInput ValueInput { get; }
 
     /// <summary>
     /// Gets a value indicating whether the parameter is secret.
     /// </summary>
-    public bool Secret => _valueInput.Secret;
-
-    internal InputReference ValueInputReference { get; }
+    public bool Secret => ValueInput.Secret;
 
     /// <summary>
     /// Gets the expression used in the manifest to reference the value of the parameter.

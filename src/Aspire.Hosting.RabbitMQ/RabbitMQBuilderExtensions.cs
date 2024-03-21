@@ -26,14 +26,17 @@ public static class RabbitMQBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-        var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, password?.Resource);
+        // don't use special characters in the password, since it goes into a URI
+        password ??= ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
+
+        var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, password.Resource);
         return builder.AddResource(rabbitMq)
                       .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
                       .WithImage("rabbitmq", "3")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables["RABBITMQ_DEFAULT_USER"] = rabbitMq.UserNameReference;
-                          context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordReference;
+                          context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordParameter;
                       });
     }
 

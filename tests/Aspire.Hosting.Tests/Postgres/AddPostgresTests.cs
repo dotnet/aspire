@@ -131,7 +131,7 @@ public class AddPostgresTests
 
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
         Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}", connectionStringResource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={postgres.Resource.Password}", connectionString);
+        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={postgres.Resource.PasswordParameter.Value}", connectionString);
     }
 
     [Fact]
@@ -421,7 +421,7 @@ public class AddPostgresTests
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("1").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("MaintenanceDB").GetString());
-        Assert.Equal($"echo '{pg1.Resource.Password}'", servers.GetProperty("1").GetProperty("PasswordExecCommand").GetString());
+        Assert.Equal($"echo '{pg1.Resource.PasswordParameter.Value}'", servers.GetProperty("1").GetProperty("PasswordExecCommand").GetString());
 
         // Make sure the second server is correct.
         Assert.Equal(pg2.Resource.Name, servers.GetProperty("2").GetProperty("Name").GetString());
@@ -431,7 +431,7 @@ public class AddPostgresTests
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
-        Assert.Equal($"echo '{pg2.Resource.Password}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
+        Assert.Equal($"echo '{pg2.Resource.PasswordParameter.Value}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
     }
 
     [Fact]

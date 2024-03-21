@@ -91,7 +91,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container, emitContainerPort: true);
-        WriteInputs(container);
     }
 
     /// <summary>
@@ -214,40 +213,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
 
             Writer.WriteEndArray();
-        }
-    }
-
-    /// <summary>
-    /// Writes the "inputs" annotations for the underlying resource.
-    /// </summary>
-    /// <param name="resource">The resource to write inputs for.</param>
-    public void WriteInputs(IResource resource)
-    {
-        if (resource.TryGetAnnotationsOfType<InputAnnotation>(out var inputs))
-        {
-            Writer.WriteStartObject("inputs");
-            foreach (var input in inputs)
-            {
-                Writer.WriteStartObject(input.Name);
-
-                // https://github.com/Azure/azure-dev/issues/3487 tracks being able to remove this. All inputs are strings.
-                Writer.WriteString("type", "string");
-
-                if (input.Secret)
-                {
-                    Writer.WriteBoolean("secret", true);
-                }
-
-                if (input.Default is not null)
-                {
-                    Writer.WriteStartObject("default");
-                    input.Default.WriteToManifest(this);
-                    Writer.WriteEndObject();
-                }
-
-                Writer.WriteEndObject();
-            }
-            Writer.WriteEndObject();
         }
     }
 

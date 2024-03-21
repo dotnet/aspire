@@ -31,7 +31,9 @@ public static class PostgresBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-        var postgresServer = new PostgresServerResource(name, userName?.Resource, password?.Resource);
+        password ??= ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+
+        var postgresServer = new PostgresServerResource(name, userName?.Resource, password.Resource);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
@@ -40,7 +42,7 @@ public static class PostgresBuilderExtensions
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
-                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordReference;
+                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordParameter;
                       });
     }
 

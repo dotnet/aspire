@@ -1032,8 +1032,8 @@ public class AzureBicepResourceTests
         // Verify that when PublishAs variant is used, connection string acquisition
         // still uses the local endpoint.
         postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
-        var expectedConnectionString = $"Host=localhost;Port=1234;Username=user;Password={postgres.Resource.Password}";
-        Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync(default));
+        var expectedConnectionString = $"Host=localhost;Port=1234;Username=user;Password=password";
+        Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync());
 
         var expectedManifest = """
             {

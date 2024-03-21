@@ -69,8 +69,40 @@ public static class ParameterResourceBuilderExtensions
             context.Writer.WriteString("connectionString", resource.ValueExpression);
         }
 
-        context.Writer.WriteString("value", resource.ValueInputReference.ValueExpression);
-        context.WriteInputs(resource);
+        context.Writer.WriteString("value", resource.ValueExpression);
+        WriteInputs(context, resource);
+    }
+
+    /// <summary>
+    /// Writes the "inputs" annotations for the <see cref="ParameterResource"/>.
+    /// </summary>
+    private static void WriteInputs(ManifestPublishingContext context, ParameterResource resource)
+    {
+        var writer = context.Writer;
+
+        writer.WriteStartObject("inputs");
+
+        var input = resource.ValueInput;
+        writer.WriteStartObject(input.Name);
+
+        // https://github.com/Azure/azure-dev/issues/3487 tracks being able to remove this. All inputs are strings.
+        writer.WriteString("type", "string");
+
+        if (input.Secret)
+        {
+            writer.WriteBoolean("secret", true);
+        }
+
+        if (input.Default is not null)
+        {
+            writer.WriteStartObject("default");
+            input.Default.WriteToManifest(context);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndObject();
+
+        writer.WriteEndObject();
     }
 
     /// <summary>
@@ -116,5 +148,50 @@ public static class ParameterResourceBuilderExtensions
         // Create a parameter resource that we use to write to the manifest
         var parameter = new ParameterResource(builder.Resource.Name, () => "", secret: true);
         builder.WithManifestPublishingCallback(context => WriteParameterResourceToManifest(context, parameter, connectionString: true));
+    }
+
+    /// <summary>
+    /// Creates a default password parameter that generates a random password.
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="lower"><see langword="true" /> if lowercase alphabet characters should be included; otherwise, <see langword="false" />.</param>
+    /// <param name="upper"><see langword="true" /> if uppercase alphabet characters should be included; otherwise, <see langword="false" />.</param>
+    /// <param name="numeric"><see langword="true" /> if numeric characters should be included; otherwise, <see langword="false" />.</param>
+    /// <param name="special"><see langword="true" /> if special characters should be included; otherwise, <see langword="false" />.</param>
+    /// <param name="minLower">The minimum number of lowercase characters in the result.</param>
+    /// <param name="minUpper">The minimum number of uppercase characters in the result.</param>
+    /// <param name="minNumeric">The minimum number of numeric characters in the result.</param>
+    /// <param name="minSpecial">The minimum number of special characters in the result.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    public static IResourceBuilder<ParameterResource> CreateDefaultPasswordParameter(
+        IDistributedApplicationBuilder builder, string name,
+        bool lower = true, bool upper = true, bool numeric = true, bool special = true,
+        int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
+    {
+        var passwordParam = builder.AddParameter(name, () =>
+        {
+            var configurationKey = $"Parameters:{name}";
+            return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing.");
+        }, secret: true);
+
+        // TODO: make this simpler, and work with:
+        // * Check Configuration[$"Parameters:{name}"]
+        // * Check Default value, use it if there
+        // * Throw
+        passwordParam.Resource.ValueInput.Default = new GenerateParameterInputDefault
+        {
+            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
+            Lower = lower,
+            Upper = upper,
+            Numeric = numeric,
+            Special = special,
+            MinLower = minLower,
+            MinUpper = minUpper,
+            MinNumeric = minNumeric,
+            MinSpecial = minSpecial
+        };
+
+        return passwordParam;
     }
 }

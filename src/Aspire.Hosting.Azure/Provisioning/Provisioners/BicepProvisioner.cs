@@ -456,7 +456,7 @@ internal sealed class BicepProvisioner(
         foreach (var parameter in resource.Parameters)
         {
             if (skipDynamicValues &&
-                (s_knownParameterNames.Contains(parameter.Key) || parameter.Value is InputReference))
+                (s_knownParameterNames.Contains(parameter.Key))) // TODO: figure this out || (parameter.Value is ParameterResource { Value: { }
             {
                 continue;
             }

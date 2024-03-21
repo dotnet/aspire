@@ -8,24 +8,24 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a input annotation that describes an input value.
+/// Represents the input of a <see cref="ParameterResource"/>.
 /// </summary>
 /// <remarks>
-/// This class is used to specify generated passwords, usernames, etc.
+/// This class is used to specify user-inputted values, generated passwords, usernames, etc.
 /// </remarks>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
-public sealed class InputAnnotation : IResourceAnnotation
+public sealed class ParameterInput
 {
     private string? _value;
     private bool _hasValue;
     private Func<string>? _valueGetter;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="InputAnnotation"/>.
+    /// Initializes a new instance of <see cref="ParameterInput"/>.
     /// </summary>
     /// <param name="name">The name of the input.</param>
     /// <param name="secret">A flag indicating whether the input is secret.</param>
-    public InputAnnotation(string name, bool secret = false)
+    public ParameterInput(string name, bool secret = false)
     {
         ArgumentNullException.ThrowIfNull(name);
 
@@ -46,7 +46,7 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <summary>
     /// Represents how the default value of the input should be retrieved.
     /// </summary>
-    public InputDefault? Default { get; set; }
+    public ParameterInputDefault? Default { get; set; }
 
     /// <summary>
     /// Gets the value of the input.
@@ -80,48 +80,15 @@ public sealed class InputAnnotation : IResourceAnnotation
 
         return Default.GenerateDefaultValue();
     }
-
-    /// <summary>
-    /// Creates a default password input annotation that generates a random password.
-    /// </summary>
-    /// <param name="lower"><see langword="true" /> if lowercase alphabet characters should be included; otherwise, <see langword="false" />.</param>
-    /// <param name="upper"><see langword="true" /> if uppercase alphabet characters should be included; otherwise, <see langword="false" />.</param>
-    /// <param name="numeric"><see langword="true" /> if numeric characters should be included; otherwise, <see langword="false" />.</param>
-    /// <param name="special"><see langword="true" /> if special characters should be included; otherwise, <see langword="false" />.</param>
-    /// <param name="minLower">The minimum number of lowercase characters in the result.</param>
-    /// <param name="minUpper">The minimum number of uppercase characters in the result.</param>
-    /// <param name="minNumeric">The minimum number of numeric characters in the result.</param>
-    /// <param name="minSpecial">The minimum number of special characters in the result.</param>
-    /// <returns>The created <see cref="InputAnnotation"/> for generating a random password.</returns>
-    public static InputAnnotation CreateDefaultPasswordInput(
-        bool lower = true, bool upper = true, bool numeric = true, bool special = true,
-        int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
-    {
-        var passwordInput = new InputAnnotation("password", secret: true);
-        passwordInput.Default = new GenerateInputDefault
-        {
-            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
-            Lower = lower,
-            Upper = upper,
-            Numeric = numeric,
-            Special = special,
-            MinLower = minLower,
-            MinUpper = minUpper,
-            MinNumeric = minNumeric,
-            MinSpecial = minSpecial
-        };
-
-        return passwordInput;
-    }
 }
 
 /// <summary>
 /// Represents how a default value should be retrieved.
 /// </summary>
-public abstract class InputDefault
+public abstract class ParameterInputDefault
 {
     /// <summary>
-    /// Writes the current <see cref="InputDefault"/> to the manifest context.
+    /// Writes the current <see cref="ParameterInputDefault"/> to the manifest context.
     /// </summary>
     /// <param name="context">The context for the manifest publishing operation.</param>
     public abstract void WriteToManifest(ManifestPublishingContext context);
@@ -136,7 +103,7 @@ public abstract class InputDefault
 /// <summary>
 /// Represents that a default value should be generated.
 /// </summary>
-public sealed class GenerateInputDefault : InputDefault
+public sealed class GenerateParameterInputDefault : ParameterInputDefault
 {
     /// <summary>
     /// Gets or sets the minimum length of the generated value.
