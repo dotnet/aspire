@@ -16,7 +16,7 @@ namespace OpenTelemetry.Instrumentation.SqlClient;
 /// <remarks>
 /// For help and examples see: <a href="https://github.com/open-telemetry/opentelemetry-dotnet/tree/main/src/OpenTelemetry.Instrumentation.SqlClient/README.md#advanced-configuration" />.
 /// </remarks>
-public class SqlClientTraceInstrumentationOptions
+internal class SqlClientTraceInstrumentationOptions
 {
     /*
      * Match...

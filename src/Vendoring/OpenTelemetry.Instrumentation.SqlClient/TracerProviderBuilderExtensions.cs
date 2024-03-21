@@ -16,7 +16,7 @@ namespace OpenTelemetry.Trace;
 /// <summary>
 /// Extension methods to simplify registering of dependency instrumentation.
 /// </summary>
-public static class TracerProviderBuilderExtensions
+internal static class TracerProviderBuilderExtensions
 {
     /// <summary>
     /// Enables SqlClient instrumentation.
