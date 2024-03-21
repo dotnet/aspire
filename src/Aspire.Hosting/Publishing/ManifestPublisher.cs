@@ -103,7 +103,6 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
         {
             context.Writer.WriteStartObject(resource.Name);
             await action().ConfigureAwait(false);
-            context.WriteManifestMetadata(resource);
             context.Writer.WriteEndObject();
         }
     }
