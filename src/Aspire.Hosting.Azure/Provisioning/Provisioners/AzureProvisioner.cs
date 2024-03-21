@@ -275,8 +275,8 @@ internal sealed class AzureProvisioner(
 
     private async Task<ProvisioningContext> GetProvisioningContextAsync(Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
     {
-        // Optionally configured in AppHost appSettings under "Azure" : { "ProvisionerCredentialSource": "AzureCli" }
-        var credentialSetting = _options.ProvisionerCredentialSource;
+        // Optionally configured in AppHost appSettings under "Azure" : { "CredentialSource": "AzureCli" }
+        var credentialSetting = _options.CredentialSource;
 
         TokenCredential credential = credentialSetting switch
         {
