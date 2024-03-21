@@ -110,10 +110,10 @@ builder.AddAzureCosmosDbClient("cosmosConnectionName", configureClientOptions: c
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure CosmosDB Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure
+dotnet add package Aspire.Hosting.Azure.CosmosDB
 ```
 
 Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
