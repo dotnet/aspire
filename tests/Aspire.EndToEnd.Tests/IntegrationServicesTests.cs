@@ -50,6 +50,11 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         });
 
     [Fact]
+    [Trait("scenario", "sqlserver")]
+    public Task VerifySqlServerComponentWorks()
+        => VerifyComponentWorks(TestResourceNames.sqlserver);
+
+    [Fact]
     [Trait("scenario", "oracle")]
     public Task VerifyOracleComponentWorks()
         => VerifyComponentWorks(TestResourceNames.oracledatabase);
