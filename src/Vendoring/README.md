@@ -30,4 +30,4 @@ git clone https://github.com/open-telemetry/opentelemetry-dotnet.git
 
 - Added `#nullable disable` in files that require it.
 - Added `GlobalSuppressions.cs` to fix incompatible coding style.
-- Mark all imported classes as internal.
+- Change all `public` classes to `internal`.
