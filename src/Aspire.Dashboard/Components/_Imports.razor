@@ -1,5 +1,6 @@
 ﻿@using System.Net.Http
 @using System.Net.Http.Json
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
@@ -10,3 +11,6 @@
 @using Aspire.Dashboard.Components
 @using Aspire.Dashboard.Components.Controls
 @using Microsoft.Extensions.Localization
+
+@* Require authorization for all pages *@
+@attribute [Authorize]

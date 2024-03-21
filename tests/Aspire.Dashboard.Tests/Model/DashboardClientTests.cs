@@ -19,6 +19,7 @@ public sealed class DashboardClientTests
     {
         var configuration = new ConfigurationManager();
         configuration.AddInMemoryCollection([
+            new("DashboardWebApp:AuthMode", "Unsecured"),
             new("ResourceServiceClient:AuthMode", "Unsecured"),
             new("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:12345")
         ]);

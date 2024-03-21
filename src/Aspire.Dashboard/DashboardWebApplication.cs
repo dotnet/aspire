@@ -12,11 +12,14 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Authentication.Certificate;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Aspire.Dashboard;
 
@@ -50,10 +53,8 @@ public class DashboardWebApplication : IAsyncDisposable
     public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
     {
         var builder = WebApplication.CreateBuilder();
-        if (configureBuilder != null)
-        {
-            configureBuilder(builder);
-        }
+
+        configureBuilder?.Invoke(builder);
 
 #if !DEBUG
         builder.Logging.AddFilter("Default", LogLevel.Information);
@@ -61,6 +62,13 @@ public class DashboardWebApplication : IAsyncDisposable
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 #endif
+
+        var authMode = builder.Configuration.GetEnum<DashboardWebAppAuthMode>("DashboardWebApp:AuthMode");
+
+        if (authMode == null)
+        {
+            throw new InvalidOperationException("Unable to read DashboardWebApp:AuthMode. Supported values are Unsecured and OpenIdConnect.");
+        }
 
         var dashboardConfig = LoadDashboardConfig(builder.Configuration);
 
@@ -102,6 +110,30 @@ public class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<BrowserTimeProvider>();
 
         builder.Services.AddLocalization();
+
+        if (authMode == DashboardWebAppAuthMode.OpenIdConnect)
+        {
+            // Configure OpenID Connect (OIDC)
+            var authentication = builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+            });
+
+            authentication.AddCookie();
+
+            authentication.AddOpenIdConnect(options =>
+            {
+                // Use authorization code flow so clients don't see access tokens.
+                options.ResponseType = OpenIdConnectResponseType.Code;
+
+                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
+                // "openid" and "profile" are added by default, but need to be re-added in case the user added more
+                // scopes via Authentication:Schemes:OpenIdConnect:Scope configuration.
+                options.Scope.Add(OpenIdConnectScope.OpenIdProfile);
+            });
+        }
 
         _app = builder.Build();
 
@@ -407,6 +439,12 @@ public class DashboardWebApplication : IAsyncDisposable
             OtlpAuthMode = otlpAuthMode,
             OtlpApiKey = otlpApiKey
         };
+    }
+
+    private enum DashboardWebAppAuthMode
+    {
+        Unsecured,
+        OpenIdConnect
     }
 }
 

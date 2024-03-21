@@ -38,6 +38,17 @@ The resource service client supports certificates. Set `ResourceServiceClient:Au
 
 To opt-out of authentication, set `ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
+## Dashboard web app auth
+
+The dashboard's web application supports OpenID Connect. Set `DashboardWebApp:AuthMode` to `OpenIdConnect`, then add the following configuration:
+
+- `Authentication:Schemes:OpenIdConnect:Authority` &mdash; URL to the identity provider (IdP)
+- `Authentication:Schemes:OpenIdConnect:ClientId` &mdash; Identity of the relying party (RP)
+- `Authentication:Schemes:OpenIdConnect:ClientSecret`&mdash; A secret that only the real RP would know
+- Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
+
+It may also be run unsecured. Set `DashboardWebApp:AuthMode` to `Unsecured`. This completely disables all security for the dashboard web app. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
+
 ## Telemetry Limits
 
 Telemetry is stored in-memory. To avoid excessive memory usage, the dashboard has limits on the count and size of stored telemetry. When a count limit is reached, new telemetry is added, and the oldest telemetry is removed. When a size limit is reached, data is truncated to the limit.

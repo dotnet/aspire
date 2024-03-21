@@ -27,7 +27,9 @@ public static class IntegrationTestHelpers
         var initialData = new Dictionary<string, string?>
         {
             [DashboardWebApplication.DashboardUrlVariableName] = "http://127.0.0.1:0",
-            [DashboardWebApplication.DashboardOtlpUrlVariableName] = "http://127.0.0.1:0"
+            [DashboardWebApplication.DashboardOtlpUrlVariableName] = "http://127.0.0.1:0",
+            ["ResourceServiceClient:AuthMode"] = "Unsecured",
+            ["DashboardWebApp:AuthMode"] = "Unsecured"
         };
         additionalConfiguration?.Invoke(initialData);
 
