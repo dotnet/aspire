@@ -15,12 +15,12 @@ public static class SqlServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="password">The password of the SQL Server. By default, this will be randomly generated.</param>
+    /// <param name="password">The parameter used to provide the administrator password for the SQL Server resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port for the SQL Server.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
+    public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
-        var sqlServer = new SqlServerServerResource(name, password);
+        var sqlServer = new SqlServerServerResource(name, password?.Resource);
 
         return builder.AddResource(sqlServer)
                       .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
@@ -29,7 +29,7 @@ public static class SqlServerBuilderExtensions
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordInput;
+                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordReference;
                       });
     }
 

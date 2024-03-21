@@ -139,11 +139,7 @@ public static partial class AspireEFPostgreSqlExtensions
             builder.Services.AddOpenTelemetry()
                 .WithTracing(tracerProviderBuilder =>
                 {
-                    // Npgsql already provides quality tracing (via the Npgsql.OpenTelemetry package).
-                    // We don't need to enable it for EF via OpenTelemetry.Instrumentation.EntityFrameworkCore.
                     tracerProviderBuilder.AddNpgsql();
-
-                    // defining exporters is outside of the scope of a Component
                 });
         }
 

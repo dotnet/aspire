@@ -16,6 +16,9 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+  <!--#if (UseRedisCache) -->
+    <PackageReference Include="Aspire.Hosting.Redis" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+  <!--#endif -->
   </ItemGroup>
 
 </Project>

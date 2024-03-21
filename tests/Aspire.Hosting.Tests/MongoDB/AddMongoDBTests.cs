@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -35,8 +36,8 @@ public class AddMongoDBTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("7.0.5", containerAnnotation.Tag);
-        Assert.Equal("mongo", containerAnnotation.Image);
+        Assert.Equal(MongoDBContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(MongoDBContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -63,8 +64,8 @@ public class AddMongoDBTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("7.0.5", containerAnnotation.Tag);
-        Assert.Equal("mongo", containerAnnotation.Image);
+        Assert.Equal(MongoDBContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(MongoDBContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -97,9 +98,37 @@ public class AddMongoDBTests
     public void WithMongoExpressAddsContainer()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddMongoDB("mongo").WithMongoExpress();
+        builder.AddMongoDB("mongo")
+            .WithMongoExpress();
 
         Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+    }
+
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task WithMongoExpressUsesContainerHost(string containerHost)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo")
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000, containerHost))
+            .WithMongoExpress();
+
+        var mongoExpress = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mongoExpress);
+
+        Assert.Collection(env,
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
+                Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
+                Assert.Equal("false", e.Value);
+            });
     }
 
     [Fact]
@@ -122,11 +151,11 @@ public class AddMongoDBTests
         var mongoManifest = await ManifestUtils.GetManifest(mongo.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
-              "image": "mongo:7.0.5",
+              "image": "{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",

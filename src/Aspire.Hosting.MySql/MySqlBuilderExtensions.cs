@@ -19,18 +19,18 @@ public static class MySqlBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="password">The parameter used to provide the root password for the MySQL resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port for MySQL.</param>
-    /// <param name="password">The password for the MySQL root user. Defaults to a random password.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
+    public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
-        var resource = new MySqlServerResource(name, password);
+        var resource = new MySqlServerResource(name, password?.Resource);
         return builder.AddResource(resource)
                       .WithEndpoint(hostPort: port, containerPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
-                      .WithImage("mysql", "8.3.0")
+                      .WithImage(MySqlContainerImageTags.Image, MySqlContainerImageTags.Tag)
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordInput;
+                          context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordReference;
                       });
     }
 
@@ -89,7 +89,7 @@ public static class MySqlBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> WithDataVolume(this IResourceBuilder<MySqlServerResource> builder, string? name = null, bool isReadOnly = false)
         => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/mysql", isReadOnly);
- 
+
     /// <summary>
     /// Adds a bind mount for the data folder to a MySql container resource.
     /// </summary>

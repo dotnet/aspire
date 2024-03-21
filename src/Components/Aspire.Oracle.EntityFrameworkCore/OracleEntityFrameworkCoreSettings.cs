@@ -28,12 +28,6 @@ public sealed class OracleEntityFrameworkCoreSettings
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.</para>
-    /// <para>The default value is <see langword="true"/>.</para>
-    /// </summary>
-    public bool Tracing { get; set; } = true;
-
-    /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not.</para>
     /// <para>The default value is <see langword="true"/>.</para>
     /// </summary>

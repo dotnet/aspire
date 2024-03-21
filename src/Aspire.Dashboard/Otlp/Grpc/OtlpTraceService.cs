@@ -6,11 +6,13 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Aspire.Dashboard.Otlp.Grpc;
 
 [Authorize(Policy = OtlpAuthorization.PolicyName)]
+[SkipStatusCodePages]
 public class OtlpTraceService : TraceService.TraceServiceBase
 {
     private readonly ILogger<OtlpTraceService> _logger;

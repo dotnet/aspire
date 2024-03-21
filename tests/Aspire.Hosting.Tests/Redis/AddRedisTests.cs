@@ -121,15 +121,17 @@ public class AddRedisTests
         Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
     }
 
-    [Fact]
-    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable()
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
+        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new RedisCommanderConfigWriterHook();
@@ -139,11 +141,13 @@ public class AddRedisTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
-        Assert.Equal("myredis1:host.docker.internal:5001:0", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{containerHost}:5001:0", config["REDIS_HOSTS"]);
     }
 
-    [Fact]
-    public async Task MultipleRedisInstanceProducesCorrectRedisHostsVariable()
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task MultipleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
@@ -151,8 +155,8 @@ public class AddRedisTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
-        redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
+        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new RedisCommanderConfigWriterHook();
@@ -162,6 +166,131 @@ public class AddRedisTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
-        Assert.Equal("myredis1:host.docker.internal:5001:0,myredis2:host.docker.internal:5002:0", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{containerHost}:5001:0,myredis2:host2:5002:0", config["REDIS_HOSTS"]);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataVolumeAddsVolumeAnnotation(bool? isReadOnly)
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis");
+        if (isReadOnly.HasValue)
+        {
+            redis.WithDataVolume(isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            redis.WithDataVolume();
+        }
+
+        var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal("myRedis-data", volumeAnnotation.Source);
+        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountAddsMountAnnotation(bool? isReadOnly)
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis");
+        if (isReadOnly.HasValue)
+        {
+            redis.WithDataBindMount("mydata", isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            redis.WithDataBindMount("mydata");
+        }
+
+        var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal("mydata", volumeAnnotation.Source);
+        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+    }
+
+    [Fact]
+    public void WithDataVolumeAddsPersistenceAnnotation()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis")
+                              .WithDataVolume();
+
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+
+        Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
+        Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+    }
+
+    [Fact]
+    public void WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis")
+                              .WithDataVolume(isReadOnly: true);
+
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+
+        Assert.Null(persistenceAnnotation);
+    }
+
+    [Fact]
+    public void WithDataBindMountAddsPersistenceAnnotation()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis")
+                              .WithDataBindMount("myredisdata");
+
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+
+        Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
+        Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+    }
+
+    [Fact]
+    public void WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis")
+                              .WithDataBindMount("myredisdata", isReadOnly: true);
+
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+
+        Assert.Null(persistenceAnnotation);
+    }
+
+    [Fact]
+    public void WithPersistenceReplacesPreviousAnnotationInstances()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis")
+                              .WithDataVolume()
+                              .WithPersistence(TimeSpan.FromSeconds(10), 2);
+
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+
+        Assert.Equal(TimeSpan.FromSeconds(10), persistenceAnnotation.Interval);
+        Assert.Equal(2, persistenceAnnotation.KeysChangedThreshold);
+    }
+
+    [Fact]
+    public void WithPersistenceAddsCommandLineArgsAnnotation()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("myRedis")
+                              .WithPersistence(TimeSpan.FromSeconds(60));
+
+        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
+        Assert.NotNull(argsAnnotations.SingleOrDefault());
     }
 }
