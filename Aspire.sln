@@ -385,6 +385,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Azure", "Azure", "{77CFE74A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Redis", "src\Aspire.Hosting.Azure.Redis\Aspire.Hosting.Azure.Redis.csproj", "{C95DE13D-CC1A-4927-B1FB-6612D059C316}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.CognitiveServices", "src\Aspire.Hosting.Azure.CognitiveServices\Aspire.Hosting.Azure.CognitiveServices.csproj", "{4D5CD580-F185-4FED-B475-3B404DE12217}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1007,6 +1009,10 @@ Global
 		{C95DE13D-CC1A-4927-B1FB-6612D059C316}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C95DE13D-CC1A-4927-B1FB-6612D059C316}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C95DE13D-CC1A-4927-B1FB-6612D059C316}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D5CD580-F185-4FED-B475-3B404DE12217}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D5CD580-F185-4FED-B475-3B404DE12217}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D5CD580-F185-4FED-B475-3B404DE12217}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D5CD580-F185-4FED-B475-3B404DE12217}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1192,6 +1198,7 @@ Global
 		{CBFB476E-6999-4AB3-88FE-375CD39BB073} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 		{77CFE74A-32EE-400C-8930-5025E8555256} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 		{C95DE13D-CC1A-4927-B1FB-6612D059C316} = {77CFE74A-32EE-400C-8930-5025E8555256}
+		{4D5CD580-F185-4FED-B475-3B404DE12217} = {77CFE74A-32EE-400C-8930-5025E8555256}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
