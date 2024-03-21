@@ -32,7 +32,7 @@ public class AspireAzureAIOpenAIExtensionsTests
             builder.AddAzureOpenAIClient("openai");
         }
 
-        using using var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
             host.Services.GetRequiredService<OpenAIClient>();
@@ -58,7 +58,7 @@ public class AspireAzureAIOpenAIExtensionsTests
             builder.AddAzureOpenAIClient("openai", settings => { settings.Endpoint = uri; settings.Key = key; });
         }
 
-        using using var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
             host.Services.GetRequiredService<OpenAIClient>();
@@ -80,7 +80,7 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         builder.AddAzureOpenAIClient("openai");
 
-        using using var host = builder.Build();
+        using var host = builder.Build();
         var client = host.Services.GetRequiredService<OpenAIClient>();
 
         Assert.NotNull(client);

@@ -53,7 +53,7 @@ public class DistributedCacheConformanceTests : ConformanceTests
             // set the FlushInterval to to zero so the Activity gets created immediately
             builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
 
-            using using var host = builder.Build();
+            using var host = builder.Build();
             // We start the host to make it build TracerProvider.
             // If we don't, nothing gets reported!
             host.Start();

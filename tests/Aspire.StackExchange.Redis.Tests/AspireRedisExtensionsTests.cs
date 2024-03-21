@@ -271,7 +271,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
 
             builder.AddKeyedRedisClient("redis");
-            using using var host = builder.Build();
+            using var host = builder.Build();
 
             // We start the host to make it build TracerProvider.
             // If we don't, nothing gets reported!

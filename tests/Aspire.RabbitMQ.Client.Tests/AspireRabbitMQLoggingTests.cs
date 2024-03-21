@@ -49,7 +49,7 @@ public class AspireRabbitMQLoggingTests
 
         builder.Services.AddSingleton<ILoggerProvider>(sp => new LoggerProvider(logger));
 
-        using using var host = builder.Build();
+        using var host = builder.Build();
         using var connection = host.Services.GetRequiredService<IConnection>();
 
         await rabbitMqContainer.StopAsync();
@@ -72,7 +72,7 @@ public class AspireRabbitMQLoggingTests
         var logger = new TestLogger();
         builder.Services.AddSingleton<ILoggerProvider>(sp => new LoggerProvider(logger));
 
-        using using var host = builder.Build();
+        using var host = builder.Build();
         host.Services.GetRequiredService<RabbitMQEventSourceLogForwarder>().Start();
 
         var message = "This is an informational message.";
@@ -101,7 +101,7 @@ public class AspireRabbitMQLoggingTests
         var logger = new TestLogger();
         builder.Services.AddSingleton<ILoggerProvider>(sp => new LoggerProvider(logger));
 
-        using using var host = builder.Build();
+        using var host = builder.Build();
         host.Services.GetRequiredService<RabbitMQEventSourceLogForwarder>().Start();
 
         var exceptionMessage = "Test exception";
