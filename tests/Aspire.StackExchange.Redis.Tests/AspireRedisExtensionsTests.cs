@@ -44,7 +44,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             options.User = "aspire-test-user";
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
         Assert.Contains("aspire-test-user", connection.Configuration);
@@ -69,7 +69,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             builder.AddRedisClient("myredis");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("myredis") :
             host.Services.GetRequiredService<IConnectionMultiplexer>();
@@ -97,7 +97,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             builder.AddRedisClient("redis", SetConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis") :
             host.Services.GetRequiredService<IConnectionMultiplexer>();
@@ -129,7 +129,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             builder.AddRedisClient("redis");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis") :
             host.Services.GetRequiredService<IConnectionMultiplexer>();
@@ -185,7 +185,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             builder.AddRedisClient("redis");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var options = useKeyed ?
             host.Services.GetRequiredService<IOptionsMonitor<ConfigurationOptions>>().Get("redis") :
             host.Services.GetRequiredService<IOptions<ConfigurationOptions>>().Value;
@@ -215,7 +215,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             builder.AddRedisOutputCache("redis");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         // Note that IDistributedCache and OutputCacheStore don't support keyed services - so only the Redis ConnectionMultiplexer is keyed.
 
@@ -244,7 +244,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             settings.ConnectionString = "localhost";
             settings.Tracing = true;
         });
-        var host = builder.Build();
+        using var host = builder.Build();
 
         //This will add the instrumentations.
         var tracerProvider = host.Services.GetRequiredService<TracerProvider>();
@@ -271,7 +271,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
 
             builder.AddKeyedRedisClient("redis");
-            using var host = builder.Build();
+            using using var host = builder.Build();
 
             // We start the host to make it build TracerProvider.
             // If we don't, nothing gets reported!

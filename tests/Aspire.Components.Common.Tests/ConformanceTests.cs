@@ -359,7 +359,7 @@ public abstract class ConformanceTests<TService, TOptions>
         string? key = useKey ? "key" : null;
         RegisterComponent(builder, key: key);
 
-        using var host = builder.Build();
+        using using var host = builder.Build();
 
         Assert.Throws<InvalidOperationException>(() =>
             key is null

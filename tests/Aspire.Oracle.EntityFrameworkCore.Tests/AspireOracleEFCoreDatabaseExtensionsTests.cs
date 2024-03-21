@@ -28,7 +28,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         Assert.Equal(ConnectionString, context.Database.GetDbConnection().ConnectionString);
@@ -44,7 +44,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", settings => settings.ConnectionString = ConnectionString);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
@@ -64,7 +64,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
@@ -91,7 +91,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
             });
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -135,7 +135,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
             });
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -173,7 +173,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection");
         builder.AddOracleDatabaseDbContext<TestDbContext2>("orclconnection2");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
         var context2 = host.Services.GetRequiredService<TestDbContext2>();
 

@@ -32,7 +32,7 @@ public class AspireNatsClientExtensionsTests
             builder.AddNatsClient("nats");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
@@ -60,7 +60,7 @@ public class AspireNatsClientExtensionsTests
             builder.AddNatsClient("nats", SetConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
@@ -92,7 +92,7 @@ public class AspireNatsClientExtensionsTests
             builder.AddNatsClient("nats");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
