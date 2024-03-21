@@ -19,5 +19,5 @@ internal sealed class AzureProvisionerOptions
         "AzureCli", "AzurePowerShell", "VisualStudio", "VisualStudioCode",
         "AzureDeveloperCli", "InteractiveBrowser", "Default"
     ])]
-    public string? ProvisionerCredentialSource { get; set; } = "Default";
+    public string CredentialSource { get; set; } = "Default";
 }
