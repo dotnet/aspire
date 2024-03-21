@@ -1,3 +1,5 @@
+# Vendoring code sync instructions
+
 ## OpenTelemetry.Instrumentation.Share
 
 ```console
