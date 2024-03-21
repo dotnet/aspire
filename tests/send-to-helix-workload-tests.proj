@@ -40,7 +40,13 @@
     <PropertyGroup>
       <_TestScenarioEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_SCENARIO%</_TestScenarioEnvVar>
       <_TestScenarioEnvVar Condition="'$(OS)' != 'Windows_NT'">$TEST_SCENARIO</_TestScenarioEnvVar>
+    </PropertyGroup>
 
+    <ItemGroup>
+      <_TestRunCommandArguments Include="--filter scenario=$(_TestScenarioEnvVar)" />
+    </ItemGroup>
+
+    <PropertyGroup>
       <_WorkItemTimeoutForWorkloadTests>00:20:00</_WorkItemTimeoutForWorkloadTests>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
@@ -61,7 +67,7 @@
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=default</PreCommands>
-        <Command>$(_TestRunCommand) --filter scenario=$(_TestScenarioEnvVar)</Command>
+        <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
@@ -72,7 +78,7 @@
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=sqlserver</PreCommands>
-        <Command>$(_TestRunCommand) --filter scenario=$(_TestScenarioEnvVar)</Command>
+        <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
@@ -83,7 +89,7 @@
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=cosmos</PreCommands>
-        <Command>$(_TestRunCommand) --filter scenario=$(_TestScenarioEnvVar)</Command>
+        <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
@@ -94,7 +100,7 @@
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=oracle</PreCommands>
-        <Command>$(_TestRunCommand) --filter scenario=$(_TestScenarioEnvVar)</Command>
+        <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
