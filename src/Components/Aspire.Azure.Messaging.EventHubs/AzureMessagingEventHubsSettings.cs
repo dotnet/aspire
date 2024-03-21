@@ -3,6 +3,9 @@
 
 using Aspire.Azure.Common;
 using Azure.Core;
+using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Consumer;
+using Azure.Messaging.EventHubs.Primitives;
 
 namespace Aspire.Azure.Messaging.EventHubs;
 
@@ -42,7 +45,20 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     /// <summary>
     /// Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used.
     /// </summary>
+    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
     public string? BlobClientConnectionName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the partition identifier.
+    /// </summary>
+    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
+    public string? PartitionId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the event position to start from in the bound partition. Defaults to <see cref="EventPosition.Latest" />.
+    /// </summary>
+    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
+    public EventPosition EventPosition { get; set; } = EventPosition.Latest;
 
     /// <summary>
     /// Gets or sets the credential used to authenticate to the Service Bus namespace.

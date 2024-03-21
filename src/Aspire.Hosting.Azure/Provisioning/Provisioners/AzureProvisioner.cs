@@ -266,14 +266,25 @@ internal sealed class AzureProvisioner(
 
     private async Task<ProvisioningContext> GetProvisioningContextAsync(string? userSecretsPath, CancellationToken cancellationToken)
     {
-        // var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
-        // {
-        //     ExcludeManagedIdentityCredential = true,
-        //     ExcludeWorkloadIdentityCredential = true,
-        //     ExcludeAzurePowerShellCredential = true,
-        //     CredentialProcessTimeout = TimeSpan.FromSeconds(15)
-        // });
-        var credential = new AzureCliCredential();
+        // Optionally configured in AppHost appSettings
+        var credentialSetting = configuration.GetValue<string>("AzureProvisionerCredential");
+
+        TokenCredential credential = credentialSetting switch
+        {
+            "AzureCli" => new AzureCliCredential(),
+            "AzurePowerShell" => new AzurePowerShellCredential(),
+            "VisualStudio" => new VisualStudioCredential(),
+            "VisualStudioCode" => new VisualStudioCodeCredential(),
+            "AzureDeveloperCli" => new AzureDeveloperCliCredential(),
+            "InteractiveBrowser" => new InteractiveBrowserCredential(),
+            _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+            {
+                ExcludeManagedIdentityCredential = true,
+                ExcludeWorkloadIdentityCredential = true,
+                ExcludeAzurePowerShellCredential = true,
+                CredentialProcessTimeout = TimeSpan.FromSeconds(15)
+            })
+        };
 
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 

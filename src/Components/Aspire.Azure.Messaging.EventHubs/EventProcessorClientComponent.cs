@@ -42,10 +42,7 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
                         $"A EventProcessorClient could not be configured. Ensure a valid EventHubName was provided in the '{configurationSectionName}' configuration section.");
                 }
 
-                // configure processor identifier
-                var slug = Guid.NewGuid().ToString().Substring(24);
-                options.Identifier ??= $"{Environment.MachineName}-{settings.EventHubName}-" +
-                                       $"{settings.ConsumerGroup ?? "default"}-{slug}";
+                options.Identifier ??= GenerateClientIdentifier(settings);
 
                 var blobClient = GetBlobContainerClient(settings, cred, configurationSectionName);
 
@@ -59,7 +56,6 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
                 return processor;
 
             }, requiresCredential: false);
-
     }
 
     private BlobContainerClient GetBlobContainerClient(
