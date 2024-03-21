@@ -342,12 +342,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNamesExtensions.Enumerate(tname, resourcesToSkip);
         }
 
+        // always skip cosmos on macos/arm64
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
             resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
         }
 
-        if (TestScenario == "scenario0")
+        if (TestScenario == "default")
         {
             if (BuildEnvironment.IsRunningOnCI)
             {
