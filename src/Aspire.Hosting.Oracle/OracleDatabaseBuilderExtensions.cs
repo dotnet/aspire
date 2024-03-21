@@ -66,16 +66,16 @@ public static class OracleDatabaseBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a OracleDatabaseServer container resource.
+    /// Adds a named volume for the data folder to a Oracle Database server container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> WithDataVolume(this IResourceBuilder<OracleDatabaseServerResource> builder, string? name = null)
         => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/opt/oracle/oradata", true);
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a OracleDatabaseServer container resource.
+    /// Adds a bind mount for the data folder to a Oracle Database server container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
@@ -84,7 +84,7 @@ public static class OracleDatabaseBuilderExtensions
         => builder.WithBindMount(source, "/opt/oracle/oradata", false);
 
     /// <summary>
-    /// Adds a bind mount for the init folder to a OracleDatabaseServer container resource.
+    /// Adds a bind mount for the init folder to a Oracle Database server container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
@@ -94,7 +94,7 @@ public static class OracleDatabaseBuilderExtensions
         => builder.WithBindMount(source, "/opt/oracle/scripts/startup", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the database setup folder to a OracleDatabaseServer container resource.
+    /// Adds a bind mount for the database setup folder to a Oracle Database server container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
