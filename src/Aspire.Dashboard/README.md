@@ -29,7 +29,13 @@ To configure auth, the above variables must be undefined or `0`. Additional conf
 
 The resource service can be configured to require certificates with the following configuration values:
 
-- `DOTNET_RESOURCE_SERVICE_CLIENT_CERTIFICATE_PATH` &mdash; Path to the X509 certificate used by the client of the resource service
-- `DOTNET_RESOURCE_SERVICE_CLIENT_CERTIFICATE_PASSWORD` &mdash; Optional password for the certificate
+- `ResourceServiceClient:ClientCertificate:Source` which has one of the following values:
+  - `File` to load the cert from a file path, configured with:
+    - `ResourceServiceClient:ClientCertificate:FilePath` (required, string)
+    - `ResourceServiceClient:ClientCertificate:Password` (optional, string)
+  - `KeyStore` to load the cert from a key store, configured with:
+    - `ResourceServiceClient:ClientCertificate:Subject` (required, string)
+    - `ResourceServiceClient:ClientCertificate:KeyStore:Name` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
+    - `ResourceServiceClient:ClientCertificate:KeyStore:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
 
 Additional `SslClientAuthenticationOptions` may be configured via configuration in the `ResourceServiceClient:Ssl` key.

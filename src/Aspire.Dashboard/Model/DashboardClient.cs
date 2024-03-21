@@ -36,8 +36,6 @@ internal sealed class DashboardClient : IDashboardClient
 {
     private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
     private const string ResourceServiceDisableAuthVariableName = "DOTNET_RESOURCE_SERVICE_DISABLE_AUTH";
-    private const string ResourceServiceClientCertificatePathVariableName = "DOTNET_RESOURCE_SERVICE_CLIENT_CERTIFICATE_PATH";
-    private const string ResourceServiceClientCertificatePasswordVariableName = "DOTNET_RESOURCE_SERVICE_CLIENT_CERTIFICATE_PASSWORD";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
@@ -106,20 +104,18 @@ internal sealed class DashboardClient : IDashboardClient
             if (!configuration.GetBool(ResourceServiceDisableAuthVariableName, defaultValue: false))
             {
                 // Auth hasn't been suppressed, so configure it.
-                var certificatePath = configuration[ResourceServiceClientCertificatePathVariableName];
-                var certificatePassword = configuration[ResourceServiceClientCertificatePasswordVariableName];
+                var sourceType = configuration.GetEnum<DashboardClientCertificateSource>("ResourceServiceClient:ClientCertificate:Source");
 
-                if (string.IsNullOrWhiteSpace(certificatePath))
+                var certificates = sourceType switch
                 {
-                    throw new InvalidOperationException(
-                        $"Resource service auth hasn't been disabled via {ResourceServiceDisableAuthVariableName}, " +
-                        $"and no certificate was provided via {ResourceServiceClientCertificatePathVariableName} and " +
-                        $"{ResourceServiceClientCertificatePasswordVariableName}. Review the dashboard's configuration.");
-                }
+                    DashboardClientCertificateSource.File => GetFileCertificate(),
+                    DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(),
+                    _ => throw new InvalidOperationException("Unable to load ResourceServiceClient client certificate.")
+                };
 
                 httpHandler.SslOptions = new SslClientAuthenticationOptions
                 {
-                    ClientCertificates = [new X509Certificate(certificatePath, certificatePassword)]
+                    ClientCertificates = certificates
                 };
 
                 configuration.Bind("ResourceServiceClient:Ssl", httpHandler.SslOptions);
@@ -151,6 +147,44 @@ internal sealed class DashboardClient : IDashboardClient
                     LoggerFactory = _loggerFactory,
                     ThrowOperationCanceledOnCancellation = true
                 });
+
+            X509CertificateCollection GetFileCertificate()
+            {
+                var filePath = configuration["ResourceServiceClient:ClientCertificate:FilePath"];
+                var password = configuration["ResourceServiceClient:ClientCertificate:Password"];
+
+                if (filePath is null or [])
+                {
+                    throw new InvalidOperationException("ResourceServiceClient:ClientCertificate:Source is \"File\", but no Certificate:FilePath is configured.");
+                }
+
+                return [new X509Certificate2(filePath, password)];
+            }
+
+            X509CertificateCollection GetKeyStoreCertificate()
+            {
+                var subject = configuration["ResourceServiceClient:ClientCertificate:Subject"];
+
+                if (subject is null or [])
+                {
+                    throw new InvalidOperationException("ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Certificate:FilePath is configured.");
+                }
+
+                using var store = new X509Store(storeName: StoreName.My, storeLocation: StoreLocation.CurrentUser);
+
+                configuration.Bind("ResourceServiceClient:ClientCertificate:KeyStore");
+
+                store.Open(OpenFlags.ReadOnly);
+
+                var certificates = store.Certificates.Find(X509FindType.FindBySubjectName, findValue: subject, validOnly: true);
+
+                if (certificates is [])
+                {
+                    throw new InvalidOperationException($"Unable to load client certificate with subject \"{subject}\" from key store.");
+                }
+
+                return certificates;
+            }
         }
     }
 
@@ -510,5 +544,11 @@ internal sealed class DashboardClient : IDashboardClient
         }
 
         _initialDataReceivedTcs.TrySetResult();
+    }
+
+    private enum DashboardClientCertificateSource
+    {
+        File,
+        KeyStore
     }
 }

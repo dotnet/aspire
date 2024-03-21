@@ -118,4 +118,32 @@ internal static class IConfigurationExtensions
             throw new InvalidOperationException($"Error parsing URIs from configuration value '{key}'.", ex);
         }
     }
+
+    /// <summary>
+    /// Gets the named configuration value as a member of an enum, or <paramref name="defaultValue"/> if parsing failed.
+    /// </summary>
+    /// <remarks>
+    /// Parsing is case-insensitive.
+    /// </remarks>
+    /// <param name="configuration">The <see cref="IConfiguration"/> this method extends.</param>
+    /// <param name="key">The configuration key.</param>
+    /// <param name="defaultValue">A default value, for when the configuration value is unable to be parsed.</param>
+    /// <returns>The parsed enum member, or <paramref name="defaultValue"/> if parsing failed.</returns>
+    [return: NotNullIfNotNull(nameof(defaultValue))]
+    public static T? GetEnum<T>(this IConfiguration configuration, string key, T? defaultValue = default)
+        where T : struct
+    {
+        var value = configuration[key];
+
+        if (value is null or [])
+        {
+            return defaultValue;
+        }
+        else if (Enum.TryParse<T>(value, ignoreCase: true, out var e))
+        {
+            return e;
+        }
+
+        return default;
+    }
 }
