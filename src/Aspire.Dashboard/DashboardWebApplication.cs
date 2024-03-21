@@ -22,6 +22,7 @@ namespace Aspire.Dashboard;
 
 public class DashboardWebApplication : IAsyncDisposable
 {
+    internal const string DashboardInsecureAllowAnonymousVariableName = "DOTNET_DASHBOARD_INSECURE_ALLOW_ANONYMOUS";
     internal const string DashboardOtlpAuthModeVariableName = "DOTNET_DASHBOARD_OTLP_AUTH_MODE";
     internal const string DashboardOtlpApiKeyVariableName = "DOTNET_DASHBOARD_OTLP_API_KEY";
     internal const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
@@ -390,21 +391,19 @@ public class DashboardWebApplication : IAsyncDisposable
             throw new InvalidOperationException($"At least one URL for Aspire dashboard browser endpoint with {DashboardOtlpUrlDefaultValue} is required.");
         }
 
-        OtlpAuthMode otlpAuthMode;
+        var allowAnonymous = configuration.GetBool(DashboardInsecureAllowAnonymousVariableName) ?? false;
+        var otlpAuthMode = configuration.GetEnum<OtlpAuthMode>(DashboardOtlpAuthModeVariableName);
         string? otlpApiKey = null;
-
-        if (configuration[DashboardOtlpAuthModeVariableName] is not { } v)
-        {
-            throw new InvalidOperationException($"Configuration of OTLP endpoint authentication with {DashboardOtlpAuthModeVariableName} is required. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
-        }
-
-        if (!Enum.TryParse(v, ignoreCase: true, out otlpAuthMode))
-        {
-            throw new InvalidOperationException($"Unknown {nameof(OtlpAuthMode)} value: {v}");
-        }
 
         switch (otlpAuthMode)
         {
+            case null:
+                if (!allowAnonymous)
+                {
+                    throw new InvalidOperationException($"Configuration of OTLP endpoint authentication is required. Either specify {DashboardInsecureAllowAnonymousVariableName} with a value of true, or specify {DashboardOtlpAuthModeVariableName}. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
+                }
+                otlpAuthMode = OtlpAuthMode.None;
+                break;
             case OtlpAuthMode.None:
                 break;
             case OtlpAuthMode.ApiKey:
@@ -428,7 +427,7 @@ public class DashboardWebApplication : IAsyncDisposable
         {
             BrowserUris = browserUris,
             OtlpUri = otlpUris[0],
-            OtlpAuthMode = otlpAuthMode,
+            OtlpAuthMode = otlpAuthMode.Value,
             OtlpApiKey = otlpApiKey
         };
     }

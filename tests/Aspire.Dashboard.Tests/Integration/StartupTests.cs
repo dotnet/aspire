@@ -151,7 +151,26 @@ public class StartupTests
         });
 
         // Assert
-        Assert.Equal("Configuration of OTLP endpoint authentication with DOTNET_DASHBOARD_OTLP_AUTH_MODE is required. Possible values: None, ApiKey, ClientCertificate", ex.Message);
+        Assert.Equal("Configuration of OTLP endpoint authentication is required. Either specify DOTNET_DASHBOARD_INSECURE_ALLOW_ANONYMOUS with a value of true, or specify DOTNET_DASHBOARD_OTLP_AUTH_MODE. Possible values: None, ApiKey, ClientCertificate", ex.Message);
+    }
+
+    [Fact]
+    public async Task Configuration_AllowAnonymous_NoError()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Remove(DashboardWebApplication.DashboardOtlpAuthModeVariableName);
+                data[DashboardWebApplication.DashboardInsecureAllowAnonymousVariableName] = bool.TrueString;
+            });
+
+        // Act
+        await app.StartAsync();
+
+        // Assert
+        AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
+        AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
     }
 
     [Fact]
