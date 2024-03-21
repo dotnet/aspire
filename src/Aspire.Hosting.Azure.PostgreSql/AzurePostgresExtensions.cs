@@ -19,19 +19,16 @@ public static class AzurePostgresExtensions
     {
         if (postgresResource.UserNameParameter is null)
         {
-            var userParam = builder.ApplicationBuilder.AddParameter($"{builder.Resource.Name}-username");
-
-            // TODO: make this simpler, and work with:
-            // * Check Configuration[$"Parameters:{name}"]
-            // * Check Default value, use it if there
-            // * Throw
-            userParam.Resource.ValueInput.Default = new GenerateParameterInputDefault
+            var generatedUserName = new GenerateParameterInputDefault
             {
                 MinLength = 10,
                 // just use letters for the username since it can't start with a number
                 Numeric = false,
                 Special = false
             };
+
+            var userParam = ParameterResourceBuilderExtensions.CreateGeneratedParameter(
+                builder.ApplicationBuilder, $"{builder.Resource.Name}-username", secret: false, generatedUserName);
 
             builder.WithParameter("administratorLogin", userParam);
         }
