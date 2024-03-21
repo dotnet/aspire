@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using Aspire.Hosting.Azure;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -7,32 +8,33 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an Azure OpenAI resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class AzureOpenAIResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString
+/// <param name="configureConstruct">Configures the underlying Azure resource using the CDK.</param>
+public class AzureOpenAIResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
+    IResourceWithConnectionString
 {
-    private readonly List<AzureOpenAIDeploymentResource> _deployments = [];
+    private readonly List<AzureOpenAIDeployment> _deployments = [];
 
     /// <summary>
-    /// Gets or sets the connection string for the Azure OpenAI resource.
+    /// Gets the "connectionString" output reference from the Azure OpenAI resource.
     /// </summary>
-    public string? ConnectionString { get; set; }
+    public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
-    /// Gets the connection string for the Azure OpenAI resource.
+    /// Gets the connection string template for the manifest for the resource.
     /// </summary>
-    /// <returns>The connection string for the Azure OpenAI resource.</returns>
-    string? IResourceWithConnectionString.GetConnectionString() => ConnectionString;
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
-    public IReadOnlyList<AzureOpenAIDeploymentResource> Deployments => _deployments;
+    public IReadOnlyList<AzureOpenAIDeployment> Deployments => _deployments;
 
-    internal void AddDeployment(AzureOpenAIDeploymentResource deployment)
+    internal void AddDeployment(AzureOpenAIDeployment deployment)
     {
-        if (deployment.Parent != this)
-        {
-            throw new ArgumentException("Deployment belongs to another resource", nameof(deployment));
-        }
+        ArgumentNullException.ThrowIfNull(deployment);
+
         _deployments.Add(deployment);
     }
 }

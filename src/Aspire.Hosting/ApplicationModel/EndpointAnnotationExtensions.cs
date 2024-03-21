@@ -15,6 +15,8 @@ public static class EndpointAnnotationExtensions
     /// <returns>The modified <see cref="EndpointAnnotation"/> object.</returns>
     public static EndpointAnnotation AsHttp2(this EndpointAnnotation endpoint)
     {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
         endpoint.Transport = "http2";
         endpoint.UriScheme = "https";
         return endpoint;
@@ -27,6 +29,8 @@ public static class EndpointAnnotationExtensions
     /// <returns>The modified <see cref="EndpointAnnotation"/> object.</returns>
     public static EndpointAnnotation AsExternal(this EndpointAnnotation endpoint)
     {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
         endpoint.IsExternal = true;
         return endpoint;
     }

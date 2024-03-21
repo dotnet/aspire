@@ -30,6 +30,9 @@ public partial class TraceDetail : ComponentBase
     [Inject]
     public required IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers { get; set; }
 
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; set; }
+
     protected override void OnInitialized()
     {
         foreach (var resolver in OutgoingPeerResolvers)
@@ -52,6 +55,26 @@ public partial class TraceDetail : ComponentBase
             Items = visibleSpanWaterfallViewModels,
             TotalItemCount = _spanWaterfallViewModels.Count
         });
+    }
+
+    private static Icon GetSpanIcon(OtlpSpan span)
+    {
+        switch (span.Kind)
+        {
+            case OtlpSpanKind.Server:
+                return new Icons.Filled.Size16.Server();
+            case OtlpSpanKind.Consumer:
+                if (span.Attributes.HasKey("messaging.system"))
+                {
+                    return new Icons.Filled.Size16.Mailbox();
+                }
+                else
+                {
+                    return new Icons.Filled.Size16.ContentSettings();
+                }
+            default:
+                throw new InvalidOperationException($"Unsupported span kind when resolving icon: {span.Kind}");
+        }
     }
 
     private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, TraceDetailState state)

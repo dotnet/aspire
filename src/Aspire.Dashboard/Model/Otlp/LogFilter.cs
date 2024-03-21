@@ -89,7 +89,7 @@ public class LogFilter
             "SpanId" => x.SpanId,
             "OriginalFormat" => x.OriginalFormat,
             "Category" => x.Scope.ScopeName,
-            _ => x.Properties.GetValue(Field)
+            _ => x.Attributes.GetValue(Field)
         };
     }
 

@@ -1,10 +1,18 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @using System.Collections.Immutable
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div class="structured-log-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
+        <div>
+            @((MarkupString)string.Format(ControlsStrings.StructuredLogsDetailsResource, ViewModel.LogEntry.Application.ApplicationName))
+        </div>
+        <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <div>
+            @((MarkupString)string.Format(ControlsStrings.StructuredLogsDetailsTimestamp, FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, ViewModel.LogEntry.TimeStamp, includeMilliseconds: true)))
+        </div>
         <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
                       Immediate="true"
                       Autofocus="true"
@@ -13,15 +21,62 @@
     </FluentToolbar>
     <div class="property-grid-container">
         <FluentAccordion>
-            <FluentAccordionItem Heading="Properties" Expanded="true">
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.StructuredLogsDetailsLogEntryHeader)]" Expanded="true">
                 <div slot="end">
-                    <FluentBadge Appearance="Appearance.Neutral"
-                                 Circular="true">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredItems.Count()
                     </FluentBadge>
                 </div>
                 <PropertyGrid TItem="LogEntryPropertyViewModel"
                               Items="@FilteredItems"
+                              GridTemplateColumns="1fr 2fr"
+                              NameColumnValue="(vm) => vm.Name"
+                              ValueColumnValue="(vm) => vm.Value"
+                              NameSort="_nameSort"
+                              ValueSort="_valueSort"
+                              HighlightText="@_filter" />
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.StructuredLogsDetailsContextHeader)]" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredContextItems.Count()
+                    </FluentBadge>
+                </div>
+                <PropertyGrid TItem="LogEntryPropertyViewModel"
+                              Items="@FilteredContextItems"
+                              GridTemplateColumns="1fr 2fr"
+                              NameColumnValue="(vm) => vm.Name"
+                              ValueColumnValue="(vm) => vm.Value"
+                              NameSort="_nameSort"
+                              ValueSort="_valueSort"
+                              HighlightText="@_filter" />
+            </FluentAccordionItem>
+            @if (_exceptionAttributes.Count > 0)
+            {
+                <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.StructuredLogsDetailsExceptionHeader)]" Expanded="true">
+                    <div slot="end">
+                        <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                            @FilteredExceptionItems.Count()
+                        </FluentBadge>
+                    </div>
+                    <PropertyGrid TItem="LogEntryPropertyViewModel"
+                                  Items="@FilteredExceptionItems"
+                                  GridTemplateColumns="1fr 2fr"
+                                  NameColumnValue="(vm) => vm.Name"
+                                  ValueColumnValue="(vm) => vm.Value"
+                                  NameSort="_nameSort"
+                                  ValueSort="_valueSort"
+                                  HighlightText="@_filter" />
+                </FluentAccordionItem>
+            }
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.StructuredLogsDetailsResourceHeader)]" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredResourceItems.Count()
+                    </FluentBadge>
+                </div>
+                <PropertyGrid TItem="LogEntryPropertyViewModel"
+                              Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
                               NameColumnValue="(vm) => vm.Name"
                               ValueColumnValue="(vm) => vm.Value"

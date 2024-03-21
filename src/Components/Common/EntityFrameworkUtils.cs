@@ -82,4 +82,19 @@ internal static class EntityFrameworkUtils
 
         builder.Services.Add(dbContextOptionsDescriptor);
     }
+
+    public static void EnsureDbContextNotRegistered<TContext>(this IHostApplicationBuilder builder, [CallerMemberName] string callerMemberName = "") where TContext : DbContext
+    {
+        if (!builder.Environment.IsDevelopment())
+        {
+            return;
+        }
+
+        var oldDbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
+
+        if (oldDbContextOptionsDescriptor is not null)
+        {
+            throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> is already registered. Please ensure 'services.AddDbContext<{typeof(TContext).Name}>()' is not used when calling '{callerMemberName}()' or use the corresponding 'Enrich' method.");
+        }
+    }
 }

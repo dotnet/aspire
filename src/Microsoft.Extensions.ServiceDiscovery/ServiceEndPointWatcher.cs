@@ -57,7 +57,7 @@ public sealed partial class ServiceEndPointWatcher(
     /// <summary>
     /// Returns a collection of resolved endpoints for the service.
     /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A collection of resolved endpoints for the service.</returns>
     public ValueTask<ServiceEndPointCollection> GetEndPointsAsync(CancellationToken cancellationToken = default)
     {

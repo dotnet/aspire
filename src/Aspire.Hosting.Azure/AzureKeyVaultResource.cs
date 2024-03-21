@@ -9,9 +9,8 @@ namespace Aspire.Hosting.Azure;
 /// A resource that represents an Azure Key Vault.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class AzureKeyVaultResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.keyvault.bicep"),
-    IResourceWithConnectionString
+/// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
+public class AzureKeyVaultResource(string name, Action<ResourceModuleConstruct> configureConstruct) : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the "vaultUri" output reference for the Azure Key Vault resource.
@@ -21,11 +20,6 @@ public class AzureKeyVaultResource(string name) :
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
-    public string ConnectionStringExpression => VaultUri.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the Azure Key Vault resource.
-    /// </summary>
-    /// <returns>The connection string for the Azure Key Vault resource.</returns>
-    public string? GetConnectionString() => VaultUri.Value;
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{VaultUri}");
 }

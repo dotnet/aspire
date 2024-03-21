@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
+using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -18,7 +19,7 @@ public class OtlpInstrument
     public required string Unit { get; init; }
     public required OtlpInstrumentType Type { get; init; }
     public required OtlpMeter Parent { get; init; }
-    public required int Capacity { get; init; }
+    public required TelemetryOptions Options { get; init; }
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string>> KnownAttributeValues { get; } = new();
@@ -54,10 +55,10 @@ public class OtlpInstrument
     {
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.
-        OtlpHelpers.CopyKeyValuePairs(attributes, ref tempAttributes);
-        Array.Sort(tempAttributes, 0, attributes.Count, KeyValuePairComparer.Instance);
+        OtlpHelpers.CopyKeyValuePairs(attributes, Options, out var copyCount, ref tempAttributes);
+        Array.Sort(tempAttributes, 0, copyCount, KeyValuePairComparer.Instance);
 
-        var comparableAttributes = tempAttributes.AsMemory(0, attributes.Count);
+        var comparableAttributes = tempAttributes.AsMemory(0, copyCount);
 
         if (!Dimensions.TryGetValue(comparableAttributes, out var dimension))
         {
@@ -70,7 +71,7 @@ public class OtlpInstrument
     {
         var isFirst = Dimensions.Count == 0;
         var durableAttributes = comparableAttributes.ToArray();
-        var dimension = new DimensionScope(Capacity, durableAttributes);
+        var dimension = new DimensionScope(Options.MetricsCountLimit, durableAttributes);
         Dimensions.Add(durableAttributes, dimension);
 
         var keys = KnownAttributeValues.Keys.Union(durableAttributes.Select(a => a.Key)).Distinct();
@@ -111,7 +112,7 @@ public class OtlpInstrument
             Parent = instrument.Parent,
             Type = instrument.Type,
             Unit = instrument.Unit,
-            Capacity = instrument.Capacity,
+            Options = instrument.Options,
         };
 
         if (cloneData)

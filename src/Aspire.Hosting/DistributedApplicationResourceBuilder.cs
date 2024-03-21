@@ -13,6 +13,8 @@ internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedAppli
     /// <inheritdoc />
     public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation
     {
+        ArgumentNullException.ThrowIfNull(annotation);
+
         // Some defensive code to protect against introducing a new enumeration value without first updating
         // this code to accomodate it.
         if (behavior != ResourceAnnotationMutationBehavior.Append && behavior != ResourceAnnotationMutationBehavior.Replace)

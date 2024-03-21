@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
@@ -11,12 +13,13 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public partial class MainLayout
+public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 {
     private IDisposable? _themeChangedSubscription;
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
     private IJSObjectReference? _keyboardHandlers;
+    private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
     private IDialogReference? _openPageDialog;
 
     private const string SettingsDialogId = "SettingsDialog";
@@ -24,6 +27,9 @@ public partial class MainLayout
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
+
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -40,7 +46,10 @@ public partial class MainLayout
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
 
-    protected override void OnInitialized()
+    [Inject]
+    public required ShortcutManager ShortcutManager { get; init; }
+
+    protected override async Task OnInitializedAsync()
     {
         // Theme change can be triggered from the settings dialog. This logic applies the new theme to the browser window.
         // Note that this event could be raised from a settings dialog opened in a different browser window.
@@ -68,6 +77,9 @@ public partial class MainLayout
                 return ValueTask.CompletedTask;
             });
         }
+
+        var result = await JS.InvokeAsync<string>("window.getBrowserTimeZone");
+        TimeProvider.SetBrowserTimeZone(result);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -75,16 +87,9 @@ public partial class MainLayout
         if (firstRender)
         {
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
-            _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", typeof(App).Assembly.GetName().Name);
+            _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
+            _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             ShortcutManager.AddGlobalKeydownListener(this);
-
-            DialogService.OnDialogCloseRequested += (reference, _) =>
-            {
-                if (reference.Id is HelpDialogId or SettingsDialogId)
-                {
-                    _openPageDialog = null;
-                }
-            };
         }
     }
 
@@ -101,7 +106,8 @@ public partial class MainLayout
             Alignment = HorizontalAlignment.Center,
             Width = "700px",
             Height = "auto",
-            Id = HelpDialogId
+            Id = HelpDialogId,
+            OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
         };
 
         if (_openPageDialog is not null)
@@ -117,6 +123,11 @@ public partial class MainLayout
         _openPageDialog = await DialogService.ShowDialogAsync<HelpDialog>(parameters).ConfigureAwait(true);
     }
 
+    private void HandleDialogClose(DialogInstance dialogResult)
+    {
+        _openPageDialog = null;
+    }
+
     public async Task LaunchSettingsAsync()
     {
         DialogParameters parameters = new()
@@ -130,7 +141,8 @@ public partial class MainLayout
             Alignment = HorizontalAlignment.Right,
             Width = "300px",
             Height = "auto",
-            Id = SettingsDialogId
+            Id = SettingsDialogId,
+            OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
         };
 
         if (_openPageDialog is not null)
@@ -148,7 +160,7 @@ public partial class MainLayout
 
     public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
     {
-        if (args.ShiftKey)
+        if (args.OnlyShiftPressed())
         {
             if (args.Key is "?")
             {
@@ -159,15 +171,15 @@ public partial class MainLayout
                 await LaunchSettingsAsync();
             }
         }
-        else
+        else if (args.NoModifiersPressed())
         {
             var url = args.Key.ToLower() switch
             {
-                "r" => "/",
-                "c" => "/ConsoleLogs",
-                "s" => "/StructuredLogs",
-                "t" => "/Traces",
-                "m" => "/Metrics",
+                "r" => DashboardUrls.ResourcesUrl(),
+                "c" => DashboardUrls.ConsoleLogsUrl(),
+                "s" => DashboardUrls.StructuredLogsUrl(),
+                "t" => DashboardUrls.TracesUrl(),
+                "m" => DashboardUrls.MetricsUrl(),
                 _ => null
             };
 
@@ -178,15 +190,27 @@ public partial class MainLayout
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
+        _shortcutManagerReference?.Dispose();
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
-    }
 
-    public async ValueTask DisposeAsync()
-    {
-        await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _keyboardHandlers);
+        if (_keyboardHandlers is { } h)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", h);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+                // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
+            }
+        }
+
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        await JSInteropHelpers.SafeDisposeAsync(_keyboardHandlers);
     }
 }

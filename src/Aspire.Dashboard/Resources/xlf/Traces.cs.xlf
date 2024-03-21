@@ -2,44 +2,54 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../Traces.resx">
     <body>
+      <trans-unit id="TracesFullName">
+        <source>Name: {0}</source>
+        <target state="translated">Název: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TracesHeader">
         <source>Traces</source>
-        <target state="new">Traces</target>
+        <target state="translated">Trasování</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNameFilter">
         <source>Name filter</source>
-        <target state="new">Name filter</target>
+        <target state="translated">Filtr názvů</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesNoTraces">
         <source>No traces found</source>
-        <target state="new">No traces found</target>
+        <target state="translated">Nenašla se žádná trasování.</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesPageTitle">
         <source>{0} traces</source>
-        <target state="new">{0} traces</target>
+        <target state="translated">Trasování aplikace {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TracesResourceSpans">
         <source>{0} spans</source>
-        <target state="new">{0} spans</target>
+        <target state="translated">Rozsahy prostředku {0}</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="TracesSpansColumnHeader">
         <source>Spans</source>
-        <target state="new">Spans</target>
+        <target state="translated">Rozsahy</target>
         <note />
       </trans-unit>
       <trans-unit id="TracesTotalErroredTraces">
         <source>Errored: {0}</source>
-        <target state="new">Errored: {0}</target>
+        <target state="translated">S chybami: {0}</target>
         <note>{0} is a number</note>
       </trans-unit>
       <trans-unit id="TracesTotalTraces">
         <source>Total: {0}</source>
-        <target state="new">Total: {0}</target>
+        <target state="translated">Celkem: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TracesTraceId">
+        <source>Trace Id: {0}</source>
+        <target state="translated">ID trasování: {0}</target>
         <note />
       </trans-unit>
     </body>

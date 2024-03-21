@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components;
@@ -56,6 +57,6 @@ public partial class UnreadLogErrorsBadge
 
     private string GetResourceErrorStructuredLogsUrl()
     {
-        return $"/structuredlogs/resource/{_applicationName}?level=error";
+        return DashboardUrls.StructuredLogsUrl(resource: _applicationName, logLevel: "error");
     }
 }

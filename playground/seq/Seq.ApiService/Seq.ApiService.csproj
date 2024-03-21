@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>$(NoWarn);CS8002</NoWarn> 
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Seq.ServiceDefaults\Seq.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

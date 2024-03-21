@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -73,9 +72,6 @@ public partial class GridValue
 
     private async Task ToggleMaskStateAsync()
         => await IsMaskedChanged.InvokeAsync(!IsMasked);
-
-    private async Task CopyTextToClipboardAsync(string? text, string id)
-        => await JS.InvokeVoidAsync("copyTextToClipboard", id, text, PreCopyToolTip, PostCopyToolTip);
 
     private string TrimLength(string? text)
     {

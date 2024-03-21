@@ -23,7 +23,7 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22
             }
           }
         }
@@ -52,6 +52,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
       },
       "bindings": {
@@ -89,7 +90,8 @@
           "secret": true,
           "default": {
             "generate": {
-              "minLength": 10
+              "minLength": 22,
+              "special": false
             }
           }
         }
@@ -101,6 +103,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__basketcache": "{basketcache.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
@@ -123,9 +126,11 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "services__basketservice__0": "{basketservice.bindings.http.url}",
-        "services__basketservice__1": "{basketservice.bindings.https.url}",
-        "services__catalogservice__0": "{catalogservice.bindings.http.url}"
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "services__basketservice__http__0": "{basketservice.bindings.http.url}",
+        "services__basketservice__https__0": "{basketservice.bindings.https.url}",
+        "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
+        "services__catalogservice__https__0": "{catalogservice.bindings.https.url}"
       },
       "bindings": {
         "http": {
@@ -155,10 +160,11 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "services__basketservice__0": "{basketservice.bindings.http.url}",
-        "services__basketservice__1": "{basketservice.bindings.https.url}",
-        "services__catalogservice__0": "{catalogservice.bindings.http.url}",
-        "services__catalogservice__1": "{catalogservice.bindings.https.url}"
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "services__basketservice__http__0": "{basketservice.bindings.http.url}",
+        "services__basketservice__https__0": "{basketservice.bindings.https.url}",
+        "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
+        "services__catalogservice__https__0": "{catalogservice.bindings.https.url}"
       },
       "bindings": {
         "http": {
@@ -179,6 +185,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
       },
       "bindings": {

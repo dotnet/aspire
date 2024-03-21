@@ -5,24 +5,39 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <!-- NU1608 - Temporarily suppress warning around detected package version outside of dependency constraint.
+    This is currently needed because Pomelo.EntityFrameworkCore.MySql 9.0-preview.1 version has a constraint
+    for package Microsoft.EntityFrameworkCore.Relational forcing the version to have to be within 9.0-preview1xxxx,
+    but our Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore reference is bringing in a 9.0-preview2 version.
+    We should remove the NoWarn once either Pomelo.EntityFrameworkCore.MySql removes the constraint or we upgrade to a version
+    that doesn't have the constraint. -->
+    <NoWarn>$(NoWarn);CS8002;NU1608</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <Using Include="Confluent.Kafka" />
+
+    <Compile Include="..\Common\TestResourceNames.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Confluent.Kafka\Aspire.Confluent.Kafka.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Azure.Cosmos\Aspire.Microsoft.Azure.Cosmos.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Npgsql\Aspire.Npgsql.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Pomelo.EntityFrameworkCore.MySql\Aspire.Pomelo.EntityFrameworkCore.MySql.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
+    <ComponentReferenceForTests Include="Aspire.Confluent.Kafka" />
+    <ComponentReferenceForTests Include="Aspire.Microsoft.Azure.Cosmos" />
+    <ComponentReferenceForTests Include="Aspire.Microsoft.Data.SqlClient" />
+    <ComponentReferenceForTests Include="Aspire.MongoDB.Driver" />
+    <ComponentReferenceForTests Include="Aspire.MySqlConnector" />
+    <ComponentReferenceForTests Include="Aspire.Npgsql" />
+    <ComponentReferenceForTests Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <ComponentReferenceForTests Include="Aspire.Oracle.EntityFrameworkCore" />
+    <ComponentReferenceForTests Include="Aspire.Pomelo.EntityFrameworkCore.MySql" />
+    <ComponentReferenceForTests Include="Aspire.RabbitMQ.Client" />
+    <ComponentReferenceForTests Include="Aspire.StackExchange.Redis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
+    <PackageReference Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" Include="@(ComponentReferenceForTests)" />
+    <PackageReference Include="Polly" />
   </ItemGroup>
 
 </Project>

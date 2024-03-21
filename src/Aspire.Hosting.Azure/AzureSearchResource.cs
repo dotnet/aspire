@@ -6,27 +6,25 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// Represents an Azure Search resource.
+/// Represents an Azure AI Search resource.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-public class AzureSearchResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.search.bicep"),
+/// <param name="name">The name of the resource</param>
+/// <param name="configureConstruct">Callback to configure the Azure AI Search resource.</param>
+public class AzureSearchResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets the "connectionString" reference from the secret outputs of the Azure Search resource.
+    /// Gets the "connectionString" output reference from the Azure AI Search resource.
     /// </summary>
-    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+    /// <remarks>
+    /// This connection string will assume you're deploying to public Azure.
+    /// </remarks>
+    public BicepOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the resource.
     /// </summary>
-    public string ConnectionStringExpression => ConnectionString.ValueExpression;
-
-    /// <summary>
-    /// Gets the connection string for the resource.
-    /// </summary>
-    /// <returns>The connection string for the resource.</returns>
-    public string? GetConnectionString() => ConnectionString.Value;
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{ConnectionString}");
 }
-

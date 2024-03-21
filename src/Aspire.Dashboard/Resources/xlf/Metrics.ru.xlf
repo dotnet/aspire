@@ -4,87 +4,87 @@
     <body>
       <trans-unit id="MetricsHeader">
         <source>Metrics</source>
-        <target state="new">Metrics</target>
+        <target state="translated">Метрики</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsInsturementDescriptionGridNameColumnHeader">
         <source>Description</source>
-        <target state="new">Description</target>
+        <target state="translated">Описание</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsInsturementNameGridNameColumnHeader">
         <source>Instrument</source>
-        <target state="new">Instrument</target>
+        <target state="translated">Инструмент</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastFifteenMinutes">
         <source>Last 15 minutes</source>
-        <target state="new">Last 15 minutes</target>
+        <target state="translated">Последние 15 минут</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastFiveMinutes">
         <source>Last 5 minutes</source>
-        <target state="new">Last 5 minutes</target>
+        <target state="translated">Последние 5 минут</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastHour">
         <source>Last hour</source>
-        <target state="new">Last hour</target>
+        <target state="translated">Последний час</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastOneMinute">
         <source>Last 1 minute</source>
-        <target state="new">Last 1 minute</target>
+        <target state="translated">Последняя минута</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastSixHours">
         <source>Last 6 hours</source>
-        <target state="new">Last 6 hours</target>
+        <target state="translated">Последние 6 часов</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastThirtyMinutes">
         <source>Last 30 minutes</source>
-        <target state="new">Last 30 minutes</target>
+        <target state="translated">Последние 30 минут</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastThreeHours">
         <source>Last 3 hours</source>
-        <target state="new">Last 3 hours</target>
+        <target state="translated">Последние 3 часа</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastTwelveHours">
         <source>Last 12 hours</source>
-        <target state="new">Last 12 hours</target>
+        <target state="translated">Последние 12 часов</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsLastTwentyFourHours">
         <source>Last 24 hours</source>
-        <target state="new">Last 24 hours</target>
+        <target state="translated">Последние 24 часа</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsNoMetricsForResource">
         <source>No metrics for the selected resource</source>
-        <target state="new">No metrics for the selected resource</target>
+        <target state="translated">Нет метрик для выбранного ресурса</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsPageTitle">
         <source>{0} metrics</source>
-        <target state="new">{0} metrics</target>
+        <target state="translated">Метрик: {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="MetricsSelectADuration">
         <source>Select a duration</source>
-        <target state="new">Select a duration</target>
+        <target state="translated">Выберите длительность</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsSelectAResource">
         <source>Select a resource to view metrics</source>
-        <target state="new">Select a resource to view metrics</target>
+        <target state="translated">Выберите ресурс для просмотра метрик</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsSelectInstrument">
         <source>Select instrument.</source>
-        <target state="new">Select instrument.</target>
+        <target state="translated">Выберите инструмент.</target>
         <note />
       </trans-unit>
     </body>

@@ -1,5 +1,5 @@
-﻿@using Aspire.Dashboard.Resources
-@inject IJSRuntime JS
+﻿@using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Resources
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div class="@GetContainerClass()">
@@ -35,10 +35,9 @@
     <FluentButton Appearance="Appearance.Lightweight"
                   Id="@_anchorId"
                   Class="defaultHidden"
-                  OnClick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, _anchorId))"
-                  aria-label="@Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]">
+                  AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, ("aria-label", @Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]))">
         <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
         <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
     </FluentButton>
-    <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyToolTip</FluentTooltip>
+    <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top" HideTooltipOnCursorLeave="true">@PreCopyToolTip</FluentTooltip>
 </div>

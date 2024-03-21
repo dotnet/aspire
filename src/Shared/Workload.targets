@@ -1,4 +1,6 @@
 <Project>
+  <Import Project="Workload.props" />
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <PackageType>DotnetPlatform</PackageType>
@@ -12,17 +14,7 @@
     <DotNetOutputPath>$(RepoRoot)artifacts/bin/</DotNetOutputPath>
     <DotNetDirectory>$(DotNetOutputPath)dotnet/</DotNetDirectory>
     <DotNetPacksDirectory>$(DotNetDirectory)packs/</DotNetPacksDirectory>
-    <VersionBand Condition=" '$(VersionBand)' == '' ">$([System.Text.RegularExpressions.Regex]::Match($(MicrosoftDotnetSdkInternalPackageVersion), `^\d+\.\d+\.\d`))00</VersionBand>
-    <!-- When we are ready to produce Workloads targeting the stable SDK band, set UseStableSdkBand to true. Otherwise, it will match the SDK preview band. -->
-    <UseStableSdkBand>false</UseStableSdkBand>
-    <DotNetVersionBand Condition=" '$(UseStableSdkBand)' != 'true' ">$(VersionBand)$([System.Text.RegularExpressions.Regex]::Match($(MicrosoftDotnetSdkInternalPackageVersion), `\-(preview|rc|alpha|rtm).\d+`))</DotNetVersionBand>
-    <DotNetVersionBand Condition="'$(UseStableSdkBand)' == 'true'">$(VersionBand)</DotNetVersionBand>
     <DotNetSdkManifestsFolder>$(DotNetVersionBand)</DotNetSdkManifestsFolder>
-    <DotNetAspireManifestVersionBand>$(DotNetVersionBand)</DotNetAspireManifestVersionBand>
-    <_AspireDotNetVersionMajor>9</_AspireDotNetVersionMajor>
-    <_AspireDotNetVersionMinor>0</_AspireDotNetVersionMinor>
-    <_AspireDotNetVersion>$(_AspireDotNetVersionMajor).$(_AspireDotNetVersionMinor)</_AspireDotNetVersion>
-    <_AspireDotNetTfm>net9.0</_AspireDotNetTfm>
     <DotNetSdkManifestsDirectory>$(DotNetDirectory)sdk-manifests/$(DotNetSdkManifestsFolder)/</DotNetSdkManifestsDirectory>
   </PropertyGroup>
 

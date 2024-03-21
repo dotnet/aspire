@@ -4,7 +4,6 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
@@ -20,6 +19,9 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
     private readonly DistributedApplicationModel _applicationModel;
     private readonly DcpOptions _dcpOptions;
+    private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
+    private DcpInfo? _dcpInfo;
+    private bool _checkDone;
 
     public DcpDependencyCheck(
         DistributedApplicationModel applicationModel,
@@ -29,79 +31,94 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         _dcpOptions = dcpOptions.Value;
     }
 
-    public async Task EnsureDcpDependenciesAsync(CancellationToken cancellationToken = default)
+    public async Task<DcpInfo?> GetDcpInfoAsync(CancellationToken cancellationToken = default)
     {
-        var dcpPath = _dcpOptions.CliPath;
-        var containerRuntime = _dcpOptions.ContainerRuntime;
-
-        if (!File.Exists(dcpPath))
-        {
-            throw new FileNotFoundException($"The Aspire orchestration component is not installed at \"{dcpPath}\". The application cannot be run without it.", dcpPath);
-        }
-
-        IAsyncDisposable? processDisposable = null;
-        Task<ProcessResult> task;
-
+        await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var outputStringBuilder = new StringBuilder();
-
-            var arguments = "info";
-            if (!string.IsNullOrEmpty(containerRuntime))
+            if (_checkDone)
             {
-                arguments += $" --container-runtime {containerRuntime}";
+                return _dcpInfo;
+            }
+            _checkDone = true;
+
+            var dcpPath = _dcpOptions.CliPath;
+            var containerRuntime = _dcpOptions.ContainerRuntime;
+
+            if (!File.Exists(dcpPath))
+            {
+                throw new FileNotFoundException($"The Aspire orchestration component is not installed at \"{dcpPath}\". The application cannot be run without it.", dcpPath);
             }
 
-            // Run `dcp version`
-            var processSpec = new ProcessSpec(dcpPath)
-            {
-                Arguments = arguments,
-                OnOutputData = s => outputStringBuilder.Append(s),
-            };
+            IAsyncDisposable? processDisposable = null;
+            Task<ProcessResult> task;
 
-            (task, processDisposable) = ProcessUtil.Run(processSpec);
-
-            // Disable timeout if DependencyCheckTimeout is set to zero or a negative value
-            if (_dcpOptions.DependencyCheckTimeout > 0)
+            try
             {
-                await task.WaitAsync(TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout), cancellationToken).ConfigureAwait(false);
+                var outputStringBuilder = new StringBuilder();
+
+                var arguments = "info";
+                if (!string.IsNullOrEmpty(containerRuntime))
+                {
+                    arguments += $" --container-runtime {containerRuntime}";
+                }
+
+                // Run `dcp version`
+                var processSpec = new ProcessSpec(dcpPath)
+                {
+                    Arguments = arguments,
+                    OnOutputData = s => outputStringBuilder.Append(s),
+                };
+
+                (task, processDisposable) = ProcessUtil.Run(processSpec);
+
+                // Disable timeout if DependencyCheckTimeout is set to zero or a negative value
+                if (_dcpOptions.DependencyCheckTimeout > 0)
+                {
+                    await task.WaitAsync(TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout), cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                // Parse the output as JSON
+                var output = outputStringBuilder.ToString();
+                if (output == string.Empty)
+                {
+                    return null; // Best effort
+                }
+
+                var dcpInfo = JsonSerializer.Deserialize<DcpInfo>(output);
+                if (dcpInfo == null)
+                {
+                    return null; // Best effort
+                }
+
+                EnsureDcpVersion(dcpInfo);
+                EnsureDcpContainerRuntime(dcpInfo);
+                _dcpInfo = dcpInfo;
+                return dcpInfo;
             }
-            else
+            catch (Exception ex) when (ex is not DistributedApplicationException)
             {
-                await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                throw new DistributedApplicationException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    Resources.DcpDependencyCheckFailedMessage,
+                    ex.ToString()
+                ));
             }
-
-            // Parse the output as JSON
-            var output = outputStringBuilder.ToString();
-            if (output == string.Empty)
+            finally
             {
-                return; // Best effort
+                if (processDisposable != null)
+                {
+                    await processDisposable.DisposeAsync().ConfigureAwait(false);
+                }
             }
-
-            var dcpInfo = JsonSerializer.Deserialize<DcpInfo>(output);
-            if (dcpInfo == null)
-            {
-                return; // Best effort
-            }
-
-            EnsureDcpVersion(dcpInfo);
-            EnsureDcpContainerRuntime(dcpInfo);
-        }
-        catch (Exception ex) when (ex is not DistributedApplicationException)
-        {
-            Console.Error.WriteLine(string.Format(
-                CultureInfo.InvariantCulture,
-                Resources.DcpDependencyCheckFailedMessage,
-                ex.ToString()
-            ));
-            Environment.Exit((int)DcpVersionCheckFailures.DcpVersionFailed);
         }
         finally
         {
-            if (processDisposable != null)
-            {
-                await processDisposable.DisposeAsync().ConfigureAwait(false);
-            }
+            _lock.Release();
         }
     }
 
@@ -111,13 +128,14 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
         try
         {
-            var dcpVersionString = dcpInfo.Version;
+            var dcpVersionString = dcpInfo.VersionString;
 
             if (dcpVersionString == null
                 || dcpVersionString == string.Empty
                 || dcpVersionString == "dev")
             {
                 // If empty, null, or a dev version, pass
+                dcpInfo.Version = DcpVersion.Dev;
                 return;
             }
 
@@ -129,12 +147,13 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             {
                 if (dcpVersion < DcpVersion.MinimumVersionInclusive)
                 {
-                    Console.Error.WriteLine(string.Format(
+                    throw new DistributedApplicationException(string.Format(
                         CultureInfo.InvariantCulture,
                         Resources.DcpVersionCheckTooLowMessage
                     ));
-                    Environment.Exit((int)DcpVersionCheckFailures.DcpVersionIncompatible);
                 }
+
+                dcpInfo.Version = dcpVersion;
             }
         }
         finally
@@ -147,7 +166,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
     {
         // If we don't have any resources that need a container then we
         // don't need to check for a healthy container runtime.
-        if (!_applicationModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
+        if (!_applicationModel.Resources.Any(c => c.IsContainer()))
         {
             return;
         }
@@ -168,23 +187,21 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
             if (!installed)
             {
-                Console.Error.WriteLine(string.Format(
+                throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.ContainerRuntimePrerequisiteMissingExceptionMessage,
                     containerRuntime,
                     error
                 ));
-                Environment.Exit((int)ContainerRuntimeHealthCheckFailures.PrerequisiteMissing);
             }
             else if (!running)
             {
-                Console.Error.WriteLine(string.Format(
+                throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.ContainerRuntimeUnhealthyExceptionMessage,
                     containerRuntime,
                     error
                 ));
-                Environment.Exit((int)ContainerRuntimeHealthCheckFailures.Unhealthy);
             }
 
             // If we get to here all is good!
@@ -193,29 +210,5 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
         {
             AspireEventSource.Instance?.ContainerRuntimeHealthCheckStop();
         }
-    }
-
-    public class DcpInfo
-    {
-        [JsonPropertyName("version")]
-        public string? Version { get; set; }
-
-        [JsonPropertyName("containers")]
-        public DcpContainersInfo? Containers { get; set; }
-    }
-
-    public class DcpContainersInfo
-    {
-        [JsonPropertyName("runtime")]
-        public string? Runtime { get; set; }
-
-        [JsonPropertyName("installed")]
-        public bool Installed { get; set; } = false;
-
-        [JsonPropertyName("running")]
-        public bool Running { get; set; } = false;
-
-        [JsonPropertyName("error")]
-        public string? Error { get; set; }
     }
 }

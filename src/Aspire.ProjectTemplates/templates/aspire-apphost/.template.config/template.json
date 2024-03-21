@@ -18,8 +18,11 @@
   },
   "precedence": "9000",
   "identity": "Aspire.AppHost.CSharp.9.0",
-  "thirdPartyNotices": "https://aka.ms/aspire/1.0-third-party-notices",
+  "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
   "groupIdentity": "Aspire.AppHost",
+  "guids": [
+    "98048C9C-BF28-46BA-A98E-63767EE5E3A8"
+  ],
   "constraints": {
     "aspire": {
       "type": "workload",
@@ -44,12 +47,12 @@
       "type": "bind",
       "binding": "HostIdentifier"
     },
-    "appHttpPort": {
+    "appHostHttpPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the App project."
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project."
     },
-    "appHttpPortGenerated": {
+    "appHostHttpPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -57,43 +60,65 @@
         "high": 15300
       }
     },
-    "appHttpPortReplacer": {
+    "appHostHttpPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "appHttpPort",
-        "fallbackVariableName": "appHttpPortGenerated"
+        "sourceVariableName": "appHostHttpPort",
+        "fallbackVariableName": "appHostHttpPortGenerated"
       },
       "replaces": "15000"
     },
-    "appOtlpHttpPort": {
+    "appHostOtlpHttpPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the App project."
+      "description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project."
     },
-    "appOtlpHttpPortGenerated": {
+    "appHostOtlpHttpPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
-        "low": 16000,
-        "high": 16300
+        "low": 19000,
+        "high": 19300
       }
     },
-    "appOtlpHttpPortReplacer": {
+    "appHostOtlpHttpPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "appOtlpHttpPort",
-        "fallbackVariableName": "appOtlpHttpPortGenerated"
+        "sourceVariableName": "appHostOtlpHttpPort",
+        "fallbackVariableName": "appHostOtlpHttpPortGenerated"
       },
-      "replaces": "16000"
+      "replaces": "19000"
     },
-    "appHttpsPort": {
+    "appHostResourceHttpPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the App project. This option is only applicable when the parameter no-https is not used."
+      "description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project."
     },
-    "appHttpsPortGenerated": {
+    "appHostResourceHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 20000,
+        "high": 20300
+      }
+    },
+    "appHostResourceHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appHostResourceHttpPort",
+        "fallbackVariableName": "appHostResourceHttpPortGenerated"
+      },
+      "replaces": "20000"
+    },
+    "appHostHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the AppHost project. This option is only applicable when the parameter no-https is not used."
+    },
+    "appHostHttpsPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -101,36 +126,58 @@
         "high": 17300
       }
     },
-    "appHttpsPortReplacer": {
+    "appHostHttpsPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "appHttpsPort",
-        "fallbackVariableName": "appHttpsPortGenerated"
+        "sourceVariableName": "appHostHttpsPort",
+        "fallbackVariableName": "appHostHttpsPortGenerated"
       },
       "replaces": "17000"
     },
-    "appOtlpHttpsPort": {
+    "appHostOtlpHttpsPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the App project."
+      "description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the AppHost project."
     },
-    "appOtlpHttpsPortGenerated": {
+    "appHostOtlpHttpsPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
-        "low": 18000,
-        "high": 18300
+        "low": 21000,
+        "high": 21300
       }
     },
-    "appOtlpHttpsPortReplacer": {
+    "appHostOtlpHttpsPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "appOtlpHttpsPort",
-        "fallbackVariableName": "appOtlpHttpsPortGenerated"
+        "sourceVariableName": "appHostOtlpHttpsPort",
+        "fallbackVariableName": "appHostOtlpHttpsPortGenerated"
       },
-      "replaces": "18000"
+      "replaces": "21000"
+    },
+    "appHostResourceHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the resource service HTTPS endpoint in launchSettings.json of the AppHost project."
+    },
+    "appHostResourceHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 22000,
+        "high": 22300
+      }
+    },
+    "appHostResourceHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appHostResourceHttpsPort",
+        "fallbackVariableName": "appHostResourceHttpsPortGenerated"
+      },
+      "replaces": "22000"
     },
     "skipRestore": {
       "type": "parameter",
@@ -145,7 +192,7 @@
     "NoHttps": {
       "type": "parameter",
       "datatype": "bool",
-      "defaultValue": "true",
+      "defaultValue": "false",
       "description": "Whether to turn off HTTPS."
     }
   },

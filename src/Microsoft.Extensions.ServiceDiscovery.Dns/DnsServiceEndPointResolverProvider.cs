@@ -9,24 +9,16 @@ using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
-/// <summary>
-/// Provides <see cref="IServiceEndPointProvider"/> instances which resolve endpoints from DNS.
-/// </summary>
-/// <remarks>
-/// Initializes a new <see cref="DnsServiceEndPointResolverProvider"/> instance.
-/// </remarks>
-/// <param name="options">The options.</param>
-/// <param name="logger">The logger.</param>
-/// <param name="timeProvider">The time provider.</param>
 internal sealed partial class DnsServiceEndPointResolverProvider(
     IOptionsMonitor<DnsServiceEndPointResolverOptions> options,
     ILogger<DnsServiceEndPointResolver> logger,
-    TimeProvider timeProvider) : IServiceEndPointResolverProvider
+    TimeProvider timeProvider,
+    ServiceNameParser parser) : IServiceEndPointResolverProvider
 {
     /// <inheritdoc/>
     public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
-        if (!ServiceNameParts.TryParse(serviceName, out var parts))
+        if (!parser.TryParse(serviceName, out var parts))
         {
             DnsServiceEndPointResolverBase.Log.ServiceNameIsNotUriOrDnsName(logger, serviceName);
             resolver = default;

@@ -6,10 +6,13 @@
 @if (Resource.CreationTimeStamp is {} timeStamp)
 {
     // Don't include milliseconds as resource server returned time stamp is second precision.
-    @FormatHelpers.FormatTimeWithOptionalDate(timeStamp)
+    @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, timeStamp)
 }
 
 @code {
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; set; }
+
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
 }

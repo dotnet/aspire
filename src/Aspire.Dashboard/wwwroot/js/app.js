@@ -22,6 +22,10 @@ window.resetContinuousScrollPosition = function () {
 }
 
 window.initializeContinuousScroll = function () {
+    // Reset to scrolling to the end of the content when initializing.
+    // This needs to be called because the value is remembered across Aspire pages because the browser isn't reloading.
+    resetContinuousScrollPosition();
+
     const container = document.querySelector('.continuous-scroll-overflow');
     if (container == null) {
         return;
@@ -50,6 +54,14 @@ function isScrolledToBottom(container) {
     const marginOfError = 5;
 
     return container.scrollHeight - container.clientHeight <= container.scrollTop + marginOfError;
+}
+
+window.buttonCopyTextToClipboard = function(element) {
+    const text = element.getAttribute("data-text");
+    const precopy = element.getAttribute("data-precopy");
+    const postcopy = element.getAttribute("data-postcopy");
+
+    copyTextToClipboard(element.getAttribute("id"), text, precopy, postcopy);
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
@@ -275,12 +287,16 @@ function isInputElement(element, isRoot, isShadowRoot) {
     const tag = element.tagName.toLowerCase();
     // comes from https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
     // fluent-select does not use <select /> element
-    if (tag === "input" || tag === "textarea" || tag === "select" || tag === "fluent-select") return true;
+    if (tag === "input" || tag === "textarea" || tag === "select" || tag === "fluent-select") {
+        return true;
+    }
 
     if (isShadowRoot || isRoot) {
         const elementChildren = element.children;
         for (let i = 0; i < elementChildren.length; i++) {
-            if (isInputElement(elementChildren[i], false, isShadowRoot)) return true;
+            if (isInputElement(elementChildren[i], false, isShadowRoot)) {
+                return true;
+            }
         }
     }
 
@@ -288,14 +304,16 @@ function isInputElement(element, isRoot, isShadowRoot) {
     if (shadowRoot) {
         const shadowRootChildren = shadowRoot.children;
         for (let i = 0; i < shadowRootChildren.length; i++) {
-            if (isInputElement(shadowRootChildren[i], false, true)) return true;
+            if (isInputElement(shadowRootChildren[i], false, true)) {
+                return true;
+            }
         }
     }
 
     return false;
 }
 
-window.registerGlobalKeydownListener = function(assemblyName) {
+window.registerGlobalKeydownListener = function(shortcutManager) {
     const serializeEvent = function (e) {
         if (e) {
             return {
@@ -314,7 +332,7 @@ window.registerGlobalKeydownListener = function(assemblyName) {
 
     const keydownListener = function (e) {
         if (!isActiveElementInput()) {
-            DotNet.invokeMethodAsync(assemblyName, 'OnGlobalKeyDown', serializeEvent(e))
+            shortcutManager.invokeMethodAsync('OnGlobalKeyDown', serializeEvent(e));
         }
     }
 
@@ -327,4 +345,10 @@ window.registerGlobalKeydownListener = function(assemblyName) {
 
 window.unregisterGlobalKeydownListener = function (keydownListener) {
     window.document.removeEventListener('keydown', keydownListener);
+}
+
+window.getBrowserTimeZone = function () {
+    const options = Intl.DateTimeFormat().resolvedOptions();
+
+    return options.timeZone;
 }

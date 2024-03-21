@@ -4,262 +4,322 @@
     <body>
       <trans-unit id="All">
         <source>All</source>
-        <target state="new">All</target>
+        <target state="translated">Vše</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
         <source>All tags</source>
-        <target state="new">All tags</target>
+        <target state="translated">Všechny značky</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerFilteredTags">
         <source>Filtered tags</source>
-        <target state="new">Filtered tags</target>
+        <target state="translated">Vyfiltrované značky</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerFiltersHeader">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">Filtry</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="new">Graph. For an accessible view please navigate to the Table tab</target>
+        <target state="translated">Graf. Pokud chcete použít přístupné zobrazení, přejděte prosím na kartu Tabulka.</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="new">Graph</target>
+        <target state="translated">Graf</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerNoneSelected">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(žádné)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
-        <target state="new">Options</target>
+        <target state="translated">Možnosti</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
         <source>Select filters</source>
-        <target state="new">Select filters</target>
+        <target state="translated">Vybrat filtry</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
-        <target state="new">Show count</target>
+        <target state="translated">Zobrazit počet</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerTableTab">
         <source>Table</source>
-        <target state="new">Table</target>
+        <target state="translated">Tabulka</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
         <source>Unable to display chart</source>
-        <target state="new">Unable to display chart</target>
+        <target state="translated">Graf nelze zobrazit.</target>
         <note />
       </trans-unit>
       <trans-unit id="DetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">Podrobnosti</target>
         <note />
       </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
-        <target state="new">Duration</target>
+        <target state="translated">Doba trvání</target>
         <note />
       </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
-        <target state="new">Event</target>
+        <target state="translated">Událost</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
-        <target state="new">Filter...</target>
+        <target state="translated">Filtrovat…</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
         <source>Show all</source>
-        <target state="new">Show all</target>
+        <target state="translated">Zobrazit vše</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
         <source>Show spec only</source>
-        <target state="new">Show spec only</target>
+        <target state="translated">Zobrazit jen specifikaci</target>
         <note>Spec means from the resource specification</note>
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
         <source>Hide values</source>
-        <target state="new">Hide values</target>
+        <target state="translated">Skrýt hodnoty</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
         <source>Show values</source>
-        <target state="new">Show values</target>
+        <target state="translated">Zobrazit hodnoty</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
-        <target state="new">Copied!</target>
+        <target state="translated">Zkopírováno!</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">
         <source>Copy to clipboard</source>
-        <target state="new">Copy to clipboard</target>
+        <target state="translated">Zkopírovat do schránky</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskHideValue">
         <source>Hide value</source>
-        <target state="new">Hide value</target>
+        <target state="translated">Skrýt hodnotu</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskShowValue">
         <source>Show value</source>
-        <target state="new">Show value</target>
+        <target state="translated">Zobrazit hodnotu</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
-        <target state="new">Loading...</target>
+        <target state="translated">Načítání…</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
-        <target state="new">No metrics data found</target>
+        <target state="translated">Nenašla se žádná data metrik.</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowLatestValues">
         <source>Show latest 10 values</source>
-        <target state="new">Show latest 10 values</target>
+        <target state="translated">Zobrazit nejnovějších 10 hodnot</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowOnlyValueChanges">
         <source>Only show value updates</source>
-        <target state="new">Only show value updates</target>
+        <target state="translated">Zobrazit jenom aktualizace hodnot</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableStartColumnHeader">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">Čas</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueDecreased">
         <source>Value decreased</source>
-        <target state="new">Value decreased</target>
+        <target state="translated">Hodnota se snížila.</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueIncreased">
         <source>Value increased</source>
-        <target state="new">Value increased</target>
+        <target state="translated">Hodnota se zvýšila.</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueNoChange">
         <source>Value did not change</source>
-        <target state="new">Value did not change</target>
+        <target state="translated">Hodnota se nezměnila.</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
-        <target state="new">Name</target>
+        <target state="translated">Název</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
-        <target state="new">Count</target>
+        <target state="translated">Počet</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
-        <target state="new">Length</target>
+        <target state="translated">Délka</target>
         <note>Length is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Hodnota</target>
         <note>Value is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
-        <target state="new">Value</target>
+        <target state="translated">Hodnota</target>
         <note />
       </trans-unit>
       <trans-unit id="ReplicaSetLower">
         <source>replica set</source>
-        <target state="new">replica set</target>
+        <target state="translated">sada replik</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsEndpointsHeader">
+        <source>Endpoints</source>
+        <target state="new">Endpoints</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
+        <source>Environment variables</source>
+        <target state="new">Environment variables</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDetailsResourceHeader">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
         <source>{0} (replica of {1})</source>
-        <target state="new">{0} (replica of {1})</target>
+        <target state="translated">{0} (replika sady {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
       <trans-unit id="SelectAResource">
         <source>Select a resource</source>
-        <target state="new">Select a resource</target>
+        <target state="translated">Vybrat prostředek</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
-        <target state="new">Select an application</target>
+        <target state="translated">Vybrat aplikaci</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Duration &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Doba trvání: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
-      <trans-unit id="SpanDetailsService">
-        <source>Service &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Service &lt;strong&gt;{0}&lt;/strong&gt;</target>
+      <trans-unit id="SpanDetailsEventsHeader">
+        <source>Events</source>
+        <target state="new">Events</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsResource">
+        <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Resource &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="SpanDetailsResourceHeader">
+        <source>Resource</source>
+        <target state="new">Resource</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsSpanHeader">
+        <source>Span</source>
+        <target state="new">Span</target>
+        <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Start time &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Čas spuštění: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsContextHeader">
+        <source>Context</source>
+        <target state="new">Context</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsExceptionHeader">
+        <source>Exception</source>
+        <target state="new">Exception</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsLogEntryHeader">
+        <source>Log entry</source>
+        <target state="new">Log entry</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsResource">
+        <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Resource &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsResourceHeader">
+        <source>Resource</source>
+        <target state="new">Resource</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsDetailsTimestamp">
+        <source>Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note>{0} is a date. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TimeOffsetColumnHeader">
         <source>Time offset</source>
-        <target state="new">Time offset</target>
+        <target state="translated">Časový posun</target>
         <note />
       </trans-unit>
       <trans-unit id="TimestampColumnHeader">
         <source>Timestamp</source>
-        <target state="new">Timestamp</target>
+        <target state="translated">Časové razítko</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">
         <source>View</source>
-        <target state="new">View</target>
+        <target state="translated">Zobrazit</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewLogsLink">
         <source>View logs</source>
-        <target state="new">View logs</target>
+        <target state="translated">Zobrazit protokoly</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
         <source>Close</source>
-        <target state="new">Close</target>
+        <target state="translated">Zavřít</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitHorizontal">
         <source>Split horizontal</source>
-        <target state="new">Split horizontal</target>
+        <target state="translated">Rozdělit vodorovně</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitVertical">
         <source>Split vertical</source>
-        <target state="new">Split vertical</target>
+        <target state="translated">Rozdělit svisle</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">
         <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
-        <target state="new">Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</target>
+        <target state="translated">Celkem: &lt;strong&gt;nalezené výsledky: {0} &lt;/strong&gt;</target>
         <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>

@@ -5,6 +5,7 @@ var catalogDb = builder.AddPostgres("postgres")
                        .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
+                         .WithDataVolume()
                          .WithRedisCommander();
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
@@ -19,11 +20,10 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
-       .WithReference(catalogService.GetEndpoint("http"));
+       .WithReference(catalogService);
 
-builder.AddProject<Projects.OrderProcessor>("orderprocessor")
-       .WithReference(messaging)
-       .WithLaunchProfile("OrderProcessor");
+builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
+       .WithReference(messaging);
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(basketService)

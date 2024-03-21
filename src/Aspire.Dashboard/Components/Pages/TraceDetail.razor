@@ -19,7 +19,7 @@
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
             <div>
-                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@FormatHelpers.FormatDateTime(_trace.FirstSpan.StartTime, includeMilliseconds: true)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@FormatHelpers.FormatDateTime(TimeProvider, _trace.FirstSpan.StartTime, includeMilliseconds: true)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
@@ -37,7 +37,7 @@
             <div>
                 @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@_trace.Spans.Count</strong>
             </div>
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/structuredlogs?traceId={_trace.TraceId}")">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: _trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
         </FluentToolbar>
 
         <SummaryDetailsView
@@ -47,9 +47,9 @@
             SelectedValue="@SelectedSpan">
             <DetailsTitleTemplate>
                 @{ var shortedSpanId = OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId); }
-                <div class="span-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
+                <div class="pane-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
                     @SelectedSpan!.Title
-                    <span class="span-id">@shortedSpanId</span>
+                    <span class="pane-details-subtext">@shortedSpanId</span>
                 </div>
             </DetailsTitleTemplate>
             <Summary>
@@ -57,13 +57,13 @@
                     <TemplateColumn Title="Name">
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
                             @{
-                                var isServerKind = context.Span.Kind == OtlpSpanKind.Server;
+                                var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
                                 // Indent the span name based on the depth of the span.
                                 var marginLeft = (context.Depth - 1) * 15;
 
                                 // We want to have consistent margin for both client and server spans.
                                 string spanNameContainerStyle;
-                                if (!isServerKind)
+                                if (!isServerOrConsumer)
                                 {
                                     // Client span has 19px extra content:
                                     // - 5px extra margin-left
@@ -73,7 +73,7 @@
                                 }
                                 else
                                 {
-                                    // Server span has 19px extra content:
+                                    // Span with icon has 19px extra content:
                                     // - 16px icon
                                     // - 3px padding-left
                                     spanNameContainerStyle = string.Empty;
@@ -88,12 +88,12 @@
                                     }
                                 </span>
                                 <span class="span-name-container" style="@spanNameContainerStyle">
-                                    @if (isServerKind)
+                                    @if (isServerOrConsumer)
                                     {
-                                        <FluentIcon Class="server-request-icon"
+                                        <FluentIcon Class="span-kind-icon"
                                                     Color="Color.Custom"
                                                     CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
-                                                    Icon="Icons.Filled.Size16.Server" />
+                                                    Value="@GetSpanIcon(context.Span)" />
                                     }
 
                                     @if (context.IsError)
@@ -109,6 +109,10 @@
                                                 if (context.Span.Attributes.HasKey("db.system"))
                                                 {
                                                     icon = new Icons.Filled.Size16.Database();
+                                                }
+                                                else if (context.Span.Attributes.HasKey("messaging.system"))
+                                                {
+                                                    icon = new Icons.Filled.Size16.Mail();
                                                 }
                                                 else
                                                 {
@@ -164,7 +168,7 @@
                             </div>
                         </ChildContent>
                     </TemplateColumn>
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
                         <FluentButton
                             Style="margin-left: 7px;"
                             Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]"
@@ -181,6 +185,6 @@
 else
 {
     <div class="empty-content">
-        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)]
+        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @string.Format(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)], TraceId)
     </div>
 }

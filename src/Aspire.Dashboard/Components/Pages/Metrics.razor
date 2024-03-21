@@ -6,6 +6,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
@@ -14,16 +15,10 @@
 <div class="metrics-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect Items="@_applications"
-                      OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
-                      OptionValue="@(c => c.Id?.InstanceId)"
-                      @bind-SelectedOption="PageViewModel.SelectedApplication"
-                      @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">
-            <OptionTemplate>
-                <ResourceSelectOptionTemplate ViewModel="@context" />
-            </OptionTemplate>
-        </FluentSelect>
+        <ResourceSelect Resources="_applications"
+                        AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
+                        @bind-SelectedResource="PageViewModel.SelectedApplication"
+                        @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
         <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
         <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
                       Items="@_durations"
@@ -69,7 +64,7 @@
                             <FluentDataGrid Style="max-width:1100px;" Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
                                 <ChildContent>
                                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                        <FluentAnchor Href="@($"/metrics/resource/{PageViewModel.SelectedApplication.Name}/meter/{context.Parent.MeterName}/instrument/{context.Name}")" Appearance="Appearance.Lightweight">
+                                        <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name)" Appearance="Appearance.Lightweight">
                                             @context.Name
                                         </FluentAnchor>
                                     </TemplateColumn>

@@ -3,6 +3,8 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls.Chart;
+using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -11,15 +13,15 @@ namespace Aspire.Dashboard.Components;
 public partial class PlotlyChart : ChartBase
 {
     [Inject]
-    public required IJSRuntime JSRuntime { get; set; }
+    public required IJSRuntime JS { get; init; }
 
-    protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTime> xValues, bool tickUpdate, DateTime inProgressDataTime)
+    protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
-        var traceDtos = traces.Select(y => new
+        var traceDtos = traces.Select(y => new PlotlyTrace
         {
-            name = y.Name,
-            values = y.DiffValues,
-            tooltips = y.Tooltips
+            Name = y.Name,
+            Values = y.DiffValues,
+            Tooltips = y.Tooltips
         }).ToArray();
 
         if (!tickUpdate)
@@ -28,28 +30,28 @@ public partial class PlotlyChart : ChartBase
             var is24Hour = DateTimeFormatInfo.CurrentInfo.LongTimePattern.StartsWith("H", StringComparison.Ordinal);
             // Plotly uses d3-time-format https://d3js.org/d3-time-format
             var time = is24Hour ? "%H:%M:%S" : "%-I:%M:%S %p";
-            var userLocale = new
+            var userLocale = new PlotlyUserLocale
             {
-                periods = new string[] { DateTimeFormatInfo.CurrentInfo.AMDesignator, DateTimeFormatInfo.CurrentInfo.PMDesignator },
-                time = time
+                Periods = [DateTimeFormatInfo.CurrentInfo.AMDesignator, DateTimeFormatInfo.CurrentInfo.PMDesignator],
+                Time = time
             };
 
-            await JSRuntime.InvokeVoidAsync("initializeChart",
+            await JS.InvokeVoidAsync("initializeChart",
                 "plotly-chart-container",
                 traceDtos,
                 xValues,
-                inProgressDataTime.ToLocalTime(),
-                (inProgressDataTime - Duration).ToLocalTime(),
+                TimeProvider.ToLocal(inProgressDataTime),
+                TimeProvider.ToLocal(inProgressDataTime - Duration).ToLocalTime(),
                 userLocale).ConfigureAwait(false);
         }
         else
         {
-            await JSRuntime.InvokeVoidAsync("updateChart",
+            await JS.InvokeVoidAsync("updateChart",
                 "plotly-chart-container",
                 traceDtos,
                 xValues,
-                inProgressDataTime.ToLocalTime(),
-                (inProgressDataTime - Duration).ToLocalTime()).ConfigureAwait(false);
+                TimeProvider.ToLocal(inProgressDataTime),
+                TimeProvider.ToLocal(inProgressDataTime - Duration)).ConfigureAwait(false);
         }
     }
 }
