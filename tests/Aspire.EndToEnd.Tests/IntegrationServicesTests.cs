@@ -22,7 +22,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Theory]
-    [Trait("scenario", "scenario0")]
+    [Trait("scenario", "default")]
     [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.mysql)]
     [InlineData(TestResourceNames.pomelo)]
@@ -50,12 +50,12 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         });
 
     [Fact]
-    [Trait("Category", "oracle")]
+    [Trait("scenario", "oracle")]
     public Task VerifyOracleComponentWorks()
         => VerifyComponentWorks(TestResourceNames.oracledatabase);
 
     [ConditionalFact]
-    [Trait("Category", "cosmos")]
+    [Trait("scenario", "cosmos")]
     public Task VerifyCosmosComponentWorks()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
@@ -67,7 +67,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Fact]
-    [TestCategory("scenario0")]
+    [Trait("scenario", "default")]
     public Task KafkaComponentCanProduceAndConsume()
         => RunTestAsync(async() =>
         {

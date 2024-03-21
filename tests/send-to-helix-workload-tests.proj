@@ -57,8 +57,41 @@
       <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <Command>$(_TestRunCommand)</Command>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=default</PreCommands>
+        <Command>$(_TestRunCommand) --filter scenario=$(_TestNameEnvVar)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')-sqlserver">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=sqlserver</PreCommands>
+        <Command>$(_TestRunCommand) --filter scenario=$(_TestNameEnvVar)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')-cosmos">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=cosmos</PreCommands>
+        <Command>$(_TestRunCommand) --filter scenario=$(_TestNameEnvVar)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')-oracle">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=oracle</PreCommands>
+        <Command>$(_TestRunCommand) --filter scenario=$(_TestNameEnvVar)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->

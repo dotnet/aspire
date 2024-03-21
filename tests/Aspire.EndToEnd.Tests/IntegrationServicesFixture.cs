@@ -27,7 +27,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     public static bool TestsRunningOutsideOfRepo;
 #endif
 
-    public static string TestScenario = EnvironmentVariables.TestScenario ?? "scenario0";
+    public static string TestScenario = EnvironmentVariables.TestScenario ?? "default";
     public Dictionary<string, ProjectInfo> Projects => _projects!;
     public BuildEnvironment BuildEnvironment { get; init; }
     public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
