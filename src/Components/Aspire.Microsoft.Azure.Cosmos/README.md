@@ -128,7 +128,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddAzureCosmosDB` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:cosmosdb` config key. The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureCosmosDB("cosmosdb");
+builder.AddAzureCosmosDBClient("cosmosdb");
 ```
 
 ### Emulator usage
