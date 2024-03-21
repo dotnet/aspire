@@ -121,16 +121,16 @@ dotnet add package Aspire.Hosting.Azure
 Then, in the _Program.cs_ file of `AppHost`, add an Azure AI OpenAI service and consume the connection using the following methods:
 
 ```csharp
-var openai = builder.AddAzureAIOpenAI("openai");
+var openai = builder.AddAzureOpenAI("openai");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(openai);
 ```
 
-The `AddAzureAIOpenAI` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:openai` config key. The `WithReference` method passes that connection information into a connection string named `openai` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureOpenAI` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:openai` config key. The `WithReference` method passes that connection information into a connection string named `openai` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureAIOpenAIClient("openai");
+builder.AddAzureOpenAIClient("openai");
 ```
 
 ## Additional documentation
