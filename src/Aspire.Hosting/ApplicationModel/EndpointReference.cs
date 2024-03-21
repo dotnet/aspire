@@ -15,7 +15,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     private bool? _isAllocated;
 
     /// <summary>
-    /// Gets the owner of the endpoint reference.
+    /// Gets the resource owner of the endpoint reference.
     /// </summary>
     public IResourceWithEndpoints Resource { get; }
 
