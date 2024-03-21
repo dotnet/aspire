@@ -54,7 +54,10 @@ public class AddMySqlTests
     public async Task AddMySqlAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddMySql("mysql", 1234, "pass");
+        appBuilder.Configuration["Parameters:pass"] = "pass";
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddMySql("mysql", pass, 1234);
 
         using var app = appBuilder.Build();
 
@@ -176,6 +179,36 @@ public class AddMySqlTests
             }
             """;
         Assert.Equal(expectedManifest, dbManifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithPasswordParameter()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var pass = appBuilder.AddParameter("pass");
+
+        var mysql = appBuilder.AddMySql("mysql", pass);
+        var serverManifest = await ManifestUtils.GetManifest(mysql.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={pass.value}",
+              "image": "mysql:8.3.0",
+              "env": {
+                "MYSQL_ROOT_PASSWORD": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 3306
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
     }
 
     [Fact]

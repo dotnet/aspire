@@ -84,7 +84,6 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <summary>
     /// Creates a default password input annotation that generates a random password.
     /// </summary>
-    /// <param name="password">The hard-coded value of the password to use.</param> // TODO this should be removed with https://github.com/dotnet/aspire/issues/2403
     /// <param name="lower"><see langword="true" /> if lowercase alphabet characters should be included; otherwise, <see langword="false" />.</param>
     /// <param name="upper"><see langword="true" /> if uppercase alphabet characters should be included; otherwise, <see langword="false" />.</param>
     /// <param name="numeric"><see langword="true" /> if numeric characters should be included; otherwise, <see langword="false" />.</param>
@@ -94,7 +93,7 @@ public sealed class InputAnnotation : IResourceAnnotation
     /// <param name="minNumeric">The minimum number of numeric characters in the result.</param>
     /// <param name="minSpecial">The minimum number of special characters in the result.</param>
     /// <returns>The created <see cref="InputAnnotation"/> for generating a random password.</returns>
-    public static InputAnnotation CreateDefaultPasswordInput(string? password = null,
+    public static InputAnnotation CreateDefaultPasswordInput(
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
         int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
     {
@@ -111,11 +110,6 @@ public sealed class InputAnnotation : IResourceAnnotation
             MinNumeric = minNumeric,
             MinSpecial = minSpecial
         };
-
-        if (password is not null)
-        {
-            passwordInput.SetValueGetter(() => password);
-        }
 
         return passwordInput;
     }

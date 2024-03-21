@@ -294,17 +294,6 @@ public class AddPostgresTests
                   "transport": "tcp",
                   "containerPort": 5432
                 }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
-                }
               }
             }
             """;
@@ -367,17 +356,6 @@ public class AddPostgresTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 5432
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
                 }
               }
             }

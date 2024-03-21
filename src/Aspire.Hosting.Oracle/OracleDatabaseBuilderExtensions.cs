@@ -20,10 +20,11 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="port">The host port for Oracle Database.</param>
     /// <param name="password">The password for the Oracle Database container. Defaults to a random password.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Use AddOracle instead")]
+    [Obsolete("Use AddOracle instead", error: true)]
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        return builder.AddOracle(name, port, password);
+        // can't simulate the old behavior with taking a string password and converting it to a Parameter
+        throw new NotSupportedException();
     }
 
     /// <summary>
@@ -31,21 +32,20 @@ public static class OracleDatabaseBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="password">The parameter used to provide the administrator password for the Oracle Server resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port for Oracle Server.</param>
-    /// <param name="password">The password for the Oracle Server container. Defaults to a random password.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseServerResource> AddOracle(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
+    public static IResourceBuilder<OracleDatabaseServerResource> AddOracle(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
-        var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
+        var oracleDatabaseServer = new OracleDatabaseServerResource(name, password?.Resource);
         return builder.AddResource(oracleDatabaseServer)
                       .WithEndpoint(hostPort: port, containerPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
                       .WithImage("database/free", "23.3.0.0")
                       .WithImageRegistry("container-registry.oracle.com")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables[PasswordEnvVarName] = oracleDatabaseServer.PasswordInput;
-                      })
-                      .PublishAsContainer();
+                          context.EnvironmentVariables[PasswordEnvVarName] = oracleDatabaseServer.PasswordReference;
+                      });
     }
 
     /// <summary>
