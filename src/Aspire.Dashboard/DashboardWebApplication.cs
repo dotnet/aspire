@@ -393,37 +393,35 @@ public class DashboardWebApplication : IAsyncDisposable
         OtlpAuthMode otlpAuthMode;
         string? otlpApiKey = null;
 
-        if (configuration[DashboardOtlpAuthModeVariableName] is { } v)
-        {
-            if (!Enum.TryParse(v, ignoreCase: true, out otlpAuthMode))
-            {
-                throw new InvalidOperationException($"Unknown {nameof(OtlpAuthMode)} value: {v}");
-            }
-
-            switch (otlpAuthMode)
-            {
-                case OtlpAuthMode.None:
-                    break;
-                case OtlpAuthMode.ApiKey:
-                    otlpApiKey = configuration[DashboardOtlpApiKeyVariableName];
-                    if (string.IsNullOrEmpty(otlpApiKey))
-                    {
-                        throw new InvalidOperationException($"{DashboardOtlpAuthModeVariableName} value of {nameof(OtlpAuthMode.ApiKey)} requires an API key from {DashboardOtlpApiKeyVariableName}.");
-                    }
-                    break;
-                case OtlpAuthMode.ClientCertificate:
-                    if (!IsHttps(otlpUris[0]))
-                    {
-                        throw new InvalidOperationException($"{DashboardOtlpAuthModeVariableName} value of {nameof(OtlpAuthMode.ClientCertificate)} requires a HTTPS OTLP endpoint.");
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException($"Unexpected auth mode value: {otlpAuthMode}");
-            }
-        }
-        else
+        if (configuration[DashboardOtlpAuthModeVariableName] is not { } v)
         {
             throw new InvalidOperationException($"Configuration of OTLP endpoint authentication with {DashboardOtlpAuthModeVariableName} is required. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
+        }
+
+        if (!Enum.TryParse(v, ignoreCase: true, out otlpAuthMode))
+        {
+            throw new InvalidOperationException($"Unknown {nameof(OtlpAuthMode)} value: {v}");
+        }
+
+        switch (otlpAuthMode)
+        {
+            case OtlpAuthMode.None:
+                break;
+            case OtlpAuthMode.ApiKey:
+                otlpApiKey = configuration[DashboardOtlpApiKeyVariableName];
+                if (string.IsNullOrEmpty(otlpApiKey))
+                {
+                    throw new InvalidOperationException($"{DashboardOtlpAuthModeVariableName} value of {nameof(OtlpAuthMode.ApiKey)} requires an API key from {DashboardOtlpApiKeyVariableName}.");
+                }
+                break;
+            case OtlpAuthMode.ClientCertificate:
+                if (!IsHttps(otlpUris[0]))
+                {
+                    throw new InvalidOperationException($"{DashboardOtlpAuthModeVariableName} value of {nameof(OtlpAuthMode.ClientCertificate)} requires a HTTPS OTLP endpoint.");
+                }
+                break;
+            default:
+                throw new InvalidOperationException($"Unexpected auth mode value: {otlpAuthMode}");
         }
 
         return new DashboardStartupConfiguration
