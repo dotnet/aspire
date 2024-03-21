@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
@@ -15,6 +16,8 @@ using k8s;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Retry;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -65,13 +68,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IDashboardEndpointProvider dashboardEndpointProvider,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
-                                          ResourceLoggerService loggerService)
+                                          ResourceLoggerService loggerService,
+                                          IDcpDependencyCheckService dcpDependencyCheckService)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
     private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly DistributedApplicationModel _model = model;
     private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
+    private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup = GetParentChildLookup(model);
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
     private readonly IOptions<DcpOptions> _options = options;
     private readonly IDashboardEndpointProvider _dashboardEndpointProvider = dashboardEndpointProvider;
@@ -85,10 +90,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _logStreams = new();
     private readonly ConcurrentDictionary<IResource, bool> _hiddenResources = new();
+    private DcpInfo? _dcpInfo;
+
+    private string DefaultContainerHostName => configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
+
+        _dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
+
+        Debug.Assert(_dcpInfo is not null, "DCP info should not be null at this point");
+
         try
         {
             if (!distributedApplicationOptions.DisableDashboard)
@@ -126,6 +139,34 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             AspireEventSource.Instance.DcpModelCreationStop();
         }
     }
+    private static ILookup<IResource?, IResourceWithParent> GetParentChildLookup(DistributedApplicationModel model)
+    {
+        static IResource? SelectParentContainerResource(IResource resource) => resource switch
+        {
+            IResourceWithParent rp => SelectParentContainerResource(rp.Parent),
+            IResource r when r.IsContainer() => r,
+            _ => null
+        };
+
+        // parent -> children lookup
+        return model.Resources.OfType<IResourceWithParent>()
+                              .Select(x => (Child: x, Root: SelectParentContainerResource(x.Parent)))
+                              .Where(x => x.Root is not null)
+                              .ToLookup(x => x.Root, x => x.Child);
+    }
+
+    // Sets the state of the resource's children
+    async Task SetChildResourceStateAsync(IResource resource, string state)
+    {
+        foreach (var child in _parentChildLookup[resource])
+        {
+            await notificationService.PublishUpdateAsync(child, s => s with
+            {
+                State = state
+            })
+            .ConfigureAwait(false);
+        }
+    }
 
     private async Task PublishResourcesWithInitialStateAsync()
     {
@@ -156,25 +197,51 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         async Task WatchKubernetesResource<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
         {
+            var retryUntilCancelled = new RetryStrategyOptions()
+            {
+                ShouldHandle = new PredicateBuilder().HandleInner<EndOfStreamException>(),
+                BackoffType = DelayBackoffType.Exponential,
+                MaxRetryAttempts = int.MaxValue,
+                UseJitter = true,
+                MaxDelay = TimeSpan.FromSeconds(30),
+                OnRetry = (retry) =>
+                {
+                    _logger.LogDebug(
+                        retry.Outcome.Exception,
+                        "Long poll watch operation was ended by server after {LongPollDurationInMs} milliseconds (iteration {Iteration}).",
+                        retry.Duration.TotalMilliseconds,
+                        retry.AttemptNumber
+                        );
+                    return ValueTask.CompletedTask;
+                }
+            };
+
+            var pipeline = new ResiliencePipelineBuilder().AddRetry(retryUntilCancelled).Build();
+
             try
             {
-                await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
+                await pipeline.ExecuteAsync(async (pipelineCancellationToken) =>
                 {
-                    await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    _logger.LogDebug("Starting watch over DCP {ResourceType} resources", typeof(T).Name);
 
-                    try
+                    await foreach (var (eventType, resource) in kubernetesService.WatchAsync<T>(cancellationToken: pipelineCancellationToken))
                     {
-                        await handler(eventType, resource).ConfigureAwait(false);
+                        await semaphore.WaitAsync(pipelineCancellationToken).ConfigureAwait(false);
+
+                        try
+                        {
+                            await handler(eventType, resource).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
                     }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }
+                }, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
+                _logger.LogCritical(ex, "Watch task over kubernetes {ResourceType} resources terminated unexpectedly. Check to ensure dcpd process is running.", typeof(T).Name);
             }
         }
     }
@@ -230,6 +297,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     await notificationService.PublishUpdateAsync(appModelResource, resource.Metadata.Name, s => snapshotFactory(resource, s)).ConfigureAwait(false);
 
                     StartLogStream(resource);
+                }
+
+                // Update all child resources of containers
+                if (resource is Container c && c.Status?.State is string state)
+                {
+                    await SetChildResourceStateAsync(appModelResource, state).ConfigureAwait(false);
                 }
             }
             else
@@ -438,7 +511,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
         string? projectPath = null;
-        executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
+        if (executable.TryGetProjectLaunchConfiguration(out var projectLaunchConfiguration))
+        {
+            projectPath = projectLaunchConfiguration.ProjectPath;
+        }
+        else
+        {
+#pragma warning disable CS0612 // CSharpProjectPathAnnotation is obsolete; remove in Aspire Preview 6
+            executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
+#pragma warning restore CS0612
+        }
 
         string? resourceName = null;
         executable.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
@@ -651,6 +733,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
+
+            if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+            {
+                context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_AUTH_MODE"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
+                context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_API_KEY"] = otlpApiKey;
+            }
         }));
     }
 
@@ -720,6 +808,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 Value = aspnetcoreEnvironment
             }
         ];
+
+        if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+        {
+            dashboardExecutableSpec.Env.AddRange([
+                new()
+                {
+                    Name = "DOTNET_DASHBOARD_OTLP_API_KEY",
+                    Value = otlpApiKey
+                },
+                new()
+                {
+                    Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
+                    Value = "ApiKey" // Matches value in OtlpAuthMode enum.
+                }
+            ]);
+        }
 
         var dashboardExecutable = new Executable(dashboardExecutableSpec)
         {
@@ -799,7 +903,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
     {
-        var containerHost = HostNameResolver.ReplaceLocalhostWithContainerHost("localhost", configuration);
+        var containerHost = DefaultContainerHostName;
 
         foreach (var appResource in resources)
         {
@@ -822,7 +926,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     sp.EndpointAnnotation,
                     sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
                     (int)svc.AllocatedPort!,
-                    containerHostAddress: containerHost);
+                    containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null);
             }
         }
     }
@@ -908,26 +1012,42 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var ers = ExecutableReplicaSet.Create(GetObjectNameForResource(project), replicas, "dotnet");
             var exeSpec = ers.Spec.Template.Spec;
-            IAnnotationHolder annotationHolder = ers.Spec.Template;
-
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
-            annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
+            IAnnotationHolder annotationHolder = ers.Spec.Template;
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
             annotationHolder.Annotate(Executable.ResourceNameAnnotation, project.Name);
+
+            var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+            projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
 
             if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
-                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
-                if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                if (_dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionIdeProtocolV1) >= 0)
                 {
-                    annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
+                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+                    if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                    {
+                        projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
+                    }
                 }
-                else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                else
                 {
-                    annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+#pragma warning disable CS0612 // These annotations are obsolete; remove in Aspire Preview 6
+                    annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
+
+                    // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
+                    if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                    {
+                        annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
+                    }
+                    else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                    {
+                        annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+                    }
+#pragma warning restore CS0612
                 }
             }
             else
@@ -976,6 +1096,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     }
                 }
             }
+
+            // We want this annotation even if we are not using IDE execution; see ToSnapshot() for details.
+            annotationHolder.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
 
             var exeAppResource = new AppResource(project, ers);
             AddServicesProducedInfo(project, annotationHolder, exeAppResource);
@@ -1197,10 +1320,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         var value = await task.ConfigureAwait(false);
 
-        if (value is not null && isContainer && valueProvider is ConnectionStringReference or EndpointReference)
+        if (value is not null && isContainer && valueProvider is ConnectionStringReference or EndpointReference or HostUrl)
         {
             // If the value is a connection string or endpoint reference, we need to replace localhost with the container host.
-            return HostNameResolver.ReplaceLocalhostWithContainerHost(value, configuration);
+            return ReplaceLocalhostWithContainerHost(value);
         }
 
         return value;
@@ -1350,6 +1473,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 })
                 .ConfigureAwait(false);
 
+                await SetChildResourceStateAsync(cr.ModelResource, "Starting").ConfigureAwait(false);
+
                 try
                 {
                     await CreateContainerAsync(cr, logger, cancellationToken).ConfigureAwait(false);
@@ -1359,6 +1484,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     logger.LogError(ex, "Failed to create container resource {ResourceName}", cr.ModelResource.Name);
 
                     await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+
+                    await SetChildResourceStateAsync(cr.ModelResource, "FailedToStart").ConfigureAwait(false);
                 }
             }
 
@@ -1636,5 +1763,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
             }
         }
+    }
+
+    private string ReplaceLocalhostWithContainerHost(string value)
+    {
+        // https://stackoverflow.com/a/43541732/45091
+
+        // This configuration value is a workaround for the fact that host.docker.internal is not available on Linux by default.
+        var hostName = DefaultContainerHostName;
+
+        return value.Replace("localhost", hostName, StringComparison.OrdinalIgnoreCase)
+                    .Replace("127.0.0.1", hostName)
+                    .Replace("[::1]", hostName);
     }
 }

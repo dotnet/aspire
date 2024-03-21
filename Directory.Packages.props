@@ -110,7 +110,6 @@
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.7.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.10" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.EventCounters" Version="1.5.1-alpha.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.6.0-beta.3" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.7.0" />
@@ -133,8 +132,10 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
     <PackageVersion Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="$(MicrosoftNETRuntimeWorkloadTestingInternalVersion)" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.MySql" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.PostgreSQL" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.12.0" />

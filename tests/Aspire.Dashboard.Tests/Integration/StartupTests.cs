@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -28,6 +32,109 @@ public class StartupTests
         // Assert
         AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
+    }
+
+    [Fact]
+    public async Task Configuration_BrowserAndOtlpEndpointSame_Https_EndPointPortsAssigned()
+    {
+        // Arrange
+        DashboardWebApplication? app = null;
+        try
+        {
+            await ServerRetryHelper.BindPortsWithRetry(async port =>
+            {
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+                    additionalConfiguration: initialData =>
+                    {
+                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"https://127.0.0.1:{port}";
+                    });
+
+                // Act
+                await app.StartAsync();
+            }, NullLogger.Instance);
+
+            // Assert
+            Debug.Assert(app != null);
+            Assert.Equal(app.BrowserEndPointAccessor().EndPoint.Port, app.OtlpServiceEndPointAccessor().EndPoint.Port);
+
+            // Check browser access
+            using var httpClient = new HttpClient(new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    return true;
+                }
+            })
+            {
+                BaseAddress = new Uri($"https://{app.BrowserEndPointAccessor().EndPoint}")
+            };
+            var request = new HttpRequestMessage(HttpMethod.Get, "/");
+            var response = await httpClient.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            // Check OTLP service
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.BrowserEndPointAccessor().EndPoint}", _testOutputHelper);
+            var client = new LogsService.LogsServiceClient(channel);
+            var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest());
+            Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                await app.DisposeAsync();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Configuration_BrowserAndOtlpEndpointSame_Https_Error()
+    {
+        // Arrange
+        DashboardWebApplication? app = null;
+        var testSink = new TestSink();
+        try
+        {
+            await ServerRetryHelper.BindPortsWithRetry(async port =>
+            {
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+                    additionalConfiguration: initialData =>
+                    {
+                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
+                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"http://127.0.0.1:{port}";
+                    },
+                    testSink: testSink);
+
+                // Act
+                await app.StartAsync();
+            }, NullLogger.Instance);
+
+            // Assert
+            Assert.Contains(testSink.Writes, w =>
+            {
+                if (w.LoggerName != typeof(DashboardWebApplication).FullName)
+                {
+                    return false;
+                }
+                if (w.LogLevel != LogLevel.Warning)
+                {
+                    return false;
+                }
+                if (!w.Message?.Contains("The dashboard is configured with a shared endpoint for browser access and the OTLP service. The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.") ?? false)
+                {
+                    return false;
+                }
+                return true;
+            });
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                await app.DisposeAsync();
+            }
+        }
     }
 
     [Fact]

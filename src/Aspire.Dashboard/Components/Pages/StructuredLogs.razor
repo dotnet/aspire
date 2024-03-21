@@ -58,11 +58,22 @@
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
     <SummaryDetailsView
-        DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]"
-        ShowDetails="SelectedLogEntryProperties is not null"
+        ShowDetails="SelectedLogEntry is not null"
         OnDismiss="() => ClearSelectedLogEntry()"
         ViewKey="StructuredLogsList"
-        SelectedValue="@SelectedLogEntryProperties">
+        SelectedValue="@SelectedLogEntry">
+        <DetailsTitleTemplate>
+            @{
+                var eventName = OtlpHelpers.GetValue(SelectedLogEntry!.LogEntry.Attributes, "event.name") 
+                    ?? OtlpHelpers.GetValue(SelectedLogEntry.LogEntry.Attributes, "logrecord.event.name")
+                    ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
+            }
+
+            <div class="pane-details-title" title="@($"{eventName} ({SelectedLogEntry.LogEntry.Scope.ScopeName})")">
+                @eventName
+                <span class="pane-details-subtext">@SelectedLogEntry.LogEntry.Scope.ScopeName</span>
+            </div>
+        </DetailsTitleTemplate>
         <Summary>
             <div class="logs-summary-layout">
                 <div class="logs-grid-container continuous-scroll-overflow">
@@ -103,7 +114,7 @@
             </div>
         </Summary>
         <Details>
-            <StructuredLogDetails Items="@SelectedLogEntryProperties" />
+            <StructuredLogDetails ViewModel="@SelectedLogEntry" />
         </Details>
     </SummaryDetailsView>
 </div>

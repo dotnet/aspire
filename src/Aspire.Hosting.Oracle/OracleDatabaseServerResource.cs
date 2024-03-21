@@ -14,13 +14,17 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// Initializes a new instance of the <see cref="OracleDatabaseServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="password">The Oracle Database server password, or <see langword="null"/> to generate a random password.</param>
-    public OracleDatabaseServerResource(string name, string? password = null) : base(name)
+    /// <param name="password">A parameter that contains the Oracle Database server password, or <see langword="null"/> to generate a random password.</param>
+    public OracleDatabaseServerResource(string name, ParameterResource? password) : base(name)
     {
         PrimaryEndpoint = new(this, PrimaryEndpointName);
-        PasswordInput = new(this, "password");
+        PasswordParameter = password;
 
-        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(password));
+        if (PasswordParameter is null)
+        {
+            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
+            PasswordInput = new(this, "password");
+        }
     }
 
     /// <summary>
@@ -28,22 +32,24 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
-    internal InputReference PasswordInput { get; }
+    private InputReference? PasswordInput { get; }
 
     /// <summary>
-    /// Gets the Oracle Database server password.
+    /// Gets the parameter that contains the Oracle Database server password.
     /// </summary>
-    public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
+    public ParameterResource? PasswordParameter { get; }
 
-    private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
-            $"user id=system;password={PasswordInput};data source={PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+    internal ReferenceExpression PasswordReference =>
+        PasswordParameter is not null ?
+            ReferenceExpression.Create($"{PasswordParameter}") :
+            ReferenceExpression.Create($"{PasswordInput!}"); // either PasswordParameter or PasswordInput is non-null
 
     /// <summary>
     /// Gets the connection string expression for the Oracle Database server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ConnectionString;
+        ReferenceExpression.Create(
+            $"user id=system;password={PasswordReference};data source={PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 

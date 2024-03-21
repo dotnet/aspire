@@ -33,7 +33,7 @@ public static class PostgresBuilderExtensions
         var postgresServer = new PostgresServerResource(name, userName?.Resource, password?.Resource);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
-                      .WithImage("postgres", "16.2")
+                      .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
@@ -57,8 +57,7 @@ public static class PostgresBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithManifestPublishingCallback(postgresDatabase.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(postgresDatabase);
     }
 
     /// <summary>
@@ -105,7 +104,7 @@ public static class PostgresBuilderExtensions
     /// Adds a named volume for the data folder to a Postgres container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)

@@ -10,12 +10,12 @@
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)" Loc="@Loc" /></PageTitle>
 
-@if (_trace != null)
+@if (_trace is { } trace)
 {
     <div class="trace-detail-layout">
         <div class="trace-detail-header page-header">
-            <h1 style="display:inline-block">@GetResourceName(_trace.FirstSpan.Source): @_trace.FirstSpan.Name</h1>
-            <span class="trace-id">@OtlpHelpers.ToShortenedId(_trace.TraceId)</span>
+            <h1 style="display:inline-block">@GetResourceName(trace.FirstSpan.Source): @trace.FirstSpan.Name</h1>
+            <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
             <div>
@@ -23,11 +23,11 @@
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(_trace.Duration)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(trace.Duration)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@trace.Spans.GroupBy(s => s.Source).Count()</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
@@ -35,9 +35,9 @@
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@_trace.Spans.Count</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@trace.Spans.Count</strong>
             </div>
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: _trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(traceId: trace.TraceId)">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
         </FluentToolbar>
 
         <SummaryDetailsView
@@ -47,13 +47,13 @@
             SelectedValue="@SelectedSpan">
             <DetailsTitleTemplate>
                 @{ var shortedSpanId = OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId); }
-                <div class="span-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
+                <div class="pane-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
                     @SelectedSpan!.Title
-                    <span class="span-id">@shortedSpanId</span>
+                    <span class="pane-details-subtext">@shortedSpanId</span>
                 </div>
             </DetailsTitleTemplate>
             <Summary>
-                <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="4fr 12fr 85px">
+                <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="4fr 12fr 85px">
                     <TemplateColumn Title="Name">
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
                             @{
@@ -139,15 +139,15 @@
                                 <span class="tick-label" style="grid-column: 1;">@DurationFormatter.FormatDuration(TimeSpan.Zero)</span>
 
                                 <div class="tick" style="grid-column: 2;"></div>
-                                <span class="tick-label" style="grid-column: 2;">@DurationFormatter.FormatDuration(_trace.Duration / 4)</span>
+                                <span class="tick-label" style="grid-column: 2;">@DurationFormatter.FormatDuration(trace.Duration / 4)</span>
 
                                 <div class="tick" style="grid-column: 3;"></div>
-                                <span class="tick-label" style="grid-column: 3;">@DurationFormatter.FormatDuration(_trace.Duration / 4 * 2)</span>
+                                <span class="tick-label" style="grid-column: 3;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 2)</span>
 
                                 <div class="tick" style="grid-column: 4;"></div>
-                                <span class="tick-label" style="grid-column: 4;">@DurationFormatter.FormatDuration(_trace.Duration / 4 * 3)</span>
+                                <span class="tick-label" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 3)</span>
 
-                                <span class="tick-label end-tick" style="grid-column: 4;">@DurationFormatter.FormatDuration(_trace.Duration)</span>
+                                <span class="tick-label end-tick" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration)</span>
                                 <div class="tick" style="grid-column: 5;"></div>
                             </div>
                         </HeaderCellItemTemplate>

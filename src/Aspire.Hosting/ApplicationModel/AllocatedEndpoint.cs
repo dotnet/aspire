@@ -18,7 +18,7 @@ public class AllocatedEndpoint
     /// <param name="address">The IP address of the endpoint.</param>
     /// <param name="containerHostAddress">The address of the container host.</param>
     /// <param name="port">The port number of the endpoint.</param>
-    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string containerHostAddress = "host.docker.internal")
+    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1, nameof(port));
@@ -41,9 +41,9 @@ public class AllocatedEndpoint
     public string Address { get; private set; }
 
     /// <summary>
-    /// The address of the container host.
+    /// The address of the container host. This is only set for containerized services.
     /// </summary>
-    public string ContainerHostAddress { get; private set; }
+    public string? ContainerHostAddress { get; private set; }
 
     /// <summary>
     /// The port used by the endpoint

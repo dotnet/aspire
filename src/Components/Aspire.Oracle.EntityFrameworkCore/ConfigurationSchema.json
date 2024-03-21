@@ -71,10 +71,6 @@
                 "Timeout": {
                   "type": "integer",
                   "description": "The time in seconds to wait for the command to execute."
-                },
-                "Tracing": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not. The default value is true."
                 }
               },
               "description": "Provides the client configuration settings for connecting to a Oracle database using EntityFrameworkCore."

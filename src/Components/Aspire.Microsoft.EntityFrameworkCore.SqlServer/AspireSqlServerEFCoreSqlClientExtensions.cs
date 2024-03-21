@@ -126,7 +126,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
-                tracerProviderBuilder.AddEntityFrameworkCoreInstrumentation();
+                tracerProviderBuilder.AddSqlClientInstrumentation();
             });
         }
 

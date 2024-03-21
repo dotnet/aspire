@@ -122,13 +122,31 @@ public static class AzureStorageExtensions
     /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
     /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs.</param>
     /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    [Obsolete("Use WithDataBindMount or WithDataVolume instead. Will be removed in next preview.")]
     public static IResourceBuilder<AzureStorageEmulatorResource> UsePersistence(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? path = null)
     {
-        path = path ?? $".azurite/{builder.Resource.Name}";
-        var fullyQualifiedPath = Path.GetFullPath(path, builder.ApplicationBuilder.AppHostDirectory);
-        return builder.WithBindMount(fullyQualifiedPath, "/data", isReadOnly: false);
-
+        return builder.WithDataBindMount(path);
     }
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to an Azure Storage emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
+    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.azurite/{builder.Resource.Name}'</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? path = null, bool isReadOnly = false)
+        => builder.WithBindMount(path ?? $".azurite/{builder.Resource.Name}", "/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a named volume for the data folder to an Azure Storage emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> WithDataVolume(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data", isReadOnly);
 
     /// <summary>
     /// Modifies the host port that the storage emulator listens on for blob requests.
@@ -182,8 +200,7 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureBlobStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 
     /// <summary>
@@ -196,8 +213,7 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 
     /// <summary>
@@ -210,7 +226,6 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 }

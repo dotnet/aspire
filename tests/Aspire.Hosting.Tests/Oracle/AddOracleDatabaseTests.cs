@@ -52,7 +52,10 @@ public class AddOracleTests
     public async Task AddOracleAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracle("orcl", 1234, "pass");
+        appBuilder.Configuration["Parameters:pass"] = "pass";
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddOracle("orcl", pass, 1234);
 
         using var app = appBuilder.Build();
 
@@ -60,9 +63,6 @@ public class AddOracleTests
 
         var containerResource = Assert.Single(appModel.GetContainerResources());
         Assert.Equal("orcl", containerResource.Name);
-
-        var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("23.3.0.0", containerAnnotation.Tag);
@@ -134,7 +134,10 @@ public class AddOracleTests
     public async Task AddDatabaseToOracleDatabaseAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracle("oracle", 1234, "pass").AddDatabase("db");
+        appBuilder.Configuration["Parameters:pass"] = "pass";
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddOracle("oracle", pass, 1234).AddDatabase("db");
 
         using var app = appBuilder.Build();
 
@@ -143,9 +146,6 @@ public class AddOracleTests
 
         var containerResource = Assert.Single(containerResources);
         Assert.Equal("oracle", containerResource.Name);
-
-        var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("23.3.0.0", containerAnnotation.Tag);
@@ -219,6 +219,36 @@ public class AddOracleTests
             }
             """;
         Assert.Equal(expectedManifest, dbManifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithPasswordParameter()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var pass = appBuilder.AddParameter("pass");
+
+        var oracleServer = appBuilder.AddOracle("oracle", pass);
+        var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "user id=system;password={pass.value};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}",
+              "image": "container-registry.oracle.com/database/free:23.3.0.0",
+              "env": {
+                "ORACLE_PWD": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 1521
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
     }
 
     [Fact]

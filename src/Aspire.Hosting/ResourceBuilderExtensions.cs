@@ -299,7 +299,7 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
         where TDestination : IResourceWithEnvironment
     {
-        ApplyEndpoints(builder, endpointReference.Owner, endpointReference.EndpointName);
+        ApplyEndpoints(builder, endpointReference.Resource, endpointReference.EndpointName);
         return builder;
     }
 

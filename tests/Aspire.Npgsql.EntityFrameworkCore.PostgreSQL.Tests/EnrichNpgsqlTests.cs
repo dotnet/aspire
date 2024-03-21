@@ -12,11 +12,16 @@ using Microsoft.Extensions.Hosting;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Xunit;
+using Aspire.Npgsql.Tests;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class EnrichNpgsqlTests : ConformanceTests
 {
+    public EnrichNpgsqlTests(PostgreSQLContainerFixture containerFixture) : base(containerFixture)
+    {
+    }
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(ConnectionString));

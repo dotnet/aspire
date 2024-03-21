@@ -182,7 +182,7 @@
     grid-area: main;
 }
 
-::deep .span-details-title {
+::deep .pane-details-title {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;

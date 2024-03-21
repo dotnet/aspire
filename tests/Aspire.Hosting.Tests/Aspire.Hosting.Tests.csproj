@@ -4,11 +4,9 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsAspireHost>true</IsAspireHost>
     <!--
-      CS0436: The type 'type' conflicts with the imported type 'type2'. StringComparers exists in both Aspire.Hosting and Aspire.Hosting.AppHost.
-      CS8002: Referenced assembly does not have a strong name. MongoDB.Driver package is unsigned
+      CS8002: Referenced assembly does not have a strong name. MongoDB.Driver package is unsigned, we ignore that warning on purpose
     -->
-    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn);CS0436;CS8002</NoWarn>
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,7 +27,6 @@
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
-    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
   </ItemGroup>
 

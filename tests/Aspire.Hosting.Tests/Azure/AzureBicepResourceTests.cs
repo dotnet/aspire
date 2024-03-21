@@ -914,17 +914,6 @@ public class AzureBicepResourceTests
                 "administratorLogin": "{usr.value}",
                 "administratorLoginPassword": "{pwd.value}",
                 "principalType": ""
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
-                }
               }
             }
             """;
@@ -1056,17 +1045,6 @@ public class AzureBicepResourceTests
                 "administratorLogin": "{usr.value}",
                 "administratorLoginPassword": "{pwd.value}",
                 "principalType": ""
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
-                }
               }
             }
             """;
@@ -1169,15 +1147,6 @@ public class AzureBicepResourceTests
                 "principalType": ""
               },
               "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
-                },
                 "username": {
                   "type": "string",
                   "default": {

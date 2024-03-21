@@ -28,7 +28,7 @@ public static class MongoDBBuilderExtensions
         return builder
             .AddResource(mongoDBContainer)
             .WithEndpoint(hostPort: port, containerPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
-            .WithImage("mongo", "7.0.5");
+            .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag);
     }
 
     /// <summary>
@@ -47,8 +47,7 @@ public static class MongoDBBuilderExtensions
         var mongoDBDatabase = new MongoDBDatabaseResource(name, databaseName, builder.Resource);
 
         return builder.ApplicationBuilder
-            .AddResource(mongoDBDatabase)
-            .WithManifestPublishingCallback(mongoDBDatabase.WriteMongoDBDatabaseToManifest);
+            .AddResource(mongoDBDatabase);
     }
 
     /// <summary>
