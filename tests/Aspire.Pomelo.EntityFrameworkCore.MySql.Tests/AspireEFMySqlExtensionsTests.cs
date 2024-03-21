@@ -177,6 +177,79 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void CanConfigureCommandTimeout(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", "8.2.0-mysql"),
+            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:CommandTimeout", "123"),
+            ]);
+        }
+
+        builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>
+            optionsBuilder.UseMySql(new MySqlServerVersion(new Version(8, 2, 0))),
+            configureSettings: useSettings ? settings => settings.CommandTimeout = 123 : null);
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<MySqlOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout was respected
+        Assert.Equal(123, extension.CommandTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CommandTimeoutFromSettingsWinsOverOthers(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", "8.2.0-mysql"),
+            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:CommandTimeout", "400"),
+            ]);
+        }
+
+        builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>
+            optionsBuilder.UseMySql(new MySqlServerVersion(new Version(8, 2, 0)), mySqlBuilder =>
+            {
+                mySqlBuilder.CommandTimeout(123);
+            }),
+            configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<MySqlOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout from builder was respected
+        Assert.Equal(123, extension.CommandTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void ThrowsWhenDbContextIsRegisteredBeforeAspireComponent(bool useServiceType)
     {
         var builder = Host.CreateEmptyApplicationBuilder(new HostApplicationBuilderSettings { EnvironmentName = Environments.Development });

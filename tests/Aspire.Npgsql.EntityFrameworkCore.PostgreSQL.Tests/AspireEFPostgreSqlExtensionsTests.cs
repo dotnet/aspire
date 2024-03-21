@@ -163,6 +163,74 @@ public class AspireEFPostgreSqlExtensionsTests
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CanConfigureCommandTimeout(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:CommandTimeout", "123")
+            ]);
+        }
+
+        builder.AddNpgsqlDbContext<TestDbContext>("npgsql",
+            configureDbContextOptions: optionsBuilder => optionsBuilder.UseNpgsql(),
+            configureSettings: useSettings ? settings => settings.CommandTimeout = 123 : null);
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<NpgsqlOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout was respected
+        Assert.Equal(123, extension.CommandTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CommandTimeoutFromBuilderWinsOverOthers(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:CommandTimeout", "400")
+            ]);
+        }
+
+        builder.AddNpgsqlDbContext<TestDbContext>("npgsql",
+            configureDbContextOptions: optionsBuilder => optionsBuilder.UseNpgsql(builder => builder.CommandTimeout(123)),
+            configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<NpgsqlOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout was respected
+        Assert.Equal(123, extension.CommandTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
     /// <summary>
     /// Verifies that two different DbContexts can be registered with different connection strings.
     /// </summary>

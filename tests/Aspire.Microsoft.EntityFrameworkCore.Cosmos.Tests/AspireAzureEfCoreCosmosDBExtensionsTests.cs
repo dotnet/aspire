@@ -49,6 +49,80 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CanConfigureRequestTimeout(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosConnection", ConnectionString),
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:RequestTimeout", "00:10:08"),
+            ]);
+        }
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
+                configureDbContextOptions: optionsBuilder => optionsBuilder.UseCosmos(ConnectionString, "databaseName"),
+                configureSettings: useSettings ? settings => settings.RequestTimeout = TimeSpan.FromSeconds(608) : null);
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<CosmosOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // Ensure the RequestTimeout was respected
+        Assert.Equal(TimeSpan.FromSeconds(608), extension.RequestTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RequestTimeoutFromBuilderWinsOverOthers(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosConnection", ConnectionString),
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:RequestTimeout", "400"),
+            ]);
+        }
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
+                configureDbContextOptions: optionsBuilder =>
+                {
+                    optionsBuilder.UseCosmos(ConnectionString, "databaseName", cosmosBuilder =>
+                    {
+                        cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(123));
+                    });
+                },
+                configureSettings: useSettings ? settings => settings.RequestTimeout = TimeSpan.FromSeconds(300) : null);
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<CosmosOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // Ensure the RequestTimeout from builder was respected
+        Assert.Equal(TimeSpan.FromSeconds(123), extension.RequestTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
     /// <summary>
     /// Verifies that two different DbContexts can be registered with different connection strings.
     /// </summary>
