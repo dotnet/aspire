@@ -1,6 +1,6 @@
 # Vendoring code sync instructions
 
-## OpenTelemetry.Instrumentation.Share
+## OpenTelemetry.Shared
 
 ```console
 git clone https://github.com/open-telemetry/opentelemetry-dotnet.git
