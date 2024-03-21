@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class AzureProvisionerOptions
@@ -12,4 +14,10 @@ internal sealed class AzureProvisionerOptions
     public bool? AllowResourceGroupCreation { get; set; }
 
     public string? Location { get; set; }
+
+    [AllowedValues([
+        "AzureCli", "AzurePowerShell", "VisualStudio", "VisualStudioCode",
+        "AzureDeveloperCli", "InteractiveBrowser", "Default"
+    ])]
+    public string? ProvisionerCredentialSource { get; set; } = "Default";
 }

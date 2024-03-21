@@ -275,13 +275,36 @@ internal sealed class AzureProvisioner(
 
     private async Task<ProvisioningContext> GetProvisioningContextAsync(Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
     {
-        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+        // Optionally configured in AppHost appSettings under "Azure" : { "ProvisionerCredentialSource": "AzureCli" }
+        var credentialSetting = _options.ProvisionerCredentialSource;
+
+        TokenCredential credential = credentialSetting switch
         {
-            ExcludeManagedIdentityCredential = true,
-            ExcludeWorkloadIdentityCredential = true,
-            ExcludeAzurePowerShellCredential = true,
-            CredentialProcessTimeout = TimeSpan.FromSeconds(15)
-        });
+            "AzureCli" => new AzureCliCredential(),
+            "AzurePowerShell" => new AzurePowerShellCredential(),
+            "VisualStudio" => new VisualStudioCredential(),
+            "VisualStudioCode" => new VisualStudioCodeCredential(),
+            "AzureDeveloperCli" => new AzureDeveloperCliCredential(),
+            "InteractiveBrowser" => new InteractiveBrowserCredential(),
+            _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+            {
+                ExcludeManagedIdentityCredential = true,
+                ExcludeWorkloadIdentityCredential = true,
+                ExcludeAzurePowerShellCredential = true,
+                CredentialProcessTimeout = TimeSpan.FromSeconds(15)
+            })
+        };
+
+        if (credential.GetType() == typeof(DefaultAzureCredential))
+        {
+            logger.LogInformation(
+                "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
+                "See https://aka.ms/azsdk/net/identity/default-azure-credential for more information.");
+        }
+        else
+        {
+            logger.LogInformation("Using {credentialType} for provisioning.", credential.GetType().Name);
+        }
 
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
