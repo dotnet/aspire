@@ -48,8 +48,7 @@ public static class MySqlBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var mySqlDatabase = new MySqlDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(mySqlDatabase)
-                                         .WithManifestPublishingCallback(mySqlDatabase.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(mySqlDatabase);
     }
 
     /// <summary>

@@ -47,8 +47,7 @@ public static class SqlServerBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
-                                         .WithManifestPublishingCallback(sqlServerDatabase.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(sqlServerDatabase);
     }
 
     /// <summary>
