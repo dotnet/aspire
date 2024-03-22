@@ -13,6 +13,10 @@ if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 {
     builder.AddSqlServerClient("tempdb");
 }
+if (!resourcesToSkip.Contains(TestResourceNames.efsqlserver))
+{
+    builder.AddSqlServerDbContext<PomeloSqlServerDbContext>("tempdb");
+}
 if (!resourcesToSkip.Contains(TestResourceNames.mysql) || !resourcesToSkip.Contains(TestResourceNames.efmysql))
 {
     builder.AddMySqlDataSource("mysqldb", settings =>

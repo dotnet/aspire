@@ -335,7 +335,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             "oracle" => TestResourceNames.All & ~TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.All & ~TestResourceNames.cosmos,
             "sqlserver" => TestResourceNames.All & ~TestResourceNames.sqlserver,
-            _ or "default" => TestResourceNames.All & ~TestResourceNames.efnpgsql,
+            _ or "default" => TestResourceNames.All & ~TestResourceNames.efsqlserver,
         };
         testResourcesToSkip &= ~TestResourceNames.kafka;
         TestResourceNamesExtensions.Enumerate(testResourcesToSkip, resourcesToSkip);
