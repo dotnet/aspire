@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="NotFoundDetails">
         <source>The page you requested could not be found</source>
-        <target state="new">The page you requested could not be found</target>
+        <target state="translated">Nie można odnaleźć żądanej strony</target>
         <note />
       </trans-unit>
       <trans-unit id="NotFoundPageTitle">
         <source>Not found</source>
-        <target state="new">Not found</target>
+        <target state="translated">Nie znaleziono</target>
         <note />
       </trans-unit>
     </body>
