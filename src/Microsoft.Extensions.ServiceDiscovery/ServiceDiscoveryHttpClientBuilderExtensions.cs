@@ -18,32 +18,6 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
     /// Adds service discovery to the <see cref="IHttpClientBuilder"/>.
     /// </summary>
     /// <param name="httpClientBuilder">The builder.</param>
-    /// <param name="selectorProvider">The provider that creates selector instances.</param>
-    /// <returns>The builder.</returns>
-    public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder, IServiceEndPointSelectorFactory selectorProvider)
-    {
-        var services = httpClientBuilder.Services;
-        services.AddServiceDiscoveryCore();
-        httpClientBuilder.AddHttpMessageHandler(services =>
-        {
-            var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
-            var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
-            var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
-            var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();
-            return new ResolvingHttpDelegatingHandler(registry, options);
-        });
-
-        // Configure the HttpClient to disable gRPC load balancing.
-        // This is done on all HttpClient instances but only impacts gRPC clients.
-        AddDisableGrpcLoadBalancingFilter(httpClientBuilder.Services, httpClientBuilder.Name);
-
-        return httpClientBuilder;
-    }
-
-    /// <summary>
-    /// Adds service discovery to the <see cref="IHttpClientBuilder"/>.
-    /// </summary>
-    /// <param name="httpClientBuilder">The builder.</param>
     /// <returns>The builder.</returns>
     public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder)
     {
@@ -52,9 +26,8 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
         httpClientBuilder.AddHttpMessageHandler(services =>
         {
             var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
-            var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorFactory>();
             var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
-            var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
+            var registry = new HttpServiceEndPointResolver(resolverProvider, services, timeProvider);
             var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();
             return new ResolvingHttpDelegatingHandler(registry, options);
         });

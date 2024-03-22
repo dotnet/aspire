@@ -192,9 +192,8 @@ public class ServiceEndPointResolverTests
             .AddSingleton<IServiceEndPointProviderFactory>(fakeResolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorFactory>();
         var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
-        await using var resolver = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, TimeProvider.System);
+        await using var resolver = new HttpServiceEndPointResolver(resolverProvider, services, TimeProvider.System);
 
         Assert.NotNull(resolver);
         var httpRequest = new HttpRequestMessage(HttpMethod.Get, "http://basket");

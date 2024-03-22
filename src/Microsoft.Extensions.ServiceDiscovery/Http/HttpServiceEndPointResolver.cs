@@ -3,20 +3,21 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
 
 /// <summary>
 /// Resolves endpoints for HTTP requests.
 /// </summary>
-internal sealed class HttpServiceEndPointResolver(ServiceEndPointWatcherFactory resolverFactory, IServiceEndPointSelectorFactory selectorProvider, TimeProvider timeProvider) : IAsyncDisposable
+internal sealed class HttpServiceEndPointResolver(ServiceEndPointWatcherFactory resolverFactory, IServiceProvider serviceProvider, TimeProvider timeProvider) : IAsyncDisposable
 {
     private static readonly TimerCallback s_cleanupCallback = s => ((HttpServiceEndPointResolver)s!).CleanupResolvers();
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
     private readonly ServiceEndPointWatcherFactory _resolverFactory = resolverFactory;
-    private readonly IServiceEndPointSelectorFactory _selectorProvider = selectorProvider;
     private readonly ConcurrentDictionary<string, ResolverEntry> _resolvers = new();
     private ITimer? _cleanupTimer;
     private Task? _cleanupTask;
@@ -148,7 +149,7 @@ internal sealed class HttpServiceEndPointResolver(ServiceEndPointWatcherFactory 
     private ResolverEntry CreateResolver(string serviceName)
     {
         var resolver = _resolverFactory.CreateWatcher(serviceName);
-        var selector = _selectorProvider.CreateSelector();
+        var selector = serviceProvider.GetService<IServiceEndPointSelector>() ?? new RoundRobinServiceEndPointSelector();
         var result = new ResolverEntry(resolver, selector);
         resolver.Start();
         return result;
