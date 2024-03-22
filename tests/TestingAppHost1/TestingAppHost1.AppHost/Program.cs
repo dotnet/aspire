@@ -7,4 +7,5 @@ builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1");
 builder.AddProject<Projects.TestingAppHost1_MyWorker>("myworker1")
     .WithEndpoint(name: "myendpoint1");
 builder.AddPostgres("postgres1");
-builder.Build().Run();
+using var app = builder.Build();
+app.Run();
