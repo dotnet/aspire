@@ -18,9 +18,9 @@ internal sealed class StackExchangeRedisConnectionInstrumentation : IDisposable
 {
     internal const string RedisDatabaseIndexKeyName = "db.redis.database_index";
     internal const string RedisFlagsKeyName = "db.redis.flags";
-    internal static readonly string ActivitySourceName = typeof(StackExchangeRedisConnectionInstrumentation).Assembly.GetName().Name!;
-    internal static readonly string ActivityName = ActivitySourceName + ".Execute";
-    internal static readonly Version Version = typeof(StackExchangeRedisConnectionInstrumentation).Assembly.GetName().Version!;
+    internal const string ActivitySourceName = "OpenTelemetry.Instrumentation.StackExchangeRedis";
+    internal const string ActivityName = ActivitySourceName + ".Execute";
+    internal static readonly Version Version = new Version(1, 0, 0, 13);
     internal static readonly ActivitySource ActivitySource = new(ActivitySourceName, Version.ToString());
     internal static readonly IEnumerable<KeyValuePair<string, object?>> CreationTags = new[]
     {

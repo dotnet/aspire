@@ -19,6 +19,8 @@
     <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.StackExchangeRedis\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.StackExchangeRedis" />
     <!-- Tests need access to StackExchangeRedisInstrumentationOptions which is made internal in /Vendoring -->
     <InternalsVisibleTo Include="Aspire.StackExchange.Redis.Tests" />
+    <InternalsVisibleTo Include="Aspire.StackExchange.Redis.DistributedCaching.Tests" />
+    <InternalsVisibleTo Include="Aspire.StackExchange.Redis.OutputCaching.Tests" />
   </ItemGroup>
 
   <ItemGroup>

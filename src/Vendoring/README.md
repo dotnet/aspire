@@ -34,6 +34,7 @@ git checkout tags/Instrumentation.StackExchangeRedis-1.0.0-rc9.13
     - `Guard.cs`
     - `PropertyFetcher.AOT.cs`
     - `SemanticConventions.cs`
+- In `StackExchangeRedisConnectionInstrumentation.cs` update `ActivitySourceName` to `internal const string ActivitySourceName = "OpenTelemetry.Instrumentation.StackExchangeRedis";` and `Version` to `internal static readonly Version Version = new Version(1, 0, 0, 13);`
 
 ## Customizations
 
