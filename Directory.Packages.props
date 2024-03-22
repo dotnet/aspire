@@ -17,6 +17,8 @@
     <PackageVersion Include="AWS.Messaging" Version="0.2.0-beta" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.1.0-beta.3" />
     <PackageVersion Include="OpenTelemetry.Extensions.AWS" Version="1.3.0-beta.1" />
+    <!-- AWS CDK dependencies -->
+    <PackageVersion Include="Amazon.CDK.Lib" Version="2.133.0" />
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="1.0.0-beta.14" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.8.3" />

@@ -26,7 +26,7 @@ public interface IResourceBuilder<out T> where T : IResource
     /// <param name="behavior">The behavior to use when adding the annotation.</param>
     /// <returns>The resource builder instance.</returns>
     IResourceBuilder<T> WithAnnotation<TAnnotation>(ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation, new() => WithAnnotation(new TAnnotation(), behavior);
-    
+
     /// <summary>
     /// Adds an annotation to the resource being built.
     /// </summary>

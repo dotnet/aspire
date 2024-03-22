@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.AWS.CloudFormation;
 internal sealed class CloudFormationStackExecutor(
     IAmazonCloudFormation cloudFormationClient,
-    CloudFormationTemplateResource cloudFormationResource,
+    ICloudFormationStackProvider cloudFormationResource,
     ILogger logger)
 {
     // Name of the Tag for the stack to store the SHA256 of the CloudFormation template
@@ -36,15 +36,15 @@ internal sealed class CloudFormationStackExecutor(
         var existingStack = await FindstackAsync().ConfigureAwait(false);
         var changeSetType = await DetermineChangeSetTypeAsync(existingStack, cancellationToken).ConfigureAwait(false);
 
-        var templateBody = File.ReadAllText(cloudFormationResource.TemplatePath);
+        var templateBody = await cloudFormationResource.GetCloudFormationTemplate(cancellationToken).ConfigureAwait(false);
         var computedSha256 = ComputeSHA256(templateBody, cloudFormationResource.CloudFormationParameters);
 
-        (var tags, var existingSha256) = SetupTags(existingStack, changeSetType, computedSha256);
+        var (tags, existingSha256) = SetupTags(existingStack, changeSetType, computedSha256);
 
         // Check to see if the template hasn't change. If it hasn't short circuit out.
         if (!cloudFormationResource.DisableDiffCheck && string.Equals(computedSha256, existingSha256))
         {
-            logger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", cloudFormationResource.Name);
+            logger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", cloudFormationResource.StackName);
             return existingStack;
         }
 
@@ -75,7 +75,7 @@ internal sealed class CloudFormationStackExecutor(
         var tags = new List<Tag>();
         if (changeSetType == ChangeSetType.UPDATE && existingStack != null)
         {
-            tags = existingStack.Tags ?? new List<Tag>();
+            tags = existingStack.Tags ?? [];
         }
 
         var shaTag = tags.FirstOrDefault(x => string.Equals(x.Key, SHA256_TAG));
@@ -144,7 +144,7 @@ internal sealed class CloudFormationStackExecutor(
 
             var changeSetRequest = new CreateChangeSetRequest
             {
-                StackName = cloudFormationResource.Name,
+                StackName = cloudFormationResource.StackName,
                 Parameters = templateParameters,
                 // Change set name needs to be unique. Since the changeset isn't be created directly by the user the name isn't really important.
                 ChangeSetName = "Aspire-AppHost-" + DateTime.Now.Ticks,
@@ -183,7 +183,7 @@ internal sealed class CloudFormationStackExecutor(
     {
         var executeChangeSetRequest = new ExecuteChangeSetRequest
         {
-            StackName = cloudFormationResource.Name,
+            StackName = cloudFormationResource.StackName,
             ChangeSetName = changeSetId
         };
 
@@ -195,11 +195,11 @@ internal sealed class CloudFormationStackExecutor(
             await cloudFormationClient.ExecuteChangeSetAsync(executeChangeSetRequest, cancellationToken).ConfigureAwait(false);
             if (changeSetType == ChangeSetType.CREATE)
             {
-                logger.LogInformation($"Initiated CloudFormation stack creation for {cloudFormationResource.Name}");
+                logger.LogInformation("Initiated CloudFormation stack creation for {StackName}", cloudFormationResource.StackName);
             }
             else
             {
-                logger.LogInformation($"Initiated CloudFormation stack update on {cloudFormationResource.Name}");
+                logger.LogInformation("Initiated CloudFormation stack update on {StackName}", cloudFormationResource.StackName);
             }
         }
         catch (Exception e)
@@ -244,7 +244,7 @@ internal sealed class CloudFormationStackExecutor(
 
             changeSetType = ChangeSetType.CREATE;
         }
-        // If the status was DELETE_IN_PROGRESS then just wait for delete to complete 
+        // If the status was DELETE_IN_PROGRESS then just wait for delete to complete
         else if (stack.StackStatus == StackStatus.DELETE_IN_PROGRESS)
         {
             await WaitForNoLongerInProgress(cancellationToken).ConfigureAwait(false);
@@ -396,7 +396,7 @@ internal sealed class CloudFormationStackExecutor(
         const int RESOURCE_STATUS = 40;
         var mostRecentEventId = string.Empty;
 
-        var waitingMessage = $"... Waiting for CloudFormation stack {cloudFormationResource.Name} to be ready";
+        var waitingMessage = $"... Waiting for CloudFormation stack {cloudFormationResource.StackName} to be ready";
         logger.LogInformation(waitingMessage);
         logger.LogInformation(new string('-', waitingMessage.Length));
 
@@ -449,7 +449,7 @@ internal sealed class CloudFormationStackExecutor(
         DescribeStackEventsResponse? response = null;
         do
         {
-            var request = new DescribeStackEventsRequest() { StackName = cloudFormationResource.Name };
+            var request = new DescribeStackEventsRequest() { StackName = cloudFormationResource.StackName };
             if (response != null)
             {
                 request.NextToken = response.NextToken;
@@ -495,7 +495,7 @@ internal sealed class CloudFormationStackExecutor(
     {
         await foreach (var stack in cloudFormationClient.Paginators.DescribeStacks(new DescribeStacksRequest()).Stacks)
         {
-            if (string.Equals(cloudFormationResource.Name, stack.StackName, StringComparison.Ordinal))
+            if (string.Equals(cloudFormationResource.StackName, stack.StackName, StringComparison.Ordinal))
             {
                 return stack;
             }
