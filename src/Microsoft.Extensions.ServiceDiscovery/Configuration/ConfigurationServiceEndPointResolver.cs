@@ -106,7 +106,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
         var configPath = $"{_options.Value.SectionName}:{_serviceName}:{endpointName}";
         if (!namedSection.Exists())
         {
-            Log.ServiceConfigurationNotFound(_logger, _serviceName, $"{_options.Value.SectionName}:{_serviceName}");
+            Log.EndpointConfigurationNotFound(_logger, endpointName, _serviceName, configPath);
             return default;
         }
 
@@ -169,6 +169,10 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
         if (added == 0)
         {
             Log.ServiceConfigurationNotFound(_logger, _serviceName, configPath);
+        }
+        else
+        {
+            Log.ConfiguredEndPoints(_logger, _serviceName, configPath, endPoints.EndPoints, added);
         }
 
         return default;
