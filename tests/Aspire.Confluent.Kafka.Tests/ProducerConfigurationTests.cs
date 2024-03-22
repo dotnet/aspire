@@ -31,7 +31,7 @@ public class ProducerConfigurationTests
             builder.AddKafkaProducer<string, string>("messaging");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connectionFactory = useKeyed ?
             host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!, "messaging") :
             host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!);
@@ -61,7 +61,7 @@ public class ProducerConfigurationTests
             builder.AddKafkaProducer<string, string>("messaging", configureSettings: SetConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connectionFactory = useKeyed ?
             host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!, "messaging") :
             host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!);
@@ -93,7 +93,7 @@ public class ProducerConfigurationTests
             builder.AddKafkaProducer<string, string>("messaging");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connectionFactory = useKeyed ?
             host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!, "messaging") :
             host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!);
@@ -135,7 +135,7 @@ public class ProducerConfigurationTests
 
         builder.AddKafkaProducer<string, string>("messaging");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connectionFactory = host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!);
 
         ProducerConfig config = GetProducerConfig(connectionFactory)!;

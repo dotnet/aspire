@@ -27,7 +27,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         Assert.Equal(ConnectionString, context.Database.GetDbConnection().ConnectionString);
@@ -43,7 +43,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", settings => settings.ConnectionString = ConnectionString);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
@@ -63,7 +63,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
@@ -90,7 +90,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             });
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -134,7 +134,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
             });
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -241,7 +241,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
         builder.AddSqlServerDbContext<TestDbContext2>("sqlconnection2");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
         var context2 = host.Services.GetRequiredService<TestDbContext2>();
 

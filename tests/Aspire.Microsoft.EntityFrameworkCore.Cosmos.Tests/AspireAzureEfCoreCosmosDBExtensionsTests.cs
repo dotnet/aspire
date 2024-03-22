@@ -32,7 +32,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
             });
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -140,7 +140,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         builder.AddCosmosDbContext<TestDbContext>("cosmos", "test");
         builder.AddCosmosDbContext<TestDbContext2>("cosmos2", "test2");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
         var context2 = host.Services.GetRequiredService<TestDbContext2>();
 
