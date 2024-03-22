@@ -24,11 +24,7 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
     // https://github.com/open-telemetry/opentelemetry-dotnet/blob/031ed48714e16ba4a5b099b6e14647994a0b9c1b/src/OpenTelemetry.Instrumentation.SqlClient/Implementation/SqlActivitySourceHelper.cs#L31
     protected override string ActivitySourceName => "Aspire.Microsoft.Data.SqlClient";
 
-    protected override string[] RequiredLogCategories => [
-        "Microsoft.Extensions.Hosting.Internal.ApplicationLifetime",
-        "Microsoft.Extensions.Hosting.Internal.Host",
-        "Microsoft.Hosting.Lifetime"
-    ];
+    protected override string[] RequiredLogCategories => Array.Empty<string>();
 
     protected override bool SupportsKeyedRegistrations => true;
 
