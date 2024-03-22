@@ -95,7 +95,7 @@ Aspire.Microsoft.Data.SqlClient:
 - Log categories:
   - none (the client does not provide an easy way to integrate it with logger factory)
 - Activity source names:
-  - "OpenTelemetry.Instrumentation.SqlClient"
+  - "Aspire.Microsoft.Data.SqlClient"
 - Metric names:
   - "Microsoft.Data.SqlClient.EventSource"
     - "active-hard-connections"
@@ -163,7 +163,7 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
   - "Microsoft.EntityFrameworkCore.Query"
   - "Microsoft.EntityFrameworkCore.Update"
 - Activity source names:
-  - "OpenTelemetry.Instrumentation.SqlClient"
+  - "Aspire.Microsoft.EntityFrameworkCore.SqlServer"
 - Metric names:
   - "Microsoft.EntityFrameworkCore":
     - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
