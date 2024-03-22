@@ -270,4 +270,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         diagnosticSource.Write(name, value);
     }
+
+    // Internal for builder clean up in tests.
+    internal void Cleanup()
+    {
+        _innerBuilder.Configuration.Dispose();
+    }
 }

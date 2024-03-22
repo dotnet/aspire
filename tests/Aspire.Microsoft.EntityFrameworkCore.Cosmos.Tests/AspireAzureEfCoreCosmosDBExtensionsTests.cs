@@ -69,7 +69,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
                 configureDbContextOptions: optionsBuilder => optionsBuilder.UseCosmos(ConnectionString, "databaseName"),
                 configureSettings: useSettings ? settings => settings.RequestTimeout = TimeSpan.FromSeconds(608) : null);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -109,7 +109,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
                 },
                 configureSettings: useSettings ? settings => settings.RequestTimeout = TimeSpan.FromSeconds(300) : null);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
