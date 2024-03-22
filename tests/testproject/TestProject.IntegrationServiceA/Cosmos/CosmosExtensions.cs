@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+using System.Text;
 using Microsoft.Azure.Cosmos;
 using Polly;
 
@@ -13,12 +15,16 @@ public static class CosmosExtensions
 
     private static async Task<IResult> VerifyCosmosAsync(CosmosClient cosmosClient)
     {
+        StringBuilder log = new();
         try
         {
             var policy = Policy
                 .Handle<HttpRequestException>()
                 // retry 60 times with a 1 second delay between retries
-                .WaitAndRetryAsync(60, retryAttempt => TimeSpan.FromSeconds(1));
+                .WaitAndRetryAsync(20,
+                    retryAttempt => TimeSpan.FromSeconds(1),
+                onRetry: (exception, sleepDuration)  =>
+                    log.AppendLine(CultureInfo.InvariantCulture, $"Retry due to {exception.Message}"));
 
             var db = await policy.ExecuteAsync(
                 async () => (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database);
@@ -38,7 +44,7 @@ public static class CosmosExtensions
         }
         catch (Exception e)
         {
-            return Results.Problem(e.ToString());
+            return Results.Problem(e.ToString() + $" Log: {log}");
         }
     }
 }
