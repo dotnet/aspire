@@ -18,8 +18,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    // https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/cb5b2193ef9cacc0b9ef699e085022577551bf85/src/OpenTelemetry.Instrumentation.EntityFrameworkCore/Implementation/EntityFrameworkDiagnosticListener.cs#L38
-    protected override string ActivitySourceName => "OpenTelemetry.Instrumentation.EntityFrameworkCore";
+    // https://github.com/open-telemetry/opentelemetry-dotnet/blob/031ed48714e16ba4a5b099b6e14647994a0b9c1b/src/OpenTelemetry.Instrumentation.SqlClient/Implementation/SqlActivitySourceHelper.cs#L31
+    protected override string ActivitySourceName => "OpenTelemetry.Instrumentation.SqlClient";
 
     protected override string[] RequiredLogCategories => new string[]
     {

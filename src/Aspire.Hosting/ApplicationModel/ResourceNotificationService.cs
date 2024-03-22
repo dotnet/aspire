@@ -139,7 +139,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 /// <summary>
 /// Represents a change in the state of a resource.
 /// </summary>
-/// <param name="resource">The resource associated with the event. </param>
+/// <param name="resource">The resource associated with the event.</param>
 /// <param name="resourceId">The unique id of the resource.</param>
 /// <param name="snapshot">The snapshot of the resource state.</param>
 public class ResourceEvent(IResource resource, string resourceId, CustomResourceSnapshot snapshot)

@@ -26,7 +26,9 @@ public static class AzureProvisionerExtensions
 
         // Attempt to read azure configuration from configuration
         builder.Services.AddOptions<AzureProvisionerOptions>()
-            .BindConfiguration("Azure");
+            .BindConfiguration("Azure")
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         builder.AddAzureProvisioner<AzureBicepResource, BicepProvisioner>();
 

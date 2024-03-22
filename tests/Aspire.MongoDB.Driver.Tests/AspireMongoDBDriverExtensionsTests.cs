@@ -33,7 +33,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddMongoDBClient(DefaultConnectionName);
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         var mongoClient = host.Services.GetRequiredService<IMongoClient>();
 
@@ -66,7 +66,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddKeyedMongoDBClient(key);
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         var mongoClient = host.Services.GetRequiredKeyedService<IMongoClient>(key);
 
@@ -99,7 +99,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
             settings.HealthCheckTimeout = 1;
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
@@ -120,7 +120,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
             settings.HealthChecks = false;
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         var healthCheckService = host.Services.GetService<HealthCheckService>();
 
@@ -141,7 +141,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
             settings.HealthCheckTimeout = 1;
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
@@ -162,7 +162,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
             settings.HealthChecks = false;
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         var healthCheckService = host.Services.GetService<HealthCheckService>();
 

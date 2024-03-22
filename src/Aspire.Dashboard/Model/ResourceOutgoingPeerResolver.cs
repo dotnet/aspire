@@ -28,10 +28,15 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         {
             var (snapshot, subscription) = await resourceService.SubscribeResourcesAsync(_watchContainersTokenSource.Token).ConfigureAwait(false);
 
-            foreach (var resource in snapshot)
+            if (snapshot.Length > 0)
             {
-                var added = _resourceByName.TryAdd(resource.Name, resource);
-                Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
+                foreach (var resource in snapshot)
+                {
+                    var added = _resourceByName.TryAdd(resource.Name, resource);
+                    Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
+                }
+
+                await RaisePeerChangesAsync().ConfigureAwait(false);
             }
 
             await foreach (var changes in subscription.WithCancellation(_watchContainersTokenSource.Token))

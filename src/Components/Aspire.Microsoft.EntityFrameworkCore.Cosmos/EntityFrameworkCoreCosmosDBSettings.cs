@@ -50,4 +50,9 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     /// Gets or sets a string value that indicates what Azure region this client will run in.
     /// </summary>
     public string? Region { get; set; }
+
+    /// <summary>
+    /// Gets or sets the time to wait for the response to come back from the network peer.
+    /// </summary>
+    public TimeSpan? RequestTimeout { get; set; }
 }

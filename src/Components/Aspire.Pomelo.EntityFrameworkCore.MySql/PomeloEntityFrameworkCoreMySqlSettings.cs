@@ -49,4 +49,9 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     /// The default value is <see langword="true"/>.
     /// </value>
     public bool Metrics { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the time in seconds to wait for the command to execute.
+    /// </summary>
+    public int? CommandTimeout { get; set; }
 }

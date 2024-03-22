@@ -74,9 +74,9 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                 }
 
                 // The time in seconds to wait for the command to execute.
-                if (settings.Timeout.HasValue)
+                if (settings.CommandTimeout.HasValue)
                 {
-                    builder.CommandTimeout(settings.Timeout);
+                    builder.CommandTimeout(settings.CommandTimeout);
                 }
             });
 
@@ -126,7 +126,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
-                tracerProviderBuilder.AddEntityFrameworkCoreInstrumentation();
+                tracerProviderBuilder.AddSqlClientInstrumentation();
             });
         }
 

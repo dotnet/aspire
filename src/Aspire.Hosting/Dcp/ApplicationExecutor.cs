@@ -739,6 +739,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_AUTH_MODE"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
                 context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_API_KEY"] = otlpApiKey;
             }
+            else
+            {
+                context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_AUTH_MODE"] = "None"; // Matches value in OtlpAuthMode enum.
+            }
         }));
     }
 
@@ -821,6 +825,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
                     Value = "ApiKey" // Matches value in OtlpAuthMode enum.
+                }
+            ]);
+        }
+        else
+        {
+            dashboardExecutableSpec.Env.AddRange([
+                new()
+                {
+                    Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
+                    Value = "None" // Matches value in OtlpAuthMode enum.
                 }
             ]);
         }

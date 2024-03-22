@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Utils;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
@@ -142,11 +143,11 @@ public static class AzureStorageExtensions
     /// Adds a named volume for the data folder to an Azure Storage emulator resource.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithDataVolume(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
 
     /// <summary>
     /// Modifies the host port that the storage emulator listens on for blob requests.
@@ -200,8 +201,7 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureBlobStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 
     /// <summary>
@@ -214,8 +214,7 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 
     /// <summary>
@@ -228,7 +227,6 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 }

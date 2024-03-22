@@ -36,8 +36,11 @@ internal sealed class DcpContainersInfo
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 
+    [JsonPropertyName("hostName")]
+    public string? HostName { get; set; }
+
     internal string ContainerHostName =>
-        Runtime switch
+        HostName ?? Runtime switch
         {
             "podman" => "host.containers.internal",
             _ => "host.docker.internal",

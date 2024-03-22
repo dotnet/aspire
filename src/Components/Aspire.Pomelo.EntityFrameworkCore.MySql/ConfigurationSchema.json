@@ -54,6 +54,10 @@
                 "MySql": {
                   "type": "object",
                   "properties": {
+                    "CommandTimeout": {
+                      "type": "integer",
+                      "description": "Gets or sets the time in seconds to wait for the command to execute."
+                    },
                     "ConnectionString": {
                       "type": "string",
                       "description": "Gets or sets the connection string of the MySQL database to connect to."

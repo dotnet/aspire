@@ -28,7 +28,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         Assert.Equal(ConnectionString, context.Database.GetDbConnection().ConnectionString);
@@ -44,7 +44,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", settings => settings.ConnectionString = ConnectionString);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
@@ -64,7 +64,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
@@ -80,7 +80,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
             new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "true"),
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Timeout", "608")
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:CommandTimeout", "608")
         ]);
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configureDbContextOptions: optionsBuilder =>
@@ -91,7 +91,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
             });
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -135,7 +135,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
             });
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -152,6 +152,75 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         // ensure no retry strategy was registered
         Assert.Null(extension.ExecutionStrategyFactory);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CanConfigureCommandTimeout(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:CommandTimeout", "608")
+            ]);
+        }
+
+        builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection",
+                configureDbContextOptions: optionsBuilder => optionsBuilder.UseOracle(),
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 608 : null);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<OracleOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout was respected
+        Assert.Equal(608, extension.CommandTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CommandTimeoutFromBuilderWinsOverOthers(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:CommandTimeout", "400")
+            ]);
+        }
+
+        builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection",
+                configureDbContextOptions: optionsBuilder =>
+                    optionsBuilder.UseOracle(builder => builder.CommandTimeout(123)),
+                configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<OracleOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout from builder was respected
+        Assert.Equal(123, extension.CommandTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
@@ -173,7 +242,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection");
         builder.AddOracleDatabaseDbContext<TestDbContext2>("orclconnection2");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
         var context2 = host.Services.GetRequiredService<TestDbContext2>();
 

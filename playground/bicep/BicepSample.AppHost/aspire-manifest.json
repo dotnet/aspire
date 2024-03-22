@@ -71,20 +71,6 @@
       "params": {
         "principalId": "",
         "principalName": ""
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22,
-              "minLower": 1,
-              "minUpper": 1,
-              "minNumeric": 1
-            }
-          }
-        }
       }
     },
     "db": {
@@ -119,17 +105,6 @@
         "keyVaultName": "",
         "administratorLogin": "{administratorLogin.value}",
         "administratorLoginPassword": "{administratorLoginPassword.value}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
       }
     },
     "db2": {

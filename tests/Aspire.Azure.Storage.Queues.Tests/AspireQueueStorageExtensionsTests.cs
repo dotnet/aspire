@@ -32,7 +32,7 @@ public class AspireQueueStorageExtensionsTests
             builder.AddAzureQueueClient("queue");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<QueueServiceClient>("queue") :
             host.Services.GetRequiredService<QueueServiceClient>();
@@ -59,7 +59,7 @@ public class AspireQueueStorageExtensionsTests
             builder.AddAzureQueueClient("queue", settings => settings.ConnectionString = ConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<QueueServiceClient>("queue") :
             host.Services.GetRequiredService<QueueServiceClient>();
@@ -89,7 +89,7 @@ public class AspireQueueStorageExtensionsTests
             builder.AddAzureQueueClient("queue");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<QueueServiceClient>("queue") :
             host.Services.GetRequiredService<QueueServiceClient>();
@@ -117,7 +117,7 @@ public class AspireQueueStorageExtensionsTests
             builder.AddAzureQueueClient("queue");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<QueueServiceClient>("queue") :
             host.Services.GetRequiredService<QueueServiceClient>();

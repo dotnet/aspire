@@ -10,7 +10,7 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// </summary>
 /// <param name="name">The name of the output reference.</param>
 /// <param name="resource">The <see cref="ICloudFormationResource"/> resource.</param>
-public class StackOutputReference(string name, ICloudFormationResource resource) : IManifestExpressionProvider, IValueProvider
+public class StackOutputReference(string name, ICloudFormationResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the output.
@@ -57,4 +57,6 @@ public class StackOutputReference(string name, ICloudFormationResource resource)
     /// The expression used in the manifest to reference the value of the output.
     /// </summary>
     public string ValueExpression => $"{{{Resource.Name}.output.{Name}}}";
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 }
