@@ -174,8 +174,8 @@ public class AddOracleTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var oracleServer = appBuilder.AddOracle("oracle");
+        using var builder = TestDistrubtedApplicationBuilder.Create();
+        var oracleServer = builder.AddOracle("oracle");
         var db = oracleServer.AddDatabase("db");
 
         var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
@@ -224,10 +224,10 @@ public class AddOracleTests
     [Fact]
     public async Task VerifyManifestWithPasswordParameter()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var pass = appBuilder.AddParameter("pass");
+        using var builder = TestDistrubtedApplicationBuilder.Create();
+        var pass = builder.AddParameter("pass");
 
-        var oracleServer = appBuilder.AddOracle("oracle", pass);
+        var oracleServer = builder.AddOracle("oracle", pass);
         var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
 
         var expectedManifest = """
@@ -254,7 +254,7 @@ public class AddOracleTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var db = builder.AddOracle("oracle1");
         db.AddDatabase("db");
@@ -265,7 +265,7 @@ public class AddOracleTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         builder.AddOracle("oracle1")
             .AddDatabase("db");
@@ -277,7 +277,7 @@ public class AddOracleTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var oracle1 = builder.AddOracle("oracle1");
 
@@ -294,7 +294,7 @@ public class AddOracleTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var db1 = builder.AddOracle("oracle1")
             .AddDatabase("db1", "imports");

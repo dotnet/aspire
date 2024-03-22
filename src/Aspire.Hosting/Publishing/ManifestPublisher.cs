@@ -90,6 +90,10 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
         {
             await WriteResourceObjectAsync(executable, () => WriteExecutableAsync(executable, context)).ConfigureAwait(false);
         }
+        else if (resource is IResourceWithConnectionString resourceWithConnectionString)
+        {
+            await WriteResourceObjectAsync(resource, () => WriteConnectionStringAsync(resourceWithConnectionString, context)).ConfigureAwait(false);
+        }
         else
         {
             await WriteResourceObjectAsync(resource, () => WriteErrorAsync(context)).ConfigureAwait(false);
@@ -99,7 +103,6 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
         {
             context.Writer.WriteStartObject(resource.Name);
             await action().ConfigureAwait(false);
-            context.WriteManifestMetadata(resource);
             context.Writer.WriteEndObject();
         }
     }
@@ -107,6 +110,15 @@ internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
     private static Task WriteErrorAsync(ManifestPublishingContext context)
     {
         context.Writer.WriteString("error", "This resource does not support generation in the manifest.");
+        return Task.CompletedTask;
+    }
+
+    private static Task WriteConnectionStringAsync(IResourceWithConnectionString resource, ManifestPublishingContext context)
+    {
+        // Write connection strings as value.v0
+        context.Writer.WriteString("type", "value.v0");
+        context.WriteConnectionString(resource);
+
         return Task.CompletedTask;
     }
 

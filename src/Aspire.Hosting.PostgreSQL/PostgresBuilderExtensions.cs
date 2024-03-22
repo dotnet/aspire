@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -57,8 +58,7 @@ public static class PostgresBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithManifestPublishingCallback(postgresDatabase.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(postgresDatabase);
     }
 
     /// <summary>
@@ -102,17 +102,17 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a Postgres container resource.
+    /// Adds a named volume for the data folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/postgresql/data", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/postgresql/data", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a Postgres container resource.
+    /// Adds a bind mount for the data folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
@@ -122,7 +122,7 @@ public static class PostgresBuilderExtensions
         => builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the init folder to a Postgres container resource.
+    /// Adds a bind mount for the init folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>

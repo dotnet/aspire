@@ -297,24 +297,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
     }
 
-    internal void WriteManifestMetadata(IResource resource)
-    {
-        if (!resource.TryGetAnnotationsOfType<ManifestMetadataAnnotation>(out var metadataAnnotations))
-        {
-            return;
-        }
-
-        Writer.WriteStartObject("metadata");
-
-        foreach (var metadataAnnotation in metadataAnnotations)
-        {
-            Writer.WritePropertyName(metadataAnnotation.Name);
-            JsonSerializer.Serialize(Writer, metadataAnnotation.Value);
-        }
-
-        Writer.WriteEndObject();
-    }
-
     private void WriteContainerMounts(ContainerResource container)
     {
         if (container.TryGetAnnotationsOfType<ContainerMountAnnotation>(out var mounts))

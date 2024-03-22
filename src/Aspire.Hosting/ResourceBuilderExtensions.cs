@@ -299,7 +299,7 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
         where TDestination : IResourceWithEnvironment
     {
-        ApplyEndpoints(builder, endpointReference.Owner, endpointReference.EndpointName);
+        ApplyEndpoints(builder, endpointReference.Resource, endpointReference.EndpointName);
         return builder;
     }
 
@@ -527,25 +527,5 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> ExcludeFromManifest<T>(this IResourceBuilder<T> builder) where T : IResource
     {
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
-    }
-
-    /// <summary>
-    /// Adds metadata to resource which is output into the manifest.
-    /// </summary>
-    /// <typeparam name="T">Type of resource.</typeparam>
-    /// <param name="builder">Resource builder.</param>
-    /// <param name="name">Name of metadata.</param>
-    /// <param name="value">Value of metadata.</param>
-    /// <returns>Resource builder.</returns>
-    public static IResourceBuilder<T> WithMetadata<T>(this IResourceBuilder<T> builder, string name, object value) where T : IResource
-    {
-        var existingAnnotation = builder.Resource.Annotations.OfType<ManifestMetadataAnnotation>().SingleOrDefault(a => a.Name == name);
-
-        if (existingAnnotation != null)
-        {
-            builder.Resource.Annotations.Remove(existingAnnotation);
-        }
-
-        return builder.WithAnnotation(new ManifestMetadataAnnotation(name, value));
     }
 }

@@ -124,7 +124,7 @@ public class ManifestGenerationTests
 
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
 
-        var program = appBuilder.Build();
+        using var program = appBuilder.Build();
         var publisher = program.Services.GetManifestPublisher();
 
         program.Run();
@@ -471,7 +471,7 @@ public class ManifestGenerationTests
         var nodeApp = resources.GetProperty("nodeapp");
         var npmApp = resources.GetProperty("npmapp");
 
-        static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
+        static void AssertNodeResource(TestProgram program, string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
             var s = jsonElement.ToString();
             Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
@@ -483,15 +483,15 @@ public class ManifestGenerationTests
 
             var env = jsonElement.GetProperty("env");
             Assert.Equal($$"""{{{resourceName}}.bindings.http.port}""", env.GetProperty("PORT").GetString());
-            Assert.Equal("production", env.GetProperty("NODE_ENV").GetString());
+            Assert.Equal(program.AppBuilder.Environment.EnvironmentName.ToLowerInvariant(), env.GetProperty("NODE_ENV").GetString());
 
             var command = jsonElement.GetProperty("command");
             Assert.Equal(expectedCommand, command.GetString());
             Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
         }
 
-        AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
-        AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
+        AssertNodeResource(program, "nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
+        AssertNodeResource(program, "npmapp", npmApp, "npm", ["run", "start"]);
     }
 
     [Fact]
@@ -511,67 +511,6 @@ public class ManifestGenerationTests
 
         var container = resources.GetProperty("testresource");
         Assert.False(container.TryGetProperty("metadata", out var _));
-    }
-
-    [Fact]
-    public void MetadataPropertyEmittedWhenMetadataNotAdded()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddContainer("testresource", "testresource")
-                          .WithMetadata("data", "value");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var container = resources.GetProperty("testresource");
-        Assert.True(container.TryGetProperty("metadata", out var metadata));
-        Assert.True(metadata.TryGetProperty("data", out var data));
-        Assert.Equal("value", data.GetString());
-    }
-
-    [Fact]
-    public void MetadataPropertyCanEmitComplexObjects()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddContainer("testresource", "testresource")
-                          .WithMetadata("data", new
-                          {
-                              complexValue1 = 1,
-                              complexValue2 = "s",
-                              complexValue3 = true,
-                              complexValue4 = new
-                              {
-                                  nestedComplexValue = DateTime.MinValue
-                              }
-                          });
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var container = resources.GetProperty("testresource");
-        Assert.True(container.TryGetProperty("metadata", out var metadata));
-        Assert.True(metadata.TryGetProperty("data", out var data));
-        Assert.True(data.TryGetProperty("complexValue1", out var complexValue1));
-        Assert.Equal(1, complexValue1.GetInt32());
-        Assert.True(data.TryGetProperty("complexValue2", out var complexValue2));
-        Assert.Equal("s", complexValue2.GetString());
-        Assert.True(data.TryGetProperty("complexValue3", out var complexValue3));
-        Assert.True(complexValue3.GetBoolean());
-        Assert.True(data.TryGetProperty("complexValue4", out var complexValue4));
-        Assert.True(complexValue4.TryGetProperty("nestedComplexValue", out var nestedComplexValue));
-        Assert.Equal(DateTime.MinValue, nestedComplexValue.GetDateTime());
     }
 
     [Fact]

@@ -215,8 +215,8 @@ public class AddPostgresTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var pgServer = appBuilder.AddPostgres("pg");
+        using var builder = TestDistrubtedApplicationBuilder.Create();
+        var pgServer = builder.AddPostgres("pg");
         var db = pgServer.AddDatabase("db");
 
         var serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
@@ -268,12 +268,12 @@ public class AddPostgresTests
     [Fact]
     public async Task VerifyManifestWithParameters()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
-        var userNameParameter = appBuilder.AddParameter("user");
-        var passwordParameter = appBuilder.AddParameter("pass");
+        var userNameParameter = builder.AddParameter("user");
+        var passwordParameter = builder.AddParameter("pass");
 
-        var pgServer = appBuilder.AddPostgres("pg", userNameParameter, passwordParameter);
+        var pgServer = builder.AddPostgres("pg", userNameParameter, passwordParameter);
         var serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
 
         var expectedManifest = """
@@ -299,7 +299,7 @@ public class AddPostgresTests
             """;
         Assert.Equal(expectedManifest, serverManifest.ToString());
 
-        pgServer = appBuilder.AddPostgres("pg2", userNameParameter);
+        pgServer = builder.AddPostgres("pg2", userNameParameter);
         serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
 
         expectedManifest = """
@@ -336,7 +336,7 @@ public class AddPostgresTests
             """;
         Assert.Equal(expectedManifest, serverManifest.ToString());
 
-        pgServer = appBuilder.AddPostgres("pg3", password: passwordParameter);
+        pgServer = builder.AddPostgres("pg3", password: passwordParameter);
         serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
 
         expectedManifest = """
@@ -366,7 +366,7 @@ public class AddPostgresTests
     [Fact]
     public void WithPgAdminAddsContainer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         builder.AddPostgres("mypostgres").WithPgAdmin(8081);
 
         var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
@@ -379,7 +379,7 @@ public class AddPostgresTests
     [Fact]
     public void WithPostgresTwiceEndsUpWithOneContainer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         builder.AddPostgres("mypostgres1").WithPgAdmin(8081);
         builder.AddPostgres("mypostgres2").WithPgAdmin(8081);
 
@@ -437,7 +437,7 @@ public class AddPostgresTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var db = builder.AddPostgres("postgres1");
         db.AddDatabase("db");
@@ -448,7 +448,7 @@ public class AddPostgresTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         builder.AddPostgres("postgres1")
             .AddDatabase("db");
@@ -460,7 +460,7 @@ public class AddPostgresTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var postgres1 = builder.AddPostgres("postgres1");
 
@@ -477,7 +477,7 @@ public class AddPostgresTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var db1 = builder.AddPostgres("postgres1")
             .AddDatabase("db1", "imports");

@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -48,8 +49,7 @@ public static class MySqlBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var mySqlDatabase = new MySqlDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(mySqlDatabase)
-                                         .WithManifestPublishingCallback(mySqlDatabase.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(mySqlDatabase);
     }
 
     /// <summary>
@@ -84,11 +84,11 @@ public static class MySqlBuilderExtensions
     /// Adds a named volume for the data folder to a MySql container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> WithDataVolume(this IResourceBuilder<MySqlServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/mysql", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/mysql", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a MySql container resource.
