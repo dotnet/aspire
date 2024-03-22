@@ -9,15 +9,11 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// A mutable collection of service endpoints. 
 /// </summary>
-public class ServiceEndPointCollectionSource(string serviceName, IFeatureCollection features)
+public class ServiceEndPointCollectionSource
 {
     private readonly List<ServiceEndPoint> _endPoints = new();
     private readonly List<IChangeToken> _changeTokens = new();
-
-    /// <summary>
-    /// Gets the service name.
-    /// </summary>
-    public string ServiceName { get; } = serviceName;
+    private FeatureCollection? _features;
 
     /// <summary>
     /// Adds a change token.
@@ -37,7 +33,7 @@ public class ServiceEndPointCollectionSource(string serviceName, IFeatureCollect
     /// <summary>
     /// Gets the feature collection.
     /// </summary>
-    public IFeatureCollection Features { get; } = features;
+    public IFeatureCollection Features => _features ??= new FeatureCollection();
 
     /// <summary>
     /// Gets the endpoints.
@@ -51,7 +47,7 @@ public class ServiceEndPointCollectionSource(string serviceName, IFeatureCollect
     /// <returns>The service endpoint collection.</returns>
     public static ServiceEndPointCollection CreateServiceEndPointCollection(ServiceEndPointCollectionSource source)
     {
-        return new ServiceEndPointCollection(source.ServiceName, source._endPoints, source.GetChangeToken(), source.Features);
+        return new ServiceEndPointCollection(source._endPoints, source.GetChangeToken(), source.Features);
     }
 }
 

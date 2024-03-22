@@ -20,28 +20,20 @@ public class ServiceEndPointCollection : IReadOnlyList<ServiceEndPoint>
     /// <summary>
     /// Initializes a new <see cref="ServiceEndPointCollection"/> instance.
     /// </summary>
-    /// <param name="serviceName">The service name.</param>
     /// <param name="endpoints">The endpoints.</param>
     /// <param name="changeToken">The change token.</param>
     /// <param name="features">The feature collection.</param>
-    public ServiceEndPointCollection(string serviceName, List<ServiceEndPoint>? endpoints, IChangeToken changeToken, IFeatureCollection features)
+    public ServiceEndPointCollection(List<ServiceEndPoint>? endpoints, IChangeToken changeToken, IFeatureCollection features)
     {
-        ArgumentNullException.ThrowIfNull(serviceName);
         ArgumentNullException.ThrowIfNull(changeToken);
 
         _endpoints = endpoints;
         Features = features;
-        ServiceName = serviceName;
         ChangeToken = changeToken;
     }
 
     /// <inheritdoc/>
     public ServiceEndPoint this[int index] => _endpoints?[index] ?? throw new ArgumentOutOfRangeException(nameof(index));
-
-    /// <summary>
-    /// Gets the service name.
-    /// </summary>
-    public string ServiceName { get; }
 
     /// <summary>
     /// Gets the change token which indicates when this collection should be refreshed.
@@ -75,8 +67,6 @@ public class ServiceEndPointCollection : IReadOnlyList<ServiceEndPoint>
 
     private sealed class ServiceEndPointCollectionDebuggerView(ServiceEndPointCollection value)
     {
-        public string ServiceName => value.ServiceName;
-
         public IChangeToken ChangeToken => value.ChangeToken;
 
         public IFeatureCollection Features => value.Features;

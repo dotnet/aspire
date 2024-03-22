@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
@@ -131,7 +130,7 @@ internal sealed partial class ServiceEndPointWatcher(
         {
             try
             {
-                var collection = new ServiceEndPointCollectionSource(ServiceName, new FeatureCollection());
+                var collection = new ServiceEndPointCollectionSource();
                 Log.ResolvingEndPoints(_logger, ServiceName);
                 foreach (var resolver in _resolvers)
                 {
