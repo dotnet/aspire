@@ -47,20 +47,6 @@
       "params": {
         "principalId": "",
         "principalName": ""
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22,
-              "minLower": 1,
-              "minUpper": 1,
-              "minNumeric": 1
-            }
-          }
-        }
       }
     },
     "sqldb": {
@@ -136,29 +122,8 @@
       "params": {
         "principalId": "",
         "keyVaultName": "",
-        "administratorLogin": "{pgsql2.inputs.username}",
-        "administratorLoginPassword": "{pgsql2.inputs.password}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        },
-        "username": {
-          "type": "string",
-          "default": {
-            "generate": {
-              "minLength": 10,
-              "numeric": false,
-              "special": false
-            }
-          }
-        }
+        "administratorLogin": "{pgsql2-username.value}",
+        "administratorLoginPassword": "{pgsql2-password.value}"
       }
     },
     "servicebus": {
@@ -244,6 +209,37 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        }
+      }
+    },
+    "pgsql2-username": {
+      "type": "parameter.v0",
+      "value": "{pgsql2-username.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "default": {
+            "generate": {
+              "minLength": 10,
+              "numeric": false,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "pgsql2-password": {
+      "type": "parameter.v0",
+      "value": "{pgsql2-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
         }
       }
     }
