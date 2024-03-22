@@ -104,7 +104,7 @@ public class AddSqlServerTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var sqlServer = builder.AddSqlServer("sqlserver");
         var db = sqlServer.AddDatabase("db");
 
@@ -158,7 +158,7 @@ public class AddSqlServerTests
     [Fact]
     public async Task VerifyManifestWithPasswordParameter()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var pass = builder.AddParameter("pass");
 
@@ -190,7 +190,7 @@ public class AddSqlServerTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db = builder.AddSqlServer("sqlserver1");
         db.AddDatabase("db");
@@ -201,7 +201,7 @@ public class AddSqlServerTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddSqlServer("sqlserver1")
             .AddDatabase("db");
@@ -213,7 +213,7 @@ public class AddSqlServerTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var sqlserver1 = builder.AddSqlServer("sqlserver1");
 
@@ -230,7 +230,7 @@ public class AddSqlServerTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db1 = builder.AddSqlServer("sqlserver1")
             .AddDatabase("db1", "imports");

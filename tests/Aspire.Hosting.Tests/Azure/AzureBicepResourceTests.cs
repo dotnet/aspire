@@ -20,7 +20,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void AddBicepResource()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var bicepResource = builder.AddBicepTemplateString("mytemplate", "content")
                                    .WithParameter("param1", "value1")
@@ -34,7 +34,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetOutputReturnsOutputValue()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
@@ -46,7 +46,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetSecretOutputReturnsSecretOutputValue()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
@@ -58,7 +58,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetOutputValueThrowsIfNoOutput()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
@@ -68,7 +68,7 @@ public class AzureBicepResourceTests
     [Fact]
     public void GetSecretOutputValueThrowsIfNoOutput()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
@@ -78,7 +78,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AssertManifestLayout()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var param = builder.AddParameter("p1");
 
@@ -122,7 +122,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureCosmosDBEmulator()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsEmulator(e =>
         {
@@ -140,7 +140,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureCosmosDB()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
         var cosmos = builder.AddAzureCosmosDB("cosmos", (resource, construct, account, databases) =>
@@ -238,7 +238,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureAppConfiguration()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var appConfig = builder.AddAzureAppConfiguration("appConfig");
         appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
@@ -308,7 +308,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddApplicationInsights()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var appInsights = builder.AddAzureApplicationInsights("appInsights");
 
@@ -378,7 +378,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddLogAnalyticsWorkspace()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace("logAnalyticsWorkspace");
 
@@ -433,7 +433,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task WithReferenceAppInsightsSetsEnvironmentVariable()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var appInsights = builder.AddAzureApplicationInsights("ai");
 
@@ -451,7 +451,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureConstructGenertesCorrectManifestEntry()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var construct1 = builder.AddAzureConstruct("construct1", (construct) =>
         {
             var storage = construct.AddStorageAccount(
@@ -469,7 +469,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AssignParameterPopulatesParametersEverywhere()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:skuName"] = "Standard_ZRS";
 
         var skuName = builder.AddParameter("skuName");
@@ -507,7 +507,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AssignParameterWithSpecifiedNamePopulatesParametersEverywhere()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:skuName"] = "Standard_ZRS";
 
         var skuName = builder.AddParameter("skuName");
@@ -545,7 +545,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task PublishAsRedisPublishesRedisAsAzureRedisConstruct()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var redis = builder.AddRedis("cache")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
@@ -624,7 +624,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddKeyVault()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var mykv = builder.AddAzureKeyVault("mykv");
 
@@ -691,7 +691,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureSignalR()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var signalr = builder.AddAzureSignalR("signalr");
 
@@ -768,7 +768,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async void AsAzureSqlDatabase()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, _, _) =>
         {
@@ -881,7 +881,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AsAzurePostgresFlexibleServer()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.Configuration["Parameters:usr"] = "user";
         builder.Configuration["Parameters:pwd"] = "password";
@@ -1016,7 +1016,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task PublishAsAzurePostgresFlexibleServer()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.Configuration["Parameters:usr"] = "user";
         builder.Configuration["Parameters:pwd"] = "password";
@@ -1055,7 +1055,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task PublishAsAzurePostgresFlexibleServerNoUserPassParams()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var postgres = builder.AddPostgres("postgres1")
             .PublishAsAzurePostgresFlexibleServer(); // Because of InternalsVisibleTo
@@ -1167,7 +1167,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureServiceBus()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var serviceBus = builder.AddAzureServiceBus("sb");
 
         serviceBus
@@ -1288,7 +1288,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureStorageEmulator()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(e =>
         {
@@ -1319,7 +1319,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureStorage()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var storagesku = builder.AddParameter("storagesku");
         var storage = builder.AddAzureStorage("storage", (_, _, sa) =>
@@ -1474,7 +1474,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureSearch()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         // Add search and parameterize the SKU
         var sku = builder.AddParameter("searchSku");
@@ -1572,7 +1572,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task PublishAsConnectionString()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var ai = builder.AddAzureApplicationInsights("ai").PublishAsConnectionString();
         var serviceBus = builder.AddAzureServiceBus("servicebus").PublishAsConnectionString();
@@ -1597,7 +1597,7 @@ public class AzureBicepResourceTests
     [Fact]
     public async Task AddAzureOpenAI()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         IEnumerable<CognitiveServicesAccountDeployment>? aiDeployments = null;
         var openai = builder.AddAzureOpenAI("openai", (_, _, _, deployments) =>
