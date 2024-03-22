@@ -12,8 +12,7 @@ public class StackOutputReferenceTests
     [Fact]
     public async Task GetValueAsyncTest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 
@@ -41,8 +40,7 @@ public class StackOutputReferenceTests
     [Fact]
     public void ValueExpressionTest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 
@@ -61,8 +59,7 @@ public class StackOutputReferenceTests
     [Fact]
     public void InvalidOutputKey()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 

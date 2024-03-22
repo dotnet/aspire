@@ -65,8 +65,7 @@ public class AddRabbitMQTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         var rabbit = builder.AddRabbitMQ("rabbit");
 
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
@@ -108,8 +107,7 @@ public class AddRabbitMQTests
     [Fact]
     public async Task VerifyManifestWithParameters()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var userNameParameter = builder.AddParameter("user");
         var passwordParameter = builder.AddParameter("pass");

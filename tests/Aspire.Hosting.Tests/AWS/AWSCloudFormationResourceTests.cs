@@ -12,8 +12,7 @@ public class AWSCloudFormationResourceTests
     [Fact]
     public void AddAWSCloudFormationStackResourceTest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var awsSdkConfig = builder.AddAWSSDKConfig()
                                 .WithRegion(RegionEndpoint.USWest2)
@@ -32,8 +31,7 @@ public class AWSCloudFormationResourceTests
     [Fact]
     public void AddAWSCloudFormationTemplateResourceTest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var awsSdkConfig = builder.AddAWSSDKConfig()
                                 .WithRegion(RegionEndpoint.USWest2)
@@ -60,8 +58,7 @@ public class AWSCloudFormationResourceTests
     [Fact]
     public async Task ManifestAWSCloudFormationStackResourceTest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var resourceBuilder = builder.AddAWSCloudFormationStack("ExistingStack");
 
@@ -90,8 +87,7 @@ public class AWSCloudFormationResourceTests
     [Fact]
     public async Task ManifestAWSCloudFormationTemplateResourceTest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 

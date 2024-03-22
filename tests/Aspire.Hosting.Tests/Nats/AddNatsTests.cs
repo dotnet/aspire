@@ -82,8 +82,7 @@ public class AddNatsTests
     [Fact]
     public void WithNatsContainerOnMultipleResources()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         builder.AddNats("nats1");
         builder.AddNats("nats2");
 
@@ -93,8 +92,7 @@ public class AddNatsTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         var nats = builder.AddNats("nats");
 
         var manifest = await ManifestUtils.GetManifest(nats.Resource);

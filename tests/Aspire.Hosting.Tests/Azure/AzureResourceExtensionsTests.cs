@@ -14,8 +14,7 @@ public class AzureResourceExtensionsTests
     [InlineData(false)]
     public void AzureStorageUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath(bool? isReadOnly)
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
@@ -41,8 +40,7 @@ public class AzureResourceExtensionsTests
     [InlineData(false)]
     public void AzureStorageUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotation(bool? isReadOnly)
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
@@ -68,8 +66,7 @@ public class AzureResourceExtensionsTests
     [InlineData(false)]
     public void AzureStorageUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotationWithDefaultName(bool? isReadOnly)
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
@@ -95,8 +92,7 @@ public class AzureResourceExtensionsTests
     [InlineData(false)]
     public void AzureStorageUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotation(bool? isReadOnly)
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
@@ -119,8 +115,7 @@ public class AzureResourceExtensionsTests
     [Fact]
     public void AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
     {
-        using var builderContainer = BuilderContainer.Create();
-        var builder = builderContainer.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             builder.UseBlobPort(9001);
@@ -141,8 +136,7 @@ public class AzureResourceExtensionsTests
     [InlineData(9007)]
     public void AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
@@ -163,8 +157,7 @@ public class AzureResourceExtensionsTests
     [InlineData("1.0.7")]
     public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string imageTag)
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 

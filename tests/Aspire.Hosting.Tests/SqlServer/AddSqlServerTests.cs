@@ -104,8 +104,7 @@ public class AddSqlServerTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
         var sqlServer = builder.AddSqlServer("sqlserver");
         var db = sqlServer.AddDatabase("db");
 
@@ -159,8 +158,7 @@ public class AddSqlServerTests
     [Fact]
     public async Task VerifyManifestWithPasswordParameter()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var pass = builder.AddParameter("pass");
 
@@ -192,8 +190,7 @@ public class AddSqlServerTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var db = builder.AddSqlServer("sqlserver1");
         db.AddDatabase("db");
@@ -204,8 +201,7 @@ public class AddSqlServerTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         builder.AddSqlServer("sqlserver1")
             .AddDatabase("db");
@@ -217,8 +213,7 @@ public class AddSqlServerTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var sqlserver1 = builder.AddSqlServer("sqlserver1");
 
@@ -235,8 +230,7 @@ public class AddSqlServerTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        using var container = BuilderContainer.Create();
-        var builder = container.Builder;
+        using var builder = TestDistrubtedApplicationBuilder.Create();
 
         var db1 = builder.AddSqlServer("sqlserver1")
             .AddDatabase("db1", "imports");
