@@ -15,42 +15,44 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 public sealed class TestDistrubtedApplicationBuilder : IDisposable, IDistributedApplicationBuilder
 {
-    private readonly IDistributedApplicationBuilder _builder;
+    private readonly IDistributedApplicationBuilder _innerBuilder;
 
-    public ConfigurationManager Configuration => _builder.Configuration;
-    public string AppHostDirectory => _builder.AppHostDirectory;
-    public IHostEnvironment Environment => _builder.Environment;
-    public IServiceCollection Services => _builder.Services;
-    public DistributedApplicationExecutionContext ExecutionContext => _builder.ExecutionContext;
-    public IResourceCollection Resources => _builder.Resources;
+    public ConfigurationManager Configuration => _innerBuilder.Configuration;
+    public string AppHostDirectory => _innerBuilder.AppHostDirectory;
+    public IHostEnvironment Environment => _innerBuilder.Environment;
+    public IServiceCollection Services => _innerBuilder.Services;
+    public DistributedApplicationExecutionContext ExecutionContext => _innerBuilder.ExecutionContext;
+    public IResourceCollection Resources => _innerBuilder.Resources;
 
     public static TestDistrubtedApplicationBuilder Create() => new TestDistrubtedApplicationBuilder(DistributedApplication.CreateBuilder());
 
     private TestDistrubtedApplicationBuilder(IDistributedApplicationBuilder builder)
     {
-        _builder = builder;
+        _innerBuilder = builder;
     }
 
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
-        return _builder.AddResource(resource);
+        return _innerBuilder.AddResource(resource);
     }
 
     public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource
     {
-        return _builder.CreateResourceBuilder(resource);
+        return _innerBuilder.CreateResourceBuilder(resource);
     }
 
     public DistributedApplication Build()
     {
-        return _builder.Build();
+        return _innerBuilder.Build();
     }
 
     public void Dispose()
     {
         try
         {
-            _builder.Build().Dispose();
+            // When the builder is disposed we build a host and then dispose it.
+            // This cleans up unmanaged resources on the inner builder.
+            _innerBuilder.Build().Dispose();
         }
         catch
         {
