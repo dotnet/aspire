@@ -387,7 +387,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         // always skip the dashboard
         resourcesToSkip |= TestResourceNames.dashboard;
 
-        Console.WriteLine ($"--- returning resourcesToSkip: {resourcesToSkip}");
         return resourcesToSkip;
     }
 }
