@@ -3,6 +3,6 @@
 
 using Microsoft.EntityFrameworkCore;
 
-public class PomeloDbContext(DbContextOptions<PomeloDbContext> options) : DbContext(options)
+public class PomeloSqlServerDbContext(DbContextOptions<PomeloSqlServerDbContext> options) : DbContext(options)
 {
 }

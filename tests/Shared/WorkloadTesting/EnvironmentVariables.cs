@@ -15,4 +15,6 @@ public static class EnvironmentVariables
     public static readonly bool    TestsRunningOutsideOfRepo     = Environment.GetEnvironmentVariable("TestsRunningOutsideOfRepo") is "true";
     public static readonly string  BuildConfiguration        = Environment.GetEnvironmentVariable("BUILD_CONFIGURATION") ?? "Debug";
     public static readonly string? TestAssetsPath            = Environment.GetEnvironmentVariable("TEST_ASSETS_PATH");
+    public static readonly string? TestScenario              = Environment.GetEnvironmentVariable("TEST_SCENARIO");
+
 }

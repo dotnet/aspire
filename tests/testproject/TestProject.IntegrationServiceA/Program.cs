@@ -13,7 +13,11 @@ if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 {
     builder.AddSqlServerClient("tempdb");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.mysql))
+if (!resourcesToSkip.Contains(TestResourceNames.efsqlserver))
+{
+    builder.AddSqlServerDbContext<PomeloSqlServerDbContext>("tempdb");
+}
+if (!resourcesToSkip.Contains(TestResourceNames.mysql) || !resourcesToSkip.Contains(TestResourceNames.efmysql))
 {
     builder.AddMySqlDataSource("mysqldb", settings =>
     {
@@ -25,16 +29,16 @@ if (!resourcesToSkip.Contains(TestResourceNames.mysql))
         };
         settings.ConnectionString = connectionStringBuilder.ConnectionString;
     });
-    if (!resourcesToSkip.Contains(TestResourceNames.pomelo))
-    {
-        builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
-    }
+}
+if (!resourcesToSkip.Contains(TestResourceNames.efmysql))
+{
+    builder.AddMySqlDbContext<PomeloMySqlDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
 }
 if (!resourcesToSkip.Contains(TestResourceNames.redis))
 {
     builder.AddRedisClient("redis");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.postgres))
+if (!resourcesToSkip.Contains(TestResourceNames.postgres) || !resourcesToSkip.Contains(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDataSource("postgresdb");
 }
@@ -69,6 +73,16 @@ if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
     builder.AddAzureCosmosDBClient("cosmos");
 }
 
+string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
+if (!string.IsNullOrEmpty(logPath))
+{
+    builder.Logging.AddFile(Path.Combine(logPath, "IntegrationServiceA.log"));
+}
+else
+{
+    throw new InvalidOperationException("TEST_LOG_PATH environment variable is not set.");
+}
+
 var app = builder.Build();
 
 app.MapHealthChecks("/health");
@@ -92,7 +106,7 @@ if (!resourcesToSkip.Contains(TestResourceNames.mysql))
     app.MapMySqlApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.pomelo))
+if (!resourcesToSkip.Contains(TestResourceNames.efmysql))
 {
     app.MapPomeloEFCoreMySqlApi();
 }
@@ -109,6 +123,10 @@ if (!resourcesToSkip.Contains(TestResourceNames.efnpgsql))
 if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 {
     app.MapSqlServerApi();
+}
+if (!resourcesToSkip.Contains(TestResourceNames.efsqlserver))
+{
+    app.MapSqlServerEFCoreApi();
 }
 
 if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
