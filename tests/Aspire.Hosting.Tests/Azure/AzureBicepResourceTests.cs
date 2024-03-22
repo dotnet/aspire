@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
@@ -1598,10 +1599,18 @@ public class AzureBicepResourceTests
     {
         using var builder = TestDistrubtedApplicationBuilder.Create();
 
-        var openai = builder.AddAzureOpenAI("openai")
-            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
+        IEnumerable<CognitiveServicesAccountDeployment>? aiDeployments = null;
+        var openai = builder.AddAzureOpenAI("openai", (_, _, _, deployments) =>
+        {
+            aiDeployments = deployments;
+        }).AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
 
         var manifest = await ManifestUtils.GetManifestWithBicep(openai.Resource);
+
+        Assert.NotNull(aiDeployments);
+        Assert.Collection(
+            aiDeployments,
+            deployment => Assert.Equal("mymodel", deployment.Properties.Name));
 
         var expectedManifest = """
             {
