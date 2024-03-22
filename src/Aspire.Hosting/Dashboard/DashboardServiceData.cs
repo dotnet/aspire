@@ -35,15 +35,9 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                 ImmutableArray<EnvironmentVariableSnapshot> environmentVariables = [..
                     snapshot.EnvironmentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, e.IsFromSpec))];
 
-                ImmutableArray<ResourceServiceSnapshot> services =
+                ImmutableArray<UrlSnapshot> urls =
                 [
-                    ..snapshot.Urls.Select(u => new ResourceServiceSnapshot(u.Name, u.Url, null)),
-                    ..snapshot.Services.Select(e => new ResourceServiceSnapshot(e.Name, e.AllocatedAddress, e.AllocatedPort))
-                ];
-
-                ImmutableArray<EndpointSnapshot> endpoints = [
-                    ..snapshot.Urls.Select(u => new EndpointSnapshot(u.Url, u.Url)),
-                    ..snapshot.Endpoints.Select(e => new EndpointSnapshot(e.EndpointUrl, e.ProxyUrl))
+                    ..snapshot.Urls.Select(u => new UrlSnapshot(u.Name, u.Url, u.IsInternal)),
                 ];
 
                 return new GenericResourceSnapshot(snapshot)
@@ -52,11 +46,10 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
                     Name = resourceId,
                     DisplayName = resource.Name,
-                    Endpoints = endpoints,
+                    Urls = urls,
+                    ExpectUrls = urls.Length > 0 || resource.TryGetLastAnnotation<EndpointAnnotation>(out _),
                     Environment = environmentVariables,
                     ExitCode = snapshot.ExitCode,
-                    ExpectedEndpointsCount = endpoints.Length,
-                    Services = services,
                     State = snapshot.State
                 };
             }

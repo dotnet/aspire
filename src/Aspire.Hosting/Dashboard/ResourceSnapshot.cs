@@ -19,9 +19,11 @@ internal abstract class ResourceSnapshot
     public required int? ExitCode { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }
-    public required ImmutableArray<EndpointSnapshot> Endpoints { get; init; }
-    public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }
-    public required int? ExpectedEndpointsCount { get; init; }
+
+    // Will this resource ever have any urls
+    public bool ExpectUrls { get; init; }
+
+    public required ImmutableArray<UrlSnapshot> Urls { get; init; }
 
     protected abstract IEnumerable<(string Key, Value Value)> GetProperties();
 
@@ -52,15 +54,5 @@ internal sealed class EnvironmentVariableSnapshot(string name, string? value, bo
     public bool IsFromSpec { get; } = isFromSpec;
 }
 
-internal sealed record EndpointSnapshot(string endpointUrl, string proxyUrl)
-{
-    public string EndpointUrl { get; } = endpointUrl;
-    public string ProxyUrl { get; } = proxyUrl;
-}
+internal sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 
-internal sealed class ResourceServiceSnapshot(string name, string? allocatedAddress, int? allocatedPort)
-{
-    public string Name { get; } = name;
-    public string? AllocatedAddress { get; } = allocatedAddress;
-    public int? AllocatedPort { get; } = allocatedPort;
-}

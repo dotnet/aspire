@@ -24,36 +24,16 @@ partial class Resource
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
         }
 
-        if (snapshot.ExpectedEndpointsCount.HasValue)
-        {
-            resource.ExpectedEndpointsCount = snapshot.ExpectedEndpointsCount.Value;
-        }
+        resource.ExpectUrls = snapshot.ExpectUrls;
 
         foreach (var env in snapshot.Environment)
         {
             resource.Environment.Add(new EnvironmentVariable { Name = env.Name, Value = env.Value ?? "", IsFromSpec = env.IsFromSpec });
         }
 
-        foreach (var endpoint in snapshot.Endpoints)
+        foreach (var url in snapshot.Urls)
         {
-            resource.Endpoints.Add(new Endpoint { EndpointUrl = endpoint.EndpointUrl, ProxyUrl = endpoint.ProxyUrl });
-        }
-
-        foreach (var service in snapshot.Services)
-        {
-            var serviceMessage = new Service { Name = service.Name };
-
-            if (service.AllocatedAddress is not null)
-            {
-                serviceMessage.AllocatedAddress = service.AllocatedAddress;
-            }
-
-            if (service.AllocatedPort.HasValue)
-            {
-                serviceMessage.AllocatedPort = service.AllocatedPort.Value;
-            }
-
-            resource.Services.Add(serviceMessage);
+            resource.Urls.Add(new Url { Name = url.Name, FullUrl = url.Url, IsInternal = url.IsInternal });
         }
 
         foreach (var property in snapshot.Properties)

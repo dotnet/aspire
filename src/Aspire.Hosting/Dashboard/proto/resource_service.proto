@@ -108,6 +108,12 @@ message Service {
     optional int32 allocated_port = 3;
 }
 
+message Url {
+    string name = 1;
+    string full_url = 2;
+    bool is_internal = 3;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
@@ -127,8 +133,12 @@ message Resource {
     optional string state = 5;
     optional google.protobuf.Timestamp created_at = 6;
     repeated EnvironmentVariable environment = 7;
+    // Deprecated
     optional int32 expected_endpoints_count = 8;
+
+    // Deprecated
     repeated Endpoint endpoints = 9;
+    // Deprecated
     repeated Service services = 10;
     repeated ResourceCommand commands = 11;
 
@@ -139,6 +149,9 @@ message Resource {
     // - Executables: process_id, executable_path, working_directory, arguments
     // - Projects: process_id, project_path
     repeated ResourceProperty properties = 12;
+
+    repeated Url urls = 13;
+    bool expect_urls = 14;
 }
 
 ////////////////////////////////////////////

@@ -74,13 +74,13 @@ internal sealed class BicepProvisioner(
             resource.SecretOutputs[item.Key] = item.Value;
         }
 
-        var portalUrls = new List<(string, string)>();
+        var portalUrls = new List<(string, string, bool)>();
 
         if (section["Id"] is string deploymentId &&
             ResourceIdentifier.TryParse(deploymentId, out var id) &&
             id is not null)
         {
-            portalUrls.Add(("deployment", GetDeploymentUrl(id)));
+            portalUrls.Add(("deployment", GetDeploymentUrl(id), false));
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
@@ -222,7 +222,7 @@ internal sealed class BicepProvisioner(
         {
             return state with
             {
-                Urls = [.. state.Urls, ("deployment", url)],
+                Urls = [.. state.Urls, ("deployment", url, false)],
             };
         })
         .ConfigureAwait(false);

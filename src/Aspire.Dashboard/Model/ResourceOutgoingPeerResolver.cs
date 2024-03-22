@@ -96,9 +96,13 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         {
             foreach (var (resourceName, resource) in resources)
             {
-                foreach (var service in resource.Services)
+                foreach (var service in resource.Urls)
                 {
-                    if (string.Equals(service.AddressAndPort, value, StringComparison.OrdinalIgnoreCase))
+                    var uri = new Uri(service.Url);
+
+                    var hostAndPort = uri.GetComponents(UriComponents.Host | UriComponents.Port, UriFormat.UriEscaped);
+
+                    if (string.Equals(hostAndPort, value, StringComparison.OrdinalIgnoreCase))
                     {
                         name = resource.Name;
                         return true;

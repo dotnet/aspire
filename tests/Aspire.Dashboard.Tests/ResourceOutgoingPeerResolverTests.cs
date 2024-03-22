@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Frozen;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
@@ -15,10 +14,6 @@ public class ResourceOutgoingPeerResolverTests
 {
     private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null)
     {
-        ImmutableArray<ResourceServiceViewModel> resourceServices = serviceAddress is null || servicePort is null
-            ? ImmutableArray<ResourceServiceViewModel>.Empty
-            : [new ResourceServiceViewModel("http", serviceAddress, servicePort)];
-
         return new ResourceViewModel
         {
             Name = name,
@@ -26,11 +21,10 @@ public class ResourceOutgoingPeerResolverTests
             DisplayName = name,
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
-            Environment = ImmutableArray<EnvironmentVariableViewModel>.Empty,
-            Endpoints = ImmutableArray<EndpointViewModel>.Empty,
-            Services = resourceServices,
+            Environment = [],
             ExpectedEndpointsCount = 0,
             Properties = FrozenDictionary<string, Value>.Empty,
+            Urls = servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, $"http://{serviceAddress}:{servicePort}", isInternal: false)],
             State = null,
             Commands = []
         };
