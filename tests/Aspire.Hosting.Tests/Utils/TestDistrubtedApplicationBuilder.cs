@@ -16,6 +16,7 @@ namespace Aspire.Hosting.Utils;
 public sealed class TestDistrubtedApplicationBuilder : IDisposable, IDistributedApplicationBuilder
 {
     private readonly IDistributedApplicationBuilder _innerBuilder;
+    private bool _builtApp;
 
     public ConfigurationManager Configuration => _innerBuilder.Configuration;
     public string AppHostDirectory => _innerBuilder.AppHostDirectory;
@@ -43,20 +44,24 @@ public sealed class TestDistrubtedApplicationBuilder : IDisposable, IDistributed
 
     public DistributedApplication Build()
     {
+        _builtApp = true;
         return _innerBuilder.Build();
     }
 
     public void Dispose()
     {
-        try
+        // When the builder is disposed we build a host and then dispose it.
+        // This cleans up unmanaged resources on the inner builder.
+        if (!_builtApp)
         {
-            // When the builder is disposed we build a host and then dispose it.
-            // This cleans up unmanaged resources on the inner builder.
-            _innerBuilder.Build().Dispose();
-        }
-        catch
-        {
-            // Ignore errors.
+            try
+            {
+                _innerBuilder.Build().Dispose();
+            }
+            catch
+            {
+                // Ignore errors.
+            }
         }
     }
 }
