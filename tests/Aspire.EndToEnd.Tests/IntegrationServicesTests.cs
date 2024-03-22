@@ -23,14 +23,13 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     [Theory]
     [Trait("scenario", "default")]
-    // [InlineData(TestResourceNames.mongodb)]
-    // [InlineData(TestResourceNames.mysql)]
-    // [InlineData(TestResourceNames.postgres)]
-    // [InlineData(TestResourceNames.rabbitmq)]
-    // [InlineData(TestResourceNames.redis)]
-    // [InlineData(TestResourceNames.efnpgsql)]
-    // [InlineData(TestResourceNames.efmysql)]
-    [InlineData(TestResourceNames.efsqlserver)]
+    [InlineData(TestResourceNames.mongodb)]
+    [InlineData(TestResourceNames.mysql)]
+    [InlineData(TestResourceNames.postgres)]
+    [InlineData(TestResourceNames.rabbitmq)]
+    [InlineData(TestResourceNames.redis)]
+    [InlineData(TestResourceNames.efnpgsql)]
+    [InlineData(TestResourceNames.efmysql)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
@@ -49,10 +48,12 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             }
         });
 
-    [Fact]
+    [Theory]
     [Trait("scenario", "sqlserver")]
-    public Task VerifySqlServerComponentWorks()
-        => VerifyComponentWorks(TestResourceNames.sqlserver);
+    [InlineData(TestResourceNames.sqlserver)]
+    [InlineData(TestResourceNames.efsqlserver)]
+    public Task VerifySqlServerComponentWorks(TestResourceNames resourceName)
+        => VerifyComponentWorks(resourceName);
 
     [Fact]
     [Trait("scenario", "oracle")]

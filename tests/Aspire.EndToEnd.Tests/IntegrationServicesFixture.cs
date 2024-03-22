@@ -334,8 +334,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             "oracle" => TestResourceNames.All & ~TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.All & ~TestResourceNames.cosmos,
-            "sqlserver" => TestResourceNames.All & ~TestResourceNames.sqlserver,
-            _ or "default" => TestResourceNames.All & ~TestResourceNames.efsqlserver,
+            "sqlserver" => TestResourceNames.All & ~(TestResourceNames.sqlserver | TestResourceNames.efsqlserver),
+            _ or "default" => TestResourceNames.All & ~(TestResourceNames.mongodb | TestResourceNames.mysql | TestResourceNames.postgres | TestResourceNames.rabbitmq | TestResourceNames.redis | TestResourceNames.efnpgsql | TestResourceNames.efmysql)
         };
         testResourcesToSkip &= ~TestResourceNames.kafka;
         TestResourceNamesExtensions.Enumerate(testResourcesToSkip, resourcesToSkip);
@@ -346,15 +346,15 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
         }
 
-        if (TestScenario == "default")
-        {
-            // if (BuildEnvironment.IsRunningOnCI)
-            {
-                resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
-                resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
-                resourcesToSkip.Add(nameof(TestResourceNames.sqlserver));
-            }
-        }
+        //if (TestScenario == "default")
+        //{
+            //if (BuildEnvironment.IsRunningOnCI)
+            //{
+                //resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
+                //resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
+                //resourcesToSkip.Add(nameof(TestResourceNames.sqlserver));
+            //}
+        //}
 
         resourcesToSkip.Add(nameof(TestResourceNames.dashboard));
 
