@@ -3,11 +3,12 @@
 
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -189,35 +190,31 @@ internal static class TestHelpers
     }
 
     public static TelemetryRepository CreateRepository(
-        int? metricsCountLimit = null,
-        int? attributeCountLimit = null,
-        int? attributeLengthLimit = null,
-        int? spanEventCountLimit = null,
+        int? maxMetricsCount = null,
+        int? maxAttributeCount = null,
+        int? maxAttributeLength = null,
+        int? maxSpanEventCount = null,
         TimeSpan? subscriptionMinExecuteInterval = null)
     {
-        var inMemorySettings = new Dictionary<string, string?>();
-        if (metricsCountLimit != null)
+        var options = new TelemetryLimits();
+        if (maxMetricsCount != null)
         {
-            inMemorySettings[TelemetryRepository.MetricsCountLimitKey] = metricsCountLimit.Value.ToString(CultureInfo.InvariantCulture);
+            options.MaxMetricsCount = maxMetricsCount.Value;
         }
-        if (attributeCountLimit != null)
+        if (maxAttributeCount != null)
         {
-            inMemorySettings[TelemetryRepository.AttributeCountLimitKey] = attributeCountLimit.Value.ToString(CultureInfo.InvariantCulture);
+            options.MaxAttributeCount = maxAttributeCount.Value;
         }
-        if (attributeLengthLimit != null)
+        if (maxAttributeLength != null)
         {
-            inMemorySettings[TelemetryRepository.AttributeLengthLimitKey] = attributeLengthLimit.Value.ToString(CultureInfo.InvariantCulture);
+            options.MaxAttributeLength = maxAttributeLength.Value;
         }
-        if (spanEventCountLimit != null)
+        if (maxSpanEventCount != null)
         {
-            inMemorySettings[TelemetryRepository.SpanEventCountLimitKey] = spanEventCountLimit.Value.ToString(CultureInfo.InvariantCulture);
+            options.MaxSpanEventCount = maxSpanEventCount.Value;
         }
 
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemorySettings)
-            .Build();
-
-        var repository = new TelemetryRepository(configuration, NullLoggerFactory.Instance);
+        var repository = new TelemetryRepository(NullLoggerFactory.Instance, Options.Create(new DashboardOptions { TelemetryLimits = options }));
         if (subscriptionMinExecuteInterval != null)
         {
             repository._subscriptionMinExecuteInterval = subscriptionMinExecuteInterval.Value;

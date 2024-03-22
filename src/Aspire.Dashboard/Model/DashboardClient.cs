@@ -7,11 +7,14 @@ using System.Net.Security;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Model;
 
@@ -34,8 +37,6 @@ namespace Aspire.Dashboard.Model;
 /// </remarks>
 internal sealed class DashboardClient : IDashboardClient
 {
-    private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
-
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
     private readonly CancellationToken _clientCancellationToken;
@@ -44,7 +45,7 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IConfiguration _configuration;
+    private readonly DashboardOptions _dashboardOptions;
     private readonly ILogger<DashboardClient> _logger;
 
     private ImmutableHashSet<Channel<IReadOnlyList<ResourceViewModelChange>>> _outgoingChannels = [];
@@ -61,22 +62,22 @@ internal sealed class DashboardClient : IDashboardClient
 
     private Task? _connection;
 
-    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration)
+    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration, IOptions<DashboardOptions> dashboardOptions)
     {
         _loggerFactory = loggerFactory;
-        _configuration = configuration;
+        _dashboardOptions = dashboardOptions.Value;
 
         // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
         _clientCancellationToken = _cts.Token;
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = configuration.GetUri(ResourceServiceUrlVariableName);
+        var address = _dashboardOptions.ResourceServiceClient.GetUri();
 
         if (address is null)
         {
             _state = StateDisabled;
-            _logger.LogDebug($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
+            _logger.LogDebug($"{DashboardConfigNames.ResourceServiceUrlName.ConfigKey} is not specified. Dashboard client services are unavailable.");
             _cts.Cancel();
             _whenConnectedTcs.TrySetCanceled();
             return;
@@ -100,14 +101,12 @@ internal sealed class DashboardClient : IDashboardClient
                 KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
             };
 
-            var authMode = configuration.GetEnum<ResourceClientAuthMode>("ResourceServiceClient:AuthMode");
+            var authMode = _dashboardOptions.ResourceServiceClient.AuthMode;
 
             if (authMode == ResourceClientAuthMode.Certificate)
             {
                 // Auth hasn't been suppressed, so configure it.
-                var sourceType = configuration.GetEnum<DashboardClientCertificateSource>("ResourceServiceClient:ClientCertificate:Source");
-
-                var certificates = sourceType switch
+                var certificates = _dashboardOptions.ResourceServiceClient.ClientCertificates.Source switch
                 {
                     DashboardClientCertificateSource.File => GetFileCertificate(),
                     DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(),
@@ -119,7 +118,7 @@ internal sealed class DashboardClient : IDashboardClient
                     ClientCertificates = certificates
                 };
 
-                configuration.Bind("ResourceServiceClient:Ssl", httpHandler.SslOptions);
+                configuration.Bind("Dashboard:ResourceServiceClient:Ssl", httpHandler.SslOptions);
             }
 
             // https://learn.microsoft.com/aspnet/core/grpc/retries
@@ -151,25 +150,15 @@ internal sealed class DashboardClient : IDashboardClient
 
             X509CertificateCollection GetFileCertificate()
             {
-                var filePath = configuration["ResourceServiceClient:ClientCertificate:FilePath"];
-                var password = configuration["ResourceServiceClient:ClientCertificate:Password"];
-
-                if (filePath is null or [])
-                {
-                    throw new InvalidOperationException("ResourceServiceClient:ClientCertificate:Source is \"File\", but no Certificate:FilePath is configured.");
-                }
+                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificates.FilePath!;
+                var password = _dashboardOptions.ResourceServiceClient.ClientCertificates.Password;
 
                 return [new X509Certificate2(filePath, password)];
             }
 
             X509CertificateCollection GetKeyStoreCertificate()
             {
-                var subject = configuration["ResourceServiceClient:ClientCertificate:Subject"];
-
-                if (subject is null or [])
-                {
-                    throw new InvalidOperationException("ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Certificate:FilePath is configured.");
-                }
+                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject!;
 
                 var storeProperties = new KeyStoreProperties { Name = "My", Location = StoreLocation.CurrentUser };
 
@@ -382,7 +371,7 @@ internal sealed class DashboardClient : IDashboardClient
     string IDashboardClient.ApplicationName
     {
         get => _applicationName
-            ?? _configuration["DOTNET_DASHBOARD_APPLICATION_NAME"]
+            ?? _dashboardOptions.ApplicationName
             ?? "Aspire";
     }
 
@@ -553,17 +542,5 @@ internal sealed class DashboardClient : IDashboardClient
         }
 
         _initialDataReceivedTcs.TrySetResult();
-    }
-
-    private enum DashboardClientCertificateSource
-    {
-        File,
-        KeyStore
-    }
-
-    private enum ResourceClientAuthMode
-    {
-        Unsecured,
-        Certificate
     }
 }

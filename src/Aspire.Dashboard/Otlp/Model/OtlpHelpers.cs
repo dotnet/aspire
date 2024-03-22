@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
@@ -105,27 +106,27 @@ public static class OtlpHelpers
         return (long)(nanoseconds / TimeSpan.NanosecondsPerTick);
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryOptions options)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimits options)
     {
         if (attributes.Count == 0)
         {
             return Array.Empty<KeyValuePair<string, string>>();
         }
 
-        var values = new KeyValuePair<string, string>[Math.Min(attributes.Count, options.AttributeCountLimit)];
+        var values = new KeyValuePair<string, string>[Math.Min(attributes.Count, options.MaxAttributeCount)];
         CopyKeyValues(attributes, values, options);
 
         return values;
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryOptions options, Func<KeyValue, bool> filter)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimits options, Func<KeyValue, bool> filter)
     {
         if (attributes.Count == 0)
         {
             return Array.Empty<KeyValuePair<string, string>>();
         }
 
-        var readLimit = Math.Min(attributes.Count, options.AttributeCountLimit);
+        var readLimit = Math.Min(attributes.Count, options.MaxAttributeCount);
         var values = new List<KeyValuePair<string, string>>(readLimit);
         for (var i = 0; i < attributes.Count; i++)
         {
@@ -136,7 +137,7 @@ public static class OtlpHelpers
                 continue;
             }
 
-            var value = TruncateString(attribute.Value.GetString(), options.AttributeLengthLimit);
+            var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
 
             values.Add(new KeyValuePair<string, string>(attribute.Key, value));
 
@@ -149,9 +150,9 @@ public static class OtlpHelpers
         return values.ToArray();
     }
 
-    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, TelemetryOptions options, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
+    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, TelemetryLimits options, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
     {
-        copyCount = Math.Min(attributes.Count, options.AttributeCountLimit);
+        copyCount = Math.Min(attributes.Count, options.MaxAttributeCount);
 
         if (copiedAttributes is null || copiedAttributes.Length < copyCount)
         {
@@ -165,15 +166,15 @@ public static class OtlpHelpers
         CopyKeyValues(attributes, copiedAttributes, options);
     }
 
-    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, TelemetryOptions options)
+    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, TelemetryLimits options)
     {
-        var copyCount = Math.Min(attributes.Count, options.AttributeCountLimit);
+        var copyCount = Math.Min(attributes.Count, options.MaxAttributeCount);
 
         for (var i = 0; i < copyCount; i++)
         {
             var attribute = attributes[i];
 
-            var value = TruncateString(attribute.Value.GetString(), options.AttributeLengthLimit);
+            var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
 
             copiedAttributes[i] = new KeyValuePair<string, string>(attribute.Key, value);
         }

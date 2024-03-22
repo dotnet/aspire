@@ -108,7 +108,7 @@ public class AddOracleTests
     }
 
     [Fact]
-    public async void OracleCreatesConnectionStringWithDatabase()
+    public async Task OracleCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracle("orcl")

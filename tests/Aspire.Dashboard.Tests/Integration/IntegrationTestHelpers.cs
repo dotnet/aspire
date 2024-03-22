@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography.X509Certificates;
+using Aspire.Dashboard.Configuration;
+using Aspire.Hosting;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
@@ -26,10 +28,10 @@ public static class IntegrationTestHelpers
     {
         var initialData = new Dictionary<string, string?>
         {
-            [DashboardWebApplication.DashboardUrlVariableName] = "http://127.0.0.1:0",
-            [DashboardWebApplication.DashboardOtlpUrlVariableName] = "http://127.0.0.1:0",
-            [DashboardWebApplication.OtlpAuthModeKey] = "Unsecured",
-            [DashboardWebApplication.FrontendAuthModeKey] = "Unsecured"
+            [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
+            [DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = "http://127.0.0.1:0",
+            [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
+            [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured)
         };
 
         additionalConfiguration?.Invoke(initialData);
