@@ -38,7 +38,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private readonly Dictionary<string, IResource> _referencedResources = [];
 
-    private readonly Stack<object?> _currentDependencyStack = [];
+    private readonly HashSet<object?> _currentDependencySet = [];
 
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
@@ -79,8 +79,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         Writer.WriteEndObject();
 
         await Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
-
-        _referencedResources.Clear();
     }
 
     internal async Task WriteResourceAsync(IResource resource)
@@ -490,8 +488,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="value">The object to check for references that may be resources that need to be written.</param>
     public void TryAddDependentResources(object? value)
     {
-        _currentDependencyStack.Push(value);
-
         if (value is IResource resource)
         {
             // add the resource to the ReferencedResources for now. After the whole model is written,
@@ -500,26 +496,33 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
         else if (value is IValueWithReferences objectWithReferences)
         {
+            // ensure we don't infinitely recurse if there are cycles in the graph
+            _currentDependencySet.Add(value);
             foreach (var dependency in objectWithReferences.References)
             {
-                if (!_currentDependencyStack.Contains(dependency))
+                if (!_currentDependencySet.Contains(dependency))
                 {
                     TryAddDependentResources(dependency);
                 }
             }
+            _currentDependencySet.Remove(value);
         }
-
-        _currentDependencyStack.Pop();
     }
 
     private async Task WriteReferencedResources(DistributedApplicationModel model)
     {
+        // remove references that were already in the model and were already written
+        foreach (var existingResource in model.Resources)
+        {
+            _referencedResources.Remove(existingResource.Name);
+        }
+
+        // now write all the leftover referenced resources
         foreach (var resource in _referencedResources.Values)
         {
-            if (!model.Resources.Contains(resource))
-            {
-                await WriteResourceAsync(resource).ConfigureAwait(false);
-            }
+            await WriteResourceAsync(resource).ConfigureAwait(false);
         }
+
+        _referencedResources.Clear();
     }
 }

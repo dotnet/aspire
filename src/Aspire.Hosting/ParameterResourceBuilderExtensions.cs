@@ -21,13 +21,13 @@ public static class ParameterResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException"></exception>
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, bool secret = false)
     {
-        return builder.AddParameter(name, parameterDefault => GetParameterValue(builder, name, parameterDefault), secret: secret);
+        return builder.AddParameter(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret: secret);
     }
 
-    private static string GetParameterValue(IDistributedApplicationBuilder builder, string name, ParameterDefault? parameterDefault)
+    private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault)
     {
         var configurationKey = $"Parameters:{name}";
-        return builder.Configuration[configurationKey]
+        return configuration[configurationKey]
             ?? parameterDefault?.GetDefaultValue()
             ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
     }
@@ -156,7 +156,7 @@ public static class ParameterResourceBuilderExtensions
     public static ParameterResource CreateGeneratedParameter(
         IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterDefault parameterDefault)
     {
-        var parameterResource = new ParameterResource(name, parameterDefault => GetParameterValue(builder, name, parameterDefault), secret);
+        var parameterResource = new ParameterResource(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret);
 
         parameterResource.Default = parameterDefault;
 
