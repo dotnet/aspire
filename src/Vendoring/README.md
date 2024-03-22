@@ -1,21 +1,5 @@
 # Vendoring code sync instructions
 
-## OpenTelemetry.Shared
-
-```console
-git clone https://github.com/open-telemetry/opentelemetry-dotnet.git
-git fetch --tags
-git checkout tags/Instrumentation.SqlClient-1.7.0-beta.1
-```
-
-### Instructions
-
-- Copy required files from `src/Shared`:
-    - `DiagnosticSourceInstrumentation\*.cs`
-    - `ExceptionExtensions.cs`
-    - `Guard.cs`
-    - `SemanticConventions.cs`
-
 ## OpenTelemetry.Instrumentation.SqlClient
 
 ```console
@@ -26,10 +10,32 @@ git checkout tags/Instrumentation.SqlClient-1.7.0-beta.1
 
 ### Instructions
 
-- Copy files from `src/OpenTelemetry.Instrumentation.SqlClient`:
-    - `**\*.cs`
+- Copy files from `src/OpenTelemetry.Instrumentation.SqlClient` to `src/Vendoring/OpenTelemetry.Instrumentation.SqlClient`:
+    - `**\*.cs` minus `AssemblyInfo.cs`
+- Copy files from `src/Shared` to `src/Vendoring/OpenTelemetry.Instrumentation.SqlClient/Shared`:
+    - `DiagnosticSourceInstrumentation\*.cs`
+    - `ExceptionExtensions.cs`
+    - `Guard.cs`
+    - `SemanticConventions.cs`
 
-### Customizations
+## OpenTelemetry.Instrumentation.StackExchangeRedis
+
+```console
+git clone https://github.com/open-telemetry/opentelemetry-dotnet-contrib.git
+git fetch --tags
+git checkout tags/Instrumentation.StackExchangeRedis-1.0.0-rc9.13
+```
+
+### Instructions
+
+- Copy files from `src/OpenTelemetry.Instrumentation.StackExchangeRedis` to `src/Vendoring/OpenTelemetry.Instrumentation.StackExchangeRedis`:
+    - `**\*.cs` minus `AssemblyInfo.cs`
+- Copy files from `src/Shared` to `src/Vendoring/OpenTelemetry.Instrumentation.StackExchangeRedis/Shared`::
+    - `Guard.cs`
+    - `PropertyFetcher.AOT.cs`
+    - `SemanticConventions.cs`
+
+## Customizations
 
 - Add `#nullable disable` in files that require it.
 - Change all `public` classes to `internal`.
