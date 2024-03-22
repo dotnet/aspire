@@ -1,9 +1,12 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 
 namespace Aspire.TestProject;
 
 [Flags]
 public enum TestResourceNames
 {
+    None = 0,
     cosmos = 1,
     dashboard = 2,
     kafka = 4,
@@ -40,15 +43,9 @@ public static class TestResourceNamesExtensions
         return resourcesToSkip;
     }
 
-    // FIXME: method name
-    public static void Enumerate(TestResourceNames names, ISet<string> resources)
+    public static string ToCSVString(this TestResourceNames resourceNames)
     {
-        foreach (var name in Enum.GetValues<TestResourceNames>())
-        {
-            if (names.HasFlag(name))
-            {
-                resources.Add(name.ToString());
-            }
-        }
+        return string.Join(',', Enum.GetValues<TestResourceNames>()
+                            .Where(ename => resourceNames.HasFlag(ename)));
     }
 }

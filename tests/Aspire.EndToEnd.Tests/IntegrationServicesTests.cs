@@ -22,7 +22,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Theory]
-    [Trait("scenario", "default")]
+    [Trait("scenario", "scenario0")]
     [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.mysql)]
     [InlineData(TestResourceNames.postgres)]
@@ -33,7 +33,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
-            _integrationServicesFixture.EnsureAppHasResource(resourceName);
+            _integrationServicesFixture.EnsureAppHasResources(resourceName);
             try
             {
                 var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
@@ -73,11 +73,11 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Fact]
-    [Trait("scenario", "default")]
+    [Trait("scenario", "scenario0")]
     public Task KafkaComponentCanProduceAndConsume()
         => RunTestAsync(async() =>
         {
-            _integrationServicesFixture.EnsureAppHasResource(TestResourceNames.kafka);
+            _integrationServicesFixture.EnsureAppHasResources(TestResourceNames.kafka);
             string topic = $"topic-{Guid.NewGuid()}";
 
             var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
@@ -90,7 +90,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         });
 
     [Fact]
-    [Trait("scenario", "default")]
+    [Trait("scenario", "scenario0")]
     [Trait("scenario", "oracle")]
     [Trait("scenario", "cosmos")]
     [Trait("scenario", "sqlserver")]

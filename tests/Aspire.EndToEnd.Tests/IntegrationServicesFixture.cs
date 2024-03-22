@@ -27,14 +27,14 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     public static bool TestsRunningOutsideOfRepo;
 #endif
 
-    public static string TestScenario = EnvironmentVariables.TestScenario ?? "default";
+    public static string? TestScenario = EnvironmentVariables.TestScenario;
     public Dictionary<string, ProjectInfo> Projects => _projects!;
     public BuildEnvironment BuildEnvironment { get; init; }
     public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
 
     private Process? _appHostProcess;
     private readonly TaskCompletionSource _appExited = new();
-    private ISet<string>? _resourcesToSkip;
+    private TestResourceNames _resourcesToSkip;
     private Dictionary<string, ProjectInfo>? _projects;
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
@@ -82,9 +82,12 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         string processArguments = $"run --no-build -- ";
         _resourcesToSkip = GetResourcesToSkip();
-        if (_resourcesToSkip is not null && _resourcesToSkip.Count > 0)
+        if (_resourcesToSkip > 0)
         {
-            processArguments += $"--skip-resources {string.Join(',', _resourcesToSkip)}";
+            if (_resourcesToSkip.ToCSVString() is string skipArg)
+            {
+                processArguments += $"--skip-resources {skipArg}";
+            }
         }
         _appHostProcess.StartInfo = new ProcessStartInfo(BuildEnvironment.DotNet, processArguments)
         {
@@ -333,45 +336,58 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
     }
 
-    public void EnsureAppHasResource(TestResourceNames resourceName)
+    public void EnsureAppHasResources(TestResourceNames expectedResourceNames)
     {
-        if (_resourcesToSkip?.Contains(resourceName.ToString().ToLowerInvariant()) == true)
+        foreach (var ename in Enum.GetValues<TestResourceNames>())
         {
-            throw new InvalidOperationException($"The required resource '{resourceName}' was skipped for the app run for TestScenario: {TestScenario}. Make sure that the TEST_SCENARIO environment variable matches the intended scenario for the test. Resources that were skipped: {string.Join(",", _resourcesToSkip)}. TestScenario: {TestScenario} ");
+            if (ename != TestResourceNames.None && expectedResourceNames.HasFlag(ename) && _resourcesToSkip.HasFlag(ename))
+            {
+                throw new InvalidOperationException($"The required resource '{ename}' was skipped for the app run for TestScenario: {TestScenario}. Make sure that the TEST_SCENARIO environment variable matches the intended scenario for the test. Resources that were skipped: {string.Join(",", _resourcesToSkip)}. TestScenario: {TestScenario} ");
+            }
         }
     }
 
-    private static ISet<string> GetResourcesToSkip()
+    private static TestResourceNames GetResourcesToSkip()
     {
-        HashSet<string> resourcesToSkip = new();
-        TestResourceNames testResourcesToSkip = TestScenario switch
+        TestResourceNames resourcesToInclude = TestScenario switch
         {
-            "oracle" => TestResourceNames.All & ~TestResourceNames.oracledatabase,
-            "cosmos" => TestResourceNames.All & ~TestResourceNames.cosmos,
-            "sqlserver" => TestResourceNames.All & ~(TestResourceNames.sqlserver | TestResourceNames.efsqlserver),
-            _ or "default" => TestResourceNames.All & ~(TestResourceNames.mongodb | TestResourceNames.mysql | TestResourceNames.postgres | TestResourceNames.rabbitmq | TestResourceNames.redis | TestResourceNames.efnpgsql | TestResourceNames.efmysql)
+            "oracle" => TestResourceNames.oracledatabase,
+            "cosmos" => TestResourceNames.cosmos,
+            "sqlserver" => TestResourceNames.sqlserver,
+            "scenario0" => TestResourceNames.kafka
+                              | TestResourceNames.mongodb
+                              | TestResourceNames.rabbitmq
+                              | TestResourceNames.redis
+                              | TestResourceNames.postgres
+                              | TestResourceNames.efnpgsql
+                              | TestResourceNames.mysql
+                              | TestResourceNames.efmysql,
+            "" or null => TestResourceNames.All,
+            _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };
-        testResourcesToSkip &= ~TestResourceNames.kafka;
-        TestResourceNamesExtensions.Enumerate(testResourcesToSkip, resourcesToSkip);
+
+        TestResourceNames resourcesToSkip = TestResourceNames.All & ~resourcesToInclude;
 
         // always skip cosmos on macos/arm64
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
+            resourcesToSkip |= TestResourceNames.cosmos;
+        }
+        if (string.IsNullOrEmpty(TestScenario))
+        {
+            // no scenario specified
+            if (BuildEnvironment.IsRunningOnCI)
+            {
+                resourcesToSkip |= TestResourceNames.cosmos;
+                resourcesToSkip |= TestResourceNames.oracledatabase;
+                resourcesToSkip |= TestResourceNames.sqlserver;
+            }
         }
 
-        //if (TestScenario == "default")
-        //{
-            //if (BuildEnvironment.IsRunningOnCI)
-            //{
-                //resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
-                //resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
-                //resourcesToSkip.Add(nameof(TestResourceNames.sqlserver));
-            //}
-        //}
+        // always skip the dashboard
+        resourcesToSkip |= TestResourceNames.dashboard;
 
-        resourcesToSkip.Add(nameof(TestResourceNames.dashboard));
-
+        Console.WriteLine ($"--- returning resourcesToSkip: {resourcesToSkip}");
         return resourcesToSkip;
     }
 }
