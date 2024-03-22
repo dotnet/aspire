@@ -97,23 +97,7 @@ Aspire.Microsoft.Data.SqlClient:
 - Activity source names:
   - "OpenTelemetry.Instrumentation.SqlClient"
 - Metric names:
-  - "Microsoft.Data.SqlClient.EventSource"
-    - "active-hard-connections"
-    - "hard-connects"
-    - "hard-disconnects"
-    - "active-soft-connects"
-    - "soft-connects"
-    - "soft-disconnects"
-    - "number-of-non-pooled-connections"
-    - "number-of-pooled-connections"
-    - "number-of-active-connection-pool-groups"
-    - "number-of-inactive-connection-pool-groups"
-    - "number-of-active-connection-pools"
-    - "number-of-inactive-connection-pools"
-    - "number-of-active-connections"
-    - "number-of-free-connections"
-    - "number-of-stasis-connections"
-    - "number-of-reclaimed-connections"
+  - none
 
 Aspire.MongoDB.Driver:
 - Log categories:

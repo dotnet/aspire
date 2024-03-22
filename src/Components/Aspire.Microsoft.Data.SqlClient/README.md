@@ -1,6 +1,6 @@
 # Aspire.Microsoft.Data.SqlClient library
 
-Registers 'Scoped' [Microsoft.Data.SqlClient.SqlConnection](https://learn.microsoft.com/dotnet/api/microsoft.data.sqlclient.sqlconnection) factory in the DI container for connecting Azure SQL, MS SQL database. Enables health check, metrics and telemetry.
+Registers 'Scoped' [Microsoft.Data.SqlClient.SqlConnection](https://learn.microsoft.com/dotnet/api/microsoft.data.sqlclient.sqlconnection) factory in the DI container for connecting Azure SQL, MS SQL database. Enables health check and telemetry.
 
 ## Getting started
 
@@ -70,7 +70,6 @@ The .NET Aspire SqlClient component supports [Microsoft.Extensions.Configuration
       "Data": {
         "SqlClient": {
           "HealthChecks": true,
-          "Metrics": false
         }
       }
     }
