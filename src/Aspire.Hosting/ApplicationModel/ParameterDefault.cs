@@ -1,72 +1,33 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents the input of a <see cref="ParameterResource"/>.
-/// </summary>
-/// <remarks>
-/// This class is used to specify user-inputted values, generated passwords, usernames, etc.
-/// </remarks>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
-public sealed class ParameterInput
-{
-    /// <summary>
-    /// Initializes a new instance of <see cref="ParameterInput"/>.
-    /// </summary>
-    /// <param name="name">The name of the input.</param>
-    /// <param name="secret">A flag indicating whether the input is secret.</param>
-    public ParameterInput(string name, bool secret = false)
-    {
-        ArgumentNullException.ThrowIfNull(name);
-
-        Name = name;
-        Secret = secret;
-    }
-
-    /// <summary>
-    /// Name of the input.
-    /// </summary>
-    public string Name { get; set; }
-
-    /// <summary>
-    /// Indicates if the input is a secret.
-    /// </summary>
-    public bool Secret { get; set; }
-
-    /// <summary>
-    /// Represents how the default value of the input should be retrieved.
-    /// </summary>
-    public ParameterInputDefault? Default { get; set; }
-}
-
-/// <summary>
 /// Represents how a default value should be retrieved.
 /// </summary>
-public abstract class ParameterInputDefault
+public abstract class ParameterDefault
 {
     /// <summary>
-    /// Writes the current <see cref="ParameterInputDefault"/> to the manifest context.
+    /// Writes the current <see cref="ParameterDefault"/> to the manifest context.
     /// </summary>
     /// <param name="context">The context for the manifest publishing operation.</param>
     public abstract void WriteToManifest(ManifestPublishingContext context);
 
     /// <summary>
-    /// Generates a value for the input.
+    /// Generates a value for the parameter.
     /// </summary>
     /// <returns>The generated string value.</returns>
-    public abstract string GenerateDefaultValue();
+    public abstract string GetDefaultValue();
 }
 
 /// <summary>
 /// Represents that a default value should be generated.
 /// </summary>
-public sealed class GenerateParameterInputDefault : ParameterInputDefault
+public sealed class GenerateParameterDefault : ParameterDefault
 {
     /// <summary>
     /// Gets or sets the minimum length of the generated value.
@@ -149,6 +110,6 @@ public sealed class GenerateParameterInputDefault : ParameterInputDefault
     }
 
     /// <inheritdoc/>
-    public override string GenerateDefaultValue() =>
+    public override string GetDefaultValue() =>
         PasswordGenerator.Generate(MinLength, Lower, Upper, Numeric, Special, MinLower, MinUpper, MinNumeric, MinSpecial);
 }

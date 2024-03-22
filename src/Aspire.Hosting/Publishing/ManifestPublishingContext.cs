@@ -38,6 +38,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private readonly Dictionary<string, IResource> _referencedResources = [];
 
+    private readonly Stack<object?> _currentDependencyStack = [];
+
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
     /// </summary>
@@ -188,27 +190,24 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         Writer.WriteString("value", $"{{{parameter.Name}.inputs.value}}");
 
         Writer.WriteStartObject("inputs");
-
-        var input = parameter.ValueInput;
-        Writer.WriteStartObject(input.Name);
+        Writer.WriteStartObject("value");
 
         // https://github.com/Azure/azure-dev/issues/3487 tracks being able to remove this. All inputs are strings.
         Writer.WriteString("type", "string");
 
-        if (input.Secret)
+        if (parameter.Secret)
         {
             Writer.WriteBoolean("secret", true);
         }
 
-        if (input.Default is not null)
+        if (parameter.Default is not null)
         {
             Writer.WriteStartObject("default");
-            input.Default.WriteToManifest(this);
+            parameter.Default.WriteToManifest(this);
             Writer.WriteEndObject();
         }
 
         Writer.WriteEndObject();
-
         Writer.WriteEndObject();
 
         return Task.CompletedTask;
@@ -325,7 +324,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                 Writer.WriteString(key, valueString);
 
-                AddDependentResourcesToManifest(value);
+                TryAddDependentResources(value);
             }
 
             WritePortBindingEnvironmentVariables(resource);
@@ -368,7 +367,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                 Writer.WriteStringValue(valueString);
 
-                AddDependentResourcesToManifest(arg);
+                TryAddDependentResources(arg);
             }
 
             Writer.WriteEndArray();
@@ -416,7 +415,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                 Writer.WriteString(buildArg.Name, valueString);
 
-                AddDependentResourcesToManifest(buildArg.Value);
+                TryAddDependentResources(buildArg.Value);
             }
 
             Writer.WriteEndObject();
@@ -489,8 +488,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// written to the manifest.
     /// </summary>
     /// <param name="value">The object to check for references that may be resources that need to be written.</param>
-    public void AddDependentResourcesToManifest(object? value)
+    public void TryAddDependentResources(object? value)
     {
+        _currentDependencyStack.Push(value);
+
         if (value is IResource resource)
         {
             // add the resource to the ReferencedResources for now. After the whole model is written,
@@ -501,9 +502,14 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             foreach (var dependency in objectWithReferences.References)
             {
-                AddDependentResourcesToManifest(dependency);
+                if (!_currentDependencyStack.Contains(dependency))
+                {
+                    TryAddDependentResources(dependency);
+                }
             }
         }
+
+        _currentDependencyStack.Pop();
     }
 
     private async Task WriteReferencedResources(DistributedApplicationModel model)

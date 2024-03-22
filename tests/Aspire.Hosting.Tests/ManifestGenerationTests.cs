@@ -518,7 +518,7 @@ public class ManifestGenerationTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var param = appBuilder.AddParameter("param");
-        param.Resource.ValueInput.Default = new GenerateParameterInputDefault()
+        param.Resource.Default = new GenerateParameterDefault()
         {
             MinLength = 16,
             Lower = false,

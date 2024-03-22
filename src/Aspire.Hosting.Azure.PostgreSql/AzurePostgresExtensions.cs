@@ -19,7 +19,7 @@ public static class AzurePostgresExtensions
     {
         if (postgresResource.UserNameParameter is null)
         {
-            var generatedUserName = new GenerateParameterInputDefault
+            var generatedUserName = new GenerateParameterDefault
             {
                 MinLength = 10,
                 // just use letters for the username since it can't start with a number

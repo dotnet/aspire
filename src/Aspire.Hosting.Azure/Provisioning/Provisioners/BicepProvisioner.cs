@@ -484,7 +484,7 @@ internal sealed class BicepProvisioner(
 
     private static bool IsParameterWithGeneratedValue(object? value)
     {
-        return value is ParameterResource { ValueInput.Default: not null };
+        return value is ParameterResource { Default: not null };
     }
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";

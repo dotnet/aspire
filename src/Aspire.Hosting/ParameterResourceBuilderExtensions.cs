@@ -21,20 +21,20 @@ public static class ParameterResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException"></exception>
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, bool secret = false)
     {
-        return builder.AddParameter(name, parameter => GetParameterValue(builder, parameter), secret: secret);
+        return builder.AddParameter(name, parameterDefault => GetParameterValue(builder, name, parameterDefault), secret: secret);
     }
 
-    private static string GetParameterValue(IDistributedApplicationBuilder builder, ParameterResource parameter)
+    private static string GetParameterValue(IDistributedApplicationBuilder builder, string name, ParameterDefault? parameterDefault)
     {
-        var configurationKey = $"Parameters:{parameter.Name}";
+        var configurationKey = $"Parameters:{name}";
         return builder.Configuration[configurationKey]
-            ?? parameter.ValueInput.Default?.GenerateDefaultValue()
+            ?? parameterDefault?.GetDefaultValue()
             ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
     }
 
     internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder,
                                                                      string name,
-                                                                     Func<ParameterResource, string> callback,
+                                                                     Func<ParameterDefault?, string> callback,
                                                                      bool secret = false,
                                                                      bool connectionString = false)
     {
@@ -52,7 +52,7 @@ public static class ParameterResourceBuilderExtensions
 
         try
         {
-            state = state with { Properties = [.. state.Properties, ("Value", callback(resource))] };
+            state = state with { Properties = [.. state.Properties, ("Value", resource.Value)] };
         }
         catch (DistributedApplicationException ex)
         {
@@ -80,7 +80,7 @@ public static class ParameterResourceBuilderExtensions
         secret: true,
         connectionString: true);
 
-        var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, () => parameterBuilder.Resource.Value, environmentVariableName);
+        var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, environmentVariableName);
         return builder.CreateResourceBuilder(surrogate);
     }
 
@@ -129,7 +129,7 @@ public static class ParameterResourceBuilderExtensions
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
         int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
     {
-        var generatedPasswordInput = new GenerateParameterInputDefault
+        var generatedPassword = new GenerateParameterDefault
         {
             MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
             Lower = lower,
@@ -142,23 +142,23 @@ public static class ParameterResourceBuilderExtensions
             MinSpecial = minSpecial
         };
 
-        return CreateGeneratedParameter(builder, name, secret: true, generatedPasswordInput);
+        return CreateGeneratedParameter(builder, name, secret: true, generatedPassword);
     }
 
     /// <summary>
-    /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="parameterInputDefault"/>.
+    /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="parameterDefault"/>.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="secret">Flag indicating whether the parameter should be regarded as secret.</param>
-    /// <param name="parameterInputDefault">The <see cref="GenerateParameterInputDefault"/> that describes how the parameter's value should be generated.</param>
+    /// <param name="parameterDefault">The <see cref="GenerateParameterDefault"/> that describes how the parameter's value should be generated.</param>
     /// <returns>The created <see cref="ParameterResource"/>.</returns>
     public static ParameterResource CreateGeneratedParameter(
-        IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterInputDefault parameterInputDefault)
+        IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterDefault parameterDefault)
     {
-        var parameterResource = new ParameterResource(name, parameter => GetParameterValue(builder, parameter), secret);
+        var parameterResource = new ParameterResource(name, parameterDefault => GetParameterValue(builder, name, parameterDefault), secret);
 
-        parameterResource.ValueInput.Default = parameterInputDefault;
+        parameterResource.Default = parameterDefault;
 
         return parameterResource;
     }

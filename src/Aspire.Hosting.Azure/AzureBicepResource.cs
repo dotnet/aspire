@@ -177,7 +177,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
                 context.Writer.WriteString(input.Key, value);
 
-                context.AddDependentResourcesToManifest(input.Value);
+                context.TryAddDependentResources(input.Value);
             }
             context.Writer.WriteEndObject();
         }

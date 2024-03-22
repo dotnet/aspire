@@ -10,7 +10,7 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
 {
     private string? _value;
     private bool _hasValue;
-    private readonly Func<ParameterResource, string> _valueGetter;
+    private readonly Func<ParameterDefault?, string> _valueGetter;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterResource"/>.
@@ -18,14 +18,13 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     /// <param name="name">The name of the parameter resource.</param>
     /// <param name="callback">The callback function to retrieve the value of the parameter.</param>
     /// <param name="secret">A flag indicating whether the parameter is secret.</param>
-    public ParameterResource(string name, Func<ParameterResource, string> callback, bool secret = false) : base(name)
+    public ParameterResource(string name, Func<ParameterDefault?, string> callback, bool secret = false) : base(name)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(callback);
 
         _valueGetter = callback;
-
-        ValueInput = new ParameterInput("value", secret);
+        Secret = secret;
     }
 
     /// <summary>
@@ -37,7 +36,7 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
         {
             if (!_hasValue)
             {
-                _value = _valueGetter(this);
+                _value = _valueGetter(Default);
                 _hasValue = true;
             }
             return _value!;
@@ -45,14 +44,14 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     }
 
     /// <summary>
-    /// Gets the <see cref="ParameterInput"/> that represents the value of the parameter.
+    /// Represents how the default value of the parameter should be retrieved.
     /// </summary>
-    public ParameterInput ValueInput { get; }
+    public ParameterDefault? Default { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the parameter is secret.
     /// </summary>
-    public bool Secret => ValueInput.Secret;
+    public bool Secret { get; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the parameter is a connection string.
