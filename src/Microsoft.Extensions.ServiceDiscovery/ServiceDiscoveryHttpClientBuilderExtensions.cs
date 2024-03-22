@@ -19,7 +19,15 @@ public static class ServiceDiscoveryHttpClientBuilderExtensions
     /// </summary>
     /// <param name="httpClientBuilder">The builder.</param>
     /// <returns>The builder.</returns>
-    public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder)
+    [Obsolete(error: true, message: "This method is obsolete and will be removed in a future version. The recommended alternative is to use the 'AddServiceDiscovery' method instead.")]
+    public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder) => httpClientBuilder.AddServiceDiscovery();
+
+    /// <summary>
+    /// Adds service discovery to the <see cref="IHttpClientBuilder"/>.
+    /// </summary>
+    /// <param name="httpClientBuilder">The builder.</param>
+    /// <returns>The builder.</returns>
+    public static IHttpClientBuilder AddServiceDiscovery(this IHttpClientBuilder httpClientBuilder)
     {
         var services = httpClientBuilder.Services;
         services.AddServiceDiscoveryCore();

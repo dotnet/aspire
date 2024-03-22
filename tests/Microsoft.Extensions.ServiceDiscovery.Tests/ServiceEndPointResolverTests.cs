@@ -54,11 +54,10 @@ public class ServiceEndPointResolverTests
     }
 
     [Fact]
-    public async Task UseServiceDiscovery_NoResolvers_Throws()
+    public async Task AddServiceDiscovery_NoResolvers_Throws()
     {
         var serviceCollection = new ServiceCollection();
-            serviceCollection.AddHttpClient("foo", c => c.BaseAddress = new("http://foo"))
-            .UseServiceDiscovery();
+        serviceCollection.AddHttpClient("foo", c => c.BaseAddress = new("http://foo")).AddServiceDiscovery();
         var services = serviceCollection.BuildServiceProvider();
         var client = services.GetRequiredService<IHttpClientFactory>().CreateClient("foo");
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetStringAsync("/"));
