@@ -16,7 +16,14 @@ public sealed class BuilderContainer : IDisposable
 
     public void Dispose()
     {
-        ((DistributedApplicationBuilder)Builder).Cleanup();
+        try
+        {
+            Builder.Build().Dispose();
+        }
+        catch
+        {
+            // Ignore errors.
+        }
     }
 }
 
