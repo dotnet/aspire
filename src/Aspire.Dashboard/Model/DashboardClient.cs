@@ -434,7 +434,7 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    async IAsyncEnumerable<IReadOnlyList<(int LineNumber, string Content, bool IsErrorMessage)>>? IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
@@ -446,7 +446,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         // Write incoming logs to a channel, and then read from that channel to yield the logs.
         // We do this to batch logs together and enforce a minimum read interval.
-        var channel = Channel.CreateUnbounded<IReadOnlyList<(int LineNumber, string Content, bool IsErrorMessage)>>(
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
         var readTask = Task.Run(async () =>
@@ -455,11 +455,11 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
                 {
-                    var logLines = new (int LineNumber, string Content, bool IsErrorMessage)[response.LogLines.Count];
+                    var logLines = new ResourceLogLine[response.LogLines.Count];
 
                     for (var i = 0; i < logLines.Length; i++)
                     {
-                        logLines[i] = (response.LogLines[i].LineNumber, response.LogLines[i].Text, response.LogLines[i].IsStdErr);
+                        logLines[i] = new ResourceLogLine(response.LogLines[i].LineNumber, response.LogLines[i].Text, response.LogLines[i].IsStdErr);
                     }
 
                     // Channel is unbound so TryWrite always succeeds.

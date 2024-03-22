@@ -40,7 +40,7 @@ public sealed partial class LogViewer
     private readonly List<LogEntry> _logEntries = new();
     private int? _baseLineNumber;
 
-    internal async Task SetLogSourceAsync(IAsyncEnumerable<IReadOnlyList<(int LineNumber, string Content, bool IsErrorMessage)>> batches, bool convertTimestampsFromUtc)
+    internal async Task SetLogSourceAsync(IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
     {
         _convertTimestampsFromUtc = convertTimestampsFromUtc;
 
