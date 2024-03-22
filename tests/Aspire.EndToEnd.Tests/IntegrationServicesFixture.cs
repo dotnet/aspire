@@ -358,6 +358,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             {
                 resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
                 resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
+                resourcesToSkip.Add(nameof(TestResourceNames.sqlserver));
             }
         }
 

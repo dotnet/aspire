@@ -89,6 +89,10 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         });
 
     [Fact]
+    [Trait("scenario", "default")]
+    [Trait("scenario", "oracle")]
+    [Trait("scenario", "cosmos")]
+    [Trait("scenario", "sqlserver")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>
         {
