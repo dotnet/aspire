@@ -2,18 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting MongoDB</PackageTags>
-    <Description>MongoDB support for .NET Aspire.</Description>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="../../src/Aspire.Hosting/Aspire.Hosting.csproj" />
   </ItemGroup>
 
   <ItemGroup>

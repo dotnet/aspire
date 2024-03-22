@@ -124,7 +124,7 @@ public class ManifestGenerationTests
 
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
 
-        var program = appBuilder.Build();
+        using var program = appBuilder.Build();
         var publisher = program.Services.GetManifestPublisher();
 
         program.Run();

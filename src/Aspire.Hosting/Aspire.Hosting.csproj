@@ -21,6 +21,7 @@
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
+    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>

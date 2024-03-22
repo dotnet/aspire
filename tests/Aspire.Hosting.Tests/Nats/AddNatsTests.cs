@@ -47,7 +47,7 @@ public class AddNatsTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddNats("nats", 1234).WithJetStream(srcMountPath: "/tmp/dev-data");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
