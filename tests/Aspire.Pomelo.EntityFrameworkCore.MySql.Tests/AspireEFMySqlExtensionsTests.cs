@@ -195,7 +195,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
             optionsBuilder.UseMySql(new MySqlServerVersion(new Version(8, 2, 0))),
             configureSettings: useSettings ? settings => settings.CommandTimeout = 123 : null);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -233,7 +233,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
             }),
             configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
