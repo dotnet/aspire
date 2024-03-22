@@ -12,10 +12,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-    external: false
-    targetPort: 6379
-    transport: 'tcp'
+  external: false
+  targetPort: 6379
+  transport: 'tcp'
 }
+
             
             
         }

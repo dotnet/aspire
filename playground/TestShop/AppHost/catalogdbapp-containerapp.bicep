@@ -1,11 +1,11 @@
 param location string
 param tags object = {}
-param param_0 string // {containerAppEnv.outputs.id}
-param param_1 string // {containerRegistry.outputs.loginServer}
-param param_2 string // {containerRegistry.outputs.mid}
-param param_3 string // {catalogdbapp.containerImage}
 @secure()
-param param_4 string // {postgres.inputs.password}
+param param_0 string // {postgres.inputs.password}
+param param_1 string // {containerAppEnv.outputs.id}
+param param_2 string // {containerRegistry.outputs.loginServer}
+param param_3 string // {containerRegistry.outputs.mid}
+param param_4 string // {catalogdbapp.containerImage}
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'catalogdbapp'
@@ -13,20 +13,21 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     tags: tags
     
     properties: {
-        environmentId: param_0
+        environmentId: param_1
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-    external: false
-    targetPort: 8080
-    transport: 'http'
+  external: false
+  targetPort: 8080
+  transport: 'http'
 }
+
             registries: [ {
-    server: param_1
-    identity: param_2
+    server: param_2
+    identity: param_3
 } ]
             secrets: [
-{ name: 'connectionstrings--catalogdb', value: 'Host=postgres;Port=5432;Username=postgres;Password=${param_4};Database=catalogdb' }
+{ name: 'connectionstrings--catalogdb', value: 'Host=postgres;Port=5432;Username=postgres;Password=${param_0};Database=catalogdb' }
 ]
 
         }
@@ -36,7 +37,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: param_3
+                    image: param_4
                     name: 'catalogdbapp'
                     env: [
 { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }

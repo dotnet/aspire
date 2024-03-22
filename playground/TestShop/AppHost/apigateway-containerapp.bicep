@@ -4,7 +4,6 @@ param param_0 string // {containerAppEnv.outputs.id}
 param param_1 string // {containerRegistry.outputs.loginServer}
 param param_2 string // {containerRegistry.outputs.mid}
 param param_3 string // {apigateway.containerImage}
-param param_4 string // {containerAppEnv.outputs.defaultDomain}
 
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'apigateway'
@@ -16,10 +15,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-    external: false
-    targetPort: 8080
-    transport: 'http'
+  external: false
+  targetPort: 8080
+  transport: 'http'
 }
+
             registries: [ {
     server: param_1
     identity: param_2
@@ -38,10 +38,10 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
 { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }
 { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES', value: 'true' }
 { name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED', value: 'true' }
-{ name: 'services__basketservice__http__0', value: 'http://basketservice.internal.${param_4}' }
-{ name: 'services__basketservice__https__0', value: 'https://basketservice.internal.${param_4}' }
-{ name: 'services__catalogservice__http__0', value: 'http://catalogservice.internal.${param_4}' }
-{ name: 'services__catalogservice__https__0', value: 'https://catalogservice.internal.${param_4}' }
+{ name: 'services__basketservice__http__0', value: 'http://basketservice' }
+{ name: 'services__basketservice__https__0', value: 'https://basketservice' }
+{ name: 'services__catalogservice__http__0', value: 'http://catalogservice' }
+{ name: 'services__catalogservice__https__0', value: 'https://catalogservice' }
 ]
 
                 }

@@ -19,7 +19,8 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-        "ConnectionStrings__blobs": "{blobs.connectionString}"
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "URL": "{api.bindings.api.url}"
       },
       "bindings": {
         "http": {
@@ -56,13 +57,13 @@
       "type": "azure.bicep.v0",
       "path": "api-containerapp.bicep",
       "params": {
-        "param_0": "{containerAppEnv.outputs.id}",
-        "param_1": "{containerRegistry.outputs.loginServer}",
-        "param_2": "{containerRegistry.outputs.mid}",
-        "param_3": "{api.containerImage}",
-        "param_4": "{storage.outputs.blobEndpoint}",
-        "param_5": "{default-identity.outputs.id}",
-        "param_6": "{default-identity.outputs.clientId}"
+        "param_0": "{storage.outputs.blobEndpoint}",
+        "param_1": "{default-identity.outputs.id}",
+        "param_2": "{default-identity.outputs.clientId}",
+        "param_3": "{containerAppEnv.outputs.id}",
+        "param_4": "{containerRegistry.outputs.loginServer}",
+        "param_5": "{containerRegistry.outputs.mid}",
+        "param_6": "{api.containerImage}"
       }
     }
   }
