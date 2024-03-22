@@ -1316,6 +1316,32 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public async Task AddAzureWebPubSub()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var wps = builder.AddAzureWebPubSub("wps1");
+
+        wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "aspire.hosting.azure.bicep.webpubsub.bicep",
+              "params": {
+                "name": "wps1",
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+        var manifest = await ManifestUtils.GetManifest(wps.Resource);
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        Assert.Equal("wps1", wps.Resource.Name);
+    }
+
+    [Fact]
     public async Task AddAzureStorage()
     {
         var builder = DistributedApplication.CreateBuilder();
