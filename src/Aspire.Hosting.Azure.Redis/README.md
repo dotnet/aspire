@@ -28,7 +28,7 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(redis);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `cache`. In the _Program.cs_ file of `MyService`, the redis connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `cache`. In the _Program.cs_ file of `MyService`, the redis connection can be consumed using the client library [Aspire.StackExchange.Redis](https://www.nuget.org/packages/Aspire.StackExchange.Redis):
 
 ```csharp
 builder.AddRedisClient("cache");

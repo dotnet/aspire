@@ -29,7 +29,7 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(postgresdb);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `postgresdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `postgresdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using the client library [Aspire.Npgsql](https://www.nuget.org/packages/Aspire.Npgsql):
 
 ```csharp
 builder.AddNpgsqlDataSource("postgresdb");
