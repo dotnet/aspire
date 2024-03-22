@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.EventCounters\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.EventCounters" />
     <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.SqlClient\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.SqlClient" />
     <Compile Include="$(VendoringDir)OpenTelemetry.Shared\**\*.cs" LinkBase="OpenTelemetry.Shared" />
   </ItemGroup>
@@ -27,7 +28,6 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />
   </ItemGroup>
   
 </Project>

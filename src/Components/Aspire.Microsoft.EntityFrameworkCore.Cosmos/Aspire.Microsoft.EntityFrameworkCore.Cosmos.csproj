@@ -15,7 +15,12 @@
     <Compile Include="..\..\Shared\Cosmos\CosmosUtils.cs" Link="Shared\CosmosUtils.cs" />
     <Compile Include="..\Common\EntityFrameworkUtils.cs" Link="EntityFrameworkUtils.cs" />
   </ItemGroup>
-  
+
+  <ItemGroup>
+    <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.EventCounters\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.EventCounters" />
+    <Compile Include="$(VendoringDir)OpenTelemetry.Shared\**\*.cs" LinkBase="OpenTelemetry.Shared" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Azure.Identity" />
     <PackageReference Include="Microsoft.Azure.Cosmos" />
@@ -23,7 +28,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />
   </ItemGroup>
 
 </Project>
