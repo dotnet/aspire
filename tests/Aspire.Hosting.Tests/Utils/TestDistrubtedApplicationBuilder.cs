@@ -7,6 +7,12 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Utils;
 
+/// <summary>
+/// DistributedApplication.CreateBuilder() creates a builder that includes configuration to read from appsettings.json.
+/// The builder has a FileSystemWatcher, which can't be cleaned up unless a DistributedApplication is built and disposed.
+/// This class wraps the builder and provides a way to automatically dispose it to prevent test failures from excessive
+/// FileSystemWatcher instances from many tests.
+/// </summary>
 public sealed class TestDistrubtedApplicationBuilder : IDisposable, IDistributedApplicationBuilder
 {
     private readonly IDistributedApplicationBuilder _builder;
