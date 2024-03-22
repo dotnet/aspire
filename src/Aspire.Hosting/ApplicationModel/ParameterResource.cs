@@ -8,25 +8,41 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
 {
+    private string? _value;
+    private bool _hasValue;
+    private readonly Func<ParameterResource, string> _valueGetter;
+
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterResource"/>.
     /// </summary>
     /// <param name="name">The name of the parameter resource.</param>
     /// <param name="callback">The callback function to retrieve the value of the parameter.</param>
     /// <param name="secret">A flag indicating whether the parameter is secret.</param>
-    public ParameterResource(string name, Func<string> callback, bool secret = false) : base(name)
+    public ParameterResource(string name, Func<ParameterResource, string> callback, bool secret = false) : base(name)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(callback);
 
+        _valueGetter = callback;
+
         ValueInput = new ParameterInput("value", secret);
-        ValueInput.SetValueGetter(callback);
     }
 
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
-    public string Value => ValueInput.Value ?? throw new InvalidOperationException("A Parameter's value cannot be null.");
+    public string Value
+    {
+        get
+        {
+            if (!_hasValue)
+            {
+                _value = _valueGetter(this);
+                _hasValue = true;
+            }
+            return _value!;
+        }
+    }
 
     /// <summary>
     /// Gets the <see cref="ParameterInput"/> that represents the value of the parameter.

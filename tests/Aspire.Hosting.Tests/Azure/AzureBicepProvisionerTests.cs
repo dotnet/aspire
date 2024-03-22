@@ -35,7 +35,7 @@ public class AzureBicepProvisionerTests
         var connectionStringResource = builder.CreateResourceBuilder(
             new ResourceWithConnectionString("A", "connection string"));
 
-        var param = builder.AddParameter("param", () => "paramValue");
+        var param = builder.AddParameter("param", _ => "paramValue");
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
                .WithParameter("name", "john")

@@ -16,10 +16,6 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class ParameterInput
 {
-    private string? _value;
-    private bool _hasValue;
-    private Func<string>? _valueGetter;
-
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterInput"/>.
     /// </summary>
@@ -47,39 +43,6 @@ public sealed class ParameterInput
     /// Represents how the default value of the input should be retrieved.
     /// </summary>
     public ParameterInputDefault? Default { get; set; }
-
-    /// <summary>
-    /// Gets the value of the input.
-    /// </summary>
-    public string? Value
-    {
-        get
-        {
-            if (!_hasValue)
-            {
-                _value = GenerateValue();
-                _hasValue = true;
-            }
-            return _value;
-        }
-    }
-
-    internal void SetValueGetter(Func<string> valueGetter) => _valueGetter = valueGetter;
-
-    private string GenerateValue()
-    {
-        if (_valueGetter is not null)
-        {
-            return _valueGetter();
-        }
-
-        if (Default is null)
-        {
-            throw new InvalidOperationException("The input does not have a default value.");
-        }
-
-        return Default.GenerateDefaultValue();
-    }
 }
 
 /// <summary>

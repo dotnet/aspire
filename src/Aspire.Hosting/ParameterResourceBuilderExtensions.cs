@@ -21,16 +21,20 @@ public static class ParameterResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException"></exception>
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, bool secret = false)
     {
-        return builder.AddParameter(name, () =>
-        {
-            var configurationKey = $"Parameters:{name}";
-            return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing.");
-        }, secret: secret);
+        return builder.AddParameter(name, parameter => GetParameterValue(builder, parameter), secret: secret);
+    }
+
+    private static string GetParameterValue(IDistributedApplicationBuilder builder, ParameterResource parameter)
+    {
+        var configurationKey = $"Parameters:{parameter.Name}";
+        return builder.Configuration[configurationKey]
+            ?? parameter.ValueInput.Default?.GenerateDefaultValue()
+            ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
     }
 
     internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder,
                                                                      string name,
-                                                                     Func<string> callback,
+                                                                     Func<ParameterResource, string> callback,
                                                                      bool secret = false,
                                                                      bool connectionString = false)
     {
@@ -48,7 +52,7 @@ public static class ParameterResourceBuilderExtensions
 
         try
         {
-            state = state with { Properties = [.. state.Properties, ("Value", callback())] };
+            state = state with { Properties = [.. state.Properties, ("Value", callback(resource))] };
         }
         catch (DistributedApplicationException ex)
         {
@@ -69,7 +73,7 @@ public static class ParameterResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException"></exception>
     public static IResourceBuilder<IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, string name, string? environmentVariableName = null)
     {
-        var parameterBuilder = builder.AddParameter(name, () =>
+        var parameterBuilder = builder.AddParameter(name, _ =>
         {
             return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string '{name}' is missing.");
         },
@@ -100,7 +104,7 @@ public static class ParameterResourceBuilderExtensions
     public static void ConfigureConnectionStringManifestPublisher(IResourceBuilder<IResourceWithConnectionString> builder)
     {
         // Create a parameter resource that we use to write to the manifest
-        var parameter = new ParameterResource(builder.Resource.Name, () => "", secret: true);
+        var parameter = new ParameterResource(builder.Resource.Name, _ => "", secret: true);
         parameter.IsConnectionString = true;
 
         builder.WithManifestPublishingCallback(context => context.WriteParameterAsync(parameter));
@@ -152,11 +156,7 @@ public static class ParameterResourceBuilderExtensions
     public static ParameterResource CreateGeneratedParameter(
         IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterInputDefault parameterInputDefault)
     {
-        var parameterResource = new ParameterResource(name, () =>
-        {
-            var configurationKey = $"Parameters:{name}";
-            return builder.Configuration[configurationKey] ?? parameterInputDefault.GenerateDefaultValue();
-        }, secret);
+        var parameterResource = new ParameterResource(name, parameter => GetParameterValue(builder, parameter), secret);
 
         parameterResource.ValueInput.Default = parameterInputDefault;
 
