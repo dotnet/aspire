@@ -236,17 +236,7 @@ Aspire.Oracle.EntityFrameworkCore:
 - Activity source names:
   - none (currently not supported by Oracle.EntityFrameworkCore library)
 - Metric names:
-  - "Microsoft.EntityFrameworkCore":
-    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
-    - "ec_Microsoft_EntityFrameworkCore_total_queries"
-    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
-    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
-    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
-    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
-    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
-    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+  - none
 
 Aspire.Pomelo.EntityFrameworkCore.MySql:
 - Log categories:
