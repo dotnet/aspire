@@ -3,6 +3,7 @@
 
 using Amazon.CloudFormation.Model;
 using Aspire.Hosting.AWS.CloudFormation;
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.AWS;
@@ -11,7 +12,8 @@ public class StackOutputReferenceTests
     [Fact]
     public async Task GetValueAsyncTest()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 
@@ -39,7 +41,8 @@ public class StackOutputReferenceTests
     [Fact]
     public void ValueExpressionTest()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 
@@ -58,7 +61,8 @@ public class StackOutputReferenceTests
     [Fact]
     public void InvalidOutputKey()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 

@@ -4,6 +4,7 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -14,7 +15,8 @@ public class AzureBicepProvisionerTests
     [Fact]
     public async Task SetParametersTranslatesParametersToARMCompatibleJsonParameters()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
                .WithParameter("name", "david");
@@ -29,7 +31,8 @@ public class AzureBicepProvisionerTests
     [Fact]
     public async Task SetParametersTranslatesCompatibleParameterTypes()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
         var connectionStringResource = builder.CreateResourceBuilder(
             new ResourceWithConnectionString("A", "connection string"));
@@ -59,7 +62,8 @@ public class AzureBicepProvisionerTests
     [Fact]
     public async Task ResourceWithTheSameBicepTemplateAndParametersHaveTheSameCheckSum()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
                        .WithParameter("name", "david")
@@ -94,7 +98,8 @@ public class AzureBicepProvisionerTests
     {
         var ex = Assert.Throws<ArgumentException>(() =>
         {
-            var builder = DistributedApplication.CreateBuilder();
+            using var container = BuilderContainer.Create();
+            var builder = container.Builder;
             builder.AddAzureConstruct("construct", _ => { })
                    .WithParameter(bicepParameterName);
         });
@@ -111,7 +116,8 @@ public class AzureBicepProvisionerTests
     [InlineData("Alpha1_A")]
     public void WithParameterAllowsParameterNamesWhichAreValidBicepIdentifiers(string bicepParameterName)
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
         builder.AddAzureConstruct("construct", _ => { })
                 .WithParameter(bicepParameterName);
     }
@@ -119,7 +125,8 @@ public class AzureBicepProvisionerTests
     [Fact]
     public async Task ResourceWithSameTemplateButDifferentParametersHaveDifferentChecksums()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
                        .WithParameter("name", "david")
@@ -146,7 +153,8 @@ public class AzureBicepProvisionerTests
     [Fact]
     public async Task GetCurrentChecksumSkipsKnownValuesForCheckSumCreation()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
                        .WithParameter("name", "david")

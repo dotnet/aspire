@@ -60,7 +60,9 @@ public class AddKafkaTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var appBuilder = container.Builder;
+
         var kafka = appBuilder.AddKafka("kafka");
 
         var manifest = await ManifestUtils.GetManifest(kafka.Resource);
