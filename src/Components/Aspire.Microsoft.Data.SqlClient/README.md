@@ -69,7 +69,7 @@ The .NET Aspire SqlClient component supports [Microsoft.Extensions.Configuration
     "Microsoft": {
       "Data": {
         "SqlClient": {
-          "HealthChecks": true,
+          "HealthChecks": true
         }
       }
     }
