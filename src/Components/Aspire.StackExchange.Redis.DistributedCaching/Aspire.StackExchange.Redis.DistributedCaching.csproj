@@ -6,12 +6,19 @@
     <PackageTags>$(ComponentCachePackageTags) distributedcaching distributedcache redis</PackageTags>
     <Description>A Redis® implementation for IDistributedCache that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)redis-cube-red_white-rgb.png</PackageIconFullPath>
+    <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
   </ItemGroup>
-  
+
+  <ItemGroup>
+    <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.StackExchangeRedis\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.StackExchangeRedis" />
+    <!-- Tests need access to StackExchangeRedisInstrumentationOptions which is made internal in /Vendoring -->
+    <InternalsVisibleTo Include="Aspire.StackExchange.Redis.DistributedCaching.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
