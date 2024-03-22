@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Dashboard.Extensions;
@@ -12,7 +13,7 @@ public static partial class TimestampParser
 {
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
-    public static bool TryColorizeTimestamp(string text, out TimestampParserResult result)
+    public static bool TryColorizeTimestamp(string text, [NotNullWhen(true)] out TimestampParserResult? result)
     {
         var match = s_rfc3339RegEx.Match(text);
 

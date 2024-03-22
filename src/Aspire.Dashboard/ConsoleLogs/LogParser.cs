@@ -35,8 +35,8 @@ internal sealed class LogParser
         if (TimestampParser.TryColorizeTimestamp(content, out var timestampParseResult))
         {
             isFirstLine = true;
-            content = timestampParseResult.ModifiedText;
-            timestamp = timestampParseResult.Timestamp;
+            content = timestampParseResult.Value.ModifiedText;
+            timestamp = timestampParseResult.Value.Timestamp;
         }
         // 2. Parse the content to look for info/warn/dbug header
         // TODO extract log level and use here
