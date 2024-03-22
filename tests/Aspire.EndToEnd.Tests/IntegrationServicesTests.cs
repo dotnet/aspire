@@ -43,7 +43,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             }
             catch
             {
-                await _integrationServicesFixture.DumpComponentLogsAsync(resourceName.ToString().ToLowerInvariant(), _testOutput);
+                await _integrationServicesFixture.DumpComponentLogsAsync(resourceName, _testOutput);
                 throw;
             }
         });
