@@ -7,7 +7,6 @@ using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
@@ -127,44 +126,19 @@ internal sealed partial class ServiceEndPointWatcher(
         Exception? error = null;
         ServiceEndPointCollection? newEndPoints = null;
         CacheStatus newCacheState;
-        ResolutionStatus status = ResolutionStatus.Success;
         while (true)
         {
             try
             {
                 var collection = new ServiceEndPointCollectionSource(ServiceName, new FeatureCollection());
-                status = ResolutionStatus.Success;
                 Log.ResolvingEndPoints(_logger, ServiceName);
                 foreach (var resolver in _resolvers)
                 {
-                    var resolverStatus = await resolver.ResolveAsync(collection, cancellationToken).ConfigureAwait(false);
-                    status = CombineStatus(status, resolverStatus);
+                    await resolver.ResolveAsync(collection, cancellationToken).ConfigureAwait(false);
                 }
 
                 var endPoints = ServiceEndPointCollectionSource.CreateServiceEndPointCollection(collection);
-                var statusCode = status.StatusCode;
-                if (statusCode != ResolutionStatusCode.Success)
-                {
-                    if (statusCode is ResolutionStatusCode.Pending)
-                    {
-                        // Wait until a timeout or the collection's ChangeToken.HasChange becomes true and try again.
-                        Log.ResolutionPending(_logger, ServiceName);
-                        await WaitForPendingChangeToken(endPoints.ChangeToken, _options.PendingStatusRefreshPeriod, cancellationToken).ConfigureAwait(false);
-                        continue;
-                    }
-                    else if (statusCode is ResolutionStatusCode.Cancelled)
-                    {
-                        newCacheState = CacheStatus.Invalid;
-                        error = status.Exception ?? new OperationCanceledException();
-                        break;
-                    }
-                    else if (statusCode is ResolutionStatusCode.Error)
-                    {
-                        newCacheState = CacheStatus.Invalid;
-                        error = status.Exception;
-                        break;
-                    }
-                }
+                newCacheState = CacheStatus.Valid;
 
                 lock (_lock)
                 {
@@ -195,7 +169,6 @@ internal sealed partial class ServiceEndPointWatcher(
                 error = exception;
                 newCacheState = CacheStatus.Invalid;
                 SchedulePollingTimer();
-                status = CombineStatus(status, ResolutionStatus.FromException(exception));
                 break;
             }
         }
@@ -214,7 +187,7 @@ internal sealed partial class ServiceEndPointWatcher(
 
         if (OnEndPointsUpdated is { } callback)
         {
-            callback(new(newEndPoints, status));
+            callback(new(newEndPoints, error));
         }
 
         lock (_lock)
@@ -254,48 +227,6 @@ internal sealed partial class ServiceEndPointWatcher(
         }
     }
 
-    private static ResolutionStatus CombineStatus(ResolutionStatus existing, ResolutionStatus newStatus)
-    {
-        if (existing.StatusCode > newStatus.StatusCode)
-        {
-            return existing;
-        }
-
-        var code = (ResolutionStatusCode)Math.Max((int)existing.StatusCode, (int)newStatus.StatusCode);
-        Exception? exception;
-        if (existing.Exception is not null && newStatus.Exception is not null)
-        {
-            List<Exception> exceptions = new();
-            AddExceptions(existing.Exception, exceptions);
-            AddExceptions(newStatus.Exception, exceptions);
-            exception = new AggregateException(exceptions);
-        }
-        else
-        {
-            exception = existing.Exception ?? newStatus.Exception;
-        }
-
-        var message = code switch
-        {
-            ResolutionStatusCode.Error => exception!.Message ?? "Error",
-            _ => code.ToString(),
-        };
-
-        return new ResolutionStatus(code, exception, message);
-
-        static void AddExceptions(Exception? exception, List<Exception> exceptions)
-        {
-            if (exception is AggregateException ae)
-            {
-                exceptions.AddRange(ae.InnerExceptions);
-            }
-            else if (exception is not null)
-            {
-                exceptions.Add(exception);
-            }
-        }
-    }
-
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
@@ -325,48 +256,6 @@ internal sealed partial class ServiceEndPointWatcher(
         Invalid,
         Refreshing,
         Valid
-    }
-
-    private static async Task WaitForPendingChangeToken(IChangeToken changeToken, TimeSpan pollPeriod, CancellationToken cancellationToken)
-    {
-        if (changeToken.HasChanged)
-        {
-            return;
-        }
-
-        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        IDisposable? changeTokenRegistration = null;
-        IDisposable? cancellationRegistration = null;
-        IDisposable? pollPeriodRegistration = null;
-        CancellationTokenSource? timerCancellation = null;
-
-        try
-        {
-            // Either wait for a callback or poll externally.
-            if (changeToken.ActiveChangeCallbacks)
-            {
-                changeTokenRegistration = changeToken.RegisterChangeCallback(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
-            }
-            else
-            {
-                timerCancellation = new(pollPeriod);
-                pollPeriodRegistration = timerCancellation.Token.UnsafeRegister(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
-            }
-
-            if (cancellationToken.CanBeCanceled)
-            {
-                cancellationRegistration = cancellationToken.UnsafeRegister(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
-            }
-
-            await completion.Task.ConfigureAwait(false);
-        }
-        finally
-        {
-            changeTokenRegistration?.Dispose();
-            cancellationRegistration?.Dispose();
-            pollPeriodRegistration?.Dispose();
-            timerCancellation?.Dispose();
-        }
     }
 
     private void ThrowIfNoResolvers()

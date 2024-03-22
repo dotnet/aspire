@@ -9,19 +9,19 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// Represents the result of service endpoint resolution.
 /// </summary>
 /// <param name="endPoints">The endpoint collection.</param>
-/// <param name="status">The status.</param>
-public sealed class ServiceEndPointResolverResult(ServiceEndPointCollection? endPoints, ResolutionStatus status)
+/// <param name="exception">The exception which occurred during resolution.</param>
+public sealed class ServiceEndPointResolverResult(ServiceEndPointCollection? endPoints, Exception? exception)
 {
     /// <summary>
-    /// Gets the status.
+    /// Gets the exception which occurred during resolution.
     /// </summary>
-    public ResolutionStatus Status { get; } = status;
+    public Exception? Exception { get; } = exception;
 
     /// <summary>
     /// Gets a value indicating whether resolution completed successfully.
     /// </summary>
     [MemberNotNullWhen(true, nameof(EndPoints))]
-    public bool ResolvedSuccessfully => Status.StatusCode is ResolutionStatusCode.Success;
+    public bool ResolvedSuccessfully => Exception is null;
 
     /// <summary>
     /// Gets the endpoints.

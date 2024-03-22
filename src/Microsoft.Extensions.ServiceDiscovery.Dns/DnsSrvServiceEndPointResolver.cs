@@ -38,8 +38,7 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
         var result = await dnsClient.QueryAsync(srvQuery, QueryType.SRV, cancellationToken: ShutdownToken).ConfigureAwait(false);
         if (result.HasError)
         {
-            SetException(CreateException(srvQuery, result.ErrorMessage));
-            return;
+            throw CreateException(srvQuery, result.ErrorMessage);
         }
 
         var lookupMapping = new Dictionary<string, DnsResourceRecord>();

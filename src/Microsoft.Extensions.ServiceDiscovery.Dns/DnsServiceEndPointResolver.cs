@@ -44,8 +44,7 @@ internal sealed partial class DnsServiceEndPointResolver(
 
         if (endPoints.Count == 0)
         {
-            SetException(new InvalidOperationException($"No DNS records were found for service {ServiceName} (DNS name: {hostName})."));
-            return;
+            throw new InvalidOperationException($"No DNS records were found for service {ServiceName} (DNS name: {hostName}).");
         }
 
         SetResult(endPoints, ttl);

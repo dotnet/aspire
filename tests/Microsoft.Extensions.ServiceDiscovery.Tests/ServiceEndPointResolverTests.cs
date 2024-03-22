@@ -74,9 +74,9 @@ public class ServiceEndPointResolverTests
         }
     }
 
-    private sealed class FakeEndPointResolver(Func<ServiceEndPointCollectionSource, CancellationToken, ValueTask<ResolutionStatus>> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointProvider
+    private sealed class FakeEndPointResolver(Func<ServiceEndPointCollectionSource, CancellationToken, ValueTask> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointProvider
     {
-        public ValueTask<ResolutionStatus> ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken) => resolveAsync(endPoints, cancellationToken);
+        public ValueTask ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken) => resolveAsync(endPoints, cancellationToken);
         public ValueTask DisposeAsync() => disposeAsync();
     }
 
@@ -123,7 +123,6 @@ public class ServiceEndPointResolverTests
             cts[0].Cancel();
             var resolverResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(resolverResult);
-            Assert.Equal(ResolutionStatus.Success, resolverResult.Status);
             Assert.True(resolverResult.ResolvedSuccessfully);
             Assert.Equal(2, resolverResult.EndPoints.Count);
             var endpoints = resolverResult.EndPoints.Select(ep => ep.EndPoint).OfType<IPEndPoint>().ToList();
@@ -231,7 +230,6 @@ public class ServiceEndPointResolverTests
 
                 collection.AddChangeToken(new CancellationChangeToken(cts[0].Token));
                 collection.EndPoints.Add(ServiceEndPoint.Create(new IPEndPoint(IPAddress.Parse("127.1.1.1"), 8080)));
-                return ResolutionStatus.Success;
             },
             disposeAsync: () => default);
         var resolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));

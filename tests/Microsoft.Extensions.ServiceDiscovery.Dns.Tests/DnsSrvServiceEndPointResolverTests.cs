@@ -113,7 +113,6 @@ public class DnsSrvServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             Assert.Equal(3, initialResult.EndPoints.Count);
             var eps = initialResult.EndPoints;
             Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].EndPoint);
@@ -199,9 +198,8 @@ public class DnsSrvServiceEndPointResolverTests
             resolver.Start();
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
-            Assert.Null(initialResult.Status.Exception);
+            Assert.Null(initialResult.Exception);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
 
             if (dnsFirst)
             {

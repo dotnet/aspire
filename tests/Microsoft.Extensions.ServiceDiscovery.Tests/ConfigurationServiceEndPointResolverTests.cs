@@ -39,7 +39,6 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             var ep = Assert.Single(initialResult.EndPoints);
             Assert.Equal(new DnsEndPoint("localhost", 8080), ep.EndPoint);
 
@@ -80,7 +79,6 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             Assert.Empty(initialResult.EndPoints);
         }
 
@@ -95,7 +93,6 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             var ep = Assert.Single(initialResult.EndPoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
         }
@@ -111,7 +108,6 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             var ep = Assert.Single(initialResult.EndPoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
         }
@@ -145,7 +141,6 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             Assert.Equal(2, initialResult.EndPoints.Count);
             Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
             Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPoints[1].EndPoint);
@@ -168,7 +163,6 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             Assert.Equal(2, initialResult.EndPoints.Count);
             Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
             Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPoints[1].EndPoint);
@@ -214,7 +208,6 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             Assert.Equal(3, initialResult.EndPoints.Count);
             Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPoints[0].EndPoint);
             Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPoints[1].EndPoint);
@@ -260,7 +253,6 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             Assert.Equal(3, initialResult.EndPoints.Count);
 
             // These must be treated as HTTPS by the HttpClient middleware, but that is not the responsibility of the resolver.

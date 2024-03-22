@@ -34,7 +34,6 @@ public class PassThroughServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             var ep = Assert.Single(initialResult.EndPoints);
             Assert.Equal(new DnsEndPoint("basket", 80), ep.EndPoint);
         }
@@ -66,7 +65,6 @@ public class PassThroughServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
 
             // We expect the basket service to be resolved from Configuration, not the pass-through provider.
             Assert.Single(initialResult.EndPoints);
@@ -100,7 +98,6 @@ public class PassThroughServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
 
             // We expect the CATALOG service to be resolved from the pass-through provider.
             Assert.Single(initialResult.EndPoints);
