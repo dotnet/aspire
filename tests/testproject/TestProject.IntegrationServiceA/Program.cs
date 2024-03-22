@@ -69,6 +69,16 @@ if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
     builder.AddAzureCosmosDBClient("cosmos");
 }
 
+string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
+if (!string.IsNullOrEmpty(logPath))
+{
+    builder.Logging.AddFile(Path.Combine(logPath, "IntegrationServiceA.log"));
+}
+else
+{
+    throw new InvalidOperationException("TEST_LOG_PATH environment variable is not set.");
+}
+
 var app = builder.Build();
 
 app.MapHealthChecks("/health");
