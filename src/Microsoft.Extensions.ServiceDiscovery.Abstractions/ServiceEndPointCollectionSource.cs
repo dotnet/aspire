@@ -9,7 +9,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// A mutable collection of service endpoints. 
 /// </summary>
-public class ServiceEndPointCollectionSource
+public sealed class ServiceEndPointCollectionSource
 {
     private readonly List<ServiceEndPoint> _endPoints = new();
     private readonly List<IChangeToken> _changeTokens = new();

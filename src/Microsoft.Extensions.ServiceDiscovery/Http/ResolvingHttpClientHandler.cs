@@ -8,7 +8,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Http;
 /// <summary>
 /// <see cref="HttpClientHandler"/> which resolves endpoints using service discovery.
 /// </summary>
-internal class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver, IOptions<ServiceDiscoveryOptions> options) : HttpClientHandler
+internal sealed class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver, IOptions<ServiceDiscoveryOptions> options) : HttpClientHandler
 {
     private readonly HttpServiceEndPointResolver _resolver = resolver;
     private readonly ServiceDiscoveryOptions _options = options.Value;

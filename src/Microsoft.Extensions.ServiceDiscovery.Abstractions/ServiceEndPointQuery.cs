@@ -8,7 +8,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Describes a query for endpoints of a service.
 /// </summary>
-public class ServiceEndPointQuery
+public sealed class ServiceEndPointQuery
 {
     /// <summary>
     /// The value indicating that all endpoint schemes are allowed.

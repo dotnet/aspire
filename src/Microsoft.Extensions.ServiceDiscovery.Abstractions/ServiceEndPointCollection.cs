@@ -13,7 +13,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// </summary>
 [DebuggerDisplay("{ToString(),nq}")]
 [DebuggerTypeProxy(typeof(ServiceEndPointCollectionDebuggerView))]
-public class ServiceEndPointCollection : IReadOnlyList<ServiceEndPoint>
+public sealed class ServiceEndPointCollection : IReadOnlyList<ServiceEndPoint>
 {
     private readonly List<ServiceEndPoint>? _endpoints;
 
