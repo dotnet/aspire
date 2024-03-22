@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.ServiceDiscovery.Configuration;
+using Microsoft.Extensions.ServiceDiscovery.Internal;
 using Xunit;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;

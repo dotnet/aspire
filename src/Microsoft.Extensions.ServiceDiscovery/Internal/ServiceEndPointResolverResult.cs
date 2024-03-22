@@ -3,14 +3,14 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.Extensions.ServiceDiscovery;
+namespace Microsoft.Extensions.ServiceDiscovery.Internal;
 
 /// <summary>
 /// Represents the result of service endpoint resolution.
 /// </summary>
 /// <param name="endPoints">The endpoint collection.</param>
 /// <param name="exception">The exception which occurred during resolution.</param>
-public sealed class ServiceEndPointResolverResult(ServiceEndPointCollection? endPoints, Exception? exception)
+internal sealed class ServiceEndPointResolverResult(ServiceEndPointCollection? endPoints, Exception? exception)
 {
     /// <summary>
     /// Gets the exception which occurred during resolution.

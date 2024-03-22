@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.ServiceDiscovery.Http;
+using Microsoft.Extensions.ServiceDiscovery.Internal;
 using Xunit;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;

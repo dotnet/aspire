@@ -7,6 +7,7 @@ using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
