@@ -1,21 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery.Http;
 using Yarp.ReverseProxy.Forwarder;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
 
-internal sealed class ServiceDiscoveryForwarderHttpClientFactory(
-    TimeProvider timeProvider,
-    IServiceEndPointSelectorFactory selectorProvider,
-    ServiceEndPointWatcherFactory factory,
-    IOptions<ServiceDiscoveryOptions> options) : ForwarderHttpClientFactory
+internal sealed class ServiceDiscoveryForwarderHttpClientFactory(IServiceDiscoveryDelegatingHttpMessageHandlerFactory handlerFactory)
+    : ForwarderHttpClientFactory
 {
     protected override HttpMessageHandler WrapHandler(ForwarderHttpClientContext context, HttpMessageHandler handler)
     {
-        var registry = new HttpServiceEndPointResolver(factory, selectorProvider, timeProvider);
-        return new ResolvingHttpDelegatingHandler(registry, options, handler);
+        return handlerFactory.CreateServiceDiscoveryDelegatingHandler(handler);
     }
 }

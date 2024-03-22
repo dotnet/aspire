@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.ServiceDiscovery.Configuration;
+using Microsoft.Extensions.ServiceDiscovery.Http;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
 using Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 using Microsoft.Extensions.ServiceDiscovery.PassThrough;
@@ -42,6 +43,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
         services.TryAddSingleton(static sp => TimeProvider.System);
         services.TryAddSingleton<IServiceEndPointSelectorFactory, RoundRobinServiceEndPointSelectorProvider>();
         services.TryAddSingleton<ServiceEndPointWatcherFactory>();
+        services.TryAddSingleton<IServiceDiscoveryDelegatingHttpMessageHandlerFactory, ServiceDiscoveryHttpMessageHandlerMiddlewareFactory>();
         services.TryAddSingleton(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointWatcherFactory>(), sp.GetRequiredService<TimeProvider>()));
         return services;
     }
