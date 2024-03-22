@@ -31,11 +31,32 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Adds the core service discovery services and configures defaults.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">The delegate used to configure service discovery options.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddServiceDiscovery(this IServiceCollection services, Action<ServiceDiscoveryOptions>? configureOptions)
+    {
+        return services.AddServiceDiscoveryCore(configureOptions: configureOptions)
+            .AddConfigurationServiceEndPointResolver()
+            .AddPassThroughServiceEndPointResolver();
+    }
+
+    /// <summary>
     /// Adds the core service discovery services.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services)
+    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services) => services.AddServiceDiscoveryCore(configureOptions: null);
+
+    /// <summary>
+    /// Adds the core service discovery services.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">The delegate used to configure service discovery options.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services, Action<ServiceDiscoveryOptions>? configureOptions)
     {
         services.AddOptions();
         services.AddLogging();
@@ -45,6 +66,11 @@ public static class ServiceDiscoveryServiceCollectionExtensions
         services.TryAddSingleton<ServiceEndPointWatcherFactory>();
         services.TryAddSingleton<IServiceDiscoveryDelegatingHttpMessageHandlerFactory, ServiceDiscoveryHttpMessageHandlerMiddlewareFactory>();
         services.TryAddSingleton(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointWatcherFactory>(), sp.GetRequiredService<TimeProvider>()));
+        if (configureOptions is not null)
+        {
+            services.Configure(configureOptions);
+        }
+
         return services;
     }
 
