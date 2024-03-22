@@ -40,7 +40,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
         services.AddOptions();
         services.AddLogging();
         services.TryAddTransient<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
-        services.TryAddSingleton(static sp => TimeProvider.System);
+        services.TryAddSingleton(_ => TimeProvider.System);
         services.TryAddTransient<IServiceEndPointSelector, RoundRobinServiceEndPointSelector>();
         services.TryAddSingleton<ServiceEndPointWatcherFactory>();
         services.TryAddSingleton<IServiceDiscoveryDelegatingHttpMessageHandlerFactory, ServiceDiscoveryHttpMessageHandlerMiddlewareFactory>();
@@ -64,7 +64,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <param name="configureOptions">The delegate used to configure the provider.</param>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services, Action<ConfigurationServiceEndPointResolverOptions>? configureOptions = null)
+    public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services, Action<ConfigurationServiceEndPointResolverOptions>? configureOptions)
     {
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IServiceEndPointProviderFactory, ConfigurationServiceEndPointResolverProvider>();
