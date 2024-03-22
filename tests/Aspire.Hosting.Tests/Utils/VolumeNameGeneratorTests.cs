@@ -28,6 +28,7 @@ public class VolumeNameGeneratorTests
         var volumeName = CreateVolumeName(resource, "data");
 
         Assert.Equal($"{builder.Environment.ApplicationName}-{resource.Resource.Name}-data", volumeName);
+        using var _ = builder.Build();
     }
 
     [Theory]
@@ -41,6 +42,7 @@ public class VolumeNameGeneratorTests
         var volumeName = CreateVolumeName(resource, "data");
 
         Assert.Equal($"volume-{resource.Resource.Name}-data", volumeName);
+        using var _ = builder.Build();
     }
 
     [Theory]
@@ -51,6 +53,7 @@ public class VolumeNameGeneratorTests
         var resource = builder.AddResource(new TestResource("myresource"));
 
         Assert.Throws<ArgumentException>(nameof(suffix), () => CreateVolumeName(resource, suffix));
+        using var _ = builder.Build();
     }
 
     public static object[][] InvalidNameParts => [

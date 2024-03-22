@@ -35,6 +35,7 @@ public class ResourceNotificationTests
             Assert.Equal("A", c.Key);
             Assert.Equal("B", c.Value);
         });
+        using var _ = builder.Build();
     }
 
     [Fact]

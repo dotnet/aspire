@@ -35,6 +35,7 @@ public class PublishAsDockerfileTests
         var actual = manifest.ToString();
 
         Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
+        using var _ = builder.Build();
     }
 
     [Fact]
@@ -77,6 +78,7 @@ public class PublishAsDockerfileTests
         var actual = manifest.ToString();
 
         Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
+        using var _ = builder.Build();
     }
 
     [Fact]
@@ -111,5 +113,6 @@ public class PublishAsDockerfileTests
         var actual = manifest.ToString();
 
         Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
+        using var _ = builder.Build();
     }
 }

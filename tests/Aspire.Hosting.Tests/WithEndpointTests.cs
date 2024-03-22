@@ -138,6 +138,7 @@ public class WithEndpointTests
         });
 
         Assert.Equal("The endpoint \"ep\" has no associated container host name.", ex.Message);
+        using var _ = builder.Build();
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithEndpointTests>(args);

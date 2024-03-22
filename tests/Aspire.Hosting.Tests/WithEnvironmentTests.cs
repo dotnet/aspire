@@ -169,6 +169,7 @@ public class WithEnvironmentTests
         Assert.Equal("{container1.bindings.primary.url}/foo", manifestConfig["URL"]);
         Assert.Equal("{container1.bindings.primary.port}", manifestConfig["PORT"]);
         Assert.Equal("{test.connectionString};name=1", manifestConfig["HOST"]);
+        using var _ = builder.Build();
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString

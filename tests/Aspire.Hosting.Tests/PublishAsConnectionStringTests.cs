@@ -37,5 +37,6 @@ public class PublishAsConnectionStringTests
         var actual = manifest.ToString();
 
         Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
+        using var _ = appBuilder.Build();
     }
 }

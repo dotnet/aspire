@@ -19,6 +19,7 @@ public class WithAnnotationTests
 
         Assert.Equal(2, dummyAnnotations.Count());
         Assert.NotEqual(dummyAnnotations.First(), dummyAnnotations.Last());
+        using var _ = builder.Build();
     }
 
     [Fact]
@@ -33,6 +34,7 @@ public class WithAnnotationTests
 
         Assert.Equal(2, dummyAnnotations.Count());
         Assert.NotEqual(dummyAnnotations.First(), dummyAnnotations.Last());
+        using var _ = builder.Build();
     }
 
     [Fact]
@@ -48,6 +50,7 @@ public class WithAnnotationTests
         var secondAnnotation = redis.Resource.Annotations.OfType<DummyAnnotation>().Single();
 
         Assert.NotEqual(firstAnnotation, secondAnnotation);
+        using var _ = builder.Build();
     }
 }
 

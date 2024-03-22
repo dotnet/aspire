@@ -25,6 +25,7 @@ public class ContainerResourceBuilderTests
         var redis = builder.AddRedis("redis").WithImage("redis-stack", "1.0.0");
         Assert.Equal("redis-stack", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Image);
         Assert.Equal("1.0.0", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
+        using var _ = builder.Build();
     }
 
     [Fact]

@@ -178,6 +178,8 @@ public class AddMongoDBTests
             }
             """;
         Assert.Equal(expectedManifest, dbManifest.ToString());
+
+        using var _ = appBuilder.Build();
     }
 
     [Fact]

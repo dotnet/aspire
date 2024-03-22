@@ -14,6 +14,7 @@ public class ResourceExtensionsTests
 
         Assert.True(container.Resource.TryGetContainerImageName(out var imageName));
         Assert.Equal("grafana/grafana@sha256:1adbcc2df3866ff5ec1d836e9d2220c904c7f98901b918d3cc5e1118ab1af991", imageName);
+        using var _ = builder.Build();
     }
 
     [Fact]
@@ -24,5 +25,6 @@ public class ResourceExtensionsTests
 
         Assert.True(container.Resource.TryGetContainerImageName(out var imageName));
         Assert.Equal("grafana/grafana:10.3.1", imageName);
+        using var _ = builder.Build();
     }
 }

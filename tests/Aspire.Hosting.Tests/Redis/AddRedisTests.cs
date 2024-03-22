@@ -120,6 +120,7 @@ public class AddRedisTests
         builder.AddRedis("myredis2").WithRedisCommander();
 
         Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
+        using var _ = builder.Build();
     }
 
     [Theory]

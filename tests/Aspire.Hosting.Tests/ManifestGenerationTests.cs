@@ -622,6 +622,7 @@ public class ManifestGenerationTests
 
         var manifest = await ManifestUtils.GetManifest(container.Resource);
         Assert.Equal(expectedManifest, manifest.ToString());
+        using var _ = appBuilder.Build();
     }
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
