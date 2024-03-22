@@ -64,12 +64,12 @@ public class ServiceEndPointResolverTests
         Assert.Equal("No resolver which supports the provided service name, 'http://foo', has been configured.", exception.Message);
     }
 
-    private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointProvider? Resolver)> createResolverDelegate) : IServiceEndPointProviderFactory
+    private sealed class FakeEndPointResolverProvider(Func<ServiceEndPointQuery, (bool Result, IServiceEndPointProvider? Resolver)> createResolverDelegate) : IServiceEndPointProviderFactory
     {
-        public bool TryCreateProvider(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
+        public bool TryCreateProvider(ServiceEndPointQuery query, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
         {
             bool result;
-            (result, resolver) = createResolverDelegate(serviceName);
+            (result, resolver) = createResolverDelegate(query);
             return result;
         }
     }

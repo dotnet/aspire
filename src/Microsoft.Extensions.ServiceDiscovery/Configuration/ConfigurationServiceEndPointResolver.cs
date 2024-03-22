@@ -6,9 +6,8 @@ using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Internal;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery.Configuration;
 
 /// <summary>
 /// A service endpoint resolver that uses configuration to resolve resolved.
@@ -26,29 +25,19 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     /// <summary>
     /// Initializes a new <see cref="ConfigurationServiceEndPointResolver"/> instance.
     /// </summary>
-    /// <param name="serviceName">The service name.</param>
+    /// <param name="query">The query.</param>
     /// <param name="configuration">The configuration.</param>
     /// <param name="logger">The logger.</param>
     /// <param name="options">The options.</param>
-    /// <param name="parser">The service name parser.</param>
     public ConfigurationServiceEndPointResolver(
-        string serviceName,
+        ServiceEndPointQuery query,
         IConfiguration configuration,
         ILogger<ConfigurationServiceEndPointResolver> logger,
-        IOptions<ConfigurationServiceEndPointResolverOptions> options,
-        ServiceNameParser parser)
+        IOptions<ConfigurationServiceEndPointResolverOptions> options)
     {
-        if (parser.TryParse(serviceName, out var parts))
-        {
-            _serviceName = parts.Host;
-            _endpointName = parts.EndPointName;
-            _schemes = parts.Schemes;
-        }
-        else
-        {
-            throw new InvalidOperationException($"Service name '{serviceName}' is not valid.");
-        }
-
+        _serviceName = query.Host;
+        _endpointName = query.EndPointName;
+        _schemes = query.IncludeSchemes;
         _configuration = configuration;
         _logger = logger;
         _options = options;

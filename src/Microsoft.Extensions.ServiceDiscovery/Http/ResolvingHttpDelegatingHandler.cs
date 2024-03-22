@@ -113,7 +113,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
             if (uri.Scheme.IndexOf('+') > 0)
             {
                 var scheme = uri.Scheme.Split('+')[0];
-                if (options.AllowedSchemes.Equals(ServiceDiscoveryOptions.AllSchemes) || options.AllowedSchemes.Contains(scheme, StringComparer.OrdinalIgnoreCase))
+                if (options.AllowedSchemes.Equals(ServiceEndPointQuery.AllowAllSchemes) || options.AllowedSchemes.Contains(scheme, StringComparer.OrdinalIgnoreCase))
                 {
                     result.Scheme = scheme;
                 }

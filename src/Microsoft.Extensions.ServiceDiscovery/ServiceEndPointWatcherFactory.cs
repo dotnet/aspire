@@ -30,10 +30,15 @@ internal sealed partial class ServiceEndPointWatcherFactory(
     {
         ArgumentNullException.ThrowIfNull(serviceName);
 
+        if (!ServiceEndPointQuery.TryParse(serviceName, _options.Value.AllowedSchemes, out var query))
+        {
+            throw new ArgumentException("The provided input was not in a valid format. It must be a valid URI.", nameof(serviceName));
+        }
+
         List<IServiceEndPointProvider>? resolvers = null;
         foreach (var factory in _resolverProviders)
         {
-            if (factory.TryCreateProvider(serviceName, out var resolver))
+            if (factory.TryCreateProvider(query, out var resolver))
             {
                 resolvers ??= [];
                 resolvers.Add(resolver);

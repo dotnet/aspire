@@ -4,9 +4,8 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ServiceDiscovery.Internal;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery.Configuration;
 
 internal sealed partial class ConfigurationServiceEndPointResolver
 {
@@ -46,7 +45,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver
 
         [LoggerMessage(6, LogLevel.Debug, "Endpoints configured for service '{ServiceName}' from path '{Path}': {ConfiguredEndPoints}.", EventName = "ConfiguredEndPoints")]
         internal static partial void ConfiguredEndPoints(ILogger logger, string serviceName, string path, string configuredEndPoints);
-        public static void ConfiguredEndPoints(ILogger logger, string serviceName, string path, List<ServiceNameParts> parsedValues)
+        public static void ConfiguredEndPoints(ILogger logger, string serviceName, string path, List<ServiceEndPointQuery> parsedValues)
         {
             if (!logger.IsEnabled(LogLevel.Debug))
             {
