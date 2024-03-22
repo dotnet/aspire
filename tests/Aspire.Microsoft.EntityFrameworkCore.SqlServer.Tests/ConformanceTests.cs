@@ -3,7 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
-using Aspire.SqlServer.Tests;
+using Aspire.Microsoft.Data.SqlClient.Tests;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;

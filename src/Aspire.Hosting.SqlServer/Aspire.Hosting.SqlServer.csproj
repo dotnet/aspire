@@ -15,8 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
-
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
   </ItemGroup>
 
 </Project>

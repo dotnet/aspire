@@ -6,7 +6,7 @@ using Aspire.Hosting;
 using Testcontainers.MsSql;
 using Xunit;
 
-namespace Aspire.SqlServer.Tests;
+namespace Aspire.Microsoft.Data.SqlClient.Tests;
 
 public sealed class SqlServerContainerFixture : IAsyncLifetime
 {

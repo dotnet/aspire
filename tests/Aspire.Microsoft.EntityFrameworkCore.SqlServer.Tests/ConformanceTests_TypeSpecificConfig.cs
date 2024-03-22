@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Aspire.SqlServer.Tests;
+using Aspire.Microsoft.Data.SqlClient.Tests;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
