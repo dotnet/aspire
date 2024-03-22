@@ -471,7 +471,7 @@ public class ManifestGenerationTests
         var nodeApp = resources.GetProperty("nodeapp");
         var npmApp = resources.GetProperty("npmapp");
 
-        static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
+        static void AssertNodeResource(TestProgram program, string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
             var s = jsonElement.ToString();
             Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
@@ -483,15 +483,15 @@ public class ManifestGenerationTests
 
             var env = jsonElement.GetProperty("env");
             Assert.Equal($$"""{{{resourceName}}.bindings.http.port}""", env.GetProperty("PORT").GetString());
-            Assert.Equal("production", env.GetProperty("NODE_ENV").GetString());
+            Assert.Equal(program.AppBuilder.Environment.EnvironmentName.ToLowerInvariant(), env.GetProperty("NODE_ENV").GetString());
 
             var command = jsonElement.GetProperty("command");
             Assert.Equal(expectedCommand, command.GetString());
             Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
         }
 
-        AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
-        AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
+        AssertNodeResource(program, "nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
+        AssertNodeResource(program, "npmapp", npmApp, "npm", ["run", "start"]);
     }
 
     [Fact]
