@@ -174,7 +174,7 @@ public class AddOracleTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var oracleServer = builder.AddOracle("oracle");
         var db = oracleServer.AddDatabase("db");
 
@@ -224,7 +224,7 @@ public class AddOracleTests
     [Fact]
     public async Task VerifyManifestWithPasswordParameter()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var pass = builder.AddParameter("pass");
 
         var oracleServer = builder.AddOracle("oracle", pass);
@@ -254,7 +254,7 @@ public class AddOracleTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db = builder.AddOracle("oracle1");
         db.AddDatabase("db");
@@ -265,7 +265,7 @@ public class AddOracleTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddOracle("oracle1")
             .AddDatabase("db");
@@ -277,7 +277,7 @@ public class AddOracleTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var oracle1 = builder.AddOracle("oracle1");
 
@@ -294,7 +294,7 @@ public class AddOracleTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db1 = builder.AddOracle("oracle1")
             .AddDatabase("db1", "imports");
