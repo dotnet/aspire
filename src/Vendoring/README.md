@@ -4,6 +4,8 @@
 
 ```console
 git clone https://github.com/open-telemetry/opentelemetry-dotnet.git
+git fetch --tags
+git checkout tags/Instrumentation.SqlClient-1.7.0-beta.1
 ```
 
 ### Instructions
@@ -18,16 +20,17 @@ git clone https://github.com/open-telemetry/opentelemetry-dotnet.git
 
 ```console
 git clone https://github.com/open-telemetry/opentelemetry-dotnet.git
+git fetch --tags
+git checkout tags/Instrumentation.SqlClient-1.7.0-beta.1
 ```
 
 ### Instructions
 
 - Copy files from `src/OpenTelemetry.Instrumentation.SqlClient`:
-    - `OpenTelemetry.Instrumentation.SqlClient.csproj`
     - `**\*.cs`
 
 ### Customizations
 
-- Added `#nullable disable` in files that require it.
-- Added `GlobalSuppressions.cs` to fix incompatible coding style.
+- Add `#nullable disable` in files that require it.
 - Change all `public` classes to `internal`.
+- Update `src/Vendoring/.editorconfig` with the required exemptions.

@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.SqlClient\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.SqlClient" />
-    <Compile Include="$(VendoringDir)OpenTelemetry.Shared\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.SqlClient.Shared" />
+    <Compile Include="$(VendoringDir)OpenTelemetry.Shared\**\*.cs" LinkBase="OpenTelemetry.Shared" />
   </ItemGroup>
 
   <ItemGroup>
