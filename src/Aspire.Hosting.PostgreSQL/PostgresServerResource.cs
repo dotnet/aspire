@@ -20,12 +20,14 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     public PostgresServerResource(string name, ParameterResource? userName, ParameterResource? password) : base(name)
     {
         PrimaryEndpoint = new(this, PrimaryEndpointName);
-        PasswordInput = new(this, "password");
-
         UserNameParameter = userName;
         PasswordParameter = password;
 
-        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
+        if (PasswordParameter is null)
+        {
+            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
+            PasswordInput = new(this, "password");
+        }
     }
 
     /// <summary>
@@ -43,7 +45,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
             ReferenceExpression.Create($"{UserNameParameter}") :
             ReferenceExpression.Create($"{DefaultUserName}");
 
-    private InputReference PasswordInput { get; }
+    private InputReference? PasswordInput { get; }
 
     /// <summary>
     /// Gets the parameter that contains the PostgreSQL server password.
@@ -53,12 +55,12 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     internal ReferenceExpression PasswordReference =>
         PasswordParameter is not null ?
             ReferenceExpression.Create($"{PasswordParameter}") :
-            ReferenceExpression.Create($"{PasswordInput}");
+            ReferenceExpression.Create($"{PasswordInput!}"); // either PasswordParameter or PasswordInput is non-null
 
     /// <summary>
     /// Gets the PostgreSQL server password.
     /// </summary>
-    internal string Password => PasswordParameter?.Value ?? PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
+    internal string Password => PasswordParameter?.Value ?? PasswordInput!.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
 
     private ReferenceExpression ConnectionString =>
         ReferenceExpression.Create(

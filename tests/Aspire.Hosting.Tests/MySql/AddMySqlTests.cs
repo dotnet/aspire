@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.MySql;
 using System.Text.RegularExpressions;
+using Aspire.Hosting.MySql;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Aspire.Hosting.Utils;
-using Aspire.Hosting.Tests.Utils;
 
 namespace Aspire.Hosting.Tests.MySql;
 
@@ -27,8 +27,8 @@ public class AddMySqlTests
         Assert.Equal("mysql", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("8.3.0", containerAnnotation.Tag);
-        Assert.Equal("mysql", containerAnnotation.Image);
+        Assert.Equal(MySqlContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(MySqlContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -54,7 +54,10 @@ public class AddMySqlTests
     public async Task AddMySqlAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddMySql("mysql", 1234, "pass");
+        appBuilder.Configuration["Parameters:pass"] = "pass";
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddMySql("mysql", pass, 1234);
 
         using var app = appBuilder.Build();
 
@@ -64,8 +67,8 @@ public class AddMySqlTests
         Assert.Equal("mysql", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("8.3.0", containerAnnotation.Tag);
-        Assert.Equal("mysql", containerAnnotation.Image);
+        Assert.Equal(MySqlContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(MySqlContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
@@ -138,11 +141,11 @@ public class AddMySqlTests
         var mySqlManifest = await ManifestUtils.GetManifest(mysql.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
-              "image": "mysql:8.3.0",
+              "image": "{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
               "env": {
                 "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}"
               },
@@ -179,6 +182,36 @@ public class AddMySqlTests
     }
 
     [Fact]
+    public async Task VerifyManifestWithPasswordParameter()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var pass = appBuilder.AddParameter("pass");
+
+        var mysql = appBuilder.AddMySql("mysql", pass);
+        var serverManifest = await ManifestUtils.GetManifest(mysql.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={pass.value}",
+              "image": "mysql:8.3.0",
+              "env": {
+                "MYSQL_ROOT_PASSWORD": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 3306
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
+    }
+
+    [Fact]
     public void WithMySqlTwiceEndsUpWithOneAdminContainer()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -188,15 +221,17 @@ public class AddMySqlTests
         Assert.Single(builder.Resources.OfType<PhpMyAdminContainerResource>());
     }
 
-    [Fact]
-    public async Task SingleMySqlInstanceProducesCorrectMySqlHostsVariable()
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task SingleMySqlInstanceProducesCorrectMySqlHostsVariable(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var mysql = builder.AddMySql("mySql").WithPhpMyAdmin();
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
+        mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var hook = new PhpMyAdminConfigWriterHook();
@@ -206,7 +241,7 @@ public class AddMySqlTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin);
 
-        Assert.Equal("host.docker.internal:5001", config["PMA_HOST"]);
+        Assert.Equal($"{containerHost}:5001", config["PMA_HOST"]);
         Assert.NotNull(config["PMA_USER"]);
         Assert.NotNull(config["PMA_PASSWORD"]);
     }
@@ -224,16 +259,18 @@ public class AddMySqlTests
         Assert.Equal("/etc/phpmyadmin/config.user.inc.php", volume.Target);
     }
 
-    [Fact]
-    public void WithPhpMyAdminProducesValidServerConfigFile()
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public void WithPhpMyAdminProducesValidServerConfigFile(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(8081);
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(8081);
 
         // Add fake allocated endpoints.
-        mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5001));
-        mysql2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "host.docker.internal", 5002));
+        mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        mysql2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host3"));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -248,8 +285,8 @@ public class AddMySqlTests
         var fileContents = new StreamReader(stream).ReadToEnd();
 
         // check to see that the two hosts are in the file
-        string pattern1 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host.docker.internal:5001';";
-        string pattern2 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host.docker.internal:5002';";
+        string pattern1 = $@"\$cfg\['Servers'\]\[\$i\]\['host'\] = '{containerHost}:5001';";
+        string pattern2 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host3:5002';";
         Match match1 = Regex.Match(fileContents, pattern1);
         Assert.True(match1.Success);
         Match match2 = Regex.Match(fileContents, pattern2);

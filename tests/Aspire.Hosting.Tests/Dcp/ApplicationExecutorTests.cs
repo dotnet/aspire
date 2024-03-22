@@ -73,7 +73,8 @@ public class ApplicationExecutorTests
             new MockDashboardEndpointProvider(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
             new ResourceNotificationService(new NullLogger<ResourceNotificationService>()),
-            new ResourceLoggerService()
+            new ResourceLoggerService(),
+            new TestDcpDependencyCheckService()
             );
     }
 }

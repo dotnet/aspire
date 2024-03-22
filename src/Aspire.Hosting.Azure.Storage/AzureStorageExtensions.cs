@@ -200,8 +200,7 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureBlobStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 
     /// <summary>
@@ -214,8 +213,7 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 
     /// <summary>
@@ -228,7 +226,6 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(resource);
     }
 }

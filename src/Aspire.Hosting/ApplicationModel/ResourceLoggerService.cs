@@ -116,7 +116,7 @@ public class ResourceLoggerService
         /// <summary>
         /// Watch for changes to the log stream for a resource.
         /// </summary>
-        /// <returns> The log stream for the resource. </returns>
+        /// <returns>The log stream for the resource.</returns>
         public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync()
         {
             lock (_backlog)

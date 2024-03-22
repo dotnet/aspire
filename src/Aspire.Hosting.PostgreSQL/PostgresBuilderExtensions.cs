@@ -33,7 +33,7 @@ public static class PostgresBuilderExtensions
         var postgresServer = new PostgresServerResource(name, userName?.Resource, password?.Resource);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
-                      .WithImage("postgres", "16.2")
+                      .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
@@ -57,8 +57,7 @@ public static class PostgresBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithManifestPublishingCallback(postgresDatabase.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(postgresDatabase);
     }
 
     /// <summary>
@@ -102,7 +101,7 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a Postgres container resource.
+    /// Adds a named volume for the data folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
@@ -112,7 +111,7 @@ public static class PostgresBuilderExtensions
         => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/postgresql/data", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a Postgres container resource.
+    /// Adds a bind mount for the data folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
@@ -122,7 +121,7 @@ public static class PostgresBuilderExtensions
         => builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the init folder to a Postgres container resource.
+    /// Adds a bind mount for the init folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>

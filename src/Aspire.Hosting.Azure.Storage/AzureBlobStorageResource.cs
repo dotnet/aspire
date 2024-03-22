@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;
 
@@ -25,14 +24,4 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        Parent.GetBlobConnectionString();
-
-    /// <summary>
-    /// Called by manifest publisher to write manifest resource.
-    /// </summary>
-    /// <param name="context">The context for the manifest publishing operation.</param>
-    internal void WriteToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "value.v0");
-        context.WriteConnectionString(this);
-    }
 }

@@ -209,24 +209,35 @@ public class DashboardWebApplication : IAsyncDisposable
     // possible from the caller. e.g., using environment variables to configure each endpoint's TLS certificate.
     private void ConfigureKestrelEndpoints(WebApplicationBuilder builder, DashboardStartupConfiguration dashboardStartupConfig)
     {
-        // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
-        // to Kestrel's schema for loading endpoints from configuration.
-        var browserEndpointNames = new List<string>(capacity: dashboardStartupConfig.BrowserUris.Length);
+        // A single endpoint is configured if URLs are the same and the port isn't dynamic.
+        var singleEndpoint = dashboardStartupConfig.BrowserUris.Length == 1 && dashboardStartupConfig.BrowserUris[0] == dashboardStartupConfig.OtlpUri && dashboardStartupConfig.OtlpUri.Port != 0;
+
         var initialValues = new Dictionary<string, string?>();
-        AddEndpointConfiguration(initialValues, "Otlp", dashboardStartupConfig.OtlpUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardStartupConfig.OtlpAuthMode == OtlpAuthMode.ClientCertificate);
-        if (dashboardStartupConfig.BrowserUris.Length == 1)
+        var browserEndpointNames = new List<string>(capacity: dashboardStartupConfig.BrowserUris.Length);
+
+        if (!singleEndpoint)
         {
-            browserEndpointNames.Add("Browser");
-            AddEndpointConfiguration(initialValues, "Browser", dashboardStartupConfig.BrowserUris[0].OriginalString);
+            // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
+            // to Kestrel's schema for loading endpoints from configuration.
+            AddEndpointConfiguration(initialValues, "Otlp", dashboardStartupConfig.OtlpUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardStartupConfig.OtlpAuthMode == OtlpAuthMode.ClientCertificate);
+            if (dashboardStartupConfig.BrowserUris.Length == 1)
+            {
+                browserEndpointNames.Add("Browser");
+                AddEndpointConfiguration(initialValues, "Browser", dashboardStartupConfig.BrowserUris[0].OriginalString);
+            }
+            else
+            {
+                for (var i = 0; i < dashboardStartupConfig.BrowserUris.Length; i++)
+                {
+                    var name = $"Browser{i}";
+                    browserEndpointNames.Add(name);
+                    AddEndpointConfiguration(initialValues, name, dashboardStartupConfig.BrowserUris[i].OriginalString);
+                }
+            }
         }
         else
         {
-            for (var i = 0; i < dashboardStartupConfig.BrowserUris.Length; i++)
-            {
-                var name = $"Browser{i}";
-                browserEndpointNames.Add(name);
-                AddEndpointConfiguration(initialValues, name, dashboardStartupConfig.BrowserUris[i].OriginalString);
-            }
+            AddEndpointConfiguration(initialValues, "Otlp", dashboardStartupConfig.OtlpUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardStartupConfig.OtlpAuthMode == OtlpAuthMode.ClientCertificate);
         }
 
         static void AddEndpointConfiguration(Dictionary<string, string?> values, string endpointName, string url, HttpProtocols? protocols = null, bool requiredClientCertificate = false)
@@ -250,8 +261,9 @@ public class DashboardWebApplication : IAsyncDisposable
         // with extra settings. e.g., UseOtlpConnection for the OTLP endpoint.
         builder.WebHost.ConfigureKestrel((context, serverOptions) =>
         {
-            var kestrelSection = context.Configuration.GetSection("Kestrel");
+            var logger = serverOptions.ApplicationServices.GetRequiredService<ILogger<DashboardWebApplication>>();
 
+            var kestrelSection = context.Configuration.GetSection("Kestrel");
             var configurationLoader = serverOptions.Configure(kestrelSection);
 
             foreach (var browserEndpointName in browserEndpointNames)
@@ -267,6 +279,20 @@ public class DashboardWebApplication : IAsyncDisposable
             configurationLoader.Endpoint("Otlp", endpointConfiguration =>
             {
                 _otlpServiceEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
+                if (singleEndpoint)
+                {
+                    logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
+
+                    if (!endpointConfiguration.IsHttps)
+                    {
+                        logger.LogWarning(
+                            "The dashboard is configured with a shared endpoint for browser access and the OTLP service. " +
+                            "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
+                    }
+
+                    _browserEndPointAccessor = _otlpServiceEndPointAccessor;
+                }
+
                 endpointConfiguration.ListenOptions.UseOtlpConnection();
 
                 if (endpointConfiguration.HttpsOptions.ClientCertificateMode == ClientCertificateMode.RequireCertificate)

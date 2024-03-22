@@ -5,6 +5,7 @@ var catalogDb = builder.AddPostgres("postgres")
                        .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
+                         .WithDataVolume()
                          .WithRedisCommander();
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")

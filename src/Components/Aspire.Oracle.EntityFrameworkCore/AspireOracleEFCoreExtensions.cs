@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
 using Oracle.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.Hosting;
@@ -73,9 +72,9 @@ public static class AspireOracleEFCoreExtensions
                 }
 
                 // The time in seconds to wait for the command to execute.
-                if (settings.Timeout.HasValue)
+                if (settings.CommandTimeout.HasValue)
                 {
-                    builder.CommandTimeout(settings.Timeout);
+                    builder.CommandTimeout(settings.CommandTimeout);
                 }
             });
 
@@ -120,14 +119,6 @@ public static class AspireOracleEFCoreExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, OracleEntityFrameworkCoreSettings settings) where TContext : DbContext
     {
-        if (settings.Tracing)
-        {
-            builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
-            {
-                tracerProviderBuilder.AddEntityFrameworkCoreInstrumentation();
-            });
-        }
-
         if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>

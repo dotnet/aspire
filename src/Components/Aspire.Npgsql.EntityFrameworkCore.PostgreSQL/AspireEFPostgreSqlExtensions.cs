@@ -85,7 +85,10 @@ public static partial class AspireEFPostgreSqlExtensions
                 // 3. "Timeout: Places limit on the duration for which a caller can wait for a response."
                 // The timeouts have default values, except of Internal Command Timeout, which we should ignore:
                 // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
-                // There is nothing for us to set here.
+                if (settings.CommandTimeout.HasValue)
+                {
+                    builder.CommandTimeout(settings.CommandTimeout.Value);
+                }
             });
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }
@@ -139,11 +142,7 @@ public static partial class AspireEFPostgreSqlExtensions
             builder.Services.AddOpenTelemetry()
                 .WithTracing(tracerProviderBuilder =>
                 {
-                    // Npgsql already provides quality tracing (via the Npgsql.OpenTelemetry package).
-                    // We don't need to enable it for EF via OpenTelemetry.Instrumentation.EntityFrameworkCore.
                     tracerProviderBuilder.AddNpgsql();
-
-                    // defining exporters is outside of the scope of a Component
                 });
         }
 

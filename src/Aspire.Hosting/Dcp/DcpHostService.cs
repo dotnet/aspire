@@ -63,7 +63,8 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             return;
         }
 
-        await _dependencyCheckService.EnsureDcpDependenciesAsync(cancellationToken).ConfigureAwait(false);
+        // Ensure DCP is installed and has all required dependencies
+        _ = await _dependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
 
         EnsureDcpHostRunning();
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);

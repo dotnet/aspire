@@ -3,6 +3,7 @@
 
 namespace Aspire.Hosting.Dcp.Model;
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using k8s.Models;
 
@@ -112,9 +113,11 @@ internal static class ExecutableState
 
 internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>
 {
-    public const string CSharpProjectPathAnnotation = "csharp-project-path";
-    public const string CSharpLaunchProfileAnnotation = "csharp-launch-profile";
-    public const string CSharpDisableLaunchProfileAnnotation = "csharp-disable-launch-profile";
+    [Obsolete] public const string CSharpProjectPathAnnotation = "csharp-project-path";
+    [Obsolete] public const string CSharpLaunchProfileAnnotation = "csharp-launch-profile";
+    [Obsolete] public const string CSharpDisableLaunchProfileAnnotation = "csharp-disable-launch-profile";
+
+    public const string LaunchConfigurationsAnnotation = "executable.usvc-dev.developer.microsoft.com/launch-configurations";
     public const string OtelServiceNameAnnotation = "otel-service-name";
     public const string ResourceNameAnnotation = "resource-name";
 
@@ -139,4 +142,52 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
         this.Status?.State == ExecutableState.Running
         || this.Status?.State == ExecutableState.Finished
         || this.Status?.State == ExecutableState.Terminated;
+
+    public void SetProjectLaunchConfiguration(ProjectLaunchConfiguration launchConfiguration)
+    {
+        // In Aspire v1 only one launch configuration, of type "project", is supported.
+        // Further, there can be only one instance of project launch configuration per Executable.
+
+        this.Annotate(LaunchConfigurationsAnnotation, string.Empty); // Clear existing annotation, if any. 
+        this.AnnotateAsObjectList(LaunchConfigurationsAnnotation, launchConfiguration);
+    }
+
+    public bool TryGetProjectLaunchConfiguration([NotNullWhen(true)] out ProjectLaunchConfiguration? launchConfiguration)
+    {
+        launchConfiguration = null;
+        if (this.TryGetAnnotationAsObjectList(LaunchConfigurationsAnnotation, out List<ProjectLaunchConfiguration>? launchConfigurations))
+        {
+            // See above regarding how many launch configurations are currently supported.
+            launchConfiguration = launchConfigurations?.FirstOrDefault();
+        }
+
+        return launchConfiguration is not null;
+    }
 }
+
+internal static class ProjectLaunchMode
+{
+    public const string Debug = "Debug";
+    public const string NoDebug = "NoDebug";
+}
+
+internal sealed class ProjectLaunchConfiguration
+{
+    [JsonPropertyName("type")]
+#pragma warning disable CA1822 // We want this member to be non-static, as it is used in serialization.
+    public string Type => "project";
+#pragma warning restore CA1822
+
+    [JsonPropertyName("mode")]
+    public string Mode { get; set; } = System.Diagnostics.Debugger.IsAttached ? ProjectLaunchMode.Debug : ProjectLaunchMode.NoDebug;
+
+    [JsonPropertyName("project_path")]
+    public string ProjectPath { get; set; } = string.Empty;
+
+    [JsonPropertyName("launch_profile")]
+    public string LaunchProfile { get; set; } = string.Empty;
+
+    [JsonPropertyName("disable_launch_profile")]
+    public bool DisableLaunchProfile { get; set; } = false;
+}
+

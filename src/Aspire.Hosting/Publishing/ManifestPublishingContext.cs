@@ -285,6 +285,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     string stringValue => stringValue,
                     IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                    bool boolValue => boolValue ? "true" : "false",
                     null => null, // null means let docker build pull from env var.
                     _ => buildArg.Value.ToString()
                 };
