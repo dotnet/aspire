@@ -11,11 +11,6 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 public sealed class ServiceDiscoveryOptions
 {
     /// <summary>
-    /// Gets or sets the period between polling resolvers which are in a pending state and do not support refresh notifications via <see cref="IChangeToken.ActiveChangeCallbacks"/>.
-    /// </summary>
-    public TimeSpan PendingStatusRefreshPeriod { get; set; } = TimeSpan.FromSeconds(15);
-
-    /// <summary>
     /// Gets or sets the period between polling attempts for resolvers which do not support refresh notifications via <see cref="IChangeToken.ActiveChangeCallbacks"/>.
     /// </summary>
     public TimeSpan RefreshPeriod { get; set; } = TimeSpan.FromSeconds(60);
