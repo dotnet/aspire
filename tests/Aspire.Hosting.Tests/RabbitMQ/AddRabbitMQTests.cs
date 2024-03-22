@@ -65,8 +65,9 @@ public class AddRabbitMQTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var rabbit = appBuilder.AddRabbitMQ("rabbit");
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var rabbit = builder.AddRabbitMQ("rabbit");
 
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
@@ -107,12 +108,13 @@ public class AddRabbitMQTests
     [Fact]
     public async Task VerifyManifestWithParameters()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
 
-        var userNameParameter = appBuilder.AddParameter("user");
-        var passwordParameter = appBuilder.AddParameter("pass");
+        var userNameParameter = builder.AddParameter("user");
+        var passwordParameter = builder.AddParameter("pass");
 
-        var rabbit = appBuilder.AddRabbitMQ("rabbit", userNameParameter, passwordParameter);
+        var rabbit = builder.AddRabbitMQ("rabbit", userNameParameter, passwordParameter);
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         var expectedManifest = """
@@ -136,7 +138,7 @@ public class AddRabbitMQTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        rabbit = appBuilder.AddRabbitMQ("rabbit2", userNameParameter);
+        rabbit = builder.AddRabbitMQ("rabbit2", userNameParameter);
         manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         expectedManifest = """
@@ -172,7 +174,7 @@ public class AddRabbitMQTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        rabbit = appBuilder.AddRabbitMQ("rabbit3", password: passwordParameter);
+        rabbit = builder.AddRabbitMQ("rabbit3", password: passwordParameter);
         manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         expectedManifest = """

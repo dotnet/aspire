@@ -119,7 +119,8 @@ public class AzureResourceExtensionsTests
     [Fact]
     public void AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
             builder.UseBlobPort(9001);

@@ -88,8 +88,9 @@ public class AddRedisTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("redis");
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("redis");
 
         var manifest = await ManifestUtils.GetManifest(redis.Resource);
 
@@ -175,8 +176,9 @@ public class AddRedisTests
     [InlineData(false)]
     public void WithDataVolumeAddsVolumeAnnotation(bool? isReadOnly)
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("myRedis");
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("myRedis");
         if (isReadOnly.HasValue)
         {
             redis.WithDataVolume(isReadOnly: isReadOnly.Value);
@@ -200,8 +202,9 @@ public class AddRedisTests
     [InlineData(false)]
     public void WithDataBindMountAddsMountAnnotation(bool? isReadOnly)
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("myRedis");
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("myRedis");
         if (isReadOnly.HasValue)
         {
             redis.WithDataBindMount("mydata", isReadOnly: isReadOnly.Value);
@@ -222,8 +225,9 @@ public class AddRedisTests
     [Fact]
     public void WithDataVolumeAddsPersistenceAnnotation()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("myRedis")
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("myRedis")
                               .WithDataVolume();
 
         var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
@@ -235,9 +239,10 @@ public class AddRedisTests
     [Fact]
     public void WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("myRedis")
-                              .WithDataVolume(isReadOnly: true);
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("myRedis")
+                           .WithDataVolume(isReadOnly: true);
 
         var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
@@ -247,9 +252,10 @@ public class AddRedisTests
     [Fact]
     public void WithDataBindMountAddsPersistenceAnnotation()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("myRedis")
-                              .WithDataBindMount("myredisdata");
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("myRedis")
+                           .WithDataBindMount("myredisdata");
 
         var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
 
@@ -260,9 +266,10 @@ public class AddRedisTests
     [Fact]
     public void WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("myRedis")
-                              .WithDataBindMount("myredisdata", isReadOnly: true);
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("myRedis")
+                           .WithDataBindMount("myredisdata", isReadOnly: true);
 
         var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
@@ -272,10 +279,11 @@ public class AddRedisTests
     [Fact]
     public void WithPersistenceReplacesPreviousAnnotationInstances()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("myRedis")
-                              .WithDataVolume()
-                              .WithPersistence(TimeSpan.FromSeconds(10), 2);
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("myRedis")
+                           .WithDataVolume()
+                           .WithPersistence(TimeSpan.FromSeconds(10), 2);
 
         var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
 
@@ -286,9 +294,10 @@ public class AddRedisTests
     [Fact]
     public void WithPersistenceAddsCommandLineArgsAnnotation()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var redis = appBuilder.AddRedis("myRedis")
-                              .WithPersistence(TimeSpan.FromSeconds(60));
+        using var container = BuilderContainer.Create();
+        var builder = container.Builder;
+        var redis = builder.AddRedis("myRedis")
+                           .WithPersistence(TimeSpan.FromSeconds(60));
 
         Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
         Assert.NotNull(argsAnnotations.SingleOrDefault());

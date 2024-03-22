@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Redis;
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -11,7 +12,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageMutatesImageName()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var redis = builder.AddRedis("redis").WithImage("redis-stack");
         Assert.Equal("redis-stack", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Image);
     }
@@ -28,7 +30,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageAddsAnnotationIfNotExistingAndMutatesImageName()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var container = builder.AddContainer("app", "some-image");
         container.Resource.Annotations.RemoveAt(0);
 
@@ -40,7 +43,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageMutatesImageNameOfLastAnnotation()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var container = builder.AddContainer("app", "some-image");
         container.Resource.Annotations.Add(new ContainerImageAnnotation { Image = "another-image" });
 
@@ -52,7 +56,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageTagMutatesImageTag()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var redis = builder.AddRedis(RedisContainerImageTags.Image).WithImageTag(RedisContainerImageTags.Tag);
         Assert.Equal(RedisContainerImageTags.Tag, redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
     }
@@ -60,7 +65,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageRegistryMutatesImageRegistry()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var redis = builder.AddRedis("redis").WithImageRegistry("myregistry.azurecr.io");
         Assert.Equal("myregistry.azurecr.io", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Registry);
     }
@@ -68,7 +74,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageSHA256MutatesImageSHA256()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var redis = builder.AddRedis("redis").WithImageSHA256("42b5c726e719639fcc1e9dbc13dd843f567dcd37911d0e1abb9f47f2cc1c95cd");
         Assert.Equal("42b5c726e719639fcc1e9dbc13dd843f567dcd37911d0e1abb9f47f2cc1c95cd", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().SHA256);
     }
@@ -76,7 +83,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageTagThrowsIfNoImageAnnotation()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var container = builder.AddResource(new TestContainerResource("testcontainer"));
 
         var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageTag(RedisContainerImageTags.Tag));
@@ -86,7 +94,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageRegistryThrowsIfNoImageAnnotation()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var container = builder.AddResource(new TestContainerResource("testcontainer"));
 
         var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageRegistry("myregistry.azurecr.io"));
@@ -96,7 +105,8 @@ public class ContainerResourceBuilderTests
     [Fact]
     public void WithImageSHA256ThrowsIfNoImageAnnotation()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builderContainer = BuilderContainer.Create();
+        var builder = builderContainer.Builder;
         var container = builder.AddResource(new TestContainerResource("testcontainer"));
 
         var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageSHA256("42b5c726e719639fcc1e9dbc13dd843f567dcd37911d0e1abb9f47f2cc1c95cd"));
