@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="NotFoundDescription">
         <source>Not found</source>
-        <target state="new">Not found</target>
+        <target state="translated">Nie znaleziono</target>
         <note />
       </trans-unit>
       <trans-unit id="NotFoundDetails">
