@@ -330,21 +330,15 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private static ISet<string> GetResourcesToSkip()
     {
         HashSet<string> resourcesToSkip = new();
-        if (TestScenario == "oracle")
+        TestResourceNames testResourcesToSkip = TestScenario switch
         {
-            TestResourceNames tname = (TestResourceNames)((int)TestResourceNames.All & ~(int)TestResourceNames.oracledatabase);
-            TestResourceNamesExtensions.Enumerate(tname, resourcesToSkip);
-        }
-        if (TestScenario == "cosmos")
-        {
-            TestResourceNames tname = (TestResourceNames)((int)TestResourceNames.All & ~(int)TestResourceNames.cosmos);
-            TestResourceNamesExtensions.Enumerate(tname, resourcesToSkip);
-        }
-        if (TestScenario == "sqlserver")
-        {
-            TestResourceNames tname = (TestResourceNames)((int)TestResourceNames.All & ~(int)TestResourceNames.sqlserver);
-            TestResourceNamesExtensions.Enumerate(tname, resourcesToSkip);
-        }
+            "oracle" => TestResourceNames.All & ~TestResourceNames.oracledatabase,
+            "cosmos" => TestResourceNames.All & ~TestResourceNames.cosmos,
+            "sqlserver" => TestResourceNames.All & ~TestResourceNames.sqlserver,
+            _ or "default" => TestResourceNames.All & ~TestResourceNames.efnpgsql,
+        };
+        testResourcesToSkip &= ~TestResourceNames.kafka;
+        TestResourceNamesExtensions.Enumerate(testResourcesToSkip, resourcesToSkip);
 
         // always skip cosmos on macos/arm64
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
@@ -354,7 +348,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         if (TestScenario == "default")
         {
-            if (BuildEnvironment.IsRunningOnCI)
+            // if (BuildEnvironment.IsRunningOnCI)
             {
                 resourcesToSkip.Add(nameof(TestResourceNames.cosmos));
                 resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));

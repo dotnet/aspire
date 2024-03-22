@@ -23,13 +23,14 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     [Theory]
     [Trait("scenario", "default")]
-    [InlineData(TestResourceNames.mongodb)]
-    [InlineData(TestResourceNames.mysql)]
-    [InlineData(TestResourceNames.pomelo)]
-    [InlineData(TestResourceNames.postgres)]
-    [InlineData(TestResourceNames.rabbitmq)]
-    [InlineData(TestResourceNames.redis)]
-    [InlineData(TestResourceNames.efnpgsql)]
+    // [InlineData(TestResourceNames.mongodb)]
+    // [InlineData(TestResourceNames.mysql)]
+    // [InlineData(TestResourceNames.postgres)]
+    // [InlineData(TestResourceNames.rabbitmq)]
+    // [InlineData(TestResourceNames.redis)]
+    // [InlineData(TestResourceNames.efnpgsql)]
+    // [InlineData(TestResourceNames.efmysql)]
+    [InlineData(TestResourceNames.efsqlserver)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {

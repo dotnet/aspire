@@ -61,14 +61,14 @@ public class TestProgram : IDisposable
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
             IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
-            if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
+            if (!resourcesToSkip.Contains(TestResourceNames.sqlserver) || !resourcesToSkip.Contains(TestResourceNames.efsqlserver))
             {
                 var sqlserverDbName = "tempdb";
                 var sqlserver = AppBuilder.AddSqlServer("sqlserver")
                     .AddDatabase(sqlserverDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(sqlserver);
             }
-            if (!resourcesToSkip.Contains(TestResourceNames.mysql))
+            if (!resourcesToSkip.Contains(TestResourceNames.mysql) || !resourcesToSkip.Contains(TestResourceNames.efmysql))
             {
                 var mysqlDbName = "mysqldb";
                 var mysql = AppBuilder.AddMySql("mysql")
@@ -81,7 +81,7 @@ public class TestProgram : IDisposable
                 var redis = AppBuilder.AddRedis("redis");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
-            if (!resourcesToSkip.Contains(TestResourceNames.postgres))
+            if (!resourcesToSkip.Contains(TestResourceNames.postgres) || !resourcesToSkip.Contains(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
                 var postgres = AppBuilder.AddPostgres("postgres")

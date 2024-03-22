@@ -10,13 +10,14 @@ public enum TestResourceNames
     mongodb = 8,
     mysql = 16,
     oracledatabase = 32,
-    pomelo = 64,
+    efmysql = 64,
     postgres = 128,
     rabbitmq = 256,
     redis = 512,
     sqlserver = 1024,
     efnpgsql = 2048,
-    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | pomelo | postgres | rabbitmq | redis | sqlserver | efnpgsql
+    efsqlserver = 4096,
+    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | efsqlserver
 }
 
 public static class TestResourceNamesExtensions
