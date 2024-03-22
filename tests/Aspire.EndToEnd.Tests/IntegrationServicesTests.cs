@@ -51,7 +51,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Theory]
     [Trait("scenario", "sqlserver")]
     [InlineData(TestResourceNames.sqlserver)]
-    [InlineData(TestResourceNames.efsqlserver)]
     public Task VerifySqlServerComponentWorks(TestResourceNames resourceName)
         => VerifyComponentWorks(resourceName);
 

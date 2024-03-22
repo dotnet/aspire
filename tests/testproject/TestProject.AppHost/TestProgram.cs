@@ -61,7 +61,7 @@ public class TestProgram : IDisposable
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
             IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
-            if (!resourcesToSkip.Contains(TestResourceNames.sqlserver) || !resourcesToSkip.Contains(TestResourceNames.efsqlserver))
+            if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
             {
                 var sqlserverDbName = "tempdb";
                 var sqlserver = AppBuilder.AddSqlServer("sqlserver")

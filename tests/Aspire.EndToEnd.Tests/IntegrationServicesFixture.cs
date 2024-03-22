@@ -287,7 +287,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
-            TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
+            TestResourceNames.sqlserver => "sqlserver",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 

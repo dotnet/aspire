@@ -13,10 +13,6 @@ if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 {
     builder.AddSqlServerClient("tempdb");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.efsqlserver))
-{
-    builder.AddSqlServerDbContext<PomeloSqlServerDbContext>("tempdb");
-}
 if (!resourcesToSkip.Contains(TestResourceNames.mysql) || !resourcesToSkip.Contains(TestResourceNames.efmysql))
 {
     builder.AddMySqlDataSource("mysqldb", settings =>
@@ -123,10 +119,6 @@ if (!resourcesToSkip.Contains(TestResourceNames.efnpgsql))
 if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
 {
     app.MapSqlServerApi();
-}
-if (!resourcesToSkip.Contains(TestResourceNames.efsqlserver))
-{
-    app.MapSqlServerEFCoreApi();
 }
 
 if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))

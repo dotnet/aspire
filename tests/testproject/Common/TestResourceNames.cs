@@ -19,8 +19,7 @@ public enum TestResourceNames
     redis = 512,
     sqlserver = 1024,
     efnpgsql = 2048,
-    efsqlserver = 4096,
-    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | efsqlserver
+    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql
 }
 
 public static class TestResourceNamesExtensions
