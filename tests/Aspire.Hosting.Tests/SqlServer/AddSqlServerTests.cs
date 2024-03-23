@@ -104,7 +104,7 @@ public class AddSqlServerTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
         var sqlServer = builder.AddSqlServer("sqlserver");
         var db = sqlServer.AddDatabase("db");
 
@@ -114,11 +114,11 @@ public class AddSqlServerTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
               "image": "mcr.microsoft.com/mssql/server:2022-latest",
               "env": {
                 "ACCEPT_EULA": "Y",
-                "MSSQL_SA_PASSWORD": "{sqlserver.inputs.password}"
+                "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -126,20 +126,6 @@ public class AddSqlServerTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 1433
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "minLower": 1,
-                      "minUpper": 1,
-                      "minNumeric": 1
-                    }
-                  }
                 }
               }
             }
@@ -158,7 +144,7 @@ public class AddSqlServerTests
     [Fact]
     public async Task VerifyManifestWithPasswordParameter()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var pass = builder.AddParameter("pass");
 
@@ -190,7 +176,7 @@ public class AddSqlServerTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db = builder.AddSqlServer("sqlserver1");
         db.AddDatabase("db");
@@ -201,7 +187,7 @@ public class AddSqlServerTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddSqlServer("sqlserver1")
             .AddDatabase("db");
@@ -213,7 +199,7 @@ public class AddSqlServerTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var sqlserver1 = builder.AddSqlServer("sqlserver1");
 
@@ -230,7 +216,7 @@ public class AddSqlServerTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        using var builder = TestDistrubtedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db1 = builder.AddSqlServer("sqlserver1")
             .AddDatabase("db1", "imports");

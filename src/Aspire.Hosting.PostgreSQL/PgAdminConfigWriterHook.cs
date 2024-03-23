@@ -40,7 +40,7 @@ internal sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycle
                 writer.WriteString("Username", "postgres");
                 writer.WriteString("SSLMode", "prefer");
                 writer.WriteString("MaintenanceDB", "postgres");
-                writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.Password}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
+                writer.WriteString("PasswordExecCommand", $"echo '{postgresInstance.PasswordParameter.Value}'"); // HACK: Generating a pass file and playing around with chmod is too painful.
                 writer.WriteEndObject();
             }
 
