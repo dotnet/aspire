@@ -9,7 +9,6 @@ builder.AddServiceDefaults();
 builder.AddAzureEventHubProducerClient("eventhubns", settings =>
 {
     settings.EventHubName = "hub";
-    settings.Credential = new AzureCliCredential();
 });
 
 var app = builder.Build();

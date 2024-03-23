@@ -15,7 +15,6 @@ if (useConsumer)
         settings =>
         {
             settings.EventHubName = "hub";
-            settings.Credential = new AzureCliCredential();
         });
 
     builder.Services.AddHostedService<Consumer>();
@@ -28,7 +27,6 @@ else
         {
             settings.EventHubName = "hub";
             settings.BlobClientConnectionName = "checkpoints";
-            settings.Credential = new AzureCliCredential();
         });
     builder.Services.AddHostedService<Processor>();
     Console.WriteLine("Starting EventProcessorClient...");
