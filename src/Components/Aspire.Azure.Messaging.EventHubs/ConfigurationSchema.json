@@ -36,7 +36,7 @@
                     },
                     "ConnectionString": {
                       "type": "string",
-                      "description": "Gets or sets the connection string used to connect to the Service Bus namespace."
+                      "description": "Gets or sets the connection string used to connect to the Event Hubs namespace."
                     },
                     "ConsumerGroup": {
                       "type": "string",
@@ -320,7 +320,7 @@
                     },
                     "Namespace": {
                       "type": "string",
-                      "description": "Gets or sets the fully qualified Service Bus namespace."
+                      "description": "Gets or sets the fully qualified Event Hubs namespace."
                     },
                     "PartitionId": {
                       "type": "string",
@@ -331,7 +331,7 @@
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                     }
                   },
-                  "description": "Provides the client configuration settings for connecting to Azure Service Bus."
+                  "description": "Provides the client configuration settings for connecting to Azure Event Hubs."
                 }
               }
             }

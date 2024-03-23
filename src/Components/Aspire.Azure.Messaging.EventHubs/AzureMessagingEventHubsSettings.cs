@@ -10,14 +10,14 @@ using Azure.Messaging.EventHubs.Primitives;
 namespace Aspire.Azure.Messaging.EventHubs;
 
 /// <summary>
-/// Provides the client configuration settings for connecting to Azure Service Bus.
+/// Provides the client configuration settings for connecting to Azure Event Hubs.
 /// </summary>
 public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
 {
     private bool? _tracing;
 
     /// <summary>
-    /// Gets or sets the connection string used to connect to the Service Bus namespace. 
+    /// Gets or sets the connection string used to connect to the Event Hubs namespace. 
     /// </summary>
     /// <remarks>
     /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Namespace"/> and <see cref="Credential"/>.
@@ -25,7 +25,7 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the fully qualified Service Bus namespace. 
+    /// Gets or sets the fully qualified Event Hubs namespace. 
     /// </summary>
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
@@ -61,7 +61,7 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     public EventPosition EventPosition { get; set; } = EventPosition.Earliest;
 
     /// <summary>
-    /// Gets or sets the credential used to authenticate to the Service Bus namespace.
+    /// Gets or sets the credential used to authenticate to the Event Hubs namespace.
     /// </summary>
     public TokenCredential? Credential { get; set; }
 
@@ -69,7 +69,7 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
     /// <remarks>
-    /// ServiceBus ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
+    /// Event Hubs ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
@@ -101,7 +101,7 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     {
         if (!string.IsNullOrEmpty(connectionString))
         {
-            // a service bus namespace can't contain ';'. if it is found assume it is a connection string
+            // a event hubs namespace can't contain ';'. if it is found assume it is a connection string
             if (!connectionString.Contains(';'))
             {
                 Namespace = connectionString;
