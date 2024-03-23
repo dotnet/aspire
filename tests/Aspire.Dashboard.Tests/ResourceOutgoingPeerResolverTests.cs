@@ -22,7 +22,7 @@ public class ResourceOutgoingPeerResolverTests
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             Environment = [],
-            ExpectedEndpointsCount = 0,
+            ExpectUrls = serviceAddress is not null && serviceAddress is not null,
             Properties = FrozenDictionary<string, Value>.Empty,
             Urls = servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, $"http://{serviceAddress}:{servicePort}", isInternal: false)],
             State = null,
