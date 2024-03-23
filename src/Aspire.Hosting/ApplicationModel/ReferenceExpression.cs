@@ -12,6 +12,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
+    private readonly IValueProvider[] _valueProviders;
     private readonly string[] _manifestExpressions;
 
     private ReferenceExpression(string format, IValueProvider[] valueProviders, string[] manifestExpressions)
@@ -21,7 +22,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         ArgumentNullException.ThrowIfNull(manifestExpressions);
 
         Format = format;
-        ValueProviders = valueProviders;
+        _valueProviders = valueProviders;
         _manifestExpressions = manifestExpressions;
     }
 
@@ -38,7 +39,12 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// <summary>
     /// The list of <see cref="IValueProvider"/> that will be used to resolve parameters for the format string.
     /// </summary>
-    public IReadOnlyList<IValueProvider> ValueProviders { get; }
+    public IReadOnlyList<IValueProvider> ValueProviders => _valueProviders;
+
+    /// <summary>
+    /// A delegate that will be used to escape values provided from <see cref="ValueProviders"/> when <see cref="GetValueAsync(CancellationToken)"/> is called.
+    /// </summary>
+    public Func<string?, string?>? EscapeValue { get; set; }
 
     IEnumerable<object> IValueWithReferences.References => ValueProviders;
 
@@ -63,25 +69,43 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         var args = new object?[ValueProviders.Count];
         for (var i = 0; i < ValueProviders.Count; i++)
         {
-            args[i] = await ValueProviders[i].GetValueAsync(cancellationToken).ConfigureAwait(false);
+            var value = await ValueProviders[i].GetValueAsync(cancellationToken).ConfigureAwait(false);
+            args[i] = EscapeValue is not null ? EscapeValue(value) : value;
         }
 
         return string.Format(CultureInfo.InvariantCulture, Format, args);
     }
 
-    internal static ReferenceExpression Create(string format, IValueProvider[] valueProviders, string[] manifestExpressions)
+    /// <summary>
+    /// Creates a new instance of this <see cref="ReferenceExpression"/> for use within a URI.
+    /// </summary>
+    /// <remarks>
+    /// Values from <see cref="ValueProviders"/> will be escaped by calling <see cref="Uri.EscapeDataString(string)"/>.
+    /// </remarks>
+    /// <returns>A new instance of this <see cref="ReferenceExpression"/> for use within a URI.</returns>
+    public ReferenceExpression ForUri() => Create(Format, _valueProviders, _manifestExpressions, UriEscapeDataString);
+
+    internal static ReferenceExpression Create(string format, IValueProvider[] valueProviders, string[] manifestExpressions, Func<string?, string?>? escapeValue = null)
     {
-        return new(format, valueProviders, manifestExpressions);
+        return new(format, valueProviders, manifestExpressions) { EscapeValue = escapeValue };
     }
 
     /// <summary>
     /// Creates a new instance of <see cref="ReferenceExpression"/> with the specified format and value providers.
     /// </summary>
     /// <param name="handler">The handler that contains the format and value providers.</param>
+    /// <param name="escapeValue">An optional delegate that will be used to escape the values.</param>
     /// <returns>A new instance of <see cref="ReferenceExpression"/> with the specified format and value providers.</returns>
-    public static ReferenceExpression Create(in ExpressionInterpolatedStringHandler handler)
+    public static ReferenceExpression Create(in ExpressionInterpolatedStringHandler handler, Func<string?, string?>? escapeValue = null)
     {
-        return handler.GetExpression();
+        var expression = handler.GetExpression();
+        expression.EscapeValue = escapeValue;
+        return expression;
+    }
+
+    private static string? UriEscapeDataString(string? stringToEscape)
+    {
+        return stringToEscape is not null ? Uri.EscapeDataString(stringToEscape) : stringToEscape;
     }
 }
 

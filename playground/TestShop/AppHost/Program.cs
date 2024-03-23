@@ -12,7 +12,10 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
                             .WithReference(catalogDb)
                             .WithReplicas(2);
 
-var messaging = builder.AddRabbitMQ("messaging").PublishAsContainer();
+var rabbitMqPw = builder.AddParameter("rabbitmqpw", secret: true);
+var messaging = builder.AddRabbitMQ("messaging", password: rabbitMqPw)
+                       .WithDataVolume()
+                       .PublishAsContainer();
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                            .WithReference(basketCache)
