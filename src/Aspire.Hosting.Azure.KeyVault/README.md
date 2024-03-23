@@ -44,7 +44,7 @@ The `builder.AddAzureKeyVault(...)` extension method has an overload that allows
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
-builder.AddAzureProvisioner();
+builder.AddAzureProvisioning();
 
 var webhookSigningSharedSecret = builder.AddParameter("webhooksecret", secret: true);
 
