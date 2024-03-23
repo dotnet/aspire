@@ -45,6 +45,6 @@ public static class TestResourceNamesExtensions
     public static string ToCSVString(this TestResourceNames resourceNames)
     {
         return string.Join(',', Enum.GetValues<TestResourceNames>()
-                            .Where(ename => resourceNames.HasFlag(ename)));
+                            .Where(ename => ename != TestResourceNames.None && resourceNames.HasFlag(ename)));
     }
 }
