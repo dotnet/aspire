@@ -17,7 +17,7 @@ internal sealed class SqlActivitySourceHelper
 {
     public const string MicrosoftSqlServerDatabaseSystemName = "mssql";
 
-    public static readonly AssemblyName AssemblyName = typeof(SqlActivitySourceHelper).Assembly.GetName();
+    public static readonly AssemblyName AssemblyName = new AssemblyName("OpenTelemetry.Instrumentation.SqlClient");
     public static readonly string ActivitySourceName = AssemblyName.Name;
     public static readonly Version Version = AssemblyName.Version;
     public static readonly ActivitySource ActivitySource = new(ActivitySourceName, Version.ToString());
