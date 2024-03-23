@@ -63,10 +63,10 @@
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />
       <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-default')">
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-scenario0')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=default</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=scenario0</PreCommands>
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
