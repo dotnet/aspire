@@ -104,7 +104,7 @@ public class AddMySqlTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("Server=localhost;Port=2000;User ID=root;Password=", connectionString);
     }
 
@@ -134,7 +134,7 @@ public class AddMySqlTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
         var mysql = appBuilder.AddMySql("mysql");
         var db = mysql.AddDatabase("db");
 
@@ -144,10 +144,10 @@ public class AddMySqlTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
+              "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
               "image": "{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
               "env": {
-                "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}"
+                "MYSQL_ROOT_PASSWORD": "{mysql-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -155,17 +155,6 @@ public class AddMySqlTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 3306
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
                 }
               }
             }
@@ -184,7 +173,7 @@ public class AddMySqlTests
     [Fact]
     public async Task VerifyManifestWithPasswordParameter()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
         var pass = appBuilder.AddParameter("pass");
 
         var mysql = appBuilder.AddMySql("mysql", pass);
@@ -214,7 +203,7 @@ public class AddMySqlTests
     [Fact]
     public void WithMySqlTwiceEndsUpWithOneAdminContainer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddMySql("mySql").WithPhpMyAdmin();
         builder.AddMySql("mySql2").WithPhpMyAdmin();
 
@@ -249,7 +238,7 @@ public class AddMySqlTests
     [Fact]
     public void WithPhpMyAdminAddsContainer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddMySql("mySql").WithPhpMyAdmin();
 
         var container = builder.Resources.Single(r => r.Name == "mySql-phpmyadmin");
@@ -296,7 +285,7 @@ public class AddMySqlTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db = builder.AddMySql("mysql1");
         db.AddDatabase("db");
@@ -307,7 +296,7 @@ public class AddMySqlTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddMySql("mysql1")
             .AddDatabase("db");
@@ -319,7 +308,7 @@ public class AddMySqlTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var mysql1 = builder.AddMySql("mysql1");
 
@@ -339,7 +328,7 @@ public class AddMySqlTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db1 = builder.AddMySql("mysql1")
             .AddDatabase("db1", "imports");

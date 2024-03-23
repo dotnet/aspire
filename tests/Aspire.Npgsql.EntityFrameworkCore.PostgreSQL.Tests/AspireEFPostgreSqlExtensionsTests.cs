@@ -183,7 +183,7 @@ public class AspireEFPostgreSqlExtensionsTests
             configureDbContextOptions: optionsBuilder => optionsBuilder.UseNpgsql(),
             configureSettings: useSettings ? settings => settings.CommandTimeout = 123 : null);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -217,7 +217,7 @@ public class AspireEFPostgreSqlExtensionsTests
             configureDbContextOptions: optionsBuilder => optionsBuilder.UseNpgsql(builder => builder.CommandTimeout(123)),
             configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.

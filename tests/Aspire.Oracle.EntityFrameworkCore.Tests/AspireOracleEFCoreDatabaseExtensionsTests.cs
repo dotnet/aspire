@@ -176,7 +176,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
                 configureDbContextOptions: optionsBuilder => optionsBuilder.UseOracle(),
                 configureSettings: useSettings ? settings => settings.CommandTimeout = 608 : null);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -211,7 +211,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
                     optionsBuilder.UseOracle(builder => builder.CommandTimeout(123)),
                 configureSettings: useSettings ? settings => settings.CommandTimeout = 300 : null);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.

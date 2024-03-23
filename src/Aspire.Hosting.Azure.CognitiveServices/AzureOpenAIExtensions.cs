@@ -62,6 +62,7 @@ public static class AzureOpenAIExtensions
                 var cdkDeployment = new CognitiveServicesAccountDeployment(construct, model, parent: cogServicesAccount, name: deployment.Name);
                 cdkDeployment.AssignProperty(x => x.Sku.Name, $"'{deployment.SkuName}'");
                 cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
+                cdkDeployments.Add(cdkDeployment);
             }
 
             var resourceBuilder = builder.CreateResourceBuilder(resource);
