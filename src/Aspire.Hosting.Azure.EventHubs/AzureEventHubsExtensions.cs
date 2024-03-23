@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.Versioning;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -24,9 +24,9 @@ public static class AzureEventHubsExtensions
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(
         this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // This API requires opting into experimental features
         return builder.AddAzureEventHubs(name, null);
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning restore ASPIRE0001 // This API requires opting into experimental features
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="configureResource">Optional callback to configure the Event Hubs namespace.</param>
     /// <returns></returns>
-    [RequiresPreviewFeatures]
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, string name,
         Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHubsNamespace>? configureResource)
     {
@@ -80,9 +80,9 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the Event Hub.</param>
     public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, string name)
     {
-#pragma warning disable CA2252 // This API requires opting into preview features
+#pragma warning disable ASPIRE0001 // This API requires opting into experimental features
         return builder.AddEventHub(name, null);
-#pragma warning restore CA2252 // This API requires opting into preview features
+#pragma warning restore ASPIRE0001 // This API requires opting into experimental features
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ public static class AzureEventHubsExtensions
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
     /// <param name="configureHub">Optional callback to customize the Event Hub.</param>
-    [RequiresPreviewFeatures]
+    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder,
         string name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? configureHub)
     {

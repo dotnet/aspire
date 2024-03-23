@@ -72,18 +72,21 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
             builderConfiguration.GetConnectionString(
                 settings.BlobClientConnectionName) ??
                 throw new InvalidOperationException(
-                    "A EventProcessorClient could not be configured. " +
+                    "An EventProcessorClient could not be configured. " +
                     $"There is no connection string in Configuration with the name {settings.BlobClientConnectionName}. " +
-                    "Are you sure you defined a Blob resource with this name in your AppHost?");
+                    "Ensure you have configured a connection for a Azure Blob Storage Account.");
 
         // FIXME: ideally this should be pulled from services; but thar be dragons.
         // There is no reliable way to get the blob service client from the services collection
         var blobUriBuilder = new BlobUriBuilder(new Uri(blobConnectionString!));
 
         // consumer group and blob container names have similar constraints (alphanumeric, hyphen) but we should sanitize nonetheless
-        var suffix = (string.IsNullOrWhiteSpace(settings.ConsumerGroup)) ? "default" : settings.ConsumerGroup;
-        blobUriBuilder.BlobContainerName = $"checkpoints-{suffix}"; // TODO: should be unique to this consumer group
+        var consumerGroup = (string.IsNullOrWhiteSpace(settings.ConsumerGroup)) ? "default" : settings.ConsumerGroup;
 
+        var ns = GetNamespaceFromSettings(settings);
+
+        blobUriBuilder.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
+        
         var blobUri = blobUriBuilder.ToUri();
         var blobClient = new BlobContainerClient(blobUri, cred);
         blobClient.CreateIfNotExists();

@@ -238,4 +238,26 @@ internal abstract class EventHubsComponent<TClient, TClientOptions> :
 
         return identifier;
     }
+
+    protected static string GetNamespaceFromSettings(AzureMessagingEventHubsSettings settings)
+    {
+        string ns;
+
+        try
+        {
+            // extract the namespace from the connection string or qualified namespace
+            var fullyQualifiedNs = string.IsNullOrWhiteSpace(settings.Namespace) ?
+                EventHubsConnectionStringProperties.Parse(settings.ConnectionString).FullyQualifiedNamespace :
+                new Uri(settings.Namespace).Host;
+
+            ns = fullyQualifiedNs[..fullyQualifiedNs.IndexOf('.', StringComparison.Ordinal)];
+        }
+        catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException)
+        {
+            throw new InvalidOperationException(
+                $"A {nameof(TClient)} could not be configured. Please ensure that the ConnectionString or Namespace is well-formed.");
+        }
+
+        return ns;
+    }
 }

@@ -1,7 +1,5 @@
 using Azure.Identity;
 using EventHubsConsumer;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -25,9 +23,6 @@ if (useConsumer)
 }
 else
 {
-    // FIXME: this DI instance is never used as it's not reachable from the processor client configurator; we only use the connection name.
-    builder.AddAzureBlobClient("checkpoints");
-
     builder.AddAzureEventProcessorClient("eventhubns",
         settings =>
         {

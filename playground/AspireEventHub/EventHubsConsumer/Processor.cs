@@ -3,8 +3,6 @@
 
 using Azure.Messaging.EventHubs;
 using Azure.Storage.Blobs;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace EventHubsConsumer;
 

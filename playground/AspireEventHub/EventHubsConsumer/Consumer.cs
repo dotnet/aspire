@@ -1,7 +1,5 @@
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace EventHubsConsumer;
 
