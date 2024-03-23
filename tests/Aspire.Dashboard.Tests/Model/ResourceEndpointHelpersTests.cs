@@ -154,6 +154,53 @@ public sealed class ResourceEndpointHelpersTests
             });
     }
 
+    [Fact]
+    public void GetEndpoints_ExlcudesIncludeInternalUrls()
+    {
+        var endpoints = GetEndpoints(CreateResource([
+            new("First", "https://localhost:8080/test", isInternal:true),
+            new("Test", "https://localhost:8081/test2", isInternal:false)
+        ]));
+
+        Assert.Collection(endpoints,
+            e =>
+            {
+                Assert.Equal("https://localhost:8081/test2", e.Text);
+                Assert.Equal("Test", e.Name);
+                Assert.Equal("https://localhost:8081/test2", e.Url);
+                Assert.Equal("localhost", e.Address);
+                Assert.Equal(8081, e.Port);
+            });
+    }
+
+    [Fact]
+    public void GetEndpoints_IncludesIncludeInternalUrls()
+    {
+        var endpoints = GetEndpoints(CreateResource([
+            new("First", "https://localhost:8080/test", isInternal:true),
+            new("Test", "https://localhost:8081/test2", isInternal:false)
+        ]),
+        includeInteralUrls: true);
+
+        Assert.Collection(endpoints,
+            e =>
+            {
+                Assert.Equal("https://localhost:8080/test", e.Text);
+                Assert.Equal("First", e.Name);
+                Assert.Equal("https://localhost:8080/test", e.Url);
+                Assert.Equal("localhost", e.Address);
+                Assert.Equal(8080, e.Port);
+            },
+            e =>
+            {
+                Assert.Equal("https://localhost:8081/test2", e.Text);
+                Assert.Equal("Test", e.Name);
+                Assert.Equal("https://localhost:8081/test2", e.Url);
+                Assert.Equal("localhost", e.Address);
+                Assert.Equal(8081, e.Port);
+            });
+    }
+
     private static ResourceViewModel CreateResource(ImmutableArray<UrlViewModel> urls)
     {
         return new ResourceViewModel
