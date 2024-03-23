@@ -51,5 +51,5 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(
-            $"amqp://{UserNameReference.ForUri()}:{ReferenceExpression.Create($"{PasswordParameter})").ForUri()}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+            $"amqp://{UserNameReference.ForUri()}:{ReferenceExpression.Create($"{PasswordParameter}").ForUri()}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 }
