@@ -2,7 +2,7 @@
   <!-- Workaround https://github.com/dependabot/dependabot-core/issues/8490 -->
   <!-- This file gets imported for out-of-tree test runs also where eng/Versions.props isn't
        available -->
-  <Import Project="eng/Versions.props" Condition="'$(MajorVersion)' == '' and Exists('eng/Versions.props')"/>
+  <Import Project="eng/Versions.props" Condition="'$(MajorVersion)' == '' and Exists('eng/Versions.props')" />
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <TestcontainersPackageVersion>3.7.0</TestcontainersPackageVersion>
@@ -99,6 +99,7 @@
     <PackageVersion Include="Polly.Core" Version="8.3.0" />
     <PackageVersion Include="Polly.Extensions" Version="8.3.0" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.1" />
+    <PackageVersion Include="Qdrant.Client" Version="1.7.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="6.8.1" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.27" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />

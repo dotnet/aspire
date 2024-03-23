@@ -1,0 +1,55 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting.Qdrant;
+
+/// <summary>
+/// A resource that represents a Qdrant database.
+/// </summary>
+public class QdrantServerResource : ContainerResource, IResourceWithConnectionString
+{
+    internal const string PrimaryEndpointName = "http";
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="QdrantServerResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="apiKey">A <see cref="ParameterResource"/> that contains the API Key, or <see langword="null"/> to generate a random key.</param>
+    public QdrantServerResource(string name, ParameterResource? apiKey) : base(name)
+    {
+        ApiKeyParameter = apiKey;
+
+        if (ApiKeyParameter is null)
+        {
+            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
+            ApiKeyInput = new(this, "password");
+        }
+    }
+
+    private EndpointReference? _primaryEndpoint;
+
+    /// <summary>
+    /// Gets the parameter that contains the Qdrant API key.
+    /// </summary>
+    public ParameterResource? ApiKeyParameter { get; }
+    private InputReference? ApiKeyInput { get; }
+
+    internal ReferenceExpression ApiKeyReference =>
+        ApiKeyParameter is not null ?
+            ReferenceExpression.Create($"{ApiKeyParameter}") :
+            ReferenceExpression.Create($"{ApiKeyInput!}");
+
+    /// <summary>
+    /// Gets the primary endpoint for the Qdrant database.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    /// <summary>
+    /// Gets the connection string expression for the Qdrant database.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression =>
+       ReferenceExpression.Create(
+            $"http://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+}
