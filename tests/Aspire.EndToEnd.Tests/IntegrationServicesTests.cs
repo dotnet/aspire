@@ -89,6 +89,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         });
 
     [Fact]
+    // Include all the scenarios here so this test gets run for all of them.
     [Trait("scenario", "scenario0")]
     [Trait("scenario", "oracle")]
     [Trait("scenario", "cosmos")]

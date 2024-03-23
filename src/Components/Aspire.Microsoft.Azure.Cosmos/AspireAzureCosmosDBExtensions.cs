@@ -71,7 +71,6 @@ public static class AspireAzureCosmosDBExtensions
         Action<AzureCosmosDBSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
         => AddKeyedAzureCosmosDbClient(builder, name, configureSettings, configureClientOptions);
-       
 
     /// <summary>
     /// Registers <see cref="CosmosClient" /> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.

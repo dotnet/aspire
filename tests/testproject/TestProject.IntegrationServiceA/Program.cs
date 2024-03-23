@@ -88,6 +88,8 @@ else
     throw new InvalidOperationException("TEST_LOG_PATH environment variable is not set.");
 }
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 app.MapHealthChecks("/health");

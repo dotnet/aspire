@@ -20,6 +20,7 @@ public sealed class ProjectInfo
     {
         var allocatedEndpoint = Endpoints.Single(e => e.Name == bindingName);
         var url = $"{allocatedEndpoint.Uri}{path}";
+        Console.WriteLine ($"-- HttpGetAsync: {url}");
 
         return Client.GetAsync(url, cancellationToken);
     }
