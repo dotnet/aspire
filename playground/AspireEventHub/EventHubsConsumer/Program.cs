@@ -1,4 +1,3 @@
-using Azure.Identity;
 using EventHubsConsumer;
 
 var builder = Host.CreateApplicationBuilder(args);
