@@ -17,11 +17,10 @@ internal sealed class SqlActivitySourceHelper
 {
     public const string MicrosoftSqlServerDatabaseSystemName = "mssql";
 
-    public static readonly AssemblyName AssemblyName = new AssemblyName("OpenTelemetry.Instrumentation.SqlClient");
-    public static readonly string ActivitySourceName = AssemblyName.Name;
-    public static readonly Version Version = AssemblyName.Version;
+    public const string ActivitySourceName = "OpenTelemetry.Instrumentation.SqlClient";
+    public static readonly Version Version = new Version(1, 7, 0, 1173);
     public static readonly ActivitySource ActivitySource = new(ActivitySourceName, Version.ToString());
-    public static readonly string ActivityName = ActivitySourceName + ".Execute";
+    public const string ActivityName = ActivitySourceName + ".Execute";
 
     public static readonly IEnumerable<KeyValuePair<string, object>> CreationTags = new[]
     {
