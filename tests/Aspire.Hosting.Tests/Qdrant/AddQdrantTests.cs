@@ -33,7 +33,9 @@ public class AddQdrantTests
         Assert.Equal(QdrantContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
-        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
+            .FirstOrDefault(e => e.Name == "http");
+        Assert.NotNull(endpoint);
         Assert.Equal(QdrantPortHttp, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("http", endpoint.Name);
@@ -56,8 +58,7 @@ public class AddQdrantTests
     public void AddQdrantWithDefaultsAndDashboardAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddQdrant("my-qdrant")
-            .WithDashboard();
+        appBuilder.AddQdrant("my-qdrant");
 
         using var app = appBuilder.Build();
 
@@ -105,7 +106,9 @@ public class AddQdrantTests
         Assert.Equal(QdrantContainerImageTags.Image, containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
-        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
+            .FirstOrDefault(e => e.Name == "http");
+        Assert.NotNull(endpoint);
         Assert.Equal(QdrantPortHttp, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("http", endpoint.Name);
@@ -140,10 +143,10 @@ public class AddQdrantTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions() { Args = new string[] { "--publisher", "manifest" } } );
         var qdrant = appBuilder.AddQdrant("qdrant");
 
-        var serverManifest = await ManifestUtils.GetManifest(qdrant.Resource);
+        var serverManifest = await ManifestUtils.GetManifest(qdrant.Resource); // using this method does not get any ExecutionContext.IsPublishMode changes
 
         var expectedManifest = $$"""
             {
@@ -151,7 +154,8 @@ public class AddQdrantTests
               "connectionString": "http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
-                "QDRANT__SERVICE__API_KEY": "{qdrant-apiKey.value}"
+                "QDRANT__SERVICE__API_KEY": "{qdrant-apiKey.value}",
+                "QDRANT__SERVICE__ENABLE_STATIC_CONTENT": "0"
               },
               "bindings": {
                 "http": {
@@ -159,6 +163,12 @@ public class AddQdrantTests
                   "protocol": "tcp",
                   "transport": "http",
                   "containerPort": 6334
+                },
+                "dashboard": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "containerPort": 6333
                 }
               }
             }

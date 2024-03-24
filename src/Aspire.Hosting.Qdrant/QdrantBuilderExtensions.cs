@@ -2,18 +2,20 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Qdrant;
 using Aspire.Hosting.Utils;
 
-namespace Aspire.Hosting.Qdrant;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Provides extension methods for adding Qdrant resources to the application model.
 /// </summary>
 public static class QdrantBuilderExtensions
 {
-    private const int QdrantPortHttp = 6334;
-    private const int QdrantPortDashboard = 6333;
+    private const int QdrantPortGrpc = 6334;
+    private const int QdrantPortHttp = 6333;
     private const string ApiKeyEnvVarName = "QDRANT__SERVICE__API_KEY";
+    private const string DisableStaticContentEnvVarName = "QDRANT__SERVICE__ENABLE_STATIC_CONTENT";
 
     /// <summary>
     /// Adds a Qdrant resource to the application. A container is used for local development.  This version the package defaults to the v1.8.3 tag of the qdrant/qdrant container image.
@@ -34,26 +36,19 @@ public static class QdrantBuilderExtensions
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
-            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortHttp)
+            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
+            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortHttp, name: "dashboard")
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[ApiKeyEnvVarName] = qdrant.ApiKeyParameter;
+
+                // If in Publish mode, disable static content, which disables the Dashboard Web UI
+                // https://github.com/qdrant/qdrant/blob/acb04d5f0d22b46a756b31c0fc507336a0451c15/src/settings.rs#L36-L40
+                if (builder.ExecutionContext.IsPublishMode)
+                {
+                    context.EnvironmentVariables[DisableStaticContentEnvVarName] = "0";
+                }
             });
-    }
-
-    /// <summary>
-    /// Enables the Qdrant web UI dashboard with will be at /dashboard on the endpoint and require the API key to authenticate.
-    /// </summary>
-    /// <param name="builder">The MongoDB server resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithDashboard<T>(this IResourceBuilder<T> builder) where T : QdrantServerResource
-    {
-        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
-        {
-            builder.WithHttpEndpoint(containerPort: QdrantPortDashboard, name: "dashboard");
-        }
-
-        return builder;
     }
 
     /// <summary>

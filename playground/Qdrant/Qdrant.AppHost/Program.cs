@@ -7,8 +7,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var key = builder.AddParameter("ApiKey", true);
 
-var qdrant = builder.AddQdrant("qdrant", key)
-    .WithDashboard();
+var qdrant = builder.AddQdrant("qdrant", key);
 
 builder.AddProject<Projects.Qdrant_ApiService>("apiservice")
     .WithReference(qdrant);
