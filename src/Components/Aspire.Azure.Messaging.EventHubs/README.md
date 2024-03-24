@@ -21,16 +21,17 @@ dotnet add package Aspire.Azure.Messaging.EventHubs
 
 The following clients are supported by the library, along with their corresponding Options classes:
 
-| Client Type                              | Options Class            |
-|------------------------------------------|--------------------------|
+| Client Type<sup>index</sup>              | Options Class                 |
+|------------------------------------------|-------------------------------|
 | EventHubProducerClient&nbsp;<sup>1</sup> | EventHubProducerClientOptions |
 | EventHubConsumerClient&nbsp;<sup>2</sup> | EventHubConsumerClientOptions |
-| EventProcessorClient&nbsp;<sup>3</sup>   | EventProcessorClientOptions |
-| PartitionReceiver&nbsp;<sup>4</sup>      | PartitionReceiverOptions |
+| EventProcessorClient&nbsp;<sup>3</sup>   | EventProcessorClientOptions   |
+| PartitionReceiver&nbsp;<sup>4</sup>      | PartitionReceiverOptions      |
 
 ### AzureMessagingEventHubsSettings shared configuration
 
-The shared settings for all clients are suffixed below with one or more superscripted indices corresponding to the client types listed above that may use them:
+The shared settings for all clients are suffixed below with one or more
+indices corresponding to the client types listed above that may use them:
 
 | Member                                                                                   | Type             |
 |------------------------------------------------------------------------------------------|------------------|
@@ -75,7 +76,7 @@ The .NET Aspire Azure Event Hubs library provides multiple options to configure 
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, provide the name of the connection string when calling `builder.AddAzureEventHubProducerClient()`. In this example, the connection string does not include the `EntityPath` property, so the `EventHubName` property must be set in the settings callback:
+When using a connection string from the `ConnectionStrings` configuration section, provide the name of the connection string when calling `builder.AddAzureEventHubProducerClient()` and other supported Event Hubs clients. In this example, the connection string does not include the `EntityPath` property, so the `EventHubName` property must be set in the settings callback:
 
 ```csharp
 builder.AddAzureEventHubProducerClient("eventHubsConnectionName",
@@ -134,7 +135,7 @@ The .NET Aspire Azure Event Hubs library supports [Microsoft.Extensions.Configur
 }
 ```
 
-You can also setup the Options type using the optional `Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>> configureClientBuilder` parameter of the `AddAzureEventProcessorClient` method. For example, to set the client ID for this client:
+You can also setup the Options type using the optional `Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>> configureClientBuilder` parameter of the `AddAzureEventProcessorClient` method. For example, to set the processor's client ID for this client:
 
 ```csharp
 builder.AddAzureEventProcessorClient("eventHubsConnectionName", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "PROCESSOR_ID"));
