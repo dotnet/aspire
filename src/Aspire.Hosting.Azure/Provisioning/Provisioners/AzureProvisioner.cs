@@ -81,21 +81,19 @@ internal sealed class AzureProvisioner(
                                                   .ToLookup(x => x.Root, x => x.Child);
 
         // Sets the state of the resource and all of its children
-        async Task SetStateAsync(IAzureResource resource, string state)
-        {
-            await notificationService.PublishUpdateAsync(resource, s => s with
+        Task SetStateAsync(IAzureResource resource, string state) =>
+            UpdateStateAsync(resource, s => s with
             {
                 State = state
-            })
-            .ConfigureAwait(false);
+            });
+
+        async Task UpdateStateAsync(IAzureResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+        {
+            await notificationService.PublishUpdateAsync(resource, stateFactory).ConfigureAwait(false);
 
             foreach (var child in parentChildLookup[resource])
             {
-                await notificationService.PublishUpdateAsync(child, s => s with
-                {
-                    State = state
-                })
-                .ConfigureAwait(false);
+                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
             }
         }
 
@@ -119,7 +117,12 @@ internal sealed class AzureProvisioner(
         {
             r.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await SetStateAsync(r, "Starting").ConfigureAwait(false);
+            await UpdateStateAsync(r, s => s with
+            {
+                State = "Starting",
+                ExpectUrls = true // Portal url
+            })
+            .ConfigureAwait(false);
 
             // After the resource is provisioned, set its state
             _ = AfterProvisionAsync(r);

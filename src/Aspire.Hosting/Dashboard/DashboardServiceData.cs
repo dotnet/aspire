@@ -47,7 +47,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     Name = resourceId,
                     DisplayName = resource.Name,
                     Urls = urls,
-                    ExpectUrls = urls.Length > 0 || resource.TryGetLastAnnotation<EndpointAnnotation>(out _),
+                    ExpectUrls = urls.Length > 0 || snapshot.ExpectUrls,
                     Environment = environmentVariables,
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State

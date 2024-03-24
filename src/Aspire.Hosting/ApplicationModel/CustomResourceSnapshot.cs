@@ -45,4 +45,10 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public ImmutableArray<(string Name, string Url, bool IsInternal)> Urls { get; init; } = [];
 
+    /// <summary>
+    /// Gets or sets a value that indicates if this resource will have urls in the future. If Urls
+    /// is non-empty, this will be true.
+    /// </summary>
+    public bool ExpectUrls { get; set; }
+
 }

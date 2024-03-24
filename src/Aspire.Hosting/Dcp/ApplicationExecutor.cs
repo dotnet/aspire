@@ -463,6 +463,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
     {
+        var expectUrls = previous.ExpectUrls;
+
+        if (container.AppModelResourceName is not null &&
+            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
+        {
+            expectUrls = appModelResource.TryGetLastAnnotation<EndpointAnnotation>(out _);
+        }
+
         var containerId = container.Status?.ContainerId;
         var urls = GetUrls(container);
 
@@ -483,6 +491,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
+            ExpectUrls = expectUrls,
             Urls = urls
         };
 
@@ -507,16 +516,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
+        var expectUrls = previous.ExpectUrls;
         string? projectPath = null;
-        if (executable.TryGetProjectLaunchConfiguration(out var projectLaunchConfiguration))
+
+        if (executable.AppModelResourceName is not null &&
+            _applicationModel.TryGetValue(executable.AppModelResourceName, out var appModelResource))
         {
-            projectPath = projectLaunchConfiguration.ProjectPath;
-        }
-        else
-        {
-#pragma warning disable CS0612 // CSharpProjectPathAnnotation is obsolete; remove in Aspire Preview 6
-            executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
-#pragma warning restore CS0612
+            projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
+            expectUrls = appModelResource.TryGetLastAnnotation<EndpointAnnotation>(out _);
         }
 
         var urls = GetUrls(executable);
@@ -539,6 +546,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 ],
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+                ExpectUrls = expectUrls,
                 Urls = urls
             };
         }
@@ -556,6 +564,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+            ExpectUrls = expectUrls,
             Urls = urls
         };
     }

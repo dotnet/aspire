@@ -151,6 +151,10 @@ message Resource {
     repeated ResourceProperty properties = 12;
 
     repeated Url urls = 13;
+
+    // Returns true if there will ever be any urls. Since these updates are being sent as the state
+    // of resources change, it is possible to for urls to be empty but expect_urls to be true.
+    // If urls is non-empty, expect_urls must be true.
     bool expect_urls = 14;
 }
 
