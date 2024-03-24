@@ -25,7 +25,6 @@ partial class Resource
             Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
             Environment = GetEnvironment(),
             Urls = GetUrls(),
-            ExpectUrls = ExpectUrls,
             State = HasState ? State : null,
             Commands = GetCommands()
         };
@@ -39,9 +38,12 @@ partial class Resource
 
         ImmutableArray<UrlViewModel> GetUrls()
         {
-            return Urls
-                .Select(e => new UrlViewModel(e.Name, e.FullUrl, e.IsInternal))
-                .ToImmutableArray();
+            // Filter out bad urls
+            return (from u in Urls
+                    let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
+                    where parsedUri != null
+                    select new UrlViewModel(u.Name, parsedUri, u.IsInternal))
+                    .ToImmutableArray();
         }
 
         ImmutableArray<CommandViewModel> GetCommands()

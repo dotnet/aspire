@@ -10,26 +10,21 @@ internal static class ResourceEndpointHelpers
     /// <summary>
     /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
     /// </summary>
-    public static List<DisplayedEndpoint> GetEndpoints(ILogger logger, ResourceViewModel resource, bool includeInteralUrls = false)
+    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInteralUrls = false)
     {
         var endpoints = new List<DisplayedEndpoint>(resource.Urls.Length);
 
         foreach (var url in resource.Urls)
         {
-            if (!Uri.TryCreate(url.Url, UriKind.Absolute, out var uri))
-            {
-                // REVIEW: We should probably do this when creating the view model (once)
-                logger.LogWarning("Couldn't parse '{Url}' to a URI for resource {ResourceName}.", url.Url, resource.Name);
-            }
-            else if ((includeInteralUrls && url.IsInternal) || !url.IsInternal)
+            if ((includeInteralUrls && url.IsInternal) || !url.IsInternal)
             {
                 endpoints.Add(new DisplayedEndpoint
                 {
                     Name = url.Name,
-                    Text = url.Url,
-                    Address = uri.Host,
-                    Port = uri.Port,
-                    Url = uri.Scheme is "http" or "https" ? url.Url : null
+                    Text = url.Url.OriginalString,
+                    Address = url.Url.Host,
+                    Port = url.Url.Port,
+                    Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null
                 });
             }
         }

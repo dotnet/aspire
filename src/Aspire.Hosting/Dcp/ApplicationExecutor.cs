@@ -463,14 +463,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
     {
-        var expectUrls = previous.ExpectUrls;
-
-        if (container.AppModelResourceName is not null &&
-            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
-        {
-            expectUrls = appModelResource.TryGetLastAnnotation<EndpointAnnotation>(out _);
-        }
-
         var containerId = container.Status?.ContainerId;
         var urls = GetUrls(container);
 
@@ -491,7 +483,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
-            ExpectUrls = expectUrls,
             Urls = urls
         };
 
@@ -516,14 +507,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
-        var expectUrls = previous.ExpectUrls;
         string? projectPath = null;
 
         if (executable.AppModelResourceName is not null &&
             _applicationModel.TryGetValue(executable.AppModelResourceName, out var appModelResource))
         {
             projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
-            expectUrls = appModelResource.TryGetLastAnnotation<EndpointAnnotation>(out _);
         }
 
         var urls = GetUrls(executable);
@@ -546,7 +535,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 ],
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
-                ExpectUrls = expectUrls,
                 Urls = urls
             };
         }
@@ -564,7 +552,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
-            ExpectUrls = expectUrls,
             Urls = urls
         };
     }

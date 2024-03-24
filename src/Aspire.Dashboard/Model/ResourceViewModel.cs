@@ -20,7 +20,6 @@ public sealed class ResourceViewModel
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
-    public required bool ExpectUrls { get; init; }
     public required FrozenDictionary<string, Value> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
 
@@ -94,13 +93,13 @@ public sealed class EnvironmentVariableViewModel
 public sealed class UrlViewModel
 {
     public string Name { get; }
-    public string Url { get; }
+    public Uri Url { get; }
     public bool IsInternal { get; }
 
-    public UrlViewModel(string name, string url, bool isInternal)
+    public UrlViewModel(string name, Uri url, bool isInternal)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(url);
+        ArgumentNullException.ThrowIfNull(url);
 
         Name = name;
         Url = url;

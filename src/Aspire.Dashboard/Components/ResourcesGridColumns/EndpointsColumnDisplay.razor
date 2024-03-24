@@ -6,24 +6,11 @@
 @{
     List<DisplayedEndpoint> displayedEndpoints;
     string? additionalMessage = null;
-    if (Resource.Urls.Length == 0 && (Resource.State == ResourceStates.FinishedState || !Resource.ExpectUrls))
+    if (Resource.Urls.Length == 0)
     {
-        if (!Resource.ExpectUrls)
-        {
-            // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
-            additionalMessage = Loc[nameof(Columns.EndpointsColumnDisplayNone)];
-            displayedEndpoints = [];
-        }
-        else
-        {
-            displayedEndpoints = GetEndpoints(Resource);
-        }
-    }
-    else if (Resource.Urls.Length == 0 && (Resource.State != ResourceStates.FinishedState && Resource.ExpectUrls))
-    {
-        // If we're expecting more endpoints, say Starting..., unless the app isn't running anymore.
-        displayedEndpoints = GetEndpoints(Resource);
-        additionalMessage = Loc[nameof(Columns.EndpointsColumnDisplayPlaceholder)];
+        // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
+        additionalMessage = Loc[nameof(Columns.EndpointsColumnDisplayNone)];
+        displayedEndpoints = [];
     }
     else
     {

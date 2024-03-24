@@ -98,9 +98,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             {
                 foreach (var service in resource.Urls)
                 {
-                    var uri = new Uri(service.Url);
-
-                    var hostAndPort = uri.GetComponents(UriComponents.Host | UriComponents.Port, UriFormat.UriEscaped);
+                    var hostAndPort = service.Url.GetComponents(UriComponents.Host | UriComponents.Port, UriFormat.UriEscaped);
 
                     if (string.Equals(hostAndPort, value, StringComparison.OrdinalIgnoreCase))
                     {

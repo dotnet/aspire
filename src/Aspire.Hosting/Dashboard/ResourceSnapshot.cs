@@ -20,9 +20,6 @@ internal abstract class ResourceSnapshot
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }
 
-    // Will this resource ever have any urls
-    public bool ExpectUrls { get; init; }
-
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
 
     protected abstract IEnumerable<(string Key, Value Value)> GetProperties();

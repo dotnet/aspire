@@ -117,12 +117,7 @@ internal sealed class AzureProvisioner(
         {
             r.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await UpdateStateAsync(r, s => s with
-            {
-                State = "Starting",
-                ExpectUrls = true // Portal url
-            })
-            .ConfigureAwait(false);
+            await SetStateAsync(r, "Starting").ConfigureAwait(false);
 
             // After the resource is provisioned, set its state
             _ = AfterProvisionAsync(r);

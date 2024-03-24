@@ -24,8 +24,6 @@ partial class Resource
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
         }
 
-        resource.ExpectUrls = snapshot.ExpectUrls;
-
         foreach (var env in snapshot.Environment)
         {
             resource.Environment.Add(new EnvironmentVariable { Name = env.Name, Value = env.Value ?? "", IsFromSpec = env.IsFromSpec });
