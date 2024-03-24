@@ -148,7 +148,6 @@ public class BuildEnvironment
         {
             LogRootPath = Environment.CurrentDirectory;
         }
-        EnvVars["TEST_LOG_PATH"] = LogRootPath;
 
         if (Directory.Exists(TmpPath))
         {
