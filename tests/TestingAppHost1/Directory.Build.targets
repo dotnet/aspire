@@ -1,5 +1,4 @@
 <Project>
-
   <ItemGroup>
     <ProjectReference Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
     <PackageReference Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" Include="@(ComponentReferenceForTests)" />
@@ -8,11 +7,6 @@
     <PackageReference Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" Include="@(NonComponentReferenceForTests)" />
   </ItemGroup>
 
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
   <Import Project="Directory.Build.Helix.targets" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
-
-  <!-- NOTE: These lines are only required because we are using P2P references, not NuGet. They will not exist in real apps. -->
-  <Import Project="..\..\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-  <Import Project="..\..\src\Aspire.Hosting.Sdk\SDK\Sdk.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-
+  <Import Project="..\Directory.Build.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
 </Project>

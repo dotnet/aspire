@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <_DirectoryPackagesRepoProps>$(MSBuildThisFileDirectory)Directory.Packages.repo.props</_DirectoryPackagesRepoProps>
+    <_DirectoryPackagesRepoProps>$(MSBuildThisFileDirectory)..\Directory.Packages.repo.props</_DirectoryPackagesRepoProps>
   </PropertyGroup>
   <Import Project="$(_DirectoryPackagesRepoProps)" Condition="Exists($(_DirectoryPackagesRepoProps))" />
 
