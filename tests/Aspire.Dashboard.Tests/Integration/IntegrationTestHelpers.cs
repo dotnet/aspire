@@ -28,9 +28,11 @@ public static class IntegrationTestHelpers
         {
             [DashboardWebApplication.DashboardUrlVariableName] = "http://127.0.0.1:0",
             [DashboardWebApplication.DashboardOtlpUrlVariableName] = "http://127.0.0.1:0",
+            [DashboardWebApplication.OtlpAuthModeKey] = "Unsecured",
             ["ResourceServiceClient:AuthMode"] = "Unsecured",
-            ["DashboardWebApp:AuthMode"] = "Unsecured"
+            [DashboardWebApplication.WebAppAuthModeKey] = "Unsecured"
         };
+
         additionalConfiguration?.Invoke(initialData);
 
         var config = new ConfigurationManager()

@@ -17,8 +17,8 @@ For example, the default certificate used by HTTPS endpoints can be configured u
 
 The OTLP endpoint can be secured with [client certificate](https://learn.microsoft.com/aspnet/core/security/authentication/certauth) or API key authentication.
 
-- `DOTNET_DASHBOARD_OTLP_AUTH_MODE` specifies the authentication mode on the OTLP endpoint. Possible values are `Certificate`, `ApiKey`, `None`. This configuration is required.
-- `DOTNET_DASHBOARD_OTLP_API_KEY` specifies the API key for the OTLP endpoint when API key authentication is enabled. This configuration is required for API key authentication.
+- `Otlp:AuthMode` specifies the authentication mode on the OTLP endpoint. Possible values are `Certificate`, `ApiKey`, `Unsecured`. This configuration is required.
+- `Otlp:ApiKey` specifies the API key for the OTLP endpoint when API key authentication is enabled. This configuration is required for API key authentication.
 
 ## Resources
 

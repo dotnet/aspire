@@ -14,6 +14,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
@@ -25,8 +26,11 @@ namespace Aspire.Dashboard;
 
 public class DashboardWebApplication : IAsyncDisposable
 {
-    internal const string DashboardOtlpAuthModeVariableName = "DOTNET_DASHBOARD_OTLP_AUTH_MODE";
-    internal const string DashboardOtlpApiKeyVariableName = "DOTNET_DASHBOARD_OTLP_API_KEY";
+    internal const string WebAppAuthModeKey = "DashboardWebApp:AuthMode";
+
+    internal const string OtlpAuthModeKey = "Otlp:AuthMode";
+    internal const string OtlpApiKeyKey = "Otlp:ApiKey";
+
     internal const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     internal const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
     internal const string DashboardUrlVariableName = "ASPNETCORE_URLS";
@@ -62,13 +66,6 @@ public class DashboardWebApplication : IAsyncDisposable
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 #endif
-
-        var authMode = builder.Configuration.GetEnum<DashboardWebAppAuthMode>("DashboardWebApp:AuthMode");
-
-        if (authMode == null)
-        {
-            throw new InvalidOperationException("Unable to read DashboardWebApp:AuthMode. Supported values are Unsecured and OpenIdConnect.");
-        }
 
         var dashboardConfig = LoadDashboardConfig(builder.Configuration);
 
@@ -110,30 +107,6 @@ public class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<BrowserTimeProvider>();
 
         builder.Services.AddLocalization();
-
-        if (authMode == DashboardWebAppAuthMode.OpenIdConnect)
-        {
-            // Configure OpenID Connect (OIDC)
-            var authentication = builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-            });
-
-            authentication.AddCookie();
-
-            authentication.AddOpenIdConnect(options =>
-            {
-                // Use authorization code flow so clients don't see access tokens.
-                options.ResponseType = OpenIdConnectResponseType.Code;
-
-                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-
-                // "openid" and "profile" are added by default, but need to be re-added in case the user added more
-                // scopes via Authentication:Schemes:OpenIdConnect:Scope configuration.
-                options.Scope.Add(OpenIdConnectScope.OpenIdProfile);
-            });
-        }
 
         _app = builder.Build();
 
@@ -325,8 +298,8 @@ public class DashboardWebApplication : IAsyncDisposable
 
     private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardStartupConfiguration dashboardStartupConfig)
     {
-        builder.Services
-            .AddAuthentication(defaultScheme: OtlpCompositeAuthenticationDefaults.AuthenticationScheme)
+        var authentication = builder.Services
+            .AddAuthentication()
             .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o =>
             {
                 o.OtlpAuthMode = dashboardStartupConfig.OtlpAuthMode;
@@ -338,7 +311,7 @@ public class DashboardWebApplication : IAsyncDisposable
             .AddScheme<OtlpConnectionAuthenticationHandlerOptions, OtlpConnectionAuthenticationHandler>(OtlpConnectionAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddCertificate(options =>
             {
-                // Bind options to configuration so they can be override by environment variables.
+                // Bind options to configuration so they can be overridden by environment variables.
                 builder.Configuration.Bind("CertificateAuthentication", options);
 
                 options.Events = new CertificateAuthenticationEvents
@@ -363,9 +336,70 @@ public class DashboardWebApplication : IAsyncDisposable
                 };
             });
 
+        if (dashboardStartupConfig.WebAppAuthMode == WebAppAuthMode.OpenIdConnect)
+        {
+            // Configure OpenID Connect (OIDC)
+            authentication.AddScheme<WebAppAuthenticationHandlerOptions, WebAppAuthenticationHandler>(WebAppAuthenticationDefaults.AuthenticationScheme, o =>
+            {
+                o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
+                o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
+            });
+
+            authentication.AddCookie();
+
+            authentication.AddOpenIdConnect(options =>
+            {
+                // Use authorization code flow so clients don't see access tokens.
+                options.ResponseType = OpenIdConnectResponseType.Code;
+
+                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
+                // Scopes "openid" and "profile" are added by default, but need to be re-added
+                // in case configuration exists for Authentication:Schemes:OpenIdConnect:Scope.
+                if (!options.Scope.Contains(OpenIdConnectScope.OpenId))
+                {
+                    options.Scope.Add(OpenIdConnectScope.OpenId);
+                }
+
+                if (!options.Scope.Contains("profile"))
+                {
+                    options.Scope.Add("profile");
+                }
+
+                // Redirect to resources upon sign-in.
+                options.CallbackPath = TargetLocationInterceptor.ResourcesPath;
+
+                // Avoid "message.State is null or empty" due to use of CallbackPath above.
+                options.SkipUnrecognizedRequests = true;
+            });
+        }
+
         builder.Services.AddAuthorization(options =>
         {
-            options.AddPolicy(OtlpAuthorization.PolicyName, policy => policy.RequireClaim(OtlpAuthorization.OtlpClaimName));
+            options.AddPolicy(
+                name: OtlpAuthorization.PolicyName,
+                policy: new AuthorizationPolicyBuilder(
+                    OtlpCompositeAuthenticationDefaults.AuthenticationScheme)
+                    .RequireClaim(OtlpAuthorization.OtlpClaimName)
+                    .Build());
+
+            if (dashboardStartupConfig.WebAppAuthMode == WebAppAuthMode.OpenIdConnect)
+            {
+                options.AddPolicy(
+                    name: WebAppAuthorizationDefaults.PolicyName,
+                    policy: new AuthorizationPolicyBuilder(
+                        WebAppAuthenticationDefaults.AuthenticationScheme)
+                        .RequireAuthenticatedUser()
+                        .Build());
+            }
+            else
+            {
+                options.AddPolicy(
+                    name: WebAppAuthorizationDefaults.PolicyName,
+                    policy: new AuthorizationPolicyBuilder()
+                        .RequireAssertion(_ => true)
+                        .Build());
+            }
         });
     }
 
@@ -387,64 +421,63 @@ public class DashboardWebApplication : IAsyncDisposable
         var browserUris = configuration.GetUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
         if (browserUris.Length == 0)
         {
-            throw new InvalidOperationException($"One URL for Aspire dashboard OTLP endpoint with {DashboardUrlDefaultValue} is required.");
+            throw new InvalidOperationException($"At least one URL for Aspire dashboard browser endpoint with {DashboardOtlpUrlDefaultValue} is required.");
         }
+
+        var webAppAuthMode = configuration.GetEnum<WebAppAuthMode>(WebAppAuthModeKey);
 
         var otlpUris = configuration.GetUris(DashboardOtlpUrlVariableName, new(DashboardOtlpUrlDefaultValue));
         if (otlpUris.Length != 1)
         {
-            throw new InvalidOperationException($"At least one URL for Aspire dashboard browser endpoint with {DashboardOtlpUrlDefaultValue} is required.");
+            throw new InvalidOperationException($"One URL for Aspire dashboard OTLP endpoint with {DashboardUrlDefaultValue} is required, not {otlpUris.Length}.");
         }
 
-        OtlpAuthMode otlpAuthMode;
+        var otlpAuthMode = configuration.GetEnum<OtlpAuthMode>(OtlpAuthModeKey);
+
         string? otlpApiKey = null;
 
-        if (configuration[DashboardOtlpAuthModeVariableName] is { } v)
+        switch (otlpAuthMode)
         {
-            if (!Enum.TryParse(v, ignoreCase: true, out otlpAuthMode))
-            {
-                throw new InvalidOperationException($"Unknown {nameof(OtlpAuthMode)} value: {v}");
-            }
-
-            switch (otlpAuthMode)
-            {
-                case OtlpAuthMode.None:
-                    break;
-                case OtlpAuthMode.ApiKey:
-                    otlpApiKey = configuration[DashboardOtlpApiKeyVariableName];
-                    if (string.IsNullOrEmpty(otlpApiKey))
-                    {
-                        throw new InvalidOperationException($"{DashboardOtlpAuthModeVariableName} value of {nameof(OtlpAuthMode.ApiKey)} requires an API key from {DashboardOtlpApiKeyVariableName}.");
-                    }
-                    break;
-                case OtlpAuthMode.ClientCertificate:
-                    if (!IsHttps(otlpUris[0]))
-                    {
-                        throw new InvalidOperationException($"{DashboardOtlpAuthModeVariableName} value of {nameof(OtlpAuthMode.ClientCertificate)} requires a HTTPS OTLP endpoint.");
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-        else
-        {
-            otlpAuthMode = OtlpAuthMode.None;
+            case OtlpAuthMode.ApiKey:
+                otlpApiKey = configuration[OtlpApiKeyKey];
+                if (string.IsNullOrEmpty(otlpApiKey))
+                {
+                    throw new InvalidOperationException($"{OtlpAuthModeKey} value of {nameof(OtlpAuthMode.ApiKey)} requires an API key from {OtlpApiKeyKey}.");
+                }
+                break;
+            case OtlpAuthMode.ClientCertificate:
+                if (!IsHttps(otlpUris[0]))
+                {
+                    throw new InvalidOperationException($"{OtlpAuthModeKey} value of {nameof(OtlpAuthMode.ClientCertificate)} requires a HTTPS OTLP endpoint.");
+                }
+                break;
+            default:
+                break;
         }
 
         return new DashboardStartupConfiguration
         {
             BrowserUris = browserUris,
+            WebAppAuthMode = webAppAuthMode,
             OtlpUri = otlpUris[0],
             OtlpAuthMode = otlpAuthMode,
             OtlpApiKey = otlpApiKey
         };
     }
 
-    private enum DashboardWebAppAuthMode
+    private enum WebAppAuthMode
     {
         Unsecured,
         OpenIdConnect
+    }
+
+    private sealed class DashboardStartupConfiguration
+    {
+        public required Uri[] BrowserUris { get; init; }
+        public required Uri OtlpUri { get; init; }
+        public required OtlpAuthMode OtlpAuthMode { get; init; }
+        public required WebAppAuthMode WebAppAuthMode { get; init; }
+        public required string? OtlpApiKey { get; init; }
     }
 }
 

@@ -7,20 +7,13 @@ using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
-public class StartupTests
+public class StartupTests(ITestOutputHelper testOutputHelper)
 {
-    private readonly ITestOutputHelper _testOutputHelper;
-
-    public StartupTests(ITestOutputHelper testOutputHelper)
-    {
-        _testOutputHelper = testOutputHelper;
-    }
-
     [Fact]
     public async Task EndPointAccessors_AppStarted_EndPointPortsAssigned()
     {
         // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
 
         // Act
         await app.StartAsync();
@@ -28,6 +21,13 @@ public class StartupTests
         // Assert
         AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
+
+        static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)
+        {
+            // Check that the specified dynamic port of 0 is overridden with the actual port number.
+            var ipEndPoint = endPointAccessor().EndPoint;
+            Assert.NotEqual(0, ipEndPoint.Port);
+        }
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class StartupTests
     {
         // Arrange
         var testSink = new TestSink();
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, testSink: testSink);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper, testSink: testSink);
 
         // Act
         await app.StartAsync();
@@ -73,7 +73,7 @@ public class StartupTests
     public async void EndPointAccessors_AppStarted_BrowserGet_Success()
     {
         // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
 
         // Act
         await app.StartAsync();
@@ -85,12 +85,5 @@ public class StartupTests
 
         // Assert
         response.EnsureSuccessStatusCode();
-    }
-
-    private static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)
-    {
-        // Check that the specified dynamic port of 0 is overridden with the actual port number.
-        var ipEndPoint = endPointAccessor().EndPoint;
-        Assert.NotEqual(0, ipEndPoint.Port);
     }
 }

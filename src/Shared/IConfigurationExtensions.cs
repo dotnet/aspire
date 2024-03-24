@@ -120,7 +120,7 @@ internal static class IConfigurationExtensions
     }
 
     /// <summary>
-    /// Gets the named configuration value as a member of an enum, or <paramref name="defaultValue"/> if parsing failed.
+    /// Gets the named configuration value as a member of an enum, or <paramref name="defaultValue"/> if the value was null or empty.
     /// </summary>
     /// <remarks>
     /// Parsing is case-insensitive.
@@ -128,7 +128,8 @@ internal static class IConfigurationExtensions
     /// <param name="configuration">The <see cref="IConfiguration"/> this method extends.</param>
     /// <param name="key">The configuration key.</param>
     /// <param name="defaultValue">A default value, for when the configuration value is unable to be parsed.</param>
-    /// <returns>The parsed enum member, or <paramref name="defaultValue"/> if parsing failed.</returns>
+    /// <exception cref="InvalidOperationException">The configuration value is not a valid member of the enum.</exception>
+    /// <returns>The parsed enum member, or <paramref name="defaultValue"/> the configuration value was null or empty.</returns>
     [return: NotNullIfNotNull(nameof(defaultValue))]
     public static T? GetEnum<T>(this IConfiguration configuration, string key, T? defaultValue = default)
         where T : struct
@@ -144,6 +145,29 @@ internal static class IConfigurationExtensions
             return e;
         }
 
-        return default;
+        throw new InvalidOperationException($"Unknown {typeof(T).Name} value \"{value}\". Valid values are {string.Join(", ", Enum.GetNames(typeof(T)))}.");
+    }
+
+    /// <summary>
+    /// Gets the specified required configuration value as a member of an enum.
+    /// </summary>
+    /// <remarks>
+    /// Parsing is case-insensitive.
+    /// </remarks>
+    /// <param name="configuration">The <see cref="IConfiguration"/> this method extends.</param>
+    /// <param name="key">The configuration key.</param>
+    /// <exception cref="InvalidOperationException">The configuration value is empty or not a valid member of the enum.</exception>
+    /// <returns>The parsed enum member.</returns>
+    public static T GetEnum<T>(this IConfiguration configuration, string key)
+        where T : struct
+    {
+        var value = configuration.GetEnum<T>(key, defaultValue: null);
+
+        if (value is null)
+        {
+            throw new InvalidOperationException($"Missing required configuration for {key}. Valid values are {string.Join(", ", Enum.GetNames(typeof(T)))}.");
+        }
+
+        return value.Value;
     }
 }

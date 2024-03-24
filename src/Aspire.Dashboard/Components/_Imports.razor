@@ -1,5 +1,7 @@
 ﻿@using System.Net.Http
 @using System.Net.Http.Json
+@using Aspire.Dashboard.Authentication
+@using Microsoft.AspNetCore.Authentication.OpenIdConnect
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Routing
@@ -12,5 +14,5 @@
 @using Aspire.Dashboard.Components.Controls
 @using Microsoft.Extensions.Localization
 
-@* Require authorization for all pages *@
-@attribute [Authorize]
+@* Require authorization for all pages of the web app *@
+@attribute [Authorize(Policy = WebAppAuthorizationDefaults.PolicyName)]

@@ -102,11 +102,6 @@ internal sealed class DashboardClient : IDashboardClient
 
             var authMode = configuration.GetEnum<ResourceClientAuthMode>("ResourceServiceClient:AuthMode");
 
-            if (authMode == null)
-            {
-                throw new InvalidOperationException("Unable to read ResourceServiceClient:AuthMode. Supported values are Unsecured and Certificate.");
-            }
-
             if (authMode == ResourceClientAuthMode.Certificate)
             {
                 // Auth hasn't been suppressed, so configure it.
