@@ -40,7 +40,7 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             builder.AddMySqlDataSource("mysql");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var dataSource = useKeyed ?
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();
@@ -68,7 +68,7 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             builder.AddMySqlDataSource("mysql", SetConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var dataSource = useKeyed ?
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();
@@ -100,7 +100,7 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
             builder.AddMySqlDataSource("mysql");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var dataSource = useKeyed ?
             host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql") :
             host.Services.GetRequiredService<MySqlDataSource>();

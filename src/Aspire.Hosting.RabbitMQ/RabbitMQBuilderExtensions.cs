@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -25,14 +26,17 @@ public static class RabbitMQBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-        var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, password?.Resource);
+        // don't use special characters in the password, since it goes into a URI
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
+
+        var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, passwordParameter);
         return builder.AddResource(rabbitMq)
                       .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
                       .WithImage("rabbitmq", "3")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables["RABBITMQ_DEFAULT_USER"] = rabbitMq.UserNameReference;
-                          context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordReference;
+                          context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordParameter;
                       });
     }
 
@@ -40,11 +44,11 @@ public static class RabbitMQBuilderExtensions
     /// Adds a named volume for the data folder to a RabbitMQ container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> WithDataVolume(this IResourceBuilder<RabbitMQServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/rabbitmq", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a RabbitMQ container resource.

@@ -102,7 +102,7 @@ public class AddOracleTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("user id=system;password={orcl.inputs.password};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("user id=system;password={orcl-password.value};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("user id=system;password=", connectionString);
         Assert.EndsWith(";data source=localhost:2000", connectionString);
     }
@@ -174,8 +174,8 @@ public class AddOracleTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var oracleServer = appBuilder.AddOracle("oracle");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var oracleServer = builder.AddOracle("oracle");
         var db = oracleServer.AddDatabase("db");
 
         var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
@@ -184,10 +184,10 @@ public class AddOracleTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "user id=system;password={oracle.inputs.password};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}",
+              "connectionString": "user id=system;password={oracle-password.value};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}",
               "image": "container-registry.oracle.com/database/free:23.3.0.0",
               "env": {
-                "ORACLE_PWD": "{oracle.inputs.password}"
+                "ORACLE_PWD": "{oracle-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -195,17 +195,6 @@ public class AddOracleTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 1521
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
                 }
               }
             }
@@ -224,10 +213,10 @@ public class AddOracleTests
     [Fact]
     public async Task VerifyManifestWithPasswordParameter()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var pass = appBuilder.AddParameter("pass");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var pass = builder.AddParameter("pass");
 
-        var oracleServer = appBuilder.AddOracle("oracle", pass);
+        var oracleServer = builder.AddOracle("oracle", pass);
         var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
 
         var expectedManifest = """
@@ -254,7 +243,7 @@ public class AddOracleTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db = builder.AddOracle("oracle1");
         db.AddDatabase("db");
@@ -265,7 +254,7 @@ public class AddOracleTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddOracle("oracle1")
             .AddDatabase("db");
@@ -277,7 +266,7 @@ public class AddOracleTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var oracle1 = builder.AddOracle("oracle1");
 
@@ -294,7 +283,7 @@ public class AddOracleTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db1 = builder.AddOracle("oracle1")
             .AddDatabase("db1", "imports");

@@ -65,19 +65,19 @@ public class AddRabbitMQTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var rabbit = appBuilder.AddRabbitMQ("rabbit");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var rabbit = builder.AddRabbitMQ("rabbit");
 
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "amqp://guest:{rabbit.inputs.password}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
+              "connectionString": "amqp://guest:{rabbit-password.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
               "image": "rabbitmq:3",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "guest",
-                "RABBITMQ_DEFAULT_PASS": "{rabbit.inputs.password}"
+                "RABBITMQ_DEFAULT_PASS": "{rabbit-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -85,18 +85,6 @@ public class AddRabbitMQTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 5672
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "special": false
-                    }
-                  }
                 }
               }
             }
@@ -107,12 +95,12 @@ public class AddRabbitMQTests
     [Fact]
     public async Task VerifyManifestWithParameters()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
-        var userNameParameter = appBuilder.AddParameter("user");
-        var passwordParameter = appBuilder.AddParameter("pass");
+        var userNameParameter = builder.AddParameter("user");
+        var passwordParameter = builder.AddParameter("pass");
 
-        var rabbit = appBuilder.AddRabbitMQ("rabbit", userNameParameter, passwordParameter);
+        var rabbit = builder.AddRabbitMQ("rabbit", userNameParameter, passwordParameter);
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         var expectedManifest = """
@@ -136,17 +124,17 @@ public class AddRabbitMQTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        rabbit = appBuilder.AddRabbitMQ("rabbit2", userNameParameter);
+        rabbit = builder.AddRabbitMQ("rabbit2", userNameParameter);
         manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "amqp://{user.value}:{rabbit2.inputs.password}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
+              "connectionString": "amqp://{user.value}:{rabbit2-password.value}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
               "image": "rabbitmq:3",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "{user.value}",
-                "RABBITMQ_DEFAULT_PASS": "{rabbit2.inputs.password}"
+                "RABBITMQ_DEFAULT_PASS": "{rabbit2-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -155,24 +143,12 @@ public class AddRabbitMQTests
                   "transport": "tcp",
                   "containerPort": 5672
                 }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "special": false
-                    }
-                  }
-                }
               }
             }
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        rabbit = appBuilder.AddRabbitMQ("rabbit3", password: passwordParameter);
+        rabbit = builder.AddRabbitMQ("rabbit3", password: passwordParameter);
         manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         expectedManifest = """
