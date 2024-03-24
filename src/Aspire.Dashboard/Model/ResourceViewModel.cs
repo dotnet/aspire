@@ -19,9 +19,7 @@ public sealed class ResourceViewModel
     public required string? State { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
-    public required ImmutableArray<EndpointViewModel> Endpoints { get; init; }
-    public required ImmutableArray<ResourceServiceViewModel> Services { get; init; }
-    public required int? ExpectedEndpointsCount { get; init; }
+    public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required FrozenDictionary<string, Value> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
 
@@ -92,37 +90,20 @@ public sealed class EnvironmentVariableViewModel
     }
 }
 
-public sealed class EndpointViewModel
-{
-    public string EndpointUrl { get; }
-    public string ProxyUrl { get; }
-
-    public EndpointViewModel(string endpointUrl, string proxyUrl)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(endpointUrl);
-        ArgumentException.ThrowIfNullOrWhiteSpace(proxyUrl);
-
-        EndpointUrl = endpointUrl;
-        ProxyUrl = proxyUrl;
-    }
-}
-
-public sealed class ResourceServiceViewModel
+public sealed class UrlViewModel
 {
     public string Name { get; }
-    public string? AllocatedAddress { get; }
-    public int? AllocatedPort { get; }
+    public Uri Url { get; }
+    public bool IsInternal { get; }
 
-    public string AddressAndPort { get; }
-
-    public ResourceServiceViewModel(string name, string? allocatedAddress, int? allocatedPort)
+    public UrlViewModel(string name, Uri url, bool isInternal)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(url);
 
         Name = name;
-        AllocatedAddress = allocatedAddress;
-        AllocatedPort = allocatedPort;
-        AddressAndPort = $"{allocatedAddress}:{allocatedPort}";
+        Url = url;
+        IsInternal = isInternal;
     }
 }
 
