@@ -423,6 +423,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Tests.Shared
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.KeyVault", "src\Aspire.Hosting.Azure.KeyVault\Aspire.Hosting.Azure.KeyVault.csproj", "{427F4D7C-8969-4015-AD1A-5EFFE921A184}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Azure.Messaging.EventHubs.Tests", "tests\Aspire.Azure.Messaging.EventHubs.Tests\Aspire.Azure.Messaging.EventHubs.Tests.csproj", "{8191109E-130C-47F3-B84E-82070A6CD269}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1117,6 +1119,10 @@ Global
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8191109E-130C-47F3-B84E-82070A6CD269}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8191109E-130C-47F3-B84E-82070A6CD269}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8191109E-130C-47F3-B84E-82070A6CD269}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8191109E-130C-47F3-B84E-82070A6CD269}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1321,6 +1327,7 @@ Global
 		{2580B014-E7FE-48D9-BE40-E90604365F0E} = {77CFE74A-32EE-400C-8930-5025E8555256}
 		{74644A4D-8F61-4314-B6E8-5CE3802CD6C2} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184} = {77CFE74A-32EE-400C-8930-5025E8555256}
+		{8191109E-130C-47F3-B84E-82070A6CD269} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

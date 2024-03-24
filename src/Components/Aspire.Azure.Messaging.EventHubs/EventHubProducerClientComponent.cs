@@ -24,14 +24,10 @@ internal sealed class EventHubProducerClientComponent : EventHubsComponent<Event
     {
         return azureFactoryBuilder.RegisterClientFactory<EventHubProducerClient, EventHubProducerClientOptions>((options, cred) =>
         {
-            var connectionString = settings.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))
-            {
-                throw new InvalidOperationException($"A EventHubProducerClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
-            }
+            EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
-            return !string.IsNullOrEmpty(connectionString) ?
-                new EventHubProducerClient(connectionString, options) :
+            return !string.IsNullOrEmpty(settings.ConnectionString) ?
+                new EventHubProducerClient(settings.ConnectionString, options) :
                 new EventHubProducerClient(settings.Namespace, settings.EventHubName, cred, options);
         }, requiresCredential: false);
     }

@@ -1,17 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
-using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Primitives;
 using Azure.Messaging.EventHubs.Producer;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -51,7 +47,7 @@ public static class AspireEventHubsExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.Namespace"/> is provided.</exception>
-    public static void AddKeyedAzureEventHubProcessorClient(
+    public static void AddKeyedAzureEventProcessorClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureMessagingEventHubsSettings>? configureSettings = null,
@@ -204,60 +200,5 @@ public static class AspireEventHubsExtensions
         new EventHubConsumerClientComponent()
             .AddClient(builder, configurationSectionName, configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
-    }
-}
-
-internal abstract class EventHubsComponent<TClient, TClientOptions> :
-    AzureComponent<AzureMessagingEventHubsSettings, TClient, TClientOptions>
-    where TClientOptions: class
-    where TClient : class
-{
-    protected override IHealthCheck CreateHealthCheck(TClient client, AzureMessagingEventHubsSettings settings)
-        => throw new NotImplementedException();
-
-    protected override void BindSettingsToConfiguration(AzureMessagingEventHubsSettings settings, IConfiguration config)
-    {
-        config.Bind(settings);
-    }
-
-    protected override bool GetHealthCheckEnabled(AzureMessagingEventHubsSettings settings)
-        => false;
-
-    protected override TokenCredential? GetTokenCredential(AzureMessagingEventHubsSettings settings)
-        => settings.Credential;
-
-    protected override bool GetTracingEnabled(AzureMessagingEventHubsSettings settings)
-        => settings.Tracing;
-
-    protected static string GenerateClientIdentifier(AzureMessagingEventHubsSettings settings)
-    {
-        // configure processor identifier
-        var slug = Guid.NewGuid().ToString().Substring(24);
-        var identifier = $"{Environment.MachineName}-{settings.EventHubName}-" +
-                         $"{settings.ConsumerGroup ?? "default"}-{slug}";
-
-        return identifier;
-    }
-
-    protected static string GetNamespaceFromSettings(AzureMessagingEventHubsSettings settings)
-    {
-        string ns;
-
-        try
-        {
-            // extract the namespace from the connection string or qualified namespace
-            var fullyQualifiedNs = string.IsNullOrWhiteSpace(settings.Namespace) ?
-                EventHubsConnectionStringProperties.Parse(settings.ConnectionString).FullyQualifiedNamespace :
-                new Uri(settings.Namespace).Host;
-
-            ns = fullyQualifiedNs[..fullyQualifiedNs.IndexOf('.', StringComparison.Ordinal)];
-        }
-        catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException)
-        {
-            throw new InvalidOperationException(
-                $"A {nameof(TClient)} could not be configured. Please ensure that the ConnectionString or Namespace is well-formed.");
-        }
-
-        return ns;
     }
 }

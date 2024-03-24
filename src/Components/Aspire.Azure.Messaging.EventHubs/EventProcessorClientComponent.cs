@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Azure.Messaging.EventHubs;
+using Azure;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Messaging.EventHubs;
@@ -29,26 +30,15 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
         return azureFactoryBuilder.RegisterClientFactory<EventProcessorClient, EventProcessorClientOptions>(
             (options, cred) =>
             {
-                var connectionString = settings.ConnectionString;
-                if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))
-                {
-                    throw new InvalidOperationException(
-                        $"A EventHubProducerClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
-                }
-
-                if (string.IsNullOrEmpty(settings.EventHubName))
-                {
-                    throw new InvalidOperationException(
-                        $"A EventProcessorClient could not be configured. Ensure a valid EventHubName was provided in the '{configurationSectionName}' configuration section.");
-                }
+                EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
                 options.Identifier ??= GenerateClientIdentifier(settings);
 
                 var blobClient = GetBlobContainerClient(settings, cred, configurationSectionName);
 
-                var processor = !string.IsNullOrEmpty(connectionString)
+                var processor = !string.IsNullOrEmpty(settings.ConnectionString)
                     ? new EventProcessorClient(blobClient,
-                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, connectionString)
+                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.ConnectionString)
                     : new EventProcessorClient(blobClient,
                         settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.Namespace,
                         settings.EventHubName, cred, options);
@@ -65,7 +55,8 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
         {
             // throw an invalid operation exception if the blob client connection name is not provided
             throw new InvalidOperationException(
-                $"A EventProcessorClient could not be configured. Ensure a valid connection name was provided in the '{configurationSectionName}' configuration section.");
+                $"A EventProcessorClient could not be configured. Ensure a valid blob connection name was provided in " +
+                $"the '{configurationSectionName}:BlobClientConnectionName' configuration section.");
         }
 
         var blobConnectionString =
@@ -85,11 +76,26 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
 
         var ns = GetNamespaceFromSettings(settings);
 
-        blobUriBuilder.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
-        
         var blobUri = blobUriBuilder.ToUri();
         var blobClient = new BlobContainerClient(blobUri, cred);
-        blobClient.CreateIfNotExists();
+
+        // Only attempt to create container if it was not found in the connection string
+        if (blobUriBuilder.BlobContainerName == string.Empty)
+        {
+            try
+            {
+                blobUriBuilder.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
+                blobClient.CreateIfNotExists();
+            }
+            catch (RequestFailedException ex)
+            {
+                throw new InvalidOperationException(
+                    $"A container was not specified in the blob connection string with the name '{settings.BlobClientConnectionName}', " +
+                    "so an attempt was made to create one automatically and this operation failed. Please ensure the container " +
+                    "exists and is specified in the connection string.",
+                    ex);
+            }
+        }
 
         return blobClient;
     }

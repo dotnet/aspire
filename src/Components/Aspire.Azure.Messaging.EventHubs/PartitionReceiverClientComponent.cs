@@ -3,6 +3,7 @@
 
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core.Extensions;
+using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Primitives;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
@@ -26,18 +27,7 @@ internal sealed class PartitionReceiverClientComponent()
         return azureFactoryBuilder.RegisterClientFactory<PartitionReceiver, PartitionReceiverOptions>(
             (options, cred) =>
             {
-                var connectionString = settings.ConnectionString;
-                if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))
-                {
-                    throw new InvalidOperationException(
-                        $"A PartitionReceiver could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
-                }
-
-                if (string.IsNullOrEmpty(settings.EventHubName))
-                {
-                    throw new InvalidOperationException(
-                        $"A PartitionReceiver could not be configured. Ensure a valid EventHubName was provided in the '{configurationSectionName}' configuration section.");
-                }
+                EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
                 if (string.IsNullOrEmpty(settings.PartitionId))
                 {
@@ -47,12 +37,12 @@ internal sealed class PartitionReceiverClientComponent()
 
                 options.Identifier ??= GenerateClientIdentifier(settings);
 
-                var receiver = !string.IsNullOrEmpty(connectionString)
+                var receiver = !string.IsNullOrEmpty(settings.ConnectionString)
                     ? new PartitionReceiver(
-                        settings.ConsumerGroup, settings.PartitionId, settings.EventPosition,
+                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.PartitionId, settings.EventPosition,
                         settings.ConnectionString, settings.EventHubName, options)
                     : new PartitionReceiver(
-                        settings.ConsumerGroup, settings.PartitionId, settings.EventPosition,
+                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.PartitionId, settings.EventPosition,
                         settings.Namespace, settings.EventHubName, cred, options);
 
                 return receiver;
