@@ -4,6 +4,7 @@
 #pragma warning disable ASPIRE0001 // Because we use the CDK callbacks.
 
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.KeyVault;
 using Azure.Provisioning.KeyVaults;
 using Azure.ResourceManager.ApplicationInsights.Models;
 using Azure.ResourceManager.OperationalInsights.Models;
@@ -26,9 +27,15 @@ var blobs = storage.AddBlobs("blobs");
 var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
 
 var signaturesecret = builder.AddParameter("signaturesecret");
-var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
+var keyvault = builder.AddAzureKeyVault("mykv", (def) =>
 {
-    var secret = new KeyVaultSecret(construct, name: "mysecret");
+    var secret = new KeyVaultSecret(def.Construct, def.KeyVault, name: "mysecret");
+    secret.AssignProperty(x => x.Properties.Value, signaturesecret);
+});
+
+var secureKeyVault = builder.AddAzureKeyVault<MoreSecureAzureKeyVaultAzureKeyVaultDefinition>("securekv", (def) =>
+{
+    var secret = new KeyVaultSecret(def.Construct, def.KeyVault, name: "mysecret");
     secret.AssignProperty(x => x.Properties.Value, signaturesecret);
 });
 

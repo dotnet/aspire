@@ -72,6 +72,16 @@
         "signaturesecret": "{signaturesecret.value}"
       }
     },
+    "securekv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{securekv.outputs.vaultUri}",
+      "path": "securekv.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "signaturesecret": "{signaturesecret.value}"
+      }
+    },
     "cache": {
       "type": "azure.bicep.v0",
       "connectionString": "{cache.secretOutputs.connectionString}",
