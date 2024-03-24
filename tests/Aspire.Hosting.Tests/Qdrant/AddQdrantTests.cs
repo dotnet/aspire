@@ -154,7 +154,45 @@ public class AddQdrantTests
               "connectionString": "http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
-                "QDRANT__SERVICE__API_KEY": "{qdrant-apiKey.value}",
+                "QDRANT__SERVICE__API_KEY": "{qdrant-ApiKey.value}",
+                "QDRANT__SERVICE__ENABLE_STATIC_CONTENT": "0"
+              },
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "containerPort": 6334
+                },
+                "dashboard": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "containerPort": 6333
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithParameters()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions() { Args = new string[] { "--publisher", "manifest" } });
+
+        var apiKeyParameter = appBuilder.AddParameter("QdrantApiKey");
+        var qdrant = appBuilder.AddQdrant("qdrant", apiKeyParameter);
+
+        var serverManifest = await ManifestUtils.GetManifest(qdrant.Resource); // using this method does not get any ExecutionContext.IsPublishMode changes
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port}",
+              "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
+              "env": {
+                "QDRANT__SERVICE__API_KEY": "{QdrantApiKey.value}",
                 "QDRANT__SERVICE__ENABLE_STATIC_CONTENT": "0"
               },
               "bindings": {

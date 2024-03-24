@@ -23,7 +23,7 @@ public static class QdrantBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
-    /// <param name="apiKey">The parameter used to provide the API Key for the Qdrant resource. If <see langword="null"/> a random key will be generated.</param>
+    /// <param name="apiKey">The parameter used to provide the API Key for the Qdrant resource. If <see langword="null"/> a random key will be generated as {name}-ApiKey.</param>
     /// <param name="port">The host port of Qdrant database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{QdrantServerResource}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> AddQdrant(this IDistributedApplicationBuilder builder,
@@ -32,7 +32,7 @@ public static class QdrantBuilderExtensions
         int? port = null)
     {
         var apiKeyParameter = apiKey?.Resource ??
-            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-apiKey", special: false);
+            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-ApiKey", special: false);
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
@@ -80,4 +80,21 @@ public static class QdrantBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithInitBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = true)
         => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+
+    /// <summary>
+    /// Add a reference to a Qdrant settings for a project.
+    /// </summary>
+    /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
+    /// <param name="qdrantResource">The Qdrant server resource</param>
+    /// <returns></returns>
+    public static IResourceBuilder<ProjectResource> WithReference(this IResourceBuilder<ProjectResource> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
+    {
+        builder.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}"] = qdrantResource.Resource.ConnectionStringExpression;
+            context.EnvironmentVariables[$"Parameters__{qdrantResource.Resource.ApiKeyParameter.Name}"] = qdrantResource.Resource.ApiKeyParameter.Value;
+        });
+
+        return builder;
+    }
 }

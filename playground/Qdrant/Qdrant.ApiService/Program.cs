@@ -15,7 +15,7 @@ var app = builder.Build();
 app.UseExceptionHandler();
 
 var connectionString = builder.Configuration.GetConnectionString("qdrant") ?? "http://localhost:6334";
-var client = new QdrantClient(new Uri(connectionString), builder.Configuration["Parameters:ApiKey"]);
+var client = new QdrantClient(new Uri(connectionString), builder.Configuration["Parameters:qdrant-ApiKey"]);
 var random = new Random();
 
 app.MapGet("/create", async () =>
