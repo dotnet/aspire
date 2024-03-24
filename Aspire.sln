@@ -421,6 +421,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Tests.Shared
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.KeyVault", "src\Aspire.Hosting.Azure.KeyVault\Aspire.Hosting.Azure.KeyVault.csproj", "{427F4D7C-8969-4015-AD1A-5EFFE921A184}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Qdrant", "src\Components\Aspire.Qdrant\Aspire.Qdrant.csproj", "{E0E1B557-D3CF-4446-B993-E5CE719234FB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1111,6 +1113,10 @@ Global
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0E1B557-D3CF-4446-B993-E5CE719234FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0E1B557-D3CF-4446-B993-E5CE719234FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0E1B557-D3CF-4446-B993-E5CE719234FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0E1B557-D3CF-4446-B993-E5CE719234FB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1314,6 +1320,7 @@ Global
 		{6B6D3953-E961-4720-B27E-9466A69BED1A} = {A4800EE3-F902-4B7B-AF53-01A85514E6B9}
 		{74644A4D-8F61-4314-B6E8-5CE3802CD6C2} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184} = {77CFE74A-32EE-400C-8930-5025E8555256}
+		{E0E1B557-D3CF-4446-B993-E5CE719234FB} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

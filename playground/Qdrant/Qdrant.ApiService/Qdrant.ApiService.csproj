@@ -8,10 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Qdrant.Client" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Qdrant\Aspire.Qdrant.csproj" />
     <ProjectReference Include="..\Qdrant.ServiceDefaults\Qdrant.ServiceDefaults.csproj" />
   </ItemGroup>
 

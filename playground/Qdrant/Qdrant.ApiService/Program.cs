@@ -9,16 +9,18 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
+builder.AddQdrantClient("qdrant");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
-var connectionString = builder.Configuration.GetConnectionString("qdrant") ?? "http://localhost:6334";
-var client = new QdrantClient(new Uri(connectionString), builder.Configuration["Parameters:qdrant-ApiKey"]);
+//var connectionString = builder.Configuration.GetConnectionString("qdrant") ?? "http://localhost:6334";
+//var client = new QdrantClient(new Uri(connectionString), builder.Configuration["Parameters:qdrant-ApiKey"]);
 var random = new Random();
 
-app.MapGet("/create", async () =>
+app.MapGet("/create", async (QdrantClient client) =>
 {
     await client.CreateCollectionAsync("my_collection", new VectorParams { Size = 100, Distance = Distance.Cosine });
 
@@ -39,7 +41,7 @@ app.MapGet("/create", async () =>
     return updateResult.Status;
 });
 
-app.MapGet("/search", async () =>
+app.MapGet("/search", async (QdrantClient client) =>
 {
     var queryVector = Enumerable.Range(1, 100).Select(_ => (float)random.NextDouble()).ToArray();
 

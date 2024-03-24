@@ -1,0 +1,48 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Qdrant": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Qdrant": {
+          "type": "object",
+          "properties": {
+            "ConnectionString": {
+              "type": "string",
+              "description": "The connection string of the Qdrant server to connect to."
+            },
+            "ApiKey": {
+              "type": "string",
+              "description": "The API Key for the connection string of the Qdrant server to connect to."
+            },
+            "HealthChecks": {
+              "type": "boolean",
+              "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
+              "default": true
+            },
+            "Metrics": {
+              "type": "boolean",
+              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+              "default": true
+            },
+            "Tracing": {
+              "type": "boolean",
+              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+              "default": true
+            }
+          },
+          "description": "Provides the client configuration settings for connecting to a Qdrant server using QdrantClient."
+        }
+      }
+    }
+  },
+  "type": "object"
+}
