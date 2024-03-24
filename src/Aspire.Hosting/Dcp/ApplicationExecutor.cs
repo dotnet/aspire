@@ -475,11 +475,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // Map a container exit code of -1 (unknown) to null
             ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
             Properties = [
-                (KnownProperties.Container.Image, container.Spec.Image),
-                (KnownProperties.Container.Id, containerId),
-                (KnownProperties.Container.Command, container.Spec.Command),
-                (KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []),
-                (KnownProperties.Container.Ports, GetPorts()),
+                new(KnownProperties.Container.Image, container.Spec.Image),
+                new(KnownProperties.Container.Id, containerId),
+                new(KnownProperties.Container.Command, container.Spec.Command),
+                new(KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []),
+                new(KnownProperties.Container.Ports, GetPorts()),
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -527,11 +527,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 State = executable.Status?.State,
                 ExitCode = executable.Status?.ExitCode,
                 Properties = [
-                    (KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
-                    (KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
-                    (KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []),
-                    (KnownProperties.Executable.Pid, executable.Status?.ProcessId),
-                    (KnownProperties.Project.Path, projectPath)
+                    new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
+                    new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
+                    new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []),
+                    new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
+                    new(KnownProperties.Project.Path, projectPath)
                 ],
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -545,10 +545,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             State = executable.Status?.State,
             ExitCode = executable.Status?.ExitCode,
             Properties = [
-                (KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
-                (KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
-                (KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []),
-                (KnownProperties.Executable.Pid, executable.Status?.ProcessId)
+                new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
+                new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
+                new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []),
+                new(KnownProperties.Executable.Pid, executable.Status?.ProcessId)
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -556,11 +556,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
     }
 
-    private ImmutableArray<(string Name, string Url, bool IsInternal)> GetUrls(CustomResource resource)
+    private ImmutableArray<UrlSnapshot> GetUrls(CustomResource resource)
     {
         var name = resource.Metadata.Name;
 
-        var urls = ImmutableArray.CreateBuilder<(string Name, string Url, bool IsInternal)>();
+        var urls = ImmutableArray.CreateBuilder<UrlSnapshot>();
 
         foreach (var (_, endpoint) in _endpointsMap)
         {
@@ -609,21 +609,21 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         var url = CombineUrls(ep.Url, launchUrl);
 
-                        urls.Add(new(ep.EndpointName, url, false));
+                        urls.Add(new(Name: ep.EndpointName, Url: url, IsInternal: false));
                     }
                 }
                 else
                 {
                     if (ep.IsAllocated)
                     {
-                        urls.Add(new(ep.EndpointName, ep.Url, false));
+                        urls.Add(new(Name: ep.EndpointName, Url: ep.Url, IsInternal: false));
                     }
                 }
 
                 if (ep.EndpointAnnotation.IsProxied)
                 {
                     var endpointString = $"{ep.Scheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
-                    urls.Add(new($"{ep.EndpointName}-listen-port", endpointString, true));
+                    urls.Add(new(Name: $"{ep.EndpointName}-listen-port", Url: endpointString, IsInternal: true));
                 }
             }
         }
@@ -631,14 +631,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return urls.ToImmutable();
     }
 
-    private static ImmutableArray<(string Name, string Value, bool IsFromSpec)> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
+    private static ImmutableArray<EnvironmentVariableSnapshot> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
     {
         if (effectiveSource is null or { Count: 0 })
         {
             return [];
         }
 
-        var environment = ImmutableArray.CreateBuilder<(string Name, string Value, bool IsFromSpec)>(effectiveSource.Count);
+        var environment = ImmutableArray.CreateBuilder<EnvironmentVariableSnapshot>(effectiveSource.Count);
 
         foreach (var env in effectiveSource)
         {
@@ -1458,7 +1458,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     State = "Starting",
                     Properties = [
-                        (KnownProperties.Container.Image, cr.ModelResource.TryGetContainerImageName(out var imageName) ? imageName : ""),
+                        new(KnownProperties.Container.Image, cr.ModelResource.TryGetContainerImageName(out var imageName) ? imageName : ""),
                    ],
                     ResourceType = KnownResourceTypes.Container
                 })

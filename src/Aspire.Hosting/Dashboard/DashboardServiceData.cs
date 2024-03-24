@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
@@ -32,22 +31,14 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         {
             static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, string resourceId, DateTime creationTimestamp, CustomResourceSnapshot snapshot)
             {
-                ImmutableArray<EnvironmentVariableSnapshot> environmentVariables = [..
-                    snapshot.EnvironmentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, e.IsFromSpec))];
-
-                ImmutableArray<UrlSnapshot> urls =
-                [
-                    ..snapshot.Urls.Select(u => new UrlSnapshot(u.Name, u.Url, u.IsInternal)),
-                ];
-
                 return new GenericResourceSnapshot(snapshot)
                 {
                     Uid = resourceId,
                     CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
                     Name = resourceId,
                     DisplayName = resource.Name,
-                    Urls = urls,
-                    Environment = environmentVariables,
+                    Urls = snapshot.Urls,
+                    Environment = snapshot.EnvironmentVariables,
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State
                 };

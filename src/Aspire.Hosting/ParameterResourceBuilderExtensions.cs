@@ -45,18 +45,18 @@ public static class ParameterResourceBuilderExtensions
         {
             ResourceType = "Parameter",
             Properties = [
-                ("parameter.secret", secret.ToString()),
-                (CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+                new("parameter.secret", secret.ToString()),
+                new(CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
             ]
         };
 
         try
         {
-            state = state with { Properties = [.. state.Properties, ("Value", resource.Value)] };
+            state = state with { Properties = [.. state.Properties, new("Value", resource.Value)] };
         }
         catch (DistributedApplicationException ex)
         {
-            state = state with { State = "FailedToStart", Properties = [.. state.Properties, ("Value", ex.Message)] };
+            state = state with { State = "FailedToStart", Properties = [.. state.Properties, new("Value", ex.Message)] };
         }
 
         return builder.AddResource(resource)

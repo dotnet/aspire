@@ -18,7 +18,7 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// The properties that should show up in the dashboard for this resource.
     /// </summary>
-    public required ImmutableArray<(string Key, object? Value)> Properties { get; init; }
+    public required ImmutableArray<ResourcePropertySnapshot> Properties { get; init; }
 
     /// <summary>
     /// The creation timestamp of the resource.
@@ -38,11 +38,34 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
     /// </summary>
-    public ImmutableArray<(string Name, string Value, bool IsFromSpec)> EnvironmentVariables { get; init; } = [];
+    public ImmutableArray<EnvironmentVariableSnapshot> EnvironmentVariables { get; init; } = [];
 
     /// <summary>
     /// The URLs that should show up in the dashboard for this resource.
     /// </summary>
-    public ImmutableArray<(string Name, string Url, bool IsInternal)> Urls { get; init; } = [];
+    public ImmutableArray<UrlSnapshot> Urls { get; init; } = [];
 
 }
+
+/// <summary>
+/// A snapshot of an environment variable.
+/// </summary>
+/// <param name="Name">The name of the environment variable.</param>
+/// <param name="Value">The value of the environment variable.</param>
+/// <param name="IsFromSpec">Determines if this environment variable was defined in the resource explicitly or computed (for e.g. inherited from the process hierarchy).</param>
+public sealed record EnvironmentVariableSnapshot(string Name, string? Value, bool IsFromSpec);
+
+/// <summary>
+/// A snapshot of the url.
+/// </summary>
+/// <param name="Name">Name of the url.</param>
+/// <param name="Url">The full uri.</param>
+/// <param name="IsInternal">Determines if this url is internal.</param>
+public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
+
+/// <summary>
+/// A snapshot of the resource property.
+/// </summary>
+/// <param name="Name">The name of the property.</param>
+/// <param name="Value">The value of the property.</param>
+public sealed record ResourcePropertySnapshot(string Name, object? Value);
