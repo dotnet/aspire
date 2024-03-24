@@ -1,95 +1,131 @@
-# Aspire.Azure.Messaging.ServiceBus
+# Aspire.Azure.Messaging.EventHubs
 
-Registers a [ServiceBusClient](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclient) in the DI container for connecting to Azure Service Bus.
+Offers options for registering an [EventHubProducerClient](https://learn.microsoft.com/en-us/dotnet/api/azure.messaging.eventhubs.producer.eventhubproducerclient), an [EventHubConsumerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.consumer.eventhubconsumerclient), an [EventProcessorClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.eventprocessorclient) or a [PartitionReceiver](https://learn.microsoft.com/en-us/dotnet/api/azure.messaging.eventhubs.primitives.partitionreceiver) in the DI container for connecting to Azure Event Hubs.
 
 ## Getting started
 
 ### Prerequisites
 
 - Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-- Azure Service Bus namespace, learn more about how to [add a Service Bus namespace](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-dotnet-get-started-with-queues?#create-a-namespace-in-the-azure-portal). Alternatively, you can use a connection string, which is not recommended in production environments.
+- Azure Event Hubs namespace, learn more about how to [add an Event Hubs namespace](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create). Alternatively, you can use a connection string, which is not recommended in production environments.
 
 ### Install the package
 
-Install the .NET Aspire Azure Service Bus library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Azure Event Hubs library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Azure.Messaging.ServiceBus
+dotnet add package Aspire.Azure.Messaging.EventHubs
 ```
+
+## Supported clients with Options classes
+
+The following clients are supported by the library, along with their corresponding Options classes:
+
+| Client Type                              | Options Class            |
+|------------------------------------------|--------------------------|
+| EventHubProducerClient&nbsp;<sup>1</sup> | EventHubProducerClientOptions |
+| EventHubConsumerClient&nbsp;<sup>2</sup> | EventHubConsumerClientOptions |
+| EventProcessorClient&nbsp;<sup>3</sup>   | EventProcessorClientOptions |
+| PartitionReceiver&nbsp;<sup>4</sup>      | PartitionReceiverOptions |
+
+### AzureMessagingEventHubsSettings shared configuration
+
+The shared settings for all clients are suffixed below with one or more superscripted indices corresponding to the client types listed above that may use them:
+
+| Member                                                                                   | Type             |
+|------------------------------------------------------------------------------------------|------------------|
+| ConnectionString&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup> | string?          |
+| Namespace&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>        | string?          |
+| EventHubName&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>     | string?          |
+| ConsumerGroup&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>                      | string?          |
+| BlobClientConnectionName&nbsp;<sup>3</sup>                                               | string?          |
+| PartitionId&nbsp;<sup>4</sup>                                                            | string?          |
+| EventPosition&nbsp;<sup>4</sup>                                                          | EventPosition    |
+| Credential&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>       | TokenCredential? |
+| Tracing&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>          | bool             |
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureServiceBusClient` extension method to register a `ServiceBusClient` for use via the dependency injection container. The method takes a connection name parameter.
+The following example assumes that you have an Azure Event Hubs namespace and an Event Hub created and wish to configure an `EventHubProducerClient` to send events to the Event Hub. The `EventHubConsumerClient`, `EventProcessorClient`, and `PartitionReceiver`are configured in a similar manner.
+
+In the _Program.cs_ file of your project, call the `AddAzureEventHubProducerClient` extension method to register
+a `EventHubProducerClient` for use via the dependency injection container. The method takes a connection name parameter. This assumes you have included the `EntityPath` in the connection string to specify the Event Hub name.
 
 ```csharp
-builder.AddAzureServiceBusClient("sb");
+builder.AddAzureEventHubProducerClient("eventHubsConnectionName");
 ```
 
-You can then retrieve the `ServiceBusClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
+Retrieve the `EventHubProducerClient` instance using dependency injection. For example, to retrieve the
+client from a Web API controller:
 
 ```csharp
-private readonly ServiceBusClient _client;
+private readonly EventHubProducerClient _client;
 
-public ProductsController(ServiceBusClient client)
+public ProductsController(EventHubProducerClient client)
 {
     _client = client;
 }
 ```
 
-See the [Azure.Messaging.ServiceBus documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/servicebus/Azure.Messaging.ServiceBus/README.md) for examples on using the `ServiceBusClient`.
+See the [Azure.Messaging.EventHubs documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/README.md) for examples on using the `EventHubProducerClient`.
 
 ## Configuration
 
-The .NET Aspire Azure Service Bus library provides multiple options to configure the Azure Service Bus connection based on the requirements and conventions of your project. Note that either a `Namespace` or a `ConnectionString` is a required to be supplied.
+The .NET Aspire Azure Event Hubs library provides multiple options to configure the Azure Event Hubs connection based on the requirements and conventions of your project. Note that either a `Namespace` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureServiceBusClient()`:
+When using a connection string from the `ConnectionStrings` configuration section, provide the name of the connection string when calling `builder.AddAzureEventHubProducerClient()`. In this example, the connection string does not include the `EntityPath` property, so the `EventHubName` property must be set in the settings callback:
 
 ```csharp
-builder.AddAzureServiceBusClient("serviceBusConnectionName");
+builder.AddAzureEventHubProducerClient("eventHubsConnectionName",
+    settings =>
+    {
+        settings.EventHubName = "MyHub";
+    });
 ```
 
 And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
 
 #### Fully Qualified Namespace
 
-The recommended approach is to use a fully qualified namespace, which works with the `AzureMessagingServiceBusSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+The recommended approach is to use a fully qualified namespace, which works with the `AzureMessagingEventHubsSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
 ```json
 {
   "ConnectionStrings": {
-    "serviceBusConnectionName": "{your_namespace}.servicebus.windows.net"
+    "eventHubsConnectionName": "{your_namespace}.servicebus.windows.net"
   }
 }
 ```
 
 #### Connection string
 
-Alternatively, a connection string can be used.
+Alternatively, use a connection string:
 
 ```json
 {
   "ConnectionStrings": {
-    "serviceBusConnectionName": "Endpoint=sb://mynamespace.servicebus.windows.net/;SharedAccessKeyName=accesskeyname;SharedAccessKey=accesskey"
+    "eventHubsConnectionName": "Endpoint=sb://mynamespace.servicebus.windows.net/;SharedAccessKeyName=accesskeyname;SharedAccessKey=accesskey;EntityPath=MyHub"
   }
 }
 ```
 
 ### Use configuration providers
 
-The .NET Aspire Azure Service Bus library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingServiceBusSettings` and `ServiceBusClientOptions` from configuration by using the `Aspire:Azure:Messaging:ServiceBus` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure Event Hubs library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingEventHubsSettings` and the associated Options, e.g. `EventProcessorClientOptions`, from configuration by using the `Aspire:Azure:Messaging:EventHubs:` key prefix, followed by the name of the specific client in use. Example `appsettings.json` that configures some of the options for an `EventProcessorClient`:
 
 ```json
 {
   "Aspire": {
     "Azure": {
       "Messaging": {
-        "ServiceBus": {
-          "HealthCheckQueueName": "myQueue",
-          "Tracing": true,
-          "ClientOptions": {
-            "Identifier": "CLIENT_ID"
+        "EventHubs": {
+          "EventProcessorClient": {
+            "EventHubName": "MyHub",
+            "ClientOptions": {
+              "Identifier": "PROCESSOR_ID"
+            }
           }
         }
       }
@@ -98,46 +134,45 @@ The .NET Aspire Azure Service Bus library supports [Microsoft.Extensions.Configu
 }
 ```
 
-### Use inline delegates
-
-You can also pass the `Action<AzureMessagingServiceBusSettings> configureSettings` delegate to set up some or all the options inline, for example to configure the health check queue name from code:
+You can also setup the Options type using the optional `Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>> configureClientBuilder` parameter of the `AddAzureEventProcessorClient` method. For example, to set the client ID for this client:
 
 ```csharp
-builder.AddAzureServiceBusClient("sb", settings => settings.HealthCheckQueueName = "myQueue");
-```
-
-You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclientoptions) using the optional `Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>> configureClientBuilder` parameter of the `AddAzureServiceBusClient` method. For example, to set the client ID for this client:
-
-```csharp
-builder.AddAzureServiceBusClient("sb", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "CLIENT_ID"));
+builder.AddAzureEventProcessorClient("eventHubsConnectionName", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "PROCESSOR_ID"));
 ```
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure Event Hubs Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure
+dotnet add package Aspire.Hosting.Azure.EventHubs
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add a Service Bus connection and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, add an Event Hubs connection and an Event Hub resource and consume the connection using the following methods:
 
 ```csharp
-var serviceBus = builder.AddAzureServiceBus("sb");
+var eventHubs = builder.AddAzureEventHubs("eventHubsConnectionName").AddEventHub("MyHub");;
 
 var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(serviceBus);
+                       .WithReference(eventHubs);
 ```
 
-The `AddAzureServiceBus` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:sb` config key. The `WithReference` method passes that connection information into a connection string named `sb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureEventHubs` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:eventHubsConnectionName` config key. The `WithReference` method passes that connection information into a connection string named `eventHubsConnectionName` in the `MyService` project.
+
+NOTE: Even though we are creating an Event Hub using the `AddEventHub` at the same time as the namespace, for this release of Aspire, the connection string will not include the `EntityPath` property, so the `EventHubName` property must be set in the settings callback for the preferred client. Future versions of Aspire will include the `EntityPath` property in the connection string and will not require the `EventHubName` property to be set in this scenario.
+
+In the _Program.cs_ file of `MyService`, the connection can be consumed using by calling of the supported Event Hubs client extension methods:
 
 ```csharp
-builder.AddAzureServiceBusClient("sb");
+builder.AddAzureEventProcessorClient("eventHubsConnectionName", settings =>
+{
+    settings.EventHubName = "MyHub";
+});
 ```
 
 ## Additional documentation
 
-* https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/servicebus/Azure.Messaging.ServiceBus/README.md
+* https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Microsoft.Azure.EventHubs/README.md
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & contributing
