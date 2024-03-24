@@ -3,16 +3,6 @@
 
 using Aspire.TestProject;
 
-string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
-{
-    Console.WriteLine("Unhandled exception: " + eventArgs.ExceptionObject);
-    if (logPath is not null)
-    {
-        File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-exception.log"), eventArgs.ExceptionObject.ToString());
-    }
-};
-
 var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
 var resourcesToSkip = !string.IsNullOrEmpty(skipResourcesValue)
@@ -77,15 +67,6 @@ if (!resourcesToSkip.Contains(TestResourceNames.kafka))
 if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 {
     builder.AddAzureCosmosDBClient("cosmos");
-}
-
-if (!string.IsNullOrEmpty(logPath))
-{
-    builder.Logging.AddFile(Path.Combine(logPath, "IntegrationServiceA.log"));
-}
-else
-{
-    throw new InvalidOperationException("TEST_LOG_PATH environment variable is not set.");
 }
 
 builder.Services.AddHealthChecks();
