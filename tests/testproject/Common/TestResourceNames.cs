@@ -24,14 +24,14 @@ public enum TestResourceNames
 
 public static class TestResourceNamesExtensions
 {
-    public static ISet<TestResourceNames> Parse(IEnumerable<string> resourceNames)
+    public static TestResourceNames Parse(IEnumerable<string> resourceNames)
     {
-        HashSet<TestResourceNames> resourcesToSkip = new();
+        TestResourceNames resourcesToSkip = TestResourceNames.None;
         foreach (var resourceName in resourceNames)
         {
             if (Enum.TryParse<TestResourceNames>(resourceName, ignoreCase: true, out var name))
             {
-                resourcesToSkip.Add(name);
+                resourcesToSkip |= name;
             }
             else
             {
