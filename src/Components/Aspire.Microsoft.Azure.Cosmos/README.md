@@ -110,10 +110,10 @@ builder.AddAzureCosmosDbClient("cosmosConnectionName", configureClientOptions: c
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure CosmosDB Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure
+dotnet add package Aspire.Hosting.Azure.CosmosDB
 ```
 
 Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
@@ -128,7 +128,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddAzureCosmosDB` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:cosmosdb` config key. The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureCosmosDB("cosmosdb");
+builder.AddAzureCosmosDBClient("cosmosdb");
 ```
 
 ### Emulator usage

@@ -128,10 +128,10 @@ builder.AddAzureSearchClient("searchConnectionName", configureClientBuilder: bui
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure Search Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure
+dotnet add package Aspire.Hosting.Azure.Search
 ```
 
 Then, in the _Program.cs_ file of `AppHost`, add an Azure Search service and consume the connection using the following methods:

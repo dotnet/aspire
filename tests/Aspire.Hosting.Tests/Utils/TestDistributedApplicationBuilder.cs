@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Utils;
 /// This class wraps the builder and provides a way to automatically dispose it to prevent test failures from excessive
 /// FileSystemWatcher instances from many tests.
 /// </summary>
-public sealed class TestDistrubtedApplicationBuilder : IDisposable, IDistributedApplicationBuilder
+public sealed class TestDistributedApplicationBuilder : IDisposable, IDistributedApplicationBuilder
 {
     private readonly IDistributedApplicationBuilder _innerBuilder;
     private bool _builtApp;
@@ -25,9 +25,9 @@ public sealed class TestDistrubtedApplicationBuilder : IDisposable, IDistributed
     public DistributedApplicationExecutionContext ExecutionContext => _innerBuilder.ExecutionContext;
     public IResourceCollection Resources => _innerBuilder.Resources;
 
-    public static TestDistrubtedApplicationBuilder Create() => new TestDistrubtedApplicationBuilder(DistributedApplication.CreateBuilder());
+    public static TestDistributedApplicationBuilder Create() => new TestDistributedApplicationBuilder(DistributedApplication.CreateBuilder());
 
-    private TestDistrubtedApplicationBuilder(IDistributedApplicationBuilder builder)
+    private TestDistributedApplicationBuilder(IDistributedApplicationBuilder builder)
     {
         _innerBuilder = builder;
     }

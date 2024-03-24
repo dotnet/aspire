@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting azure</PackageTags>
     <Description>Azure Application Insights resource types for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)AzureAppInsights_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

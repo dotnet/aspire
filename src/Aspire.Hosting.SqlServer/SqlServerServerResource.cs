@@ -14,18 +14,13 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// Initializes a new instance of the <see cref="SqlServerServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="password">A parameter that contains the SQL Sever password, or <see langword="null"/> to generate a random password.</param>
-    public SqlServerServerResource(string name, ParameterResource? password) : base(name)
+    /// <param name="password">A parameter that contains the SQL Sever password.</param>
+    public SqlServerServerResource(string name, ParameterResource password) : base(name)
     {
+        ArgumentNullException.ThrowIfNull(password);
+
         PrimaryEndpoint = new(this, PrimaryEndpointName);
         PasswordParameter = password;
-
-        if (PasswordParameter is null)
-        {
-            // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
-            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(minLower: 1, minUpper: 1, minNumeric: 1));
-            PasswordInput = new(this, "password");
-        }
     }
 
     /// <summary>
@@ -33,21 +28,14 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
-    private InputReference? PasswordInput { get; }
-
     /// <summary>
     /// Gets the parameter that contains the PostgreSQL server password.
     /// </summary>
-    public ParameterResource? PasswordParameter { get; }
-
-    internal ReferenceExpression PasswordReference =>
-        PasswordParameter is not null ?
-            ReferenceExpression.Create($"{PasswordParameter}") :
-            ReferenceExpression.Create($"{PasswordInput!}"); // either PasswordParameter or PasswordInput is non-null
+    public ParameterResource PasswordParameter { get; }
 
     private ReferenceExpression ConnectionString =>
         ReferenceExpression.Create(
-            $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordReference};TrustServerCertificate=true");
+            $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordParameter};TrustServerCertificate=true");
 
     /// <summary>
     /// Gets the connection string expression for the SQL Server.

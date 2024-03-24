@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
-public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider
+public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     // A reference to the endpoint annotation if it exists.
     private EndpointAnnotation? _endpointAnnotation;
@@ -18,6 +18,8 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// Gets the resource owner of the endpoint reference.
     /// </summary>
     public IResourceWithEndpoints Resource { get; }
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 
     /// <summary>
     /// Gets the name of the endpoint associated with the endpoint reference.
@@ -132,7 +134,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 /// </summary>
 /// <param name="endpointReference">The endpoint reference.</param>
 /// <param name="property">The property of the endpoint.</param>
-public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IValueProvider, IManifestExpressionProvider
+public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Gets the <see cref="EndpointReference"/>.
@@ -165,6 +167,8 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         EndpointProperty.Scheme => new(Endpoint.Scheme),
         _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
     };
+
+    IEnumerable<object> IValueWithReferences.References => [Endpoint];
 }
 
 /// <summary>

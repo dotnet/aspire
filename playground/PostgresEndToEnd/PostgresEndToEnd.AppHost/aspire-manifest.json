@@ -2,13 +2,13 @@
   "resources": {
     "pg1": {
       "type": "container.v0",
-      "connectionString": "Host={pg1.bindings.tcp.host};Port={pg1.bindings.tcp.port};Username=postgres;Password={pg1.inputs.password}",
+      "connectionString": "Host={pg1.bindings.tcp.host};Port={pg1.bindings.tcp.port};Username=postgres;Password={pg1-password.value}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
         "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg1.inputs.password}"
+        "POSTGRES_PASSWORD": "{pg1-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -16,17 +16,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 5432
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     },
@@ -36,13 +25,13 @@
     },
     "pg2": {
       "type": "container.v0",
-      "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username=postgres;Password={pg2.inputs.password}",
+      "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username=postgres;Password={pg2-password.value}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
         "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg2.inputs.password}"
+        "POSTGRES_PASSWORD": "{pg2-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -50,17 +39,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 5432
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     },
@@ -70,13 +48,13 @@
     },
     "pg3": {
       "type": "container.v0",
-      "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pg3.inputs.password}",
+      "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pg3-password.value}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
         "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg3.inputs.password}"
+        "POSTGRES_PASSWORD": "{pg3-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -84,17 +62,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 5432
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     },
@@ -108,13 +75,13 @@
     },
     "pg4": {
       "type": "container.v0",
-      "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4.inputs.password}",
+      "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4-password.value}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
         "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg4.inputs.password}"
+        "POSTGRES_PASSWORD": "{pg4-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -122,17 +89,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 5432
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     },
@@ -142,13 +98,13 @@
     },
     "pg5": {
       "type": "container.v0",
-      "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5.inputs.password}",
+      "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5-password.value}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
         "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg5.inputs.password}"
+        "POSTGRES_PASSWORD": "{pg5-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -156,17 +112,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 5432
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     },
@@ -176,13 +121,13 @@
     },
     "pg6": {
       "type": "container.v0",
-      "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6.inputs.password}",
+      "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6-password.value}",
       "image": "postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
         "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg6.inputs.password}"
+        "POSTGRES_PASSWORD": "{pg6-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -190,17 +135,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 5432
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     },
@@ -259,6 +193,96 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        }
+      }
+    },
+    "pg1-password": {
+      "type": "parameter.v0",
+      "value": "{pg1-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "pg2-password": {
+      "type": "parameter.v0",
+      "value": "{pg2-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "pg3-password": {
+      "type": "parameter.v0",
+      "value": "{pg3-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "pg4-password": {
+      "type": "parameter.v0",
+      "value": "{pg4-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "pg5-password": {
+      "type": "parameter.v0",
+      "value": "{pg5-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "pg6-password": {
+      "type": "parameter.v0",
+      "value": "{pg6-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
         }
       }
     }

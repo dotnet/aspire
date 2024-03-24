@@ -456,7 +456,7 @@ internal sealed class BicepProvisioner(
         foreach (var parameter in resource.Parameters)
         {
             if (skipDynamicValues &&
-                (s_knownParameterNames.Contains(parameter.Key) || parameter.Value is InputReference))
+                (s_knownParameterNames.Contains(parameter.Key) || IsParameterWithGeneratedValue(parameter.Value)))
             {
                 continue;
             }
@@ -480,6 +480,11 @@ internal sealed class BicepProvisioner(
                 }
             };
         }
+    }
+
+    private static bool IsParameterWithGeneratedValue(object? value)
+    {
+        return value is ParameterResource { Default: not null };
     }
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";

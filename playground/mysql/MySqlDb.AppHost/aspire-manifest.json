@@ -2,7 +2,7 @@
   "resources": {
     "mysql": {
       "type": "container.v0",
-      "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
+      "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
       "image": "mysql:8.3.0",
       "bindMounts": [
         {
@@ -12,7 +12,7 @@
         }
       ],
       "env": {
-        "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}",
+        "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
         "MYSQL_DATABASE": "catalog"
       },
       "bindings": {
@@ -21,17 +21,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 3306
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     },
@@ -58,6 +47,21 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        }
+      }
+    },
+    "mysql-password": {
+      "type": "parameter.v0",
+      "value": "{mysql-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
         }
       }
     }
