@@ -37,7 +37,7 @@ public static class QdrantBuilderExtensions
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
-            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortHttp, name: "dashboard")
+            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortHttp, name: "rest")
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[ApiKeyEnvVarName] = qdrant.ApiKeyParameter;
@@ -93,6 +93,12 @@ public static class QdrantBuilderExtensions
         {
             context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}"] = qdrantResource.Resource.ConnectionStringExpression;
             context.EnvironmentVariables[$"Parameters__{qdrantResource.Resource.ApiKeyParameter.Name}"] = qdrantResource.Resource.ApiKeyParameter.Value;
+
+            var restEndpointUrl = qdrantResource.Resource.GetEndpoint("rest")?.Url;
+            if (restEndpointUrl != null)
+            {
+                context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}_rest"] = restEndpointUrl;
+            }
         });
 
         return builder;

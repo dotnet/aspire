@@ -73,12 +73,12 @@ public class AddQdrantTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
-            .FirstOrDefault(e => e.Name == "dashboard");
+            .FirstOrDefault(e => e.Name == "rest");
 
         Assert.NotNull(endpoint);
         Assert.Equal(QdrantPortDashboard, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
-        Assert.Equal("dashboard", endpoint.Name);
+        Assert.Equal("rest", endpoint.Name);
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("http", endpoint.Transport);
@@ -164,7 +164,7 @@ public class AddQdrantTests
                   "transport": "http",
                   "containerPort": 6334
                 },
-                "dashboard": {
+                "rest": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
@@ -202,7 +202,7 @@ public class AddQdrantTests
                   "transport": "http",
                   "containerPort": 6334
                 },
-                "dashboard": {
+                "rest": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
