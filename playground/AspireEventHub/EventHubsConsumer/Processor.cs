@@ -25,7 +25,7 @@ namespace EventHubsConsumer;
 /// <param name="logger"></param>
 internal sealed class Processor(EventProcessorClient client, ILogger<Consumer> logger) : BackgroundService
 {
-    public override async Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Starting processor...");
 
@@ -41,11 +41,8 @@ internal sealed class Processor(EventProcessorClient client, ILogger<Consumer> l
             return Task.CompletedTask;
         };
 
-        await client.StartProcessingAsync(cancellationToken);
-    }
+        await client.StartProcessingAsync(stoppingToken);
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
         logger.LogInformation("Entering execute - 30 second run");
         await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
     }
