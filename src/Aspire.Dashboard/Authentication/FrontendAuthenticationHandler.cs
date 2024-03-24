@@ -10,11 +10,11 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Authentication;
 
-public sealed class WebAppAuthenticationHandler(
-    IOptionsMonitor<WebAppAuthenticationHandlerOptions> options,
+public sealed class FrontendAuthenticationHandler(
+    IOptionsMonitor<FrontendAuthenticationHandlerOptions> options,
     ILoggerFactory logger,
     UrlEncoder encoder)
-        : AuthenticationHandler<WebAppAuthenticationHandlerOptions>(options, logger, encoder)
+        : AuthenticationHandler<FrontendAuthenticationHandlerOptions>(options, logger, encoder)
 {
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -38,16 +38,16 @@ public sealed class WebAppAuthenticationHandler(
     }
 }
 
-public static class WebAppAuthenticationDefaults
+public static class FrontendAuthenticationDefaults
 {
-    public const string AuthenticationScheme = "WebApp";
+    public const string AuthenticationScheme = "Frontend";
 }
 
-public static class WebAppAuthorizationDefaults
+public static class FrontendAuthorizationDefaults
 {
-    public const string PolicyName = "WebApp";
+    public const string PolicyName = "Frontend";
 }
 
-public sealed class WebAppAuthenticationHandlerOptions : AuthenticationSchemeOptions
+public sealed class FrontendAuthenticationHandlerOptions : AuthenticationSchemeOptions
 {
 }

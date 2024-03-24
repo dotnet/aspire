@@ -26,7 +26,7 @@ namespace Aspire.Dashboard;
 
 public class DashboardWebApplication : IAsyncDisposable
 {
-    internal const string WebAppAuthModeKey = "DashboardWebApp:AuthMode";
+    internal const string FrontendAuthModeKey = "Frontend:AuthMode";
 
     internal const string OtlpAuthModeKey = "Otlp:AuthMode";
     internal const string OtlpApiKeyKey = "Otlp:ApiKey";
@@ -362,10 +362,10 @@ public class DashboardWebApplication : IAsyncDisposable
                 };
             });
 
-        if (dashboardStartupConfig.WebAppAuthMode == WebAppAuthMode.OpenIdConnect)
+        if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.OpenIdConnect)
         {
             // Configure OpenID Connect (OIDC)
-            authentication.AddScheme<WebAppAuthenticationHandlerOptions, WebAppAuthenticationHandler>(WebAppAuthenticationDefaults.AuthenticationScheme, o =>
+            authentication.AddScheme<FrontendAuthenticationHandlerOptions, FrontendAuthenticationHandler>(FrontendAuthenticationDefaults.AuthenticationScheme, o =>
             {
                 o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
                 o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
@@ -409,19 +409,19 @@ public class DashboardWebApplication : IAsyncDisposable
                     .RequireClaim(OtlpAuthorization.OtlpClaimName)
                     .Build());
 
-            if (dashboardStartupConfig.WebAppAuthMode == WebAppAuthMode.OpenIdConnect)
+            if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.OpenIdConnect)
             {
                 options.AddPolicy(
-                    name: WebAppAuthorizationDefaults.PolicyName,
+                    name: FrontendAuthorizationDefaults.PolicyName,
                     policy: new AuthorizationPolicyBuilder(
-                        WebAppAuthenticationDefaults.AuthenticationScheme)
+                        FrontendAuthenticationDefaults.AuthenticationScheme)
                         .RequireAuthenticatedUser()
                         .Build());
             }
             else
             {
                 options.AddPolicy(
-                    name: WebAppAuthorizationDefaults.PolicyName,
+                    name: FrontendAuthorizationDefaults.PolicyName,
                     policy: new AuthorizationPolicyBuilder()
                         .RequireAssertion(_ => true)
                         .Build());
@@ -450,7 +450,7 @@ public class DashboardWebApplication : IAsyncDisposable
             throw new InvalidOperationException($"At least one URL for Aspire dashboard browser endpoint with {DashboardOtlpUrlDefaultValue} is required.");
         }
 
-        var webAppAuthMode = configuration.GetEnum<WebAppAuthMode>(WebAppAuthModeKey);
+        var frontendAuthMode = configuration.GetEnum<FrontendAuthMode>(FrontendAuthModeKey);
 
         var otlpUris = configuration.GetUris(DashboardOtlpUrlVariableName, new(DashboardOtlpUrlDefaultValue));
         if (otlpUris.Length != 1)
@@ -484,14 +484,14 @@ public class DashboardWebApplication : IAsyncDisposable
         return new DashboardStartupConfiguration
         {
             BrowserUris = browserUris,
-            WebAppAuthMode = webAppAuthMode,
+            FrontendAuthMode = frontendAuthMode,
             OtlpUri = otlpUris[0],
             OtlpAuthMode = otlpAuthMode,
             OtlpApiKey = otlpApiKey
         };
     }
 
-    private enum WebAppAuthMode
+    private enum FrontendAuthMode
     {
         Unsecured,
         OpenIdConnect
@@ -502,7 +502,7 @@ public class DashboardWebApplication : IAsyncDisposable
         public required Uri[] BrowserUris { get; init; }
         public required Uri OtlpUri { get; init; }
         public required OtlpAuthMode OtlpAuthMode { get; init; }
-        public required WebAppAuthMode WebAppAuthMode { get; init; }
+        public required FrontendAuthMode FrontendAuthMode { get; init; }
         public required string? OtlpApiKey { get; init; }
     }
 }

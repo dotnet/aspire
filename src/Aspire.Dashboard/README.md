@@ -6,7 +6,7 @@ Configuration is obtained through `IConfiguration`, so it can be provided in sev
 
 The dashboard has two kinds of endpoints: a browser endpoint for viewing the dashboard UI and an OTLP endpoint that hosts an OTLP service and receives telemetry.
 
-- `ASPNETCORE_URLS` specifies one or more HTTP endpoints through which the dashboard web application is served. Defaults to http://localhost:18888.
+- `ASPNETCORE_URLS` specifies one or more HTTP endpoints through which the dashboard frontend is served. Defaults to http://localhost:18888.
 - `DOTNET_DASHBOARD_OTLP_ENDPOINT_URL` specifies the OTLP endpoint. Defaults to http://localhost:18889.
 
 Endpoints are given names in Kestrel (`Browser` and `Otlp`) and can be configured using [Kestrel endpoint configuration](https://learn.microsoft.com/aspnet/core/fundamentals/servers/kestrel/endpoints#configure-endpoints-in-appsettingsjson).
@@ -38,16 +38,16 @@ The resource service client supports certificates. Set `ResourceServiceClient:Au
 
 To opt-out of authentication, set `ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
-## Dashboard web app auth
+## Dashboard frontend auth
 
-The dashboard's web application supports OpenID Connect. Set `DashboardWebApp:AuthMode` to `OpenIdConnect`, then add the following configuration:
+The dashboard's web application frontend supports OpenID Connect (OIDC). Set `Frontend:AuthMode` to `OpenIdConnect`, then add the following configuration:
 
 - `Authentication:Schemes:OpenIdConnect:Authority` &mdash; URL to the identity provider (IdP)
 - `Authentication:Schemes:OpenIdConnect:ClientId` &mdash; Identity of the relying party (RP)
 - `Authentication:Schemes:OpenIdConnect:ClientSecret`&mdash; A secret that only the real RP would know
 - Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
 
-It may also be run unsecured. Set `DashboardWebApp:AuthMode` to `Unsecured`. This completely disables all security for the dashboard web app. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
+It may also be run unsecured. Set `Frontend:AuthMode` to `Unsecured`. This completely disables all security for the dashboard frontend. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
 ## Telemetry Limits
 
