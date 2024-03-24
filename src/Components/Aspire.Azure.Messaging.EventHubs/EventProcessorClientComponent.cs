@@ -74,18 +74,21 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
         // consumer group and blob container names have similar constraints (alphanumeric, hyphen) but we should sanitize nonetheless
         var consumerGroup = (string.IsNullOrWhiteSpace(settings.ConsumerGroup)) ? "default" : settings.ConsumerGroup;
 
-        var ns = GetNamespaceFromSettings(settings);
-
-        var blobUri = blobUriBuilder.ToUri();
-        var blobClient = new BlobContainerClient(blobUri, cred);
-
-        // Only attempt to create container if it was not found in the connection string
+        // Only attempt to create a container if it was NOT found in the connection string
+        // this is always the case for an Aspire mounted blob resource, but a dev could provide a blob
+        // connection string themselves that includes a container name in the Uri already; in this case
+        // we assume it already exists and avoid the extra permission demand.
         if (blobUriBuilder.BlobContainerName == string.Empty)
         {
+            var ns = GetNamespaceFromSettings(settings);
+            blobUriBuilder.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
+            var blobClient = new BlobContainerClient(blobUriBuilder.ToUri(), cred);
+
             try
             {
-                blobUriBuilder.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
                 blobClient.CreateIfNotExists();
+
+                return blobClient;
             }
             catch (RequestFailedException ex)
             {
@@ -97,6 +100,6 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
             }
         }
 
-        return blobClient;
+        return new BlobContainerClient(blobUriBuilder.ToUri(), cred);
     }
 }
