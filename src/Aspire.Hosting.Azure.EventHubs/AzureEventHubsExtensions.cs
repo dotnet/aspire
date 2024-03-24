@@ -11,7 +11,7 @@ using Azure.Provisioning.EventHubs;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding the Azure Service Bus resources to the application model.
+/// Provides extension methods for adding the Azure Event Hubs resources to the application model.
 /// </summary>
 public static class AzureEventHubsExtensions
 {
@@ -62,7 +62,7 @@ public static class AzureEventHubsExtensions
                 var hubResource = new EventHub(construct, name: hub.Name, parent: eventHubsNamespace);
                 hub.Configure?.Invoke(azureResourceBuilder, construct, hubResource);
             }
-            
+
         };
         var resource = new AzureEventHubsResource(name, configureConstruct);
 
