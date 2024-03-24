@@ -16,16 +16,11 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     /// Initializes a new instance of the <see cref="QdrantServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="apiKey">A <see cref="ParameterResource"/> that contains the API Key, or <see langword="null"/> to generate a random key.</param>
-    public QdrantServerResource(string name, ParameterResource? apiKey) : base(name)
+    /// <param name="apiKey">A <see cref="ParameterResource"/> that contains the API Key</param>
+    public QdrantServerResource(string name, ParameterResource apiKey) : base(name)
     {
+        ArgumentNullException.ThrowIfNull(apiKey);
         ApiKeyParameter = apiKey;
-
-        if (ApiKeyParameter is null)
-        {
-            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
-            ApiKeyInput = new(this, "password");
-        }
     }
 
     private EndpointReference? _primaryEndpoint;
@@ -33,13 +28,7 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     /// <summary>
     /// Gets the parameter that contains the Qdrant API key.
     /// </summary>
-    public ParameterResource? ApiKeyParameter { get; }
-    private InputReference? ApiKeyInput { get; }
-
-    internal ReferenceExpression ApiKeyReference =>
-        ApiKeyParameter is not null ?
-            ReferenceExpression.Create($"{ApiKeyParameter}") :
-            ReferenceExpression.Create($"{ApiKeyInput!}");
+    public ParameterResource ApiKeyParameter { get; }
 
     /// <summary>
     /// Gets the primary endpoint for the Qdrant database.

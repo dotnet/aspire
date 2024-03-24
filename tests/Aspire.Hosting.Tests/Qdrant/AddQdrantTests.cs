@@ -141,17 +141,17 @@ public class AddQdrantTests
     public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var qdrant = appBuilder.AddQdrant("quadrant");
+        var qdrant = appBuilder.AddQdrant("qdrant");
 
         var serverManifest = await ManifestUtils.GetManifest(qdrant.Resource);
 
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "http://{quadrant.bindings.http.host}:{quadrant.bindings.http.port}",
+              "connectionString": "http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
-                "QDRANT__SERVICE__API_KEY": "{quadrant.inputs.password}"
+                "QDRANT__SERVICE__API_KEY": "{qdrant-apiKey.value}"
               },
               "bindings": {
                 "http": {
@@ -159,17 +159,6 @@ public class AddQdrantTests
                   "protocol": "tcp",
                   "transport": "http",
                   "containerPort": 6334
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22
-                    }
-                  }
                 }
               }
             }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Qdrant;
 
@@ -28,13 +29,15 @@ public static class QdrantBuilderExtensions
         IResourceBuilder<ParameterResource>? apiKey = null,
         int? port = null)
     {
-        var qdrant = new QdrantServerResource(name, apiKey?.Resource);
+        var apiKeyParameter = apiKey?.Resource ??
+            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-apiKey", special: false);
+        var qdrant = new QdrantServerResource(name, apiKeyParameter);
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortHttp)
             .WithEnvironment(context =>
             {
-                context.EnvironmentVariables[ApiKeyEnvVarName] = qdrant.ApiKeyReference;
+                context.EnvironmentVariables[ApiKeyEnvVarName] = qdrant.ApiKeyParameter;
             });
     }
 
@@ -61,7 +64,7 @@ public static class QdrantBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithDataVolume(this IResourceBuilder<QdrantServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/qdrant/data", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/qdrant/storage", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Qdrant container resource.
@@ -71,7 +74,7 @@ public static class QdrantBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithDataBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/qdrant/data", isReadOnly);
+        => builder.WithBindMount(source, "/var/lib/qdrant/storage", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the init folder to a Qdrant container resource.
