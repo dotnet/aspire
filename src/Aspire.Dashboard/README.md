@@ -13,14 +13,18 @@ Endpoints are given names in Kestrel (`Browser` and `Otlp`) and can be configure
 
 For example, the default certificate used by HTTPS endpoints can be configured using the `ASPNETCORE_Kestrel__Certificates__Default__Path` and `ASPNETCORE_Kestrel__Certificates__Default__Password` environment variables. Alternatively, the certificate can be configured for individual endpoints, such as `ASPNETCORE_Kestrel__Endpoints__Browser__Path`, etc.
 
-### OTLP endpoint authentication
+### Frontend
 
-The OTLP endpoint can be secured with [client certificate](https://learn.microsoft.com/aspnet/core/security/authentication/certauth) or API key authentication.
+The dashboard's web application frontend supports OpenID Connect (OIDC). Set `Frontend:AuthMode` to `OpenIdConnect`, then add the following configuration:
 
-- `Otlp:AuthMode` specifies the authentication mode on the OTLP endpoint. Possible values are `Certificate`, `ApiKey`, `Unsecured`. This configuration is required.
-- `Otlp:ApiKey` specifies the API key for the OTLP endpoint when API key authentication is enabled. This configuration is required for API key authentication.
+- `Authentication:Schemes:OpenIdConnect:Authority` &mdash; URL to the identity provider (IdP)
+- `Authentication:Schemes:OpenIdConnect:ClientId` &mdash; Identity of the relying party (RP)
+- `Authentication:Schemes:OpenIdConnect:ClientSecret`&mdash; A secret that only the real RP would know
+- Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
 
-## Resources
+It may also be run unsecured. Set `Frontend:AuthMode` to `Unsecured`. This completely disables all security for the dashboard frontend. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
+
+### Resources
 
 - `DOTNET_RESOURCE_SERVICE_ENDPOINT_URL` specifies the gRPC endpoint to which the dashboard connects for its data. There's no default. If this variable is unspecified, the dashboard shows OTEL data but no resource list or console logs.
 
@@ -38,18 +42,14 @@ The resource service client supports certificates. Set `ResourceServiceClient:Au
 
 To opt-out of authentication, set `ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
-## Dashboard frontend auth
+### OTLP
 
-The dashboard's web application frontend supports OpenID Connect (OIDC). Set `Frontend:AuthMode` to `OpenIdConnect`, then add the following configuration:
+The OTLP endpoint can be secured with [client certificate](https://learn.microsoft.com/aspnet/core/security/authentication/certauth) or API key authentication.
 
-- `Authentication:Schemes:OpenIdConnect:Authority` &mdash; URL to the identity provider (IdP)
-- `Authentication:Schemes:OpenIdConnect:ClientId` &mdash; Identity of the relying party (RP)
-- `Authentication:Schemes:OpenIdConnect:ClientSecret`&mdash; A secret that only the real RP would know
-- Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
+- `Otlp:AuthMode` specifies the authentication mode on the OTLP endpoint. Possible values are `Certificate`, `ApiKey`, `Unsecured`. This configuration is required.
+- `Otlp:ApiKey` specifies the API key for the OTLP endpoint when API key authentication is enabled. This configuration is required for API key authentication.
 
-It may also be run unsecured. Set `Frontend:AuthMode` to `Unsecured`. This completely disables all security for the dashboard frontend. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
-
-## Telemetry Limits
+#### Telemetry Limits
 
 Telemetry is stored in-memory. To avoid excessive memory usage, the dashboard has limits on the count and size of stored telemetry. When a count limit is reached, new telemetry is added, and the oldest telemetry is removed. When a size limit is reached, data is truncated to the limit.
 
@@ -60,6 +60,6 @@ Telemetry is stored in-memory. To avoid excessive memory usage, the dashboard ha
 - `DOTNET_DASHBOARD_OTEL_ATTRIBUTE_LENGTH_LIMIT` specifies the maximum length of attributes. Defaults to unlimited.
 - `DOTNET_DASHBOARD_OTEL_SPAN_EVENT_COUNT_LIMIT` specifies the maximum number of events on span attributes. Defaults to unlimited.
 
-## Other
+### Other
 
 - `DOTNET_DASHBOARD_APPLICATION_NAME` specifies the application name to be displayed in the UI. This applies only when no resource service URL is specified. When a resource service exists, the service specifies the application name.
