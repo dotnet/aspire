@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure</PackageTags>
+    <PackageTags>aspire hosting azure eventhubs</PackageTags>
     <Description>Azure Event Hubs resource types for .NET Aspire.</Description>
   </PropertyGroup>
 
