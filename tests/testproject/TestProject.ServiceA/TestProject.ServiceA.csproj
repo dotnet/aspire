@@ -5,5 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
+ <ItemGroup>
+    <PackageReference Include="Serilog.Extensions.Logging.File" />
+ </ItemGroup>
 </Project>

@@ -22,17 +22,18 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Theory]
+    [Trait("scenario", "default")]
     [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.mysql)]
-    [InlineData(TestResourceNames.pomelo)]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
-    [InlineData(TestResourceNames.sqlserver)]
     [InlineData(TestResourceNames.efnpgsql)]
+    [InlineData(TestResourceNames.efmysql)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
+            _integrationServicesFixture.EnsureAppHasResource(resourceName);
             try
             {
                 var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
@@ -42,30 +43,41 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             }
             catch
             {
-                await _integrationServicesFixture.DumpComponentLogsAsync(resourceName.ToString().ToLowerInvariant(), _testOutput);
+                await _integrationServicesFixture.DumpComponentLogsAsync(resourceName, _testOutput);
                 throw;
             }
         });
 
-    // FIXME: open issue
-    [ConditionalTheory]
-    [SkipOnCI("not working on CI yet")]
-    [InlineData(TestResourceNames.cosmos)]
-    [InlineData(TestResourceNames.oracledatabase)]
-    public Task VerifyComponentWorksDisabledOnCI(TestResourceNames resourceName)
+    [Theory]
+    [Trait("scenario", "sqlserver")]
+    [InlineData(TestResourceNames.sqlserver)]
+    [InlineData(TestResourceNames.efsqlserver)]
+    public Task VerifySqlServerComponentWorks(TestResourceNames resourceName)
+        => VerifyComponentWorks(resourceName);
+
+    [Fact]
+    [Trait("scenario", "oracle")]
+    public Task VerifyOracleComponentWorks()
+        => VerifyComponentWorks(TestResourceNames.oracledatabase);
+
+    [ConditionalFact]
+    [Trait("scenario", "cosmos")]
+    public Task VerifyCosmosComponentWorks()
     {
-        if (resourceName == TestResourceNames.cosmos && RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            throw new SkipException($"Skipping '{resourceName}' test because the emulator isn't supported on macOS ARM64.");
+            throw new SkipException($"Skipping 'cosmos' test because the emulator isn't supported on macOS ARM64.");
         }
 
-        return VerifyComponentWorks(resourceName);
+        return VerifyComponentWorks(TestResourceNames.cosmos);
     }
 
     [Fact]
+    [Trait("scenario", "default")]
     public Task KafkaComponentCanProduceAndConsume()
         => RunTestAsync(async() =>
         {
+            _integrationServicesFixture.EnsureAppHasResource(TestResourceNames.kafka);
             string topic = $"topic-{Guid.NewGuid()}";
 
             var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
@@ -78,6 +90,10 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         });
 
     [Fact]
+    [Trait("scenario", "default")]
+    [Trait("scenario", "oracle")]
+    [Trait("scenario", "cosmos")]
+    [Trait("scenario", "sqlserver")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>
         {

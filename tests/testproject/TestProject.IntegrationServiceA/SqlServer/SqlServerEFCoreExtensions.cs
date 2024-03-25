@@ -3,14 +3,14 @@
 
 using Microsoft.EntityFrameworkCore;
 
-public static class PomeloEFCoreMySqlExtensions
+public static class SqlServerEFCoreExtensions
 {
-    public static void MapPomeloEFCoreMySqlApi(this WebApplication app)
+    public static void MapSqlServerEFCoreApi(this WebApplication app)
     {
-        app.MapGet("/efmysql/verify", VerifyPomeloEFCoreMySqlAsync);
+        app.MapGet("/efsqlserver/verify", VerifySqlServerEFCoreAsync);
     }
 
-    private static IResult VerifyPomeloEFCoreMySqlAsync(PomeloMySqlDbContext dbContext)
+    private static IResult VerifySqlServerEFCoreAsync(PomeloSqlServerDbContext dbContext)
     {
         try
         {
@@ -19,7 +19,7 @@ public static class PomeloEFCoreMySqlExtensions
         }
         catch (Exception e)
         {
-            return Results.Problem(e.ToString());
+            return Results.Problem($"foo-bar: {e}");
         }
     }
 }
