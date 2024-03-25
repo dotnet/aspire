@@ -72,20 +72,6 @@
         "principalId": "{default-identity.outputs.principalId}",
         "principalName": "",
         "principalType": "ServicePrincipal"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22,
-              "minLower": 1,
-              "minUpper": 1,
-              "minNumeric": 1
-            }
-          }
-        }
       }
     },
     "db": {
@@ -226,27 +212,27 @@
       "type": "azure.bicep.v0",
       "path": "api-containerapp.bicep",
       "params": {
-        "param_0": "{containerAppEnv.outputs.id}",
-        "param_1": "{containerRegistry.outputs.loginServer}",
-        "param_2": "{containerRegistry.outputs.mid}",
-        "param_3": "{api.containerImage}",
-        "param_4": "{sql.outputs.sqlServerFqdn}",
-        "param_5": "{postgres2.secretOutputs.connectionString}",
-        "param_6": "{cosmos.secretOutputs.connectionString}",
-        "param_7": "{storage.outputs.blobEndpoint}",
-        "param_8": "{storage.outputs.tableEndpoint}",
-        "param_9": "{storage.outputs.queueEndpoint}",
-        "param_10": "{kv3.outputs.vaultUri}",
-        "param_11": "{appConfig.outputs.appConfigEndpoint}",
-        "param_12": "{ai.outputs.appInsightsConnectionString}",
-        "param_13": "{redis.secretOutputs.connectionString}",
-        "param_14": "{sb.outputs.serviceBusEndpoint}",
-        "param_15": "{signalr.outputs.hostName}",
-        "param_16": "{test.outputs.test}",
-        "param_17": "{test.outputs.val0}",
-        "param_18": "{test.outputs.val1}",
-        "param_19": "{default-identity.outputs.id}",
-        "param_20": "{default-identity.outputs.clientId}"
+        "param_0": "{sql.outputs.sqlServerFqdn}",
+        "param_1": "{postgres2.secretOutputs.connectionString}",
+        "param_2": "{cosmos.secretOutputs.connectionString}",
+        "param_3": "{storage.outputs.blobEndpoint}",
+        "param_4": "{storage.outputs.tableEndpoint}",
+        "param_5": "{storage.outputs.queueEndpoint}",
+        "param_6": "{kv3.outputs.vaultUri}",
+        "param_7": "{appConfig.outputs.appConfigEndpoint}",
+        "param_8": "{ai.outputs.appInsightsConnectionString}",
+        "param_9": "{redis.secretOutputs.connectionString}",
+        "param_10": "{sb.outputs.serviceBusEndpoint}",
+        "param_11": "{signalr.outputs.hostName}",
+        "param_12": "{test.outputs.test}",
+        "param_13": "{test.outputs.val0}",
+        "param_14": "{test.outputs.val1}",
+        "param_15": "{default-identity.outputs.id}",
+        "param_16": "{default-identity.outputs.clientId}",
+        "param_17": "{containerAppEnv.outputs.id}",
+        "param_18": "{containerRegistry.outputs.loginServer}",
+        "param_19": "{containerRegistry.outputs.mid}",
+        "param_20": "{api.containerImage}"
       }
     }
   }
