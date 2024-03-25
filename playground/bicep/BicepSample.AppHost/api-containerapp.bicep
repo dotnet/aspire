@@ -43,10 +43,12 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                   targetPort: 8080
                   transport: 'http'
             }
-            registries: [ {
-                server: param_18
-                identity: param_19
-            } ]
+            registries: [
+                {
+                    server: param_18
+                    identity: param_19
+                }
+            ]
             secrets: [
                 { name: 'connectionstrings--db', value: 'Server=tcp:${param_0},1433;Encrypt=True;Authentication="Active Directory Default";Database=db' }
                 { name: 'connectionstrings--db2', value: '${param_1};Database=db2' }

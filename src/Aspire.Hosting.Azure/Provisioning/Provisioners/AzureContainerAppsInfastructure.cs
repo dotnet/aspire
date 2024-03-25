@@ -785,12 +785,16 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                     return;
                 }
 
-                sb.AppendLine("registries: [ {");
+                sb.AppendLine("registries: [");
+                sb.Indent();
+                sb.AppendLine("{");
                 sb.Indent();
                 sb.AppendLine($"server: {_containerRegistryUrlParameter}");
                 sb.AppendLine($"identity: {_containerRegistryManagedIdentityIdParameter}");
                 sb.Dedent();
-                sb.AppendLine("} ]");
+                sb.AppendLine("}");
+                sb.Dedent();
+                sb.AppendLine("]");
             }
 
             // Trim a bicep expression ${x} to x
