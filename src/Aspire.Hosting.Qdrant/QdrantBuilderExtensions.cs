@@ -59,7 +59,7 @@ public static class QdrantBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithDataVolume(this IResourceBuilder<QdrantServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/qdrant/storage", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/qdrant/storage", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Qdrant container resource.
@@ -69,17 +69,7 @@ public static class QdrantBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithDataBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/qdrant/storage", isReadOnly);
-
-    /// <summary>
-    /// Adds a bind mount for the init folder to a Qdrant container resource.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The source directory on the host to mount into the container.</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<QdrantServerResource> WithInitBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = true)
-        => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+        => builder.WithBindMount(source, "/qdrant/storage", isReadOnly);
 
     /// <summary>
     /// Add a reference to a Qdrant settings for a project.
