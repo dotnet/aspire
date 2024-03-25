@@ -365,7 +365,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.OpenIdConnect)
         {
             // Configure OpenID Connect (OIDC)
-            authentication.AddScheme<FrontendAuthenticationHandlerOptions, FrontendAuthenticationHandler>(FrontendAuthenticationDefaults.AuthenticationScheme, o =>
+            authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
             {
                 o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
                 o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
@@ -497,6 +497,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         OpenIdConnect
     }
 
+    public static class FrontendAuthenticationDefaults
+    {
+        public const string AuthenticationScheme = "Frontend";
+    }
+
     private sealed class DashboardStartupConfiguration
     {
         public required Uri[] BrowserUris { get; init; }
@@ -508,3 +513,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 }
 
 public record EndpointInfo(IPEndPoint EndPoint, bool isHttps);
+
+public static class FrontendAuthorizationDefaults
+{
+    public const string PolicyName = "Frontend";
+}
