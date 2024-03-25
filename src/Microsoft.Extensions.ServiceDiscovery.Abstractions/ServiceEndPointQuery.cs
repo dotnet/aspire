@@ -11,15 +11,6 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 public sealed class ServiceEndPointQuery
 {
     /// <summary>
-    /// The value indicating that all endpoint schemes are allowed.
-    /// </summary>
-#pragma warning disable IDE0300 // Simplify collection initialization
-#pragma warning disable CA1825 // Avoid zero-length array allocations
-    public static readonly string[] AllowAllSchemes = new string[0];
-#pragma warning restore CA1825 // Avoid zero-length array allocations
-#pragma warning restore IDE0300 // Simplify collection initialization
-
-    /// <summary>
     /// Initializes a new <see cref="ServiceEndPointQuery"/> instance.
     /// </summary>
     /// <param name="originalString">The string which the query was constructed from.</param>
@@ -38,10 +29,9 @@ public sealed class ServiceEndPointQuery
     /// Tries to parse the provided input as a service endpoint query.
     /// </summary>
     /// <param name="queryString">The query string.</param>
-    /// <param name="allowedSchemes">The allowed URI schemes. If the value is <see cref="AllowAllSchemes"/>, all schemes are allowed.</param>
     /// <param name="query">The resulting query.</param>
     /// <returns><see langword="true"/> if the value was successfully parsed; otherwise <see langword="false"/>.</returns>
-    public static bool TryParse(string queryString, string[] allowedSchemes, [NotNullWhen(true)] out ServiceEndPointQuery? query)
+    public static bool TryParse(string queryString, [NotNullWhen(true)] out ServiceEndPointQuery? query)
     {
         bool hasScheme;
         if (!queryString.Contains("://", StringComparison.InvariantCulture)
@@ -76,33 +66,9 @@ public sealed class ServiceEndPointQuery
         }
 
         // Allow multiple schemes to be separated by a '+', eg. "https+http://host:port".
-        var schemes = hasScheme ? ParseSchemes(uri.Scheme, allowedSchemes) : [];
-
+        var schemes = hasScheme ? uri.Scheme.Split('+') : [];
         query = new(queryString, schemes, host, endPointName);
         return true;
-
-        static string[] ParseSchemes(string scheme, string[] allowedSchemes)
-        {
-            if (allowedSchemes.Equals(AllowAllSchemes))
-            {
-                return scheme.Split('+');
-            }
-
-            List<string> result = [];
-            foreach (var s in scheme.Split('+'))
-            {
-                foreach (var allowed in allowedSchemes)
-                {
-                    if (string.Equals(s, allowed, StringComparison.OrdinalIgnoreCase))
-                    {
-                        result.Add(s);
-                        break;
-                    }
-                }
-            }
-
-            return result.ToArray();
-        }
     }
 
     /// <summary>
@@ -111,9 +77,9 @@ public sealed class ServiceEndPointQuery
     public string OriginalString { get; }
 
     /// <summary>
-    /// Gets the collection of included URI schemes.
+    /// Gets the ordered list of included URI schemes.
     /// </summary>
-    public string[] IncludeSchemes { get; }
+    public IReadOnlyList<string> IncludeSchemes { get; }
 
     /// <summary>
     /// Gets the endpoint name, or <see langword="null"/> if no endpoint name is specified.

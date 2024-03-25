@@ -28,16 +28,18 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     /// <param name="query">The query.</param>
     /// <param name="configuration">The configuration.</param>
     /// <param name="logger">The logger.</param>
-    /// <param name="options">The options.</param>
+    /// <param name="options">Configuration resolver options.</param>
+    /// <param name="serviceDiscoveryOptions">Service discovery options.</param>
     public ConfigurationServiceEndPointResolver(
         ServiceEndPointQuery query,
         IConfiguration configuration,
         ILogger<ConfigurationServiceEndPointResolver> logger,
-        IOptions<ConfigurationServiceEndPointResolverOptions> options)
+        IOptions<ConfigurationServiceEndPointResolverOptions> options,
+        IOptions<ServiceDiscoveryOptions> serviceDiscoveryOptions)
     {
         _serviceName = query.Host;
         _endpointName = query.EndPointName;
-        _schemes = query.IncludeSchemes;
+        _schemes = ServiceDiscoveryOptions.ApplyAllowedSchemes(serviceDiscoveryOptions.Value.AllowedSchemes, query.IncludeSchemes);
         _configuration = configuration;
         _logger = logger;
         _options = options;
