@@ -1,0 +1,18 @@
+parameters:
+  - name: playgrounds
+    type: object
+    default:
+    - name: TestShop
+      path: playground/TestShop/AppHost/AppHost.csproj
+    - name: BicepSample
+      path: playground/bicep/BicepSample.AppHost/BicepSample.AppHost.csproj
+
+steps:
+- ${{ each playground in parameters.playgrounds }}:
+  - bash:
+      dotnet run --project ${{ playground.path }} -- --publisher manifest --output-path ./aspire-manifest.json
+    displayName: 'Generate Manifest: ${{ playground.name }}'
+
+- bash: |
+    git diff --exit-code
+  displayName: 'Checking for manifest variations'
