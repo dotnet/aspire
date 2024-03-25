@@ -4,8 +4,8 @@
       "type": "azure.bicep.v0",
       "path": "storage.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "principalType": "ServicePrincipal"
       }
     },
     "blobs": {
@@ -19,19 +19,51 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-        "ConnectionStrings__blobs": "{blobs.connectionString}"
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "URL": "{api.bindings.api.url}"
       },
       "bindings": {
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        },
+        "api": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
         }
+      }
+    },
+    "containerAppEnv": {
+      "type": "azure.bicep.v0",
+      "path": "containerappenv.bicep"
+    },
+    "containerRegistry": {
+      "type": "azure.bicep.v0",
+      "path": "containerregistry.bicep"
+    },
+    "default-identity": {
+      "type": "azure.bicep.v0",
+      "path": "default-identity.bicep"
+    },
+    "api-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "api-containerapp.bicep",
+      "params": {
+        "param_0": "{storage.outputs.blobEndpoint}",
+        "param_1": "{default-identity.outputs.id}",
+        "param_2": "{default-identity.outputs.clientId}",
+        "param_3": "{containerAppEnv.outputs.id}",
+        "param_4": "{containerRegistry.outputs.loginServer}",
+        "param_5": "{containerRegistry.outputs.mid}",
+        "param_6": "{api.containerImage}"
       }
     }
   }

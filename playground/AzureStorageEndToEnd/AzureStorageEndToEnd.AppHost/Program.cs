@@ -2,15 +2,24 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 var builder = DistributedApplication.CreateBuilder(args);
 
-var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
-{
-    container.WithDataBindMount();
-});
+builder.AddAzureProvisioning();
+
+var storage = builder.AddAzureStorage("storage");
 
 var blobs = storage.AddBlobs("blobs");
 
-builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
-       .WithReference(blobs);
+ProjectResource p = default!;
+
+var project = builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
+       .WithEndpoint("http", e => e.IsExternal = true)
+       .WithHttpEndpoint(name: "api", containerPort: 1034)
+       .WithReference(blobs)
+       .WithEnvironment(context =>
+       {
+           context.EnvironmentVariables["URL"] = p.GetEndpoint("api");
+       });
+
+p = project.Resource;
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

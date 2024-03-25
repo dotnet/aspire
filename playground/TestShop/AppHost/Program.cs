@@ -1,5 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureProvisioning();
+
 var catalogDb = builder.AddPostgres("postgres")
                        .WithPgAdmin()
                        .AddDatabase("catalogdb");
@@ -19,6 +21,7 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
                            .WithReference(messaging);
 
 builder.AddProject<Projects.MyFrontend>("frontend")
+       .WithEndpoint("http", e => e.IsExternal = true)
        .WithReference(basketService)
        .WithReference(catalogService);
 

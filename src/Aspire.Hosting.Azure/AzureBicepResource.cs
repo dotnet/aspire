@@ -74,12 +74,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             isTempFile = directory is null;
 
             path = TempDirectory is null
-                ? Path.GetTempFileName() + ".bicep"
-                : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.bicep");
+                       ? Path.Combine(directory ?? Directory.CreateTempSubdirectory("aspire").FullName, $"{Name.ToLowerInvariant()}.bicep")
+                       : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.bicep");
 
             if (TemplateResourceName is null)
             {
-                // REVIEW: Consider making users specify a name for the template
                 File.WriteAllText(path, TemplateString);
             }
             else
