@@ -15,13 +15,13 @@ public sealed class ServiceEndPointQuery
     /// </summary>
     /// <param name="originalString">The string which the query was constructed from.</param>
     /// <param name="includedSchemes">The ordered list of included URI schemes.</param>
-    /// <param name="host">The host name.</param>
+    /// <param name="serviceName">The service name.</param>
     /// <param name="endPointName">The optional endpoint name.</param>
-    private ServiceEndPointQuery(string originalString, string[] includedSchemes, string host, string? endPointName)
+    private ServiceEndPointQuery(string originalString, string[] includedSchemes, string serviceName, string? endPointName)
     {
         OriginalString = originalString;
         IncludeSchemes = includedSchemes;
-        Host = host;
+        ServiceName = serviceName;
         EndPointName = endPointName;
     }
 
@@ -87,11 +87,11 @@ public sealed class ServiceEndPointQuery
     public string? EndPointName { get; }
 
     /// <summary>
-    /// Gets the host name.
+    /// Gets the service name.
     /// </summary>
-    public string Host { get; }
+    public string ServiceName { get; }
 
     /// <inheritdoc/>
-    public override string? ToString() => EndPointName is not null ? $"EndPointName: {EndPointName}, Host: {Host}" : $"Host: {Host}";
+    public override string? ToString() => EndPointName is not null ? $"Endpoint: {EndPointName}, Service: {ServiceName}" : $"Service: {ServiceName}";
 }
 

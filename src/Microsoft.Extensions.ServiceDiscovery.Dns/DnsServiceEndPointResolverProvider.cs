@@ -15,7 +15,7 @@ internal sealed partial class DnsServiceEndPointResolverProvider(
     /// <inheritdoc/>
     public bool TryCreateProvider(ServiceEndPointQuery query, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
-        resolver = new DnsServiceEndPointResolver(query.OriginalString, hostName: query.Host, options, logger, timeProvider);
+        resolver = new DnsServiceEndPointResolver(query.OriginalString, hostName: query.ServiceName, options, logger, timeProvider);
         return true;
     }
 }

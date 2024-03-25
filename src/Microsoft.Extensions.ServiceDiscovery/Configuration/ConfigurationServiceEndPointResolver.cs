@@ -37,7 +37,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
         IOptions<ConfigurationServiceEndPointResolverOptions> options,
         IOptions<ServiceDiscoveryOptions> serviceDiscoveryOptions)
     {
-        _serviceName = query.Host;
+        _serviceName = query.ServiceName;
         _endpointName = query.EndPointName;
         _schemes = ServiceDiscoveryOptions.ApplyAllowedSchemes(serviceDiscoveryOptions.Value.AllowedSchemes, query.IncludeSchemes);
         _configuration = configuration;
