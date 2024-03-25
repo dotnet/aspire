@@ -77,9 +77,9 @@ internal sealed class DcpOptions
     /// </summary>
     public bool? RandomizePorts { get; set; }
 
-    public int KubernetesConfigReadRetryCount { get; set; } = 10;
+    public int KubernetesConfigReadRetryCount { get; set; } = 30;
 
-    public int KubernetesConfigReadRetryIntervalSeconds { get; set; } = 3;
+    public int KubernetesConfigReadRetryIntervalSeconds { get; set; } = 1;
 
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
     {
