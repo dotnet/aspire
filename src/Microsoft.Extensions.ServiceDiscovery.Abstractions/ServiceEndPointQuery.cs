@@ -28,18 +28,18 @@ public sealed class ServiceEndPointQuery
     /// <summary>
     /// Tries to parse the provided input as a service endpoint query.
     /// </summary>
-    /// <param name="queryString">The query string.</param>
+    /// <param name="input">The value to parse.</param>
     /// <param name="query">The resulting query.</param>
     /// <returns><see langword="true"/> if the value was successfully parsed; otherwise <see langword="false"/>.</returns>
-    public static bool TryParse(string queryString, [NotNullWhen(true)] out ServiceEndPointQuery? query)
+    public static bool TryParse(string input, [NotNullWhen(true)] out ServiceEndPointQuery? query)
     {
         bool hasScheme;
-        if (!queryString.Contains("://", StringComparison.InvariantCulture)
-            && Uri.TryCreate($"fakescheme://{queryString}", default, out var uri))
+        if (!input.Contains("://", StringComparison.InvariantCulture)
+            && Uri.TryCreate($"fakescheme://{input}", default, out var uri))
         {
             hasScheme = false;
         }
-        else if (Uri.TryCreate(queryString, default, out uri))
+        else if (Uri.TryCreate(input, default, out uri))
         {
             hasScheme = true;
         }
@@ -67,7 +67,7 @@ public sealed class ServiceEndPointQuery
 
         // Allow multiple schemes to be separated by a '+', eg. "https+http://host:port".
         var schemes = hasScheme ? uri.Scheme.Split('+') : [];
-        query = new(queryString, schemes, host, endPointName);
+        query = new(input, schemes, host, endPointName);
         return true;
     }
 
