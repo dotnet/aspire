@@ -56,6 +56,8 @@ public sealed partial class LogViewer
 
             foreach (var (lineNumber, content, isErrorOutput) in batch)
             {
+                // Keep track of the base line number to ensure that we can calculate the line number of each log entry.
+                // This becomes important when the total number of log entries exceeds the limit and is truncated.
                 if (_baseLineNumber is null)
                 {
                     _baseLineNumber = lineNumber;
