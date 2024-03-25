@@ -1,14 +1,14 @@
 param location string
 param tags object = {}
 @secure()
-param param_0 string // {postgres-password.value}
-param param_1 string // {containerAppEnv.outputs.id}
+param postgres_password_value string
+param containerAppEnv_outputs_id string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'postgres'
     location: location
     tags: tags
     properties: {
-        environmentId: param_1
+        environmentId: containerAppEnv_outputs_id
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
@@ -17,7 +17,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                   transport: 'tcp'
             }
             secrets: [
-                { name: 'postgres_password', value: param_0 }
+                { name: 'postgres_password', value: postgres_password_value }
             ]
         }
         template: {

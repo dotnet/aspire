@@ -1,29 +1,29 @@
 param location string
 param tags object = {}
-param param_0 string // {sql.outputs.sqlServerFqdn}
+param sql_outputs_sqlServerFqdn string
 @secure()
-param param_1 string // {postgres2.secretOutputs.connectionString}
+param postgres2_secretOutputs_connectionString string
 @secure()
-param param_2 string // {cosmos.secretOutputs.connectionString}
-param param_3 string // {storage.outputs.blobEndpoint}
-param param_4 string // {storage.outputs.tableEndpoint}
-param param_5 string // {storage.outputs.queueEndpoint}
-param param_6 string // {kv3.outputs.vaultUri}
-param param_7 string // {appConfig.outputs.appConfigEndpoint}
-param param_8 string // {ai.outputs.appInsightsConnectionString}
+param cosmos_secretOutputs_connectionString string
+param storage_outputs_blobEndpoint string
+param storage_outputs_tableEndpoint string
+param storage_outputs_queueEndpoint string
+param kv3_outputs_vaultUri string
+param appConfig_outputs_appConfigEndpoint string
+param ai_outputs_appInsightsConnectionString string
 @secure()
-param param_9 string // {redis.secretOutputs.connectionString}
-param param_10 string // {sb.outputs.serviceBusEndpoint}
-param param_11 string // {signalr.outputs.hostName}
-param param_12 string // {test.outputs.test}
-param param_13 string // {test.outputs.val0}
-param param_14 string // {test.outputs.val1}
-param param_15 string // {default-identity.outputs.id}
-param param_16 string // {default-identity.outputs.clientId}
-param param_17 string // {containerAppEnv.outputs.id}
-param param_18 string // {containerRegistry.outputs.loginServer}
-param param_19 string // {containerRegistry.outputs.mid}
-param param_20 string // {api.containerImage}
+param redis_secretOutputs_connectionString string
+param sb_outputs_serviceBusEndpoint string
+param signalr_outputs_hostName string
+param test_outputs_test string
+param test_outputs_val0 string
+param test_outputs_val1 string
+param default_identity_outputs_id string
+param default_identity_outputs_clientId string
+param containerAppEnv_outputs_id string
+param containerRegistry_outputs_loginServer string
+param containerRegistry_outputs_mid string
+param api_containerImage string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'api'
     location: location
@@ -31,11 +31,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     identity: {
         type: 'UserAssigned'
         userAssignedIdentities: {
-            '${param_15}': {}
+            '${default_identity_outputs_id}': {}
         }
     }
     properties: {
-        environmentId: param_17
+        environmentId: containerAppEnv_outputs_id
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
@@ -45,23 +45,23 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             registries: [
                 {
-                    server: param_18
-                    identity: param_19
+                    server: containerRegistry_outputs_loginServer
+                    identity: containerRegistry_outputs_mid
                 }
             ]
             secrets: [
-                { name: 'connectionstrings--db', value: 'Server=tcp:${param_0},1433;Encrypt=True;Authentication="Active Directory Default";Database=db' }
-                { name: 'connectionstrings--db2', value: '${param_1};Database=db2' }
-                { name: 'connectionstrings--cosmos', value: param_2 }
-                { name: 'connectionstrings--blob', value: param_3 }
-                { name: 'connectionstrings--table', value: param_4 }
-                { name: 'connectionstrings--queue', value: param_5 }
-                { name: 'connectionstrings--kv3', value: param_6 }
-                { name: 'connectionstrings--appconfig', value: param_7 }
-                { name: 'applicationinsights_connection_string', value: param_8 }
-                { name: 'connectionstrings--redis', value: param_9 }
-                { name: 'connectionstrings--sb', value: param_10 }
-                { name: 'connectionstrings--signalr', value: 'Endpoint=https://${param_11};AuthType=azure' }
+                { name: 'connectionstrings--db', value: 'Server=tcp:${sql_outputs_sqlServerFqdn},1433;Encrypt=True;Authentication="Active Directory Default";Database=db' }
+                { name: 'connectionstrings--db2', value: '${postgres2_secretOutputs_connectionString};Database=db2' }
+                { name: 'connectionstrings--cosmos', value: cosmos_secretOutputs_connectionString }
+                { name: 'connectionstrings--blob', value: storage_outputs_blobEndpoint }
+                { name: 'connectionstrings--table', value: storage_outputs_tableEndpoint }
+                { name: 'connectionstrings--queue', value: storage_outputs_queueEndpoint }
+                { name: 'connectionstrings--kv3', value: kv3_outputs_vaultUri }
+                { name: 'connectionstrings--appconfig', value: appConfig_outputs_appConfigEndpoint }
+                { name: 'applicationinsights_connection_string', value: ai_outputs_appInsightsConnectionString }
+                { name: 'connectionstrings--redis', value: redis_secretOutputs_connectionString }
+                { name: 'connectionstrings--sb', value: sb_outputs_serviceBusEndpoint }
+                { name: 'connectionstrings--signalr', value: 'Endpoint=https://${signalr_outputs_hostName};AuthType=azure' }
             ]
         }
         template: {
@@ -70,7 +70,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: param_20
+                    image: api_containerImage
                     name: 'api'
                     env: [
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }
@@ -88,10 +88,10 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                         { name: 'ConnectionStrings__redis', secretRef: 'connectionstrings--redis' }
                         { name: 'ConnectionStrings__sb', secretRef: 'connectionstrings--sb' }
                         { name: 'ConnectionStrings__signalr', secretRef: 'connectionstrings--signalr' }
-                        { name: 'bicepValue_test', value: param_12 }
-                        { name: 'bicepValue0', value: param_13 }
-                        { name: 'bicepValue1', value: param_14 }
-                        { name: 'AZURE_CLIENT_ID', value: param_16 }
+                        { name: 'bicepValue_test', value: test_outputs_test }
+                        { name: 'bicepValue0', value: test_outputs_val0 }
+                        { name: 'bicepValue1', value: test_outputs_val1 }
+                        { name: 'AZURE_CLIENT_ID', value: default_identity_outputs_clientId }
                     ]
                 }
             ]

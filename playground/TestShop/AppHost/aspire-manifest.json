@@ -4,8 +4,8 @@
       "type": "azure.bicep.v0",
       "path": "postgres-containerapp.bicep",
       "params": {
-        "param_0": "{postgres-password.value}",
-        "param_1": "{containerAppEnv.outputs.id}"
+        "postgres_password_value": "{postgres-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}"
       }
     },
     "catalogdb": {
@@ -16,7 +16,7 @@
       "type": "azure.bicep.v0",
       "path": "basketcache-containerapp.bicep",
       "params": {
-        "param_0": "{containerAppEnv.outputs.id}"
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}"
       }
     },
     "catalogservice": {
@@ -45,8 +45,8 @@
       "type": "azure.bicep.v0",
       "path": "messaging-containerapp.bicep",
       "params": {
-        "param_0": "{messaging-password.value}",
-        "param_1": "{containerAppEnv.outputs.id}"
+        "messaging_password_value": "{messaging-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}"
       }
     },
     "basketservice": {
@@ -170,64 +170,64 @@
       "type": "azure.bicep.v0",
       "path": "catalogservice-containerapp.bicep",
       "params": {
-        "param_0": "{postgres-password.value}",
-        "param_1": "{containerAppEnv.outputs.id}",
-        "param_2": "{containerRegistry.outputs.loginServer}",
-        "param_3": "{containerRegistry.outputs.mid}",
-        "param_4": "{catalogservice.containerImage}"
+        "postgres_password_value": "{postgres-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "catalogservice_containerImage": "{catalogservice.containerImage}"
       }
     },
     "basketservice-containerApp": {
       "type": "azure.bicep.v0",
       "path": "basketservice-containerapp.bicep",
       "params": {
-        "param_0": "{messaging-password.value}",
-        "param_1": "{containerAppEnv.outputs.id}",
-        "param_2": "{containerRegistry.outputs.loginServer}",
-        "param_3": "{containerRegistry.outputs.mid}",
-        "param_4": "{basketservice.containerImage}"
+        "messaging_password_value": "{messaging-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "basketservice_containerImage": "{basketservice.containerImage}"
       }
     },
     "frontend-containerApp": {
       "type": "azure.bicep.v0",
       "path": "frontend-containerapp.bicep",
       "params": {
-        "param_0": "{containerAppEnv.outputs.id}",
-        "param_1": "{containerRegistry.outputs.loginServer}",
-        "param_2": "{containerRegistry.outputs.mid}",
-        "param_3": "{frontend.containerImage}"
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "frontend_containerImage": "{frontend.containerImage}"
       }
     },
     "orderprocessor-containerApp": {
       "type": "azure.bicep.v0",
       "path": "orderprocessor-containerapp.bicep",
       "params": {
-        "param_0": "{messaging-password.value}",
-        "param_1": "{containerAppEnv.outputs.id}",
-        "param_2": "{containerRegistry.outputs.loginServer}",
-        "param_3": "{containerRegistry.outputs.mid}",
-        "param_4": "{orderprocessor.containerImage}"
+        "messaging_password_value": "{messaging-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "orderprocessor_containerImage": "{orderprocessor.containerImage}"
       }
     },
     "apigateway-containerApp": {
       "type": "azure.bicep.v0",
       "path": "apigateway-containerapp.bicep",
       "params": {
-        "param_0": "{containerAppEnv.outputs.id}",
-        "param_1": "{containerRegistry.outputs.loginServer}",
-        "param_2": "{containerRegistry.outputs.mid}",
-        "param_3": "{apigateway.containerImage}"
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "apigateway_containerImage": "{apigateway.containerImage}"
       }
     },
     "catalogdbapp-containerApp": {
       "type": "azure.bicep.v0",
       "path": "catalogdbapp-containerapp.bicep",
       "params": {
-        "param_0": "{postgres-password.value}",
-        "param_1": "{containerAppEnv.outputs.id}",
-        "param_2": "{containerRegistry.outputs.loginServer}",
-        "param_3": "{containerRegistry.outputs.mid}",
-        "param_4": "{catalogdbapp.containerImage}"
+        "postgres_password_value": "{postgres-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "catalogdbapp_containerImage": "{catalogdbapp.containerImage}"
       }
     },
     "app": {

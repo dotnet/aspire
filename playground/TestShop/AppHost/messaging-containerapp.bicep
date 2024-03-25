@@ -1,14 +1,14 @@
 param location string
 param tags object = {}
 @secure()
-param param_0 string // {messaging-password.value}
-param param_1 string // {containerAppEnv.outputs.id}
+param messaging_password_value string
+param containerAppEnv_outputs_id string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'messaging'
     location: location
     tags: tags
     properties: {
-        environmentId: param_1
+        environmentId: containerAppEnv_outputs_id
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
@@ -17,7 +17,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                   transport: 'tcp'
             }
             secrets: [
-                { name: 'rabbitmq_default_pass', value: param_0 }
+                { name: 'rabbitmq_default_pass', value: messaging_password_value }
             ]
         }
         template: {

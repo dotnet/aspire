@@ -1,15 +1,15 @@
 param location string
 param tags object = {}
-param param_0 string // {containerAppEnv.outputs.id}
-param param_1 string // {containerRegistry.outputs.loginServer}
-param param_2 string // {containerRegistry.outputs.mid}
-param param_3 string // {apigateway.containerImage}
+param containerAppEnv_outputs_id string
+param containerRegistry_outputs_loginServer string
+param containerRegistry_outputs_mid string
+param apigateway_containerImage string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'apigateway'
     location: location
     tags: tags
     properties: {
-        environmentId: param_0
+        environmentId: containerAppEnv_outputs_id
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
@@ -19,8 +19,8 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             registries: [
                 {
-                    server: param_1
-                    identity: param_2
+                    server: containerRegistry_outputs_loginServer
+                    identity: containerRegistry_outputs_mid
                 }
             ]
         }
@@ -30,7 +30,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: param_3
+                    image: apigateway_containerImage
                     name: 'apigateway'
                     env: [
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }

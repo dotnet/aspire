@@ -1,12 +1,12 @@
 param location string
 param tags object = {}
-param param_0 string // {containerAppEnv.outputs.id}
+param containerAppEnv_outputs_id string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'basketcache'
     location: location
     tags: tags
     properties: {
-        environmentId: param_0
+        environmentId: containerAppEnv_outputs_id
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {

@@ -760,7 +760,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
             {
                 if (!_allocatedParameters.TryGetValue(parameter, out var parameterName))
                 {
-                    _allocatedParameters[parameter] = parameterName = $"param_{Parameters.Count}";
+                    _allocatedParameters[parameter] = parameterName = parameter.ValueExpression.Replace("{", "").Replace("}", "").Replace(".", "_").Replace("-", "_");
                 }
 
                 Parameters[parameterName] = parameter;
@@ -830,7 +830,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                     {
                         sb.AppendLine("@secure()");
                     }
-                    sb.AppendLine($"param {name} string // {val.ValueExpression}");
+                    sb.AppendLine($"param {name} string");
                 }
             }
 

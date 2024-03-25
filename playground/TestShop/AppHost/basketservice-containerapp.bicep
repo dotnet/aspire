@@ -1,17 +1,17 @@
 param location string
 param tags object = {}
 @secure()
-param param_0 string // {messaging-password.value}
-param param_1 string // {containerAppEnv.outputs.id}
-param param_2 string // {containerRegistry.outputs.loginServer}
-param param_3 string // {containerRegistry.outputs.mid}
-param param_4 string // {basketservice.containerImage}
+param messaging_password_value string
+param containerAppEnv_outputs_id string
+param containerRegistry_outputs_loginServer string
+param containerRegistry_outputs_mid string
+param basketservice_containerImage string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'basketservice'
     location: location
     tags: tags
     properties: {
-        environmentId: param_1
+        environmentId: containerAppEnv_outputs_id
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
@@ -21,13 +21,13 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             registries: [
                 {
-                    server: param_2
-                    identity: param_3
+                    server: containerRegistry_outputs_loginServer
+                    identity: containerRegistry_outputs_mid
                 }
             ]
             secrets: [
                 { name: 'connectionstrings--basketcache', value: 'basketcache:6379' }
-                { name: 'connectionstrings--messaging', value: 'amqp://guest:${param_0}@messaging:5672' }
+                { name: 'connectionstrings--messaging', value: 'amqp://guest:${messaging_password_value}@messaging:5672' }
             ]
         }
         template: {
@@ -36,7 +36,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: param_4
+                    image: basketservice_containerImage
                     name: 'basketservice'
                     env: [
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }
