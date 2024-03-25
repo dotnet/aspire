@@ -4,7 +4,7 @@
       "type": "azure.bicep.v0",
       "path": "mongo-containerapp.bicep",
       "params": {
-        "param_0": "{containerAppEnv.outputs.id}"
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}"
       }
     },
     "api": {
@@ -45,11 +45,15 @@
       "type": "azure.bicep.v0",
       "path": "api-containerapp.bicep",
       "params": {
-        "param_0": "{containerAppEnv.outputs.id}",
-        "param_1": "{containerRegistry.outputs.loginServer}",
-        "param_2": "{containerRegistry.outputs.mid}",
-        "param_3": "{api.containerImage}"
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "api_containerImage": "{api.containerImage}"
       }
+    },
+    "app": {
+      "type": "azure.bicep.v0",
+      "path": "app.bicep"
     }
   }
 }
