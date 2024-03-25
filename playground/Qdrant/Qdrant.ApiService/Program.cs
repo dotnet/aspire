@@ -20,36 +20,74 @@ var random = new Random();
 
 app.MapGet("/create", async ([FromKeyedServices("qdrant")] QdrantClient client) =>
 {
-    await client.CreateCollectionAsync("my_collection", new VectorParams { Size = 100, Distance = Distance.Cosine });
+    var collections = await client.ListCollectionsAsync();
+    if (collections.Any(x => x.Contains("movie_collection")))
+    {
+        await client.DeleteCollectionAsync("movie_collection");
+    }
+
+    await client.CreateCollectionAsync("movie_collection", new VectorParams { Size = 2, Distance = Distance.Cosine });
+    var collectionInfo = await client.GetCollectionInfoAsync("movie_collection");
+    Console.WriteLine(collectionInfo.ToString());
 
     // generate some vectors
-    var points = Enumerable.Range(1, 100).Select(i => new PointStruct
+    var data = new[]
     {
-        Id = (ulong)i,
-        Vectors = Enumerable.Range(1, 100).Select(_ => (float)random.NextDouble()).ToArray(),
-        Payload =
-  {
-    ["color"] = "red",
-    ["rand_number"] = i % 10
-  }
-    }).ToList();
-
-    var updateResult = await client.UpsertAsync("my_collection", points);
+        new PointStruct
+        {
+            Id = 1,
+            Vectors = new [] {0.10022575f, -0.23998135f},
+            Payload =
+            {
+                ["title"] = "The Lion King"
+            }
+        },
+        new PointStruct
+        {
+            Id = 2,
+            Vectors = new [] {0.10327095f, 0.2563685f},
+            Payload =
+            {
+                ["title"] = "Inception"
+            }
+        },
+        new PointStruct
+        {
+            Id = 3,
+            Vectors = new [] {0.095857024f, -0.201278f},
+            Payload =
+            {
+                ["title"] = "Toy Story"
+            }
+        },
+        new PointStruct
+        {
+            Id = 4,
+            Vectors = new [] {0.106827796f, 0.21676421f},
+            Payload =
+            {
+                ["title"] = "Pulp Function"
+            }
+        },
+        new PointStruct
+        {
+            Id = 5,
+            Vectors = new [] {0.09568083f, -0.21177962f},
+            Payload =
+            {
+                ["title"] = "Shrek"
+            }
+        },
+    };
+    var updateResult = await client.UpsertAsync("movie_collection", data);
 
     return updateResult.Status;
 });
 
 app.MapGet("/search", async ([FromKeyedServices("qdrant")] QdrantClient client) =>
 {
-    var queryVector = Enumerable.Range(1, 100).Select(_ => (float)random.NextDouble()).ToArray();
-
-    // return the 5 closest points
-    var points = await client.SearchAsync(
-      "my_collection",
-      queryVector,
-      limit: 5);
-
-    return points;
+    var results = await client.SearchAsync("movie_collection", new[] { 0.12217915f, -0.034832448f }, limit: 3);
+    return results.Select(titles => titles.Payload["title"].StringValue);
 });
 
 app.MapDefaultEndpoints();
