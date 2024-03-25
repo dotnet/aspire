@@ -4,19 +4,8 @@
       "type": "azure.bicep.v0",
       "path": "postgres-containerapp.bicep",
       "params": {
-        "param_0": "{postgres-containerApp.inputs.password}",
+        "param_0": "{postgres-password.value}",
         "param_1": "{containerAppEnv.outputs.id}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
       }
     },
     "catalogdb": {
@@ -56,20 +45,8 @@
       "type": "azure.bicep.v0",
       "path": "messaging-containerapp.bicep",
       "params": {
-        "param_0": "{messaging-containerApp.inputs.password}",
+        "param_0": "{messaging-password.value}",
         "param_1": "{containerAppEnv.outputs.id}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22,
-              "special": false
-            }
-          }
-        }
       }
     },
     "basketservice": {
@@ -193,45 +170,22 @@
       "type": "azure.bicep.v0",
       "path": "catalogservice-containerapp.bicep",
       "params": {
-        "param_0": "{catalogservice-containerApp.inputs.password}",
+        "param_0": "{postgres-password.value}",
         "param_1": "{containerAppEnv.outputs.id}",
         "param_2": "{containerRegistry.outputs.loginServer}",
         "param_3": "{containerRegistry.outputs.mid}",
         "param_4": "{catalogservice.containerImage}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
       }
     },
     "basketservice-containerApp": {
       "type": "azure.bicep.v0",
       "path": "basketservice-containerapp.bicep",
       "params": {
-        "param_0": "{basketservice-containerApp.inputs.password}",
+        "param_0": "{messaging-password.value}",
         "param_1": "{containerAppEnv.outputs.id}",
         "param_2": "{containerRegistry.outputs.loginServer}",
         "param_3": "{containerRegistry.outputs.mid}",
         "param_4": "{basketservice.containerImage}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22,
-              "special": false
-            }
-          }
-        }
       }
     },
     "frontend-containerApp": {
@@ -248,23 +202,11 @@
       "type": "azure.bicep.v0",
       "path": "orderprocessor-containerapp.bicep",
       "params": {
-        "param_0": "{orderprocessor-containerApp.inputs.password}",
+        "param_0": "{messaging-password.value}",
         "param_1": "{containerAppEnv.outputs.id}",
         "param_2": "{containerRegistry.outputs.loginServer}",
         "param_3": "{containerRegistry.outputs.mid}",
         "param_4": "{orderprocessor.containerImage}"
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22,
-              "special": false
-            }
-          }
-        }
       }
     },
     "apigateway-containerApp": {
@@ -281,19 +223,39 @@
       "type": "azure.bicep.v0",
       "path": "catalogdbapp-containerapp.bicep",
       "params": {
-        "param_0": "{catalogdbapp-containerApp.inputs.password}",
+        "param_0": "{postgres-password.value}",
         "param_1": "{containerAppEnv.outputs.id}",
         "param_2": "{containerRegistry.outputs.loginServer}",
         "param_3": "{containerRegistry.outputs.mid}",
         "param_4": "{catalogdbapp.containerImage}"
-      },
+      }
+    },
+    "postgres-password": {
+      "type": "parameter.v0",
+      "value": "{postgres-password.inputs.value}",
       "inputs": {
-        "password": {
+        "value": {
           "type": "string",
           "secret": true,
           "default": {
             "generate": {
               "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "messaging-password": {
+      "type": "parameter.v0",
+      "value": "{messaging-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
             }
           }
         }

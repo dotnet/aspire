@@ -1,29 +1,24 @@
 param location string
 param tags object = {}
 @secure()
-param param_0 string // {postgres.inputs.password}
+param param_0 string // {postgres-password.value}
 param param_1 string // {containerAppEnv.outputs.id}
-
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'postgres'
     location: location
     tags: tags
-    
     properties: {
         environmentId: param_1
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-  external: false
-  targetPort: 5432
-  transport: 'tcp'
-}
-
-            
+                  external: false
+                  targetPort: 5432
+                  transport: 'tcp'
+            }
             secrets: [
-{ name: 'postgres_password', value: param_0 }
-]
-
+                { name: 'postgres_password', value: param_0 }
+            ]
         }
         template: {
             scale: {
@@ -34,12 +29,11 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                     image: 'postgres:16.2'
                     name: 'postgres'
                     env: [
-{ name: 'POSTGRES_HOST_AUTH_METHOD', value: 'scram-sha-256' }
-{ name: 'POSTGRES_INITDB_ARGS', value: '--auth-host=scram-sha-256 --auth-local=scram-sha-256' }
-{ name: 'POSTGRES_USER', value: 'postgres' }
-{ name: 'POSTGRES_PASSWORD', secretRef: 'postgres_password' }
-]
-
+                        { name: 'POSTGRES_HOST_AUTH_METHOD', value: 'scram-sha-256' }
+                        { name: 'POSTGRES_INITDB_ARGS', value: '--auth-host=scram-sha-256 --auth-local=scram-sha-256' }
+                        { name: 'POSTGRES_USER', value: 'postgres' }
+                        { name: 'POSTGRES_PASSWORD', secretRef: 'postgres_password' }
+                    ]
                 }
             ]
         }

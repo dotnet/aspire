@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
@@ -297,39 +298,61 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                     containerImageParam = AllocateParameter(new ContainerImage((ProjectResource)resource));
                 }
 
-                var containerApp = new AzureBicepResource(resource.Name + "-containerApp", templateString:
-                    $$$"""
-                    param location string
-                    param tags object = {}
-                    {{{WriteParameters()}}}
-                    resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
-                        name: '{{{resource.Name.ToLowerInvariant()}}}'
-                        location: location
-                        tags: tags
-                        {{{WriteManagedIdentites()}}}
-                        properties: {
-                            environmentId: {{{containerAppIdParam}}}
-                            configuration: {
-                                activeRevisionsMode: 'Single'
-                                {{{WriteIngress()}}}
-                                {{{WriteContainerRegistryParameters()}}}
-                                {{{WriteSecrets()}}}
-                            }
-                            template: {
-                                scale: {
-                                    minReplicas: {{{resource.GetReplicaCount()}}}
-                                }
-                                containers: [
-                                    {
-                                        image: {{{containerImageParam}}}
-                                        name: '{{{resource.Name}}}'
-                                        {{{WriteEnvironmentVariables()}}}
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                    """);
+                var sb = new IndentedStringBuilder(new StringBuilder());
+                sb.AppendLine("param location string");
+                sb.AppendLine("param tags object = {}");
+                WriteParameters(sb);
+                sb.AppendLine("resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {");
+                sb.Indent();
+                sb.AppendLine($"name: '{resource.Name.ToLowerInvariant()}'");
+                sb.AppendLine("location: location");
+                sb.AppendLine("tags: tags");
+                WriteManagedIdentites(sb);
+
+                sb.AppendLine("properties: {");
+                sb.Indent();
+                sb.AppendLine($"environmentId: {containerAppIdParam}");
+
+                sb.AppendLine("configuration: {");
+                sb.Indent();
+                sb.AppendLine("activeRevisionsMode: 'Single'");
+                WriteIngress(sb);
+                WriteContainerRegistryParameters(sb);
+                WriteSecrets(sb);
+                sb.Dedent();
+                sb.AppendLine("}"); // configuration
+
+                sb.AppendLine("template: {");
+                sb.Indent();
+
+                sb.AppendLine("scale: {");
+                sb.Indent();
+                sb.AppendLine($"minReplicas: {resource.GetReplicaCount()}");
+                sb.Dedent();
+                sb.AppendLine("}");
+
+                sb.AppendLine("containers: [");
+                sb.Indent();
+                sb.AppendLine("{");
+                sb.Indent();
+                sb.AppendLine($"image: {containerImageParam}");
+                sb.AppendLine($"name: '{resource.Name}'");
+                WriteEnvironmentVariables(sb);
+                sb.Dedent();
+                sb.AppendLine("}"); // container
+                sb.Dedent();
+                sb.AppendLine("]"); // containers
+
+                sb.Dedent();
+                sb.AppendLine("}"); // template
+                sb.Dedent();
+                sb.AppendLine("}"); // properties
+                sb.Dedent();
+                sb.AppendLine("}"); // resource
+
+                var templateString = sb.ToString();
+
+                var containerApp = new AzureBicepResource(resource.Name + "-containerApp", templateString: templateString);
 
                 foreach (var (key, value) in Parameters)
                 {
@@ -572,14 +595,16 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
 
                     var (scheme, host, port, isHttpIngress) = context._endpointMapping[epExpr.Endpoint.EndpointName];
 
-                    return epExpr.Property switch
+                    var val = epExpr.Property switch
                     {
-                        EndpointProperty.Url => (isHttpIngress ? $"{scheme}://{host}" : $"{scheme}://{host}:{port}", isSecret),
-                        EndpointProperty.Host or EndpointProperty.IPV4Host => (host, isSecret),
-                        EndpointProperty.Port => (port.ToString(CultureInfo.InvariantCulture), isSecret),
-                        EndpointProperty.Scheme => (scheme, isSecret),
+                        EndpointProperty.Url => isHttpIngress ? $"{scheme}://{host}" : $"{scheme}://{host}:{port}",
+                        EndpointProperty.Host or EndpointProperty.IPV4Host => host,
+                        EndpointProperty.Port => port.ToString(CultureInfo.InvariantCulture),
+                        EndpointProperty.Scheme => scheme,
                         _ => throw new NotSupportedException(),
                     };
+
+                    return (val, isSecret);
                 }
 
                 if (value is ReferenceExpression expr)
@@ -624,32 +649,32 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                 return parameterName;
             }
 
-            private string WriteIngress()
+            private void WriteIngress(IndentedStringBuilder sb)
             {
                 if (_httpIngress is null && _additionalPorts.Count == 0)
                 {
-                    return "";
+                    return;
                 }
 
                 // Now we map the remainig endpoints. These should be internal only tcp/http based endpoints
-                var sb = new StringBuilder();
-
                 var skipAdditionalPort = 0;
 
                 sb.AppendLine("ingress: {");
+                sb.Indent();
+
                 if (_httpIngress is { } ingress)
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  external: {ingress.External.ToString().ToLowerInvariant()}");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  targetPort: {ingress.Port}");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  transport: '{(ingress.Http2 ? "http2" : "http")}'");
+                    sb.AppendLine($"  external: {ingress.External.ToString().ToLowerInvariant()}");
+                    sb.AppendLine($"  targetPort: {ingress.Port}");
+                    sb.AppendLine($"  transport: '{(ingress.Http2 ? "http2" : "http")}'");
                 }
                 else if (_additionalPorts.Count > 0)
                 {
                     // First port is the default
 
                     var port = _additionalPorts[0];
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  external: false");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"  targetPort: {port}");
+                    sb.AppendLine($"  external: false");
+                    sb.AppendLine($"  targetPort: {port}");
                     sb.AppendLine("  transport: 'tcp'");
 
                     skipAdditionalPort++;
@@ -658,112 +683,114 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                 // Add additional ports
                 // https://learn.microsoft.com/en-us/azure/container-apps/ingress-how-to?pivots=azure-cli#use-additional-tcp-ports
                 var additionalPorts = _additionalPorts.Skip(skipAdditionalPort);
-                if (_additionalPorts.Any())
+                if (additionalPorts.Any())
                 {
                     sb.AppendLine("additionalPortMappings: [");
+                    sb.Indent();
                     foreach (var port in additionalPorts)
                     {
                         sb.AppendLine("{");
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"  external: false");
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"  targetPort: {port}");
+                        sb.Indent();
+                        sb.AppendLine($"external: false");
+                        sb.AppendLine($"targetPort: {port}");
+                        sb.Dedent();
                         sb.AppendLine("}");
                     }
+                    sb.Dedent();
                     sb.AppendLine("]");
                 }
 
+                sb.Dedent();
                 sb.AppendLine("}");
-
-                return sb.ToString();
             }
 
-            private string WriteParameters()
+            private void WriteParameters(IndentedStringBuilder sb)
             {
-                var sb = new StringBuilder();
                 foreach (var (name, val) in Parameters)
                 {
                     if (val is ParameterResource p && p.Secret || val is BicepSecretOutputReference)
                     {
                         sb.AppendLine("@secure()");
                     }
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"param {name} string // {val.ValueExpression}");
+                    sb.AppendLine($"param {name} string // {val.ValueExpression}");
                 }
-                return sb.ToString();
             }
 
-            private string WriteEnvironmentVariables()
+            private void WriteEnvironmentVariables(IndentedStringBuilder sb)
             {
                 if (EnvironmentVariables.Count == 0)
                 {
-                    return "";
+                    return;
                 }
 
-                var sb = new StringBuilder();
                 sb.AppendLine("env: [");
+                sb.Indent();
                 foreach (var kv in EnvironmentVariables)
                 {
                     var (val, isSecret) = kv.Value;
 
                     if (isSecret)
                     {
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"{{ name: '{kv.Key}', secretRef: '{val}' }}");
+                        sb.AppendLine($"{{ name: '{kv.Key}', secretRef: '{val}' }}");
                     }
                     else
                     {
-                        sb.AppendLine(CultureInfo.InvariantCulture, $"{{ name: '{kv.Key}', value: {TrimExpression(val)} }}");
+                        sb.AppendLine($"{{ name: '{kv.Key}', value: {TrimExpression(val)} }}");
                     }
                 }
+                sb.Dedent();
                 sb.AppendLine("]");
-                return sb.ToString();
             }
 
-            private string WriteSecrets()
+            private void WriteSecrets(IndentedStringBuilder sb)
             {
                 if (Secrets.Count == 0)
                 {
-                    return "";
+                    return;
                 }
-
-                var sb = new StringBuilder();
 
                 sb.AppendLine("secrets: [");
+                sb.Indent();
                 foreach (var kv in Secrets)
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"{{ name: '{kv.Key}', value: {TrimExpression(kv.Value)} }}");
+                    sb.AppendLine($"{{ name: '{kv.Key}', value: {TrimExpression(kv.Value)} }}");
                 }
+                sb.Dedent();
                 sb.AppendLine("]");
-                return sb.ToString();
             }
 
-            private string WriteManagedIdentites()
+            private void WriteManagedIdentites(IndentedStringBuilder sb)
             {
                 if (_managedIdentityIdParameter is null)
                 {
-                    return "";
+                    return;
                 }
 
-                return
-                $$"""
-            identity: {
-                type: 'UserAssigned'
-                userAssignedIdentities: { '${{{_managedIdentityIdParameter}}}': {} }
-            }
-            """;
+                sb.AppendLine("identity: {");
+                sb.Indent();
+                sb.AppendLine("type: 'UserAssigned'");
+                sb.AppendLine("userAssignedIdentities: {");
+                sb.Indent();
+                sb.AppendLine($"'${{{_managedIdentityIdParameter}}}': {{}}");
+                sb.Dedent();
+                sb.AppendLine("}");
+                sb.Dedent();
+                sb.AppendLine("}");
             }
 
-            internal string WriteContainerRegistryParameters()
+            private void WriteContainerRegistryParameters(IndentedStringBuilder sb)
             {
                 if (_containerRegistryUrlParameter is null)
                 {
-                    return "";
+                    return;
                 }
 
-                return
-                $$"""
-            registries: [ {
-                server: {{_containerRegistryUrlParameter}}
-                identity: {{_containerRegistryManagedIdentityIdParameter}}
-            } ]
-            """;
+                sb.AppendLine("registries: [ {");
+                sb.Indent();
+                sb.AppendLine($"server: {_containerRegistryUrlParameter}");
+                sb.AppendLine($"identity: {_containerRegistryManagedIdentityIdParameter}");
+                sb.Dedent();
+                sb.AppendLine("} ]");
             }
 
             // Trim a bicep expression ${x} to x
@@ -780,6 +807,35 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
             private sealed class ContainerImage(ProjectResource p) : IManifestExpressionProvider
             {
                 public string ValueExpression => $"{{{p.Name}.containerImage}}";
+            }
+
+            private class IndentedStringBuilder(StringBuilder sb)
+            {
+                private StringBuilder StringBuilder { get; } = sb;
+
+                public int IndentLevel { get; set; }
+
+                public void Indent()
+                {
+                    IndentLevel++;
+                }
+
+                public void Dedent()
+                {
+                    IndentLevel--;
+                }
+
+                public void AppendLine(string line)
+                {
+                    Debug.Assert(IndentLevel < 32);
+                    Span<char> indent = stackalloc char[128];
+                    indent.Fill(' ');
+                    var charCount = IndentLevel * 4;
+                    StringBuilder.Append(indent[..charCount]);
+                    StringBuilder.AppendLine(line);
+                }
+
+                public override string ToString() => StringBuilder.ToString();
             }
         }
     }
