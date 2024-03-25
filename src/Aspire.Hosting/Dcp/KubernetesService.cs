@@ -48,7 +48,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
-    private DcpKubernetesClient? _kubernetes;
+    private volatile DcpKubernetesClient? _kubernetes;
 
     public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(20);
 
@@ -216,6 +216,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
     public void Dispose()
     {
+        _kubeconfigReadSemaphore?.Dispose();
         _kubernetes?.Dispose();
     }
 
@@ -258,7 +259,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             {
                 try
                 {
-                    EnsureKubernetes();
+                    await EnsureKubernetesAsync(cancellationToken).ConfigureAwait(false);
                     return await operation(_kubernetes!).ConfigureAwait(false);
                 }
                 catch (Exception e) when (IsRetryable(e))
@@ -284,16 +285,34 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
     private static bool IsRetryable(Exception ex) => ex is HttpRequestException || ex is KubeConfigException;
 
-    private readonly object _ensureKubernetesLock = new object();
+    private readonly SemaphoreSlim _kubeconfigReadSemaphore = new(1);
 
-    private void EnsureKubernetes()
+    private async Task EnsureKubernetesAsync(CancellationToken cancellationToken = default)
     {
-        if (_kubernetes != null) { return; }
-
-        lock (_ensureKubernetesLock)
+        // Return early before waiting for the semaphore if we can.
+        if (_kubernetes != null)
         {
-            if (_kubernetes != null) { return; }
+            logger.LogDebug("Kubernetes ensured at first chance shortcut.");
+            return;
+        }
 
+        while (!await _kubeconfigReadSemaphore.WaitAsync(1000, cancellationToken).ConfigureAwait(false))
+        {
+            logger.LogDebug("Waiting for semaphore to read kubeconfig.");
+        }
+
+        // Return late after getting the semaphore but also probably after
+        // another thread has gotten the config loaded.
+
+        if (_kubernetes != null)
+        {
+            logger.LogDebug("Kubernetes ensured at second chance shortcut.");
+            _kubeconfigReadSemaphore.Release();
+            return;
+        }
+
+        try
+        {
             // This retry was created in relation to this comment in GitHub:
             //
             //     https://github.com/dotnet/aspire/issues/2422#issuecomment-2016701083
@@ -308,7 +327,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             // debug level logs for each retry attempt should we need to help a customer debug this.
             var configurationReadRetry = new RetryStrategyOptions()
             {
-                ShouldHandle = new PredicateBuilder().Handle<IOException>(e => e.Message.StartsWith("The process cannot access the file")),
+                ShouldHandle = new PredicateBuilder().Handle<KubeConfigException>(),
                 BackoffType = DelayBackoffType.Constant,
                 MaxRetryAttempts = dcpOptions.Value.KubernetesConfigReadRetryCount,
                 MaxDelay = TimeSpan.FromSeconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalSeconds),
@@ -316,7 +335,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                 {
                     logger.LogDebug(
                         retry.Outcome.Exception,
-                        "Reading Kubernetes configuration file from '{DcpKubeconfigPath}' failed. Retrying. (iteration {Iteration}).",
+                        "Reading Kubernetes configuration file from '{DcpKubeconfigPath}' failed. Retry pending. (iteration {Iteration}).",
                         locations.DcpKubeconfigPath,
                         retry.AttemptNumber
                         );
@@ -325,13 +344,19 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             };
             var pipeline = new ResiliencePipelineBuilder().AddRetry(configurationReadRetry).Build();
 
-            pipeline.Execute(() =>
+            _kubernetes = await pipeline.ExecuteAsync<DcpKubernetesClient>(async (cancellationToken) =>
             {
-                logger.LogDebug("Reading Kubernetes configuration from '{DcpKubeconfigPath}' on thread {ThreadId}.", locations.DcpKubeconfigPath, Environment.CurrentManagedThreadId);
-                var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: locations.DcpKubeconfigPath, useRelativePaths: false);
+                logger.LogDebug("Reading Kubernetes configuration from '{DcpKubeconfigPath}'.", locations.DcpKubeconfigPath);
+                var fileInfo = new FileInfo(locations.DcpKubeconfigPath);
+                var config = await KubernetesClientConfiguration.BuildConfigFromConfigFileAsync(kubeconfig: fileInfo, useRelativePaths: false).ConfigureAwait(false);
                 logger.LogDebug("Successfully read Kubernetes configuration from '{DcpKubeconfigPath}'.", locations.DcpKubeconfigPath);
-                _kubernetes = new DcpKubernetesClient(config);
-            });
+
+                return new DcpKubernetesClient(config);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _kubeconfigReadSemaphore.Release();
         }
     }
 }
