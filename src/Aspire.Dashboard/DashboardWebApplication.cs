@@ -364,9 +364,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.OpenIdConnect)
         {
-            // Configure OpenID Connect (OIDC)
             authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
             {
+                // The frontend authentication scheme just redirects to OpenIdConnect and Cookie schemes, as appropriate.
                 o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
                 o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
             });
@@ -411,6 +411,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
             if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.OpenIdConnect)
             {
+                // Frontend is secured with OIDC, so delegate to that authentication scheme.
                 options.AddPolicy(
                     name: FrontendAuthorizationDefaults.PolicyName,
                     policy: new AuthorizationPolicyBuilder(
@@ -420,6 +421,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             }
             else
             {
+                // Frontend is unsecured so our policy doesn't need any special handling.
                 options.AddPolicy(
                     name: FrontendAuthorizationDefaults.PolicyName,
                     policy: new AuthorizationPolicyBuilder()
