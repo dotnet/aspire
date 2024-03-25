@@ -92,6 +92,6 @@ public sealed class ServiceEndPointQuery
     public string ServiceName { get; }
 
     /// <inheritdoc/>
-    public override string? ToString() => EndPointName is not null ? $"Endpoint: {EndPointName}, Service: {ServiceName}" : $"Service: {ServiceName}";
+    public override string? ToString() => EndPointName is not null ? $"Service: {ServiceName}, Endpoint: {EndPointName}, Schemes: {string.Join(", ", IncludeSchemes)}" : $"Service: {ServiceName}, Schemes: {string.Join(", ", IncludeSchemes)}";
 }
 
