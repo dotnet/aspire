@@ -7,9 +7,10 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard;
 
-public sealed class ShortcutManager : IDisposable
+public sealed class ShortcutManager(ILoggerFactory loggerFactory) : IDisposable
 {
     private readonly ConcurrentDictionary<IGlobalKeydownListener, IGlobalKeydownListener> _keydownListenerComponents = [];
+    private readonly ILogger<ShortcutManager> _logger = loggerFactory.CreateLogger<ShortcutManager>();
 
     public void AddGlobalKeydownListener(IGlobalKeydownListener listener)
     {
@@ -24,6 +25,8 @@ public sealed class ShortcutManager : IDisposable
     [JSInvokable]
     public Task OnGlobalKeyDown(AspireKeyboardShortcut shortcut)
     {
+        _logger.LogDebug($"Received shortcut of type {shortcut}");
+
         var componentsSubscribedToShortcut =
             _keydownListenerComponents.Values.Where(component => component.SubscribedShortcuts.Contains(shortcut));
 

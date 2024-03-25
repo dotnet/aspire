@@ -322,33 +322,59 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
         return keyboardEvent.shiftKey && !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey;
     }
 
-    const keydownListener = function (e) {
-        if (isActiveElementInput()) return;
-        // list of shortcut enum codes is in src/Aspire.Dashboard/Model/IGlobalKeydownListener.cs
-        // to serialize an enum from js->dotnet, we must pass the enum's integer value, not its name
-        let shortcut = null;
-
+    function calculateShortcut(e) {
         if (isOnlyShiftPressed(e)) {
             /* general shortcuts */
-            if (e.key === "?") shortcut = 100; // help
-            else if (e.key === "S") shortcut = 110; // settings
+            switch (e.key) {
+                case "?": // help
+                    return 100;
+                case "S": // settings
+                    return 110;
 
-            /* panel shortcuts */
-            else if (e.key === "T") shortcut = 300; // toggle panel orientation
-            else if (e.key === "X") shortcut = 310; // close panel
-            else if (e.key === "R") shortcut = 320; // reset panel sizes
-            else if (e.key === "+") shortcut = 330; // increase panel size
-            else if (e.key === "_" || e.key === "-") shortcut = 340; // decrease panel size
+                /* panel shortcuts */
+                case "T": // toggle panel orientation
+                    return 300;
+                case "X": // close panel
+                    return 310;
+                case "R": // reset panel sizes
+                    return 320;
+                case "+": // increase panel size
+                    return 330;
+                case "_": // decrease panel size
+                case "-":
+                    return 340;
+            }
         }
         else if (hasNoModifiers(e)) {
-            if (e.key === "r") shortcut = 200; // go to resources
-            else if (e.key === "c") shortcut = 210; // go to console logs
-            else if (e.key === "s") shortcut = 220; // go to structured logs
-            else if (e.key === "t") shortcut = 230; // go to traces
-            else if (e.key === "m") shortcut = 240; // go to metrics
+            switch (e.key) {
+                case "r": // go to resources
+                    return 200;
+                case "c": // go to console logs
+                    return 210;
+                case "s": // go to structured logs
+                    return 220;
+                case "t": // go to traces
+                    return 230;
+                case "m": // go to metrics
+                    return 240;
+            }
         }
 
-        if (shortcut) shortcutManager.invokeMethodAsync('OnGlobalKeyDown', shortcut);
+        return null;
+    }
+
+    const keydownListener = function (e) {
+        if (isActiveElementInput()) {
+            return;
+        }
+
+        // list of shortcut enum codes is in src/Aspire.Dashboard/Model/IGlobalKeydownListener.cs
+        // to serialize an enum from js->dotnet, we must pass the enum's integer value, not its name
+        let shortcut = calculateShortcut(e);
+
+        if (shortcut) {
+            shortcutManager.invokeMethodAsync('OnGlobalKeyDown', shortcut);
+        }
     }
 
     window.document.addEventListener('keydown', keydownListener);
