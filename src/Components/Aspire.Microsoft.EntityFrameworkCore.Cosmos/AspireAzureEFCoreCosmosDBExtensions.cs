@@ -11,7 +11,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry.Metrics;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -145,18 +144,5 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
             });
         }
-
-        if (settings.Metrics)
-        {
-            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
-            {
-                meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                {
-                    // https://github.com/dotnet/efcore/blob/main/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
-                });
-            });
-        }
-
     }
 }

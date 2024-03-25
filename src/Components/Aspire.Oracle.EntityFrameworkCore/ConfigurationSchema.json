@@ -63,10 +63,6 @@
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not. The default value is true."
                 },
-                "Metrics": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not. The default value is true."
-                },
                 "Retry": {
                   "type": "boolean",
                   "description": "Gets or sets whether retries should be enabled.",
