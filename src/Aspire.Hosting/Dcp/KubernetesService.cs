@@ -296,7 +296,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             return;
         }
 
-        while (!await _kubeconfigReadSemaphore.WaitAsync(1000, cancellationToken).ConfigureAwait(false))
+        while (!await _kubeconfigReadSemaphore.WaitAsync(100, cancellationToken).ConfigureAwait(false))
         {
             logger.LogDebug("Waiting for semaphore to read kubeconfig.");
         }
