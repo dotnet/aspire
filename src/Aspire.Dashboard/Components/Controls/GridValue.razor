@@ -26,17 +26,22 @@
     }
     @if (EnableMasking)
     {
-        <FluentButton Appearance="Appearance.Lightweight"y:
+        <FluentButton Appearance="Appearance.Lightweight"
                       IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
                       Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
                       OnClick="ToggleMaskStateAsync"
                       aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
     }
+
+    @{
+        (string, object)[] uncapturedAttributes = [("alt", PreCopyToolTip), ("title", string.Empty), ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)])];
+    }
+
     <FluentButton Appearance="Appearance.Lightweight"
                   Id="@_anchorId"
                   Class="defaultHidden"
-                  Style="float: right;"
-                  AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, ("aria-label", @Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]))">
+                  Style="float: right; flex-shrink: 0"
+                  AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
         <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
         <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
     </FluentButton>
