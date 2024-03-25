@@ -24,7 +24,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace Aspire.Dashboard;
 
-public class DashboardWebApplication : IAsyncDisposable
+public sealed class DashboardWebApplication : IAsyncDisposable
 {
     internal const string FrontendAuthModeKey = "Frontend:AuthMode";
 
