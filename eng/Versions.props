@@ -11,13 +11,13 @@
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalPackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.1.58</MicrosoftDeveloperControlPlanewindows386PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.1.58</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.1.60</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.1.60</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.1.60</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.1.60</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.1.60</MicrosoftDeveloperControlPlanewindows386PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.1.60</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.1.60</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24172.5</MicrosoftDotNetRemoteExecutorPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24172.5</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24172.5</MicrosoftDotNetBuildTasksInstallersPackageVersion>
