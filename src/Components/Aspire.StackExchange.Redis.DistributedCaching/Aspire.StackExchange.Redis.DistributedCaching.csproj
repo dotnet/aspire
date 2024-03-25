@@ -6,7 +6,6 @@
     <PackageTags>$(ComponentCachePackageTags) distributedcaching distributedcache redis</PackageTags>
     <Description>A Redis® implementation for IDistributedCache that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)redis-cube-red_white-rgb.png</PackageIconFullPath>
-    <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
