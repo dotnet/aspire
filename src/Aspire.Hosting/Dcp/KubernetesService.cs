@@ -287,6 +287,36 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
     private readonly SemaphoreSlim _kubeconfigReadSemaphore = new(1);
 
+    private ResiliencePipeline? _resiliencePipeline;
+
+    private ResiliencePipeline GetReadKubeconfigResiliencePipeline()
+    {
+        if (_resiliencePipeline == null)
+        {
+            var configurationReadRetry = new RetryStrategyOptions()
+            {
+                ShouldHandle = new PredicateBuilder().Handle<KubeConfigException>(),
+                BackoffType = DelayBackoffType.Constant,
+                MaxRetryAttempts = dcpOptions.Value.KubernetesConfigReadRetryCount,
+                MaxDelay = TimeSpan.FromSeconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalSeconds),
+                OnRetry = (retry) =>
+                {
+                    logger.LogDebug(
+                        retry.Outcome.Exception,
+                        "Reading Kubernetes configuration file from '{DcpKubeconfigPath}' failed. Retry pending. (iteration {Iteration}).",
+                        locations.DcpKubeconfigPath,
+                        retry.AttemptNumber
+                        );
+                    return ValueTask.CompletedTask;
+                }
+            };
+
+            _resiliencePipeline = new ResiliencePipelineBuilder().AddRetry(configurationReadRetry).Build();
+        }
+
+        return _resiliencePipeline;
+    }
+
     private async Task EnsureKubernetesAsync(CancellationToken cancellationToken = default)
     {
         // Return early before waiting for the semaphore if we can.
@@ -325,25 +355,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             // This retry will retry reading the file 5 times (by default, but configurable) with a pause
             // of 3 seconds between each attempt. This means it could take up to 15 seconds to fail. We emit
             // debug level logs for each retry attempt should we need to help a customer debug this.
-            var configurationReadRetry = new RetryStrategyOptions()
-            {
-                ShouldHandle = new PredicateBuilder().Handle<KubeConfigException>(),
-                BackoffType = DelayBackoffType.Constant,
-                MaxRetryAttempts = dcpOptions.Value.KubernetesConfigReadRetryCount,
-                MaxDelay = TimeSpan.FromSeconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalSeconds),
-                OnRetry = (retry) =>
-                {
-                    logger.LogDebug(
-                        retry.Outcome.Exception,
-                        "Reading Kubernetes configuration file from '{DcpKubeconfigPath}' failed. Retry pending. (iteration {Iteration}).",
-                        locations.DcpKubeconfigPath,
-                        retry.AttemptNumber
-                        );
-                    return ValueTask.CompletedTask;
-                }
-            };
-            var pipeline = new ResiliencePipelineBuilder().AddRetry(configurationReadRetry).Build();
-
+            var pipeline = GetReadKubeconfigResiliencePipeline();
             _kubernetes = await pipeline.ExecuteAsync<DcpKubernetesClient>(async (cancellationToken) =>
             {
                 logger.LogDebug("Reading Kubernetes configuration from '{DcpKubeconfigPath}'.", locations.DcpKubeconfigPath);
