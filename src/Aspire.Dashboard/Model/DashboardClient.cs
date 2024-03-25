@@ -159,12 +159,10 @@ internal sealed class DashboardClient : IDashboardClient
             X509CertificateCollection GetKeyStoreCertificate()
             {
                 var subject = _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject!;
+                var storeName = _dashboardOptions.ResourceServiceClient.ClientCertificates.StoreName ?? "My";
+                var location = _dashboardOptions.ResourceServiceClient.ClientCertificates.Location ?? StoreLocation.CurrentUser;
 
-                var storeProperties = new KeyStoreProperties { Name = "My", Location = StoreLocation.CurrentUser };
-
-                configuration.Bind("ResourceServiceClient:ClientCertificate:KeyStore", storeProperties);
-
-                using var store = new X509Store(storeName: storeProperties.Name, storeLocation: storeProperties.Location);
+                using var store = new X509Store(storeName: storeName, storeLocation: location);
 
                 store.Open(OpenFlags.ReadOnly);
 
