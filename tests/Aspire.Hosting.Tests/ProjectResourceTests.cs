@@ -213,11 +213,11 @@ public class ProjectResourceTests
     }
 
     [Fact]
-    public void DisabledForwadedHeadersAddsAnnotationToProject()
+    public void DisabledForwardedHeadersAddsAnnotationToProject()
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwadedHeaders();
+        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwardedHeaders();
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -239,7 +239,7 @@ public class ProjectResourceTests
         var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
         if (disableForwardedHeaders)
         {
-            project.DisableForwadedHeaders();
+            project.DisableForwardedHeaders();
         }
 
         using var app = appBuilder.Build();

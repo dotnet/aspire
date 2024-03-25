@@ -12,6 +12,11 @@ git checkout tags/Instrumentation.SqlClient-1.7.0-beta.1
 
 - Copy files from `src/OpenTelemetry.Instrumentation.SqlClient` to `src/Vendoring/OpenTelemetry.Instrumentation.SqlClient`:
     - `**\*.cs` minus `AssemblyInfo.cs`
+- Update `SqlActivitySourceHelper` with:
+  ```csharp
+  public const string ActivitySourceName = "OpenTelemetry.Instrumentation.SqlClient";
+  public static readonly Version Version = new Version(1, 7, 0, 1173);
+  ```
 - Copy files from `src/Shared` to `src/Vendoring/OpenTelemetry.Instrumentation.SqlClient/Shared`:
     - `DiagnosticSourceInstrumentation\*.cs`
     - `ExceptionExtensions.cs`
