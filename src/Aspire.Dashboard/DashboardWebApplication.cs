@@ -430,7 +430,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             }
             else
             {
-                throw new NotImplementedException($"Unexpected {nameof(FrontendAuthMode)} enum member.");
+                throw new NotSupportedException($"Unexpected {nameof(FrontendAuthMode)} enum member.");
             }
         });
     }
