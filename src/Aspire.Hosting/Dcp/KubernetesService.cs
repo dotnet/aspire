@@ -7,6 +7,9 @@ using Aspire.Hosting.Dcp.Model;
 using k8s;
 using k8s.Exceptions;
 using k8s.Models;
+using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Retry;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -39,7 +42,7 @@ internal interface IKubernetesService
         CancellationToken cancellationToken = default) where T : CustomResource;
 }
 
-internal sealed class KubernetesService(Locations locations) : IKubernetesService, IDisposable
+internal sealed class KubernetesService(ILogger<KubernetesService> logger, DcpOptions dcpOptions, Locations locations) : IKubernetesService, IDisposable
 {
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
@@ -280,16 +283,42 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
 
     private static bool IsRetryable(Exception ex) => ex is HttpRequestException || ex is KubeConfigException;
 
+    private readonly object _ensureKubernetesLock = new object();
+
     private void EnsureKubernetes()
     {
         if (_kubernetes != null) { return; }
 
-        lock (Model.Dcp.Schema)
+        lock (_ensureKubernetesLock)
         {
             if (_kubernetes != null) { return; }
 
-            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: locations.DcpKubeconfigPath, useRelativePaths: false);
-            _kubernetes = new DcpKubernetesClient(config);
+            var configurationReadRetry = new RetryStrategyOptions()
+            {
+                ShouldHandle = new PredicateBuilder().Handle<IOException>(e => e.Message.StartsWith("The process cannot access the file")),
+                BackoffType = DelayBackoffType.Constant,
+                MaxRetryAttempts = dcpOptions.KubernetesConfigReadRetryCount,
+                MaxDelay = TimeSpan.FromSeconds(dcpOptions.KubernetesConfigReadRetryIntervalSeconds),
+                OnRetry = (retry) =>
+                {
+                    logger.LogDebug(
+                        retry.Outcome.Exception,
+                        "Reading Kubernetes configuration file from '{DcpKubeconfigPath}' failed. Retrying. (iteration {Iteration}).",
+                        locations.DcpKubeconfigPath,
+                        retry.AttemptNumber
+                        );
+                    return ValueTask.CompletedTask;
+                }
+            };
+
+            var pipeline = new ResiliencePipelineBuilder().AddRetry(configurationReadRetry).Build();
+
+            pipeline.Execute(() =>
+            {
+                var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: locations.DcpKubeconfigPath, useRelativePaths: false);
+                _kubernetes = new DcpKubernetesClient(config);
+            });
+
         }
     }
 }
