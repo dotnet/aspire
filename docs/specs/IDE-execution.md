@@ -24,8 +24,7 @@ Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE s
 | ----- | ----- |
 | `DEBUG_SESSION_PORT` | The port DCP should use to talk to the IDE session endpoint. DCP will use `http://localhost:<value of DEBUG_SESSION_PORT>` as the IDE session endpoint base URL. Required. |
 | `DEBUG_SESSION_TOKEN` | Security (bearer) token for talking to the IDE session endpoint. This token will be attached to every request via Authorization HTTP header. Required. |
-| `DEBUG_SESSION_PAYLOAD_ENCRYPTION_KEY` | If present, provides base64-encoded, 16-byte key for request and session change notification encryption. See [payload protection](#payload-protection) for more details. Optional. |
-| `DEBUG_SESSION_PAYLOAD_SIGNING_KEY` | If present, provides base64-encode, 64-byte key for request and session change notification signing (integrity checking). See [payload protection](#payload-protection) for more details. Optional. |
+| `DEBUG_SESSION_SERVER_CERTIFICATE` | If present, provides base64-encoded server certificate used for authenticating IDE endpoint and securing the communication via TLS. <br/> The certificate can be self-signed, but it must include subject alternative name, set to "localhost". Setting canonical name (`cn`) is not sufficient. <br/> If the certificate is provided, all communication with the IDE will occur via `https` and `wss` (the latter for the session change notifications). There will be NO fallback to `http` or `ws` or un-authenticated mode. Using `https` and `wss` is optional but strongly recommended. |
 
 > Note: the most important use case for the IDE execution is to facilitate application services debugging. The word "debug" appears in environment variable names that DCP uses to connect to IDE session endpoint, but IDE execution does not always mean that the service is running under a debugger.
 
@@ -34,33 +33,6 @@ Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE s
 It is possible to have a workload that uses both IDE execution for some `Executable` objects, and process execution for other `Executable` objects. Every `Executable` object is treated separately according to the `ExecutionType` spec property.
 
 If multiple replicas are used (created via `ExecutableReplicaSet` objects), all replicas belonging to the same replica set will use the same execution type.
-
-### Payload protection
-
-When requested by the IDE (both `DEBUG_SESSION_PAYLOAD_ENCRYPTION_KEY` and `DEBUG_SESSION_PAYLOAD_SIGNING_KEY` are present), request payloads, run session change notifications, and request responses will be encrypted. In this mode, the regular JSON payload (HTTP request body, HTTP response body, or web socket message) is wrapped in an "encrypted payload" envelope, which is a JSON object with the following structure:
-
-```jsonc
-// An example encrypted payload
-
-{
-    // The encryped, base64-encoded payload.
-    // The source is UTF8-encoded request or notification payload in plain text (JSON) format.
-    // The encryption algorithm is AES with 128-bit key, running in CBC mode, with PKCS7 data padding.
-    "ciphertext": "U2FsdGVkX1/pCiQvVS3rMwUSD8iljlim6qAb461g0uW6i4fhIuZtqyAi0FhQhdfn",
-
-    // The base64-encoded initialization vector for the encryption algorithm.
-    // Every encrypted payload is using a different, randomly generated initialization vector.
-    "iv": "WPqOdWzvd/KCLLhe9AibZQ==",
-
-    // The base64-encoded authentication tag (signature) of the payload.
-    // To compute the signature, (un-encoded) initialization vector and ciphertext
-    // are concatenated, then the signature is computed over the result using HMACSHA256 algorithm.
-    "authentication_tag": "6l4BRohAKHM/TnZUiSY6cw=="
-}
-```
-This object is then serialized using UTF8 encoding and sent instead of regular request, response, or notification payload.
-
-Upon reception of an encrypted payload, both DCP and the IDE compute the signature of the initialization vector and ciphertext pair. If the computed signature does not match the authentication tag in the payload, the payload will be rejected without any additional processing.
 
 ## IDE session endpoint requests
 
@@ -114,7 +86,7 @@ The payload is best explained using an example:
 **Response** <br/>
 If the execution session is created successfully, the return status code should be 200 OK or 201 Created. The response should include the created run session identifier in the `Location` header:
 
-`Location: http://localhost:<IDE endpoint port>/run_session/<new run ID>`
+`Location: https://localhost:<IDE endpoint port>/run_session/<new run ID>`
 
 If the session cannot be created, appropriate 4xx or 5xx status code should be returned. The response might also return a description of the problem as part of the status line, [or in the response body](#error-reporting).
 
