@@ -8,7 +8,7 @@
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<Columns> Loc
 
-<FluentStack Orientation="Orientation.Horizontal" Style="align-items: center;">
+<FluentStack Orientation="Orientation.Horizontal" Style="align-items: center;" HorizontalGap="0">
     @if (_hasErrorInfo)
     {
         var iconId = Guid.NewGuid().ToString();
