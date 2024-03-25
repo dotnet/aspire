@@ -6,11 +6,11 @@ using Yarp.ReverseProxy.Forwarder;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
 
-internal sealed class ServiceDiscoveryForwarderHttpClientFactory(IServiceDiscoveryDelegatingHttpMessageHandlerFactory handlerFactory)
+internal sealed class ServiceDiscoveryForwarderHttpClientFactory(IServiceDiscoveryHttpMessageHandlerFactory handlerFactory)
     : ForwarderHttpClientFactory
 {
     protected override HttpMessageHandler WrapHandler(ForwarderHttpClientContext context, HttpMessageHandler handler)
     {
-        return handlerFactory.CreateServiceDiscoveryDelegatingHandler(handler);
+        return handlerFactory.CreateHandler(handler);
     }
 }

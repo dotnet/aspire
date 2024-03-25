@@ -64,7 +64,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
         services.TryAddSingleton(_ => TimeProvider.System);
         services.TryAddTransient<IServiceEndPointSelector, RoundRobinServiceEndPointSelector>();
         services.TryAddSingleton<ServiceEndPointWatcherFactory>();
-        services.TryAddSingleton<IServiceDiscoveryDelegatingHttpMessageHandlerFactory, ServiceDiscoveryHttpMessageHandlerMiddlewareFactory>();
+        services.TryAddSingleton<IServiceDiscoveryHttpMessageHandlerFactory, ServiceDiscoveryHttpMessageHandlerFactory>();
         services.TryAddSingleton(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointWatcherFactory>(), sp.GetRequiredService<TimeProvider>()));
         if (configureOptions is not null)
         {
