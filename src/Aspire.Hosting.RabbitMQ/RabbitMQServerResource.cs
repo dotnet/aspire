@@ -46,13 +46,10 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public ParameterResource PasswordParameter { get; }
 
-    private ReferenceExpression PasswordReference =>
-        ReferenceExpression.Create($"{PasswordParameter}");
-
     /// <summary>
     /// Gets the connection string expression for the RabbitMQ server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(
-            $"amqp://{UserNameReference.ForUri()}:{PasswordReference.ForUri()}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+            $"amqp://{UserNameReference}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 }
