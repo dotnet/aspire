@@ -35,11 +35,12 @@ git checkout tags/Instrumentation.StackExchangeRedis-1.0.0-rc9.13
 
 - Copy files from `src/OpenTelemetry.Instrumentation.StackExchangeRedis` to `src/Vendoring/OpenTelemetry.Instrumentation.StackExchangeRedis`:
     - `**\*.cs` minus `AssemblyInfo.cs`
-- Copy files from `src/Shared` to `src/Vendoring/OpenTelemetry.Instrumentation.StackExchangeRedis/Shared`::
+- Copy files from `src/Shared` to `src/Vendoring/OpenTelemetry.Instrumentation.StackExchangeRedis/Shared`:
     - `Guard.cs`
     - `PropertyFetcher.AOT.cs`
     - `SemanticConventions.cs`
 - In `StackExchangeRedisConnectionInstrumentation.cs` update `ActivitySourceName` to `internal const string ActivitySourceName = "OpenTelemetry.Instrumentation.StackExchangeRedis";` and `Version` to `internal static readonly Version Version = new Version(1, 0, 0, 13);`
+- Apply the changes from https://github.com/open-telemetry/opentelemetry-dotnet-contrib/pull/1625 if necessary.
 
 ## Customizations
 
