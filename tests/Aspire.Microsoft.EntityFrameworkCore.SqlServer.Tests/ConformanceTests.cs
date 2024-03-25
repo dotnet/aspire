@@ -44,8 +44,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
                 "SqlServer": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
                   "HealthChecks": false,
-                  "Tracing": true,
-                  "Metrics": true
+                  "Tracing": true
                 }
               }
             }
@@ -58,7 +57,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Retry": "5"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -77,7 +75,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
         => options.Tracing = enabled;
 
     protected override void SetMetrics(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
-        => options.Metrics = enabled;
+        => throw new NotImplementedException();
 
     protected override void TriggerActivity(TestDbContext service)
     {
