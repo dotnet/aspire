@@ -5,9 +5,13 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire;
 using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal;
 using OpenTelemetry.Metrics;
 
 namespace Microsoft.Extensions.Hosting;
@@ -118,12 +122,52 @@ public static partial class AspireEFPostgreSqlExtensions
 
         void ConfigureRetry()
         {
-            if (!settings.Retry)
+#pragma warning disable EF1001 // Internal EF Core API usage.
+            if (settings.Retry || settings.CommandTimeout.HasValue)
             {
-                return;
-            }
+                builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseNpgsql(options =>
+                {
+                    var extension = optionsBuilder.Options.FindExtension<NpgsqlOptionsExtension>();
 
-            builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseNpgsql(options => options.EnableRetryOnFailure()));
+                    if (settings.Retry)
+                    {
+                        var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
+
+                        if (executionStrategy != null)
+                        {
+                            if (executionStrategy.GetType() == typeof(NpgsqlRetryingExecutionStrategy))
+                            {
+                                // Keep custom Retry strategy
+                            }
+                            else if (executionStrategy.GetType() != typeof(NpgsqlExecutionStrategy))
+                            {
+                                throw new InvalidOperationException($"{nameof(NpgsqlEntityFrameworkCorePostgreSQLSettings)}.Retry can't be set when a custom Execution Strategy is configured.");
+                            }
+                            else
+                            {
+                                options.EnableRetryOnFailure();
+                            }
+                        }
+                        else
+                        {
+                            options.EnableRetryOnFailure();
+                        }
+                    }
+
+                    if (settings.CommandTimeout.HasValue)
+                    {
+                        if (extension != null &&
+                            extension.CommandTimeout.HasValue &&
+                            extension.CommandTimeout != settings.CommandTimeout)
+                        {
+                            throw new InvalidOperationException($"Conflicting values for 'CommandTimeout' were found in {nameof(NpgsqlEntityFrameworkCorePostgreSQLSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
+                        }
+
+                        options.CommandTimeout(settings.CommandTimeout);
+                    }
+                }));
+            }
+#pragma warning restore EF1001 // Internal EF Core API usage.
         }
     }
 
