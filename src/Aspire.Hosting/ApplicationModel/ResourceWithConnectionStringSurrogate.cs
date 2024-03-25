@@ -3,16 +3,14 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal sealed class ResourceWithConnectionStringSurrogate(IResource innerResource, Func<string> callback, string? environmentVariableName) : IResourceWithConnectionString
+internal sealed class ResourceWithConnectionStringSurrogate(ParameterResource innerResource, string? environmentVariableName) : IResourceWithConnectionString
 {
     public string Name => innerResource.Name;
 
     public ResourceAnnotationCollection Annotations => innerResource.Annotations;
 
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken)
-    {
-        return new(callback());
-    }
-
     public string? ConnectionStringEnvironmentVariable => environmentVariableName;
+
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create($"{innerResource}");
 }

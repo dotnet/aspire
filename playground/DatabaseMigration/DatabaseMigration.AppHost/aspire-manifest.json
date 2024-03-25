@@ -2,11 +2,11 @@
   "resources": {
     "sql1": {
       "type": "container.v0",
-      "connectionString": "Server={sql1.bindings.tcp.host},{sql1.bindings.tcp.port};User ID=sa;Password={sql1.inputs.password};TrustServerCertificate=true",
+      "connectionString": "Server={sql1.bindings.tcp.host},{sql1.bindings.tcp.port};User ID=sa;Password={sql1-password.value};TrustServerCertificate=true",
       "image": "mcr.microsoft.com/mssql/server:2022-latest",
       "env": {
         "ACCEPT_EULA": "Y",
-        "MSSQL_SA_PASSWORD": "{sql1.inputs.password}"
+        "MSSQL_SA_PASSWORD": "{sql1-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -14,17 +14,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 1433
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 10
-            }
-          }
         }
       }
     },
@@ -38,6 +27,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__db1": "{db1.connectionString}"
       },
       "bindings": {
@@ -60,6 +50,24 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__db1": "{db1.connectionString}"
+      }
+    },
+    "sql1-password": {
+      "type": "parameter.v0",
+      "value": "{sql1-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "minLower": 1,
+              "minUpper": 1,
+              "minNumeric": 1
+            }
+          }
+        }
       }
     }
   }

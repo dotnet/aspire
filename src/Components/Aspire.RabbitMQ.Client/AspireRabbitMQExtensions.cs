@@ -210,12 +210,12 @@ public static class AspireRabbitMQExtensions
         var resiliencePipeline = resiliencePipelineBuilder.Build();
 
         using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
-        AddRabbitMQTags(activity);
+        AddRabbitMQTags(activity, factory.Uri);
 
         return resiliencePipeline.Execute(static factory =>
         {
             using var connectAttemptActivity = s_activitySource.StartActivity("rabbitmq connect attempt", ActivityKind.Client);
-            AddRabbitMQTags(connectAttemptActivity, "connect");
+            AddRabbitMQTags(connectAttemptActivity, factory.Uri, "connect");
 
             try
             {
@@ -238,13 +238,15 @@ public static class AspireRabbitMQExtensions
         }, factory);
     }
 
-    private static void AddRabbitMQTags(Activity? activity, string? operation = null)
+    private static void AddRabbitMQTags(Activity? activity, Uri address, string? operation = null)
     {
         if (activity is null)
         {
             return;
         }
 
+        activity.AddTag("server.address", address.Host);
+        activity.AddTag("server.port", address.Port);
         activity.AddTag("messaging.system", "rabbitmq");
         if (operation is not null)
         {

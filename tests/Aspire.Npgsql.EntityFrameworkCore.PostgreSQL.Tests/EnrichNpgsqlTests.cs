@@ -12,11 +12,16 @@ using Microsoft.Extensions.Hosting;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Xunit;
+using Aspire.Npgsql.Tests;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class EnrichNpgsqlTests : ConformanceTests
 {
+    public EnrichNpgsqlTests(PostgreSQLContainerFixture containerFixture) : base(containerFixture)
+    {
+    }
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(ConnectionString));
@@ -66,7 +71,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -102,7 +107,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -146,7 +151,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         Assert.NotNull(optionsDescriptor);
         Assert.Same(oldOptionsDescriptor, optionsDescriptor);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -185,7 +190,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -215,7 +220,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
         Assert.NotNull(context);
     }
@@ -237,7 +242,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         Assert.NotNull(optionsDescriptor);
         Assert.Equal(ServiceLifetime.Singleton, optionsDescriptor.Lifetime);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
         Assert.NotNull(context);
     }

@@ -9,37 +9,6 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
-internal enum ContainerRuntimeHealthCheckFailures : int
-{
-    /// <summary>
-    /// Represents the error code for when the check for a valid container runtime timed out.
-    /// </summary>
-    Unresponsive = 125,
-
-    /// <summary>
-    /// Represents the error code for when the container runtime is installed, but isn't healthy.
-    /// </summary>
-    Unhealthy = 126,
-
-    /// <summary>
-    /// Represents the exit code indicating that a prerequisite for running the application are missing.
-    /// </summary>
-    PrerequisiteMissing = 127
-}
-
-internal enum DcpVersionCheckFailures : int
-{
-    /// <summary>
-    /// Represents the exit code indicating that the version of DCP is too low or too high.
-    /// </summary>
-    DcpVersionIncompatible = 128,
-
-    /// <summary>
-    /// Represents the exit code indicating that the DCP version check failed.
-    /// </summary>
-    DcpVersionFailed = 129,
-}
-
 /// <summary>
 /// Represents a distributed application that implements the <see cref="IHost"/> and <see cref="IAsyncDisposable"/> interfaces.
 /// </summary>

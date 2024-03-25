@@ -16,7 +16,8 @@ internal sealed class ManifestUtils
         var writer = new Utf8JsonWriter(ms);
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
         writer.WriteStartObject();
-        await ManifestPublisher.WriteResourceAsync(resource, new ManifestPublishingContext(executionContext, Path.Combine(Environment.CurrentDirectory, "manifest.json"), writer));
+        var context = new ManifestPublishingContext(executionContext, Path.Combine(Environment.CurrentDirectory, "manifest.json"), writer);
+        await context.WriteResourceAsync(resource);
         writer.WriteEndObject();
         writer.Flush();
         ms.Position = 0;
@@ -25,5 +26,23 @@ internal sealed class ManifestUtils
         var resourceNode = obj[resource.Name];
         Assert.NotNull(resourceNode);
         return resourceNode;
+    }
+
+    public static async Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource)
+    {
+        var manifestNode = await GetManifest(resource);
+
+        if (!manifestNode.AsObject().TryGetPropertyValue("path", out var pathNode))
+        {
+            throw new ArgumentException("Specified resource does not contain a path property.", nameof(resource));
+        }
+
+        if (pathNode?.ToString() is not { } path || !File.Exists(path))
+        {
+            throw new ArgumentException("Path node in resource is null, empty, or does not exist.", nameof(resource));
+        }
+
+        var bicepText = await File.ReadAllTextAsync(path);
+        return (manifestNode, bicepText);
     }
 }

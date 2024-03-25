@@ -51,7 +51,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]
@@ -69,8 +69,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [SupplyParameterFromQuery(Name = "filters")]
     public string? SerializedLogFilters { get; set; }
 
-    public IEnumerable<LogEntryPropertyViewModel>? SelectedLogEntryProperties { get; set; }
-    private OtlpLogEntry? _selectedLogEntry;
+    public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
     private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
@@ -152,6 +151,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationChanged = true;
 
+        ClearSelectedLogEntry();
+
         return this.AfterViewModelChangedAsync();
     }
 
@@ -171,23 +172,24 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private void OnShowProperties(OtlpLogEntry entry)
     {
-        if (_selectedLogEntry == entry)
+        if (SelectedLogEntry?.LogEntry == entry)
         {
             ClearSelectedLogEntry();
         }
         else
         {
-            _selectedLogEntry = entry;
-            SelectedLogEntryProperties = entry.AllProperties()
-                                              .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
-                                              .ToList();
+            var logEntryViewModel = new StructureLogsDetailsViewModel
+            {
+                LogEntry = entry
+            };
+
+            SelectedLogEntry = logEntryViewModel;
         }
     }
 
     private void ClearSelectedLogEntry()
     {
-        _selectedLogEntry = null;
-        SelectedLogEntryProperties = null;
+        SelectedLogEntry = null;
     }
 
     private async Task OpenFilterAsync(LogFilter? entry)
@@ -223,6 +225,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             {
                 ViewModel.AddFilter(filter);
             }
+
+            ClearSelectedLogEntry();
         }
 
         return this.AfterViewModelChangedAsync();
@@ -233,6 +237,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         if (args.Value is string newFilter)
         {
             PageViewModel.Filter = newFilter;
+            ClearSelectedLogEntry();
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -250,6 +255,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _filterCts?.Cancel();
         ViewModel.FilterText = string.Empty;
+        ClearSelectedLogEntry();
         StateHasChanged();
     }
 
@@ -257,7 +263,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private string GetRowClass(OtlpLogEntry entry)
     {
-        if (entry == _selectedLogEntry)
+        if (entry == SelectedLogEntry?.LogEntry)
         {
             return "selected-row";
         }

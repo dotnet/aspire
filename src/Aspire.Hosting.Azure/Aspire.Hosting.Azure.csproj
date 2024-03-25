@@ -6,6 +6,7 @@
     <PackageTags>aspire hosting azure</PackageTags>
     <Description>Azure resource types for .NET Aspire.</Description>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +14,6 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Provisioning\Utils\ProcessSpec.cs" />
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
-    <Compile Include="..\Shared\ValueStopwatch\ValueStopwatch.cs" Link="Provisioning\ValueStopwatch.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,7 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.PostgreSQL\Aspire.Hosting.PostgreSQL.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.SqlServer\Aspire.Hosting.SqlServer.csproj" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.ResourceManager.Authorization" />

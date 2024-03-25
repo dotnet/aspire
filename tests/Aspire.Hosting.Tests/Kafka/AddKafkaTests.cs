@@ -50,17 +50,18 @@ public class AddKafkaTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<KafkaServerResource>());
-        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<KafkaServerResource>()) as IResourceWithConnectionString;
+        var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
         Assert.Equal("localhost:27017", connectionString);
-        Assert.Equal("{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
         var kafka = appBuilder.AddKafka("kafka");
 
         var manifest = await ManifestUtils.GetManifest(kafka.Resource);

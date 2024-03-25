@@ -122,6 +122,10 @@ public static partial class AspireEFMySqlExtensions
                 {
                     builder.EnableRetryOnFailure();
                 }
+                if (settings.CommandTimeout.HasValue)
+                {
+                    builder.CommandTimeout(settings.CommandTimeout);
+                }
             });
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);

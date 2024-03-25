@@ -15,7 +15,7 @@ public static class SDKResourceExtensions
     /// <summary>
     /// Add a configuration for resolving region and credentials for the AWS SDK for .NET.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> instance.</param>
     /// <returns></returns>
     public static IAWSSDKConfig AddAWSSDKConfig(this IDistributedApplicationBuilder builder)
     {
@@ -27,7 +27,7 @@ public static class SDKResourceExtensions
     /// <summary>
     /// Assign the AWS credential profile to the IAWSSDKConfigResource.
     /// </summary>
-    /// <param name="config"></param>
+    /// <param name="config">An <see cref="IAWSSDKConfig"/> instance.</param>
     /// <param name="profile">The name of the AWS credential profile.</param>
     /// <returns></returns>
     public static IAWSSDKConfig WithProfile(this IAWSSDKConfig config, string profile)
@@ -39,7 +39,7 @@ public static class SDKResourceExtensions
     /// <summary>
     /// Assign the region for the IAWSSDKConfigResource.
     /// </summary>
-    /// <param name="config"></param>
+    /// <param name="config">An <see cref="IAWSSDKConfig"/> instance.</param>
     /// <param name="region">The AWS region.</param>
     public static IAWSSDKConfig WithRegion(this IAWSSDKConfig config, RegionEndpoint region)
     {
@@ -50,7 +50,7 @@ public static class SDKResourceExtensions
     /// <summary>
     /// Add a reference to an AWS SDK configuration a project.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="awsSdkConfig">The AWS SDK configuration</param>
     /// <returns></returns>
     public static IResourceBuilder<ProjectResource> WithReference(this IResourceBuilder<ProjectResource> builder, IAWSSDKConfig awsSdkConfig)

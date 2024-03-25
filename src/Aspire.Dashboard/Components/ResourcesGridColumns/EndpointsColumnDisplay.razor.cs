@@ -17,11 +17,13 @@ public partial class EndpointsColumnDisplay
     [Inject]
     public required ILogger<EndpointsColumnDisplay> Logger { get; init; }
 
+    private bool _popoverVisible;
+
     /// <summary>
     /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
     /// </summary>
-    private List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool excludeServices = false)
+    private static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource)
     {
-        return ResourceEndpointHelpers.GetEndpoints(Logger, resource, excludeServices, includeEndpointUrl: false);
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
     }
 }

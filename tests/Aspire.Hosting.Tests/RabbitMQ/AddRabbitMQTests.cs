@@ -43,38 +43,41 @@ public class AddRabbitMQTests
     public async Task RabbitMQCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
+        appBuilder.Configuration["Parameters:pass"] = "pass1";
+
+        var pass = appBuilder.AddParameter("pass");
         appBuilder
-            .AddRabbitMQ("rabbit")
+            .AddRabbitMQ("rabbit", password: pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27011));
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
+        var rabbitMqResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
+        var connectionStringResource = rabbitMqResource as IResourceWithConnectionString;
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        var password = connectionStringResource.Password;
 
-        Assert.Equal($"amqp://guest:{password}@localhost:27011", connectionString);
-        Assert.Equal("amqp://guest:{rabbit.inputs.password}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
+        Assert.Equal("amqp://guest:pass1@localhost:27011", connectionString);
+        Assert.Equal("amqp://guest:{pass.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var rabbit = appBuilder.AddRabbitMQ("rabbit");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var rabbit = builder.AddRabbitMQ("rabbit");
 
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "amqp://guest:{rabbit.inputs.password}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
+              "connectionString": "amqp://guest:{rabbit-password.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
               "image": "rabbitmq:3",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "guest",
-                "RABBITMQ_DEFAULT_PASS": "{rabbit.inputs.password}"
+                "RABBITMQ_DEFAULT_PASS": "{rabbit-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -83,17 +86,86 @@ public class AddRabbitMQTests
                   "transport": "tcp",
                   "containerPort": 5672
                 }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithParameters()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var userNameParameter = builder.AddParameter("user");
+        var passwordParameter = builder.AddParameter("pass");
+
+        var rabbit = builder.AddRabbitMQ("rabbit", userNameParameter, passwordParameter);
+        var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "amqp://{user.value}:{pass.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
+              "image": "rabbitmq:3",
+              "env": {
+                "RABBITMQ_DEFAULT_USER": "{user.value}",
+                "RABBITMQ_DEFAULT_PASS": "{pass.value}"
               },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "special": false
-                    }
-                  }
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5672
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        rabbit = builder.AddRabbitMQ("rabbit2", userNameParameter);
+        manifest = await ManifestUtils.GetManifest(rabbit.Resource);
+
+        expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "amqp://{user.value}:{rabbit2-password.value}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
+              "image": "rabbitmq:3",
+              "env": {
+                "RABBITMQ_DEFAULT_USER": "{user.value}",
+                "RABBITMQ_DEFAULT_PASS": "{rabbit2-password.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5672
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        rabbit = builder.AddRabbitMQ("rabbit3", password: passwordParameter);
+        manifest = await ManifestUtils.GetManifest(rabbit.Resource);
+
+        expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "amqp://guest:{pass.value}@{rabbit3.bindings.tcp.host}:{rabbit3.bindings.tcp.port}",
+              "image": "rabbitmq:3",
+              "env": {
+                "RABBITMQ_DEFAULT_USER": "guest",
+                "RABBITMQ_DEFAULT_PASS": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 5672
                 }
               }
             }

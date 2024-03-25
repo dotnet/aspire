@@ -3,14 +3,10 @@
     "sql1": {
       "type": "azure.bicep.v0",
       "connectionString": "Server=tcp:{sql1.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-      "path": "aspire.hosting.azure.bicep.sql.bicep",
+      "path": "sql1.module.bicep",
       "params": {
-        "serverName": "sql1",
         "principalId": "",
-        "principalName": "",
-        "databases": [
-          "db1"
-        ]
+        "principalName": ""
       }
     },
     "db1": {
@@ -19,11 +15,11 @@
     },
     "sql2": {
       "type": "container.v0",
-      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2.inputs.password};TrustServerCertificate=true",
+      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2-password.value};TrustServerCertificate=true",
       "image": "mcr.microsoft.com/mssql/server:2022-latest",
       "env": {
         "ACCEPT_EULA": "Y",
-        "MSSQL_SA_PASSWORD": "{sql2.inputs.password}"
+        "MSSQL_SA_PASSWORD": "{sql2-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -31,17 +27,6 @@
           "protocol": "tcp",
           "transport": "tcp",
           "containerPort": 1433
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 10
-            }
-          }
         }
       }
     },
@@ -55,6 +40,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__db1": "{db1.connectionString}",
         "ConnectionStrings__db2": "{db2.connectionString}"
       },
@@ -68,6 +54,24 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
+        }
+      }
+    },
+    "sql2-password": {
+      "type": "parameter.v0",
+      "value": "{sql2-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "minLower": 1,
+              "minUpper": 1,
+              "minNumeric": 1
+            }
+          }
         }
       }
     }

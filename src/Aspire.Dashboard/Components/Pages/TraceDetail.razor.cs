@@ -31,7 +31,7 @@ public partial class TraceDetail : ComponentBase
     public required IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers { get; set; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; set; }
 
     protected override void OnInitialized()
     {
@@ -50,11 +50,42 @@ public partial class TraceDetail : ComponentBase
         Debug.Assert(_spanWaterfallViewModels != null);
 
         var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
+
+        var page = visibleSpanWaterfallViewModels.AsEnumerable();
+        if (request.StartIndex > 0)
+        {
+            page = page.Skip(request.StartIndex);
+        }
+        if (request.Count != null)
+        {
+            page = page.Take(request.Count.Value);
+        }
+
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
-            Items = visibleSpanWaterfallViewModels,
-            TotalItemCount = _spanWaterfallViewModels.Count
+            Items = page.ToList(),
+            TotalItemCount = visibleSpanWaterfallViewModels.Count
         });
+    }
+
+    private static Icon GetSpanIcon(OtlpSpan span)
+    {
+        switch (span.Kind)
+        {
+            case OtlpSpanKind.Server:
+                return new Icons.Filled.Size16.Server();
+            case OtlpSpanKind.Consumer:
+                if (span.Attributes.HasKey("messaging.system"))
+                {
+                    return new Icons.Filled.Size16.Mailbox();
+                }
+                else
+                {
+                    return new Icons.Filled.Size16.ContentSettings();
+                }
+            default:
+                throw new InvalidOperationException($"Unsupported span kind when resolving icon: {span.Kind}");
+        }
     }
 
     private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, TraceDetailState state)
@@ -160,15 +191,15 @@ public partial class TraceDetail : ComponentBase
         if (TraceId is not null)
         {
             _trace = TelemetryRepository.GetTrace(TraceId);
-            if (_trace != null)
+            if (_trace is { } trace)
             {
-                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(_trace, new TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
+                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(trace, new TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
                 _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
-                if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
+                if (_tracesSubscription is null || _tracesSubscription.ApplicationId != trace.FirstSpan.Source.InstanceId)
                 {
                     _tracesSubscription?.Dispose();
-                    _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.InstanceId, SubscriptionType.Read, () => InvokeAsync(() =>
+                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.InstanceId, SubscriptionType.Read, () => InvokeAsync(() =>
                     {
                         UpdateDetailViewData();
                         StateHasChanged();

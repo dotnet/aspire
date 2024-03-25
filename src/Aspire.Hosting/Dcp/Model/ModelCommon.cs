@@ -3,6 +3,7 @@
 
 namespace Aspire.Hosting.Dcp.Model;
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -19,8 +20,11 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
 {
     public const string ServiceProducerAnnotation = "service-producer";
     public const string ServiceConsumerAnnotation = "service-consumer";
-    public const string UriSchemeAnnotation = "uri-scheme";
-    public const string LaunchProfileAnnotation = "launchProfile";
+    public const string EndpointNameAnnotation = "endpoint-name";
+    public const string ResourceNameAnnotation = "resource-name";
+    public const string OtelServiceNameAnnotation = "otel-service-name";
+
+    public string? AppModelResourceName => Metadata.Annotations?.TryGetValue(ResourceNameAnnotation, out var value) is true ? value : null;
 
     [JsonPropertyName("metadata")]
     public V1ObjectMeta Metadata { get; set; } = new V1ObjectMeta();
@@ -45,12 +49,48 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
         AnnotateAsObjectList<TValue>(Metadata.Annotations, annotationName, value);
     }
 
+    public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list)
+    {
+        list = null;
+
+        if (Metadata.Annotations is null)
+        {
+            return false;
+        }
+
+        string? annotationValue;
+        bool found = Metadata.Annotations.TryGetValue(annotationName, out annotationValue);
+        if (!found || string.IsNullOrWhiteSpace(annotationValue))
+        {
+            return false;
+        }
+
+        try
+        {
+            list = JsonSerializer.Deserialize<List<TValue>>(annotationValue);
+        }
+        catch
+        {
+            return false;
+        }
+
+        return list is not null;
+    }
+
     internal static void AnnotateAsObjectList<TValue>(IDictionary<string, string> annotations, string annotationName, TValue value)
     {
         List<TValue> values;
-        if (annotations.TryGetValue(annotationName, out var annotationVal))
+        if (annotations.TryGetValue(annotationName, out var annotationVal) && !string.IsNullOrWhiteSpace(annotationVal))
         {
-            values = JsonSerializer.Deserialize<List<TValue>>(annotationVal) ?? new();
+            try
+            {
+                values = JsonSerializer.Deserialize<List<TValue>>(annotationVal) ?? new();
+            }
+            catch
+            {
+                values = new();
+            }
+
             if (!values.Contains(value))
             {
                 values.Add(value);
@@ -58,8 +98,7 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
         }
         else
         {
-            values = new();
-            values.Add(value);
+            values = [value];
         }
 
         var newAnnotationVal = JsonSerializer.Serialize(values);

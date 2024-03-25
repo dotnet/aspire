@@ -11,7 +11,7 @@
 
 @code {
     [Inject]
-    public required TimeProvider TimeProvider { get; init; }
+    public required BrowserTimeProvider TimeProvider { get; set; }
 
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
