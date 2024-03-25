@@ -318,12 +318,13 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
         return !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey && !keyboardEvent.shiftKey;
     }
 
-    function isOnlyShiftPressed(keyboardEvent) {
-        return keyboardEvent.shiftKey && !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey;
+    // Shift in some but not all, keyboard layouts, is used for + and -
+    function modifierKeysExceptShiftNotPressed(keyboardEvent) {
+        return !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey;
     }
 
     function calculateShortcut(e) {
-        if (isOnlyShiftPressed(e)) {
+        if (modifierKeysExceptShiftNotPressed(e)) {
             /* general shortcuts */
             switch (e.key) {
                 case "?": // help
@@ -345,7 +346,8 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
                     return 340;
             }
         }
-        else if (hasNoModifiers(e)) {
+
+        if (hasNoModifiers(e)) {
             switch (e.key) {
                 case "r": // go to resources
                     return 200;
