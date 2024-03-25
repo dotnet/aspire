@@ -91,15 +91,9 @@ public static class AzurePostgresExtensions
 
         var resource = new AzurePostgresResource(builder.Resource, configureConstruct);
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
-                                                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                                                         .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                                                         .WithManifestPublishingCallback(resource.WriteToManifest)
                                                         .WithLoginAndPassword(builder.Resource);
-
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
-        }
 
         if (useProvisioner)
         {

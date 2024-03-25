@@ -57,8 +57,6 @@ public static class AzureApplicationInsightsExtensions
         var resource = new AzureApplicationInsightsResource(name, configureConstruct);
 
         return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }
