@@ -5,7 +5,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a reference to a connection string.
 /// </summary>
-public class ConnectionStringReference(IResourceWithConnectionString resource, bool optional) : IManifestExpressionProvider, IValueProvider
+public class ConnectionStringReference(IResourceWithConnectionString resource, bool optional) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// The resource that the connection string is referencing.
@@ -19,11 +19,13 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
 
     string IManifestExpressionProvider.ValueExpression => Resource.ValueExpression;
 
+    IEnumerable<object> IValueWithReferences.References => [Resource];
+
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
         var value = await Resource.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
-        if (value is null && !Optional)
+        if (string.IsNullOrEmpty(value) && !Optional)
         {
             throw new DistributedApplicationException($"The connection string for the resource '{Resource.Name}' is not available.");
         }

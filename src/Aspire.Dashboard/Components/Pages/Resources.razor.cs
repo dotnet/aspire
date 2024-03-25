@@ -28,6 +28,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required IDialogService DialogService { get; init; }
     [Inject]
     public required IToastService ToastService { get; init; }
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
@@ -57,6 +59,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         {
             _visibleResourceTypes.TryRemove(resourceType, out _);
         }
+
+        ClearSelectedResource();
+    }
+
+    private void HandleSearchFilterChanged()
+    {
+        ClearSelectedResource();
     }
 
     private bool? AreAllTypesVisible

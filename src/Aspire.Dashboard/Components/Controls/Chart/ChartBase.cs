@@ -34,7 +34,7 @@ public abstract class ChartBase : ComponentBase
     public required IInstrumentUnitResolver InstrumentUnitResolver { get; init; }
 
     [Inject]
-    public required TimeProvider TimeProvider { get; init; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }
@@ -114,7 +114,7 @@ public abstract class ChartBase : ComponentBase
             var end = CalcOffset(pointIndex - 1, startDate, pointDuration);
             firstPointEndTime ??= end;
 
-            xValues.Add(end.ToLocalTime());
+            xValues.Add(TimeProvider.ToLocalDateTimeOffset(end));
 
             if (!TryCalculateHistogramPoints(dimensions, start, end, traces))
             {
@@ -133,7 +133,7 @@ public abstract class ChartBase : ComponentBase
 
         if (tickUpdate && TryCalculateHistogramPoints(dimensions, firstPointEndTime!.Value, inProgressDataTime, traces))
         {
-            xValues.Add(inProgressDataTime.ToLocalTime());
+            xValues.Add(TimeProvider.ToLocalDateTimeOffset(inProgressDataTime));
         }
 
         ChartTrace? previousValues = null;
@@ -166,7 +166,7 @@ public abstract class ChartBase : ComponentBase
 
     private string FormatTooltip(string name, double yValue, DateTimeOffset xValue)
     {
-        return $"<b>{HttpUtility.HtmlEncode(InstrumentViewModel.Instrument?.Name)}</b><br />{HttpUtility.HtmlEncode(name)}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(TimeProvider.ToLocal(xValue))}";
+        return $"<b>{HttpUtility.HtmlEncode(InstrumentViewModel.Instrument?.Name)}</b><br />{HttpUtility.HtmlEncode(name)}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(TimeProvider, TimeProvider.ToLocal(xValue))}";
     }
 
     private static HistogramValue GetHistogramValue(MetricValueBase metric)
@@ -303,7 +303,7 @@ public abstract class ChartBase : ComponentBase
             var end = CalcOffset(pointIndex - 1, startDate, pointDuration);
             firstPointEndTime ??= end;
 
-            xValues.Add(end.ToLocalTime());
+            xValues.Add(TimeProvider.ToLocalDateTimeOffset(end));
 
             if (TryCalculatePoint(dimensions, start, end, out var tickPointValue))
             {
@@ -321,7 +321,7 @@ public abstract class ChartBase : ComponentBase
         if (tickUpdate && TryCalculatePoint(dimensions, firstPointEndTime!.Value, inProgressDataTime, out var inProgressPointValue))
         {
             yValues.Add(inProgressPointValue);
-            xValues.Add(inProgressDataTime.ToLocalTime());
+            xValues.Add(TimeProvider.ToLocalDateTimeOffset(inProgressDataTime));
         }
 
         var trace = new ChartTrace

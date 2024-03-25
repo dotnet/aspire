@@ -26,9 +26,17 @@ public class TelemetryStresser(ILogger<TelemetryStresser> logger, IConfiguration
         {
             value += Random.Shared.Next(0, 10);
 
-            var request = new ExportMetricsServiceRequest
-            {
-                ResourceMetrics =
+            await ExportMetrics(logger, client, value, cancellationToken);
+
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+        }
+    }
+
+    private static async Task ExportMetrics(ILogger<TelemetryStresser> logger, MetricsService.MetricsServiceClient client, int value, CancellationToken cancellationToken)
+    {
+        var request = new ExportMetricsServiceRequest
+        {
+            ResourceMetrics =
                 {
                     new ResourceMetrics
                     {
@@ -49,14 +57,11 @@ public class TelemetryStresser(ILogger<TelemetryStresser> logger, IConfiguration
                         }
                     }
                 }
-            };
+        };
 
-            logger.LogDebug("Exporting metrics");
-            var response = await client.ExportAsync(request, cancellationToken: cancellationToken);
-            logger.LogDebug($"Export complete. Rejected count: {response.PartialSuccess?.RejectedDataPoints ?? 0}");
-
-            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-        }
+        logger.LogDebug("Exporting metrics");
+        var response = await client.ExportAsync(request, cancellationToken: cancellationToken);
+        logger.LogDebug($"Export complete. Rejected count: {response.PartialSuccess?.RejectedDataPoints ?? 0}");
     }
 
     public static Resource CreateResource(string? name = null, string? instanceId = null)

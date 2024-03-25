@@ -32,7 +32,7 @@ public class AspireSqlServerSqlClientExtensionsTests
             builder.AddSqlServerClient("sqlconnection");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<SqlConnection>("sqlconnection") :
             host.Services.GetRequiredService<SqlConnection>();
@@ -60,7 +60,7 @@ public class AspireSqlServerSqlClientExtensionsTests
             builder.AddSqlServerClient("sqlconnection", SetConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<SqlConnection>("sqlconnection") :
             host.Services.GetRequiredService<SqlConnection>();
@@ -92,7 +92,7 @@ public class AspireSqlServerSqlClientExtensionsTests
             builder.AddSqlServerClient("sqlconnection");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var dataSource = useKeyed ?
             host.Services.GetRequiredKeyedService<SqlConnection>("sqlconnection") :
             host.Services.GetRequiredService<SqlConnection>();

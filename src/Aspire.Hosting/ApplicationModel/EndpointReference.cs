@@ -8,16 +8,21 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
-public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider
+public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     // A reference to the endpoint annotation if it exists.
     private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;
 
+    // TODO: Expose this
+    internal EndpointAnnotation EndpointAnnotation => GetEndpointAnnotation() ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not defined for the resource `{Resource.Name}`.");
+
     /// <summary>
-    /// Gets the owner of the endpoint reference.
+    /// Gets the resource owner of the endpoint reference.
     /// </summary>
-    public IResourceWithEndpoints Owner { get; }
+    public IResourceWithEndpoints Resource { get; }
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 
     /// <summary>
     /// Gets the name of the endpoint associated with the endpoint reference.
@@ -47,14 +52,14 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
-        return $"{{{Owner.Name}.bindings.{EndpointName}.{prop}}}";
+        return $"{{{Resource.Name}.bindings.{EndpointName}.{prop}}}";
     }
 
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
     /// </summary>
-    /// <param name="property"></param>
-    /// <returns></returns>
+    /// <param name="property">The <see cref="EndpointProperty"/> enum value to use in the reference.</param>
+    /// <returns>An <see cref="EndpointReferenceExpression"/> representing the specified <see cref="EndpointProperty"/>.</returns>
     public EndpointReferenceExpression Property(EndpointProperty property)
     {
         ArgumentNullException.ThrowIfNull(property);
@@ -75,7 +80,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets the container host for this endpoint.
     /// </summary>
-    public string ContainerHost => AllocatedEndpoint.ContainerHostAddress;
+    public string ContainerHost => AllocatedEndpoint.ContainerHostAddress ?? throw new InvalidOperationException($"The endpoint \"{EndpointName}\" has no associated container host name.");
 
     /// <summary>
     /// Gets the scheme for this endpoint.
@@ -89,13 +94,12 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 
     private AllocatedEndpoint AllocatedEndpoint =>
         GetAllocatedEndpoint()
-        ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
+        ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Resource.Name}`.");
 
-    private AllocatedEndpoint? GetAllocatedEndpoint()
-    {
-        var endpoint = _endpointAnnotation ??= Owner.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
-        return endpoint?.AllocatedEndpoint;
-    }
+    private EndpointAnnotation? GetEndpointAnnotation() =>
+        _endpointAnnotation ??= Resource.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
+
+    private AllocatedEndpoint? GetAllocatedEndpoint() => GetEndpointAnnotation()?.AllocatedEndpoint;
 
     /// <summary>
     /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.
@@ -107,7 +111,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        Owner = owner;
+        Resource = owner;
         EndpointName = endpoint.Name;
         _endpointAnnotation = endpoint;
     }
@@ -122,7 +126,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(endpointName);
 
-        Owner = owner;
+        Resource = owner;
         EndpointName = endpointName;
     }
 }
@@ -132,12 +136,12 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 /// </summary>
 /// <param name="endpointReference">The endpoint reference.</param>
 /// <param name="property">The property of the endpoint.</param>
-public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IValueProvider, IManifestExpressionProvider
+public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Gets the <see cref="EndpointReference"/>.
     /// </summary>
-    public EndpointReference Owner { get; } = endpointReference ?? throw new ArgumentNullException(nameof(endpointReference));
+    public EndpointReference Endpoint { get; } = endpointReference ?? throw new ArgumentNullException(nameof(endpointReference));
 
     /// <summary>
     /// Gets the <see cref="EndpointProperty"/> for the property expression.
@@ -148,23 +152,25 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// Gets the expression of the property of the endpoint.
     /// </summary>
     public string ValueExpression =>
-        Owner.GetExpression(Property);
+        Endpoint.GetExpression(Property);
 
     /// <summary>
     /// Gets the value of the property of the endpoint.
     /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="String"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
+    /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken) => Property switch
     {
-        EndpointProperty.Url => new(Owner.Url),
-        EndpointProperty.Host => new(Owner.Host),
+        EndpointProperty.Url => new(Endpoint.Url),
+        EndpointProperty.Host => new(Endpoint.Host),
         EndpointProperty.IPV4Host => new("127.0.0.1"),
-        EndpointProperty.Port => new(Owner.Port.ToString(CultureInfo.InvariantCulture)),
-        EndpointProperty.Scheme => new(Owner.Scheme),
-        _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Owner.EndpointName}'.")
+        EndpointProperty.Port => new(Endpoint.Port.ToString(CultureInfo.InvariantCulture)),
+        EndpointProperty.Scheme => new(Endpoint.Scheme),
+        _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
     };
+
+    IEnumerable<object> IValueWithReferences.References => [Endpoint];
 }
 
 /// <summary>

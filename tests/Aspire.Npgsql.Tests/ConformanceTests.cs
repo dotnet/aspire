@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
+using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
@@ -12,12 +13,12 @@ using Xunit;
 
 namespace Aspire.Npgsql.Tests;
 
-public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>
+public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
-    private const string ConnectionSting = "Host=localhost;Database=test_aspire_npgsql;Username=postgres;Password=postgres";
-
-    private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
-
+    private readonly PostgreSQLContainerFixture _containerFixture;
+    private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Host=localhost;Database=test_aspire_npgsql;Username=postgres;Password=postgres";
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/npgsql/npgsql/blob/ef9db1ffe9e432c1562d855b46dfac3514726b1b/src/Npgsql.OpenTelemetry/TracerProviderBuilderExtensions.cs#L18
@@ -35,7 +36,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanConnectToServer => s_canConnectToServer.Value;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {
@@ -56,10 +57,13 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
             ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
+    public ConformanceTests(PostgreSQLContainerFixture containerFixture)
+        => _containerFixture = containerFixture;
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Npgsql", key, "ConnectionString"), ConnectionSting)
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Npgsql", key, "ConnectionString"), ConnectionString)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlSettings>? configure = null, string? key = null)
@@ -116,54 +120,18 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         T? Resolve<T>() => key is null ? host.Services.GetService<T>() : host.Services.GetKeyedService<T>(key);
     }
 
-    [ConditionalFact]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
-    {
-        SkipIfCanNotConnectToServer();
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
-        RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
-    }
-
-    [ConditionalFact]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource_Keyed()
+        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
+
+    private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
     {
-        SkipIfCanNotConnectToServer();
-
-        RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
-    }
-
-    private static bool GetCanConnect()
-    {
-        NpgsqlConnection connection = new(ConnectionSting);
-        NpgsqlCommand? cmd = null;
-
-        try
-        {
-            string dbName = connection.Database;
-
-            // postgres is the default administrative connection database of PostgreSQL
-            // we need to switch to it before we create the test db
-            connection = new(connection.ConnectionString.Replace(dbName, "postgres"));
-
-            connection.Open();
-
-            cmd = new NpgsqlCommand($"CREATE DATABASE {dbName}", connection);
-            cmd.ExecuteNonQuery();
-        }
-        catch (PostgresException dbEx) when (dbEx.SqlState == "42P04")
-        {
-            return true; // db already exists
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-        finally
-        {
-            cmd?.Dispose();
-            connection.Dispose();
-        }
-
-        return true;
+        await using var fixture = new PostgreSQLContainerFixture();
+        await fixture.InitializeAsync();
+        test(new ConformanceTests(fixture));
     }
 }

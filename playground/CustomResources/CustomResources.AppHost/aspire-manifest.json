@@ -1,0 +1,13 @@
+{
+  "resources": {
+    "p0": {
+      "type": "parameter.v0",
+      "value": "{p0.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

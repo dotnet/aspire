@@ -40,6 +40,9 @@ public partial class Traces
     [Inject]
     public required IDialogService DialogService { get; set; }
 
+    [Inject]
+    public required BrowserTimeProvider TimeProvider { get; set; }
+
     private string GetNameTooltip(OtlpTrace trace)
     {
         var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);

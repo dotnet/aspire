@@ -2,12 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Azure.Data.AppConfiguration;
 using Azure.Messaging.ServiceBus;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Azure;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,35 +22,40 @@ builder.AddAzureKeyVaultClient("mykv");
 builder.AddRedisClient("cache");
 builder.AddCosmosDbContext<CosmosContext>("cosmos", "cosmosdb");
 builder.AddNpgsqlDbContext<NpgsqlContext>("pgsqldb");
-builder.AddAzureServiceBusClient("sb");
+builder.AddAzureServiceBusClient("servicebus");
 builder.AddAzureSearchClient("search");
+builder.Services.AddSignalR().AddNamedAzureSignalR("signalr");
+
+builder.Services.AddAzureClients(clients =>
+{
+    clients.AddConfigurationClient(new Uri(builder.Configuration.GetConnectionString("appConfig")!));
+});
 
 var app = builder.Build();
 
-app.MapGet("/",
-    async (
-        BlobServiceClient bsc,
-        SqlContext sqlContext,
-        SecretClient sc,
-        IConnectionMultiplexer connection,
-        CosmosContext cosmosContext,
-        NpgsqlContext npgsqlContext,
-        ServiceBusClient sbc,
-        SearchIndexClient search) =>
+app.MapGet("/", async (BlobServiceClient bsc, SqlContext sqlContext, SecretClient sc, IConnectionMultiplexer connection, CosmosContext cosmosContext, NpgsqlContext npgsqlContext, ServiceBusClient sbc, ConfigurationClient cc, SearchIndexClient search) =>
+{
+    return new
     {
-        return new
-        {
-            cosmosDocuments = await TestCosmosAsync(cosmosContext),
-            redisEntries = await TestRedisAsync(connection),
-            secretChecked = await TestSecretAsync(sc),
-            blobFiles = await TestBlobStorageAsync(bsc),
-            sqlRows = await TestSqlServerAsync(sqlContext),
-            npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
-            serviceBus = await TestServiceBusAsync(sbc),
-            search = await TestSearchAsync(search)
-        };
-    });
+        cosmosDocuments = await TestCosmosAsync(cosmosContext),
+        redisEntries = await TestRedisAsync(connection),
+        secretChecked = await TestSecretAsync(sc),
+        blobFiles = await TestBlobStorageAsync(bsc),
+        sqlRows = await TestSqlServerAsync(sqlContext),
+        npgsqlRows = await TestNpgsqlAsync(npgsqlContext),
+        serviceBus = await TestServiceBusAsync(sbc),
+        search = await TestSearchAsync(search),
+        appConfig = await TestAppConfig(cc)
+    };
+});
 app.Run();
+
+static async Task<string> TestAppConfig(ConfigurationClient cc)
+{
+    var setting = new ConfigurationSetting("ConfigSection:ConfigKey", "ConfigValue");
+    ConfigurationSetting updatedSetting = await cc.SetConfigurationSettingAsync(setting);
+    return updatedSetting.ETag.ToString();
+}
 
 static async Task<IEnumerable<Entry>> TestRedisAsync(IConnectionMultiplexer connection)
 {
@@ -99,10 +106,10 @@ static async Task<List<string>> TestBlobStorageAsync(BlobServiceClient bsc)
 
 static async Task<ServiceBusReceivedMessage> TestServiceBusAsync(ServiceBusClient sbc)
 {
-    await using var sender = sbc.CreateSender("myqueue");
+    await using var sender = sbc.CreateSender("queue1");
     await sender.SendMessageAsync(new ServiceBusMessage("Hello, World!"));
 
-    await using var receiver = sbc.CreateReceiver("myqueue");
+    await using var receiver = sbc.CreateReceiver("queue1");
     return await receiver.ReceiveMessageAsync();
 }
 

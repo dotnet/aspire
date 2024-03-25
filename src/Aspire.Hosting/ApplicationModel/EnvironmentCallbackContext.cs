@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="executionContext">The execution context for this invocation of the AppHost.</param>
 /// <param name="environmentVariables">The environment variables associated with this execution.</param>
-/// <param name="cancellationToken">The cancellation token associated with this execution.</param>
+/// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
 public class EnvironmentCallbackContext(DistributedApplicationExecutionContext executionContext, Dictionary<string, object>? environmentVariables = null, CancellationToken cancellationToken = default)
 {
     /// <summary>

@@ -101,7 +101,13 @@ builder.AddRedisOutputCache("cache", configureOptions: options => options.Connec
 
 ## AppHost extensions
 
-In your AppHost project, register a Redis server and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.Redis` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.Redis
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a Redis server and consume the connection using the following methods:
 
 ```csharp
 var redis = builder.AddRedis("cache");

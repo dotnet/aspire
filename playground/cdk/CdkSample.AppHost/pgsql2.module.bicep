@@ -11,17 +11,14 @@ param administratorLogin string
 param administratorLoginPassword string
 
 @description('')
-param principalId string
-
-@description('')
 param keyVaultName string
 
 
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
+resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
 
-resource postgreSqlFlexibleServer_L4yCjMLWz 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+resource postgreSqlFlexibleServer_L4yCjMLWz 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
   name: toLower(take(concat('pgsql2', uniqueString(resourceGroup().id)), 24))
   location: location
   tags: {
@@ -58,7 +55,7 @@ resource postgreSqlFirewallRule_b2WDQTOKx 'Microsoft.DBforPostgreSQL/flexibleSer
   }
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
   parent: keyVault_IeF8jZvXV
   name: 'connectionString'
   location: location

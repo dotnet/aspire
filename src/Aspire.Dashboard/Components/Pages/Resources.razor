@@ -41,9 +41,10 @@
             </Body>
         </FluentPopover>
         <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                        Immediate="true"
-                        @bind-Value="_filter"
-                        slot="end" />
+                      Immediate="true"
+                      @bind-Value="_filter"
+                      slot="end"
+                      @bind-Value:after="HandleSearchFilterChanged" />
     </FluentToolbar>
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"
@@ -54,7 +55,7 @@
             @{
                 var gridTemplateColumns = HasResourcesWithCommands ? "1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr 1fr" : "1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr";
             }
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="@gridTemplateColumns" RowClass="GetRowClass" Loading="_isLoading">
+            <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="@gridTemplateColumns" RowClass="GetRowClass" Loading="_isLoading">
                 <ChildContent>
                     <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" />
                     <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort">
@@ -63,7 +64,7 @@
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort">
                         <StateColumnDisplay Resource="@context" UnviewedErrorCounts ="@_applicationUnviewedErrorCounts" />
                     </TemplateColumn>
-                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(context.CreationTimeStamp.Value, false, CultureInfo.CurrentCulture) : null)" Tooltip="true">
+                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, false, CultureInfo.CurrentCulture) : null)" Tooltip="true">
                         <StartTimeColumnDisplay Resource="@context" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]">

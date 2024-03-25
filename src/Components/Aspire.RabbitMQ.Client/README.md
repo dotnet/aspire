@@ -91,7 +91,13 @@ builder.AddRabbitMQClient("messaging", configureConnectionFactory: factory => fa
 
 ## AppHost extensions
 
-In your AppHost project, register a RabbitMQ server and consume the connection using the following methods:
+In your AppHost project, install the `Aspire.Hosting.RabbitMQ` library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.RabbitMQ
+```
+
+Then, in the _Program.cs_ file of `AppHost`, register a RabbitMQ server and consume the connection using the following methods:
 
 ```csharp
 var messaging = builder.AddRabbitMQ("messaging");

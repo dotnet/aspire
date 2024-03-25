@@ -81,21 +81,19 @@ internal sealed class AzureProvisioner(
                                                   .ToLookup(x => x.Root, x => x.Child);
 
         // Sets the state of the resource and all of its children
-        async Task SetStateAsync(IAzureResource resource, string state)
-        {
-            await notificationService.PublishUpdateAsync(resource, s => s with
+        Task SetStateAsync(IAzureResource resource, string state) =>
+            UpdateStateAsync(resource, s => s with
             {
                 State = state
-            })
-            .ConfigureAwait(false);
+            });
+
+        async Task UpdateStateAsync(IAzureResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+        {
+            await notificationService.PublishUpdateAsync(resource, stateFactory).ConfigureAwait(false);
 
             foreach (var child in parentChildLookup[resource])
             {
-                await notificationService.PublishUpdateAsync(child, s => s with
-                {
-                    State = state
-                })
-                .ConfigureAwait(false);
+                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
             }
         }
 
@@ -133,6 +131,14 @@ internal sealed class AzureProvisioner(
             cancellationToken), cancellationToken);
     }
 
+    private static async Task<JsonObject> GetUserSecretsAsync(string? userSecretsPath, CancellationToken cancellationToken)
+    {
+        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
+                          ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
+                          : [];
+        return userSecrets;
+    }
+
     private async Task ProvisionAzureResources(
         IConfiguration configuration,
         ILogger<AzureProvisioner> logger,
@@ -150,13 +156,10 @@ internal sealed class AzureProvisioner(
         }
 
         var userSecretsPath = GetUserSecretsPath();
-
-        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
-            : [];
+        var userSecretsLazy = new Lazy<Task<JsonObject>>(() => GetUserSecretsAsync(userSecretsPath, cancellationToken));
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(userSecrets, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => GetProvisioningContextAsync(userSecretsLazy, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -173,11 +176,20 @@ internal sealed class AzureProvisioner(
         // If we created any resources then save the user secrets
         if (userSecretsPath is not null)
         {
-            // Ensure directory exists before attempting to create secrets file
-            Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
-            logger.LogInformation("Azure resource connection strings saved to user secrets.");
+                // Ensure directory exists before attempting to create secrets file
+                Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
+                await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
+
+                logger.LogInformation("Azure resource connection strings saved to user secrets.");
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
+            }
         }
 
         // Set the completion source for all resources
@@ -245,24 +257,52 @@ internal sealed class AzureProvisioner(
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
+            catch (JsonException ex)
+            {
+                resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.Name);
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+            }
             catch (Exception ex)
             {
-                resourceLogger.LogError(ex, "Error provisioning {resourceName}.", resource.Name);
+                resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", resource.Name);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
             }
         }
     }
 
-    private async Task<ProvisioningContext> GetProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken)
+    private async Task<ProvisioningContext> GetProvisioningContextAsync(Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
     {
-        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+        // Optionally configured in AppHost appSettings under "Azure" : { "CredentialSource": "AzureCli" }
+        var credentialSetting = _options.CredentialSource;
+
+        TokenCredential credential = credentialSetting switch
         {
-            ExcludeManagedIdentityCredential = true,
-            ExcludeWorkloadIdentityCredential = true,
-            ExcludeAzurePowerShellCredential = true,
-            CredentialProcessTimeout = TimeSpan.FromSeconds(15)
-        });
+            "AzureCli" => new AzureCliCredential(),
+            "AzurePowerShell" => new AzurePowerShellCredential(),
+            "VisualStudio" => new VisualStudioCredential(),
+            "VisualStudioCode" => new VisualStudioCodeCredential(),
+            "AzureDeveloperCli" => new AzureDeveloperCliCredential(),
+            "InteractiveBrowser" => new InteractiveBrowserCredential(),
+            _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+            {
+                ExcludeManagedIdentityCredential = true,
+                ExcludeWorkloadIdentityCredential = true,
+                ExcludeAzurePowerShellCredential = true,
+                CredentialProcessTimeout = TimeSpan.FromSeconds(15)
+            })
+        };
+
+        if (credential.GetType() == typeof(DefaultAzureCredential))
+        {
+            logger.LogInformation(
+                "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
+                "See https://aka.ms/azsdk/net/identity/default-azure-credential for more information.");
+        }
+        else
+        {
+            logger.LogInformation("Using {credentialType} for provisioning.", credential.GetType().Name);
+        }
 
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
@@ -316,7 +356,6 @@ internal sealed class AzureProvisioner(
         {
             var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
             resourceGroup = response.Value;
-            location = resourceGroup.Data.Location;
 
             logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
         }
@@ -342,6 +381,8 @@ internal sealed class AzureProvisioner(
         var principal = await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
 
         var resourceMap = new Dictionary<string, ArmResource>();
+
+        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
         return new ProvisioningContext(
                     credential,

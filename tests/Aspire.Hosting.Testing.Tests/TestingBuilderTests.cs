@@ -13,7 +13,7 @@ public class TestingBuilderTests
     [LocalOnlyFact]
     public async Task HasEndPoints()
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
         await using var app = await appHost.BuildAsync();
 
         await app.StartAsync();
@@ -32,7 +32,7 @@ public class TestingBuilderTests
     [LocalOnlyFact]
     public async Task CanGetResources()
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
@@ -45,7 +45,7 @@ public class TestingBuilderTests
     [LocalOnlyFact]
     public async Task HttpClientGetTest()
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Program>();
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
@@ -53,6 +53,14 @@ public class TestingBuilderTests
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
+    }
+    
+    [LocalOnlyFact]
+    public async Task GetHttpClientBeforeStart()
+    {
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        await using var app = await appHost.BuildAsync();
+        Assert.Throws<InvalidOperationException>(() => app.CreateHttpClient("mywebapp1"));
     }
 
     private sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

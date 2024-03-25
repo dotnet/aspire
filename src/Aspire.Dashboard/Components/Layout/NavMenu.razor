@@ -4,31 +4,31 @@
 @inject IStringLocalizer<Layout> Loc
 @inject IDashboardClient DashboardClient
 
-<AspireAppBar>
+<FluentAppBar PopoverShowSearch="false">
     @if (DashboardClient.IsEnabled)
     {
-        <AspireAppBarItem
+        <FluentAppBarItem
             Href="@DashboardUrls.ResourcesUrl()"
             Match="NavLinkMatch.All"
-            Icon="ResourcesIcon()"
-            SecondaryIcon="ResourcesIcon(secondary: true)"
+            IconRest="ResourcesIcon()"
+            IconActive="ResourcesIcon(active: true)"
             Text="@Loc[nameof(Layout.NavMenuResourcesTab)]" />
-    <AspireAppBarItem Href="@DashboardUrls.ConsoleLogsUrl()"
-            Icon="ConsoleLogsIcon()"
-            SecondaryIcon="ConsoleLogsIcon(secondary: true)"
+    <FluentAppBarItem Href="@DashboardUrls.ConsoleLogsUrl()"
+            IconRest="ConsoleLogsIcon()"
+            IconActive="ConsoleLogsIcon(active: true)"
             Text="@Loc[nameof(Layout.NavMenuConsoleLogsTab)]" />
     }
-    <AspireAppBarItem Href="@DashboardUrls.StructuredLogsUrl()"
-        Icon="StructuredLogsIcon()"
-        SecondaryIcon="StructuredLogsIcon(secondary: true)"
+    <FluentAppBarItem Href="@DashboardUrls.StructuredLogsUrl()"
+        IconRest="StructuredLogsIcon()"
+        IconActive="StructuredLogsIcon(active: true)"
         Text="@Loc[nameof(Layout.NavMenuStructuredLogsTab)]" />
-    <AspireAppBarItem Href="@DashboardUrls.TracesUrl()"
-        Icon="TracesIcon()"
-        SecondaryIcon="TracesIcon(secondary: true)"
+    <FluentAppBarItem Href="@DashboardUrls.TracesUrl()"
+        IconRest="TracesIcon()"
+        IconActive="TracesIcon(active: true)"
         Text="@Loc[nameof(Layout.NavMenuTracesTab)]" />
-    <AspireAppBarItem
+    <FluentAppBarItem
         Href="@DashboardUrls.MetricsUrl()"
-        Icon="MetricsIcon()"
-        SecondaryIcon="MetricsIcon(secondary: true)"
+        IconRest="MetricsIcon()"
+        IconActive="MetricsIcon(active: true)"
         Text="@Loc[nameof(Layout.NavMenuMetricsTab)]" />
-</AspireAppBar>
+</FluentAppBar>
