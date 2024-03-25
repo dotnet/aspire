@@ -106,17 +106,17 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
     {
         lock (_lock)
         {
-            if (endPoints is not { Count: > 0 })
-            {
-                _nextRefreshPeriod = GetRefreshPeriod();
-                validityPeriod = TimeSpan.Zero;
-                _hasEndpoints = false;
-            }
-            else
+            if (endPoints is { Count: > 0 })
             {
                 _lastRefreshTimeStamp = _timeProvider.GetTimestamp();
                 _nextRefreshPeriod = DefaultRefreshPeriod;
                 _hasEndpoints = true;
+            }
+            else
+            {
+                _nextRefreshPeriod = GetRefreshPeriod();
+                validityPeriod = TimeSpan.Zero;
+                _hasEndpoints = false;
             }
 
             if (validityPeriod <= TimeSpan.Zero)
@@ -141,8 +141,13 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
                 return MinRetryPeriod;
             }
 
-            var nextPeriod = TimeSpan.FromTicks((long)(_nextRefreshPeriod.Ticks * RetryBackOffFactor));
-            return nextPeriod > MaxRetryPeriod ? MaxRetryPeriod : nextPeriod;
+            var nextTicks = (long)(_nextRefreshPeriod.Ticks * RetryBackOffFactor);
+            if (nextTicks <= 0 || nextTicks > MaxRetryPeriod.Ticks)
+            {
+                return MaxRetryPeriod;
+            }
+
+            return TimeSpan.FromTicks(nextTicks);
         }
     }
 
