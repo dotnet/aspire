@@ -14,5 +14,5 @@ public interface IServiceEndPointProvider : IAsyncDisposable
     /// <param name="endPoints">The endpoint collection, which resolved endpoints will be added to.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The resolution status.</returns>
-    ValueTask ResolveAsync(IServiceEndPointBuilder endPoints, CancellationToken cancellationToken);
+    ValueTask PopulateAsync(IServiceEndPointBuilder endPoints, CancellationToken cancellationToken);
 }

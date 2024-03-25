@@ -132,7 +132,7 @@ internal sealed partial class ServiceEndPointWatcher(
             var builder = new ServiceEndPointBuilder();
             foreach (var resolver in _resolvers)
             {
-                await resolver.ResolveAsync(builder, cancellationToken).ConfigureAwait(false);
+                await resolver.PopulateAsync(builder, cancellationToken).ConfigureAwait(false);
             }
 
             var endPoints = builder.Build();

@@ -11,7 +11,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.PassThrough;
 /// </summary>
 internal sealed partial class PassThroughServiceEndPointResolver(ILogger logger, string serviceName, EndPoint endPoint) : IServiceEndPointProvider
 {
-    public ValueTask ResolveAsync(IServiceEndPointBuilder endPoints, CancellationToken cancellationToken)
+    public ValueTask PopulateAsync(IServiceEndPointBuilder endPoints, CancellationToken cancellationToken)
     {
         if (endPoints.EndPoints.Count == 0)
         {
