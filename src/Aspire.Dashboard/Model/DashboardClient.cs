@@ -3,7 +3,9 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using Aspire.Dashboard.Utils;
 using Aspire.V1;
@@ -98,6 +100,28 @@ internal sealed class DashboardClient : IDashboardClient
                 KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
             };
 
+            var authMode = configuration.GetEnum<ResourceClientAuthMode>("ResourceServiceClient:AuthMode");
+
+            if (authMode == ResourceClientAuthMode.Certificate)
+            {
+                // Auth hasn't been suppressed, so configure it.
+                var sourceType = configuration.GetEnum<DashboardClientCertificateSource>("ResourceServiceClient:ClientCertificate:Source");
+
+                var certificates = sourceType switch
+                {
+                    DashboardClientCertificateSource.File => GetFileCertificate(),
+                    DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(),
+                    _ => throw new InvalidOperationException("Unable to load ResourceServiceClient client certificate.")
+                };
+
+                httpHandler.SslOptions = new SslClientAuthenticationOptions
+                {
+                    ClientCertificates = certificates
+                };
+
+                configuration.Bind("ResourceServiceClient:Ssl", httpHandler.SslOptions);
+            }
+
             // https://learn.microsoft.com/aspnet/core/grpc/retries
 
             var methodConfig = new MethodConfig
@@ -124,6 +148,44 @@ internal sealed class DashboardClient : IDashboardClient
                     LoggerFactory = _loggerFactory,
                     ThrowOperationCanceledOnCancellation = true
                 });
+
+            X509CertificateCollection GetFileCertificate()
+            {
+                var filePath = configuration["ResourceServiceClient:ClientCertificate:FilePath"];
+                var password = configuration["ResourceServiceClient:ClientCertificate:Password"];
+
+                if (filePath is null or [])
+                {
+                    throw new InvalidOperationException("ResourceServiceClient:ClientCertificate:Source is \"File\", but no Certificate:FilePath is configured.");
+                }
+
+                return [new X509Certificate2(filePath, password)];
+            }
+
+            X509CertificateCollection GetKeyStoreCertificate()
+            {
+                var subject = configuration["ResourceServiceClient:ClientCertificate:Subject"];
+
+                if (subject is null or [])
+                {
+                    throw new InvalidOperationException("ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Certificate:FilePath is configured.");
+                }
+
+                using var store = new X509Store(storeName: StoreName.My, storeLocation: StoreLocation.CurrentUser);
+
+                configuration.Bind("ResourceServiceClient:ClientCertificate:KeyStore");
+
+                store.Open(OpenFlags.ReadOnly);
+
+                var certificates = store.Certificates.Find(X509FindType.FindBySubjectName, findValue: subject, validOnly: true);
+
+                if (certificates is [])
+                {
+                    throw new InvalidOperationException($"Unable to load client certificate with subject \"{subject}\" from key store.");
+                }
+
+                return certificates;
+            }
         }
     }
 
@@ -483,5 +545,17 @@ internal sealed class DashboardClient : IDashboardClient
         }
 
         _initialDataReceivedTcs.TrySetResult();
+    }
+
+    private enum DashboardClientCertificateSource
+    {
+        File,
+        KeyStore
+    }
+
+    private enum ResourceClientAuthMode
+    {
+        Unsecured,
+        Certificate
     }
 }

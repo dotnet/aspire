@@ -711,11 +711,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
+            context.EnvironmentVariables["ResourceServiceClient__AuthMode"] = "Unsecured"; // No auth in local dev experience
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
-                context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_AUTH_MODE"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
-                context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_API_KEY"] = otlpApiKey;
+                context.EnvironmentVariables["Otlp__AuthMode"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
+                context.EnvironmentVariables["Otlp__ApiKey"] = otlpApiKey;
             }
             else
             {
@@ -776,6 +777,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             },
             new()
             {
+                Name = "ResourceServiceClient__AuthMode",
+                Value = "Unsecured" // No auth in local dev experience
+            },
+            new()
+            {
                 Name = "ASPNETCORE_URLS",
                 Value = dashboardUrls
             },
@@ -796,12 +802,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             dashboardExecutableSpec.Env.AddRange([
                 new()
                 {
-                    Name = "DOTNET_DASHBOARD_OTLP_API_KEY",
+                    Name = "Otlp__ApiKey",
                     Value = otlpApiKey
                 },
                 new()
                 {
-                    Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
+                    Name = "Otlp__AuthMode",
                     Value = "ApiKey" // Matches value in OtlpAuthMode enum.
                 }
             ]);
