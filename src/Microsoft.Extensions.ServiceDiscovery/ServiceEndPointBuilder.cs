@@ -9,11 +9,11 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// A mutable collection of service endpoints. 
 /// </summary>
-public sealed class ServiceEndPointCollectionSource
+internal sealed class ServiceEndPointBuilder : IServiceEndPointBuilder
 {
     private readonly List<ServiceEndPoint> _endPoints = new();
     private readonly List<IChangeToken> _changeTokens = new();
-    private FeatureCollection? _features;
+    private readonly FeatureCollection _features = new FeatureCollection();
 
     /// <summary>
     /// Adds a change token.
@@ -25,15 +25,9 @@ public sealed class ServiceEndPointCollectionSource
     }
 
     /// <summary>
-    /// Gets the composite change token.
-    /// </summary>
-    /// <returns>The composite change token.</returns>
-    public IChangeToken GetChangeToken() => new CompositeChangeToken(_changeTokens);
-
-    /// <summary>
     /// Gets the feature collection.
     /// </summary>
-    public IFeatureCollection Features => _features ??= new FeatureCollection();
+    public IFeatureCollection Features => _features;
 
     /// <summary>
     /// Gets the endpoints.
@@ -41,13 +35,12 @@ public sealed class ServiceEndPointCollectionSource
     public IList<ServiceEndPoint> EndPoints => _endPoints;
 
     /// <summary>
-    /// Creates a <see cref="ServiceEndPointCollection"/> from the provided instance.
+    /// Creates a <see cref="ServiceEndPointSource"/> from the provided instance.
     /// </summary>
-    /// <param name="source">The source collection.</param>
-    /// <returns>The service endpoint collection.</returns>
-    public static ServiceEndPointCollection CreateServiceEndPointCollection(ServiceEndPointCollectionSource source)
+    /// <returns>The service endpoint source.</returns>
+    public ServiceEndPointSource Build()
     {
-        return new ServiceEndPointCollection(source._endPoints, source.GetChangeToken(), source.Features);
+        return new ServiceEndPointSource(_endPoints, new CompositeChangeToken(_changeTokens), _features);
     }
 }
 

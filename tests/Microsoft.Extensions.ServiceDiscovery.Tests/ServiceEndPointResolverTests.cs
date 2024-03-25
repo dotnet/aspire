@@ -74,9 +74,9 @@ public class ServiceEndPointResolverTests
         }
     }
 
-    private sealed class FakeEndPointResolver(Func<ServiceEndPointCollectionSource, CancellationToken, ValueTask> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointProvider
+    private sealed class FakeEndPointResolver(Func<IServiceEndPointBuilder, CancellationToken, ValueTask> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointProvider
     {
-        public ValueTask ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken) => resolveAsync(endPoints, cancellationToken);
+        public ValueTask ResolveAsync(IServiceEndPointBuilder endPoints, CancellationToken cancellationToken) => resolveAsync(endPoints, cancellationToken);
         public ValueTask DisposeAsync() => disposeAsync();
     }
 
@@ -109,9 +109,9 @@ public class ServiceEndPointResolverTests
         await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
-            var initialEndPoints = await resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);
-            Assert.NotNull(initialEndPoints);
-            var sep = Assert.Single(initialEndPoints);
+            var initialResult = await resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);
+            Assert.NotNull(initialResult);
+            var sep = Assert.Single(initialResult.EndPoints);
             var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
             Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
             Assert.Equal(8080, ip.Port);
@@ -124,8 +124,8 @@ public class ServiceEndPointResolverTests
             var resolverResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(resolverResult);
             Assert.True(resolverResult.ResolvedSuccessfully);
-            Assert.Equal(2, resolverResult.EndPoints.Count);
-            var endpoints = resolverResult.EndPoints.Select(ep => ep.EndPoint).OfType<IPEndPoint>().ToList();
+            Assert.Equal(2, resolverResult.EndPointSource.EndPoints.Count);
+            var endpoints = resolverResult.EndPointSource.EndPoints.Select(ep => ep.EndPoint).OfType<IPEndPoint>().ToList();
             endpoints.Sort((l, r) => l.Port - r.Port);
             Assert.Equal(new IPEndPoint(IPAddress.Parse("127.1.1.1"), 8080), endpoints[0]);
             Assert.Equal(new IPEndPoint(IPAddress.Parse("127.1.1.2"), 8888), endpoints[1]);
@@ -158,9 +158,9 @@ public class ServiceEndPointResolverTests
         var resolver = services.GetRequiredService<ServiceEndPointResolver>();
 
         Assert.NotNull(resolver);
-        var initialEndPoints = await resolver.GetEndPointsAsync("http://basket", CancellationToken.None).ConfigureAwait(false);
-        Assert.NotNull(initialEndPoints);
-        var sep = Assert.Single(initialEndPoints);
+        var initialResult = await resolver.GetEndPointsAsync("http://basket", CancellationToken.None).ConfigureAwait(false);
+        Assert.NotNull(initialResult);
+        var sep = Assert.Single(initialResult.EndPoints);
         var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
         Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
         Assert.Equal(8080, ip.Port);
@@ -246,7 +246,7 @@ public class ServiceEndPointResolverTests
             sem.Release(1);
             var initialEndPoints = await initialEndPointsTask;
             Assert.NotNull(initialEndPoints);
-            Assert.Single(initialEndPoints);
+            Assert.Single(initialEndPoints.EndPoints);
 
             // Tell the resolver to throw on the next resolve call and then trigger a reload.
             throwOnNextResolve[0] = true;
@@ -279,9 +279,9 @@ public class ServiceEndPointResolverTests
 
             var task = resolver.GetEndPointsAsync(CancellationToken.None);
             sem.Release(1);
-            var endPoints = await task.ConfigureAwait(false);
-            Assert.NotSame(initialEndPoints, endPoints);
-            var sep = Assert.Single(endPoints);
+            var result = await task.ConfigureAwait(false);
+            Assert.NotSame(initialEndPoints, result);
+            var sep = Assert.Single(result.EndPoints);
             var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
             Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
             Assert.Equal(8080, ip.Port);

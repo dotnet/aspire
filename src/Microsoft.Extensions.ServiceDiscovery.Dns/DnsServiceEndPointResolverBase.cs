@@ -58,7 +58,7 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
     protected CancellationToken ShutdownToken => _disposeCancellation.Token;
 
     /// <inheritdoc/>
-    public async ValueTask ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken)
+    public async ValueTask ResolveAsync(IServiceEndPointBuilder endPoints, CancellationToken cancellationToken)
     {
         // Only add endpoints to the collection if a previous provider (eg, a configuration override) did not add them.
         if (endPoints.EndPoints.Count != 0)

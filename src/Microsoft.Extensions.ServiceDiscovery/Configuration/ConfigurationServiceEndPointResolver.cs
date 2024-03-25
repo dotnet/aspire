@@ -47,7 +47,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     public ValueTask DisposeAsync() => default;
 
     /// <inheritdoc/>
-    public ValueTask ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken)
+    public ValueTask ResolveAsync(IServiceEndPointBuilder endPoints, CancellationToken cancellationToken)
     {
         // Only add resolved to the collection if a previous provider (eg, an override) did not add them.
         if (endPoints.EndPoints.Count != 0)

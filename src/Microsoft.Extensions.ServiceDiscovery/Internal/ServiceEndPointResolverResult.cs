@@ -8,9 +8,9 @@ namespace Microsoft.Extensions.ServiceDiscovery.Internal;
 /// <summary>
 /// Represents the result of service endpoint resolution.
 /// </summary>
-/// <param name="endPoints">The endpoint collection.</param>
+/// <param name="endPointSource">The endpoint collection.</param>
 /// <param name="exception">The exception which occurred during resolution.</param>
-internal sealed class ServiceEndPointResolverResult(ServiceEndPointCollection? endPoints, Exception? exception)
+internal sealed class ServiceEndPointResolverResult(ServiceEndPointSource? endPointSource, Exception? exception)
 {
     /// <summary>
     /// Gets the exception which occurred during resolution.
@@ -20,11 +20,11 @@ internal sealed class ServiceEndPointResolverResult(ServiceEndPointCollection? e
     /// <summary>
     /// Gets a value indicating whether resolution completed successfully.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(EndPoints))]
+    [MemberNotNullWhen(true, nameof(EndPointSource))]
     public bool ResolvedSuccessfully => Exception is null;
 
     /// <summary>
     /// Gets the endpoints.
     /// </summary>
-    public ServiceEndPointCollection? EndPoints { get; } = endPoints;
+    public ServiceEndPointSource? EndPointSource { get; } = endPointSource;
 }

@@ -9,12 +9,12 @@ namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 internal sealed class RoundRobinServiceEndPointSelector : IServiceEndPointSelector
 {
     private uint _next;
-    private ServiceEndPointCollection? _endPoints;
+    private IReadOnlyList<ServiceEndPoint>? _endPoints;
 
     /// <inheritdoc/>
-    public void SetEndPoints(ServiceEndPointCollection endPoints)
+    public void SetEndPoints(ServiceEndPointSource endPoints)
     {
-        _endPoints = endPoints;
+        _endPoints = endPoints.EndPoints;
     }
 
     /// <inheritdoc/>

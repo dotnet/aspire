@@ -35,7 +35,7 @@ public class PassThroughServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            var ep = Assert.Single(initialResult.EndPoints);
+            var ep = Assert.Single(initialResult.EndPointSource.EndPoints);
             Assert.Equal(new DnsEndPoint("basket", 80), ep.EndPoint);
         }
     }
@@ -68,8 +68,8 @@ public class PassThroughServiceEndPointResolverTests
             Assert.True(initialResult.ResolvedSuccessfully);
 
             // We expect the basket service to be resolved from Configuration, not the pass-through provider.
-            Assert.Single(initialResult.EndPoints);
-            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
+            Assert.Single(initialResult.EndPointSource.EndPoints);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPointSource.EndPoints[0].EndPoint);
         }
     }
 
@@ -101,8 +101,8 @@ public class PassThroughServiceEndPointResolverTests
             Assert.True(initialResult.ResolvedSuccessfully);
 
             // We expect the CATALOG service to be resolved from the pass-through provider.
-            Assert.Single(initialResult.EndPoints);
-            Assert.Equal(new DnsEndPoint("catalog", 80), initialResult.EndPoints[0].EndPoint);
+            Assert.Single(initialResult.EndPointSource.EndPoints);
+            Assert.Equal(new DnsEndPoint("catalog", 80), initialResult.EndPointSource.EndPoints[0].EndPoint);
         }
     }
 
@@ -124,7 +124,7 @@ public class PassThroughServiceEndPointResolverTests
             .BuildServiceProvider();
 
         var resolver = services.GetRequiredService<ServiceEndPointResolver>();
-        var endPoints = await resolver.GetEndPointsAsync("catalog", default);
-        Assert.Equal(new DnsEndPoint("catalog", 0), endPoints[0].EndPoint);
+        var result = await resolver.GetEndPointsAsync("catalog", default);
+        Assert.Equal(new DnsEndPoint("catalog", 0), result.EndPoints[0].EndPoint);
     }
 }

@@ -114,13 +114,13 @@ public class DnsSrvServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(3, initialResult.EndPoints.Count);
-            var eps = initialResult.EndPoints;
+            Assert.Equal(3, initialResult.EndPointSource.EndPoints.Count);
+            var eps = initialResult.EndPointSource.EndPoints;
             Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].EndPoint);
             Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].EndPoint);
             Assert.Equal(new DnsEndPoint("remotehost", 7777), eps[2].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.Null(hostNameFeature);
@@ -205,13 +205,13 @@ public class DnsSrvServiceEndPointResolverTests
             if (dnsFirst)
             {
                 // We expect only the results from the DNS provider.
-                Assert.Equal(3, initialResult.EndPoints.Count);
-                var eps = initialResult.EndPoints;
+                Assert.Equal(3, initialResult.EndPointSource.EndPoints.Count);
+                var eps = initialResult.EndPointSource.EndPoints;
                 Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].EndPoint);
                 Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].EndPoint);
                 Assert.Equal(new DnsEndPoint("remotehost", 7777), eps[2].EndPoint);
 
-                Assert.All(initialResult.EndPoints, ep =>
+                Assert.All(initialResult.EndPointSource.EndPoints, ep =>
                 {
                     var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                     Assert.NotNull(hostNameFeature);
@@ -221,11 +221,11 @@ public class DnsSrvServiceEndPointResolverTests
             else
             {
                 // We expect only the results from the Configuration provider.
-                Assert.Equal(2, initialResult.EndPoints.Count);
-                Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndPoints[0].EndPoint);
-                Assert.Equal(new DnsEndPoint("remotehost", 9090), initialResult.EndPoints[1].EndPoint);
+                Assert.Equal(2, initialResult.EndPointSource.EndPoints.Count);
+                Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndPointSource.EndPoints[0].EndPoint);
+                Assert.Equal(new DnsEndPoint("remotehost", 9090), initialResult.EndPointSource.EndPoints[1].EndPoint);
 
-                Assert.All(initialResult.EndPoints, ep =>
+                Assert.All(initialResult.EndPointSource.EndPoints, ep =>
                 {
                     var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                     Assert.Null(hostNameFeature);

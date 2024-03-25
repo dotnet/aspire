@@ -40,10 +40,10 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            var ep = Assert.Single(initialResult.EndPoints);
+            var ep = Assert.Single(initialResult.EndPointSource.EndPoints);
             Assert.Equal(new DnsEndPoint("localhost", 8080), ep.EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.Null(hostNameFeature);
@@ -80,7 +80,7 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Empty(initialResult.EndPoints);
+            Assert.Empty(initialResult.EndPointSource.EndPoints);
         }
 
         // Specifying either https or http.
@@ -94,7 +94,7 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            var ep = Assert.Single(initialResult.EndPoints);
+            var ep = Assert.Single(initialResult.EndPointSource.EndPoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
         }
 
@@ -109,7 +109,7 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            var ep = Assert.Single(initialResult.EndPoints);
+            var ep = Assert.Single(initialResult.EndPointSource.EndPoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
         }
     }
@@ -142,11 +142,11 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(2, initialResult.EndPoints.Count);
-            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPoints[1].EndPoint);
+            Assert.Equal(2, initialResult.EndPointSource.EndPoints.Count);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPointSource.EndPoints[0].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPointSource.EndPoints[1].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.NotNull(hostNameFeature);
@@ -164,11 +164,11 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(2, initialResult.EndPoints.Count);
-            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPoints[1].EndPoint);
+            Assert.Equal(2, initialResult.EndPointSource.EndPoints.Count);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPointSource.EndPoints[0].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPointSource.EndPoints[1].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.NotNull(hostNameFeature);
@@ -209,12 +209,12 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(3, initialResult.EndPoints.Count);
-            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPoints[0].EndPoint);
-            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPoints[1].EndPoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:4444")), initialResult.EndPoints[2].EndPoint);
+            Assert.Equal(3, initialResult.EndPointSource.EndPoints.Count);
+            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPointSource.EndPoints[0].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPointSource.EndPoints[1].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:4444")), initialResult.EndPointSource.EndPoints[2].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.Null(hostNameFeature);
@@ -254,16 +254,16 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(3, initialResult.EndPoints.Count);
+            Assert.Equal(3, initialResult.EndPointSource.EndPoints.Count);
 
             // These must be treated as HTTPS by the HttpClient middleware, but that is not the responsibility of the resolver.
-            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPoints[0].EndPoint);
-            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPoints[1].EndPoint);
+            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPointSource.EndPoints[0].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPointSource.EndPoints[1].EndPoint);
 
             // We expect the HTTPS endpoint back but not the HTTP one.
-            Assert.Equal(new UriEndPoint(new Uri("https://remotehost:5555")), initialResult.EndPoints[2].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("https://remotehost:5555")), initialResult.EndPointSource.EndPoints[2].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.Null(hostNameFeature);

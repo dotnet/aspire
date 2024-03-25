@@ -173,7 +173,7 @@ internal sealed class HttpServiceEndPointResolver(ServiceEndPointWatcherFactory 
             {
                 if (result.ResolvedSuccessfully)
                 {
-                    _selector.SetEndPoints(result.EndPoints);
+                    _selector.SetEndPoints(result.EndPointSource);
                 }
             };
         }

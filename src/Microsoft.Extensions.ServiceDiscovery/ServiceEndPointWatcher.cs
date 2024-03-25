@@ -29,7 +29,7 @@ internal sealed partial class ServiceEndPointWatcher(
     private readonly IServiceEndPointProvider[] _resolvers = resolvers;
     private readonly CancellationTokenSource _disposalCancellation = new();
     private ITimer? _pollingTimer;
-    private ServiceEndPointCollection? _cachedEndPoints;
+    private ServiceEndPointSource? _cachedEndPoints;
     private Task _refreshTask = Task.CompletedTask;
     private volatile CacheStatus _cacheState;
 
@@ -57,23 +57,23 @@ internal sealed partial class ServiceEndPointWatcher(
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A collection of resolved endpoints for the service.</returns>
-    public ValueTask<ServiceEndPointCollection> GetEndPointsAsync(CancellationToken cancellationToken = default)
+    public ValueTask<ServiceEndPointSource> GetEndPointsAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfNoResolvers();
 
         // If the cache is valid, return the cached value.
         if (_cachedEndPoints is { ChangeToken.HasChanged: false } cached)
         {
-            return new ValueTask<ServiceEndPointCollection>(cached);
+            return new ValueTask<ServiceEndPointSource>(cached);
         }
 
         // Otherwise, ensure the cache is being refreshed
         // Wait for the cache refresh to complete and return the cached value.
         return GetEndPointsInternal(cancellationToken);
 
-        async ValueTask<ServiceEndPointCollection> GetEndPointsInternal(CancellationToken cancellationToken)
+        async ValueTask<ServiceEndPointSource> GetEndPointsInternal(CancellationToken cancellationToken)
         {
-            ServiceEndPointCollection? result;
+            ServiceEndPointSource? result;
             do
             {
                 await RefreshAsync(force: false).WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -124,53 +124,48 @@ internal sealed partial class ServiceEndPointWatcher(
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         var cancellationToken = _disposalCancellation.Token;
         Exception? error = null;
-        ServiceEndPointCollection? newEndPoints = null;
+        ServiceEndPointSource? newEndPoints = null;
         CacheStatus newCacheState;
-        while (true)
+        try
         {
-            try
+            Log.ResolvingEndPoints(_logger, ServiceName);
+            var builder = new ServiceEndPointBuilder();
+            foreach (var resolver in _resolvers)
             {
-                var collection = new ServiceEndPointCollectionSource();
-                Log.ResolvingEndPoints(_logger, ServiceName);
-                foreach (var resolver in _resolvers)
+                await resolver.ResolveAsync(builder, cancellationToken).ConfigureAwait(false);
+            }
+
+            var endPoints = builder.Build();
+            newCacheState = CacheStatus.Valid;
+
+            lock (_lock)
+            {
+                // Check if we need to poll for updates or if we can register for change notification callbacks.
+                if (endPoints.ChangeToken.ActiveChangeCallbacks)
                 {
-                    await resolver.ResolveAsync(collection, cancellationToken).ConfigureAwait(false);
+                    // Initiate a background refresh, if necessary.
+                    endPoints.ChangeToken.RegisterChangeCallback(static state => _ = ((ServiceEndPointWatcher)state!).RefreshAsync(force: false), this);
+                    if (_pollingTimer is { } timer)
+                    {
+                        _pollingTimer = null;
+                        timer.Dispose();
+                    }
+                }
+                else
+                {
+                    SchedulePollingTimer();
                 }
 
-                var endPoints = ServiceEndPointCollectionSource.CreateServiceEndPointCollection(collection);
+                // The cache is valid
+                newEndPoints = endPoints;
                 newCacheState = CacheStatus.Valid;
-
-                lock (_lock)
-                {
-                    // Check if we need to poll for updates or if we can register for change notification callbacks.
-                    if (endPoints.ChangeToken.ActiveChangeCallbacks)
-                    {
-                        // Initiate a background refresh, if necessary.
-                        endPoints.ChangeToken.RegisterChangeCallback(static state => _ = ((ServiceEndPointWatcher)state!).RefreshAsync(force: false), this);
-                        if (_pollingTimer is { } timer)
-                        {
-                            _pollingTimer = null;
-                            timer.Dispose();
-                        }
-                    }
-                    else
-                    {
-                        SchedulePollingTimer();
-                    }
-
-                    // The cache is valid
-                    newEndPoints = endPoints;
-                    newCacheState = CacheStatus.Valid;
-                    break;
-                }
             }
-            catch (Exception exception)
-            {
-                error = exception;
-                newCacheState = CacheStatus.Invalid;
-                SchedulePollingTimer();
-                break;
-            }
+        }
+        catch (Exception exception)
+        {
+            error = exception;
+            newCacheState = CacheStatus.Invalid;
+            SchedulePollingTimer();
         }
 
         // If there was an error, the cache must be invalid.
