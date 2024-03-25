@@ -77,11 +77,24 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
         // Only attempt to create a container if it was NOT found in the connection string
         // this is always the case for an Aspire mounted blob resource, but a dev could provide a blob
         // connection string themselves that includes a container name in the Uri already; in this case
-        // we assume it already exists and avoid the extra permission demand.
+        // we assume it already exists and avoid the extra permission demand. The applies to any container
+        // name specified in the settings.
         if (blobUriBuilder.BlobContainerName == string.Empty)
         {
             var ns = GetNamespaceFromSettings(settings);
-            blobUriBuilder.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
+
+            // Do we have a container name provided in the settings?
+            if (string.IsNullOrWhiteSpace(settings.BlobContainerName))
+            {
+                // If not, we'll create a container name based on the namespace, event hub name and consumer group
+                blobUriBuilder.BlobContainerName = $"{ns}-{settings.EventHubName}-{consumerGroup}";
+            }
+            else
+            {
+                // If a container name is provided, we'll use that
+                blobUriBuilder.BlobContainerName = settings.BlobContainerName;
+            }
+
             var blobClient = new BlobContainerClient(blobUriBuilder.ToUri(), cred);
 
             try
@@ -93,9 +106,10 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
             catch (RequestFailedException ex)
             {
                 throw new InvalidOperationException(
-                    $"A container was not specified in the blob connection string with the name '{settings.BlobClientConnectionName}', " +
-                    "so an attempt was made to create one automatically and this operation failed. Please ensure the container " +
-                    "exists and is specified in the connection string.",
+                    $"The configured container name of '{blobUriBuilder.BlobContainerName}' does not exist, " +
+                    "so an attempt was made to create it automatically and this operation failed. Please ensure the container " +
+                    "exists and is specified in the connection string, or if you have provided a BlobContainerName in settings, please " +
+                    "ensure it exists. If you don't supply a container name, Aspire will attempt to create one with the name 'namespace-hub-consumergroup'.",
                     ex);
             }
         }

@@ -64,6 +64,7 @@ internal abstract class EventHubsComponent<TClient, TClientOptions> :
         return ns;
     }
 
+    /// see <see cref="AzureMessagingEventHubsSettings.BlobContainerName"/> for more information about the container logic.
     protected static void EnsureConnectionStringOrNamespaceProvided(AzureMessagingEventHubsSettings settings,
         string connectionName, string configurationSectionName)
     {
@@ -80,7 +81,7 @@ internal abstract class EventHubsComponent<TClient, TClientOptions> :
         // If we have a connection string, ensure there's an EntityPath if settings.EventHubName is missing
         if (!string.IsNullOrWhiteSpace(settings.ConnectionString))
         {
-            // No EventHubName?
+            // We have a connection string -- do we have an EventHubName?
             if (string.IsNullOrWhiteSpace(settings.EventHubName))
             {
                 // look for EntityPath

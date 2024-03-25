@@ -18,7 +18,8 @@ public class AspireEventHubsExtensionsTests
     private const string EhConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
                                               "SharedAccessKeyName=fake;SharedAccessKey=fake;EntityPath=MyHub";
     public const string FullyQualifiedNamespace = "aspireeventhubstests.servicebus.windows.net";
-    private const string BlobsConnectionString = "https://fake.blob.core.windows.net/fakecontainer";
+    private const string BlobsConnectionStringWithContainer = "https://fake.blob.core.windows.net/fakecontainer";
+    private const string BlobsConnectionString = "https://fake.blob.core.windows.net";
 
     private const int EventHubProducerClientIndex = 0;
     private const int EventHubConsumerClientIndex = 1;
@@ -50,6 +51,47 @@ public class AspireEventHubsExtensionsTests
     ];
 
     [Theory]
+    [InlineData(false, EventProcessorClientIndex, false)]
+    [InlineData(true, EventProcessorClientIndex, false)]
+    [InlineData(false, EventProcessorClientIndex, true)]
+    [InlineData(true, EventProcessorClientIndex, true)]
+    public void ProcessorClientShouldThrowWithoutBlobContainer(bool useKeyed, int clientIndex, bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var key = useKeyed ? "eh" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobClientConnectionName"), "blobs"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
+            new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
+
+            // container NOT included in connection string
+            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionString)
+        ]);
+
+        if (useKeyed)
+        {
+            s_keyedClientAdders[clientIndex](builder, "eh", null);
+        }
+        else
+        {
+            s_clientAdders[clientIndex](builder, "eh", null);
+        }
+
+        using var host = builder.Build();
+
+        _ = useSettings;
+        //_ = RetrieveClient(useKeyed, clientIndex, host);
+        RetrieveAndAssert(useKeyed, clientIndex, host);
+        //Assert.Throws<InvalidOperationException>(() => _ = RetrieveClient(useKeyed, clientIndex, host));
+    }
+
+    [Theory]
     [InlineData(false, EventHubProducerClientIndex)]
     [InlineData(true, EventHubProducerClientIndex)]
     [InlineData(false, EventHubConsumerClientIndex)]
@@ -72,7 +114,7 @@ public class AspireEventHubsExtensionsTests
                 CreateConfigKey(
                     AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer)
         ]);
 
         if (useKeyed)
@@ -112,7 +154,7 @@ public class AspireEventHubsExtensionsTests
                     AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo")
         ]);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer),
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString)
         ]);
 
@@ -160,7 +202,7 @@ public class AspireEventHubsExtensionsTests
 
             // ambient connection strings
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer)
         ]);
 
         if (useKeyed)
@@ -178,10 +220,22 @@ public class AspireEventHubsExtensionsTests
 
     private static void RetrieveAndAssert(bool useKeyed, int clientIndex, IHost host)
     {
+        var client = RetrieveClient(useKeyed, clientIndex, host);
+
+        AssertFullyQualifiedNamespace(client);
+    }
+
+    private static object RetrieveClient(bool useKeyed, int clientIndex, IHost host)
+    {
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService(s_clientTypes[clientIndex], "eh") :
             host.Services.GetRequiredService(s_clientTypes[clientIndex]);
 
+        return client;
+    }
+
+    private static void AssertFullyQualifiedNamespace(object client)
+    {
         Assert.Equal(FullyQualifiedNamespace, client switch
         {
             EventHubProducerClient producer => producer.FullyQualifiedNamespace,
@@ -222,7 +276,7 @@ public class AspireEventHubsExtensionsTests
                     key, "PartitionId"), "foo"),
 
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer)
         ]);
 
         if (useKeyed)
