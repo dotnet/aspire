@@ -63,7 +63,7 @@ public static class AspireQdrantExtensions
             settings.ConnectionString = connectionString;
         }
 
-        if (builder.Configuration[$"Parameters:{connectionName}-ApiKey"] is string apiKey)
+        if (builder.Configuration[$"{DefaultConfigSectionName}:{connectionName}:ApiKey"] is string apiKey)
         {
             settings.ApiKey = apiKey;
         }
