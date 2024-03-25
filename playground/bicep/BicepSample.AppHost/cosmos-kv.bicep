@@ -1,5 +1,5 @@
 param location string
-param tags object
+param tags object = {}
 
 resource keyVault 'Microsoft.KeyVault/vaults@2022-02-01-preview' = {
   name: 'kv-${uniqueString(resourceGroup().id)}'

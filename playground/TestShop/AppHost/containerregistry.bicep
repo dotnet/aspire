@@ -1,5 +1,5 @@
 param location string
-param tags object
+param tags object = {}
 param sku string = 'Basic'
 param adminUserEnabled bool = true
 

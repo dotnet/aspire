@@ -1,5 +1,5 @@
 param location string
-param tags object
+param tags object = {}
 
 var resourceToken = uniqueString(resourceGroup().id)
 

@@ -19,10 +19,12 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                   targetPort: 8080
                   transport: 'http2'
             }
-            registries: [ {
-                server: param_2
-                identity: param_3
-            } ]
+            registries: [
+                {
+                    server: param_2
+                    identity: param_3
+                }
+            ]
             secrets: [
                 { name: 'connectionstrings--basketcache', value: 'basketcache:6379' }
                 { name: 'connectionstrings--messaging', value: 'amqp://guest:${param_0}@messaging:5672' }

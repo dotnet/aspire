@@ -19,10 +19,12 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                   targetPort: 8080
                   transport: 'http'
             }
-            registries: [ {
-                server: param_2
-                identity: param_3
-            } ]
+            registries: [
+                {
+                    server: param_2
+                    identity: param_3
+                }
+            ]
             secrets: [
                 { name: 'connectionstrings--catalogdb', value: 'Host=postgres;Port=5432;Username=postgres;Password=${param_0};Database=catalogdb' }
             ]

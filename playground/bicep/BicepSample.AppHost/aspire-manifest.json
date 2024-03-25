@@ -70,7 +70,7 @@
       "path": "sql.module.bicep",
       "params": {
         "principalId": "{default-identity.outputs.principalId}",
-        "principalName": "",
+        "principalName": "{default-identity.outputs.name}",
         "principalType": "ServicePrincipal"
       }
     },
@@ -102,10 +102,11 @@
       "connectionString": "{postgres2.secretOutputs.connectionString}",
       "path": "postgres2.module.bicep",
       "params": {
-        "principalId": "",
+        "principalId": "{default-identity.outputs.principalId}",
         "keyVaultName": "",
         "administratorLogin": "{administratorLogin.value}",
-        "administratorLoginPassword": "{administratorLoginPassword.value}"
+        "administratorLoginPassword": "{administratorLoginPassword.value}",
+        "principalType": "ServicePrincipal"
       }
     },
     "db2": {
@@ -117,7 +118,7 @@
       "connectionString": "{cosmos.secretOutputs.connectionString}",
       "path": "cosmos.module.bicep",
       "params": {
-        "keyVaultName": "{cosmos-kv.outputs.name}"
+        "keyVaultName": ""
       }
     },
     "ai": {
@@ -126,7 +127,8 @@
       "path": "ai.module.bicep",
       "params": {
         "principalId": "{default-identity.outputs.principalId}",
-        "principalType": "ServicePrincipal"
+        "principalType": "ServicePrincipal",
+        "logAnalyticsWorkspaceId": "{containerAppEnv.outputs.logAnalyticsWorkspaceId}"
       }
     },
     "redis": {
@@ -134,8 +136,9 @@
       "connectionString": "{redis.secretOutputs.connectionString}",
       "path": "redis.module.bicep",
       "params": {
-        "principalId": "",
-        "keyVaultName": ""
+        "principalId": "{default-identity.outputs.principalId}",
+        "keyVaultName": "",
+        "principalType": "ServicePrincipal"
       }
     },
     "sb": {
@@ -200,10 +203,6 @@
       "type": "azure.bicep.v0",
       "path": "containerregistry.bicep"
     },
-    "cosmos-kv": {
-      "type": "azure.bicep.v0",
-      "path": "cosmos-kv.bicep"
-    },
     "default-identity": {
       "type": "azure.bicep.v0",
       "path": "default-identity.bicep"
@@ -234,6 +233,10 @@
         "param_19": "{containerRegistry.outputs.mid}",
         "param_20": "{api.containerImage}"
       }
+    },
+    "app": {
+      "type": "azure.bicep.v0",
+      "path": "app.bicep"
     }
   }
 }

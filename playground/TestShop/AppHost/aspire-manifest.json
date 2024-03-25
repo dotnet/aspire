@@ -230,6 +230,10 @@
         "param_4": "{catalogdbapp.containerImage}"
       }
     },
+    "app": {
+      "type": "azure.bicep.v0",
+      "path": "app.bicep"
+    },
     "postgres-password": {
       "type": "parameter.v0",
       "value": "{postgres-password.inputs.value}",

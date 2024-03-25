@@ -14,10 +14,12 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         environmentId: param_1
         configuration: {
             activeRevisionsMode: 'Single'
-            registries: [ {
-                server: param_2
-                identity: param_3
-            } ]
+            registries: [
+                {
+                    server: param_2
+                    identity: param_3
+                }
+            ]
             secrets: [
                 { name: 'connectionstrings--messaging', value: 'amqp://guest:${param_0}@messaging:5672' }
             ]

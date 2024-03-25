@@ -17,10 +17,12 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                   targetPort: 8080
                   transport: 'http'
             }
-            registries: [ {
-                server: param_1
-                identity: param_2
-            } ]
+            registries: [
+                {
+                    server: param_1
+                    identity: param_2
+                }
+            ]
         }
         template: {
             scale: {

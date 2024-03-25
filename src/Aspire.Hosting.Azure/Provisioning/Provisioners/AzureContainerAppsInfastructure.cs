@@ -25,7 +25,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
         var containerAppEnv = new AzureBicepResource("containerAppEnv", templateString:
             """
             param location string
-            param tags object
+            param tags object = {}
 
             var resourceToken = uniqueString(resourceGroup().id)
 
@@ -67,7 +67,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
         var containerRegistry = new AzureBicepResource("containerRegistry", templateString:
             """
             param location string
-            param tags object
+            param tags object = {}
             param sku string = 'Basic'
             param adminUserEnabled bool = true
 
@@ -116,41 +116,11 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
             containerRegistry
         };
 
-        // Inject keyvault resources
-        foreach (var r in appModel.Resources.OfType<AzureBicepResource>())
-        {
-            if (r.Parameters.TryGetValue(AzureBicepResource.KnownParameters.KeyVaultName, out var value) &&
-                value is null)
-            {
-                var kv = new AzureBicepResource(r.Name + "-kv", templateString:
-                    """
-                    param location string
-                    param tags object
-
-                    resource keyVault 'Microsoft.KeyVault/vaults@2022-02-01-preview' = {
-                      name: 'kv-${uniqueString(resourceGroup().id)}'
-                      location: location
-                      properties: {
-                        sku: {
-                          family: 'A'
-                          name: 'standard'
-                        }
-                        tenantId: subscription().tenantId
-                        accessPolicies: []
-                      }
-                      tags: tags
-                    }
-
-                    output name string = keyVault.name
-                    """);
-
-                kv.Annotations.Add(new ManifestPublishingCallbackAnnotation(kv.WriteToManifest));
-
-                newResources.Add(kv);
-
-                r.Parameters[AzureBicepResource.KnownParameters.KeyVaultName] = new BicepOutputReference("name", kv);
-            }
-        }
+        IEnumerable<AzureBicepResource> GetAzureResources() =>
+            from r in appModel.Resources
+            let azr = r as AzureBicepResource ?? r.Annotations.OfType<AzureBicepResourceAnnotation>().Select(a => a.Resource).FirstOrDefault()
+            where azr != null
+            select azr;
 
         var domain = new BicepOutputReference("defaultDomain", containerAppEnv);
         var logAnalyticsWorkspaceId = new BicepOutputReference("logAnalyticsWorkspaceId", containerAppEnv);
@@ -160,7 +130,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
         var containerAppIdentity = new AzureBicepResource("default-identity", templateString:
             """
             param location string
-            param tags object
+            param tags object = {}
                                               
             resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
                 name: 'cai-${uniqueString(resourceGroup().id)}'
@@ -171,6 +141,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
             output id string = identity.id
             output clientId string = identity.properties.clientId
             output principalId string = identity.properties.principalId
+            output name string = identity.name
             """);
 
         containerAppIdentity.Annotations.Add(new ManifestPublishingCallbackAnnotation(containerAppIdentity.WriteToManifest));
@@ -180,9 +151,18 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
         var identityId = new BicepOutputReference("id", containerAppIdentity);
         var clientId = new BicepOutputReference("clientId", containerAppIdentity);
         var principalId = new BicepOutputReference("principalId", containerAppIdentity);
+        var principalName = new BicepOutputReference("name", containerAppIdentity);
 
         var containerAppEnviromentContext =
-            new ContainerAppEnviromentContext(containerAppEnvId, domain, identityId, containerAppsRegistryUrl, containerRegistryManagedIdentityId, principalId, clientId);
+            new ContainerAppEnviromentContext(
+                containerAppEnvId,
+                domain,
+                identityId,
+                containerAppsRegistryUrl,
+                containerRegistryManagedIdentityId,
+                principalId,
+                clientId,
+                principalName);
 
         foreach (var r in appModel.Resources)
         {
@@ -202,6 +182,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
             {
                 // We're going to re-write this container as a container app
                 r.Annotations.Add(new ManifestPublishingCallbackAnnotation(containerApp.WriteToManifest));
+                r.Annotations.Add(new AzureBicepResourceAnnotation(containerApp));
             }
             else
             {
@@ -213,6 +194,122 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
         {
             appModel.Resources.Add(r);
         }
+
+        var mapping = new Dictionary<string, string>();
+        string GetBicepName(string name)
+        {
+            if (mapping.TryGetValue(name, out var safeName))
+            {
+                return safeName;
+            }
+
+            safeName = name.Replace("-", "_").Replace(".", "_").Replace(" ", "_");
+            mapping[name] = safeName;
+            return safeName;
+        }
+
+        var sb = new IndentedStringBuilder(new StringBuilder());
+        sb.AppendLine("param location string");
+        sb.AppendLine("param tags object = {}");
+        sb.AppendLine("param parameters object = {}"); // external parameters
+        sb.AppendLine("param inputs object = {}"); // external parameters
+
+        var keyVaults = new HashSet<string>();
+
+        foreach (var item in GetAzureResources())
+        {
+            var fn = item.GetBicepTemplateFile();
+            var fileName = Path.GetFileName(fn.Path);
+
+            // For each bicep resource, write the resource and its parameters
+            sb.AppendLine($"module {GetBicepName(item.Name)} '{fileName}' = {{");
+            sb.Indent();
+            sb.AppendLine($"name: '{item.Name}'");
+            sb.AppendLine("params: {");
+            sb.Indent();
+            sb.AppendLine("location: location");
+
+            if (item.Parameters.TryGetValue(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, out var id) && id is null)
+            {
+                item.Parameters[AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId] = logAnalyticsWorkspaceId;
+            }
+
+            foreach (var (key, value) in item.Parameters)
+            {
+                var obj = value;
+                if (obj is Func<object> f)
+                {
+                    obj = f();
+                }
+
+                if (value is BicepSecretOutputReference o)
+                {
+                    keyVaults.Add(o.Resource.Name);
+                }
+
+                var val = obj switch
+                {
+                    string s => $"'{s}'",
+                    BicepOutputReference output => $"{GetBicepName(output.Resource.Name)}.outputs.{output.Name}",
+                    BicepSecretOutputReference secretOutput => $"{GetBicepName(secretOutput.Resource.Name)}_kv.getSecret('{secretOutput.Name}')",
+                    ParameterResource p => $"parameters.{GetBicepName(p.Name)}",
+                    IEnumerable<string> s => $"[{string.Join(", ", s.Select(s => $"'{s}'"))}]",
+                    ProjectContainerImage p => $"inputs.{GetBicepName(p.Project.Name)}.containerImage",
+                    null when key == AzureBicepResource.KnownParameters.KeyVaultName => $"{GetBicepName(item.Name)}_kv.name",
+                    var v => v?.ToString()
+                };
+                sb.AppendLine($"{key}: {val}");
+            }
+            sb.Dedent();
+            sb.AppendLine("}");
+            sb.Dedent();
+            sb.AppendLine("}");
+            sb.AppendLine();
+        }
+
+        // Add the key vaults
+        foreach (var keyVault in keyVaults)
+        {
+            // resource keyVault 'Microsoft.KeyVault/vaults@2022-02-01-preview' = {
+            //  name: 'kv-${uniqueString(resourceGroup().id)}'
+            //  location: location
+            //  properties: {
+            //    sku: {
+            //      family: 'A'
+            //      name: 'standard'
+            //    }
+            //    tenantId: subscription().tenantId
+            //    accessPolicies: []
+            //  }
+            //  tags: tags
+            //}
+            sb.AppendLine($"resource {GetBicepName(keyVault)}_kv 'Microsoft.KeyVault/vaults@2022-02-01-preview' = {{");
+            sb.Indent();
+            sb.AppendLine($"name: 'kv-{GetBicepName(keyVault)}-${{uniqueString(resourceGroup().id)}}'");
+            sb.AppendLine("location: location");
+            sb.AppendLine("properties: {");
+            sb.Indent();
+            sb.AppendLine("sku: {");
+            sb.Indent();
+            sb.AppendLine("family: 'A'");
+            sb.AppendLine("name: 'standard'");
+            sb.Dedent();
+            sb.AppendLine("}");
+            sb.AppendLine("tenantId: subscription().tenantId");
+            sb.AppendLine("enabledForDeployment: true");
+            sb.AppendLine("accessPolicies: []");
+            sb.Dedent();
+            sb.AppendLine("}");
+            sb.AppendLine("tags: tags");
+            sb.Dedent();
+            sb.AppendLine("}"); // resource
+            sb.AppendLine();
+        }
+
+        // Create a new azure bicep resource that wires up all of the other resources parameters
+        var app = new AzureBicepResource("app", templateString: sb.ToString());
+        app.Annotations.Add(new ManifestPublishingCallbackAnnotation(app.WriteToManifest));
+        appModel.Resources.Add(app);
     }
 
     private sealed class ContainerAppEnviromentContext(
@@ -222,7 +319,8 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
         BicepOutputReference containerRegistryUrl,
         BicepOutputReference containerRegistryManagedIdentityId,
         BicepOutputReference principalId,
-        BicepOutputReference clientId
+        BicepOutputReference clientId,
+        BicepOutputReference principalName
         )
     {
         private BicepOutputReference ContainerAppEnvironmentId => containerAppEnvironmentId;
@@ -233,6 +331,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
         private BicepOutputReference ContainerRegistryUrl => containerRegistryUrl;
         private BicepOutputReference ContainerRegistryManagedIdentityId => containerRegistryManagedIdentityId;
         private BicepOutputReference PrincipalId => principalId;
+        private BicepOutputReference PrincipalName => principalName;
         private BicepOutputReference ClientId => clientId;
 
         private readonly Dictionary<IResource, ContainerAppContext> _containerApps = [];
@@ -295,7 +394,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                 {
                     AllocateContainerRegistryParameters();
 
-                    containerImageParam = AllocateParameter(new ContainerImage((ProjectResource)resource));
+                    containerImageParam = AllocateParameter(new ProjectContainerImage((ProjectResource)resource));
                 }
 
                 var sb = new IndentedStringBuilder(new StringBuilder());
@@ -473,6 +572,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
             private async Task ProcessEnvironmentAsync(DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
             {
                 var principalId = _containerAppEnviromentContext.PrincipalId;
+                var principalName = _containerAppEnviromentContext.PrincipalName;
                 var clientId = _containerAppEnviromentContext.ClientId;
 
                 if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var environmentCallbacks))
@@ -514,6 +614,12 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                             {
                                 resource.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = principalId;
                                 resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = "ServicePrincipal";
+
+                                if (resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.PrincipalName))
+                                {
+                                    resource.Parameters[AzureBicepResource.KnownParameters.PrincipalName] = principalName;
+                                }
+
                                 requiresManagedIdentity = true;
                             }
                         }
@@ -552,11 +658,21 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
 
                 if (value is ConnectionStringReference cs)
                 {
+                    if (cs.Resource.TryGetLastAnnotation<AzureBicepResourceAnnotation>(out var ba))
+                    {
+                        AzureDependencies[ba.Resource.Name] = ba.Resource;
+                    }
+
                     return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, isSecret: true).ConfigureAwait(false);
                 }
 
                 if (value is IResourceWithConnectionString csrs)
                 {
+                    if (csrs.TryGetLastAnnotation<AzureBicepResourceAnnotation>(out var ba))
+                    {
+                        AzureDependencies[ba.Resource.Name] = ba.Resource;
+                    }
+
                     return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, isSecret: true).ConfigureAwait(false);
                 }
 
@@ -581,6 +697,8 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
 
                 if (value is BicepSecretOutputReference secretOutputReference)
                 {
+                    AzureDependencies[secretOutputReference.Resource.Name] = secretOutputReference.Resource;
+
                     // Externalize secret outputs so azd can fill them in
                     var parameterName = AllocateParameter(secretOutputReference);
 
@@ -807,40 +925,52 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
 
                 return $"'{val}'";
             }
-
-            private sealed class ContainerImage(ProjectResource p) : IManifestExpressionProvider
-            {
-                public string ValueExpression => $"{{{p.Name}.containerImage}}";
-            }
-
-            private class IndentedStringBuilder(StringBuilder sb)
-            {
-                private StringBuilder StringBuilder { get; } = sb;
-
-                public int IndentLevel { get; set; }
-
-                public void Indent()
-                {
-                    IndentLevel++;
-                }
-
-                public void Dedent()
-                {
-                    IndentLevel--;
-                }
-
-                public void AppendLine(string line)
-                {
-                    Debug.Assert(IndentLevel < 32);
-                    Span<char> indent = stackalloc char[128];
-                    indent.Fill(' ');
-                    var charCount = IndentLevel * 4;
-                    StringBuilder.Append(indent[..charCount]);
-                    StringBuilder.AppendLine(line);
-                }
-
-                public override string ToString() => StringBuilder.ToString();
-            }
         }
+    }
+
+    private sealed class ProjectContainerImage(ProjectResource p) : IManifestExpressionProvider
+    {
+        public ProjectResource Project => p;
+        public string ValueExpression => $"{{{p.Name}.containerImage}}";
+    }
+
+    private class IndentedStringBuilder(StringBuilder sb)
+    {
+        private StringBuilder StringBuilder { get; } = sb;
+
+        public int IndentLevel { get; set; }
+
+        public void Indent()
+        {
+            IndentLevel++;
+        }
+
+        public void Dedent()
+        {
+            IndentLevel--;
+        }
+
+        public void AppendLine()
+        {
+            AppendIndent();
+            StringBuilder.AppendLine();
+        }
+
+        public void AppendLine(string line)
+        {
+            AppendIndent();
+            StringBuilder.AppendLine(line);
+        }
+
+        private void AppendIndent()
+        {
+            Debug.Assert(IndentLevel < 32);
+            Span<char> indent = stackalloc char[128];
+            indent.Fill(' ');
+            var charCount = IndentLevel * 4;
+            StringBuilder.Append(indent[..charCount]);
+        }
+
+        public override string ToString() => StringBuilder.ToString();
     }
 }

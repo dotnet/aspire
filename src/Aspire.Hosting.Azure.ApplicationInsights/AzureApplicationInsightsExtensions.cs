@@ -59,6 +59,7 @@ public static class AzureApplicationInsightsExtensions
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithParameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

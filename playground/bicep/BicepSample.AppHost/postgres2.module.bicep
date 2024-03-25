@@ -16,6 +16,9 @@ param principalId string
 @description('')
 param keyVaultName string
 
+@description('')
+param principalType string
+
 
 resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
