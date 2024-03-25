@@ -13,7 +13,7 @@ public static partial class TimestampParser
 {
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
-    public static bool TryColorizeTimestamp(string text, [NotNullWhen(true)] out TimestampParserResult? result)
+    public static bool TryParseConsoleTimestamp(string text, [NotNullWhen(true)] out TimestampParserResult? result)
     {
         var match = s_rfc3339RegEx.Match(text);
 

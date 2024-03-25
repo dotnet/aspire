@@ -32,7 +32,7 @@ internal sealed class LogParser
         var isFirstLine = false;
         DateTimeOffset? timestamp = null;
 
-        if (TimestampParser.TryColorizeTimestamp(content, out var timestampParseResult))
+        if (TimestampParser.TryParseConsoleTimestamp(content, out var timestampParseResult))
         {
             isFirstLine = true;
             content = timestampParseResult.Value.ModifiedText;
