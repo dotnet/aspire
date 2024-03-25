@@ -207,8 +207,8 @@ internal static class RedisProfilerEntryToActivityConverter
 #endif
             {
                 string methodName = classType.FullName + ".get_" + field.Name;
-                // TODO: Remove disable when the AOT analyzer being used has the fix for https://github.com/dotnet/linker/issues/2715.
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+                // TODO: Remove the above disable when the AOT analyzer being used has the fix for https://github.com/dotnet/linker/issues/2715.
                 DynamicMethod getterMethod = new DynamicMethod(methodName, typeof(TField), new[] { typeof(object) }, true);
 #pragma warning restore IL3050
                 ILGenerator generator = getterMethod.GetILGenerator();
