@@ -8,6 +8,7 @@ using k8s;
 using k8s.Exceptions;
 using k8s.Models;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
 
@@ -42,7 +43,7 @@ internal interface IKubernetesService
         CancellationToken cancellationToken = default) where T : CustomResource;
 }
 
-internal sealed class KubernetesService(ILogger<KubernetesService> logger, DcpOptions dcpOptions, Locations locations) : IKubernetesService, IDisposable
+internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOptions<DcpOptions> dcpOptions, Locations locations) : IKubernetesService, IDisposable
 {
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
@@ -309,8 +310,8 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, DcpOp
             {
                 ShouldHandle = new PredicateBuilder().Handle<IOException>(e => e.Message.StartsWith("The process cannot access the file")),
                 BackoffType = DelayBackoffType.Constant,
-                MaxRetryAttempts = dcpOptions.KubernetesConfigReadRetryCount,
-                MaxDelay = TimeSpan.FromSeconds(dcpOptions.KubernetesConfigReadRetryIntervalSeconds),
+                MaxRetryAttempts = dcpOptions.Value.KubernetesConfigReadRetryCount,
+                MaxDelay = TimeSpan.FromSeconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalSeconds),
                 OnRetry = (retry) =>
                 {
                     logger.LogDebug(
@@ -326,10 +327,11 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, DcpOp
 
             pipeline.Execute(() =>
             {
+                logger.LogDebug("Reading Kubernetes configuration from '{DcpKubeconfigPath}' on thread {ThreadId}.", locations.DcpKubeconfigPath, Environment.CurrentManagedThreadId);
                 var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: locations.DcpKubeconfigPath, useRelativePaths: false);
+                logger.LogDebug("Successfully read Kubernetes configuration from '{DcpKubeconfigPath}'.", locations.DcpKubeconfigPath);
                 _kubernetes = new DcpKubernetesClient(config);
             });
-
         }
     }
 }
