@@ -101,3 +101,5 @@ builder.AddQdant("qdrant");
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
+
+_Qdrant, and the Qdrant logo are trademarks or registered trademarks of Qdrant Solutions GmbH of Germany, and used with their permission._
