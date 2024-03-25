@@ -171,9 +171,11 @@ internal sealed class DashboardClient : IDashboardClient
                     throw new InvalidOperationException("ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Certificate:FilePath is configured.");
                 }
 
-                using var store = new X509Store(storeName: StoreName.My, storeLocation: StoreLocation.CurrentUser);
+                var storeProperties = new KeyStoreProperties { Name = "My", Location = StoreLocation.CurrentUser };
 
-                configuration.Bind("ResourceServiceClient:ClientCertificate:KeyStore");
+                configuration.Bind("ResourceServiceClient:ClientCertificate:KeyStore", storeProperties);
+
+                using var store = new X509Store(storeName: storeProperties.Name, storeLocation: storeProperties.Location);
 
                 store.Open(OpenFlags.ReadOnly);
 
@@ -187,6 +189,12 @@ internal sealed class DashboardClient : IDashboardClient
                 return certificates;
             }
         }
+    }
+
+    internal sealed class KeyStoreProperties
+    {
+        public required string Name { get; set; }
+        public required StoreLocation Location { get; set; }
     }
 
     // For testing purposes
