@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Microsoft.Extensions.ServiceDiscovery;
+namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 
 /// <summary>
 /// Selects endpoints from a collection of endpoints.
 /// </summary>
-public interface IServiceEndPointSelector
+internal interface IServiceEndPointSelector
 {
     /// <summary>
     /// Sets the collection of endpoints which this instance will select from.
