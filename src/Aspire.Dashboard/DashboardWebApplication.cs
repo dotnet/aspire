@@ -419,7 +419,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         .RequireAuthenticatedUser()
                         .Build());
             }
-            else
+            else if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.Unsecured)
             {
                 // Frontend is unsecured so our policy doesn't need any special handling.
                 options.AddPolicy(
@@ -427,6 +427,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     policy: new AuthorizationPolicyBuilder()
                         .RequireAssertion(_ => true)
                         .Build());
+            }
+            else
+            {
+                throw new NotImplementedException($"Unexpected {nameof(FrontendAuthMode)} enum member.");
             }
         });
     }
