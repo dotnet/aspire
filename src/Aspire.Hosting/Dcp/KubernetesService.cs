@@ -48,7 +48,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
-    private volatile DcpKubernetesClient? _kubernetes;
+    private DcpKubernetesClient? _kubernetes;
 
     public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(20);
 
