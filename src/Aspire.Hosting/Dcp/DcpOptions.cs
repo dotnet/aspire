@@ -79,7 +79,7 @@ internal sealed class DcpOptions
 
     public int KubernetesConfigReadRetryCount { get; set; } = 10;
 
-    public int KubernetesConfigReadRetryIntervalSeconds { get; set; } = 1;
+    public int KubernetesConfigReadRetryIntervalSeconds { get; set; } = 3;
 
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
     {
