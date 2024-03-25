@@ -76,11 +76,14 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
             }
 
             using var channel = _messageConnection.CreateModel();
-            channel.QueueDeclare(queueName, exclusive: false);
+            channel.QueueDeclare(queueName, durable: true, exclusive: false);
+
+            var props = channel.CreateBasicProperties();
+            props.Persistent = true; // or props.DeliveryMode = 2;
             channel.BasicPublish(
                 exchange: "",
                 routingKey: queueName,
-                basicProperties: null,
+                basicProperties: props,
                 body: JsonSerializer.SerializeToUtf8Bytes(order));
         }
 
