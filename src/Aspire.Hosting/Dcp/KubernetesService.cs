@@ -293,6 +293,18 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, DcpOp
         {
             if (_kubernetes != null) { return; }
 
+            // This retry was created in relation to this comment in GitHub:
+            //
+            //     https://github.com/dotnet/aspire/issues/2422#issuecomment-2016701083
+            //
+            // It looks like it is possible for us to attempt to read the file before it is written/finished
+            // being written. We rely on DCP to write the configuration file but it may happen in parallel to
+            // this code executing is its possible the file does not exist, or is still being written by
+            // the time we get to it.
+            //
+            // This retry will retry reading the file 5 times (by default, but configurable) with a pause
+            // of 3 seconds between each attempt. This means it could take up to 15 seconds to fail. We emit
+            // debug level logs for each retry attempt should we need to help a customer debug this.
             var configurationReadRetry = new RetryStrategyOptions()
             {
                 ShouldHandle = new PredicateBuilder().Handle<IOException>(e => e.Message.StartsWith("The process cannot access the file")),
@@ -310,7 +322,6 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, DcpOp
                     return ValueTask.CompletedTask;
                 }
             };
-
             var pipeline = new ResiliencePipelineBuilder().AddRetry(configurationReadRetry).Build();
 
             pipeline.Execute(() =>
