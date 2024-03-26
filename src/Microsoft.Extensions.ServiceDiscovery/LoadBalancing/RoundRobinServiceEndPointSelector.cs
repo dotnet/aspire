@@ -1,20 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 
 /// <summary>
 /// Selects endpoints by iterating through the list of endpoints in a round-robin fashion.
 /// </summary>
-public class RoundRobinServiceEndPointSelector : IServiceEndPointSelector
+internal sealed class RoundRobinServiceEndPointSelector : IServiceEndPointSelector
 {
     private uint _next;
-    private ServiceEndPointCollection? _endPoints;
+    private IReadOnlyList<ServiceEndPoint>? _endPoints;
 
     /// <inheritdoc/>
-    public void SetEndPoints(ServiceEndPointCollection endPoints)
+    public void SetEndPoints(ServiceEndPointSource endPoints)
     {
-        _endPoints = endPoints;
+        _endPoints = endPoints.EndPoints;
     }
 
     /// <inheritdoc/>
