@@ -6,9 +6,9 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal class DashboardAuthenticationOptionsValidator(IConfiguration configuration) : IValidateOptions<DashboardAuthenticationOptions>
+internal class TransportOptionsValidator(IConfiguration configuration) : IValidateOptions<TransportOptions>
 {
-    public ValidateOptionsResult Validate(string? name, DashboardAuthenticationOptions options)
+    public ValidateOptionsResult Validate(string? name, TransportOptions options)
     {
         if (configuration[KnownEnvironmentVariables.AspNetCoreUrls] is not { } applicationUrls)
         {
@@ -24,7 +24,7 @@ internal class DashboardAuthenticationOptionsValidator(IConfiguration configurat
 
         if (parsedFirstApplicationUrl.Scheme == "http" && !options.AllowUnsecureTransport.GetValueOrDefault(false))
         {
-            throw new DistributedApplicationException($"AppHost cannot use a non-TLS URL for applicationUrl in launch profile, or {KnownEnvironmentVariables.AspNetCoreUrls} unless DashboardAuthenticationOptions.AllowUnsecureTransport is set to true.");
+            throw new DistributedApplicationException($"AppHost cannot use a non-TLS URL for applicationUrl in launch profile, or {KnownEnvironmentVariables.AspNetCoreUrls} unless DashboardAuthenticationOptions.AllowUnsecureTransport is set to true. See https://aka.ms/dotnet/aspire/allowunsecuredtransport.");
         }
 
         _ = configuration;

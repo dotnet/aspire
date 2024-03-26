@@ -69,10 +69,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
                                           ResourceLoggerService loggerService,
-                                          IDcpDependencyCheckService dcpDependencyCheckService,
-                                          IOptions<DashboardAuthenticationOptions> dashboardAuthenticationOptions,
-                                          IDashboardTokenProvider dashboardTokenProvider
-                                          )
+                                          IDcpDependencyCheckService dcpDependencyCheckService)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -710,19 +707,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // Grab the resource service URL. We need to inject this into the resource.
 
             var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
-
-            if (dashboardAuthenticationOptions.Value.AllowUnsecureTransport.GetValueOrDefault(false))
-            {
-                // Configure for insecure running.
-                context.EnvironmentVariables["DISABLEAUTHPLACEHOLDER"] = true;
-            }
-            else
-            {
-                // Configure for secure running.
-                context.EnvironmentVariables["BROWSERTOKENPLACEHOLDER"] = dashboardTokenProvider.BrowserToken;
-                context.EnvironmentVariables["OTLPTOKENPLACEHOLDER"] = dashboardTokenProvider.OltpToken;
-                context.EnvironmentVariables["RESOURCESERVERTOKENPLACEHOLDER"] = dashboardTokenProvider.ResourceServerToken;
-            }
 
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;

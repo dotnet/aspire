@@ -16,9 +16,9 @@ internal interface IDashboardTokenProvider
 
 internal class DashboardTokenProvider : IDashboardTokenProvider
 {
-    public DashboardTokenProvider(IOptions<DashboardAuthenticationOptions> dashboardAuthenticationOptions)
+    public DashboardTokenProvider(IOptions<TransportOptions> transportOptions)
     {
-        BrowserToken = dashboardAuthenticationOptions.Value.BrowserToken ?? GenerateToken();
+        BrowserToken = transportOptions.Value.BrowserToken ?? GenerateToken();
         OltpToken = GenerateToken();
         ResourceServerToken = GenerateToken();
     }

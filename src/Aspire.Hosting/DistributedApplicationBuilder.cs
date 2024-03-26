@@ -91,8 +91,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
 
         // Dashboard
-        _innerBuilder.Services.AddOptions<DashboardAuthenticationOptions>().Bind(Configuration.GetSection("Aspire:Dashboard:Authentication"));
-        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardAuthenticationOptions>, DashboardAuthenticationOptionsValidator>());
+        _innerBuilder.Services.AddOptions<TransportOptions>().PostConfigure(MapTransportOptionsFromCustomKeys);
+        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
         _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
@@ -122,6 +122,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton<DistributedApplicationExecutionContext>(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private void MapTransportOptionsFromCustomKeys(TransportOptions options)
+    {
+        options.AllowUnsecureTransport = Configuration.GetBool(KnownEnvironmentVariables.AllowUnsecuredTransport, false);
     }
 
     private static bool IsOtlpApiKeyAuthDisabled(IConfiguration configuration)

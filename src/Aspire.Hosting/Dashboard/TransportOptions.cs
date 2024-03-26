@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Dashboard;
 
-internal class DashboardAuthenticationOptions
+internal class TransportOptions
 {
     public bool? AllowUnsecureTransport { get; set; }
     public string? BrowserToken { get; set; }

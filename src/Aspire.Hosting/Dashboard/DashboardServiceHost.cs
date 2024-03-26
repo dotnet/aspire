@@ -54,8 +54,15 @@ internal sealed class DashboardServiceHost : IHostedService
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions,
         ResourceNotificationService resourceNotificationService,
-        ResourceLoggerService resourceLoggerService)
+        ResourceLoggerService resourceLoggerService,
+        IOptions<TransportOptions> transportOptions)
     {
+        // TODO: This is a temporary addition until P6 when we fully implement
+        //       the dashboard auth features. For now we want to throw if the
+        //       applicationUrl in the AppHost launch settings has a http endpoint
+        //       and the ASPIRE_ALLOW_UNSECURED_TRANSPORT value is not set to true.
+        _ = transportOptions.Value.AllowUnsecureTransport;
+
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
         if (!options.DashboardEnabled || executionContext.IsPublishMode)
