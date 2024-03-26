@@ -174,7 +174,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         EndpointReference? httpEndPoint = null;
                         if (resource is IResourceWithEndpoints resourceWithEndpoints)
                         {
-                            httpEndPoint = resourceWithEndpoints.GetEndpoint("http");
+                            var endpointName = sidecarOptions?.AppProtocol ?? "http";
+                            httpEndPoint = resourceWithEndpoints.GetEndpoint(endpointName.ToLower());
 
                             if (httpEndPoint.IsAllocated && sidecarOptions?.AppPort is null)
                             {

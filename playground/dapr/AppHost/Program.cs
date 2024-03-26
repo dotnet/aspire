@@ -1,15 +1,21 @@
+using Aspire.Hosting.Dapr;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var stateStore = builder.AddDaprStateStore("statestore");
 var pubSub = builder.AddDaprPubSub("pubsub");
 
-builder.AddProject<Projects.DaprServiceA>("servicea")
-       .WithDaprSidecar()
+builder.AddProject<Projects.DaprServiceA>("servicea", "https")
+       .WithDaprSidecar(new DaprSidecarOptions{
+              AppProtocol = "https"
+       })
        .WithReference(stateStore)
        .WithReference(pubSub);
 
-builder.AddProject<Projects.DaprServiceB>("serviceb")
-       .WithDaprSidecar()
+builder.AddProject<Projects.DaprServiceB>("serviceb", "https")
+       .WithDaprSidecar(new DaprSidecarOptions{
+              AppProtocol = "https"
+       })
        .WithReference(pubSub);
 
 // This project is only added in playground projects to support development/debugging
