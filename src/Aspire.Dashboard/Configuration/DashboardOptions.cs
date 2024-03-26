@@ -48,7 +48,7 @@ public sealed class ResourceServiceClientCertificateOptions
     public string? FilePath { get; set; }
     public string? Password { get; set; }
     public string? Subject { get; set; }
-    public string? StoreName { get; set; }
+    public string? Store { get; set; }
     public StoreLocation? Location { get; set; }
 }
 
