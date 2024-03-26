@@ -74,24 +74,24 @@ internal sealed class BicepProvisioner(
             resource.SecretOutputs[item.Key] = item.Value;
         }
 
-        var portalUrls = new List<(string, string)>();
+        var portalUrls = new List<UrlSnapshot>();
 
         if (section["Id"] is string deploymentId &&
             ResourceIdentifier.TryParse(deploymentId, out var id) &&
             id is not null)
         {
-            portalUrls.Add(("deployment", GetDeploymentUrl(id)));
+            portalUrls.Add(new(Name: "deployment", Url: GetDeploymentUrl(id), IsInternal: false));
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
-            ImmutableArray<(string, object?)> props = [
+            ImmutableArray<ResourcePropertySnapshot> props = [
                 .. state.Properties,
-                    ("azure.subscription.id", configuration["Azure:SubscriptionId"]),
-                    // ("azure.resource.group", configuration["Azure:ResourceGroup"]!),
-                    ("azure.tenant.domain", configuration["Azure:Tenant"]),
-                    ("azure.location", configuration["Azure:Location"]),
-                    (CustomResourceKnownProperties.Source, section["Id"])
+                    new("azure.subscription.id", configuration["Azure:SubscriptionId"]),
+                    // new("azure.resource.group", configuration["Azure:ResourceGroup"]!),
+                    new("azure.tenant.domain", configuration["Azure:Tenant"]),
+                    new("azure.location", configuration["Azure:Location"]),
+                    new(CustomResourceKnownProperties.Source, section["Id"])
             ];
 
             return state with
@@ -112,10 +112,10 @@ internal sealed class BicepProvisioner(
             ResourceType = resource.GetType().Name,
             State = "Starting",
             Properties = [
-                ("azure.subscription.id", context.Subscription.Id.Name),
-                ("azure.resource.group", context.ResourceGroup.Id.Name),
-                ("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
-                ("azure.location", context.Location.ToString()),
+                new("azure.subscription.id", context.Subscription.Id.Name),
+                new("azure.resource.group", context.ResourceGroup.Id.Name),
+                new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
+                new("azure.location", context.Location.ToString()),
             ]
         }).ConfigureAwait(false);
 
@@ -222,7 +222,7 @@ internal sealed class BicepProvisioner(
         {
             return state with
             {
-                Urls = [.. state.Urls, ("deployment", url)],
+                Urls = [.. state.Urls, new(Name: "deployment", Url: url, IsInternal: false)],
             };
         })
         .ConfigureAwait(false);
@@ -308,9 +308,9 @@ internal sealed class BicepProvisioner(
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
-            ImmutableArray<(string, object?)> properties = [
+            ImmutableArray<ResourcePropertySnapshot> properties = [
                 .. state.Properties,
-                (CustomResourceKnownProperties.Source, deployment.Id.Name)
+                new(CustomResourceKnownProperties.Source, deployment.Id.Name)
             ];
 
             return state with
