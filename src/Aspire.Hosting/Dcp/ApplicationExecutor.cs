@@ -129,7 +129,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
-            Console.WriteLine ($"*** Ready to call AfterResourcesCreatedAsync");
+            //Console.WriteLine ($"*** Ready to call AfterResourcesCreatedAsync");
             foreach (var lifecycleHook in _lifecycleHooks)
             {
                 await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
@@ -180,7 +180,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void WatchResourceChanges(CancellationToken cancellationToken)
     {
-        Console.WriteLine ($"*** WatchResourceChanges");
+        //Console.WriteLine ($"*** WatchResourceChanges");
         var semaphore = new SemaphoreSlim(1);
 
         Task.Run(
@@ -895,7 +895,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
-        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync");
+        //Console.WriteLine ($"*** CreateContainersAndExecutablesAsync");
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
@@ -917,10 +917,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var appResource in resources)
         {
-            Console.WriteLine ($"*** \t{appResource.DcpResource.Metadata.Name}");
+            //Console.WriteLine ($"*** \t{appResource.DcpResource.Metadata.Name}");
             foreach (var sp in appResource.ServicesProduced)
             {
-                Console.WriteLine ($"*** \t\t{sp.EndpointAnnotation.Name}");
+                //Console.WriteLine ($"*** \t\t{sp.EndpointAnnotation.Name}");
                 var svc = (Service)sp.DcpResource;
 
                 if (!svc.HasCompleteAddress && sp.EndpointAnnotation.IsProxied)
@@ -945,7 +945,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PrepareServices()
     {
-        Console.WriteLine ($"*** PrepareServices");
+        //Console.WriteLine ($"*** PrepareServices");
         var serviceProducers = _model.Resources
             .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>()))
             .Where(sp => sp.Endpoints.Any());
@@ -989,7 +989,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PreparePlainExecutables()
     {
-        Console.WriteLine ($"*** PreparePlainExecutables");
+        //Console.WriteLine ($"*** PreparePlainExecutables");
         var modelExecutableResources = _model.GetExecutableResources();
 
         foreach (var executable in modelExecutableResources)
@@ -1012,7 +1012,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PrepareProjectExecutables()
     {
-        Console.WriteLine ($"*** PrepareProjectExecutables");
+        //Console.WriteLine ($"*** PrepareProjectExecutables");
         var modelProjectResources = _model.GetProjectResources();
 
         foreach (var project in modelProjectResources)
