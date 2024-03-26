@@ -1030,30 +1030,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
-                if (_dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionIdeProtocolV1) >= 0)
-                {
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
-                    {
-                        projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
-                    }
-                }
-                else
-                {
 #pragma warning disable CS0612 // These annotations are obsolete; remove in Aspire Preview 6
-                    annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
+                annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
 
-                    // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
-                    if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
-                    {
-                        annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
-                    }
-                    else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
-                    {
-                        annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
-                    }
-#pragma warning restore CS0612
+                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
+                if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                {
+                    annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
                 }
+                else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                {
+                    annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+                }
+#pragma warning restore CS0612
             }
             else
             {
