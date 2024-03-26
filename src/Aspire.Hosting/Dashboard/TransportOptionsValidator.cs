@@ -19,7 +19,7 @@ internal class TransportOptionsValidator(IConfiguration configuration) : IValida
 
         if (!Uri.TryCreate(firstApplicationUrl, UriKind.Absolute, out var parsedFirstApplicationUrl))
         {
-            throw new DistributedApplicationException($"AppHost applicationUrl in launch profile, or {KnownEnvironmentVariables.AspNetCoreUrls} environment variable with value '{firstApplicationUrl}' could not be parsed as a URI.");
+            throw new DistributedApplicationException($"The 'applicationUrl' setting of the launch profile has value '{firstApplicationUrl}' which could not be parsed as a URI.");
         }
 
         if (parsedFirstApplicationUrl.Scheme == "http" && !options.AllowUnsecureTransport.GetValueOrDefault(false))
