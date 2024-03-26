@@ -166,7 +166,10 @@ public partial class Traces
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
             _applicationChanged = false;
         }
-        await JS.InvokeVoidAsync("initializeContinuousScroll");
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        }
     }
 
     public void Dispose()

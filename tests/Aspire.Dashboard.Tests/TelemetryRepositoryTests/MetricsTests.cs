@@ -99,7 +99,7 @@ public class MetricsTests
     public void AddMetrics_AttributeLimits_LimitsApplied()
     {
         // Arrange
-        var repository = CreateRepository(attributeCountLimit: 5, attributeLengthLimit: 16);
+        var repository = CreateRepository(maxAttributeCount: 5, maxAttributeLength: 16);
 
         var metricAttributes = new List<KeyValuePair<string, string>>();
         var meterAttributes = new List<KeyValuePair<string, string>>();
@@ -299,7 +299,7 @@ public class MetricsTests
     public void AddMetrics_Capacity_ValuesRemoved()
     {
         // Arrange
-        var repository = CreateRepository(metricsCountLimit: 3);
+        var repository = CreateRepository(maxMetricsCount: 3);
 
         // Act
         var addContext = new AddContext();

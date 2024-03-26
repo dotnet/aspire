@@ -44,7 +44,7 @@ public class ResourceLoggerService
     /// </summary>
     /// <param name="resourceName">The resource name</param>
     /// <returns></returns>
-    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(string resourceName)
+    public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(string resourceName)
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
@@ -56,7 +56,7 @@ public class ResourceLoggerService
     /// </summary>
     /// <param name="resource">The resource to watch for logs.</param>
     /// <returns></returns>
-    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync(IResource resource)
+    public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
 
@@ -103,7 +103,7 @@ public class ResourceLoggerService
         private readonly CancellationTokenSource _logStreamCts = new();
 
         // History of logs, capped at 10000 entries.
-        private readonly CircularBuffer<(string Content, bool IsErrorMessage)> _backlog = new(10000);
+        private readonly CircularBuffer<LogLine> _backlog = new(10000);
 
         /// <summary>
         /// Creates a new <see cref="ResourceLoggerState"/>.
@@ -117,7 +117,7 @@ public class ResourceLoggerService
         /// Watch for changes to the log stream for a resource.
         /// </summary>
         /// <returns>The log stream for the resource.</returns>
-        public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> WatchAsync()
+        public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync()
         {
             lock (_backlog)
             {
@@ -127,7 +127,7 @@ public class ResourceLoggerService
         }
 
         // This provides the fan out to multiple subscribers.
-        private Action<(string, bool)>? OnNewLog { get; set; }
+        private Action<LogLine>? OnNewLog { get; set; }
 
         /// <summary>
         /// The logger for the resource to write to. This will write updates to the live log stream for this resource.
@@ -145,6 +145,8 @@ public class ResourceLoggerService
 
         private sealed class ResourceLogger(ResourceLoggerState annotation) : ILogger
         {
+            private int _lineNumber;
+
             IDisposable? ILogger.BeginScope<TState>(TState state) => null;
 
             bool ILogger.IsEnabled(LogLevel logLevel) => true;
@@ -160,31 +162,33 @@ public class ResourceLoggerService
                 var log = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
                 var isErrorMessage = logLevel >= LogLevel.Error;
 
-                var payload = (log, isErrorMessage);
-
+                LogLine logLine;
                 lock (annotation._backlog)
                 {
-                    annotation._backlog.Add(payload);
+                    _lineNumber++;
+                    logLine = new LogLine(_lineNumber, log, isErrorMessage);
+
+                    annotation._backlog.Add(logLine);
                 }
 
-                annotation.OnNewLog?.Invoke(payload);
+                annotation.OnNewLog?.Invoke(logLine);
             }
         }
 
-        private sealed class LogAsyncEnumerable(ResourceLoggerState annotation, List<(string, bool)> backlogSnapshot) : IAsyncEnumerable<IReadOnlyList<(string, bool)>>
+        private sealed class LogAsyncEnumerable(ResourceLoggerState annotation, List<LogLine> backlogSnapshot) : IAsyncEnumerable<IReadOnlyList<LogLine>>
         {
-            public async IAsyncEnumerator<IReadOnlyList<(string, bool)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+            public async IAsyncEnumerator<IReadOnlyList<LogLine>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
             {
                 if (backlogSnapshot.Count > 0)
                 {
                     yield return backlogSnapshot;
                 }
 
-                var channel = Channel.CreateUnbounded<(string, bool)>();
+                var channel = Channel.CreateUnbounded<LogLine>();
 
                 using var _ = annotation._logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
-                void Log((string Content, bool IsErrorMessage) log)
+                void Log(LogLine log)
                 {
                     channel.Writer.TryWrite(log);
                 }
