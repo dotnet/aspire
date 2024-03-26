@@ -29,10 +29,12 @@ internal sealed class Processor(EventProcessorClient client, ILogger<Consumer> l
     {
         logger.LogInformation("Starting processor...");
 
-        client.ProcessEventAsync += arg =>
+        client.ProcessEventAsync += async arg =>
         {
             logger.LogInformation(arg.Data.EventBody.ToString());
-            return Task.CompletedTask;
+
+            // save our current position in the configured storage account
+            await arg.UpdateCheckpointAsync(stoppingToken);
         };
 
         client.ProcessErrorAsync += args =>
