@@ -54,7 +54,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     public Task VerifySqlServerComponentWorks(TestResourceNames resourceName)
         => VerifyComponentWorks(resourceName);
 
-    [Fact]
+    [Fact(Skip="https://github.com/dotnet/aspire/issues/3161")]
     [Trait("scenario", "oracle")]
     public Task VerifyOracleComponentWorks()
         => VerifyComponentWorks(TestResourceNames.oracledatabase);
