@@ -8,9 +8,4 @@
   <ItemGroup Condition="'$(DotNetBuildFromSource)' == 'true' or '$(DotNetBuild)' == 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\Microsoft.NET.Sdk.Aspire\Microsoft.NET.Sdk.Aspire.csproj" />
   </ItemGroup>
-
-  <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->
-  <PropertyGroup Condition="'$(ArcadeBuildFromSource)' == 'true'">
-    <CopySrcInsteadOfClone>true</CopySrcInsteadOfClone>
-  </PropertyGroup>
 </Project>
