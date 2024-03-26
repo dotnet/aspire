@@ -327,7 +327,6 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
         await _kubeconfigReadSemaphore.WaitAsync(-1, cancellationToken).ConfigureAwait(false);
 
-
         try
         {
             // Second chance shortcut if multiple threads got caught.
