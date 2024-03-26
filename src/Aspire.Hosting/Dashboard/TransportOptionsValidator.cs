@@ -24,7 +24,7 @@ internal class TransportOptionsValidator(IConfiguration configuration) : IValida
 
         if (parsedFirstApplicationUrl.Scheme == "http" && !options.AllowUnsecureTransport.GetValueOrDefault(false))
         {
-            throw new DistributedApplicationException($"AppHost cannot use a non-TLS URL for applicationUrl in launch profile, or {KnownEnvironmentVariables.AspNetCoreUrls} unless DashboardAuthenticationOptions.AllowUnsecureTransport is set to true. See https://aka.ms/dotnet/aspire/allowunsecuredtransport.");
+            throw new DistributedApplicationException($"Use of a non-TLS URL in the 'applicationUrl' setting of the launch profile unless the 'ASPIRE_ALLOW_UNSECURED_TRANSPORT' environment variable is set to 'true'. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
         }
 
         _ = configuration;
