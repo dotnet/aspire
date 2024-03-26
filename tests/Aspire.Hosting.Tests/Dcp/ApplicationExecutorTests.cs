@@ -18,7 +18,7 @@ public class ApplicationExecutorTests
     public async Task RunApplicationAsync_NoResources_DashboardStarted()
     {
         // Arrange
-        var distributedAppModel = new DistributedApplicationModel(new ResourceCollection());
+        var distributedAppModel = new DistributedApplicationModel(new ResourceCollection(), null!);
         var kubernetesService = new MockKubernetesService();
 
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
