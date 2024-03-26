@@ -31,7 +31,7 @@ internal class DashboardTokenProvider : IDashboardTokenProvider
         return encodedToken;
     }
 
-    public string BrowserToken { get; init; }
-    public string OltpToken { get; init; }
-    public string ResourceServerToken { get; init; }
+    public string BrowserToken { get; }
+    public string OltpToken { get; }
+    public string ResourceServerToken { get; }
 }
