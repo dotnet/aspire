@@ -96,7 +96,7 @@ Aspire.Microsoft.Data.SqlClient:
 - Log categories:
   - none (the client does not provide an easy way to integrate it with logger factory)
 - Activity source names:
-  - "Aspire.Microsoft.Data.SqlClient"
+  - "OpenTelemetry.Instrumentation.SqlClient"
 - Metric names:
   - none
 
@@ -138,7 +138,7 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
   - "Microsoft.EntityFrameworkCore.Query"
   - "Microsoft.EntityFrameworkCore.Update"
 - Activity source names:
-  - "Aspire.Microsoft.EntityFrameworkCore.SqlServer"
+  - "OpenTelemetry.Instrumentation.SqlClient"
 - Metric names:
   - none
 

@@ -711,7 +711,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
-            context.EnvironmentVariables["ResourceServiceClient__AuthMode"] = "Unsecured"; // No auth in local dev experience
 
             // No auth in local dev experience
             context.EnvironmentVariables["ResourceServiceClient__AuthMode"] = "Unsecured";
