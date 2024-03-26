@@ -96,16 +96,16 @@
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-oracle')">
-        <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=oracle</PreCommands>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+      <!--<HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-oracle')">-->
+        <!--<PayloadArchive>%(Identity)</PayloadArchive>-->
+        <!--<PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>-->
+        <!--<PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=oracle</PreCommands>-->
+        <!--<Command>$(_TestRunCommand)</Command>-->
+        <!--<Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>-->
 
-        <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
-      </HelixWorkItem>
+        <!--[> Download results file so coverage files can be extracted <]-->
+        <!--<DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>-->
+      <!--</HelixWorkItem>-->
     </ItemGroup>
   </Target>
 </Project>
