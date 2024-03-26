@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using OpenTelemetry.Metrics;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -149,19 +148,7 @@ public static partial class AspireEFPostgreSqlExtensions
         if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry()
-                .WithMetrics(meterProviderBuilder =>
-                {
-                    // Currently EF provides only Event Counters:
-                    // https://learn.microsoft.com/ef/core/logging-events-diagnostics/event-counters?tabs=windows#counters-and-their-meaning
-                    meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                    {
-                        // The magic strings come from:
-                        // https://github.com/dotnet/efcore/blob/a1cd4f45aa18314bc91d2b9ea1f71a3b7d5bf636/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                        eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
-                    });
-
-                    NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
-                });
+                .WithMetrics(NpgsqlCommon.AddNpgsqlMetrics);
         }
     }
 }
