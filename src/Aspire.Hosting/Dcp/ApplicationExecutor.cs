@@ -713,6 +713,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
             context.EnvironmentVariables["ResourceServiceClient__AuthMode"] = "Unsecured"; // No auth in local dev experience
 
+            // No auth in local dev experience
+            context.EnvironmentVariables["ResourceServiceClient__AuthMode"] = "Unsecured";
+            context.EnvironmentVariables["Frontend__AuthMode"] = "Unsecured";
+
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
                 context.EnvironmentVariables["Otlp__AuthMode"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
@@ -778,6 +782,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             new()
             {
                 Name = "ResourceServiceClient__AuthMode",
+                Value = "Unsecured" // No auth in local dev experience
+            },
+            new()
+            {
+                Name = "Frontend__AuthMode",
                 Value = "Unsecured" // No auth in local dev experience
             },
             new()

@@ -90,6 +90,7 @@ Aspire.Microsoft.Azure.Cosmos:
 - Activity source names:
   - "Azure.Cosmos.Operation"
 - Metric names:
+  - none
 
 Aspire.Microsoft.Data.SqlClient:
 - Log categories:
@@ -97,23 +98,7 @@ Aspire.Microsoft.Data.SqlClient:
 - Activity source names:
   - "Aspire.Microsoft.Data.SqlClient"
 - Metric names:
-  - "Microsoft.Data.SqlClient.EventSource"
-    - "active-hard-connections"
-    - "hard-connects"
-    - "hard-disconnects"
-    - "active-soft-connects"
-    - "soft-connects"
-    - "soft-disconnects"
-    - "number-of-non-pooled-connections"
-    - "number-of-pooled-connections"
-    - "number-of-active-connection-pool-groups"
-    - "number-of-inactive-connection-pool-groups"
-    - "number-of-active-connection-pools"
-    - "number-of-inactive-connection-pools"
-    - "number-of-active-connections"
-    - "number-of-free-connections"
-    - "number-of-stasis-connections"
-    - "number-of-reclaimed-connections"
+  - none
 
 Aspire.MongoDB.Driver:
 - Log categories:
@@ -138,17 +123,7 @@ Aspire.Microsoft.EntityFrameworkCore.Cosmos:
 - Activity source names:
   - "Azure.Cosmos.Operation"
 - Metric names:
-  - "Microsoft.EntityFrameworkCore":
-    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
-    - "ec_Microsoft_EntityFrameworkCore_total_queries"
-    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
-    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
-    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
-    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
-    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
-    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+  - none
 
 Aspire.Microsoft.EntityFrameworkCore.SqlServer:
 - Log categories:
@@ -165,17 +140,7 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
 - Activity source names:
   - "Aspire.Microsoft.EntityFrameworkCore.SqlServer"
 - Metric names:
-  - "Microsoft.EntityFrameworkCore":
-    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
-    - "ec_Microsoft_EntityFrameworkCore_total_queries"
-    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
-    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
-    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
-    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
-    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
-    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+  - none
 
 Aspire.MySqlConnector:
 - Log categories:
@@ -244,17 +209,6 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
 - Activity source names:
   - "Npgsql"
 - Metric names:
-  - "Microsoft.EntityFrameworkCore":
-    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
-    - "ec_Microsoft_EntityFrameworkCore_total_queries"
-    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
-    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
-    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
-    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
-    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
-    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
   - "Npgsql":
     - "db.client.commands.bytes_read"
     - "db.client.commands.bytes_written"
@@ -282,17 +236,7 @@ Aspire.Oracle.EntityFrameworkCore:
 - Activity source names:
   - none (currently not supported by Oracle.EntityFrameworkCore library)
 - Metric names:
-  - "Microsoft.EntityFrameworkCore":
-    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
-    - "ec_Microsoft_EntityFrameworkCore_total_queries"
-    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
-    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
-    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
-    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
-    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
-    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+  - none
 
 Aspire.Pomelo.EntityFrameworkCore.MySql:
 - Log categories:
@@ -309,17 +253,6 @@ Aspire.Pomelo.EntityFrameworkCore.MySql:
 - Activity source names:
   - "MySqlConnector"
 - Metric names:
-  - "Microsoft.EntityFrameworkCore":
-    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
-    - "ec_Microsoft_EntityFrameworkCore_total_queries"
-    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
-    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
-    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
-    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
-    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
-    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
   - "MySqlConnector":
     - "db.client.connections.create_time"
     - "db.client.connections.use_time"
