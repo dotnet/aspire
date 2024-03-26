@@ -13,7 +13,7 @@ public sealed class DashboardOptions
     public OtlpOptions Otlp { get; set; } = new OtlpOptions();
     public FrontendOptions Frontend { get; set; } = new FrontendOptions();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new ResourceServiceClientOptions();
-    public TelemetryLimits TelemetryLimits { get; set; } = new TelemetryLimits();
+    public TelemetryLimitOptions TelemetryLimits { get; set; } = new TelemetryLimitOptions();
 }
 
 public sealed class ResourceServiceClientOptions
@@ -130,7 +130,7 @@ public sealed class FrontendOptions
     }
 }
 
-public sealed class TelemetryLimits
+public sealed class TelemetryLimitOptions
 {
     public int MaxLogCount { get; set; } = 10_000;
     public int MaxTraceCount { get; set; } = 10_000;

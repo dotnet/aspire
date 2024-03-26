@@ -150,7 +150,11 @@ internal sealed class DashboardClient : IDashboardClient
 
             X509CertificateCollection GetFileCertificate()
             {
-                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificates.FilePath!;
+                Debug.Assert(
+                    _dashboardOptions.ResourceServiceClient.ClientCertificates.FilePath != null,
+                    "FilePath is validated as not null when configuration is loaded.");
+
+                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificates.FilePath;
                 var password = _dashboardOptions.ResourceServiceClient.ClientCertificates.Password;
 
                 return [new X509Certificate2(filePath, password)];

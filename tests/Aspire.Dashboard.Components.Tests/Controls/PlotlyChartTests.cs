@@ -51,7 +51,7 @@ public class PlotlyChartTests : TestContext
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
 
-        var options = new TelemetryLimits();
+        var options = new TelemetryLimitOptions();
         var instrument = new OtlpInstrument
         {
             Name = "Name-<b>Bold</b>",

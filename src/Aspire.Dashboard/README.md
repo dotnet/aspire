@@ -1,8 +1,10 @@
 # .NET Aspire Dashboard
 
-The .NET Aspire is a browser based app to view information about the app you're developing:
+The .NET Aspire Dashboard is a browser-based app to view run-time information about your distributed application.
 
-- The resources that make up your app, such as .NET projects, executables and containers.
+The dashboard shows:
+
+- Resources that make up your app, such as .NET projects, executables and containers.
 - Live console logs of resources.
 - Live telemetry, such as structured logs, traces and metrics.
 
@@ -19,7 +21,6 @@ Example JSON configuration file:
 ```json
 {
   "Dashboard": {
-    "ApplicationName": "My cool app",
     "TelemetryLimits": {
       "MaxLogCount": 1000,
       "MaxTraceCount": 1000,
@@ -55,8 +56,8 @@ For client certification authentication, set `Dashboard:Otlp:AuthMode` to `Certi
 
 For API key authentication, set `Dashboard:Otlp:AuthMode` to `ApiKey`, then add the following configuration:
 
-- `Dashboard:Otlp:PrimaryApiKey` specifies the primary API key. This is required.
-- `Dashboard:Otlp:SecondaryApiKey` specifies the secondary API key. This is optional.
+- `Dashboard:Otlp:PrimaryApiKey` specifies the primary API key. (required, string)
+- `Dashboard:Otlp:SecondaryApiKey` specifies the secondary API key. (optional, string)
 
 It may also be run unsecured. Set `Dashboard:Otlp:AuthMode` to `Unsecured`. The OTLP endpoint will allow anonymous access. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
