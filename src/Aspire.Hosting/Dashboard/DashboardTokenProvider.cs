@@ -3,7 +3,7 @@
 
 using System.Text;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -16,18 +16,18 @@ internal interface IDashboardTokenProvider
 
 internal class DashboardTokenProvider : IDashboardTokenProvider
 {
-    public DashboardTokenProvider(IConfiguration configuration)
+    public DashboardTokenProvider(IOptions<DashboardAuthenticationOptions> dashboardAuthenticationOptions)
     {
-        BrowserToken = GenerateToken(configuration[KnownEnvironmentVariables.BrowserToken]);
+        BrowserToken = dashboardAuthenticationOptions.Value.BrowserToken ?? GenerateToken();
         OltpToken = GenerateToken();
         ResourceServerToken = GenerateToken();
     }
 
-    private static string GenerateToken(string? overrideValue = null)
+    private static string GenerateToken()
     {
-        var rawToken = overrideValue ?? PasswordGenerator.Generate(24, true, true, true, true, 6, 6, 6, 6);
+        var rawToken = PasswordGenerator.Generate(24, true, true, true, true, 6, 6, 6, 6);
         var rawTokenBytes = Encoding.UTF8.GetBytes(rawToken);
-        var encodedToken = Convert.ToHexString(rawTokenBytes);
+        var encodedToken = Convert.ToHexString(rawTokenBytes).ToLower();
         return encodedToken;
     }
 

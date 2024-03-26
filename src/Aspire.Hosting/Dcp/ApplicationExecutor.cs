@@ -70,7 +70,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           ResourceNotificationService notificationService,
                                           ResourceLoggerService loggerService,
                                           IDcpDependencyCheckService dcpDependencyCheckService,
-                                          IDashboardTokenProvider tokenProvider
+                                          IOptions<DashboardAuthenticationOptions> dashboardAuthenticationOptions,
+                                          IDashboardTokenProvider dashboardTokenProvider
                                           )
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
@@ -710,6 +711,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
+            if (dashboardAuthenticationOptions.Value.AllowUnsecureTransport.GetValueOrDefault(false))
+            {
+                // Configure for insecure running.
+                context.EnvironmentVariables["DISABLEAUTHPLACEHOLDER"] = true;
+            }
+            else
+            {
+                // Configure for secure running.
+                context.EnvironmentVariables["BROWSERTOKENPLACEHOLDER"] = dashboardTokenProvider.BrowserToken;
+                context.EnvironmentVariables["OTLPTOKENPLACEHOLDER"] = dashboardTokenProvider.OltpToken;
+                context.EnvironmentVariables["RESOURCESERVERTOKENPLACEHOLDER"] = dashboardTokenProvider.ResourceServerToken;
+            }
+
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
@@ -833,8 +847,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ]);
         }
 
-        ApplyDashboardTokens(dashboardExecutableSpec.Env);
-
         var dashboardExecutable = new Executable(dashboardExecutableSpec)
         {
             Metadata = { Name = KnownResourceNames.AspireDashboard }
@@ -842,27 +854,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
         PrintDashboardUrls(dashboardUrls);
-    }
-
-    private void ApplyDashboardTokens(List<EnvVar> envSpec)
-    {
-        envSpec.Add(new()
-        {
-            Name = KnownEnvironmentVariables.OltpToken,
-            Value = tokenProvider.OltpToken
-        });
-
-        envSpec.Add(new()
-        {
-            Name = KnownEnvironmentVariables.ResourceServerToken,
-            Value = tokenProvider.ResourceServerToken
-        });
-
-        envSpec.Add(new()
-        {
-            Name = KnownEnvironmentVariables.BrowserToken,
-            Value = tokenProvider.BrowserToken
-        });
     }
 
     private void PrintDashboardUrls(string delimitedUrlList)

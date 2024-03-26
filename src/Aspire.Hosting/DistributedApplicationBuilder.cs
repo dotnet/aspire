@@ -10,8 +10,10 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -89,6 +91,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
 
         // Dashboard
+        _innerBuilder.Services.AddOptions<DashboardAuthenticationOptions>().Bind(Configuration.GetSection("Aspire:Dashboard:Authentication"));
+        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardAuthenticationOptions>, DashboardAuthenticationOptionsValidator>());
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
         _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
