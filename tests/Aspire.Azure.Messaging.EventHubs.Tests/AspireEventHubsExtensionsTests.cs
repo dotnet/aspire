@@ -19,7 +19,7 @@ public class AspireEventHubsExtensionsTests
                                               "SharedAccessKeyName=fake;SharedAccessKey=fake;EntityPath=MyHub";
     public const string FullyQualifiedNamespace = "aspireeventhubstests.servicebus.windows.net";
     private const string BlobsConnectionStringWithContainer = "https://fake.blob.core.windows.net/fakecontainer";
-    private const string BlobsConnectionString = "https://fake.blob.core.windows.net";
+    //private const string BlobsConnectionString = "https://fake.blob.core.windows.net";
 
     private const int EventHubProducerClientIndex = 0;
     private const int EventHubConsumerClientIndex = 1;
@@ -51,11 +51,9 @@ public class AspireEventHubsExtensionsTests
     ];
 
     [Theory]
-    [InlineData(false, EventProcessorClientIndex, false)]
-    [InlineData(true, EventProcessorClientIndex, false)]
-    [InlineData(false, EventProcessorClientIndex, true)]
-    [InlineData(true, EventProcessorClientIndex, true)]
-    public void ProcessorClientShouldThrowWithoutBlobContainer(bool useKeyed, int clientIndex, bool useSettings)
+    [InlineData(false, EventProcessorClientIndex)]
+    [InlineData(true, EventProcessorClientIndex)]
+    public void ProcessorClientShouldNotTryCreateContainerWithBlobContainerUri(bool useKeyed, int clientIndex)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
@@ -71,7 +69,7 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
 
             // container NOT included in connection string
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer)
         ]);
 
         if (useKeyed)
@@ -85,10 +83,7 @@ public class AspireEventHubsExtensionsTests
 
         using var host = builder.Build();
 
-        _ = useSettings;
-        //_ = RetrieveClient(useKeyed, clientIndex, host);
         RetrieveAndAssert(useKeyed, clientIndex, host);
-        //Assert.Throws<InvalidOperationException>(() => _ = RetrieveClient(useKeyed, clientIndex, host));
     }
 
     [Theory]
