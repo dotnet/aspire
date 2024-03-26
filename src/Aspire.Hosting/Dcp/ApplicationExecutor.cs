@@ -711,7 +711,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
             context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
             context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
-            context.EnvironmentVariables["ResourceServiceClient__AuthMode"] = "Unsecured"; // No auth in local dev experience
+
+            // No auth in local dev experience
+            context.EnvironmentVariables["ResourceServiceClient__AuthMode"] = "Unsecured";
+            context.EnvironmentVariables["Frontend__AuthMode"] = "Unsecured";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
@@ -778,6 +781,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             new()
             {
                 Name = "ResourceServiceClient__AuthMode",
+                Value = "Unsecured" // No auth in local dev experience
+            },
+            new()
+            {
+                Name = "Frontend__AuthMode",
                 Value = "Unsecured" // No auth in local dev experience
             },
             new()
