@@ -160,7 +160,7 @@ public class TestProgram : IDisposable
     public void Dispose() => App?.Dispose();
 
     /// <summary>
-    /// Writes the allocatedEndpoint endpoints to the console in JSON format.
+    /// Writes the allocated endpoints to the console in JSON format.
     /// This allows for easier consumption by the external test process.
     /// </summary>
     private sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
