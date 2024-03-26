@@ -18,13 +18,6 @@ namespace Aspire.Dashboard.Otlp.Storage;
 
 public sealed class TelemetryRepository
 {
-    internal const string LogCountLimitKey = "DOTNET_DASHBOARD_OTEL_LOG_COUNT_LIMIT";
-    internal const string TraceCountLimitKey = "DOTNET_DASHBOARD_OTEL_TRACE_COUNT_LIMIT";
-    internal const string MetricsCountLimitKey = "DOTNET_DASHBOARD_OTEL_METRIC_COUNT_LIMIT";
-    internal const string AttributeCountLimitKey = "DOTNET_DASHBOARD_OTEL_ATTRIBUTE_COUNT_LIMIT";
-    internal const string AttributeLengthLimitKey = "DOTNET_DASHBOARD_OTEL_ATTRIBUTE_LENGTH_LIMIT";
-    internal const string SpanEventCountLimitKey = "DOTNET_DASHBOARD_OTEL_SPAN_EVENT_COUNT_LIMIT";
-
     private readonly object _lock = new();
     internal readonly ILogger _logger;
     internal TimeSpan _subscriptionMinExecuteInterval = TimeSpan.FromMilliseconds(100);

@@ -158,7 +158,11 @@ internal sealed class DashboardClient : IDashboardClient
 
             X509CertificateCollection GetKeyStoreCertificate()
             {
-                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject!;
+                Debug.Assert(
+                    _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject != null,
+                    "Subject is validated as not null when configuration is loaded.");
+
+                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject;
                 var storeName = _dashboardOptions.ResourceServiceClient.ClientCertificates.Store ?? "My";
                 var location = _dashboardOptions.ResourceServiceClient.ClientCertificates.Location ?? StoreLocation.CurrentUser;
 

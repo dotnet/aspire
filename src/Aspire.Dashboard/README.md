@@ -74,7 +74,6 @@ The resource service client supports certificates. Set `Dashboard:ResourceServic
     - `Dashboard:ResourceServiceClient:ClientCertificate:Subject` (required, string)
     - `Dashboard:ResourceServiceClient:ClientCertificate:Store` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
     - `Dashboard:ResourceServiceClient:ClientCertificate:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
-- `Dashboard:ResourceServiceClient:Ssl` (optional, [`SslClientAuthenticationOptions`](https://learn.microsoft.com/dotnet/api/system.net.security.sslclientauthenticationoptions))
 
 To opt-out of authentication, set `Dashboard:ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
@@ -88,6 +87,8 @@ Telemetry is stored in-memory. To avoid excessive memory usage, the dashboard ha
 - `Dashboard:TelemetryLimits:MaxAttributeCount` specifies the maximum number of attributes on telemetry. Defaults to 128.
 - `Dashboard:TelemetryLimits:MaxAttributeLength` specifies the maximum length of attributes. Defaults to unlimited.
 - `Dashboard:TelemetryLimits:MaxSpanEventCount` specifies the maximum number of events on span attributes. Defaults to unlimited.
+
+Limits are per-resource. For example, a `MaxLogCount` value of 10,000 configures the dashboard to store up to 10,000 log entries per-resource.
 
 ### Other
 
