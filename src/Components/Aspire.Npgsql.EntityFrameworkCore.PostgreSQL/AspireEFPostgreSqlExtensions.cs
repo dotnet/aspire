@@ -134,12 +134,16 @@ public static partial class AspireEFPostgreSqlExtensions
 
                         if (executionStrategy != null)
                         {
-                            if (executionStrategy.GetType() == typeof(NpgsqlRetryingExecutionStrategy))
+                            if (executionStrategy is NpgsqlRetryingExecutionStrategy)
                             {
-                                // Keep custom Retry strategy
+                                // Keep custom Retry strategy.
+                                // Any sub-class of NpgsqlRetryingExecutionStrategy is a valid retry strategy
+                                // which shouldn't be replaced even with Retry == true
                             }
                             else if (executionStrategy.GetType() != typeof(NpgsqlExecutionStrategy))
                             {
+                                // Check NpgsqlExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
+
                                 throw new InvalidOperationException($"{nameof(NpgsqlEntityFrameworkCorePostgreSQLSettings)}.Retry can't be set when a custom Execution Strategy is configured.");
                             }
                             else
