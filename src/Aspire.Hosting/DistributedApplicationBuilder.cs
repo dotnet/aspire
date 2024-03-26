@@ -92,6 +92,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
         _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
+        _innerBuilder.Services.AddSingleton<IDashboardTokenProvider, DashboardTokenProvider>();
 
         // DCP stuff
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();

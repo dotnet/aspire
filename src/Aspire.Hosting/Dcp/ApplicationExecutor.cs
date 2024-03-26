@@ -69,7 +69,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
                                           ResourceLoggerService loggerService,
-                                          IDcpDependencyCheckService dcpDependencyCheckService)
+                                          IDcpDependencyCheckService dcpDependencyCheckService,
+                                          IDashboardTokenProvider tokenProvider
+                                          )
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -831,6 +833,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ]);
         }
 
+        ApplyDashboardTokens(dashboardExecutableSpec.Env);
+
         var dashboardExecutable = new Executable(dashboardExecutableSpec)
         {
             Metadata = { Name = KnownResourceNames.AspireDashboard }
@@ -838,6 +842,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
         PrintDashboardUrls(dashboardUrls);
+    }
+
+    private void ApplyDashboardTokens(List<EnvVar> envSpec)
+    {
+        envSpec.Add(new()
+        {
+            Name = KnownEnvironmentVariables.OltpToken,
+            Value = tokenProvider.OltpToken
+        });
+
+        envSpec.Add(new()
+        {
+            Name = KnownEnvironmentVariables.ResourceServerToken,
+            Value = tokenProvider.ResourceServerToken
+        });
+
+        envSpec.Add(new()
+        {
+            Name = KnownEnvironmentVariables.BrowserToken,
+            Value = tokenProvider.BrowserToken
+        });
     }
 
     private void PrintDashboardUrls(string delimitedUrlList)
