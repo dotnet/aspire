@@ -2,11 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.Http;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -14,49 +12,30 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <summary>
 /// Extensions for configuring <see cref="IHttpClientBuilder"/> with service discovery.
 /// </summary>
-public static class HttpClientBuilderExtensions
+public static class ServiceDiscoveryHttpClientBuilderExtensions
 {
     /// <summary>
     /// Adds service discovery to the <see cref="IHttpClientBuilder"/>.
     /// </summary>
     /// <param name="httpClientBuilder">The builder.</param>
-    /// <param name="selectorProvider">The provider that creates selector instances.</param>
     /// <returns>The builder.</returns>
-    public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder, IServiceEndPointSelectorProvider selectorProvider)
-    {
-        var services = httpClientBuilder.Services;
-        services.AddServiceDiscoveryCore();
-        httpClientBuilder.AddHttpMessageHandler(services =>
-        {
-            var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
-            var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
-            var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
-            var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();
-            return new ResolvingHttpDelegatingHandler(registry, options);
-        });
-
-        // Configure the HttpClient to disable gRPC load balancing.
-        // This is done on all HttpClient instances but only impacts gRPC clients.
-        AddDisableGrpcLoadBalancingFilter(httpClientBuilder.Services, httpClientBuilder.Name);
-
-        return httpClientBuilder;
-    }
+    [Obsolete(error: true, message: "This method is obsolete and will be removed in a future version. The recommended alternative is to use the 'AddServiceDiscovery' method instead.")]
+    public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder) => httpClientBuilder.AddServiceDiscovery();
 
     /// <summary>
     /// Adds service discovery to the <see cref="IHttpClientBuilder"/>.
     /// </summary>
     /// <param name="httpClientBuilder">The builder.</param>
     /// <returns>The builder.</returns>
-    public static IHttpClientBuilder UseServiceDiscovery(this IHttpClientBuilder httpClientBuilder)
+    public static IHttpClientBuilder AddServiceDiscovery(this IHttpClientBuilder httpClientBuilder)
     {
         var services = httpClientBuilder.Services;
         services.AddServiceDiscoveryCore();
         httpClientBuilder.AddHttpMessageHandler(services =>
         {
             var timeProvider = services.GetService<TimeProvider>() ?? TimeProvider.System;
-            var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
-            var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
-            var registry = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, timeProvider);
+            var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
+            var registry = new HttpServiceEndPointResolver(resolverProvider, services, timeProvider);
             var options = services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>();
             return new ResolvingHttpDelegatingHandler(registry, options);
         });

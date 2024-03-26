@@ -54,32 +54,32 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolve
         var originalHost = originalConfig.Host is { Length: > 0 } h ? h : originalUri.Authority;
         var serviceName = originalUri.GetLeftPart(UriPartial.Authority);
 
-        var endPoints = await resolver.GetEndPointsAsync(serviceName, cancellationToken).ConfigureAwait(false);
-        var results = new List<(string Name, DestinationConfig Config)>(endPoints.Count);
+        var result = await resolver.GetEndPointsAsync(serviceName, cancellationToken).ConfigureAwait(false);
+        var results = new List<(string Name, DestinationConfig Config)>(result.EndPoints.Count);
         var uriBuilder = new UriBuilder(originalUri);
         var healthUri = originalConfig.Health is { Length: > 0 } health ? new Uri(health) : null;
         var healthUriBuilder = healthUri is { } ? new UriBuilder(healthUri) : null;
-        foreach (var endPoint in endPoints)
+        foreach (var endPoint in result.EndPoints)
         {
             var addressString = endPoint.GetEndPointString();
-            Uri result;
+            Uri uri;
             if (!addressString.Contains("://"))
             {
-                result = new Uri($"https://{addressString}");
+                uri = new Uri($"https://{addressString}");
             }
             else
             {
-                result = new Uri(addressString);
+                uri = new Uri(addressString);
             }
 
-            uriBuilder.Host = result.Host;
-            uriBuilder.Port = result.Port;
+            uriBuilder.Host = uri.Host;
+            uriBuilder.Port = uri.Port;
             var resolvedAddress = uriBuilder.Uri.ToString();
             var healthAddress = originalConfig.Health;
             if (healthUriBuilder is not null)
             {
-                healthUriBuilder.Host = result.Host;
-                healthUriBuilder.Port = result.Port;
+                healthUriBuilder.Host = uri.Host;
+                healthUriBuilder.Port = uri.Port;
                 healthAddress = healthUriBuilder.Uri.ToString();
             }
 
@@ -88,6 +88,6 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolve
             results.Add((name, config));
         }
 
-        return (results, endPoints.ChangeToken);
+        return (results, result.ChangeToken);
     }
 }

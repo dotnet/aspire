@@ -3,38 +3,42 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
-/// Creates service endpoint resolvers.
+/// Creates service endpoint watchers.
 /// </summary>
-public partial class ServiceEndPointResolverFactory(
-    IEnumerable<IServiceEndPointResolverProvider> resolvers,
+internal sealed partial class ServiceEndPointWatcherFactory(
+    IEnumerable<IServiceEndPointProviderFactory> resolvers,
     ILogger<ServiceEndPointWatcher> resolverLogger,
-    IOptions<ServiceEndPointResolverOptions> options,
+    IOptions<ServiceDiscoveryOptions> options,
     TimeProvider timeProvider)
 {
-    private readonly IServiceEndPointResolverProvider[] _resolverProviders = resolvers
+    private readonly IServiceEndPointProviderFactory[] _resolverProviders = resolvers
         .Where(r => r is not PassThroughServiceEndPointResolverProvider)
         .Concat(resolvers.Where(static r => r is PassThroughServiceEndPointResolverProvider)).ToArray();
     private readonly ILogger<ServiceEndPointWatcher> _logger = resolverLogger;
     private readonly TimeProvider _timeProvider = timeProvider;
-    private readonly IOptions<ServiceEndPointResolverOptions> _options = options;
+    private readonly IOptions<ServiceDiscoveryOptions> _options = options;
 
     /// <summary>
     /// Creates a service endpoint resolver for the provided service name.
     /// </summary>
-    public ServiceEndPointWatcher CreateResolver(string serviceName)
+    public ServiceEndPointWatcher CreateWatcher(string serviceName)
     {
         ArgumentNullException.ThrowIfNull(serviceName);
+
+        if (!ServiceEndPointQuery.TryParse(serviceName, out var query))
+        {
+            throw new ArgumentException("The provided input was not in a valid format. It must be a valid URI.", nameof(serviceName));
+        }
 
         List<IServiceEndPointProvider>? resolvers = null;
         foreach (var factory in _resolverProviders)
         {
-            if (factory.TryCreateResolver(serviceName, out var resolver))
+            if (factory.TryCreateProvider(query, out var resolver))
             {
                 resolvers ??= [];
                 resolvers.Add(resolver);

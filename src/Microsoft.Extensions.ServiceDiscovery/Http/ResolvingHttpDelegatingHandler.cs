@@ -1,17 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Net;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
 
 /// <summary>
 /// HTTP message handler which resolves endpoints using service discovery.
 /// </summary>
-public class ResolvingHttpDelegatingHandler : DelegatingHandler
+internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
 {
     private readonly HttpServiceEndPointResolver _resolver;
     private readonly ServiceDiscoveryOptions _options;
@@ -43,29 +41,19 @@ public class ResolvingHttpDelegatingHandler : DelegatingHandler
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var originalUri = request.RequestUri;
-        IEndPointHealthFeature? epHealth = null;
-        Exception? error = null;
-        var startTime = Stopwatch.GetTimestamp();
         if (originalUri?.Host is not null)
         {
             var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
             request.RequestUri = GetUriWithEndPoint(originalUri, result, _options);
             request.Headers.Host ??= result.Features.Get<IHostNameFeature>()?.HostName;
-            epHealth = result.Features.Get<IEndPointHealthFeature>();
         }
 
         try
         {
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception exception)
-        {
-            error = exception;
-            throw;
-        }
         finally
         {
-            epHealth?.ReportHealth(Stopwatch.GetElapsedTime(startTime), error); // Report health so that the resolver pipeline can take health and performance into consideration, possibly triggering a circuit breaker?.
             request.RequestUri = originalUri;
         }
     }
@@ -124,7 +112,7 @@ public class ResolvingHttpDelegatingHandler : DelegatingHandler
             if (uri.Scheme.IndexOf('+') > 0)
             {
                 var scheme = uri.Scheme.Split('+')[0];
-                if (options.AllowedSchemes.Equals(ServiceDiscoveryOptions.AllSchemes) || options.AllowedSchemes.Contains(scheme, StringComparer.OrdinalIgnoreCase))
+                if (options.AllowedSchemes.Equals(ServiceDiscoveryOptions.AllowAllSchemes) || options.AllowedSchemes.Contains(scheme, StringComparer.OrdinalIgnoreCase))
                 {
                     result.Scheme = scheme;
                 }

@@ -3,18 +3,18 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
 /// Creates <see cref="IServiceEndPointProvider"/> instances.
 /// </summary>
-public interface IServiceEndPointResolverProvider
+public interface IServiceEndPointProviderFactory
 {
     /// <summary>
-    /// Tries to create an <see cref="IServiceEndPointProvider"/> instance for the specified <paramref name="serviceName"/>.
+    /// Tries to create an <see cref="IServiceEndPointProvider"/> instance for the specified <paramref name="query"/>.
     /// </summary>
-    /// <param name="serviceName">The service to create the resolver for.</param>
+    /// <param name="query">The service to create the resolver for.</param>
     /// <param name="resolver">The resolver.</param>
     /// <returns><see langword="true"/> if the resolver was created, <see langword="false"/> otherwise.</returns>
-    bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver);
+    bool TryCreateProvider(ServiceEndPointQuery query, [NotNullWhen(true)] out IServiceEndPointProvider? resolver);
 }
