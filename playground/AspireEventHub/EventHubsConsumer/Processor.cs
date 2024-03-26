@@ -21,9 +21,7 @@ namespace EventHubsConsumer;
 /// <example>
 ///   See samples at https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/eventhub/Azure.Messaging.EventHubs.Processor/samples
 /// </example>
-/// <param name="client"></param>
-/// <param name="logger"></param>
-internal sealed class Processor(EventProcessorClient client, ILogger<Consumer> logger) : BackgroundService
+internal sealed class Processor(EventProcessorClient client, ILogger<Processor> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -44,9 +42,6 @@ internal sealed class Processor(EventProcessorClient client, ILogger<Consumer> l
         };
 
         await client.StartProcessingAsync(stoppingToken);
-
-        logger.LogInformation("Entering execute - 30 second run");
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

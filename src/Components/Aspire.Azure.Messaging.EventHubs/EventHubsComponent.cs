@@ -15,6 +15,9 @@ internal abstract class EventHubsComponent<TClient, TClientOptions> :
     where TClientOptions: class
     where TClient : class
 {
+    // each EventHub client class is in a different namespace, so the base AzureComponent.ActivitySourceNames logic doesn't work
+    protected override string[] ActivitySourceNames => ["Azure.Messaging.EventHubs.*"];
+
     protected override IHealthCheck CreateHealthCheck(TClient client, AzureMessagingEventHubsSettings settings)
         => throw new NotImplementedException();
 

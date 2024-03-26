@@ -14,18 +14,13 @@
   </ItemGroup>
 
   <ItemGroup>
-  <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
 
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.EventHubs\Aspire.Hosting.Azure.EventHubs.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" IsAspireProjectResource="false" />
 
-  <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.EventHubs\Aspire.Hosting.Azure.EventHubs.csproj" IsAspireProjectResource="false" />
-
-
-  <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" IsAspireProjectResource="false" />
-  <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
-  <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
-  <ProjectReference Include="..\EventHubsApi\EventHubsApi.csproj" />
-  <ProjectReference Include="..\EventHubsConsumer\EventHubsConsumer.csproj" />
+    <ProjectReference Include="..\EventHubsApi\EventHubsApi.csproj" />
+    <ProjectReference Include="..\EventHubsConsumer\EventHubsConsumer.csproj" />
   </ItemGroup>
-
 
 </Project>

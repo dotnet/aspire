@@ -6,8 +6,6 @@ namespace EventHubsConsumer;
 /// <summary>
 ///   Demonstrate consuming events from an Event Hub using the <see cref="EventHubConsumerClient" />.
 /// </summary>
-/// <param name="client"></param>
-/// <param name="logger"></param>
 /// <remarks>
 ///   This method is not recommended for production use; the <see cref="EventProcessorClient"/> should be used for reading events from all partitions in a
 ///   production scenario, as it offers a much more robust experience with higher throughput.
