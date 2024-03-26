@@ -10,6 +10,7 @@ using Grpc.Net.Client.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -45,7 +46,18 @@ public static class IntegrationTestHelpers
             {
                 o.Rules.Clear();
             });
+
+            // Remove environment variable source of configuration.
+            var sources = ((IConfigurationBuilder)builder.Configuration).Sources;
+            foreach (var item in sources.ToList())
+            {
+                if (item is EnvironmentVariablesConfigurationSource)
+                {
+                    sources.Remove(item);
+                }
+            }            
             builder.Configuration.AddConfiguration(config);
+
             builder.Logging.AddXunit(testOutputHelper);
             builder.Logging.SetMinimumLevel(LogLevel.Trace);
             if (testSink != null)

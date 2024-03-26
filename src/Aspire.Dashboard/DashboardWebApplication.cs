@@ -76,7 +76,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         var dashboardConfigSection = builder.Configuration.GetSection("Dashboard");
-        builder.Services.Configure<DashboardOptions>(dashboardConfigSection);
+        builder.Services.AddOptions<DashboardOptions>()
+            .Bind(dashboardConfigSection)
+            .ValidateOnStart();
         builder.Services.AddSingleton<IPostConfigureOptions<DashboardOptions>, PostConfigureDashboardOptions>();
         builder.Services.AddSingleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>();
 
@@ -124,8 +126,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app = builder.Build();
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
-        // Get options to run validation during startup.
-        _ = _dashboardOptionsMonitor.CurrentValue;
 
         var logger = _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
 
