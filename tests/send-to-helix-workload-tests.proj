@@ -215,6 +215,56 @@
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-17')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-18')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-19')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-20')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-21')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
     </ItemGroup>
   </Target>
 </Project>

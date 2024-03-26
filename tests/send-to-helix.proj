@@ -50,16 +50,16 @@
     <ItemGroup>
       <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
 
-      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
-        <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
+      <!--<HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">-->
+        <!--<PayloadArchive>%(Identity)</PayloadArchive>-->
+        <!--<PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>-->
+        <!--<PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>-->
+        <!--<Command>$(_TestRunCommand)</Command>-->
+        <!--<Timeout>$(_workItemTimeout)</Timeout>-->
 
-        <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
-      </HelixWorkItem>
+        <!--[> Download results file so coverage files can be extracted <]-->
+        <!--<DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>-->
+      <!--</HelixWorkItem>-->
     </ItemGroup>
 
     <Message Text="HelixCorrelationPayload: %(HelixCorrelationPayload.Identity)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
