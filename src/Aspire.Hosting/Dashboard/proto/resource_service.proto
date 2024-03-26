@@ -208,6 +208,7 @@ message ConsoleLogLine {
     string text = 1;
     // Indicates whether this line came from STDERR or not.
     optional bool is_std_err = 2;
+    int32 line_number = 3;
 }
 
 // Initiates a subscription for the logs of a resource.
