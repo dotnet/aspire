@@ -41,7 +41,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
             builder.AddRabbitMQClient("messaging");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<IConnection>("messaging") :
             host.Services.GetRequiredService<IConnection>();
@@ -71,7 +71,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
             builder.AddRabbitMQClient("messaging", SetConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<IConnection>("messaging") :
             host.Services.GetRequiredService<IConnection>();
@@ -103,7 +103,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
             builder.AddRabbitMQClient("messaging");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<IConnection>("messaging") :
             host.Services.GetRequiredService<IConnection>();
@@ -148,7 +148,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
 
         builder.AddRabbitMQClient("messaging");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connectionFactory = (ConnectionFactory)host.Services.GetRequiredService<IConnectionFactory>();
 
         Assert.Equal(SslProtocols.Tls12, connectionFactory.AmqpUriSslProtocols);

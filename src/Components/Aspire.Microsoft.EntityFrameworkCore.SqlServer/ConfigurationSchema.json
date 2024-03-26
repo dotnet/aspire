@@ -54,6 +54,10 @@
                 "SqlServer": {
                   "type": "object",
                   "properties": {
+                    "CommandTimeout": {
+                      "type": "integer",
+                      "description": "Gets or sets the time in seconds to wait for the command to execute."
+                    },
                     "ConnectionString": {
                       "type": "string",
                       "description": "The connection string of the SQL server database to connect to."
@@ -63,19 +67,10 @@
                       "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
                       "default": true
                     },
-                    "Metrics": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
-                      "default": true
-                    },
                     "Retry": {
                       "type": "boolean",
                       "description": "Gets or sets whether retries should be enabled.",
                       "default": true
-                    },
-                    "Timeout": {
-                      "type": "integer",
-                      "description": "The time in seconds to wait for the command to execute."
                     },
                     "Tracing": {
                       "type": "boolean",

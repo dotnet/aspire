@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -30,16 +31,18 @@ public static class PostgresBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-        var postgresServer = new PostgresServerResource(name, userName?.Resource, password?.Resource);
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+
+        var postgresServer = new PostgresServerResource(name, userName?.Resource, passwordParameter);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
-                      .WithImage("postgres", "16.2")
+                      .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
-                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordReference;
+                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordParameter;
                       });
     }
 
@@ -57,8 +60,7 @@ public static class PostgresBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithManifestPublishingCallback(postgresDatabase.WriteToManifest);
+        return builder.ApplicationBuilder.AddResource(postgresDatabase);
     }
 
     /// <summary>
@@ -102,17 +104,17 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a Postgres container resource.
+    /// Adds a named volume for the data folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/postgresql/data", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/postgresql/data", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a Postgres container resource.
+    /// Adds a bind mount for the data folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
@@ -122,7 +124,7 @@ public static class PostgresBuilderExtensions
         => builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the init folder to a Postgres container resource.
+    /// Adds a bind mount for the init folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>

@@ -33,7 +33,7 @@ public class AspireAzureSearchExtensionsTests
             builder.AddAzureSearchClient("search");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<SearchIndexClient>("search") :
             host.Services.GetRequiredService<SearchIndexClient>();
@@ -60,7 +60,7 @@ public class AspireAzureSearchExtensionsTests
             builder.AddAzureSearchClient("search", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<SearchIndexClient>("search") :
             host.Services.GetRequiredService<SearchIndexClient>();

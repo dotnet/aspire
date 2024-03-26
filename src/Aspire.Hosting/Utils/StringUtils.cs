@@ -21,5 +21,4 @@ internal static class StringUtils
             return false;
         }
     }
-
 }

@@ -5,7 +5,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a reference to a connection string.
 /// </summary>
-public class ConnectionStringReference(IResourceWithConnectionString resource, bool optional) : IManifestExpressionProvider, IValueProvider
+public class ConnectionStringReference(IResourceWithConnectionString resource, bool optional) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// The resource that the connection string is referencing.
@@ -18,6 +18,8 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
     public bool Optional { get; } = optional;
 
     string IManifestExpressionProvider.ValueExpression => Resource.ValueExpression;
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {

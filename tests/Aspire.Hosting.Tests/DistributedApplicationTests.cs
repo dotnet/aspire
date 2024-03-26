@@ -643,7 +643,7 @@ public class DistributedApplicationTests
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
             .WithReference(redis);
 
-        var app = builder.Build();
+        using var app = builder.Build();
         await app.StartAsync();
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
@@ -671,7 +671,7 @@ public class DistributedApplicationTests
             endpoint.IsProxied = false;
         });
 
-        var app = builder.Build();
+        using var app = builder.Build();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
         Assert.Equal("Service 'redis' needs to specify a port for endpoint 'tcp' since it isn't using a proxy.", ex.Message);
@@ -686,7 +686,7 @@ public class DistributedApplicationTests
         builder.AddRedis("redis");
         builder.Services.TryAddLifecycleHook<KubernetesTestLifecycleHook>();
 
-        var app = builder.Build();
+        using var app = builder.Build();
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();

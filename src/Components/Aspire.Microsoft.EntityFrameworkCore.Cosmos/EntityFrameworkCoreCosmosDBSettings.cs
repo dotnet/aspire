@@ -39,15 +39,12 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     public bool Tracing { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
-    public bool Metrics { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets a string value that indicates what Azure region this client will run in.
     /// </summary>
     public string? Region { get; set; }
+
+    /// <summary>
+    /// Gets or sets the time to wait for the response to come back from the network peer.
+    /// </summary>
+    public TimeSpan? RequestTimeout { get; set; }
 }

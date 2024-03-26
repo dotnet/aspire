@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using k8s.Models;
 
@@ -89,13 +88,7 @@ internal sealed class Service : CustomResource<ServiceSpec, ServiceStatus>
     public string? AllocatedAddress => Spec.Address ?? Status?.EffectiveAddress;
     public bool HasCompleteAddress => AllocatedPort > 0 && !string.IsNullOrEmpty(AllocatedAddress);
 
-    public bool UsesHttpProtocol([NotNullWhen(true)] out string? uriScheme)
-    {
-        uriScheme = null;
-        return Metadata.Annotations?.TryGetValue(UriSchemeAnnotation, out uriScheme) == true
-            && (string.Equals(uriScheme, "http", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(uriScheme, "https", StringComparison.OrdinalIgnoreCase));
-    }
+    public string? EndpointName => Metadata.Annotations?.TryGetValue(EndpointNameAnnotation, out var value) is true ? value : null;
 
     public void ApplyAddressInfoFrom(Service other)
     {
