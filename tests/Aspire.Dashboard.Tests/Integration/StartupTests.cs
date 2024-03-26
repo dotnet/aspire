@@ -1,9 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
+using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
 using Xunit.Abstractions;
@@ -27,6 +30,63 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task Configuration_NoExtraConfig_Error()
+    {
+        // Arrange & Act
+        var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
+        {
+            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                additionalConfiguration: data =>
+                {
+                    data.Clear();
+                });
+        });
+
+        // Assert
+        Assert.Collection(ex.Failures,
+            s => s.Contains("Dashboard:Frontend:EndpointUrls"),
+            s => s.Contains("Dashboard:Otlp:EndpointUrl"),
+            s => s.Contains("Dashboard:Otlp:AuthMode"));
+    }
+
+    [Fact]
+    public async Task Configuration_ConfigFilePathDoesntExist_Error()
+    {
+        // Arrange & Act
+        var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var ex = await Assert.ThrowsAsync<FileNotFoundException>(async () =>
+        {
+            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                additionalConfiguration: data =>
+                {
+                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                });
+        });
+
+        // Assert
+        Assert.Contains(configFilePath, ex.Message);
+    }
+
+    [Fact]
+    public async Task Configuration_OptionsMonitor_CanReadConfiguration()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: initialData =>
+            {
+                initialData["Dashboard:Otlp:AuthMode"] = nameof(OtlpAuthMode.ApiKey);
+                initialData["Dashboard:Otlp:PrimaryApiKey"] = "abc123";
+            });
+
+        // Act
+        await app.StartAsync();
+
+        // Assert
+        Assert.Equal(OtlpAuthMode.ApiKey, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
+        Assert.Equal("abc123", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
+    }
+
+    [Fact]
     public async Task Configuration_BrowserAndOtlpEndpointSame_Https_EndPointPortsAssigned()
     {
         // Arrange
@@ -38,8 +98,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                     additionalConfiguration: initialData =>
                     {
-                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"https://127.0.0.1:{port}";
-                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
                     });
 
                 // Act
@@ -93,8 +153,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                     additionalConfiguration: initialData =>
                     {
-                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
-                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"http://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = $"http://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = $"http://127.0.0.1:{port}";
                     },
                     testSink: testSink);
 
@@ -133,17 +193,17 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task Configuration_NoOtlpAuthMode_Error()
     {
         // Arrange & Act
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
         {
             await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 additionalConfiguration: data =>
                 {
-                    data.Remove(DashboardWebApplication.OtlpAuthModeKey);
+                    data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
                 });
         });
 
         // Assert
-        Assert.Equal("Missing required configuration for Otlp:AuthMode. Valid values are Unsecured, ApiKey, ClientCertificate.", ex.Message);
+        Assert.Contains("Dashboard:Otlp:AuthMode", ex.Message);
     }
 
     [Fact]
@@ -153,7 +213,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
             additionalConfiguration: data =>
             {
-                data[DashboardWebApplication.OtlpAuthModeKey] = "Unsecured";
+                data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
+                data[DashboardConfigNames.DashboardInsecureAllowAnonymousName.ConfigKey] = bool.TrueString;
             });
 
         // Act
@@ -204,7 +265,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async void EndPointAccessors_AppStarted_BrowserGet_Success()
+    public async Task EndPointAccessors_AppStarted_BrowserGet_Success()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);

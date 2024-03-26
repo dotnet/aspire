@@ -710,22 +710,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
-            context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
-            context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
-            context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = appHostApplicationUrl;
+            context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = grpcEndpointUrl;
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpUrlName.EnvVarName] = otlpEndpointUrl;
 
             // No auth in local dev experience
-            context.EnvironmentVariables["ResourceServiceClient__AuthMode"] = "Unsecured";
-            context.EnvironmentVariables["Frontend__AuthMode"] = "Unsecured";
+            context.EnvironmentVariables[DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName] = "Unsecured";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "Unsecured";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
-                context.EnvironmentVariables["Otlp__AuthMode"] = "ApiKey"; // Matches value in OtlpAuthMode enum.
-                context.EnvironmentVariables["Otlp__ApiKey"] = otlpApiKey;
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "ApiKey";
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName] = otlpApiKey;
             }
             else
             {
-                context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_AUTH_MODE"] = "None"; // Matches value in OtlpAuthMode enum.
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
             }
         }));
     }
@@ -777,27 +777,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         [
             new()
             {
-                Name = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL",
+                Name = DashboardConfigNames.ResourceServiceUrlName.EnvVarName,
                 Value = grpcEndpointUrl
             },
             new()
             {
-                Name = "ResourceServiceClient__AuthMode",
+                Name = DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName,
                 Value = "Unsecured" // No auth in local dev experience
             },
             new()
             {
-                Name = "Frontend__AuthMode",
+                Name = DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName,
                 Value = "Unsecured" // No auth in local dev experience
             },
             new()
             {
-                Name = "ASPNETCORE_URLS",
+                Name = DashboardConfigNames.DashboardFrontendUrlName.EnvVarName,
                 Value = dashboardUrls
             },
             new()
             {
-                Name = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL",
+                Name = DashboardConfigNames.DashboardOtlpUrlName.EnvVarName,
                 Value = otlpEndpointUrl
             },
             new()
@@ -812,12 +812,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             dashboardExecutableSpec.Env.AddRange([
                 new()
                 {
-                    Name = "Otlp__ApiKey",
+                    Name = DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName,
                     Value = otlpApiKey
                 },
                 new()
                 {
-                    Name = "Otlp__AuthMode",
+                    Name = DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName,
                     Value = "ApiKey" // Matches value in OtlpAuthMode enum.
                 }
             ]);
@@ -827,8 +827,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             dashboardExecutableSpec.Env.AddRange([
                 new()
                 {
-                    Name = "DOTNET_DASHBOARD_OTLP_AUTH_MODE",
-                    Value = "None" // Matches value in OtlpAuthMode enum.
+                    Name = DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName,
+                    Value = "Unsecured" // Matches value in OtlpAuthMode enum.
                 }
             ]);
         }
@@ -1039,30 +1039,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
-                if (_dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionIdeProtocolV1) >= 0)
-                {
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
-                    {
-                        projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
-                    }
-                }
-                else
-                {
 #pragma warning disable CS0612 // These annotations are obsolete; remove in Aspire Preview 6
-                    annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
+                annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
 
-                    // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
-                    if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
-                    {
-                        annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
-                    }
-                    else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
-                    {
-                        annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
-                    }
-#pragma warning restore CS0612
+                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
+                if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                {
+                    annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
                 }
+                else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                {
+                    annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+                }
+#pragma warning restore CS0612
             }
             else
             {

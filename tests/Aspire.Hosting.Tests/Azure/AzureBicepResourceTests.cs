@@ -738,7 +738,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public async void AsAzureSqlDatabase()
+    public async Task AsAzureSqlDatabase()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 

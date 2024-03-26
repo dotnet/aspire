@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Configuration;
 using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -22,7 +22,7 @@ public class OtlpLogEntry
     public OtlpApplication Application { get; }
     public OtlpScope Scope { get; }
 
-    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryOptions options)
+    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryLimitOptions options)
     {
         string? originalFormat = null;
         string? parentId = null;
@@ -49,7 +49,7 @@ public class OtlpLogEntry
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
 
-        Message = OtlpHelpers.TruncateString(record.Body.GetString(), options.AttributeLengthLimit);
+        Message = OtlpHelpers.TruncateString(record.Body.GetString(), options.MaxAttributeLength);
         OriginalFormat = originalFormat;
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
