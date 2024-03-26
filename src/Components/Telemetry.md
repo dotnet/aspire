@@ -18,7 +18,17 @@ Aspire.Azure.Data.Tables:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
-Aspire.Azure.Messaging.ServiceBus:
+Aspire.Azure.Messaging.EventHubs:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+  - "Azure.Messaging.EventHubs"
+- Activity source names:
+  - "Azure.Messaging.EventHubs.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
+  - Aspire.Azure.Messaging.ServiceBus:
 - Log categories:
   - "Azure.Core"
   - "Azure.Identity"
