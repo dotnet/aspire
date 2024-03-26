@@ -116,4 +116,22 @@ public class EnrichCosmosDbTests : ConformanceTests
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
         Assert.NotNull(context);
     }
+
+    [Fact]
+    public void EnrichWithConflictingRequestTimeoutThrows()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(optionsBuilder =>
+            {
+                optionsBuilder.UseCosmos(ConnectionString, DatabaseName, builder => builder.RequestTimeout(TimeSpan.FromSeconds(123)));
+            });
+
+            builder.EnrichCosmosDbContext<TestDbContext>(settings => settings.RequestTimeout = TimeSpan.FromSeconds(456));
+            using var host = builder.Build();
+            var context = host.Services.GetRequiredService<TestDbContext>();
+        });
+    }
 }
