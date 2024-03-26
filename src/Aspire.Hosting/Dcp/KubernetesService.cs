@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
@@ -298,12 +299,11 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                 ShouldHandle = new PredicateBuilder().Handle<KubeConfigException>(),
                 BackoffType = DelayBackoffType.Constant,
                 MaxRetryAttempts = dcpOptions.Value.KubernetesConfigReadRetryCount,
-                MaxDelay = TimeSpan.FromSeconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalSeconds),
+                MaxDelay = TimeSpan.FromMilliseconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalMilliseconds),
                 OnRetry = (retry) =>
                 {
                     logger.LogDebug(
-                        retry.Outcome.Exception,
-                        "Reading Kubernetes configuration file from '{DcpKubeconfigPath}' failed. Retry pending. (iteration {Iteration}).",
+                        "Waiting for Kubernetes configuration file at '{DcpKubeconfigPath}' (attempt {Iteration}).",
                         locations.DcpKubeconfigPath,
                         retry.AttemptNumber
                         );
@@ -322,21 +322,13 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         // Return early before waiting for the semaphore if we can.
         if (_kubernetes != null)
         {
-            logger.LogDebug("Kubernetes ensured at first chance shortcut.");
             return;
         }
 
-        while (!await _kubeconfigReadSemaphore.WaitAsync(100, cancellationToken).ConfigureAwait(false))
-        {
-            logger.LogDebug("Waiting for semaphore to read kubeconfig.");
-        }
-
-        // Return late after getting the semaphore but also probably after
-        // another thread has gotten the config loaded.
+        await _kubeconfigReadSemaphore.WaitAsync(-1, cancellationToken).ConfigureAwait(false);
 
         if (_kubernetes != null)
         {
-            logger.LogDebug("Kubernetes ensured at second chance shortcut.");
             _kubeconfigReadSemaphore.Release();
             return;
         }
@@ -346,13 +338,21 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             // We retry reading the kubeconfig file because DCP takes a few moments to write
             // it to disk. This retry pipeline will only be invoked by a single thread the
             // rest will be held at the semaphore.
+            var readStopwatch = new Stopwatch();
+            readStopwatch.Start();
+
             var pipeline = GetReadKubeconfigResiliencePipeline();
             _kubernetes = await pipeline.ExecuteAsync<DcpKubernetesClient>(async (cancellationToken) =>
             {
-                logger.LogDebug("Reading Kubernetes configuration from '{DcpKubeconfigPath}'.", locations.DcpKubeconfigPath);
                 var fileInfo = new FileInfo(locations.DcpKubeconfigPath);
                 var config = await KubernetesClientConfiguration.BuildConfigFromConfigFileAsync(kubeconfig: fileInfo, useRelativePaths: false).ConfigureAwait(false);
-                logger.LogDebug("Successfully read Kubernetes configuration from '{DcpKubeconfigPath}'.", locations.DcpKubeconfigPath);
+                readStopwatch.Stop();
+
+                logger.LogDebug(
+                    "Successfully read Kubernetes configuration from '{DcpKubeconfigPath}' after {DurationMs} milliseconds.",
+                    locations.DcpKubeconfigPath,
+                    readStopwatch.ElapsedMilliseconds
+                    );
 
                 return new DcpKubernetesClient(config);
             }, cancellationToken).ConfigureAwait(false);

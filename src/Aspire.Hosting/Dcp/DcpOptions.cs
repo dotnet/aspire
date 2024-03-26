@@ -77,9 +77,9 @@ internal sealed class DcpOptions
     /// </summary>
     public bool? RandomizePorts { get; set; }
 
-    public int KubernetesConfigReadRetryCount { get; set; } = 30;
+    public int KubernetesConfigReadRetryCount { get; set; } = 300;
 
-    public int KubernetesConfigReadRetryIntervalSeconds { get; set; } = 1;
+    public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
 
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
     {
@@ -130,7 +130,7 @@ internal sealed class DcpOptions
         }
 
         KubernetesConfigReadRetryCount = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryCount), KubernetesConfigReadRetryCount);
-        KubernetesConfigReadRetryIntervalSeconds = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryIntervalSeconds), KubernetesConfigReadRetryIntervalSeconds);
+        KubernetesConfigReadRetryIntervalMilliseconds = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryIntervalMilliseconds), KubernetesConfigReadRetryIntervalMilliseconds);
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(ResourceNameSuffix)]))
         {
