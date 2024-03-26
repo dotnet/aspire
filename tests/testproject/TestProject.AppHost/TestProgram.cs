@@ -165,36 +165,58 @@ public class TestProgram : IDisposable
     /// </summary>
     private sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
     {
+        #pragma warning disable CA1822, IDE0060
+        public Task BeforeEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        {
+            Console.WriteLine($"**** EndPointWriterHook.BeforeEndpointsAllocatedAsync");
+            return Task.CompletedTask;
+        }
+
+        public Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+        {
+            Console.WriteLine ($"**** EndPointWriterHook.AfterResourcesCreatedAsync");
+            return Task.CompletedTask;
+        }
+
+#pragma warning restore CA1822, IDE0060
+
         public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
         {
-            var root = new JsonObject();
-            foreach (var project in appModel.Resources.OfType<ProjectResource>())
+            Console.WriteLine ($"**** EndPointWriterHook.AfterEndpointsAllocatedAsync");
+            try
             {
-                var projectJson = new JsonObject();
-                root[project.Name] = projectJson;
-
-                var endpointsJsonArray = new JsonArray();
-                projectJson["Endpoints"] = endpointsJsonArray;
-
-                foreach (var endpoint in project.Annotations.OfType<EndpointAnnotation>())
+                var root = new JsonObject();
+                foreach (var project in appModel.Resources.OfType<ProjectResource>())
                 {
-                    var allocatedEndpoint = endpoint.AllocatedEndpoint;
-                    if (allocatedEndpoint is null)
+                    var projectJson = new JsonObject();
+                    root[project.Name] = projectJson;
+
+                    var endpointsJsonArray = new JsonArray();
+                    projectJson["Endpoints"] = endpointsJsonArray;
+
+                    foreach (var endpoint in project.Annotations.OfType<EndpointAnnotation>())
                     {
-                        continue;
+                        var allocatedEndpoint = endpoint.AllocatedEndpoint;
+                        if (allocatedEndpoint is null)
+                        {
+                            continue;
+                        }
+
+                        var endpointJsonObject = new JsonObject
+                        {
+                            ["Name"] = endpoint.Name,
+                            ["Uri"] = allocatedEndpoint.UriString
+                        };
+                        endpointsJsonArray.Add(endpointJsonObject);
                     }
-
-                    var endpointJsonObject = new JsonObject
-                    {
-                        ["Name"] = endpoint.Name,
-                        ["Uri"] = allocatedEndpoint.UriString
-                    };
-                    endpointsJsonArray.Add(endpointJsonObject);
                 }
-            }
 
-            // write the whole json in a single line so it's easier to parse by the external process
-            await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+                // write the whole json in a single line so it's easier to parse by the external process
+                await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+            } catch (Exception ex) {
+                Console.WriteLine($"**** EndPointWriterHook.AfterEndpointsAllocatedAsync: {ex}");
+                throw;
+            }
         }
     }
 }
