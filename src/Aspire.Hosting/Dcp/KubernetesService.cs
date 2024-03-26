@@ -327,14 +327,15 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
 
         await _kubeconfigReadSemaphore.WaitAsync(-1, cancellationToken).ConfigureAwait(false);
 
-        if (_kubernetes != null)
-        {
-            _kubeconfigReadSemaphore.Release();
-            return;
-        }
 
         try
         {
+            // Second chance shortcut if multiple threads got caught.
+            if (_kubernetes != null)
+            {
+                return;
+            }
+
             // We retry reading the kubeconfig file because DCP takes a few moments to write
             // it to disk. This retry pipeline will only be invoked by a single thread the
             // rest will be held at the semaphore.
