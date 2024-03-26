@@ -72,8 +72,8 @@ The resource service client supports certificates. Set `Dashboard:ResourceServic
     - `Dashboard:ResourceServiceClient:ClientCertificate:Password` (optional, string)
   - `KeyStore` to load the cert from a key store, configured with:
     - `Dashboard:ResourceServiceClient:ClientCertificate:Subject` (required, string)
-    - `Dashboard:ResourceServiceClient:ClientCertificate:KeyStore:Name` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
-    - `Dashboard:ResourceServiceClient:ClientCertificate:KeyStore:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
+    - `Dashboard:ResourceServiceClient:ClientCertificate:Store` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
+    - `Dashboard:ResourceServiceClient:ClientCertificate:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
 - `Dashboard:ResourceServiceClient:Ssl` (optional, [`SslClientAuthenticationOptions`](https://learn.microsoft.com/dotnet/api/system.net.security.sslclientauthenticationoptions))
 
 To opt-out of authentication, set `Dashboard:ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
