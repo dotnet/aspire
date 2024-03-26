@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
-public class AzureMessagingServiceBusSettingsTests
+public class AzureMessagingEventHubsSettingsTests
 {
     [Fact]
     public void TracingIsEnabledWhenAzureSwitchIsSet()
