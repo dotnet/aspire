@@ -243,6 +243,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container, emitContainerPort: true);
+
+        // Write additional custom run arguments
+        await WriteContainerRunArgumentsAsync(container).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -478,6 +481,42 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                 Writer.WriteEndArray();
             }
+        }
+    }
+
+    internal async Task WriteContainerRunArgumentsAsync(ContainerResource container)
+    {
+        var args = new List<object>();
+
+        if (resource.TryGetAnnotationsOfType<ContainerRunArgsCallbackAnnotation>(out var argsCallback))
+        {
+            var containerRunArgsCallbackContext = new ContainerRunArgsCallbackContext(args, CancellationToken);
+
+            foreach (var callback in argsCallback)
+            {
+                await callback.Callback(containerRunArgsCallbackContext).ConfigureAwait(false);
+            }
+        }
+
+        if (args.Count > 0)
+        {
+            Writer.WriteStartArray("runArgs");
+
+            foreach (var arg in args)
+            {
+                var valueString = arg switch
+                {
+                    string stringValue => stringValue,
+                    IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                    _ => throw new DistributedApplicationException($"The value of the run argument '{arg}' is not supported.")
+                };
+
+                Writer.WriteStringValue(valueString);
+
+                TryAddDependentResources(arg);
+            }
+
+            Writer.WriteEndArray();
         }
     }
 
