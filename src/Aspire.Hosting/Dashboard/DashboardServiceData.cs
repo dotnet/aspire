@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
@@ -32,31 +31,15 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         {
             static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, string resourceId, DateTime creationTimestamp, CustomResourceSnapshot snapshot)
             {
-                ImmutableArray<EnvironmentVariableSnapshot> environmentVariables = [..
-                    snapshot.EnvironmentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, e.IsFromSpec))];
-
-                ImmutableArray<ResourceServiceSnapshot> services =
-                [
-                    ..snapshot.Urls.Select(u => new ResourceServiceSnapshot(u.Name, u.Url, null)),
-                    ..snapshot.Services.Select(e => new ResourceServiceSnapshot(e.Name, e.AllocatedAddress, e.AllocatedPort))
-                ];
-
-                ImmutableArray<EndpointSnapshot> endpoints = [
-                    ..snapshot.Urls.Select(u => new EndpointSnapshot(u.Url, u.Url)),
-                    ..snapshot.Endpoints.Select(e => new EndpointSnapshot(e.EndpointUrl, e.ProxyUrl))
-                ];
-
                 return new GenericResourceSnapshot(snapshot)
                 {
                     Uid = resourceId,
                     CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
                     Name = resourceId,
                     DisplayName = resource.Name,
-                    Endpoints = endpoints,
-                    Environment = environmentVariables,
+                    Urls = snapshot.Urls,
+                    Environment = snapshot.EnvironmentVariables,
                     ExitCode = snapshot.ExitCode,
-                    ExpectedEndpointsCount = endpoints.Length,
-                    Services = services,
                     State = snapshot.State
                 };
             }

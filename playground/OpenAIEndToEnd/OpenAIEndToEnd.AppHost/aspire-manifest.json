@@ -17,7 +17,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__openai": "{openai.connectionString}",
-        "OpenAI__DeploymentName": "{openai.outputs.modelName}"
+        "OpenAI__DeploymentName": "gpt-35-turbo"
       },
       "bindings": {
         "http": {

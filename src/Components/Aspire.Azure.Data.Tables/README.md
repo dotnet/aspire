@@ -116,10 +116,10 @@ builder.AddAzureTableClient("tables", configureClientBuilder: clientBuilder => c
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure Storage Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure
+dotnet add package Aspire.Hosting.Azure.Storage
 ```
 
 Then, in the _Program.cs_ file of `AppHost`, add a Table Storage connection and consume the connection using the following methods:

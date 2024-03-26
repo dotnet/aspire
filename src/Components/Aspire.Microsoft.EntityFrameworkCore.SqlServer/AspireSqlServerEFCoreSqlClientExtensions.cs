@@ -7,7 +7,6 @@ using Aspire.Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
@@ -127,19 +126,6 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
                 tracerProviderBuilder.AddSqlClientInstrumentation();
-            });
-        }
-
-        if (settings.Metrics)
-        {
-            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
-            {
-                meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                {
-                    // https://github.com/dotnet/efcore/blob/main/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                    // https://github.com/dotnet/SqlClient/blob/main/src/Microsoft.Data.SqlClient/src/Microsoft/Data/SqlClient/SqlClientEventSource.cs#L73
-                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore", "Microsoft.Data.SqlClient.EventSource");
-                });
             });
         }
 
