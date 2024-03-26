@@ -47,7 +47,7 @@ public class AddNatsTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddNats("nats", 1234).WithJetStream(srcMountPath: "/tmp/dev-data");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -82,7 +82,7 @@ public class AddNatsTests
     [Fact]
     public void WithNatsContainerOnMultipleResources()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddNats("nats1");
         builder.AddNats("nats2");
 
@@ -92,8 +92,8 @@ public class AddNatsTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var nats = appBuilder.AddNats("nats");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var nats = builder.AddNats("nats");
 
         var manifest = await ManifestUtils.GetManifest(nats.Resource);
 

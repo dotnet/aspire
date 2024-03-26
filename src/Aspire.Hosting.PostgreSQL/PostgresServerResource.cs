@@ -16,18 +16,14 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="userName">A parameter that contains the PostgreSQL server user name, or <see langword="null"/> to use a default value.</param>
-    /// <param name="password">A parameter that contains the PostgreSQL server password, or <see langword="null"/> to generate a random password.</param>
-    public PostgresServerResource(string name, ParameterResource? userName, ParameterResource? password) : base(name)
+    /// <param name="password">A parameter that contains the PostgreSQL server password.</param>
+    public PostgresServerResource(string name, ParameterResource? userName, ParameterResource password) : base(name)
     {
+        ArgumentNullException.ThrowIfNull(password);
+
         PrimaryEndpoint = new(this, PrimaryEndpointName);
         UserNameParameter = userName;
         PasswordParameter = password;
-
-        if (PasswordParameter is null)
-        {
-            Annotations.Add(InputAnnotation.CreateDefaultPasswordInput());
-            PasswordInput = new(this, "password");
-        }
     }
 
     /// <summary>
@@ -45,26 +41,14 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
             ReferenceExpression.Create($"{UserNameParameter}") :
             ReferenceExpression.Create($"{DefaultUserName}");
 
-    private InputReference? PasswordInput { get; }
-
     /// <summary>
     /// Gets the parameter that contains the PostgreSQL server password.
     /// </summary>
-    public ParameterResource? PasswordParameter { get; }
-
-    internal ReferenceExpression PasswordReference =>
-        PasswordParameter is not null ?
-            ReferenceExpression.Create($"{PasswordParameter}") :
-            ReferenceExpression.Create($"{PasswordInput!}"); // either PasswordParameter or PasswordInput is non-null
-
-    /// <summary>
-    /// Gets the PostgreSQL server password.
-    /// </summary>
-    internal string Password => PasswordParameter?.Value ?? PasswordInput!.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
+    public ParameterResource PasswordParameter { get; }
 
     private ReferenceExpression ConnectionString =>
         ReferenceExpression.Create(
-            $"Host={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};Username={UserNameReference};Password={PasswordReference}");
+            $"Host={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};Username={UserNameReference};Password={PasswordParameter}");
 
     /// <summary>
     /// Gets the connection string expression for the PostgreSQL server.

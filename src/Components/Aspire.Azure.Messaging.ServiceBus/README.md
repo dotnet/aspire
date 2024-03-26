@@ -114,10 +114,10 @@ builder.AddAzureServiceBusClient("sb", configureClientBuilder: clientBuilder => 
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure Service Bus Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure
+dotnet add package Aspire.Hosting.Azure.ServiceBus
 ```
 
 Then, in the _Program.cs_ file of `AppHost`, add a Service Bus connection and consume the connection using the following methods:

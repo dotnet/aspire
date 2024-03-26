@@ -46,8 +46,8 @@ public class OtlpServiceTests
         var apiKey = "TestKey123!";
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
-            config[DashboardWebApplication.DashboardOtlpAuthModeVariableName] = OtlpAuthMode.ApiKey.ToString();
-            config[DashboardWebApplication.DashboardOtlpApiKeyVariableName] = apiKey;
+            config[DashboardWebApplication.OtlpAuthModeKey] = OtlpAuthMode.ApiKey.ToString();
+            config[DashboardWebApplication.OtlpApiKeyKey] = apiKey;
         });
         await app.StartAsync();
 
@@ -68,8 +68,8 @@ public class OtlpServiceTests
         var apiKey = "TestKey123!";
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
-            config[DashboardWebApplication.DashboardOtlpAuthModeVariableName] = OtlpAuthMode.ApiKey.ToString();
-            config[DashboardWebApplication.DashboardOtlpApiKeyVariableName] = apiKey;
+            config[DashboardWebApplication.OtlpAuthModeKey] = OtlpAuthMode.ApiKey.ToString();
+            config[DashboardWebApplication.OtlpApiKeyKey] = apiKey;
         });
         await app.StartAsync();
 
@@ -95,8 +95,8 @@ public class OtlpServiceTests
         var apiKey = "TestKey123!";
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
-            config[DashboardWebApplication.DashboardOtlpAuthModeVariableName] = OtlpAuthMode.ApiKey.ToString();
-            config[DashboardWebApplication.DashboardOtlpApiKeyVariableName] = apiKey;
+            config[DashboardWebApplication.OtlpAuthModeKey] = OtlpAuthMode.ApiKey.ToString();
+            config[DashboardWebApplication.OtlpApiKeyKey] = apiKey;
         });
         await app.StartAsync();
 
@@ -155,7 +155,7 @@ public class OtlpServiceTests
             // Change dashboard to HTTPS so the caller can negotiate a HTTP/2 connection.
             config[DashboardWebApplication.DashboardOtlpUrlVariableName] = "https://127.0.0.1:0";
 
-            config[DashboardWebApplication.DashboardOtlpAuthModeVariableName] = OtlpAuthMode.ClientCertificate.ToString();
+            config[DashboardWebApplication.OtlpAuthModeKey] = OtlpAuthMode.ClientCertificate.ToString();
         });
         await app.StartAsync();
 
@@ -189,7 +189,7 @@ public class OtlpServiceTests
             // Change dashboard to HTTPS so the caller can negotiate a HTTP/2 connection.
             config[DashboardWebApplication.DashboardOtlpUrlVariableName] = "https://127.0.0.1:0";
 
-            config[DashboardWebApplication.DashboardOtlpAuthModeVariableName] = OtlpAuthMode.ClientCertificate.ToString();
+            config[DashboardWebApplication.OtlpAuthModeKey] = OtlpAuthMode.ClientCertificate.ToString();
 
             config["CertificateAuthentication:AllowedCertificateTypes"] = "SelfSigned";
             config["CertificateAuthentication:ValidateValidityPeriod"] = "false";

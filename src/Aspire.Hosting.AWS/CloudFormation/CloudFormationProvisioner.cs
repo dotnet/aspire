@@ -113,11 +113,11 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<(string, object?)>? properties = null)
+    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
     {
         if (properties == null)
         {
-            properties = ImmutableArray.Create<(string, object?)>();
+            properties = ImmutableArray.Create<ResourcePropertySnapshot>();
         }
 
         await notificationService.PublishUpdateAsync(resource, state => state with
@@ -127,23 +127,23 @@ internal sealed class CloudFormationProvisioner(
         }).ConfigureAwait(false);
     }
 
-    private static ImmutableArray<(string, object?)> ConvertOutputToProperties(Stack stack, string? templateFile = null)
+    private static ImmutableArray<ResourcePropertySnapshot> ConvertOutputToProperties(Stack stack, string? templateFile = null)
     {
-        var list = new List<(string, object?)>();
+        var list = ImmutableArray.CreateBuilder<ResourcePropertySnapshot>();
 
         foreach (var output in stack.Outputs)
         {
-            list.Add(("aws.cloudformation.output." + output.OutputKey, output.OutputValue));
+            list.Add(new("aws.cloudformation.output." + output.OutputKey, output.OutputValue));
         }
 
-        list.Add((CustomResourceKnownProperties.Source, stack.StackId));
+        list.Add(new(CustomResourceKnownProperties.Source, stack.StackId));
 
         if (!string.IsNullOrEmpty(templateFile))
         {
-            list.Add(("aws.cloudformation.template", templateFile));
+            list.Add(new("aws.cloudformation.template", templateFile));
         }
 
-        return ImmutableArray.Create(list.ToArray());
+        return list.ToImmutableArray();
     }
 
     private static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)

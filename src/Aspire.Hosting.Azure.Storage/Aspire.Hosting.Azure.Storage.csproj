@@ -5,7 +5,12 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting azure</PackageTags>
     <Description>Azure Storage resource types for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)AzureStorageContainer_256x.png</PackageIconFullPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />

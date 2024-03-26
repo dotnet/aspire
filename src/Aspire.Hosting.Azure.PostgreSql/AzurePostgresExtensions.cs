@@ -19,35 +19,25 @@ public static class AzurePostgresExtensions
     {
         if (postgresResource.UserNameParameter is null)
         {
-            const string usernameInput = "username";
-            // generate a username since a parameter was not provided
-            builder.WithAnnotation(new InputAnnotation(usernameInput)
+            var generatedUserName = new GenerateParameterDefault
             {
-                Default = new GenerateInputDefault
-                {
-                    MinLength = 10,
-                    // just use letters for the username since it can't start with a number
-                    Numeric = false,
-                    Special = false
-                }
-            });
+                MinLength = 10,
+                // just use letters for the username since it can't start with a number
+                Numeric = false,
+                Special = false
+            };
 
-            builder.WithParameter("administratorLogin", new InputReference(builder.Resource, usernameInput));
+            var userParam = ParameterResourceBuilderExtensions.CreateGeneratedParameter(
+                builder.ApplicationBuilder, $"{builder.Resource.Name}-username", secret: false, generatedUserName);
+
+            builder.WithParameter("administratorLogin", userParam);
         }
         else
         {
             builder.WithParameter("administratorLogin", postgresResource.UserNameParameter);
         }
 
-        if (postgresResource.PasswordParameter is null)
-        {
-            // generate a password since a parameter was not provided. Use the existing "password" input from the underlying PostgresServerResource
-            builder.WithParameter("administratorLoginPassword", new InputReference(builder.Resource, "password"));
-        }
-        else
-        {
-            builder.WithParameter("administratorLoginPassword", postgresResource.PasswordParameter);
-        }
+        builder.WithParameter("administratorLoginPassword", postgresResource.PasswordParameter);
 
         return builder;
     }
@@ -101,15 +91,9 @@ public static class AzurePostgresExtensions
 
         var resource = new AzurePostgresResource(builder.Resource, configureConstruct);
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
-                                                        .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                                                         .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                                                         .WithManifestPublishingCallback(resource.WriteToManifest)
                                                         .WithLoginAndPassword(builder.Resource);
-
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
-        }
 
         if (useProvisioner)
         {

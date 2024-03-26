@@ -8,16 +8,21 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
-public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider
+public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     // A reference to the endpoint annotation if it exists.
     private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;
 
+    // TODO: Expose this
+    internal EndpointAnnotation EndpointAnnotation => GetEndpointAnnotation() ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not defined for the resource `{Resource.Name}`.");
+
     /// <summary>
     /// Gets the resource owner of the endpoint reference.
     /// </summary>
     public IResourceWithEndpoints Resource { get; }
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 
     /// <summary>
     /// Gets the name of the endpoint associated with the endpoint reference.
@@ -91,11 +96,10 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         GetAllocatedEndpoint()
         ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Resource.Name}`.");
 
-    private AllocatedEndpoint? GetAllocatedEndpoint()
-    {
-        var endpoint = _endpointAnnotation ??= Resource.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
-        return endpoint?.AllocatedEndpoint;
-    }
+    private EndpointAnnotation? GetEndpointAnnotation() =>
+        _endpointAnnotation ??= Resource.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
+
+    private AllocatedEndpoint? GetAllocatedEndpoint() => GetEndpointAnnotation()?.AllocatedEndpoint;
 
     /// <summary>
     /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.
@@ -132,7 +136,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 /// </summary>
 /// <param name="endpointReference">The endpoint reference.</param>
 /// <param name="property">The property of the endpoint.</param>
-public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IValueProvider, IManifestExpressionProvider
+public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Gets the <see cref="EndpointReference"/>.
@@ -165,6 +169,8 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         EndpointProperty.Scheme => new(Endpoint.Scheme),
         _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
     };
+
+    IEnumerable<object> IValueWithReferences.References => [Endpoint];
 }
 
 /// <summary>

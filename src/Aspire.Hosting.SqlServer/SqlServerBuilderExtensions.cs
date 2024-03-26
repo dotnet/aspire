@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -20,8 +21,10 @@ public static class SqlServerBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
-        var sqlServer = new SqlServerServerResource(name, password?.Resource);
+        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", minLower: 1, minUpper: 1, minNumeric: 1);
 
+        var sqlServer = new SqlServerServerResource(name, passwordParameter);
         return builder.AddResource(sqlServer)
                       .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithImage("mssql/server", "2022-latest")
@@ -29,7 +32,7 @@ public static class SqlServerBuilderExtensions
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordReference;
+                          context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordParameter;
                       });
     }
 
@@ -54,11 +57,11 @@ public static class SqlServerBuilderExtensions
     /// Adds a named volume for the data folder to a SQL Server resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> WithDataVolume(this IResourceBuilder<SqlServerServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/opt/mssql", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/opt/mssql", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a SQL Server resource.

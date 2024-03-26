@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
@@ -11,20 +10,13 @@ using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
-public class StartupTests
+public class StartupTests(ITestOutputHelper testOutputHelper)
 {
-    private readonly ITestOutputHelper _testOutputHelper;
-
-    public StartupTests(ITestOutputHelper testOutputHelper)
-    {
-        _testOutputHelper = testOutputHelper;
-    }
-
     [Fact]
     public async Task EndPointAccessors_AppStarted_EndPointPortsAssigned()
     {
         // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
 
         // Act
         await app.StartAsync();
@@ -43,7 +35,7 @@ public class StartupTests
         {
             await ServerRetryHelper.BindPortsWithRetry(async port =>
             {
-                app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                     additionalConfiguration: initialData =>
                     {
                         initialData[DashboardWebApplication.DashboardUrlVariableName] = $"https://127.0.0.1:{port}";
@@ -55,7 +47,7 @@ public class StartupTests
             }, NullLogger.Instance);
 
             // Assert
-            Debug.Assert(app != null);
+            Assert.NotNull(app);
             Assert.Equal(app.BrowserEndPointAccessor().EndPoint.Port, app.OtlpServiceEndPointAccessor().EndPoint.Port);
 
             // Check browser access
@@ -74,7 +66,7 @@ public class StartupTests
             response.EnsureSuccessStatusCode();
 
             // Check OTLP service
-            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.BrowserEndPointAccessor().EndPoint}", _testOutputHelper);
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.BrowserEndPointAccessor().EndPoint}", testOutputHelper);
             var client = new LogsService.LogsServiceClient(channel);
             var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest());
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
@@ -98,7 +90,7 @@ public class StartupTests
         {
             await ServerRetryHelper.BindPortsWithRetry(async port =>
             {
-                app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper,
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                     additionalConfiguration: initialData =>
                     {
                         initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
@@ -138,11 +130,46 @@ public class StartupTests
     }
 
     [Fact]
+    public async Task Configuration_NoOtlpAuthMode_Error()
+    {
+        // Arrange & Act
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                additionalConfiguration: data =>
+                {
+                    data.Remove(DashboardWebApplication.OtlpAuthModeKey);
+                });
+        });
+
+        // Assert
+        Assert.Equal("Missing required configuration for Otlp:AuthMode. Valid values are Unsecured, ApiKey, ClientCertificate.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Configuration_AllowAnonymous_NoError()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardWebApplication.OtlpAuthModeKey] = "Unsecured";
+            });
+
+        // Act
+        await app.StartAsync();
+
+        // Assert
+        AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
+        AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
+    }
+
+    [Fact]
     public async Task LogOutput_DynamicPort_PortResolvedInLogs()
     {
         // Arrange
         var testSink = new TestSink();
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, testSink: testSink);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper, testSink: testSink);
 
         // Act
         await app.StartAsync();
@@ -180,7 +207,7 @@ public class StartupTests
     public async void EndPointAccessors_AppStarted_BrowserGet_Success()
     {
         // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
 
         // Act
         await app.StartAsync();

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
@@ -47,7 +47,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             builder.AddNatsClient("nats");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
@@ -76,7 +76,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             builder.AddNatsClient("nats", SetConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
@@ -108,7 +108,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             builder.AddNatsClient("nats");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var connection = useKeyed ?
             host.Services.GetRequiredKeyedService<INatsConnection>("nats") :
             host.Services.GetRequiredService<INatsConnection>();
@@ -135,7 +135,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             builder.AddNatsClient(DefaultConnectionName);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
@@ -168,7 +168,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             });
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
 
         var healthCheckService = host.Services.GetService<HealthCheckService>();
 

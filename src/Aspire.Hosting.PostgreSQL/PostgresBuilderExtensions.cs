@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -30,7 +31,9 @@ public static class PostgresBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-        var postgresServer = new PostgresServerResource(name, userName?.Resource, password?.Resource);
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+
+        var postgresServer = new PostgresServerResource(name, userName?.Resource, passwordParameter);
         return builder.AddResource(postgresServer)
                       .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
@@ -39,7 +42,7 @@ public static class PostgresBuilderExtensions
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
-                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordReference;
+                          context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordParameter;
                       });
     }
 
@@ -104,11 +107,11 @@ public static class PostgresBuilderExtensions
     /// Adds a named volume for the data folder to a PostgreSQL container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/var/lib/postgresql/data", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/postgresql/data", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a PostgreSQL container resource.
