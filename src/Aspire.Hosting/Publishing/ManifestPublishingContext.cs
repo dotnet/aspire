@@ -36,6 +36,10 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// </summary>
     public CancellationToken CancellationToken { get; } = cancellationToken;
 
+    private readonly Dictionary<string, IResource> _referencedResources = [];
+
+    private readonly HashSet<object?> _currentDependencySet = [];
+
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
     /// </summary>
@@ -57,6 +61,154 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         var relativePath = Path.GetRelativePath(manifestDirectory, normalizedPath);
 
         return relativePath.Replace('\\', '/');
+    }
+
+    internal async Task WriteModel(DistributedApplicationModel model, CancellationToken cancellationToken)
+    {
+        Writer.WriteStartObject();
+        Writer.WriteStartObject("resources");
+
+        foreach (var resource in model.Resources)
+        {
+            await WriteResourceAsync(resource).ConfigureAwait(false);
+        }
+
+        await WriteReferencedResources(model).ConfigureAwait(false);
+
+        Writer.WriteEndObject();
+        Writer.WriteEndObject();
+
+        await Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    internal async Task WriteResourceAsync(IResource resource)
+    {
+        // First see if the resource has a callback annotation with overrides the behavior for rendering
+        // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
+        if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation))
+        {
+            if (manifestPublishingCallbackAnnotation.Callback != null)
+            {
+                await WriteResourceObjectAsync(resource, () => manifestPublishingCallbackAnnotation.Callback(this)).ConfigureAwait(false);
+            }
+        }
+        else if (resource is ContainerResource container)
+        {
+            await WriteResourceObjectAsync(container, () => WriteContainerAsync(container)).ConfigureAwait(false);
+        }
+        else if (resource is ProjectResource project)
+        {
+            await WriteResourceObjectAsync(project, () => WriteProjectAsync(project)).ConfigureAwait(false);
+        }
+        else if (resource is ExecutableResource executable)
+        {
+            await WriteResourceObjectAsync(executable, () => WriteExecutableAsync(executable)).ConfigureAwait(false);
+        }
+        else if (resource is IResourceWithConnectionString resourceWithConnectionString)
+        {
+            await WriteResourceObjectAsync(resource, () => WriteConnectionStringAsync(resourceWithConnectionString)).ConfigureAwait(false);
+        }
+        else if (resource is ParameterResource parameter)
+        {
+            await WriteResourceObjectAsync(parameter, () => WriteParameterAsync(parameter)).ConfigureAwait(false);
+        }
+        else
+        {
+            await WriteResourceObjectAsync(resource, WriteErrorAsync).ConfigureAwait(false);
+        }
+
+        async Task WriteResourceObjectAsync<T>(T resource, Func<Task> action) where T : IResource
+        {
+            Writer.WriteStartObject(resource.Name);
+            await action().ConfigureAwait(false);
+            Writer.WriteEndObject();
+        }
+    }
+
+    private Task WriteErrorAsync()
+    {
+        Writer.WriteString("error", "This resource does not support generation in the manifest.");
+        return Task.CompletedTask;
+    }
+
+    private Task WriteConnectionStringAsync(IResourceWithConnectionString resource)
+    {
+        // Write connection strings as value.v0
+        Writer.WriteString("type", "value.v0");
+        WriteConnectionString(resource);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task WriteProjectAsync(ProjectResource project)
+    {
+        Writer.WriteString("type", "project.v0");
+
+        if (!project.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
+        {
+            throw new DistributedApplicationException("Project metadata not found.");
+        }
+
+        var relativePathToProjectFile = GetManifestRelativePath(metadata.ProjectPath);
+
+        Writer.WriteString("path", relativePathToProjectFile);
+
+        await WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
+        WriteBindings(project);
+    }
+
+    private async Task WriteExecutableAsync(ExecutableResource executable)
+    {
+        Writer.WriteString("type", "executable.v0");
+
+        // Write the connection string if it exists.
+        WriteConnectionString(executable);
+
+        var relativePathToProjectFile = GetManifestRelativePath(executable.WorkingDirectory);
+
+        Writer.WriteString("workingDirectory", relativePathToProjectFile);
+
+        Writer.WriteString("command", executable.Command);
+
+        await WriteCommandLineArgumentsAsync(executable).ConfigureAwait(false);
+
+        await WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
+        WriteBindings(executable);
+    }
+
+    internal Task WriteParameterAsync(ParameterResource parameter)
+    {
+        Writer.WriteString("type", "parameter.v0");
+
+        if (parameter.IsConnectionString)
+        {
+            Writer.WriteString("connectionString", parameter.ValueExpression);
+        }
+
+        Writer.WriteString("value", $"{{{parameter.Name}.inputs.value}}");
+
+        Writer.WriteStartObject("inputs");
+        Writer.WriteStartObject("value");
+
+        // https://github.com/Azure/azure-dev/issues/3487 tracks being able to remove this. All inputs are strings.
+        Writer.WriteString("type", "string");
+
+        if (parameter.Secret)
+        {
+            Writer.WriteBoolean("secret", true);
+        }
+
+        if (parameter.Default is not null)
+        {
+            Writer.WriteStartObject("default");
+            parameter.Default.WriteToManifest(this);
+            Writer.WriteEndObject();
+        }
+
+        Writer.WriteEndObject();
+        Writer.WriteEndObject();
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -91,7 +243,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container, emitContainerPort: true);
-        WriteInputs(container);
     }
 
     /// <summary>
@@ -170,6 +321,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 };
 
                 Writer.WriteString(key, valueString);
+
+                TryAddDependentResources(value);
             }
 
             WritePortBindingEnvironmentVariables(resource);
@@ -211,43 +364,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 };
 
                 Writer.WriteStringValue(valueString);
+
+                TryAddDependentResources(arg);
             }
 
             Writer.WriteEndArray();
-        }
-    }
-
-    /// <summary>
-    /// Writes the "inputs" annotations for the underlying resource.
-    /// </summary>
-    /// <param name="resource">The resource to write inputs for.</param>
-    public void WriteInputs(IResource resource)
-    {
-        if (resource.TryGetAnnotationsOfType<InputAnnotation>(out var inputs))
-        {
-            Writer.WriteStartObject("inputs");
-            foreach (var input in inputs)
-            {
-                Writer.WriteStartObject(input.Name);
-
-                // https://github.com/Azure/azure-dev/issues/3487 tracks being able to remove this. All inputs are strings.
-                Writer.WriteString("type", "string");
-
-                if (input.Secret)
-                {
-                    Writer.WriteBoolean("secret", true);
-                }
-
-                if (input.Default is not null)
-                {
-                    Writer.WriteStartObject("default");
-                    input.Default.WriteToManifest(this);
-                    Writer.WriteEndObject();
-                }
-
-                Writer.WriteEndObject();
-            }
-            Writer.WriteEndObject();
         }
     }
 
@@ -291,28 +412,12 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 };
 
                 Writer.WriteString(buildArg.Name, valueString);
+
+                TryAddDependentResources(buildArg.Value);
             }
 
             Writer.WriteEndObject();
         }
-    }
-
-    internal void WriteManifestMetadata(IResource resource)
-    {
-        if (!resource.TryGetAnnotationsOfType<ManifestMetadataAnnotation>(out var metadataAnnotations))
-        {
-            return;
-        }
-
-        Writer.WriteStartObject("metadata");
-
-        foreach (var metadataAnnotation in metadataAnnotations)
-        {
-            Writer.WritePropertyName(metadataAnnotation.Name);
-            JsonSerializer.Serialize(Writer, metadataAnnotation.Value);
-        }
-
-        Writer.WriteEndObject();
     }
 
     private void WriteContainerMounts(ContainerResource container)
@@ -374,5 +479,50 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteEndArray();
             }
         }
+    }
+
+    /// <summary>
+    /// Ensures that any <see cref="IResource"/> instances referenced by <paramref name="value"/> are
+    /// written to the manifest.
+    /// </summary>
+    /// <param name="value">The object to check for references that may be resources that need to be written.</param>
+    public void TryAddDependentResources(object? value)
+    {
+        if (value is IResource resource)
+        {
+            // add the resource to the ReferencedResources for now. After the whole model is written,
+            // these will be written to the manifest
+            _referencedResources.TryAdd(resource.Name, resource);
+        }
+        else if (value is IValueWithReferences objectWithReferences)
+        {
+            // ensure we don't infinitely recurse if there are cycles in the graph
+            _currentDependencySet.Add(value);
+            foreach (var dependency in objectWithReferences.References)
+            {
+                if (!_currentDependencySet.Contains(dependency))
+                {
+                    TryAddDependentResources(dependency);
+                }
+            }
+            _currentDependencySet.Remove(value);
+        }
+    }
+
+    private async Task WriteReferencedResources(DistributedApplicationModel model)
+    {
+        // remove references that were already in the model and were already written
+        foreach (var existingResource in model.Resources)
+        {
+            _referencedResources.Remove(existingResource.Name);
+        }
+
+        // now write all the leftover referenced resources
+        foreach (var resource in _referencedResources.Values)
+        {
+            await WriteResourceAsync(resource).ConfigureAwait(false);
+        }
+
+        _referencedResources.Clear();
     }
 }

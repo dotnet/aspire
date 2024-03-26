@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Publishing;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -28,10 +26,4 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = databaseName;
-
-    internal void WriteToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "value.v0");
-        context.WriteConnectionString(this);
-    }
 }

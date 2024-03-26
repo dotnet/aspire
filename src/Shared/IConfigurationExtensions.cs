@@ -118,4 +118,36 @@ internal static class IConfigurationExtensions
             throw new InvalidOperationException($"Error parsing URIs from configuration value '{key}'.", ex);
         }
     }
+
+    public static TEnum? GetEnum<TEnum>(this IConfiguration configuration, string key, TEnum? defaultValue = null) where TEnum : struct, Enum
+    {
+        try
+        {
+            var value = configuration[key];
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return defaultValue switch
+                {
+                    not null => defaultValue,
+                    null => null
+                };
+            }
+            else
+            {
+                if (Enum.TryParse<TEnum>(value, ignoreCase: true, out var e))
+                {
+                    return e;
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unknown {nameof(TEnum)} value: {value}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error parsing {nameof(TEnum)} from configuration value '{key}'.", ex);
+        }
+    }
 }

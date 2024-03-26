@@ -35,7 +35,7 @@ public class AspireKeyVaultExtensionsTests
             builder.AddAzureKeyVaultClient("secrets", settings => settings.VaultUri = vaultUri);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<SecretClient>("secrets") :
             host.Services.GetRequiredService<SecretClient>();
@@ -65,7 +65,7 @@ public class AspireKeyVaultExtensionsTests
             builder.AddAzureKeyVaultClient("secrets");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<SecretClient>("secrets") :
             host.Services.GetRequiredService<SecretClient>();

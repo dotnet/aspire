@@ -5,11 +5,14 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
-var openai = builder.AddAzureOpenAI("openai")
-                    .AddDeployment(new("gpt-35-turbo", "gpt-35-turbo", "0613"));
+var deploymentAndModelName = "gpt-35-turbo";
+var openai = builder.AddAzureOpenAI("openai").AddDeployment(
+    new(deploymentAndModelName, deploymentAndModelName, "0613")
+    );
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
-       .WithReference(openai);
+       .WithReference(openai)
+       .WithEnvironment("OpenAI__DeploymentName", deploymentAndModelName);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

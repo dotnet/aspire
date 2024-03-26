@@ -16,7 +16,8 @@ internal sealed class ManifestUtils
         var writer = new Utf8JsonWriter(ms);
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
         writer.WriteStartObject();
-        await ManifestPublisher.WriteResourceAsync(resource, new ManifestPublishingContext(executionContext, Path.Combine(Environment.CurrentDirectory, "manifest.json"), writer));
+        var context = new ManifestPublishingContext(executionContext, Path.Combine(Environment.CurrentDirectory, "manifest.json"), writer);
+        await context.WriteResourceAsync(resource);
         writer.WriteEndObject();
         writer.Flush();
         ms.Position = 0;

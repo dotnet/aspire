@@ -32,7 +32,7 @@ public class AspireBlobStorageExtensionsTests
             builder.AddAzureBlobClient("blob");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<BlobServiceClient>("blob") :
             host.Services.GetRequiredService<BlobServiceClient>();
@@ -59,7 +59,7 @@ public class AspireBlobStorageExtensionsTests
             builder.AddAzureBlobClient("blob", settings => settings.ConnectionString = ConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<BlobServiceClient>("blob") :
             host.Services.GetRequiredService<BlobServiceClient>();
@@ -89,7 +89,7 @@ public class AspireBlobStorageExtensionsTests
             builder.AddAzureBlobClient("blob");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<BlobServiceClient>("blob") :
             host.Services.GetRequiredService<BlobServiceClient>();
@@ -117,7 +117,7 @@ public class AspireBlobStorageExtensionsTests
             builder.AddAzureBlobClient("blob");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<BlobServiceClient>("blob") :
             host.Services.GetRequiredService<BlobServiceClient>();

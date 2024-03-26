@@ -32,7 +32,7 @@ public class AspireServiceBusExtensionsTests
             builder.AddAzureServiceBusClient("sb");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
             host.Services.GetRequiredService<ServiceBusClient>();
@@ -59,7 +59,7 @@ public class AspireServiceBusExtensionsTests
             builder.AddAzureServiceBusClient("sb", settings => settings.ConnectionString = ConnectionString);
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
             host.Services.GetRequiredService<ServiceBusClient>();
@@ -89,7 +89,7 @@ public class AspireServiceBusExtensionsTests
             builder.AddAzureServiceBusClient("sb");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
             host.Services.GetRequiredService<ServiceBusClient>();
@@ -117,7 +117,7 @@ public class AspireServiceBusExtensionsTests
             builder.AddAzureServiceBusClient("sb");
         }
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var client = useKeyed ?
             host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
             host.Services.GetRequiredService<ServiceBusClient>();

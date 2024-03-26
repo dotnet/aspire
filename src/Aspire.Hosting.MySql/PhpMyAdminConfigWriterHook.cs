@@ -36,7 +36,7 @@ internal sealed class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecy
                 {
                     context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.ContainerHost}:{endpoint.Port}");
                     context.EnvironmentVariables.Add("PMA_USER", "root");
-                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.Password);
+                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
                 }));
             }
         }
@@ -59,7 +59,7 @@ internal sealed class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecy
                     writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
                     writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
-                    writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.Password}';");
+                    writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.PasswordParameter.Value}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
                     writer.WriteLine();
                 }

@@ -18,7 +18,7 @@ public class AspireRedisDistributedCacheExtensionsTests
 
         builder.AddRedisDistributedCache("redis");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var cache = host.Services.GetRequiredService<IDistributedCache>();
 
         Assert.IsAssignableFrom<RedisCache>(cache);
