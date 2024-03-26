@@ -191,7 +191,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             outputMessage = output.ToString();
         }
-        Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{output}");
+        Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{outputMessage}");
 
         var client = CreateHttpClient();
         foreach (var project in Projects.Values)

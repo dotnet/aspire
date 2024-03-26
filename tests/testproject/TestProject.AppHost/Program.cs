@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+try
+{
 var testProgram = TestProgram.Create<Program>(args, includeIntegrationServices: true, disableDashboard: false, includeNodeApp: true);
 
 // Run a task to read from the console and stop the app if an external process sends "Stop".
@@ -10,11 +12,18 @@ _ = Task.Run(async () =>
     var s = Console.ReadLine();
     if (s == "Stop")
     {
+        Console.WriteLine ($"*** Got 'Stop'");
         if (testProgram.App is not null)
         {
+            Console.WriteLine ($"*** \tStopping app");
             await testProgram.App.StopAsync();
         }
     }
 });
 
 await testProgram.RunAsync();
+} catch (Exception ex)
+{
+    Console.WriteLine ($"ex: {ex}");
+    throw;
+}
