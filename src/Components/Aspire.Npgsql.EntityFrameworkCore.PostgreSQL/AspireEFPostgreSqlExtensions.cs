@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using OpenTelemetry.Metrics;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -85,7 +84,10 @@ public static partial class AspireEFPostgreSqlExtensions
                 // 3. "Timeout: Places limit on the duration for which a caller can wait for a response."
                 // The timeouts have default values, except of Internal Command Timeout, which we should ignore:
                 // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
-                // There is nothing for us to set here.
+                if (settings.CommandTimeout.HasValue)
+                {
+                    builder.CommandTimeout(settings.CommandTimeout.Value);
+                }
             });
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }
@@ -146,19 +148,7 @@ public static partial class AspireEFPostgreSqlExtensions
         if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry()
-                .WithMetrics(meterProviderBuilder =>
-                {
-                    // Currently EF provides only Event Counters:
-                    // https://learn.microsoft.com/ef/core/logging-events-diagnostics/event-counters?tabs=windows#counters-and-their-meaning
-                    meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                    {
-                        // The magic strings come from:
-                        // https://github.com/dotnet/efcore/blob/a1cd4f45aa18314bc91d2b9ea1f71a3b7d5bf636/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                        eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
-                    });
-
-                    NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
-                });
+                .WithMetrics(NpgsqlCommon.AddNpgsqlMetrics);
         }
     }
 }

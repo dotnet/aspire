@@ -19,7 +19,7 @@ public class ResourceNotificationTests
             .WithInitialState(new()
             {
                 ResourceType = "MyResource",
-                Properties = [("A", "B")],
+                Properties = [new("A", "B")],
             });
 
         var annotation = custom.Resource.Annotations.OfType<ResourceSnapshotAnnotation>().SingleOrDefault();
@@ -32,7 +32,7 @@ public class ResourceNotificationTests
         Assert.Empty(state.EnvironmentVariables);
         Assert.Collection(state.Properties, c =>
         {
-            Assert.Equal("A", c.Key);
+            Assert.Equal("A", c.Name);
             Assert.Equal("B", c.Value);
         });
     }
@@ -64,9 +64,9 @@ public class ResourceNotificationTests
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var enumerableTask = GetValuesAsync(cts.Token);
 
-        await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(("A", "value")) });
+        await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(new("A", "value")) });
 
-        await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(("B", "value")) });
+        await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(new("B", "value")) });
 
         var values = await enumerableTask;
 
@@ -76,14 +76,14 @@ public class ResourceNotificationTests
                 Assert.Equal(resource, c.Resource);
                 Assert.Equal("myResource", c.ResourceId);
                 Assert.Equal("CustomResource", c.Snapshot.ResourceType);
-                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "A").Value);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Name == "A").Value);
             },
             c =>
             {
                 Assert.Equal(resource, c.Resource);
                 Assert.Equal("myResource", c.ResourceId);
                 Assert.Equal("CustomResource", c.Snapshot.ResourceType);
-                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "B").Value);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Name == "B").Value);
             });
     }
 
@@ -115,11 +115,11 @@ public class ResourceNotificationTests
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var enumerableTask = GetValuesAsync(cts.Token);
 
-        await notificationService.PublishUpdateAsync(resource1, state => state with { Properties = state.Properties.Add(("A", "value")) });
+        await notificationService.PublishUpdateAsync(resource1, state => state with { Properties = state.Properties.Add(new("A", "value")) });
 
-        await notificationService.PublishUpdateAsync(resource2, state => state with { Properties = state.Properties.Add(("B", "value")) });
+        await notificationService.PublishUpdateAsync(resource2, state => state with { Properties = state.Properties.Add(new("B", "value")) });
 
-        await notificationService.PublishUpdateAsync(resource1, "replica1", state => state with { Properties = state.Properties.Add(("C", "value")) });
+        await notificationService.PublishUpdateAsync(resource1, "replica1", state => state with { Properties = state.Properties.Add(new("C", "value")) });
 
         var values = await enumerableTask;
 
@@ -129,21 +129,21 @@ public class ResourceNotificationTests
                 Assert.Equal(resource1, c.Resource);
                 Assert.Equal("myResource1", c.ResourceId);
                 Assert.Equal("CustomResource", c.Snapshot.ResourceType);
-                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "A").Value);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Name == "A").Value);
             },
             c =>
             {
                 Assert.Equal(resource2, c.Resource);
                 Assert.Equal("myResource2", c.ResourceId);
                 Assert.Equal("CustomResource", c.Snapshot.ResourceType);
-                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "B").Value);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Name == "B").Value);
             },
             c =>
             {
                 Assert.Equal(resource1, c.Resource);
                 Assert.Equal("replica1", c.ResourceId);
                 Assert.Equal("CustomResource", c.Snapshot.ResourceType);
-                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Key == "C").Value);
+                Assert.Equal("value", c.Snapshot.Properties.Single(p => p.Name == "C").Value);
             });
     }
 

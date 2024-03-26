@@ -43,7 +43,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
         => options.Tracing = enabled;
 
     protected override void SetMetrics(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
-        => options.Metrics = enabled;
+        => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """
         {
@@ -52,8 +52,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
               "EntityFrameworkCore": {
                 "Cosmos": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "Tracing": true,
-                  "Metrics": true
+                  "Tracing": true
                 }
               }
             }

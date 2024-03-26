@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an expression that might be made up of multiple resource properties. For example,
 /// a connection string might be made up of a host, port, and password from different endpoints.
 /// </summary>
-public class ReferenceExpression : IValueProvider, IManifestExpressionProvider
+public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     private readonly string[] _manifestExpressions;
 
@@ -39,6 +39,8 @@ public class ReferenceExpression : IValueProvider, IManifestExpressionProvider
     /// The list of <see cref="IValueProvider"/> that will be used to resolve parameters for the format string.
     /// </summary>
     public IReadOnlyList<IValueProvider> ValueProviders { get; }
+
+    IEnumerable<object> IValueWithReferences.References => ValueProviders;
 
     /// <summary>
     /// The value expression for the format string.

@@ -8,7 +8,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public sealed class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
 {
-    private readonly InputAnnotation _valueInput;
+    private string? _value;
+    private bool _hasValue;
+    private readonly Func<ParameterDefault?, string> _valueGetter;
 
     /// <summary>
     /// Initializes a new instance of <see cref="ParameterResource"/>.
@@ -16,30 +18,45 @@ public sealed class ParameterResource : Resource, IManifestExpressionProvider, I
     /// <param name="name">The name of the parameter resource.</param>
     /// <param name="callback">The callback function to retrieve the value of the parameter.</param>
     /// <param name="secret">A flag indicating whether the parameter is secret.</param>
-    public ParameterResource(string name, Func<string> callback, bool secret = false) : base(name)
+    public ParameterResource(string name, Func<ParameterDefault?, string> callback, bool secret = false) : base(name)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(callback);
 
-        _valueInput = new InputAnnotation("value", secret);
-        _valueInput.SetValueGetter(callback);
-
-        Annotations.Add(_valueInput);
-
-        ValueInputReference = new InputReference(this, "value");
+        _valueGetter = callback;
+        Secret = secret;
     }
 
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
-    public string Value => _valueInput.Value ?? throw new InvalidOperationException("A Parameter's value cannot be null.");
+    public string Value
+    {
+        get
+        {
+            if (!_hasValue)
+            {
+                _value = _valueGetter(Default);
+                _hasValue = true;
+            }
+            return _value!;
+        }
+    }
+
+    /// <summary>
+    /// Represents how the default value of the parameter should be retrieved.
+    /// </summary>
+    public ParameterDefault? Default { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the parameter is secret.
     /// </summary>
-    public bool Secret => _valueInput.Secret;
+    public bool Secret { get; }
 
-    internal InputReference ValueInputReference { get; }
+    /// <summary>
+    /// Gets or sets a value indicating whether the parameter is a connection string.
+    /// </summary>
+    public bool IsConnectionString { get; set; }
 
     /// <summary>
     /// Gets the expression used in the manifest to reference the value of the parameter.

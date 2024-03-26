@@ -3,12 +3,6 @@ targetScope = 'resourceGroup'
 @description('')
 param location string = resourceGroup().location
 
-@description('')
-param principalId string
-
-@description('')
-param principalType string
-
 
 resource operationalInsightsWorkspace_uzGUFQdnZ 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: toLower(take(concat('logAnalyticsWorkspace', uniqueString(resourceGroup().id)), 24))

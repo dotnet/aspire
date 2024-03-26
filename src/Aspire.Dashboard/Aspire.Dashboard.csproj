@@ -24,6 +24,7 @@
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
   </ItemGroup>
@@ -184,5 +185,6 @@
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Utils\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Utils\KnownResourceTypes.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Otlp\Storage\CircularBuffer.cs" />
+    <Compile Include="$(SharedDir)DashboardConfigNames.cs" Link="Utils\DashboardConfigNames.cs" />
   </ItemGroup>
 </Project>

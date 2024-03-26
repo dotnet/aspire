@@ -4,21 +4,11 @@
 using System.Net;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
+namespace Microsoft.Extensions.ServiceDiscovery.Internal;
 
-internal sealed class ServiceEndPointImpl : ServiceEndPoint
+internal sealed class ServiceEndPointImpl(EndPoint endPoint, IFeatureCollection? features = null) : ServiceEndPoint
 {
-    private readonly IFeatureCollection _features;
-    private readonly EndPoint _endPoint;
-
-    public ServiceEndPointImpl(EndPoint endPoint, IFeatureCollection? features = null)
-    {
-        _endPoint = endPoint;
-        _features = features ?? new FeatureCollection();
-    }
-
-    public override EndPoint EndPoint => _endPoint;
-    public override IFeatureCollection Features => _features;
-
+    public override EndPoint EndPoint { get; } = endPoint;
+    public override IFeatureCollection Features { get; } = features ?? new FeatureCollection();
     public override string? ToString() => GetEndPointString();
 }
