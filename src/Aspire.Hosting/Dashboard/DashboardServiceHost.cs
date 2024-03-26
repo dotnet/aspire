@@ -54,8 +54,7 @@ internal sealed class DashboardServiceHost : IHostedService
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions,
         ResourceNotificationService resourceNotificationService,
-        ResourceLoggerService resourceLoggerService
-        )
+        ResourceLoggerService resourceLoggerService)
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
