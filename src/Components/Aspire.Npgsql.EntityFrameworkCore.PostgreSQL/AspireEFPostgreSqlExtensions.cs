@@ -13,7 +13,6 @@ using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal;
 
-
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
