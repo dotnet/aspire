@@ -2,17 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Azure.Common;
+
 using Azure.Core;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Primitives;
+using Azure.Messaging.EventHubs.Producer;
 
 namespace Aspire.Azure.Messaging.EventHubs;
 
 /// <summary>
-/// Provides the client configuration settings for connecting to Azure Event Hubs.
+/// Represents additional shared settings for configuring an Event Hubs client.
 /// </summary>
-public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
+public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSettings
 {
     private bool? _tracing;
 
@@ -36,37 +38,6 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
     /// Gets or sets the name of the Event Hub.
     /// </summary>
     public string? EventHubName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the name of the consumer group.
-    /// </summary>
-    public string? ConsumerGroup { get; set; }
-
-    /// <summary>
-    /// Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used.
-    /// </summary>
-    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
-    public string? BlobClientConnectionName { get; set; }
-
-    /// <summary>
-    /// Get or sets the name of the blob container used to store the checkpoint data. If this container does not exist, Aspire will attempt to create it.
-    /// If this is not provided, Aspire will attempt to automatically create a container with a name based on the Namespace, Event Hub name and Consumer Group.
-    /// If a container is provided in the connection string, it will override this value and the container will be assumed to exist.
-    /// </summary>
-    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
-    public string? BlobContainerName { get; set; } 
-
-    /// <summary>
-    /// Gets or sets the partition identifier.
-    /// </summary>
-    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
-    public string? PartitionId { get; set; }
-
-    /// <summary>
-    /// Gets or sets the event position to start from in the bound partition. Defaults to <see cref="EventPosition.Earliest" />.
-    /// </summary>
-    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
-    public EventPosition EventPosition { get; set; } = EventPosition.Earliest;
 
     /// <summary>
     /// Gets or sets the credential used to authenticate to the Event Hubs namespace.
@@ -121,3 +92,63 @@ public sealed class AzureMessagingEventHubsSettings : IConnectionStringSettings
         }
     }
 }
+
+/// <summary>
+/// Represents additional settings for configuring a <see cref="EventHubProducerClient"/>.
+/// </summary>
+public sealed class AzureMessagingEventHubsProducerSettings : AzureMessagingEventHubsBaseSettings { }
+
+/// <summary>
+/// Represents additional settings for configuring an Event Hubs client that may accept a ConsumerGroup
+/// </summary>
+public abstract class AzureMessagingEventHubsConsumerBaseSettings : AzureMessagingEventHubsBaseSettings
+{
+    /// <summary>
+    /// Gets or sets the name of the consumer group.
+    /// </summary>
+    public string? ConsumerGroup { get; set; }
+}
+
+/// <summary>
+/// Represents additional settings for configuring a <see cref="EventHubConsumerClient"/>.
+/// </summary>
+public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEventHubsConsumerBaseSettings { }
+
+/// <summary>
+/// Represents additional settings for configuring a <see cref="EventProcessorClient"/>.
+/// </summary>
+public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEventHubsConsumerBaseSettings
+{
+    /// <summary>
+    /// Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used.
+    /// </summary>
+    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
+    public string? BlobClientConnectionName { get; set; }
+
+    /// <summary>
+    /// Get or sets the name of the blob container used to store the checkpoint data. If this container does not exist, Aspire will attempt to create it.
+    /// If this is not provided, Aspire will attempt to automatically create a container with a name based on the Namespace, Event Hub name and Consumer Group.
+    /// If a container is provided in the connection string, it will override this value and the container will be assumed to exist.
+    /// </summary>
+    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
+    public string? BlobContainerName { get; set; }
+}
+
+/// <summary>
+/// Represents additional settings for configuring a <see cref="PartitionReceiver"/>.
+/// </summary>
+public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMessagingEventHubsConsumerBaseSettings
+{
+    /// <summary>
+    /// Gets or sets the partition identifier.
+    /// </summary>
+    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
+    public string? PartitionId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the event position to start from in the bound partition. Defaults to <see cref="EventPosition.Earliest" />.
+    /// </summary>
+    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
+    public EventPosition EventPosition { get; set; } = EventPosition.Earliest;
+}
+

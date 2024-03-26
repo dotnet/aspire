@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Extensions.Hosting;
 
-internal sealed class EventHubProducerClientComponent : EventHubsComponent<EventHubProducerClient, EventHubProducerClientOptions>
+internal sealed class EventHubProducerClientComponent : EventHubsComponent<AzureMessagingEventHubsProducerSettings, EventHubProducerClient, EventHubProducerClientOptions>
 {
     // cannot be in base class as source generator chokes on generic placeholders
     protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<EventHubProducerClient, EventHubProducerClientOptions> clientBuilder, IConfiguration configuration)
@@ -19,7 +19,12 @@ internal sealed class EventHubProducerClientComponent : EventHubsComponent<Event
 #pragma warning restore IDE0200
     }
 
-    protected override IAzureClientBuilder<EventHubProducerClient, EventHubProducerClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingEventHubsSettings settings,
+    protected override void BindSettingsToConfiguration(AzureMessagingEventHubsProducerSettings settings, IConfiguration config)
+    {
+        config.Bind(settings);
+    }
+    
+    protected override IAzureClientBuilder<EventHubProducerClient, EventHubProducerClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingEventHubsProducerSettings settings,
         string connectionName, string configurationSectionName)
     {
         return azureFactoryBuilder.RegisterClientFactory<EventHubProducerClient, EventHubProducerClientOptions>((options, cred) =>

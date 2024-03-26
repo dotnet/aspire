@@ -5,34 +5,29 @@ using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
 using Azure.Messaging.EventHubs;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
-internal abstract class EventHubsComponent<TClient, TClientOptions> :
-    AzureComponent<AzureMessagingEventHubsSettings, TClient, TClientOptions>
+internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
+    AzureComponent<TSettings, TClient, TClientOptions>
     where TClientOptions: class
     where TClient : class
+    where TSettings : AzureMessagingEventHubsBaseSettings, new()
 {
-    protected override IHealthCheck CreateHealthCheck(TClient client, AzureMessagingEventHubsSettings settings)
+    protected override IHealthCheck CreateHealthCheck(TClient client, TSettings settings)
         => throw new NotImplementedException();
 
-    protected override void BindSettingsToConfiguration(AzureMessagingEventHubsSettings settings, IConfiguration config)
-    {
-        config.Bind(settings);
-    }
-
-    protected override bool GetHealthCheckEnabled(AzureMessagingEventHubsSettings settings)
+    protected override bool GetHealthCheckEnabled(TSettings settings)
         => false;
 
-    protected override TokenCredential? GetTokenCredential(AzureMessagingEventHubsSettings settings)
+    protected override TokenCredential? GetTokenCredential(TSettings settings)
         => settings.Credential;
 
-    protected override bool GetTracingEnabled(AzureMessagingEventHubsSettings settings)
+    protected override bool GetTracingEnabled(TSettings settings)
         => settings.Tracing;
 
-    protected static string GenerateClientIdentifier(AzureMessagingEventHubsSettings settings)
+    protected static string GenerateClientIdentifier(AzureMessagingEventHubsConsumerBaseSettings settings)
     {
         // configure processor identifier
         var slug = Guid.NewGuid().ToString().Substring(24);
@@ -42,7 +37,7 @@ internal abstract class EventHubsComponent<TClient, TClientOptions> :
         return identifier;
     }
 
-    protected static string GetNamespaceFromSettings(AzureMessagingEventHubsSettings settings)
+    protected static string GetNamespaceFromSettings(AzureMessagingEventHubsBaseSettings settings)
     {
         string ns;
 
@@ -64,8 +59,7 @@ internal abstract class EventHubsComponent<TClient, TClientOptions> :
         return ns;
     }
 
-    /// see <see cref="AzureMessagingEventHubsSettings.BlobContainerName"/> for more information about the container logic.
-    protected static void EnsureConnectionStringOrNamespaceProvided(AzureMessagingEventHubsSettings settings,
+    protected static void EnsureConnectionStringOrNamespaceProvided(AzureMessagingEventHubsBaseSettings settings,
         string connectionName, string configurationSectionName)
     {
         var connectionString = settings.ConnectionString;

@@ -330,12 +330,111 @@
                       "type": "string",
                       "description": "Gets or sets the partition identifier."
                     },
+                    "PartitionReceiver": {
+                      "type": "object",
+                      "properties": {
+                        "ClientOptions": {
+                          "type": "object",
+                          "properties": {
+                            "ConnectionOptions": {
+                              "type": "object",
+                              "properties": {
+                                "ConnectionIdleTimeout": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
+                                },
+                                "CustomEndpointAddress": {
+                                  "type": "string",
+                                  "format": "uri",
+                                  "description": "The address to use for establishing a connection to the Event Hubs service, allowing network requests to be\nrouted through any application gateways or other paths needed for the host environment."
+                                },
+                                "ReceiveBufferSizeInBytes": {
+                                  "type": "integer",
+                                  "description": "The size of the buffer used for receiving information via the active transport."
+                                },
+                                "SendBufferSizeInBytes": {
+                                  "type": "integer",
+                                  "description": "The size of the buffer used for sending information via the active transport."
+                                },
+                                "TransportType": {
+                                  "enum": [
+                                    "AmqpTcp",
+                                    "AmqpWebSockets"
+                                  ],
+                                  "description": "The type of protocol and transport that will be used for communicating with the Event Hubs\nservice."
+                                }
+                              },
+                              "description": "The options used for configuring the connection to the Event Hubs service."
+                            },
+                            "DefaultMaximumReceiveWaitTime": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The default amount of time to wait for the requested amount of messages when reading; if this\nperiod elapses before the requested amount of messages were available or read, then the set of\nmessages that were read will be returned."
+                            },
+                            "Identifier": {
+                              "type": "string",
+                              "description": "A unique name used to identify the receiver.  If null or empty, a GUID will be used as the\nidentifier."
+                            },
+                            "OwnerLevel": {
+                              "type": "integer",
+                              "description": "When populated, the owner level indicates that a reading is intended to be performed exclusively for events in the\nrequested partition and for the associated consumer group.  To do so, reading will attempt to assert ownership\nover the partition; in the case where more than one exclusive reader attempts to assert ownership for the same\npartition/consumer group pair, the one having a larger 'Azure.Messaging.EventHubs.Primitives.PartitionReceiverOptions.OwnerLevel' value will \"win.\"\n\nWhen an exclusive reader is used, other readers which are non-exclusive or which have a lower owner level will either\nnot be allowed to be created, if they already exist, will encounter an exception during the next attempted operation."
+                            },
+                            "PrefetchCount": {
+                              "type": "integer",
+                              "description": "The number of events that will be eagerly requested from the Event Hubs service and queued locally without regard to\nwhether a read operation is currently active, intended to help maximize throughput by allowing events to be read from\nfrom a local cache rather than waiting on a service request."
+                            },
+                            "PrefetchSizeInBytes": {
+                              "type": "integer",
+                              "description": "The desired number of bytes to attempt to eagerly request from the Event Hubs service and queued locally without regard to\nwhether a read operation is currently active, intended to help maximize throughput by allowing events to be read from\nfrom a local cache rather than waiting on a service request."
+                            },
+                            "RetryOptions": {
+                              "type": "object",
+                              "properties": {
+                                "Delay": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
+                                },
+                                "MaximumDelay": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The maximum permissible delay between retry attempts."
+                                },
+                                "MaximumRetries": {
+                                  "type": "integer",
+                                  "description": "The maximum number of retry attempts before considering the associated operation\nto have failed."
+                                },
+                                "Mode": {
+                                  "enum": [
+                                    "Fixed",
+                                    "Exponential"
+                                  ],
+                                  "description": "The approach to use for calculating retry delays."
+                                },
+                                "TryTimeout": {
+                                  "type": "string",
+                                  "format": "duration",
+                                  "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
+                                }
+                              },
+                              "description": "The set of options to use for determining whether a failed operation should be retried and,\nif so, the amount of time to wait between retry attempts.  These options also control the\namount of time allowed for reading events and other interactions with the Event Hubs service."
+                            },
+                            "TrackLastEnqueuedEventProperties": {
+                              "type": "boolean",
+                              "description": "Indicates whether or not the reader should request information on the last enqueued event on the partition\nassociated with a given event, and track that information as events are read."
+                            }
+                          },
+                          "description": "The set of options that can be specified when creating a 'Azure.Messaging.EventHubs.Primitives.PartitionReceiver' to configure its behavior."
+                        }
+                      }
+                    },
                     "Tracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                     }
                   },
-                  "description": "Provides the client configuration settings for connecting to Azure Event Hubs."
+                  "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient'."
                 }
               }
             }

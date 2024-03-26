@@ -11,7 +11,7 @@ using Microsoft.Extensions.Configuration;
 namespace Microsoft.Extensions.Hosting;
 
 internal sealed class PartitionReceiverClientComponent()
-    : EventHubsComponent<PartitionReceiver, PartitionReceiverOptions>
+    : EventHubsComponent<AzureMessagingEventHubsPartitionReceiverSettings, PartitionReceiver, PartitionReceiverOptions>
 {
     // cannot be in base class as source generator chokes on generic placeholders
     protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions> clientBuilder, IConfiguration configuration)
@@ -21,7 +21,11 @@ internal sealed class PartitionReceiverClientComponent()
 #pragma warning restore IDE0200
     }
 
-    protected override IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingEventHubsSettings settings,
+    protected override void BindSettingsToConfiguration(AzureMessagingEventHubsPartitionReceiverSettings settings, IConfiguration config)
+    {
+        config.Bind(settings);
+    }
+    protected override IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingEventHubsPartitionReceiverSettings settings,
         string connectionName, string configurationSectionName)
     {
         return azureFactoryBuilder.RegisterClientFactory<PartitionReceiver, PartitionReceiverOptions>(

@@ -14,7 +14,7 @@ using Microsoft.Extensions.Configuration;
 namespace Microsoft.Extensions.Hosting;
 
 internal sealed class EventProcessorClientComponent(IConfiguration builderConfiguration)
-    : EventHubsComponent<EventProcessorClient, EventProcessorClientOptions>
+    : EventHubsComponent<AzureMessagingEventHubsProcessorSettings, EventProcessorClient, EventProcessorClientOptions>
 {
     // cannot be in base class as source generator chokes on generic placeholders
     protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions> clientBuilder, IConfiguration configuration)
@@ -24,7 +24,12 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
 #pragma warning restore IDE0200
     }
 
-    protected override IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingEventHubsSettings settings,
+    protected override void BindSettingsToConfiguration(AzureMessagingEventHubsProcessorSettings settings, IConfiguration config)
+    {
+        config.Bind(settings);
+    }
+
+    protected override IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingEventHubsProcessorSettings settings,
         string connectionName, string configurationSectionName)
     {
         return azureFactoryBuilder.RegisterClientFactory<EventProcessorClient, EventProcessorClientOptions>(
@@ -49,7 +54,7 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
     }
 
     private BlobContainerClient GetBlobContainerClient(
-        AzureMessagingEventHubsSettings settings, TokenCredential cred, string configurationSectionName)
+        AzureMessagingEventHubsProcessorSettings settings, TokenCredential cred, string configurationSectionName)
     {
         if (string.IsNullOrEmpty(settings.BlobClientConnectionName))
         {

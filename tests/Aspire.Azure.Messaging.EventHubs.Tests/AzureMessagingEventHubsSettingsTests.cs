@@ -17,7 +17,8 @@ public class AzureMessagingEventHubsSettingsTests
 
     private static void EnsureTracingIsEnabledWhenAzureSwitchIsSet(bool expectedValue)
     {
-        Assert.Equal(expectedValue, new AzureMessagingEventHubsSettings().Tracing);
+        // doesn't matter which concrete class we use, as the property is defined in the base class
+        Assert.Equal(expectedValue, new AzureMessagingEventHubsConsumerSettings().Tracing);
     }
 
     private static RemoteInvokeOptions EnableTracingForAzureSdk()

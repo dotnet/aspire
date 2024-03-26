@@ -19,32 +19,14 @@ dotnet add package Aspire.Azure.Messaging.EventHubs
 
 ## Supported clients with Options classes
 
-The following clients are supported by the library, along with their corresponding Options classes:
+The following clients are supported by the library, along with their corresponding Options and Settings classes:
 
-| Client Type [index]              | Options Class                 |
-|------------------------------------------|-------------------------------|
-| EventHubProducerClient[1] | EventHubProducerClientOptions |
-| EventHubConsumerClient[2] | EventHubConsumerClientOptions |
-| EventProcessorClient[3]   | EventProcessorClientOptions   |
-| PartitionReceiver[4]      | PartitionReceiverOptions      |
-
-### AzureMessagingEventHubsSettings shared configuration
-
-The shared settings for all clients are suffixed below with one or more
-indices corresponding to the client types listed above that may use them:
-
-| Member                                                                                   | Type             |
-|------------------------------------------------------------------------------------------|------------------|
-| ConnectionString[1,2,3,4]   | string?          |
-| Namespace[1,2,3,4]          | string?          |
-| EventHubName[1,2,3,4]       | string?          |
-| ConsumerGroup[2,3,4]        | string?          |
-| BlobClientConnectionName[3] | string?          |
-| BlobContainerName[3]        | string?          |
-| PartitionId[4]              | string?          |
-| EventPosition[4]            | EventPosition    |
-| Credential[1,2,3,4]         | TokenCredential? |
-| Tracing[1,2,3,4]            | bool             |
+| Client Type             | Options Class                 | Settings Class                 |
+|------------------------------------------|-------------------------------|-------------------------------|
+| EventHubProducerClient | EventHubProducerClientOptions | AzureMessagingEventHubsProducerSettings |
+| EventHubConsumerClient | EventHubConsumerClientOptions | AzureMessagingEventHubsConsumerSettings |
+| EventProcessorClient   | EventProcessorClientOptions   | AzureMessagingEventHubsProcessorSettings |
+| PartitionReceiver      | PartitionReceiverOptions      | AzureMessagingEventHubsPartitionReceiverSettings |
 
 ## Usage example
 
