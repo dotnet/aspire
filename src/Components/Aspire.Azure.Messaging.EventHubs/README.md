@@ -21,12 +21,12 @@ dotnet add package Aspire.Azure.Messaging.EventHubs
 
 The following clients are supported by the library, along with their corresponding Options classes:
 
-| Client Type<sup>index</sup>              | Options Class                 |
+| Client Type [index]              | Options Class                 |
 |------------------------------------------|-------------------------------|
-| EventHubProducerClient&nbsp;<sup>1</sup> | EventHubProducerClientOptions |
-| EventHubConsumerClient&nbsp;<sup>2</sup> | EventHubConsumerClientOptions |
-| EventProcessorClient&nbsp;<sup>3</sup>   | EventProcessorClientOptions   |
-| PartitionReceiver&nbsp;<sup>4</sup>      | PartitionReceiverOptions      |
+| EventHubProducerClient[1] | EventHubProducerClientOptions |
+| EventHubConsumerClient[2] | EventHubConsumerClientOptions |
+| EventProcessorClient[3]   | EventProcessorClientOptions   |
+| PartitionReceiver[4]      | PartitionReceiverOptions      |
 
 ### AzureMessagingEventHubsSettings shared configuration
 
@@ -35,15 +35,16 @@ indices corresponding to the client types listed above that may use them:
 
 | Member                                                                                   | Type             |
 |------------------------------------------------------------------------------------------|------------------|
-| ConnectionString&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup> | string?          |
-| Namespace&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>        | string?          |
-| EventHubName&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>     | string?          |
-| ConsumerGroup&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>                      | string?          |
-| BlobClientConnectionName&nbsp;<sup>3</sup>                                               | string?          |
-| PartitionId&nbsp;<sup>4</sup>                                                            | string?          |
-| EventPosition&nbsp;<sup>4</sup>                                                          | EventPosition    |
-| Credential&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>       | TokenCredential? |
-| Tracing&nbsp;<sup>1</sup>&nbsp;<sup>2</sup>&nbsp;<sup>3</sup>&nbsp;<sup>4</sup>          | bool             |
+| ConnectionString[1,2,3,4]   | string?          |
+| Namespace[1,2,3,4]          | string?          |
+| EventHubName[1,2,3,4]       | string?          |
+| ConsumerGroup[2,3,4]        | string?          |
+| BlobClientConnectionName[3] | string?          |
+| BlobContainerName[3]        | string?          |
+| PartitionId[4]              | string?          |
+| EventPosition[4]            | EventPosition    |
+| Credential[1,2,3,4]         | TokenCredential? |
+| Tracing[1,2,3,4]            | bool             |
 
 ## Usage example
 
