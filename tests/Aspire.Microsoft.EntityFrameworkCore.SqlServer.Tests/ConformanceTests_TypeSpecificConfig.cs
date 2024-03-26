@@ -2,12 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Microsoft.Data.SqlClient.Tests;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
+    public ConformanceTests_TypeSpecificConfig(SqlServerContainerFixture containerFixture)
+        : base(containerFixture)
+    {
+    }
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {

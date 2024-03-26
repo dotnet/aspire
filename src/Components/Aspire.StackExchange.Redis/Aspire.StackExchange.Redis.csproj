@@ -15,11 +15,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(VendoringDir)OpenTelemetry.Instrumentation.StackExchangeRedis\**\*.cs" LinkBase="OpenTelemetry.Instrumentation.StackExchangeRedis" />
+    <!-- Tests need access to StackExchangeRedisInstrumentationOptions which is made internal in /Vendoring -->
+    <InternalsVisibleTo Include="Aspire.StackExchange.Redis.Tests" />
+    <InternalsVisibleTo Include="Aspire.StackExchange.Redis.DistributedCaching.Tests" />
+    <InternalsVisibleTo Include="Aspire.StackExchange.Redis.OutputCaching.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Redis" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.StackExchangeRedis" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="StackExchange.Redis" />
   </ItemGroup>
