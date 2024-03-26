@@ -488,7 +488,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         var args = new List<object>();
 
-        if (resource.TryGetAnnotationsOfType<ContainerRunArgsCallbackAnnotation>(out var argsCallback))
+        if (container.TryGetAnnotationsOfType<ContainerRunArgsCallbackAnnotation>(out var argsCallback))
         {
             var containerRunArgsCallbackContext = new ContainerRunArgsCallbackContext(args, CancellationToken);
 
