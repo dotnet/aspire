@@ -22,7 +22,7 @@ public class OtlpLogEntry
     public OtlpApplication Application { get; }
     public OtlpScope Scope { get; }
 
-    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryLimits options)
+    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryLimitOptions options)
     {
         string? originalFormat = null;
         string? parentId = null;

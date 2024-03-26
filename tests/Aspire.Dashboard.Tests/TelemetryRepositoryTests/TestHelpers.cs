@@ -196,7 +196,7 @@ internal static class TestHelpers
         int? maxSpanEventCount = null,
         TimeSpan? subscriptionMinExecuteInterval = null)
     {
-        var options = new TelemetryLimits();
+        var options = new TelemetryLimitOptions();
         if (maxMetricsCount != null)
         {
             options.MaxMetricsCount = maxMetricsCount.Value;

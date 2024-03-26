@@ -17,6 +17,7 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
 
     public void PostConfigure(string? name, DashboardOptions options)
     {
+        // Copy aliased config values to the strongly typed options.
         if (_configuration[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] is { Length: > 0 } otlpUrl)
         {
             options.Otlp.EndpointUrl = otlpUrl;

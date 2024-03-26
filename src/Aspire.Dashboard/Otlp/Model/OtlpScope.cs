@@ -25,7 +25,7 @@ public class OtlpScope
         Version = string.Empty;
     }
 
-    public OtlpScope(InstrumentationScope scope, TelemetryLimits options)
+    public OtlpScope(InstrumentationScope scope, TelemetryLimitOptions options)
     {
         ScopeName = scope.Name;
 

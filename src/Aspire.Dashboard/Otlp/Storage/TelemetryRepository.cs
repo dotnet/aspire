@@ -684,7 +684,7 @@ public sealed class TelemetryRepository
         }
     }
 
-    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, TelemetryLimits options)
+    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, TelemetryLimitOptions options)
     {
         var id = span.SpanId?.ToHexString();
         if (id is null)

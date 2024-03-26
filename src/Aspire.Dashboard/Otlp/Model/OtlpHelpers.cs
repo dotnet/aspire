@@ -106,7 +106,7 @@ public static class OtlpHelpers
         return (long)(nanoseconds / TimeSpan.NanosecondsPerTick);
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimits options)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimitOptions options)
     {
         if (attributes.Count == 0)
         {
@@ -119,7 +119,7 @@ public static class OtlpHelpers
         return values;
     }
 
-    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimits options, Func<KeyValue, bool> filter)
+    public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes, TelemetryLimitOptions options, Func<KeyValue, bool> filter)
     {
         if (attributes.Count == 0)
         {
@@ -150,7 +150,7 @@ public static class OtlpHelpers
         return values.ToArray();
     }
 
-    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, TelemetryLimits options, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
+    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, TelemetryLimitOptions options, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
     {
         copyCount = Math.Min(attributes.Count, options.MaxAttributeCount);
 
@@ -166,7 +166,7 @@ public static class OtlpHelpers
         CopyKeyValues(attributes, copiedAttributes, options);
     }
 
-    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, TelemetryLimits options)
+    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, TelemetryLimitOptions options)
     {
         var copyCount = Math.Min(attributes.Count, options.MaxAttributeCount);
 

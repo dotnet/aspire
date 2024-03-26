@@ -24,11 +24,11 @@ public class OtlpApplication
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
 
     private readonly ILogger _logger;
-    private readonly TelemetryLimits _options;
+    private readonly TelemetryLimitOptions _options;
 
     public KeyValuePair<string, string>[] Properties { get; }
 
-    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger, TelemetryLimits options)
+    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger, TelemetryLimitOptions options)
     {
         var properties = new List<KeyValuePair<string, string>>();
         foreach (var attribute in resource.Attributes)

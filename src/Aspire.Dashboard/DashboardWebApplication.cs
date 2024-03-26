@@ -33,7 +33,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     internal const string DashboardUrlDefaultValue = "http://localhost:18888";
 
     private readonly WebApplication _app;
-    private readonly IOptionsMonitor<DashboardOptions>? _dashboardOptionsMonitor;
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
     private Func<EndpointInfo>? _browserEndPointAccessor;
     private Func<EndpointInfo>? _otlpServiceEndPointAccessor;
 
@@ -47,10 +47,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
 
-    public IOptionsMonitor<DashboardOptions> DashboardOptionsMonitor
-    {
-        get => _dashboardOptionsMonitor ?? throw new InvalidOperationException("WebApplication not started yet.");
-    }
+    public IOptionsMonitor<DashboardOptions> DashboardOptionsMonitor => _dashboardOptionsMonitor;
 
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
@@ -252,12 +249,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // A single endpoint is configured if URLs are the same and the port isn't dynamic.
         var frontendUris = dashboardOptions.Frontend.GetEndpointUris();
         var otlpUri = dashboardOptions.Otlp.GetEndpointUri();
-        var singleEndpoint = frontendUris.Count == 1 && frontendUris[0] == otlpUri && otlpUri.Port != 0;
+        var hasSingleEndpoint = frontendUris.Count == 1 && frontendUris[0] == otlpUri && otlpUri.Port != 0;
 
         var initialValues = new Dictionary<string, string?>();
         var browserEndpointNames = new List<string>(capacity: frontendUris.Count);
 
-        if (!singleEndpoint)
+        if (!hasSingleEndpoint)
         {
             // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
             // to Kestrel's schema for loading endpoints from configuration.
@@ -321,7 +318,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             configurationLoader.Endpoint("Otlp", endpointConfiguration =>
             {
                 _otlpServiceEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
-                if (singleEndpoint)
+                if (hasSingleEndpoint)
                 {
                     logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
 
@@ -440,24 +437,27 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     .RequireClaim(OtlpAuthorization.OtlpClaimName)
                     .Build());
 
-            if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
+            switch (dashboardOptions.Frontend.AuthMode)
             {
-                // Frontend is secured with OIDC, so delegate to that authentication scheme.
-                options.AddPolicy(
-                    name: FrontendAuthorizationDefaults.PolicyName,
-                    policy: new AuthorizationPolicyBuilder(
-                        FrontendAuthenticationDefaults.AuthenticationScheme)
-                        .RequireAuthenticatedUser()
-                        .Build());
-            }
-            else
-            {
-                // Frontend is unsecured so our policy doesn't need any special handling.
-                options.AddPolicy(
-                    name: FrontendAuthorizationDefaults.PolicyName,
-                    policy: new AuthorizationPolicyBuilder()
-                        .RequireAssertion(_ => true)
-                        .Build());
+                case FrontendAuthMode.OpenIdConnect:
+                    // Frontend is secured with OIDC, so delegate to that authentication scheme.
+                    options.AddPolicy(
+                        name: FrontendAuthorizationDefaults.PolicyName,
+                        policy: new AuthorizationPolicyBuilder(
+                            FrontendAuthenticationDefaults.AuthenticationScheme)
+                            .RequireAuthenticatedUser()
+                            .Build());
+                    break;
+                case FrontendAuthMode.Unsecured:
+                    // Frontend is unsecured so our policy doesn't need any special handling.
+                    options.AddPolicy(
+                        name: FrontendAuthorizationDefaults.PolicyName,
+                        policy: new AuthorizationPolicyBuilder()
+                            .RequireAssertion(_ => true)
+                            .Build());
+                    break;
+                default:
+                    throw new NotSupportedException($"Unexpected {nameof(FrontendAuthMode)} enum member: {dashboardOptions.Frontend.AuthMode}");
             }
         });
     }

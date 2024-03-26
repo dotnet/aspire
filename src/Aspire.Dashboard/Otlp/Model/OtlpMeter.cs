@@ -15,7 +15,7 @@ public class OtlpMeter
 
     public ReadOnlyMemory<KeyValuePair<string, string>> Attributes { get; }
 
-    public OtlpMeter(InstrumentationScope scope, TelemetryLimits options)
+    public OtlpMeter(InstrumentationScope scope, TelemetryLimitOptions options)
     {
         MeterName = scope.Name;
         Version = scope.Version;
