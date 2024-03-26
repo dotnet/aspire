@@ -23,20 +23,11 @@ partial class Resource
             Uid = ValidateNotNull(Uid),
             CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
             Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
-            Endpoints = GetEndpoints(),
             Environment = GetEnvironment(),
-            ExpectedEndpointsCount = ExpectedEndpointsCount,
-            Services = GetServices(),
+            Urls = GetUrls(),
             State = HasState ? State : null,
             Commands = GetCommands()
         };
-
-        ImmutableArray<ResourceServiceViewModel> GetServices()
-        {
-            return Services
-                .Select(s => new ResourceServiceViewModel(s.Name, s.AllocatedAddress, s.AllocatedPort))
-                .ToImmutableArray();
-        }
 
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()
         {
@@ -45,11 +36,14 @@ partial class Resource
                 .ToImmutableArray();
         }
 
-        ImmutableArray<EndpointViewModel> GetEndpoints()
+        ImmutableArray<UrlViewModel> GetUrls()
         {
-            return Endpoints
-                .Select(e => new EndpointViewModel(e.EndpointUrl, e.ProxyUrl))
-                .ToImmutableArray();
+            // Filter out bad urls
+            return (from u in Urls
+                    let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
+                    where parsedUri != null
+                    select new UrlViewModel(u.Name, parsedUri, u.IsInternal))
+                    .ToImmutableArray();
         }
 
         ImmutableArray<CommandViewModel> GetCommands()

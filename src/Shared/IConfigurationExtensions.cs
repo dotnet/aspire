@@ -119,35 +119,55 @@ internal static class IConfigurationExtensions
         }
     }
 
-    public static TEnum? GetEnum<TEnum>(this IConfiguration configuration, string key, TEnum? defaultValue = null) where TEnum : struct, Enum
+    /// <summary>
+    /// Gets the named configuration value as a member of an enum, or <paramref name="defaultValue"/> if the value was null or empty.
+    /// </summary>
+    /// <remarks>
+    /// Parsing is case-insensitive.
+    /// </remarks>
+    /// <param name="configuration">The <see cref="IConfiguration"/> this method extends.</param>
+    /// <param name="key">The configuration key.</param>
+    /// <param name="defaultValue">A default value, for when the configuration value is unable to be parsed.</param>
+    /// <exception cref="InvalidOperationException">The configuration value is not a valid member of the enum.</exception>
+    /// <returns>The parsed enum member, or <paramref name="defaultValue"/> the configuration value was null or empty.</returns>
+    [return: NotNullIfNotNull(nameof(defaultValue))]
+    public static T? GetEnum<T>(this IConfiguration configuration, string key, T? defaultValue = default)
+        where T : struct
     {
-        try
-        {
-            var value = configuration[key];
+        var value = configuration[key];
 
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return defaultValue switch
-                {
-                    not null => defaultValue,
-                    null => null
-                };
-            }
-            else
-            {
-                if (Enum.TryParse<TEnum>(value, ignoreCase: true, out var e))
-                {
-                    return e;
-                }
-                else
-                {
-                    throw new InvalidOperationException($"Unknown {nameof(TEnum)} value: {value}");
-                }
-            }
-        }
-        catch (Exception ex)
+        if (value is null or [])
         {
-            throw new InvalidOperationException($"Error parsing {nameof(TEnum)} from configuration value '{key}'.", ex);
+            return defaultValue;
         }
+        else if (Enum.TryParse<T>(value, ignoreCase: true, out var e))
+        {
+            return e;
+        }
+
+        throw new InvalidOperationException($"Unknown {typeof(T).Name} value \"{value}\". Valid values are {string.Join(", ", Enum.GetNames(typeof(T)))}.");
+    }
+
+    /// <summary>
+    /// Gets the specified required configuration value as a member of an enum.
+    /// </summary>
+    /// <remarks>
+    /// Parsing is case-insensitive.
+    /// </remarks>
+    /// <param name="configuration">The <see cref="IConfiguration"/> this method extends.</param>
+    /// <param name="key">The configuration key.</param>
+    /// <exception cref="InvalidOperationException">The configuration value is empty or not a valid member of the enum.</exception>
+    /// <returns>The parsed enum member.</returns>
+    public static T GetEnum<T>(this IConfiguration configuration, string key)
+        where T : struct
+    {
+        var value = configuration.GetEnum<T>(key, defaultValue: null);
+
+        if (value is null)
+        {
+            throw new InvalidOperationException($"Missing required configuration for {key}. Valid values are {string.Join(", ", Enum.GetNames(typeof(T)))}.");
+        }
+
+        return value.Value;
     }
 }

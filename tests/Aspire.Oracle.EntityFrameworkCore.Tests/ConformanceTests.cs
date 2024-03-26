@@ -40,9 +40,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
             "Oracle": {
               "EntityFrameworkCore": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecks": false,
-                "Tracing": true,
-                "Metrics": true
+                "HealthChecks": false
               }
             }
           }
@@ -53,7 +51,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         {
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Retry": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "HealthChecks": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Metrics": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -72,7 +69,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         => throw new NotImplementedException();
 
     protected override void SetMetrics(OracleEntityFrameworkCoreSettings options, bool enabled)
-        => options.Metrics = enabled;
+        => throw new NotImplementedException();
 
     protected override void TriggerActivity(TestDbContext service)
     {

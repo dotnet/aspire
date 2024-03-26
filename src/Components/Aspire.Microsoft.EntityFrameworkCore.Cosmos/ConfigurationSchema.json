@@ -48,11 +48,6 @@
                       "type": "string",
                       "description": "The connection string of the Azure Cosmos DB server database to connect to."
                     },
-                    "Metrics": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
-                      "default": true
-                    },
                     "Region": {
                       "type": "string",
                       "description": "Gets or sets a string value that indicates what Azure region this client will run in."

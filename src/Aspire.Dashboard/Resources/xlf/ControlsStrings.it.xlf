@@ -194,17 +194,17 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">Endpoint</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEnvironmentVariablesHeader">
         <source>Environment variables</source>
-        <target state="new">Environment variables</target>
+        <target state="translated">Variabili di ambiente</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsResourceHeader">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -229,22 +229,22 @@
       </trans-unit>
       <trans-unit id="SpanDetailsEventsHeader">
         <source>Events</source>
-        <target state="new">Events</target>
+        <target state="translated">Eventi</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Resource &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Risorsa &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsResourceHeader">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
         <source>Span</source>
-        <target state="new">Span</target>
+        <target state="translated">Span</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
@@ -254,32 +254,32 @@
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
         <source>Context</source>
-        <target state="new">Context</target>
+        <target state="translated">Contesto</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsExceptionHeader">
         <source>Exception</source>
-        <target state="new">Exception</target>
+        <target state="translated">Eccezione</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsLogEntryHeader">
         <source>Log entry</source>
-        <target state="new">Log entry</target>
+        <target state="translated">Voce di log</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Resource &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Risorsa &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsResourceHeader">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">Risorsa</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsTimestamp">
         <source>Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Timestamp &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a date. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="TimeOffsetColumnHeader">

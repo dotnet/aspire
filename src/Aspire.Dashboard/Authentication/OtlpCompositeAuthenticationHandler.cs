@@ -11,30 +11,18 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Authentication;
 
-public sealed class OtlpCompositeAuthenticationHandler : AuthenticationHandler<OtlpCompositeAuthenticationHandlerOptions>
+public sealed class OtlpCompositeAuthenticationHandler(
+    IOptionsMonitor<OtlpCompositeAuthenticationHandlerOptions> options,
+    ILoggerFactory logger,
+    UrlEncoder encoder)
+        : AuthenticationHandler<OtlpCompositeAuthenticationHandlerOptions>(options, logger, encoder)
 {
-    public OtlpCompositeAuthenticationHandler(IOptionsMonitor<OtlpCompositeAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
-    {
-    }
-
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var connectionResult = await Context.AuthenticateAsync(OtlpConnectionAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
-        if (connectionResult.Failure != null)
-        {
-            return connectionResult;
-        }
-
-        var scheme = Options.OtlpAuthMode switch
-        {
-            OtlpAuthMode.ApiKey => OtlpApiKeyAuthenticationDefaults.AuthenticationScheme,
-            OtlpAuthMode.ClientCertificate => CertificateAuthenticationDefaults.AuthenticationScheme,
-            _ => null
-        };
-
-        if (scheme is not null)
+        foreach (var scheme in GetRelevantAuthenticationSchemes())
         {
             var result = await Context.AuthenticateAsync(scheme).ConfigureAwait(false);
+
             if (result.Failure is not null)
             {
                 return result;
@@ -44,6 +32,20 @@ public sealed class OtlpCompositeAuthenticationHandler : AuthenticationHandler<O
         var id = new ClaimsIdentity([new Claim(OtlpAuthorization.OtlpClaimName, bool.TrueString)]);
 
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(id), Scheme.Name));
+
+        IEnumerable<string> GetRelevantAuthenticationSchemes()
+        {
+            yield return OtlpConnectionAuthenticationDefaults.AuthenticationScheme;
+
+            if (Options.OtlpAuthMode is OtlpAuthMode.ApiKey)
+            {
+                yield return OtlpApiKeyAuthenticationDefaults.AuthenticationScheme;
+            }
+            else if (Options.OtlpAuthMode is OtlpAuthMode.ClientCertificate)
+            {
+                yield return CertificateAuthenticationDefaults.AuthenticationScheme;
+            }
+        }
     }
 }
 

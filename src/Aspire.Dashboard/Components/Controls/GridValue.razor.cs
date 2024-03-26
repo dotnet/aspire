@@ -7,7 +7,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class GridValue
+public partial class GridValue : IDisposable
 {
     [Parameter, EditorRequired]
     public string? Value { get; set; }
@@ -62,6 +62,8 @@ public partial class GridValue
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
     private readonly string _anchorId = $"copy-{Guid.NewGuid():N}";
 
+    private FluentTooltip? _tooltipComponent;
+
     protected override void OnInitialized()
     {
         PreCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopyToClipboard)];
@@ -81,5 +83,10 @@ public partial class GridValue
         }
 
         return text ?? "";
+    }
+
+    public void Dispose()
+    {
+        _tooltipComponent?.Dispose();
     }
 }

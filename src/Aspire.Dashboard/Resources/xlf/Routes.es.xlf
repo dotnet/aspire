@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="NotFoundDescription">
         <source>Not found</source>
-        <target state="new">Not found</target>
+        <target state="translated">No encontrado</target>
         <note />
       </trans-unit>
       <trans-unit id="NotFoundDetails">
         <source>The page you requested could not be found</source>
-        <target state="new">The page you requested could not be found</target>
+        <target state="translated">No se ha encontrado la página solicitada.</target>
         <note />
       </trans-unit>
       <trans-unit id="NotFoundPageTitle">
         <source>Not found</source>
-        <target state="new">Not found</target>
+        <target state="translated">No encontrado</target>
         <note />
       </trans-unit>
     </body>

@@ -18,7 +18,10 @@ public sealed class DashboardClientTests
     public DashboardClientTests()
     {
         var configuration = new ConfigurationManager();
-        configuration.AddInMemoryCollection(new Dictionary<string, string?>() { { "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:12345" } });
+        configuration.AddInMemoryCollection([
+            new("ResourceServiceClient:AuthMode", "Unsecured"),
+            new("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:12345")
+        ]);
         _configuration = configuration;
     }
 

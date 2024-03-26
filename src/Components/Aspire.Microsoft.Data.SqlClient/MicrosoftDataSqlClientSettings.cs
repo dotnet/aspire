@@ -28,13 +28,5 @@ public sealed class MicrosoftDataSqlClientSettings
     /// The default value is <see langword="true"/>.
     /// </value>
     public bool Tracing { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
-    public bool Metrics { get; set; } = true;
 }
 

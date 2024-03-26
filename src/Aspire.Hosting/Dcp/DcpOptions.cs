@@ -25,7 +25,7 @@ internal sealed class DcpOptions
     public string? CliPath { get; set; }
 
     /// <summary>
-    /// Optional path to a folder containing the DCP extension assemblies (dcpd, dcpctrl, etc.).
+    /// Optional path to a folder containing the DCP extension assemblies (dcpctrl, etc.).
     /// </summary>
     /// <example>
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\

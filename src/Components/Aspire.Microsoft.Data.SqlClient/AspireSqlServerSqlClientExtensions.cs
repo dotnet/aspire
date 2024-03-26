@@ -8,7 +8,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
@@ -87,18 +86,6 @@ public static class AspireSqlServerSqlClientExtensions
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
                 tracerProviderBuilder.AddSqlClientInstrumentation();
-            });
-        }
-
-        if (settings.Metrics)
-        {
-            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
-            {
-                meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                {
-                    // https://github.com/dotnet/SqlClient/blob/main/src/Microsoft.Data.SqlClient/src/Microsoft/Data/SqlClient/SqlClientEventSource.cs#L73
-                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.Data.SqlClient.EventSource");
-                });
             });
         }
 

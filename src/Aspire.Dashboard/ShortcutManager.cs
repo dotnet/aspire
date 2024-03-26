@@ -3,14 +3,14 @@
 
 using System.Collections.Concurrent;
 using Aspire.Dashboard.Model;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard;
 
-public sealed class ShortcutManager : IDisposable
+public sealed class ShortcutManager(ILoggerFactory loggerFactory) : IDisposable
 {
     private readonly ConcurrentDictionary<IGlobalKeydownListener, IGlobalKeydownListener> _keydownListenerComponents = [];
+    private readonly ILogger<ShortcutManager> _logger = loggerFactory.CreateLogger<ShortcutManager>();
 
     public void AddGlobalKeydownListener(IGlobalKeydownListener listener)
     {
@@ -23,9 +23,14 @@ public sealed class ShortcutManager : IDisposable
     }
 
     [JSInvokable]
-    public Task OnGlobalKeyDown(KeyboardEventArgs args)
+    public Task OnGlobalKeyDown(AspireKeyboardShortcut shortcut)
     {
-        return Task.WhenAll(_keydownListenerComponents.Values.Select(component => component.OnPageKeyDownAsync(args)));
+        _logger.LogDebug($"Received shortcut of type {shortcut}");
+
+        var componentsSubscribedToShortcut =
+            _keydownListenerComponents.Values.Where(component => component.SubscribedShortcuts.Contains(shortcut));
+
+        return Task.WhenAll(componentsSubscribedToShortcut.Select(component => component.OnPageKeyDownAsync(shortcut)));
     }
 
     public void Dispose()

@@ -5,7 +5,7 @@ namespace Aspire.Dashboard.Authentication;
 
 public enum OtlpAuthMode
 {
-    None,
+    Unsecured,
     ApiKey,
     ClientCertificate
 }

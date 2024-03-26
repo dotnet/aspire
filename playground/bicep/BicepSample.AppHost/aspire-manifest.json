@@ -23,7 +23,7 @@
     },
     "test0": {
       "type": "azure.bicep.v0",
-      "path": "../../../../../Users/midenn/AppData/Local/Temp/tmp0cmpqc.tmp.bicep"
+      "path": "../../../../../Users/midenn/AppData/Local/Temp/tmpjkt1f3.tmp.bicep"
     },
     "kv3": {
       "type": "azure.bicep.v0",
@@ -101,7 +101,6 @@
       "connectionString": "{postgres2.secretOutputs.connectionString}",
       "path": "postgres2.module.bicep",
       "params": {
-        "principalId": "",
         "keyVaultName": "",
         "administratorLogin": "{administratorLogin.value}",
         "administratorLoginPassword": "{administratorLoginPassword.value}"
@@ -122,18 +121,13 @@
     "ai": {
       "type": "azure.bicep.v0",
       "connectionString": "{ai.outputs.appInsightsConnectionString}",
-      "path": "ai.module.bicep",
-      "params": {
-        "principalId": "",
-        "principalType": ""
-      }
+      "path": "ai.module.bicep"
     },
     "redis": {
       "type": "azure.bicep.v0",
       "connectionString": "{redis.secretOutputs.connectionString}",
       "path": "redis.module.bicep",
       "params": {
-        "principalId": "",
         "keyVaultName": ""
       }
     },

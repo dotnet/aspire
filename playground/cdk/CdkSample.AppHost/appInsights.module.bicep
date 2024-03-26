@@ -12,12 +12,6 @@ param kind string = 'web'
 @description('')
 param logAnalyticsWorkspaceId string
 
-@description('')
-param principalId string
-
-@description('')
-param principalType string
-
 
 resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
   name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))

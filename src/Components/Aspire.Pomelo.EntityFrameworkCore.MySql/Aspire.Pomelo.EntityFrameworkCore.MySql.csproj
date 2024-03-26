@@ -22,7 +22,6 @@
     <PackageReference Include="Polly.Extensions" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />
   </ItemGroup>
 
 </Project>

@@ -228,7 +228,7 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The project resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ProjectResource> DisableForwadedHeaders(this IResourceBuilder<ProjectResource> builder)
+    public static IResourceBuilder<ProjectResource> DisableForwardedHeaders(this IResourceBuilder<ProjectResource> builder)
     {
         builder.WithAnnotation<DisableForwardedHeadersAnnotation>(ResourceAnnotationMutationBehavior.Replace);
         return builder;

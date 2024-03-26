@@ -80,8 +80,7 @@ The .NET Aspire SQL Server EntityFrameworkCore SqlClient component supports [Mic
       "EntityFrameworkCore": {
         "SqlServer": {
           "HealthChecks": false,
-          "Tracing": false,
-          "Metrics": true
+          "Tracing": false
         }
       }
     }

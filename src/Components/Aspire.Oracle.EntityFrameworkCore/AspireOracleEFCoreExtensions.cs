@@ -7,7 +7,6 @@ using Aspire.Oracle.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry.Metrics;
 using Oracle.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.Hosting;
@@ -119,18 +118,6 @@ public static class AspireOracleEFCoreExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, OracleEntityFrameworkCoreSettings settings) where TContext : DbContext
     {
-        if (settings.Metrics)
-        {
-            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
-            {
-                meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                {
-                    // https://github.com/dotnet/efcore/blob/a1cd4f45aa18314bc91d2b9ea1f71a3b7d5bf636/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
-                });
-            });
-        }
-
         if (settings.HealthChecks)
         {
             builder.TryAddHealthCheck(

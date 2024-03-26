@@ -14,6 +14,9 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;
 
+    // TODO: Expose this
+    internal EndpointAnnotation EndpointAnnotation => GetEndpointAnnotation() ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not defined for the resource `{Resource.Name}`.");
+
     /// <summary>
     /// Gets the resource owner of the endpoint reference.
     /// </summary>
@@ -93,11 +96,10 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         GetAllocatedEndpoint()
         ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Resource.Name}`.");
 
-    private AllocatedEndpoint? GetAllocatedEndpoint()
-    {
-        var endpoint = _endpointAnnotation ??= Resource.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
-        return endpoint?.AllocatedEndpoint;
-    }
+    private EndpointAnnotation? GetEndpointAnnotation() =>
+        _endpointAnnotation ??= Resource.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
+
+    private AllocatedEndpoint? GetAllocatedEndpoint() => GetEndpointAnnotation()?.AllocatedEndpoint;
 
     /// <summary>
     /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.

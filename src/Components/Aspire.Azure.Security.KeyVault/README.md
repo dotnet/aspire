@@ -119,10 +119,10 @@ builder.AddAzureKeyVaultClient("secrets", configureClientBuilder: clientBuilder 
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure KeyVault Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure
+dotnet add package Aspire.Hosting.Azure.KeyVault
 ```
 
 Then, in the _Program.cs_ file of `AppHost`, add a Key Vault connection and consume the connection using the following methods:

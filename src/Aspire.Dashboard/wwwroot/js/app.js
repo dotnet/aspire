@@ -314,25 +314,68 @@ function isInputElement(element, isRoot, isShadowRoot) {
 }
 
 window.registerGlobalKeydownListener = function(shortcutManager) {
-    const serializeEvent = function (e) {
-        if (e) {
-            return {
-                key: e.key,
-                code: e.keyCode.toString(),
-                location: e.location,
-                repeat: e.repeat,
-                ctrlKey: e.ctrlKey,
-                shiftKey: e.shiftKey,
-                altKey: e.altKey,
-                metaKey: e.metaKey,
-                type: e.type
-            };
+    function hasNoModifiers(keyboardEvent) {
+        return !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey && !keyboardEvent.shiftKey;
+    }
+
+    // Shift in some but not all, keyboard layouts, is used for + and -
+    function modifierKeysExceptShiftNotPressed(keyboardEvent) {
+        return !keyboardEvent.altKey && !keyboardEvent.ctrlKey && !keyboardEvent.metaKey;
+    }
+
+    function calculateShortcut(e) {
+        if (modifierKeysExceptShiftNotPressed(e)) {
+            /* general shortcuts */
+            switch (e.key) {
+                case "?": // help
+                    return 100;
+                case "S": // settings
+                    return 110;
+
+                /* panel shortcuts */
+                case "T": // toggle panel orientation
+                    return 300;
+                case "X": // close panel
+                    return 310;
+                case "R": // reset panel sizes
+                    return 320;
+                case "+": // increase panel size
+                    return 330;
+                case "_": // decrease panel size
+                case "-":
+                    return 340;
+            }
         }
-    };
+
+        if (hasNoModifiers(e)) {
+            switch (e.key) {
+                case "r": // go to resources
+                    return 200;
+                case "c": // go to console logs
+                    return 210;
+                case "s": // go to structured logs
+                    return 220;
+                case "t": // go to traces
+                    return 230;
+                case "m": // go to metrics
+                    return 240;
+            }
+        }
+
+        return null;
+    }
 
     const keydownListener = function (e) {
-        if (!isActiveElementInput()) {
-            shortcutManager.invokeMethodAsync('OnGlobalKeyDown', serializeEvent(e));
+        if (isActiveElementInput()) {
+            return;
+        }
+
+        // list of shortcut enum codes is in src/Aspire.Dashboard/Model/IGlobalKeydownListener.cs
+        // to serialize an enum from js->dotnet, we must pass the enum's integer value, not its name
+        let shortcut = calculateShortcut(e);
+
+        if (shortcut) {
+            shortcutManager.invokeMethodAsync('OnGlobalKeyDown', shortcut);
         }
     }
 

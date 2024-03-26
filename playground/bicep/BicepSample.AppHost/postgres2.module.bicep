@@ -11,9 +11,6 @@ param administratorLogin string
 param administratorLoginPassword string
 
 @description('')
-param principalId string
-
-@description('')
 param keyVaultName string
 
 

@@ -28,8 +28,7 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
               "SqlClient": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
                 "HealthChecks": true,
-                "Tracing": true,
-                "Metrics": false
+                "Tracing": true
               }
             }
           }
@@ -38,7 +37,7 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "Metrics": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "Tracing": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
             ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "ConnectionString": "Con", "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
@@ -68,7 +67,7 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
         => options.Tracing = enabled;
 
     protected override void SetMetrics(MicrosoftDataSqlClientSettings options, bool enabled)
-        => options.Metrics = enabled;
+        => throw new NotImplementedException();
 
     protected override void TriggerActivity(SqlConnection service)
         => service.Open();

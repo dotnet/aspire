@@ -50,4 +50,3 @@ resource cognitiveServicesAccountDeployment_f9rYX6SRK 'Microsoft.CognitiveServic
 }
 
 output connectionString string = 'Endpoint=${cognitiveServicesAccount_6g8jyEjX5.properties.endpoint}'
-output modelName string = cognitiveServicesAccountDeployment_f9rYX6SRK.name

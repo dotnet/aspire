@@ -2,12 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -187,31 +185,42 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         _panel2Size = string.Create(CultureInfo.InvariantCulture, $"{(1 - panel1Fraction):F3}fr");
     }
 
-    public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
+    public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
     {
-        if (_splitterRef is null || !args.OnlyShiftPressed())
+        AspireKeyboardShortcut.ToggleOrientation,
+        AspireKeyboardShortcut.ClosePanel,
+        AspireKeyboardShortcut.ResetPanelSize,
+        AspireKeyboardShortcut.IncreasePanelSize,
+        AspireKeyboardShortcut.DecreasePanelSize
+    };
+
+    public async Task OnPageKeyDownAsync(AspireKeyboardShortcut shortcut)
+    {
+        if (_splitterRef is null)
         {
             return;
         }
 
-        var key = args.Key.ToLower();
-
-        if (key is "t")
+        if (shortcut is AspireKeyboardShortcut.ToggleOrientation)
         {
             await HandleToggleOrientation();
             return;
         }
 
-        if (key is "x" && SelectedValue is not null)
+        if (shortcut is AspireKeyboardShortcut.ClosePanel)
         {
-            await HandleDismissAsync();
-            await InvokeAsync(StateHasChanged);
+            if (SelectedValue is not null)
+            {
+                await HandleDismissAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+
             return;
         }
 
         var hasChanged = false;
 
-        if (key is "r")
+        if (shortcut is AspireKeyboardShortcut.ResetPanelSize)
         {
             ResetPanelSizes();
             hasChanged = true;
@@ -224,12 +233,12 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
             return;
         }
 
-        if (key is "+")
+        if (shortcut is AspireKeyboardShortcut.IncreasePanelSize)
         {
             SetPanelSizes(panel1Fraction.Value - 0.05f);
             hasChanged = true;
         }
-        else if (key is "-" or "_")
+        else if (shortcut is AspireKeyboardShortcut.DecreasePanelSize)
         {
             SetPanelSizes(panel1Fraction.Value + 0.05f);
             hasChanged = true;

@@ -6,9 +6,6 @@ param location string = resourceGroup().location
 @description('')
 param keyVaultName string
 
-@description('')
-param principalId string
-
 
 resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
