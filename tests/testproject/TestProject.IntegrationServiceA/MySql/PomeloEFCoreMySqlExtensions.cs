@@ -7,10 +7,10 @@ public static class PomeloEFCoreMySqlExtensions
 {
     public static void MapPomeloEFCoreMySqlApi(this WebApplication app)
     {
-        app.MapGet("/pomelo/verify", VerifyPomeloEFCoreMySqlAsync);
+        app.MapGet("/efmysql/verify", VerifyPomeloEFCoreMySqlAsync);
     }
 
-    private static IResult VerifyPomeloEFCoreMySqlAsync(PomeloDbContext dbContext)
+    private static IResult VerifyPomeloEFCoreMySqlAsync(PomeloMySqlDbContext dbContext)
     {
         try
         {

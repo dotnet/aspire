@@ -38,6 +38,15 @@
 
   <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsWorkloadTests->Count()) > 0">
     <PropertyGroup>
+      <_TestScenarioEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_SCENARIO%</_TestScenarioEnvVar>
+      <_TestScenarioEnvVar Condition="'$(OS)' != 'Windows_NT'">$TEST_SCENARIO</_TestScenarioEnvVar>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_TestRunCommandArguments Include="--filter scenario=$(_TestScenarioEnvVar)" />
+    </ItemGroup>
+
+    <PropertyGroup>
       <_WorkItemTimeoutForWorkloadTests>00:20:00</_WorkItemTimeoutForWorkloadTests>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
@@ -54,16 +63,49 @@
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />
       <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')">
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-scenario0')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=scenario0</PreCommands>
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
+
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-sqlserver')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=sqlserver</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+
+      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-cosmos')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=cosmos</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+
+      <!--<HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)-oracle')">-->
+        <!--<PayloadArchive>%(Identity)</PayloadArchive>-->
+        <!--<PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>-->
+        <!--<PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export TEST_SCENARIO=oracle</PreCommands>-->
+        <!--<Command>$(_TestRunCommand)</Command>-->
+        <!--<Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>-->
+
+        <!--[> Download results file so coverage files can be extracted <]-->
+        <!--<DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>-->
+      <!--</HelixWorkItem>-->
     </ItemGroup>
   </Target>
 </Project>
