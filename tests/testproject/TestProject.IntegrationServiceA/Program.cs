@@ -7,10 +7,13 @@ using Aspire.TestProject;
 string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
 if (logPath is not null)
 {
+    File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-start.log"), "");
     AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
         File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-exception.log"), eventArgs.ExceptionObject.ToString());
 }
 
+try
+{
 var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
 var resourcesToSkip = !string.IsNullOrEmpty(skipResourcesValue)
@@ -148,3 +151,13 @@ if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 }
 
 app.Run();
+
+}
+catch (Exception ex)
+{
+    if (logPath is not null)
+    {
+        File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-stop.log"), ex.ToString());
+    }
+    throw;
+}
