@@ -4,14 +4,11 @@
 using TestProject.WorkerA;
 
 string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+if (logPath is not null)
 {
-    Console.WriteLine("Unhandled exception: " + eventArgs.ExceptionObject);
-    if (logPath is not null)
-    {
-        File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-exception.log"), eventArgs.ExceptionObject.ToString());
-    }
-};
+    AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+        File.WriteAllText(Path.Combine(logPath, "workloada-exception.log"), eventArgs.ExceptionObject.ToString());
+}
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();
 

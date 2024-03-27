@@ -5,14 +5,11 @@ using Aspire.TestProject;
 // using Serilog.Extensions.Logging;
 
 string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+if (logPath is not null)
 {
-    Console.WriteLine("Unhandled exception: " + eventArgs.ExceptionObject);
-    if (logPath is not null)
-    {
+    AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
         File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-exception.log"), eventArgs.ExceptionObject.ToString());
-    }
-};
+}
 
 var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");

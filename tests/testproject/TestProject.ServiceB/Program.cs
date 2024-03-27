@@ -3,15 +3,11 @@
 
 var builder = WebApplication.CreateBuilder(args);
 string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+if (logPath is not null)
 {
-    Console.WriteLine("Unhandled exception: " + eventArgs.ExceptionObject);
-    if (logPath is not null)
-    {
+    AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
         File.WriteAllText(Path.Combine(logPath, "serviceb-exception.log"), eventArgs.ExceptionObject.ToString());
-    }
-};
-
+}
 if (!string.IsNullOrEmpty(logPath))
 {
     builder.Logging.AddFile(Path.Combine(logPath, "serviceb.log"));

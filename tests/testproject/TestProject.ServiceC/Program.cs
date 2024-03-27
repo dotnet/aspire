@@ -3,14 +3,11 @@
 
 var builder = WebApplication.CreateBuilder(args);
 string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+if (logPath is not null)
 {
-    Console.WriteLine("Unhandled exception: " + eventArgs.ExceptionObject);
-    if (logPath is not null)
-    {
+    AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
         File.WriteAllText(Path.Combine(logPath, "servicec-exception.log"), eventArgs.ExceptionObject.ToString());
-    }
-};
+}
 if (!string.IsNullOrEmpty(logPath))
 {
     builder.Logging.AddFile(Path.Combine(logPath, "servicec.log"));
@@ -19,6 +16,7 @@ else
 {
     throw new InvalidOperationException("TEST_LOG_PATH environment variable is not set.");
 }
+
 var app = builder.Build();
 
 app.MapGet("/", () => "Hello World!");
