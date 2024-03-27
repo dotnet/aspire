@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting;
 
-internal static class KnownEnvironmentVariables
+internal static class KnownConfigNames
 {
     public static string AspNetCoreUrls = "ASPNETCORE_URLS";
     public static string AllowUnsecuredTransport = "ASPIRE_ALLOW_UNSECURED_TRANSPORT";

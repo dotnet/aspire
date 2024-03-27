@@ -38,7 +38,7 @@ public class TestProgram : IDisposable
 
         if (allowUnsecuredTransport)
         {
-            AppBuilder.Configuration[KnownEnvironmentVariables.AllowUnsecuredTransport] = "true";
+            AppBuilder.Configuration[KnownConfigNames.AllowUnsecuredTransport] = "true";
         }
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");

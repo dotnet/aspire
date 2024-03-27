@@ -53,7 +53,7 @@ public class DistributedApplicationFixtureWithAllowUnsecureTransport<TEntryPoint
 {
     protected override void OnBuilding(DistributedApplicationBuilder applicationBuilder)
     {
-        applicationBuilder.Configuration[KnownEnvironmentVariables.AllowUnsecuredTransport] = "true";
+        applicationBuilder.Configuration[KnownConfigNames.AllowUnsecuredTransport] = "true";
         base.OnBuilding(applicationBuilder);
     }
 }

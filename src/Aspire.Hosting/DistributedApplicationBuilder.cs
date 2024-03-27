@@ -126,7 +126,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private void MapTransportOptionsFromCustomKeys(TransportOptions options)
     {
-        if (Configuration.GetBool(KnownEnvironmentVariables.AllowUnsecuredTransport) is { } allowUnsecuredTransport)
+        if (Configuration.GetBool(KnownConfigNames.AllowUnsecuredTransport) is { } allowUnsecuredTransport)
         {
             options.AllowUnsecureTransport = allowUnsecuredTransport;
         }

@@ -10,9 +10,9 @@ internal class TransportOptionsValidator(IConfiguration configuration) : IValida
 {
     public ValidateOptionsResult Validate(string? name, TransportOptions options)
     {
-        if (configuration[KnownEnvironmentVariables.AspNetCoreUrls] is not { } applicationUrls)
+        if (configuration[KnownConfigNames.AspNetCoreUrls] is not { } applicationUrls)
         {
-            return ValidateOptionsResult.Fail($"AppHost does not have applicationUrl in launch profile, or {KnownEnvironmentVariables.AspNetCoreUrls} environment variable set.");
+            return ValidateOptionsResult.Fail($"AppHost does not have applicationUrl in launch profile, or {KnownConfigNames.AspNetCoreUrls} environment variable set.");
         }
 
         var firstApplicationUrl = applicationUrls.Split(";").First();
@@ -24,7 +24,7 @@ internal class TransportOptionsValidator(IConfiguration configuration) : IValida
 
         if (parsedFirstApplicationUrl.Scheme == "http" && !options.AllowUnsecureTransport.GetValueOrDefault(false))
         {
-            return ValidateOptionsResult.Fail($"Use of a non-TLS URL in the 'applicationUrl' setting of the launch profile unless the '{KnownEnvironmentVariables.AllowUnsecuredTransport}' environment variable is set to 'true'. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            return ValidateOptionsResult.Fail($"Use of a non-TLS URL in the 'applicationUrl' setting of the launch profile unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to 'true'. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
         }
 
         return ValidateOptionsResult.Success;
