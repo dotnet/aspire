@@ -10,10 +10,13 @@ namespace Aspire.Hosting.Tests.RabbitMQ;
 
 public class AddRabbitMQTests
 {
-    [Fact]
-    public void AddRabbitMQContainerWithDefaultsAddsAnnotationMetadata()
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run)]
+    [InlineData(DistributedApplicationOperation.Publish)]
+    public void AddRabbitMQContainerWithDefaultsAddsAnnotationMetadata(DistributedApplicationOperation operation)
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        DistributedApplicationOptions options = operation == DistributedApplicationOperation.Run ? new() : new() { Args = ["Publishing:Publisher=manifest"] };
+        var appBuilder = DistributedApplication.CreateBuilder(options);
 
         appBuilder.AddRabbitMQ("rabbit");
 
@@ -33,18 +36,21 @@ public class AddRabbitMQTests
         Assert.Equal("tcp", primaryEndpoint.Transport);
         Assert.Equal("tcp", primaryEndpoint.UriScheme);
 
-        var mangementEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "management"));
-        Assert.Equal(15672, mangementEndpoint.ContainerPort);
-        Assert.False(primaryEndpoint.IsExternal);
-        Assert.Equal("management", mangementEndpoint.Name);
-        Assert.Null(mangementEndpoint.Port);
-        Assert.Equal(ProtocolType.Tcp, mangementEndpoint.Protocol);
-        Assert.Equal("http", mangementEndpoint.Transport);
-        Assert.Equal("http", mangementEndpoint.UriScheme);
+        if (operation == DistributedApplicationOperation.Run)
+        {
+            var mangementEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "management"));
+            Assert.Equal(15672, mangementEndpoint.ContainerPort);
+            Assert.False(primaryEndpoint.IsExternal);
+            Assert.Equal("management", mangementEndpoint.Name);
+            Assert.Null(mangementEndpoint.Port);
+            Assert.Equal(ProtocolType.Tcp, mangementEndpoint.Protocol);
+            Assert.Equal("http", mangementEndpoint.Transport);
+            Assert.Equal("http", mangementEndpoint.UriScheme);
+        }
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("rabbitmq", containerAnnotation.Image);
-        Assert.Equal("3-management", containerAnnotation.Tag);
+        Assert.Equal(operation == DistributedApplicationOperation.Run ? "3-management" : "3", containerAnnotation.Tag);
         Assert.Null(containerAnnotation.Registry);
     }
 
