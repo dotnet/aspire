@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
+using YamlDotNet.Core;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -296,7 +297,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         {
             var configurationReadRetry = new RetryStrategyOptions()
             {
-                ShouldHandle = new PredicateBuilder().Handle<KubeConfigException>(),
+                ShouldHandle = new PredicateBuilder().Handle<KubeConfigException>().Handle<YamlException>(),
                 BackoffType = DelayBackoffType.Constant,
                 MaxRetryAttempts = dcpOptions.Value.KubernetesConfigReadRetryCount,
                 MaxDelay = TimeSpan.FromMilliseconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalMilliseconds),
