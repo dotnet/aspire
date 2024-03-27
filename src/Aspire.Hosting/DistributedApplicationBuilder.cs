@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
 
 namespace Aspire.Hosting;
 
@@ -70,7 +71,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
-        _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.None);
+        _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+
+        // This is so that we can see certificate errors in the resource server in the console logs.
+        // See: https://github.com/dotnet/aspire/issues/2914
+        _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServer", LogLevel.Warning);
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
