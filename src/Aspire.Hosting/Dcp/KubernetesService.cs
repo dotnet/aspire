@@ -297,6 +297,8 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         {
             var configurationReadRetry = new RetryStrategyOptions()
             {
+                // Handle exceptions caused by races between writing and reading the configuration file.
+                // If the file is loaded while it is still being written, this can result in a YamlException being thrown.
                 ShouldHandle = new PredicateBuilder().Handle<KubeConfigException>().Handle<YamlException>(),
                 BackoffType = DelayBackoffType.Constant,
                 MaxRetryAttempts = dcpOptions.Value.KubernetesConfigReadRetryCount,
