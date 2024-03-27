@@ -7,5 +7,5 @@ internal static class RabbitMQContainerImageTags
 {
     public const string Image = "rabbitmq";
     public const string Tag = "3";
-    public const string TagMangement = $"{Tag}-management";
+    public const string TagManagement = $"{Tag}-management";
 }
