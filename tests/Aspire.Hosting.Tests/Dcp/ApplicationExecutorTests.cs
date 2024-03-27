@@ -58,6 +58,16 @@ public class ApplicationExecutorTests
         IConfiguration? configuration = null,
         IKubernetesService? kubernetesService = null)
     {
+        if (configuration == null)
+        {
+            var builder = new ConfigurationBuilder();
+            builder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+            });
+
+            configuration = builder.Build();
+        }
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -65,7 +75,7 @@ public class ApplicationExecutorTests
             new DistributedApplicationOptions(),
             kubernetesService ?? new MockKubernetesService(),
             Array.Empty<IDistributedApplicationLifecycleHook>(),
-            configuration ?? new ConfigurationBuilder().Build(),
+            configuration,
             Options.Create(new DcpOptions
             {
                 DashboardPath = "./dashboard"
