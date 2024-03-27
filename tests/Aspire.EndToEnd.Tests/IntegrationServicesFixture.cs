@@ -161,13 +161,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5));
 
         string outputMessage;
-        var resultTask = await Task.WhenAny(successfulTask, failedAppTask, timeoutTask);
+        var resultTask = await Task.WhenAny(successfulTask, failedAppTask, timeoutTask).ConfigureAwait(true);
         if (resultTask == failedAppTask)
         {
             // wait for all the output to be read
             var allOutputComplete = Task.WhenAll(stdoutComplete.Task, stderrComplete.Task);
             var appExitTimeout = Task.Delay(TimeSpan.FromSeconds(5));
-            var t = await Task.WhenAny(allOutputComplete, appExitTimeout);
+            var t = await Task.WhenAny(allOutputComplete, appExitTimeout).ConfigureAwait(true);
             if (t == appExitTimeout)
             {
                 _testOutput.WriteLine($"\tand timed out waiting for the full output");
@@ -191,7 +191,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             outputMessage = output.ToString();
         }
-        Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{outputMessage}");
+        Assert.True(resultTask == successfulTask, $"App run failed (got endpoints: {projectsParsed.Task.IsCompletedSuccessfully}, got app-started: {appRunning.Task.IsCompletedSuccessfully}: {Environment.NewLine}{outputMessage}");
 
         var client = CreateHttpClient();
         foreach (var project in Projects.Values)
