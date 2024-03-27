@@ -13,8 +13,10 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</source>
-        <target state="translated">컨테이너 런타임 '{0}'(을)를 찾을 수 없습니다. 컨테이너 런타임 검사에서 오류가 발생했습니다. {1}.</target>
+        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
+See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="new">Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
+See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
