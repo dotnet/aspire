@@ -6,10 +6,15 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal class TransportOptionsValidator(IConfiguration configuration) : IValidateOptions<TransportOptions>
+internal class TransportOptionsValidator(IConfiguration configuration, DistributedApplicationExecutionContext executionContext) : IValidateOptions<TransportOptions>
 {
     public ValidateOptionsResult Validate(string? name, TransportOptions options)
     {
+        if (executionContext.IsPublishMode)
+        {
+            return ValidateOptionsResult.Success;
+        }
+
         if (configuration[KnownConfigNames.AspNetCoreUrls] is not { } applicationUrls)
         {
             return ValidateOptionsResult.Fail($"AppHost does not have applicationUrl in launch profile, or {KnownConfigNames.AspNetCoreUrls} environment variable set.");

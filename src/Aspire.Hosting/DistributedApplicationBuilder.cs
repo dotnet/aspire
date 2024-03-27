@@ -91,7 +91,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
 
         // Dashboard
-        _innerBuilder.Services.AddOptions<TransportOptions>().PostConfigure(MapTransportOptionsFromCustomKeys);
+        _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
         _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());

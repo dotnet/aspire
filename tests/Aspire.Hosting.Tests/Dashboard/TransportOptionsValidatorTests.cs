@@ -12,13 +12,14 @@ public class TransportOptionsValidatorTests
     [Fact]
     public void ValidationFailsWhenHttpUrlSpecifiedWithAllowSecureTransportSetToFalse()
     {
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config);
+        var validator = new TransportOptionsValidator(config, executionContext);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -28,8 +29,24 @@ public class TransportOptionsValidatorTests
     }
 
     [Fact]
+    public void InvalidTransportOptionSucceedValidationInPublishMode()
+    {
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var options = new TransportOptions();
+        options.AllowUnsecureTransport = false;
+
+        var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
+        config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
+
+        var validator = new TransportOptionsValidator(config, executionContext);
+        var result = validator.Validate(null, options);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
     public void ValidationFailsWithInvalidUrl()
     {
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
 
@@ -37,7 +54,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = invalidUrl;
 
-        var validator = new TransportOptionsValidator(config);
+        var validator = new TransportOptionsValidator(config, executionContext);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -49,12 +66,13 @@ public class TransportOptionsValidatorTests
     [Fact]
     public void ValidationFailsWithMissingUrl()
     {
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
 
-        var validator = new TransportOptionsValidator(config);
+        var validator = new TransportOptionsValidator(config, executionContext);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
@@ -66,13 +84,14 @@ public class TransportOptionsValidatorTests
     [Fact]
     public void ValidationSucceedsWhenHttpUrlSpecifiedWithAllowSecureTransportSetToTrue()
     {
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = true;
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "http://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config);
+        var validator = new TransportOptionsValidator(config, executionContext);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded);
     }
@@ -80,13 +99,14 @@ public class TransportOptionsValidatorTests
     [Fact]
     public void ValidationSucceedsWhenHttpsUrlSpecifiedWithAllowSecureTransportSetToTrue()
     {
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = true;
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config);
+        var validator = new TransportOptionsValidator(config, executionContext);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded);
     }
@@ -94,13 +114,14 @@ public class TransportOptionsValidatorTests
     [Fact]
     public void ValidationSucceedsWhenHttpsUrlSpecifiedWithAllowSecureTransportSetToFalse()
     {
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
         var options = new TransportOptions();
         options.AllowUnsecureTransport = false;
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
 
-        var validator = new TransportOptionsValidator(config);
+        var validator = new TransportOptionsValidator(config, executionContext);
         var result = validator.Validate(null, options);
         Assert.True(result.Succeeded);
     }
