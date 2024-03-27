@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -12,8 +13,11 @@ namespace Aspire.Hosting;
 public static class RabbitMQBuilderExtensions
 {
     /// <summary>
-    /// Adds a RabbitMQ resource to the application. A container is used for local development.
+    /// Adds a RabbitMQ container to the application model.
     /// </summary>
+    /// <remarks>
+    /// The default image is "rabbitmq". The default tag is "3-management" when running and "3" when publishing.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="userName">The parameter used to provide the user name for the RabbitMQ resource. If <see langword="null"/> a default value will be used.</param>
@@ -30,14 +34,26 @@ public static class RabbitMQBuilderExtensions
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
         var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, passwordParameter);
-        return builder.AddResource(rabbitMq)
-                      .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
-                      .WithImage("rabbitmq", "3")
-                      .WithEnvironment(context =>
-                      {
-                          context.EnvironmentVariables["RABBITMQ_DEFAULT_USER"] = rabbitMq.UserNameReference;
-                          context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordParameter;
-                      });
+        var rabbitmq = builder.AddResource(rabbitMq)
+                              .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
+                              .WithEnvironment(context =>
+                              {
+                                  context.EnvironmentVariables["RABBITMQ_DEFAULT_USER"] = rabbitMq.UserNameReference;
+                                  context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordParameter;
+                              });
+
+        if (builder.ExecutionContext.IsRunMode)
+        {
+            // Configure for management plugin
+            rabbitmq.WithImage(RabbitMQContainerImageTags.Image, RabbitMQContainerImageTags.TagMangement)
+                    .WithHttpEndpoint(containerPort: 15672, name: RabbitMQServerResource.MangementEndpointName);
+        }
+        else
+        {
+            rabbitmq.WithImage(RabbitMQContainerImageTags.Image, RabbitMQContainerImageTags.Tag);
+        }
+
+        return rabbitmq;
     }
 
     /// <summary>

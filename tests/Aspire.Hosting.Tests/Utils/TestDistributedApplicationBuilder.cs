@@ -25,7 +25,19 @@ public sealed class TestDistributedApplicationBuilder : IDisposable, IDistribute
     public DistributedApplicationExecutionContext ExecutionContext => _innerBuilder.ExecutionContext;
     public IResourceCollection Resources => _innerBuilder.Resources;
 
-    public static TestDistributedApplicationBuilder Create() => new TestDistributedApplicationBuilder(DistributedApplication.CreateBuilder());
+    public static TestDistributedApplicationBuilder Create(DistributedApplicationOperation operation = DistributedApplicationOperation.Run)
+    {
+        if (operation == DistributedApplicationOperation.Publish)
+        {
+            var options = new DistributedApplicationOptions
+            {
+                Args = ["Publishing:Publisher=manifest"]
+            };
+            return new(DistributedApplication.CreateBuilder(options));
+        }
+
+        return new(DistributedApplication.CreateBuilder());
+    }
 
     private TestDistributedApplicationBuilder(IDistributedApplicationBuilder builder)
     {
