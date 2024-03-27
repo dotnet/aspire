@@ -48,7 +48,7 @@ else
     {
 
         var results = new List<WeatherForecast>();
-        var table = Table.LoadTable(DynamoDB, awsResources.Value.TableName);
+        var table = Table.LoadTable(DynamoDB, awsResources.Value.Table?.TableName);
         var search = table.Scan(new ScanFilter());
         do
         {

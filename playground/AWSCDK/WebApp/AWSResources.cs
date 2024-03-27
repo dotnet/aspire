@@ -5,5 +5,10 @@ namespace WebApp;
 
 public class AWSResources
 {
+    public TableResource? Table { get; set; }
+}
+
+public class TableResource
+{
     public string? TableName { get; set; }
 }

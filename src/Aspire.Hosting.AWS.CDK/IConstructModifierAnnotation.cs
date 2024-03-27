@@ -1,19 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Amazon.CDK;
 using Aspire.Hosting.ApplicationModel;
+using Constructs;
 
 namespace Aspire.Hosting.AWS.CDK;
 
 /// <summary>
-/// 
+///
 /// </summary>
-public interface IStackModifierAnnotation : IResourceAnnotation
+public interface IConstructModifierAnnotation : IResourceAnnotation
 {
     /// <summary>
     ///
     /// </summary>
-    /// <param name="stack"></param>
-    void ChangeStack(Stack stack);
+    /// <param name="construct"></param>
+    void ChangeConstruct(Construct construct);
 }

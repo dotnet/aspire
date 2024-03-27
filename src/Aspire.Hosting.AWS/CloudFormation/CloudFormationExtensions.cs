@@ -157,7 +157,7 @@ public static class CloudFormationExtensions
 
             foreach (var output in cloudFormationResourceBuilder.Resource.Outputs)
             {
-                var envName = $"{configSection}__{output.OutputKey}";
+                var envName = $"{configSection}__{output.ExportName?.Replace(':', '_') ?? output.OutputKey}";
                 context.EnvironmentVariables[envName] = output.OutputValue;
             }
         });

@@ -8,5 +8,10 @@ namespace Aspire.Hosting.AWS.CDK;
 /// <summary>
 ///
 /// </summary>
-/// <typeparam name="T"></typeparam>
-public delegate string StackOutputDelegate<in T>(T stack) where T : Stack;
+public interface IAppResource : IResourceWithConstruct
+{
+    /// <summary>
+    /// AWS CKD App
+    /// </summary>
+    App App { get; }
+}

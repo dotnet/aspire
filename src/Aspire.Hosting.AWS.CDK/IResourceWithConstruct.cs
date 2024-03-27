@@ -1,32 +1,30 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Amazon.CDK;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.AWS.CloudFormation;
+using Constructs;
 
 namespace Aspire.Hosting.AWS.CDK;
 
 /// <summary>
 ///
 /// </summary>
-public interface IStackResource : ICloudFormationResource, IResourceWithParent<IAppResource>, IResourceWithConstruct
+public interface IResourceWithConstruct : IResource
 {
     /// <summary>
     ///
     /// </summary>
-    Stack Stack { get; }
+    Construct Construct { get; }
 }
 
 /// <summary>
 ///
 /// </summary>
-/// <typeparam name="T"></typeparam>
-public interface IStackResource<out T> : IStackResource, IResourceWithConstruct<T>
-    where T : Stack
+public interface IResourceWithConstruct<out T> : IResourceWithConstruct
+    where T : Construct
 {
     /// <summary>
     ///
     /// </summary>
-    new T Stack { get; }
+    new T Construct { get; }
 }

@@ -2,13 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Amazon.CDK;
 using Amazon.CloudFormation;
 using Amazon.Runtime;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation;
 using Microsoft.Extensions.Logging;
-using Stack = Amazon.CDK.Stack;
 using CloudFormationStack = Amazon.CloudFormation.Model.Stack;
 
 namespace Aspire.Hosting.AWS.CDK;
@@ -20,29 +18,21 @@ internal sealed class AWSCDKProvisioner(
 {
     internal async Task ProvisionCloudFormation(CancellationToken cancellationToken = default)
     {
-        var templates = ProcessCDKStackResources();
+        if (!appModel.TryGetAppResource(out var appResource))
+        {
+            return;
+        }
+        var templates = ProcessStackResources(appResource);
         await DeployCDKStackTemplatesAsync(templates, cancellationToken).ConfigureAwait(false);
     }
 
-    private IEnumerable<AWSCDKStackTemplate> ProcessCDKStackResources()
+    private IEnumerable<AWSCDKStackTemplate> ProcessStackResources(IAppResource appResource)
     {
-        var app = new App();
-        var stackResources = appModel.Resources.OfType<StackResource>().ToDictionary(resource => resource.Name);
-        // Build Stacks
-        foreach (var stackResource in stackResources.Values)
+        // Modified constructs after build
+        foreach (var constructResource in appModel.Resources.OfType<IResourceWithConstruct>())
         {
-            stackResource.BuildStack(app);
-        }
-        // Modified Stacks after build
-        foreach (var stackResource in stackResources.Values)
-        {
-            // Find Stack Modifier Annotations
-            if (!stackResource.TryGetAnnotationsOfType<IStackModifierAnnotation>(out var modifiers))
-            {
-                continue;
-            }
-            // Find Stack Nodes
-            if (app.Node.TryFindChild(stackResource.Name) is not Stack stack)
+            // Find Construct Modifier Annotations
+            if (!constructResource.TryGetAnnotationsOfType<IConstructModifierAnnotation>(out var modifiers))
             {
                 continue;
             }
@@ -50,12 +40,13 @@ internal sealed class AWSCDKProvisioner(
             // Modify stack
             foreach (var modifier in modifiers)
             {
-                modifier.ChangeStack(stack);
+                modifier.ChangeConstruct(constructResource.Construct);
             }
         }
 
-        var cloudAssembly = app.Synth();
-        return cloudAssembly.Stacks.Select(stack => new AWSCDKStackTemplate(stack, stackResources[stack.StackName]));
+        var stackResources = appModel.Resources.OfType<StackResource>();
+        var cloudAssembly = appResource.App.Synth();
+        return cloudAssembly.Stacks.Select(stack => new AWSCDKStackTemplate(stack, stackResources.Single(s => ((IStackResource)s).Stack.StackName == stack.StackName)));
     }
 
     private async Task DeployCDKStackTemplatesAsync(IEnumerable<AWSCDKStackTemplate> templates, CancellationToken cancellationToken = default)
