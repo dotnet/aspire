@@ -1,0 +1,17 @@
+﻿@page "/token"
+@attribute [AllowAnonymous]
+
+<PageTitle>Token!</PageTitle>
+
+<div style="margin:50px;">
+    <EditForm EditContext="@EditContext" OnValidSubmit="@GetToken">
+        <DataAnnotationsValidator />
+
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+            <FluentTextField @bind-Value="_formModel.Token" Placeholder="Enter token" />
+            <ValidationMessage For="() => _formModel.Token" />
+        </FluentStack>
+
+        <FluentButton Color="Color.Primary" Type="ButtonType.Submit">Submit</FluentButton>
+    </EditForm>
+</div>

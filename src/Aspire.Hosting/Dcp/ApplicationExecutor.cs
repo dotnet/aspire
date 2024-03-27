@@ -714,7 +714,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             // No auth in local dev experience
             context.EnvironmentVariables[DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName] = "Unsecured";
-            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "Unsecured";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "BrowserToken";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
@@ -786,7 +786,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             new()
             {
                 Name = DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName,
-                Value = "Unsecured" // No auth in local dev experience
+                Value = "BrowserToken" // No auth in local dev experience
             },
             new()
             {

@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons;
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
+@using Microsoft.AspNetCore.Components.Authorization
 @inherits LayoutComponentBase
 
 <div class="layout">
@@ -31,11 +32,22 @@
             <FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Neutral" />
         </FluentButton>
     </FluentHeader>
-    <NavMenu />
-    <FluentBodyContent Class="custom-body-content">
-        <FluentToastProvider />
-        @Body
-    </FluentBodyContent>
+
+    <AuthorizeView>
+        <Authorized>
+            <NavMenu />
+            <FluentBodyContent Class="custom-body-content">
+                <FluentToastProvider />
+                @Body
+            </FluentBodyContent>
+        </Authorized>
+        <NotAuthorized>
+            <div class="unauthorized-body-content">
+                @Body
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+
 
     <FluentDialogProvider />
     <FluentTooltipProvider />
