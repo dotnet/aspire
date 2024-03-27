@@ -8,10 +8,6 @@
     <IsAspireHost>true</IsAspireHost>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
-  </ItemGroup>
-
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.CosmosDB\Aspire.Hosting.Azure.CosmosDB.csproj" IsAspireProjectResource="false" />
@@ -37,6 +33,7 @@
 
   <ItemGroup>
     <Compile Include="..\Common\TestResourceNames.cs" />
+    <Compile Include="..\..\..\src\Shared\KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
 
     <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" AspireProjectMetadataTypeName="IntegrationServiceA" />
     <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" AspireProjectMetadataTypeName="ServiceA" />
