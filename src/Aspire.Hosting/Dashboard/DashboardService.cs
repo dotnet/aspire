@@ -133,9 +133,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             {
                 WatchResourceConsoleLogsUpdate update = new();
 
-                foreach (var (content, isErrorMessage) in group)
+                foreach (var (lineNumber, content, isErrorMessage) in group)
                 {
-                    update.LogLines.Add(new ConsoleLogLine() { Text = content, IsStdErr = isErrorMessage });
+                    update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = content, IsStdErr = isErrorMessage });
                 }
 
                 await responseStream.WriteAsync(update, cts.Token).ConfigureAwait(false);
