@@ -36,6 +36,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private Dictionary<string, ProjectInfo>? _projects;
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
+    private bool _copiedLogs;
 
     public IntegrationServicesFixture(IMessageSink diagnosticMessageSink)
     {
@@ -193,7 +194,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
         if (!projectsParsed.Task.IsCompletedSuccessfully || !appRunning.Task.IsCompletedSuccessfully)
         {
-            CopyDcpLogs();
+            if (BuildEnvironment.IsRunningOnCI)
+            {
+                CopyDcpLogs();
+            }
             foreach (var p in Process.GetProcesses())
             {
                 _testOutput.WriteLine($"Process [{p.Id}]: {p.ProcessName}");
@@ -322,6 +326,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     private void CopyDcpLogs()
     {
+        if (_copiedLogs)
+        {
+            return;
+        }
         string dcpLogPath = Path.Combine(BuildEnvironment.LogRootPath, "dcp");
         if (!Directory.Exists(dcpLogPath))
         {
@@ -330,6 +338,11 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         var logFiles = Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_err_*", SearchOption.AllDirectories)
                         .Concat(Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_out_*", SearchOption.AllDirectories));
+        if (!logFiles.Any())
+        {
+            Console.WriteLine ($"*** No log files found to copy to {dcpLogPath}");
+            return;
+        }
         foreach (var srcFile in logFiles)
         {
             var dstFile = Path.Combine(dcpLogPath, Path.GetFileName(srcFile));
@@ -345,6 +358,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 Console.WriteLine ($"Failed to copy {srcFile} to {dstFile}: {ioex.Message}");
             }
         }
+        _copiedLogs = true;
     }
 
     public void EnsureAppHostRunning()
