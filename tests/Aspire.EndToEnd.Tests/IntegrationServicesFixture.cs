@@ -348,7 +348,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             return;
         }
 
-        CopyDcpLogs(Path.Combine(BuildEnvironment.LogRootPath, "dcp-diag-logs"), Path.Combine(BuildEnvironment.LogRootPath, "dcp-diag-logs-copy"));
+        // CopyDcpLogs(Path.Combine(BuildEnvironment.LogRootPath, "dcp-diag-logs"), Path.Combine(BuildEnvironment.LogRootPath, "dcp-diag-logs-copy"));
         CopyDcpLogs(Path.Combine(BuildEnvironment.LogRootPath, "dcp-session-dir"), Path.Combine(BuildEnvironment.LogRootPath, "dcp-session-dir-copy"));
 
         static void CopyDcpLogs(string srcDir, string dstDir)
@@ -422,7 +422,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
         }
 
-        // resourcesToSkip.Add(nameof(TestResourceNames.dashboard));
+        resourcesToSkip.Add(nameof(TestResourceNames.dashboard));
 
         return resourcesToSkip;
     }
