@@ -1,8 +1,9 @@
-﻿@inject IStringLocalizer<Resources.Routes> Loc
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject IStringLocalizer<Resources.Routes> Loc
 
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
     </Found>
     <NotFound>
         <PageTitle>@Loc[nameof(Resources.Routes.NotFoundPageTitle)]</PageTitle>
