@@ -6,9 +6,9 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
-internal sealed partial class LogParser(BrowserTimeProvider timeProvider, bool convertTimestampsFromUtc)
+internal sealed class LogParser
 {
-    private string? _parentTimestamp;
+    private DateTimeOffset? _parentTimestamp;
     private Guid? _parentId;
     private int _lineIndex;
     private AnsiParser.ParserState? _residualState;
@@ -17,34 +17,39 @@ internal sealed partial class LogParser(BrowserTimeProvider timeProvider, bool c
     {
         // Several steps to do here:
         //
-        // 1. HTML Encode the raw text for security purposes
-        // 2. Parse the content to look for the timestamp and color it if possible
-        // 3. Parse the content to look for info/warn/dbug header
+        // 1. Parse the content to look for the timestamp
+        // 2. Parse the content to look for info/warn/dbug header
+        // 3. HTML Encode the raw text for security purposes
         // 4. Parse the content to look for ANSI Control Sequences and color them if possible
         // 5. Parse the content to look for URLs and make them links if possible
         // 6. Create the LogEntry to get the ID
         // 7. Set the relative properties of the log entry (parent/line index/etc)
         // 8. Return the final result
 
-        // 1. HTML Encode the raw text for security purposes
-        var content = WebUtility.HtmlEncode(rawText);
+        var content = rawText;
 
-        // 2. Parse the content to look for the timestamp and color it if possible
+        // 1. Parse the content to look for the timestamp
         var isFirstLine = false;
-        string? timestamp = null;
+        DateTimeOffset? timestamp = null;
 
-        if (TimestampParser.TryColorizeTimestamp(timeProvider, content, convertTimestampsFromUtc, out var timestampParseResult))
+        if (TimestampParser.TryParseConsoleTimestamp(content, out var timestampParseResult))
         {
             isFirstLine = true;
-            content = timestampParseResult.ModifiedText;
-            timestamp = timestampParseResult.Timestamp;
+            content = timestampParseResult.Value.ModifiedText;
+            timestamp = timestampParseResult.Value.Timestamp;
         }
-        // 3. Parse the content to look for info/warn/dbug header
+        // 2. Parse the content to look for info/warn/dbug header
         // TODO extract log level and use here
-        else if (LogLevelParser.StartsWithLogLevelHeader(content))
+        else
         {
-            isFirstLine = true;
+            if (LogLevelParser.StartsWithLogLevelHeader(content))
+            {
+                isFirstLine = true;
+            }
         }
+
+        // 3. HTML Encode the raw text for security purposes
+        content = WebUtility.HtmlEncode(content);
 
         // 4. Parse the content to look for ANSI Control Sequences and color them if possible
         var conversionResult = AnsiParser.ConvertToHtml(content, _residualState);
@@ -58,7 +63,7 @@ internal sealed partial class LogParser(BrowserTimeProvider timeProvider, bool c
         }
 
         // 6. Create the LogEntry to get the ID
-        var logEntry = new LogEntry()
+        var logEntry = new LogEntry
         {
             Timestamp = timestamp,
             Content = content,

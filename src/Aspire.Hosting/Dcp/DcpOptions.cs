@@ -77,6 +77,10 @@ internal sealed class DcpOptions
     /// </summary>
     public bool? RandomizePorts { get; set; }
 
+    public int KubernetesConfigReadRetryCount { get; set; } = 300;
+
+    public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
+
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
     {
         string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
@@ -124,6 +128,9 @@ internal sealed class DcpOptions
         {
             DependencyCheckTimeout = coreConfiguration.GetValue<int>("DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT", DependencyCheckTimeout);
         }
+
+        KubernetesConfigReadRetryCount = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryCount), KubernetesConfigReadRetryCount);
+        KubernetesConfigReadRetryIntervalMilliseconds = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryIntervalMilliseconds), KubernetesConfigReadRetryIntervalMilliseconds);
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(ResourceNameSuffix)]))
         {

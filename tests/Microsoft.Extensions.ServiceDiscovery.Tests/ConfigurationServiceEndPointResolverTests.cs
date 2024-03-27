@@ -5,15 +5,15 @@ using System.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery.Configuration;
+using Microsoft.Extensions.ServiceDiscovery.Internal;
 using Xunit;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
-/// Tests for <see cref="ConfigurationServiceEndPointResolver"/> and <see cref="ConfigurationServiceEndPointResolverProvider"/>.
-/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
+/// Tests for <see cref="ConfigurationServiceEndPointResolver"/>.
+/// These also cover <see cref="ServiceEndPointWatcher"/> and <see cref="ServiceEndPointWatcherFactory"/> by extension.
 /// </summary>
 public class ConfigurationServiceEndPointResolverTests
 {
@@ -29,9 +29,9 @@ public class ConfigurationServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndPointResolver()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -40,11 +40,10 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            var ep = Assert.Single(initialResult.EndPoints);
+            var ep = Assert.Single(initialResult.EndPointSource.EndPoints);
             Assert.Equal(new DnsEndPoint("localhost", 8080), ep.EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.Null(hostNameFeature);
@@ -67,12 +66,12 @@ public class ConfigurationServiceEndPointResolverTests
             .AddConfigurationServiceEndPointResolver()
             .Configure<ServiceDiscoveryOptions>(o => o.AllowedSchemes = ["https"])
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
 
         // Explicitly specifying http.
         // We should get no endpoint back because http is not allowed by configuration.
-        await using ((resolver = resolverFactory.CreateResolver("http://_foo.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://_foo.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -81,13 +80,12 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            Assert.Empty(initialResult.EndPoints);
+            Assert.Empty(initialResult.EndPointSource.EndPoints);
         }
 
         // Specifying either https or http.
         // The result should be that we only get the http endpoint back.
-        await using ((resolver = resolverFactory.CreateResolver("https+http://_foo.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("https+http://_foo.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -96,14 +94,13 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            var ep = Assert.Single(initialResult.EndPoints);
+            var ep = Assert.Single(initialResult.EndPointSource.EndPoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
         }
 
         // Specifying either https or http, but in reverse.
         // The result should be that we only get the http endpoint back.
-        await using ((resolver = resolverFactory.CreateResolver("http+https://_foo.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http+https://_foo.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -112,8 +109,7 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            var ep = Assert.Single(initialResult.EndPoints);
+            var ep = Assert.Single(initialResult.EndPointSource.EndPoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
         }
     }
@@ -135,9 +131,9 @@ public class ConfigurationServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndPointResolver(options => options.ApplyHostNameMetadata = _ => true)
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -146,12 +142,11 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            Assert.Equal(2, initialResult.EndPoints.Count);
-            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPoints[1].EndPoint);
+            Assert.Equal(2, initialResult.EndPointSource.EndPoints.Count);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPointSource.EndPoints[0].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPointSource.EndPoints[1].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.NotNull(hostNameFeature);
@@ -160,7 +155,7 @@ public class ConfigurationServiceEndPointResolverTests
         }
 
         // Request either https or http. Since there are only http endpoints, we should get only http endpoints back.
-        await using ((resolver = resolverFactory.CreateResolver("https+http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("https+http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -169,12 +164,11 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            Assert.Equal(2, initialResult.EndPoints.Count);
-            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPoints[0].EndPoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPoints[1].EndPoint);
+            Assert.Equal(2, initialResult.EndPointSource.EndPoints.Count);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndPointSource.EndPoints[0].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndPointSource.EndPoints[1].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.NotNull(hostNameFeature);
@@ -204,9 +198,9 @@ public class ConfigurationServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndPointResolver()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://_grpc.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://_grpc.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -215,13 +209,12 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            Assert.Equal(3, initialResult.EndPoints.Count);
-            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPoints[0].EndPoint);
-            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPoints[1].EndPoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:4444")), initialResult.EndPoints[2].EndPoint);
+            Assert.Equal(3, initialResult.EndPointSource.EndPoints.Count);
+            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPointSource.EndPoints[0].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPointSource.EndPoints[1].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:4444")), initialResult.EndPointSource.EndPoints[2].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.Null(hostNameFeature);
@@ -250,9 +243,9 @@ public class ConfigurationServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndPointResolver()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("https+http://_grpc.basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("https+http://_grpc.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
@@ -261,17 +254,16 @@ public class ConfigurationServiceEndPointResolverTests
             var initialResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            Assert.Equal(3, initialResult.EndPoints.Count);
+            Assert.Equal(3, initialResult.EndPointSource.EndPoints.Count);
 
             // These must be treated as HTTPS by the HttpClient middleware, but that is not the responsibility of the resolver.
-            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPoints[0].EndPoint);
-            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPoints[1].EndPoint);
+            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPointSource.EndPoints[0].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndPointSource.EndPoints[1].EndPoint);
 
             // We expect the HTTPS endpoint back but not the HTTP one.
-            Assert.Equal(new UriEndPoint(new Uri("https://remotehost:5555")), initialResult.EndPoints[2].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("https://remotehost:5555")), initialResult.EndPointSource.EndPoints[2].EndPoint);
 
-            Assert.All(initialResult.EndPoints, ep =>
+            Assert.All(initialResult.EndPointSource.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.Null(hostNameFeature);

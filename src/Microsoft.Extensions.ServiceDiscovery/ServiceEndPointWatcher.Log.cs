@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
@@ -19,11 +18,11 @@ partial class ServiceEndPointWatcher
         [LoggerMessage(3, LogLevel.Debug, "Resolved {Count} endpoints for service '{ServiceName}': {EndPoints}.", EventName = "ResolutionSucceeded")]
         public static partial void ResolutionSucceededCore(ILogger logger, int count, string serviceName, string endPoints);
 
-        public static void ResolutionSucceeded(ILogger logger, string serviceName, ServiceEndPointCollection endPoints)
+        public static void ResolutionSucceeded(ILogger logger, string serviceName, ServiceEndPointSource endPointSource)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                ResolutionSucceededCore(logger, endPoints.Count, serviceName, string.Join(", ", endPoints.Select(GetEndPointString)));
+                ResolutionSucceededCore(logger, endPointSource.EndPoints.Count, serviceName, string.Join(", ", endPointSource.EndPoints.Select(GetEndPointString)));
             }
 
             static string GetEndPointString(ServiceEndPoint ep)

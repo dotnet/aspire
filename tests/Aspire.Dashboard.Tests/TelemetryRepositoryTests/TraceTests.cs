@@ -399,7 +399,7 @@ public class TraceTests
     public void AddTraces_AttributeAndEventLimits_LimitsApplied()
     {
         // Arrange
-        var repository = CreateRepository(attributeCountLimit: 5, attributeLengthLimit: 16, spanEventCountLimit: 5);
+        var repository = CreateRepository(maxAttributeCount: 5, maxAttributeLength: 16, maxSpanEventCount: 5);
 
         var attributes = new List<KeyValuePair<string, string>>();
         for (var i = 0; i < 10; i++)

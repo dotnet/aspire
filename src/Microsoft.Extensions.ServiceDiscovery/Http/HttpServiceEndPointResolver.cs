@@ -3,21 +3,21 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
 
 /// <summary>
 /// Resolves endpoints for HTTP requests.
 /// </summary>
-public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolverFactory, IServiceEndPointSelectorProvider selectorProvider, TimeProvider timeProvider) : IAsyncDisposable
+internal sealed class HttpServiceEndPointResolver(ServiceEndPointWatcherFactory resolverFactory, IServiceProvider serviceProvider, TimeProvider timeProvider) : IAsyncDisposable
 {
     private static readonly TimerCallback s_cleanupCallback = s => ((HttpServiceEndPointResolver)s!).CleanupResolvers();
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
-    private readonly ServiceEndPointResolverFactory _resolverFactory = resolverFactory;
-    private readonly IServiceEndPointSelectorProvider _selectorProvider = selectorProvider;
+    private readonly ServiceEndPointWatcherFactory _resolverFactory = resolverFactory;
     private readonly ConcurrentDictionary<string, ResolverEntry> _resolvers = new();
     private ITimer? _cleanupTimer;
     private Task? _cleanupTask;
@@ -148,8 +148,8 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
 
     private ResolverEntry CreateResolver(string serviceName)
     {
-        var resolver = _resolverFactory.CreateResolver(serviceName);
-        var selector = _selectorProvider.CreateSelector();
+        var resolver = _resolverFactory.CreateWatcher(serviceName);
+        var selector = serviceProvider.GetService<IServiceEndPointSelector>() ?? new RoundRobinServiceEndPointSelector();
         var result = new ResolverEntry(resolver, selector);
         resolver.Start();
         return result;
@@ -173,7 +173,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
             {
                 if (result.ResolvedSuccessfully)
                 {
-                    _selector.SetEndPoints(result.EndPoints);
+                    _selector.SetEndPoints(result.EndPointSource);
                 }
             };
         }

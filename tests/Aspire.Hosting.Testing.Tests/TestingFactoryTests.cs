@@ -13,7 +13,7 @@ public class TestingFactoryTests(DistributedApplicationFixtureWithAllowUnsecureT
     private readonly DistributedApplication _app = fixture.Application;
 
     [LocalOnlyFact]
-    public async void HasEndPoints()
+    public async Task HasEndPoints()
     {
         // Get an endpoint from a resource
         var workerEndpoint = _app.GetEndpoint("myworker1", "myendpoint1");
