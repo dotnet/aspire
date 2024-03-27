@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public class RabbitMQServerResource : ContainerResource, IResourceWithConnectionString, IResourceWithEnvironment
 {
     internal const string PrimaryEndpointName = "tcp";
-    internal const string MangementEndpointName = "management";
+    internal const string ManagementEndpointName = "management";
     private const string DefaultUserName = "guest";
 
     /// <summary>
