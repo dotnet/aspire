@@ -2,20 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery.Configuration;
+using Microsoft.Extensions.ServiceDiscovery.Http;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
+using Microsoft.Extensions.ServiceDiscovery.LoadBalancing;
 using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 
-namespace Microsoft.Extensions.Hosting;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// Extension methods for configuring service discovery.
 /// </summary>
-public static class HostingExtensions
+public static class ServiceDiscoveryServiceCollectionExtensions
 {
     /// <summary>
     /// Adds the core service discovery services and configures defaults.
@@ -30,20 +31,46 @@ public static class HostingExtensions
     }
 
     /// <summary>
+    /// Adds the core service discovery services and configures defaults.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">The delegate used to configure service discovery options.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddServiceDiscovery(this IServiceCollection services, Action<ServiceDiscoveryOptions>? configureOptions)
+    {
+        return services.AddServiceDiscoveryCore(configureOptions: configureOptions)
+            .AddConfigurationServiceEndPointResolver()
+            .AddPassThroughServiceEndPointResolver();
+    }
+
+    /// <summary>
     /// Adds the core service discovery services.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services)
+    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services) => services.AddServiceDiscoveryCore(configureOptions: null);
+
+    /// <summary>
+    /// Adds the core service discovery services.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">The delegate used to configure service discovery options.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services, Action<ServiceDiscoveryOptions>? configureOptions)
     {
         services.AddOptions();
         services.AddLogging();
-        services.TryAddSingleton<ServiceNameParser>();
         services.TryAddTransient<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
-        services.TryAddSingleton<TimeProvider>(static sp => TimeProvider.System);
-        services.TryAddSingleton<IServiceEndPointSelectorProvider, RoundRobinServiceEndPointSelectorProvider>();
-        services.TryAddSingleton<ServiceEndPointResolverFactory>();
-        services.TryAddSingleton<ServiceEndPointResolver>(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointResolverFactory>(), sp.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton(_ => TimeProvider.System);
+        services.TryAddTransient<IServiceEndPointSelector, RoundRobinServiceEndPointSelector>();
+        services.TryAddSingleton<ServiceEndPointWatcherFactory>();
+        services.TryAddSingleton<IServiceDiscoveryHttpMessageHandlerFactory, ServiceDiscoveryHttpMessageHandlerFactory>();
+        services.TryAddSingleton(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointWatcherFactory>(), sp.GetRequiredService<TimeProvider>()));
+        if (configureOptions is not null)
+        {
+            services.Configure(configureOptions);
+        }
+
         return services;
     }
 
@@ -63,10 +90,10 @@ public static class HostingExtensions
     /// <param name="configureOptions">The delegate used to configure the provider.</param>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services, Action<ConfigurationServiceEndPointResolverOptions>? configureOptions = null)
+    public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services, Action<ConfigurationServiceEndPointResolverOptions>? configureOptions)
     {
         services.AddServiceDiscoveryCore();
-        services.AddSingleton<IServiceEndPointResolverProvider, ConfigurationServiceEndPointResolverProvider>();
+        services.AddSingleton<IServiceEndPointProviderFactory, ConfigurationServiceEndPointResolverProvider>();
         services.AddTransient<IValidateOptions<ConfigurationServiceEndPointResolverOptions>, ConfigurationServiceEndPointResolverOptionsValidator>();
         if (configureOptions is not null)
         {
@@ -84,7 +111,7 @@ public static class HostingExtensions
     public static IServiceCollection AddPassThroughServiceEndPointResolver(this IServiceCollection services)
     {
         services.AddServiceDiscoveryCore();
-        services.AddSingleton<IServiceEndPointResolverProvider, PassThroughServiceEndPointResolverProvider>();
+        services.AddSingleton<IServiceEndPointProviderFactory, PassThroughServiceEndPointResolverProvider>();
         return services;
     }
 }

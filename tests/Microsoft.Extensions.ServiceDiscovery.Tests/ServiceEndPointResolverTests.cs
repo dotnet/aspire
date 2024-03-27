@@ -8,14 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.Http;
+using Microsoft.Extensions.ServiceDiscovery.Internal;
 using Xunit;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
-/// Tests for <see cref="ServiceEndPointResolverFactory"/> and <see cref="ServiceEndPointWatcher"/>.
+/// Tests for <see cref="ServiceEndPointWatcherFactory"/> and <see cref="ServiceEndPointWatcher"/>.
 /// </summary>
 public class ServiceEndPointResolverTests
 {
@@ -25,8 +25,8 @@ public class ServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        var exception = Assert.Throws<InvalidOperationException>(() => resolverFactory.CreateResolver("https://basket"));
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
+        var exception = Assert.Throws<InvalidOperationException>(() => resolverFactory.CreateWatcher("https://basket"));
         Assert.Equal("No resolver which supports the provided service name, 'https://basket', has been configured.", exception.Message);
     }
 
@@ -36,7 +36,7 @@ public class ServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = new ServiceEndPointWatcher([], NullLogger.Instance, "foo", TimeProvider.System, Options.Options.Create(new ServiceEndPointResolverOptions()));
+        var resolverFactory = new ServiceEndPointWatcher([], NullLogger.Instance, "foo", TimeProvider.System, Options.Options.Create(new ServiceDiscoveryOptions()));
         var exception = Assert.Throws<InvalidOperationException>(resolverFactory.Start);
         Assert.Equal("No service endpoint resolvers are configured.", exception.Message);
         exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await resolverFactory.GetEndPointsAsync());
@@ -49,35 +49,34 @@ public class ServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        Assert.Throws<ArgumentNullException>(() => resolverFactory.CreateResolver(null!));
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
+        Assert.Throws<ArgumentNullException>(() => resolverFactory.CreateWatcher(null!));
     }
 
     [Fact]
-    public async Task UseServiceDiscovery_NoResolvers_Throws()
+    public async Task AddServiceDiscovery_NoResolvers_Throws()
     {
         var serviceCollection = new ServiceCollection();
-            serviceCollection.AddHttpClient("foo", c => c.BaseAddress = new("http://foo"))
-            .UseServiceDiscovery();
+        serviceCollection.AddHttpClient("foo", c => c.BaseAddress = new("http://foo")).AddServiceDiscovery();
         var services = serviceCollection.BuildServiceProvider();
         var client = services.GetRequiredService<IHttpClientFactory>().CreateClient("foo");
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetStringAsync("/"));
         Assert.Equal("No resolver which supports the provided service name, 'http://foo', has been configured.", exception.Message);
     }
 
-    private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointProvider? Resolver)> createResolverDelegate) : IServiceEndPointResolverProvider
+    private sealed class FakeEndPointResolverProvider(Func<ServiceEndPointQuery, (bool Result, IServiceEndPointProvider? Resolver)> createResolverDelegate) : IServiceEndPointProviderFactory
     {
-        public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
+        public bool TryCreateProvider(ServiceEndPointQuery query, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
         {
             bool result;
-            (result, resolver) = createResolverDelegate(serviceName);
+            (result, resolver) = createResolverDelegate(query);
             return result;
         }
     }
 
-    private sealed class FakeEndPointResolver(Func<ServiceEndPointCollectionSource, CancellationToken, ValueTask<ResolutionStatus>> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointProvider
+    private sealed class FakeEndPointResolver(Func<IServiceEndPointBuilder, CancellationToken, ValueTask> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointProvider
     {
-        public ValueTask<ResolutionStatus> ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken) => resolveAsync(endPoints, cancellationToken);
+        public ValueTask PopulateAsync(IServiceEndPointBuilder endPoints, CancellationToken cancellationToken) => resolveAsync(endPoints, cancellationToken);
         public ValueTask DisposeAsync() => disposeAsync();
     }
 
@@ -101,18 +100,18 @@ public class ServiceEndPointResolverTests
             disposeAsync: () => default);
         var resolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
         var services = new ServiceCollection()
-            .AddSingleton<IServiceEndPointResolverProvider>(resolverProvider)
+            .AddSingleton<IServiceEndPointProviderFactory>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
 
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
-            var initialEndPoints = await resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);
-            Assert.NotNull(initialEndPoints);
-            var sep = Assert.Single(initialEndPoints);
+            var initialResult = await resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);
+            Assert.NotNull(initialResult);
+            var sep = Assert.Single(initialResult.EndPoints);
             var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
             Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
             Assert.Equal(8080, ip.Port);
@@ -124,10 +123,9 @@ public class ServiceEndPointResolverTests
             cts[0].Cancel();
             var resolverResult = await tcs.Task.ConfigureAwait(false);
             Assert.NotNull(resolverResult);
-            Assert.Equal(ResolutionStatus.Success, resolverResult.Status);
             Assert.True(resolverResult.ResolvedSuccessfully);
-            Assert.Equal(2, resolverResult.EndPoints.Count);
-            var endpoints = resolverResult.EndPoints.Select(ep => ep.EndPoint).OfType<IPEndPoint>().ToList();
+            Assert.Equal(2, resolverResult.EndPointSource.EndPoints.Count);
+            var endpoints = resolverResult.EndPointSource.EndPoints.Select(ep => ep.EndPoint).OfType<IPEndPoint>().ToList();
             endpoints.Sort((l, r) => l.Port - r.Port);
             Assert.Equal(new IPEndPoint(IPAddress.Parse("127.1.1.1"), 8080), endpoints[0]);
             Assert.Equal(new IPEndPoint(IPAddress.Parse("127.1.1.2"), 8888), endpoints[1]);
@@ -154,15 +152,15 @@ public class ServiceEndPointResolverTests
             disposeAsync: () => default);
         var resolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
         var services = new ServiceCollection()
-            .AddSingleton<IServiceEndPointResolverProvider>(resolverProvider)
+            .AddSingleton<IServiceEndPointProviderFactory>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
         var resolver = services.GetRequiredService<ServiceEndPointResolver>();
 
         Assert.NotNull(resolver);
-        var initialEndPoints = await resolver.GetEndPointsAsync("http://basket", CancellationToken.None).ConfigureAwait(false);
-        Assert.NotNull(initialEndPoints);
-        var sep = Assert.Single(initialEndPoints);
+        var initialResult = await resolver.GetEndPointsAsync("http://basket", CancellationToken.None).ConfigureAwait(false);
+        Assert.NotNull(initialResult);
+        var sep = Assert.Single(initialResult.EndPoints);
         var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
         Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
         Assert.Equal(8080, ip.Port);
@@ -190,12 +188,11 @@ public class ServiceEndPointResolverTests
             disposeAsync: () => default);
         var fakeResolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
         var services = new ServiceCollection()
-            .AddSingleton<IServiceEndPointResolverProvider>(fakeResolverProvider)
+            .AddSingleton<IServiceEndPointProviderFactory>(fakeResolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
-        var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        await using var resolver = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, TimeProvider.System);
+        var resolverProvider = services.GetRequiredService<ServiceEndPointWatcherFactory>();
+        await using var resolver = new HttpServiceEndPointResolver(resolverProvider, services, TimeProvider.System);
 
         Assert.NotNull(resolver);
         var httpRequest = new HttpRequestMessage(HttpMethod.Get, "http://basket");
@@ -232,25 +229,24 @@ public class ServiceEndPointResolverTests
 
                 collection.AddChangeToken(new CancellationChangeToken(cts[0].Token));
                 collection.EndPoints.Add(ServiceEndPoint.Create(new IPEndPoint(IPAddress.Parse("127.1.1.1"), 8080)));
-                return ResolutionStatus.Success;
             },
             disposeAsync: () => default);
         var resolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
         var services = new ServiceCollection()
-            .AddSingleton<IServiceEndPointResolverProvider>(resolverProvider)
+            .AddSingleton<IServiceEndPointProviderFactory>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        var resolverFactory = services.GetRequiredService<ServiceEndPointWatcherFactory>();
 
         ServiceEndPointWatcher resolver;
-        await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
+        await using ((resolver = resolverFactory.CreateWatcher("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
             var initialEndPointsTask = resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);
             sem.Release(1);
             var initialEndPoints = await initialEndPointsTask;
             Assert.NotNull(initialEndPoints);
-            Assert.Single(initialEndPoints);
+            Assert.Single(initialEndPoints.EndPoints);
 
             // Tell the resolver to throw on the next resolve call and then trigger a reload.
             throwOnNextResolve[0] = true;
@@ -283,9 +279,9 @@ public class ServiceEndPointResolverTests
 
             var task = resolver.GetEndPointsAsync(CancellationToken.None);
             sem.Release(1);
-            var endPoints = await task.ConfigureAwait(false);
-            Assert.NotSame(initialEndPoints, endPoints);
-            var sep = Assert.Single(endPoints);
+            var result = await task.ConfigureAwait(false);
+            Assert.NotSame(initialEndPoints, result);
+            var sep = Assert.Single(result.EndPoints);
             var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
             Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
             Assert.Equal(8080, ip.Port);
