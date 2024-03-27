@@ -11,44 +11,49 @@ public static partial class UrlParser
 {
     private static readonly Regex s_urlRegEx = GenerateUrlRegEx();
 
-    public static bool TryParse(string? text, [NotNullWhen(true)] out string? modifiedText)
+    public static bool TryParse(string? html, [NotNullWhen(true)] out string? modifiedHtml)
     {
-        if (text is not null)
+        modifiedHtml = null;
+
+        if (html is null)
         {
-            var urlMatch = s_urlRegEx.Match(text);
-
-            var builder = new StringBuilder(text.Length * 2);
-
-            var nextCharIndex = 0;
-            while (urlMatch.Success)
-            {
-                if (urlMatch.Index > 0)
-                {
-                    builder.Append(text[(nextCharIndex)..urlMatch.Index]);
-                }
-
-                var urlStart = urlMatch.Index;
-                nextCharIndex = urlMatch.Index + urlMatch.Length;
-                var url = text[urlStart..nextCharIndex];
-
-                builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{url}\">{url}</a>");
-                urlMatch = urlMatch.NextMatch();
-            }
-
-            if (builder.Length > 0)
-            {
-                if (nextCharIndex < text.Length)
-                {
-                    builder.Append(text[(nextCharIndex)..]);
-                }
-
-                modifiedText = builder.ToString();
-                return true;
-            }
+            return false;
         }
 
-        modifiedText = null;
-        return false;
+        var (text, toHtmlIndex) = BuildContext(html);
+
+        var urlMatch = s_urlRegEx.Match(text);
+
+        var builder = new StringBuilder(text.Length * 2);
+
+        var nextCharIndex = 0;
+        while (urlMatch.Success)
+        {
+            if (urlMatch.Index > 0)
+            {
+                builder.Append(text[(nextCharIndex)..urlMatch.Index]);
+            }
+
+            var urlStart = toHtmlIndex[urlMatch.Index];
+            nextCharIndex = toHtmlIndex[urlMatch.Index + urlMatch.Length - 1] + 1;
+            var url = html[urlStart..nextCharIndex];
+
+            builder.Append(CultureInfo.InvariantCulture, $"<a target=\"_blank\" href=\"{urlMatch.Value}\">{url}</a>");
+            urlMatch = urlMatch.NextMatch();
+        }
+
+        if (builder.Length == 0)
+        {
+            return false;
+        }
+
+        if (nextCharIndex < html.Length)
+        {
+            builder.Append(html[(nextCharIndex)..]);
+        }
+
+        modifiedHtml = builder.ToString();
+        return true;
     }
 
     // Regular expression that detects http/https URLs in a log entry
@@ -62,4 +67,39 @@ public static partial class UrlParser
     // [A-Za-z0-9+&@#/%=~_|$]         - Any character in the list, matched exactly once
     [GeneratedRegex("\\bhttps?://[-A-Za-z0-9+&@#/%?=~_|$!:,.;]*[A-Za-z0-9+&@#/%=~_|$]")]
     private static partial Regex GenerateUrlRegEx();
+
+    private static (string, int[]) BuildContext(string html)
+    {
+        var textBuilder = new StringBuilder();
+        var indexLookup = new int[html.Length];
+
+        var textIndex = 0;
+        var htmlIndex = 0;
+        var isInsideTag = false;
+        foreach (var character in html)
+        {
+            if (character == '<')
+            {
+                isInsideTag = true;
+            }
+
+            if (isInsideTag)
+            {
+                htmlIndex++;
+            }
+            else
+            {
+                indexLookup[textIndex++] = htmlIndex++;
+                textBuilder.Append(character);
+            }
+
+            if (character == '>')
+            {
+                isInsideTag = false;
+            }
+        }
+
+        var text = textBuilder.ToString();
+        return (text, indexLookup);
+    }
 }
