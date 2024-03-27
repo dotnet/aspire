@@ -3,8 +3,8 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
-using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -19,7 +19,7 @@ public class OtlpInstrument
     public required string Unit { get; init; }
     public required OtlpInstrumentType Type { get; init; }
     public required OtlpMeter Parent { get; init; }
-    public required TelemetryOptions Options { get; init; }
+    public required TelemetryLimitOptions Options { get; init; }
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string>> KnownAttributeValues { get; } = new();
@@ -71,7 +71,7 @@ public class OtlpInstrument
     {
         var isFirst = Dimensions.Count == 0;
         var durableAttributes = comparableAttributes.ToArray();
-        var dimension = new DimensionScope(Options.MetricsCountLimit, durableAttributes);
+        var dimension = new DimensionScope(Options.MaxMetricsCount, durableAttributes);
         Dimensions.Add(durableAttributes, dimension);
 
         var keys = KnownAttributeValues.Keys.Union(durableAttributes.Select(a => a.Key)).Distinct();
