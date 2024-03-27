@@ -24,18 +24,27 @@ public class AddRabbitMQTests
         var containerResource = Assert.Single(appModel.Resources.OfType<RabbitMQServerResource>());
         Assert.Equal("rabbit", containerResource.Name);
 
-        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(5672, endpoint.ContainerPort);
-        Assert.False(endpoint.IsExternal);
-        Assert.Equal("tcp", endpoint.Name);
-        Assert.Null(endpoint.Port);
-        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
-        Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("tcp", endpoint.UriScheme);
+        var primaryEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "tcp"));
+        Assert.Equal(5672, primaryEndpoint.ContainerPort);
+        Assert.False(primaryEndpoint.IsExternal);
+        Assert.Equal("tcp", primaryEndpoint.Name);
+        Assert.Null(primaryEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, primaryEndpoint.Protocol);
+        Assert.Equal("tcp", primaryEndpoint.Transport);
+        Assert.Equal("tcp", primaryEndpoint.UriScheme);
+
+        var mangementEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "management"));
+        Assert.Equal(15672, mangementEndpoint.ContainerPort);
+        Assert.False(primaryEndpoint.IsExternal);
+        Assert.Equal("management", mangementEndpoint.Name);
+        Assert.Null(mangementEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, mangementEndpoint.Protocol);
+        Assert.Equal("http", mangementEndpoint.Transport);
+        Assert.Equal("http", mangementEndpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("3", containerAnnotation.Tag);
         Assert.Equal("rabbitmq", containerAnnotation.Image);
+        Assert.Equal("3-management", containerAnnotation.Tag);
         Assert.Null(containerAnnotation.Registry);
     }
 
@@ -65,9 +74,9 @@ public class AddRabbitMQTests
     [Fact]
     public async Task VerifyManifest()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var rabbit = builder.AddRabbitMQ("rabbit");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
+        var rabbit = builder.AddRabbitMQ("rabbit");
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
         var expectedManifest = """
@@ -95,7 +104,7 @@ public class AddRabbitMQTests
     [Fact]
     public async Task VerifyManifestWithParameters()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var userNameParameter = builder.AddParameter("user");
         var passwordParameter = builder.AddParameter("pass");
