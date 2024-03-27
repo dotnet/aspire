@@ -165,7 +165,6 @@ The properties of the IDE endpoint information document are:
 | --- | --------- | --- |
 | `protocols_supported` | List of protocols supported by the IDE endpoint. See [protocol versioning](#protocol-versioning) for more information. | `string[]` |
 
-
 ## Run session change notifications
 
 The run session change notifications are delivered from IDE to DCP via the web socket connection. The format of notification is JSON Lines (one JSON object per line of text).
