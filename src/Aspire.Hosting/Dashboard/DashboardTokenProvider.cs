@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Dashboard;
 
 internal interface IDashboardTokenProvider
 {
-    public string BrowserToken { get; }
+    public string DashboardFrontendToken { get; }
     public string DashboardOtlpToken { get; }
     public string ResourceServerToken { get; }
 }
@@ -22,12 +22,12 @@ internal class DashboardTokenProvider : IDashboardTokenProvider
         if (transportOptions.Value.BrowserToken is not { } browserToken)
         {
             logger.LogDebug("Browser token was not supplied from environment, will be automatically generated.");
-            BrowserToken = GenerateToken();
+            DashboardFrontendToken = GenerateToken();
         }
         else
         {
             logger.LogDebug("Browser token was supplied from environment, will not be generated.");
-            BrowserToken = browserToken;
+            DashboardFrontendToken = browserToken;
         }
 
         DashboardOtlpToken = GenerateToken();
@@ -36,7 +36,17 @@ internal class DashboardTokenProvider : IDashboardTokenProvider
 
     private static string GenerateToken()
     {
-        var rawToken = PasswordGenerator.Generate(24);
+        var rawToken = PasswordGenerator.Generate(
+            24,
+            lower: true,
+            upper: true,
+            numeric: true,
+            special: true,
+            minLower: 0,
+            minUpper: 0,
+            minNumeric: 0,
+            minSpecial: 0);
+
         var rawTokenBytes = Encoding.UTF8.GetBytes(rawToken);
 
 #if NET9_0_OR_GREATER
@@ -48,7 +58,7 @@ internal class DashboardTokenProvider : IDashboardTokenProvider
         return encodedToken;
     }
 
-    public string BrowserToken { get; }
+    public string DashboardFrontendToken { get; }
     public string DashboardOtlpToken { get; }
     public string ResourceServerToken { get; }
 }
