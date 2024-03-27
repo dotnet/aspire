@@ -191,6 +191,14 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             outputMessage = output.ToString();
         }
+        if (!projectsParsed.Task.IsCompletedSuccessfully || !appRunning.Task.IsCompletedSuccessfully)
+        {
+            CopyDcpLogs();
+            foreach (var p in Process.GetProcesses())
+            {
+                _testOutput.WriteLine($"Process [{p.Id}]: {p.ProcessName}");
+            }
+        }
         Assert.True(resultTask == successfulTask, $"App run failed (got endpoints: {projectsParsed.Task.IsCompletedSuccessfully}, got app-started: {appRunning.Task.IsCompletedSuccessfully}: {Environment.NewLine}{outputMessage}");
 
         var client = CreateHttpClient();
@@ -307,25 +315,30 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
             if (BuildEnvironment.IsRunningOnCI)
             {
-                string dcpLogPath = Path.Combine(BuildEnvironment.LogRootPath, "dcp");
-                if (!Directory.Exists(dcpLogPath))
-                {
-                    Directory.CreateDirectory(dcpLogPath);
-                }
+                CopyDcpLogs();
+            }
+        }
+    }
 
-                var logFiles = Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_err_*", SearchOption.AllDirectories)
-                                .Concat(Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_out_*", SearchOption.AllDirectories));
-                foreach (var srcFile in logFiles)
-                {
-                    var dstFile = Path.Combine(dcpLogPath, Path.GetFileName(srcFile));
-                    try
-                    {
-                        File.Copy(srcFile, dstFile, overwrite: true);
-                        Console.WriteLine ($"Copied {srcFile} to {dstFile}");
-                    } catch (IOException ioex) {
-                        Console.WriteLine ($"Failed to copy {srcFile} to {dstFile}: {ioex.Message}");
-                    }
-                }
+    private void CopyDcpLogs()
+    {
+        string dcpLogPath = Path.Combine(BuildEnvironment.LogRootPath, "dcp");
+        if (!Directory.Exists(dcpLogPath))
+        {
+            Directory.CreateDirectory(dcpLogPath);
+        }
+
+        var logFiles = Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_err_*", SearchOption.AllDirectories)
+                        .Concat(Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_out_*", SearchOption.AllDirectories));
+        foreach (var srcFile in logFiles)
+        {
+            var dstFile = Path.Combine(dcpLogPath, Path.GetFileName(srcFile));
+            try
+            {
+                File.Copy(srcFile, dstFile, overwrite: true);
+                Console.WriteLine ($"Copied {srcFile} to {dstFile}");
+            } catch (IOException ioex) {
+                Console.WriteLine ($"Failed to copy {srcFile} to {dstFile}: {ioex.Message}");
             }
         }
     }
