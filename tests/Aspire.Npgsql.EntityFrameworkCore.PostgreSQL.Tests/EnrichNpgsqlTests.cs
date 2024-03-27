@@ -105,13 +105,11 @@ public class EnrichNpgsqlTests : ConformanceTests
             });
         });
 
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
+        using var host = builder.Build();
 
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
-        });
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("Conflicting values for 'CommandTimeout' were found in NpgsqlEntityFrameworkCorePostgreSQLSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
     }
 
     [Fact]
@@ -310,13 +308,11 @@ public class EnrichNpgsqlTests : ConformanceTests
             optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.Retry = true);
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.Retry = true);
+        using var host = builder.Build();
 
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
-        });
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("NpgsqlEntityFrameworkCorePostgreSQLSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
     }
 
     [Fact]

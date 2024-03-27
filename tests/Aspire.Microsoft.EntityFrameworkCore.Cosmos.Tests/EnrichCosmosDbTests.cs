@@ -122,16 +122,15 @@ public class EnrichCosmosDbTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        Assert.Throws<InvalidOperationException>(() =>
+        builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(optionsBuilder =>
         {
-            builder.Services.AddDbContextPool<ITestDbContext, TestDbContext>(optionsBuilder =>
-            {
-                optionsBuilder.UseCosmos(ConnectionString, DatabaseName, builder => builder.RequestTimeout(TimeSpan.FromSeconds(123)));
-            });
-
-            builder.EnrichCosmosDbContext<TestDbContext>(settings => settings.RequestTimeout = TimeSpan.FromSeconds(456));
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
+            optionsBuilder.UseCosmos(ConnectionString, DatabaseName, builder => builder.RequestTimeout(TimeSpan.FromSeconds(123)));
         });
+
+        builder.EnrichCosmosDbContext<TestDbContext>(settings => settings.RequestTimeout = TimeSpan.FromSeconds(456));
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("Conflicting values for 'RequestTimeout' were found in EntityFrameworkCoreCosmosDBSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
     }
 }

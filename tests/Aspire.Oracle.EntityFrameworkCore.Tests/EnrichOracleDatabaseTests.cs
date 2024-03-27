@@ -98,12 +98,11 @@ public class EnrichOracleDatabaseTests : ConformanceTests
             });
         });
 
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            builder.EnrichOracleDatabaseDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
-        });
+        builder.EnrichOracleDatabaseDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("Conflicting values for 'CommandTimeout' were found in OracleEntityFrameworkCoreSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
     }
 
     [Fact]
@@ -294,12 +293,11 @@ public class EnrichOracleDatabaseTests : ConformanceTests
             optionsBuilder.UseOracle(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            builder.EnrichOracleDatabaseDbContext<TestDbContext>(settings => settings.Retry = true);
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
-        });
+        builder.EnrichOracleDatabaseDbContext<TestDbContext>(settings => settings.Retry = true);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("OracleEntityFrameworkCoreSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
     }
 
     [Fact]

@@ -116,12 +116,11 @@ public class EnrichMySqlTests : ConformanceTests
             });
         });
 
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
-        });
+        builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("Conflicting values for 'CommandTimeout' were found in PomeloEntityFrameworkCoreMySqlSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
     }
 
     [Fact]
@@ -312,12 +311,11 @@ public class EnrichMySqlTests : ConformanceTests
             optionsBuilder.UseMySql(ConnectionString, DefaultVersion, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.Retry = true);
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
-        });
+        builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.Retry = true);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("PomeloEntityFrameworkCoreMySqlSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
     }
 
     [Fact]

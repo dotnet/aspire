@@ -97,12 +97,11 @@ public class EnrichSqlServerTests : ConformanceTests
             });
         });
 
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
-        });
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("Conflicting values for 'CommandTimeout' were found in MicrosoftEntityFrameworkCoreSqlServerSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
     }
 
     [Fact]
@@ -293,12 +292,11 @@ public class EnrichSqlServerTests : ConformanceTests
             optionsBuilder.UseSqlServer(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        Assert.Throws<InvalidOperationException>(() =>
-        {
-            builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.Retry = true);
-            using var host = builder.Build();
-            var context = host.Services.GetRequiredService<TestDbContext>();
-        });
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.Retry = true);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("MicrosoftEntityFrameworkCoreSqlServerSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
     }
 
     [Fact]
