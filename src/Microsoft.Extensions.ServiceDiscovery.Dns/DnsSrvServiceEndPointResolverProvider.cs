@@ -5,8 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using DnsClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
-using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
@@ -14,8 +12,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
     IOptionsMonitor<DnsSrvServiceEndPointResolverOptions> options,
     ILogger<DnsSrvServiceEndPointResolver> logger,
     IDnsQuery dnsClient,
-    TimeProvider timeProvider,
-    ServiceNameParser parser) : IServiceEndPointResolverProvider
+    TimeProvider timeProvider) : IServiceEndPointProviderFactory
 {
     private static readonly string s_serviceAccountPath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount");
     private static readonly string s_serviceAccountNamespacePath = Path.Combine($"{Path.DirectorySeparatorChar}var", "run", "secrets", "kubernetes.io", "serviceaccount", "namespace");
@@ -23,7 +20,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
     private readonly string? _querySuffix = options.CurrentValue.QuerySuffix ?? GetKubernetesHostDomain();
 
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
+    public bool TryCreateProvider(ServiceEndPointQuery query, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
         // If a default namespace is not specified, then this provider will attempt to infer the namespace from the service name, but only when running inside Kubernetes.
         // Kubernetes DNS spec: https://github.com/kubernetes/dns/blob/master/docs/specification.md
@@ -33,6 +30,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
         // Otherwise, the namespace can be read from /var/run/secrets/kubernetes.io/serviceaccount/namespace and combined with an assumed suffix of "svc.cluster.local".
         // The protocol is assumed to be "tcp".
         // The portName is the name of the port in the service definition. If the serviceName parses as a URI, we use the scheme as the port name, otherwise "default".
+        var serviceName = query.OriginalString;
         if (string.IsNullOrWhiteSpace(_querySuffix))
         {
             DnsServiceEndPointResolverBase.Log.NoDnsSuffixFound(logger, serviceName);
@@ -40,16 +38,9 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
             return false;
         }
 
-        if (!parser.TryParse(serviceName, out var parts))
-        {
-            DnsServiceEndPointResolverBase.Log.ServiceNameIsNotUriOrDnsName(logger, serviceName);
-            resolver = default;
-            return false;
-        }
-
-        var portName = parts.EndPointName ?? "default";
-        var srvQuery = $"_{portName}._tcp.{parts.Host}.{_querySuffix}";
-        resolver = new DnsSrvServiceEndPointResolver(serviceName, srvQuery, hostName: parts.Host, options, logger, dnsClient, timeProvider);
+        var portName = query.EndPointName ?? "default";
+        var srvQuery = $"_{portName}._tcp.{query.ServiceName}.{_querySuffix}";
+        resolver = new DnsSrvServiceEndPointResolver(serviceName, srvQuery, hostName: query.ServiceName, options, logger, dnsClient, timeProvider);
         return true;
     }
 

@@ -325,11 +325,7 @@ public class AzureBicepResourceTests
            {
              "type": "azure.bicep.v0",
              "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
-             "path": "appInsights.module.bicep",
-             "params": {
-               "principalId": "",
-               "principalType": ""
-             }
+             "path": "appInsights.module.bicep"
            }
            """;
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
@@ -348,12 +344,6 @@ public class AzureBicepResourceTests
 
             @description('')
             param logAnalyticsWorkspaceId string
-
-            @description('')
-            param principalId string
-
-            @description('')
-            param principalType string
 
 
             resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
@@ -389,11 +379,7 @@ public class AzureBicepResourceTests
         var expectedManifest = """
            {
              "type": "azure.bicep.v0",
-             "path": "logAnalyticsWorkspace.module.bicep",
-             "params": {
-               "principalId": "",
-               "principalType": ""
-             }
+             "path": "logAnalyticsWorkspace.module.bicep"
            }
            """;
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
@@ -403,12 +389,6 @@ public class AzureBicepResourceTests
 
             @description('')
             param location string = resourceGroup().location
-
-            @description('')
-            param principalId string
-
-            @description('')
-            param principalType string
 
 
             resource operationalInsightsWorkspace_uzGUFQdnZ 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
@@ -563,9 +543,7 @@ public class AzureBicepResourceTests
               "connectionString": "{cache.secretOutputs.connectionString}",
               "path": "cache.module.bicep",
               "params": {
-                "principalId": "",
-                "keyVaultName": "",
-                "principalType": ""
+                "keyVaultName": ""
               }
             }
             """;
@@ -579,12 +557,6 @@ public class AzureBicepResourceTests
 
             @description('')
             param keyVaultName string
-
-            @description('')
-            param principalId string
-
-            @description('')
-            param principalType string
 
 
             resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
@@ -766,7 +738,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public async void AsAzureSqlDatabase()
+    public async Task AsAzureSqlDatabase()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -896,11 +868,9 @@ public class AzureBicepResourceTests
               "connectionString": "{postgres.secretOutputs.connectionString}",
               "path": "postgres.module.bicep",
               "params": {
-                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{usr.value}",
-                "administratorLoginPassword": "{pwd.value}",
-                "principalType": ""
+                "administratorLoginPassword": "{pwd.value}"
               }
             }
             """;
@@ -920,13 +890,7 @@ public class AzureBicepResourceTests
             param administratorLoginPassword string
 
             @description('')
-            param principalId string
-
-            @description('')
             param keyVaultName string
-
-            @description('')
-            param principalType string
 
 
             resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
@@ -1027,11 +991,9 @@ public class AzureBicepResourceTests
               "connectionString": "{postgres.secretOutputs.connectionString}",
               "path": "postgres.module.bicep",
               "params": {
-                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{usr.value}",
-                "administratorLoginPassword": "{pwd.value}",
-                "principalType": ""
+                "administratorLoginPassword": "{pwd.value}"
               }
             }
             """;
@@ -1053,11 +1015,9 @@ public class AzureBicepResourceTests
               "connectionString": "{postgres1.secretOutputs.connectionString}",
               "path": "postgres1.module.bicep",
               "params": {
-                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{postgres1-username.value}",
-                "administratorLoginPassword": "{postgres1-password.value}",
-                "principalType": ""
+                "administratorLoginPassword": "{postgres1-password.value}"
               }
             }
             """;
@@ -1075,11 +1035,9 @@ public class AzureBicepResourceTests
               "connectionString": "{postgres2.secretOutputs.connectionString}",
               "path": "postgres2.module.bicep",
               "params": {
-                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{param.value}",
-                "administratorLoginPassword": "{postgres2-password.value}",
-                "principalType": ""
+                "administratorLoginPassword": "{postgres2-password.value}"
               }
             }
             """;
@@ -1095,11 +1053,9 @@ public class AzureBicepResourceTests
               "connectionString": "{postgres3.secretOutputs.connectionString}",
               "path": "postgres3.module.bicep",
               "params": {
-                "principalId": "",
                 "keyVaultName": "",
                 "administratorLogin": "{postgres3-username.value}",
-                "administratorLoginPassword": "{param.value}",
-                "principalType": ""
+                "administratorLoginPassword": "{param.value}"
               }
             }
             """;

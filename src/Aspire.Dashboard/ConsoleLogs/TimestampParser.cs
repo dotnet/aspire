@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Aspire.Dashboard.Extensions;
@@ -12,7 +13,7 @@ public static partial class TimestampParser
 {
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
-    public static bool TryColorizeTimestamp(BrowserTimeProvider timeProvider, string text, bool convertTimestampsFromUtc, out TimestampParserResult result)
+    public static bool TryParseConsoleTimestamp(string text, [NotNullWhen(true)] out TimestampParserResult? result)
     {
         var match = s_rfc3339RegEx.Match(text);
 
@@ -22,10 +23,7 @@ public static partial class TimestampParser
             var timestamp = span[match.Index..(match.Index + match.Length)];
             var theRest = match.Index + match.Length >= span.Length ? "" : span[(match.Index + match.Length)..];
 
-            var timestampForDisplay = convertTimestampsFromUtc ? ConvertTimestampFromUtc(timeProvider, timestamp) : timestamp.ToString();
-
-            var modifiedText = $"<span class=\"timestamp\">{timestampForDisplay}</span>{theRest}";
-            result = new(modifiedText, timestamp.ToString());
+            result = new(theRest.ToString(), DateTimeOffset.Parse(timestamp.ToString(), CultureInfo.InvariantCulture));
             return true;
         }
 
@@ -33,7 +31,7 @@ public static partial class TimestampParser
         return false;
     }
 
-    private static string ConvertTimestampFromUtc(BrowserTimeProvider timeProvider, ReadOnlySpan<char> timestamp)
+    public static string ConvertTimestampFromUtc(BrowserTimeProvider timeProvider, ReadOnlySpan<char> timestamp)
     {
         if (DateTimeOffset.TryParse(timestamp, out var dateTimeUtc))
         {
@@ -75,5 +73,5 @@ public static partial class TimestampParser
     [GeneratedRegex("^(?:\\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]):(?:[0-5][0-9])(?:\\.\\d{1,9})?(?:Z|(?:[Z+-](?:[01][0-9]|2[0-3]):(?:[0-5][0-9])))?")]
     private static partial Regex GenerateRfc3339RegEx();
 
-    public readonly record struct TimestampParserResult(string ModifiedText, string Timestamp);
+    public readonly record struct TimestampParserResult(string ModifiedText, DateTimeOffset Timestamp);
 }

@@ -1,12 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
@@ -14,18 +16,29 @@ namespace Aspire.Dashboard.Tests.Model;
 public sealed class DashboardClientTests
 {
     private readonly IConfiguration _configuration;
+    private readonly IOptions<DashboardOptions> _dashboardOptions;
 
     public DashboardClientTests()
     {
-        var configuration = new ConfigurationManager();
-        configuration.AddInMemoryCollection(new Dictionary<string, string?>() { { "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:12345" } });
-        _configuration = configuration;
+        _configuration = new ConfigurationManager();
+
+        var options = new DashboardOptions
+        {
+            ResourceServiceClient =
+            {
+                AuthMode = ResourceClientAuthMode.Unsecured,
+                Url = "http://localhost:12345"
+            }
+        };
+        options.ResourceServiceClient.TryParseOptions(out _);
+
+        _dashboardOptions = Options.Create(options);
     }
 
     [Fact]
     public async Task SubscribeResources_OnCancel_ChannelRemoved()
     {
-        await using var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using var instance = CreateResourceServiceClient();
         instance.SetInitialDataReceived();
 
         IDashboardClient client = instance;
@@ -55,7 +68,7 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_OnDispose_ChannelRemoved()
     {
-        await using var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using var instance = CreateResourceServiceClient();
         instance.SetInitialDataReceived();
 
         IDashboardClient client = instance;
@@ -83,7 +96,7 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_ThrowsIfDisposed()
     {
-        await using IDashboardClient client = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using IDashboardClient client = CreateResourceServiceClient();
 
         await client.DisposeAsync();
 
@@ -93,7 +106,7 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_IncreasesSubscriberCount()
     {
-        await using var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using var instance = CreateResourceServiceClient();
         instance.SetInitialDataReceived();
 
         IDashboardClient client = instance;
@@ -112,7 +125,7 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_HasInitialData_InitialDataReturned()
     {
-        await using var instance = new DashboardClient(NullLoggerFactory.Instance, _configuration);
+        await using var instance = CreateResourceServiceClient();
 
         IDashboardClient client = instance;
 
@@ -132,5 +145,10 @@ public sealed class DashboardClientTests
         var (initialData, subscription) = await subscribeTask;
 
         Assert.Single(initialData);
+    }
+
+    private DashboardClient CreateResourceServiceClient()
+    {
+        return new DashboardClient(NullLoggerFactory.Instance, _configuration, _dashboardOptions);
     }
 }

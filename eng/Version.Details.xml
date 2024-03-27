@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Dependencies>
   <ProductDependencies>
-    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-amd64" Version="0.1.58">
+    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-amd64" Version="0.1.60">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>f396b29b549cb27602cd7b76e3cb0103cadcb604</Sha>
+      <Sha>67e0cb7547eb6b3c27fc12d94557b865640805ec</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-arm64" Version="0.1.58">
+    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-arm64" Version="0.1.60">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>f396b29b549cb27602cd7b76e3cb0103cadcb604</Sha>
+      <Sha>67e0cb7547eb6b3c27fc12d94557b865640805ec</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-amd64" Version="0.1.58">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-amd64" Version="0.1.60">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>f396b29b549cb27602cd7b76e3cb0103cadcb604</Sha>
+      <Sha>67e0cb7547eb6b3c27fc12d94557b865640805ec</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-arm64" Version="0.1.58">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-arm64" Version="0.1.60">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>f396b29b549cb27602cd7b76e3cb0103cadcb604</Sha>
+      <Sha>67e0cb7547eb6b3c27fc12d94557b865640805ec</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-386" Version="0.1.58">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-386" Version="0.1.60">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>f396b29b549cb27602cd7b76e3cb0103cadcb604</Sha>
+      <Sha>67e0cb7547eb6b3c27fc12d94557b865640805ec</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.1.58">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.1.60">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>f396b29b549cb27602cd7b76e3cb0103cadcb604</Sha>
+      <Sha>67e0cb7547eb6b3c27fc12d94557b865640805ec</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-arm64" Version="0.1.58">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-arm64" Version="0.1.60">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>f396b29b549cb27602cd7b76e3cb0103cadcb604</Sha>
+      <Sha>67e0cb7547eb6b3c27fc12d94557b865640805ec</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="8.2.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
@@ -121,42 +121,42 @@
     </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
-    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="8.0.0-beta.24161.7">
+    <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="8.0.0-beta.24172.5">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>cd10e5d3748676d70ae2b4d9c84f073eeb203cac</Sha>
+      <Sha>ceb071c1060b8e6de404c065b4045442570caa18</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.24161.7">
+    <Dependency Name="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.24172.5">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>cd10e5d3748676d70ae2b4d9c84f073eeb203cac</Sha>
+      <Sha>ceb071c1060b8e6de404c065b4045442570caa18</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.24161.7">
+    <Dependency Name="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.24172.5">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>cd10e5d3748676d70ae2b4d9c84f073eeb203cac</Sha>
+      <Sha>ceb071c1060b8e6de404c065b4045442570caa18</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.Helix.Sdk" Version="8.0.0-beta.24161.7">
+    <Dependency Name="Microsoft.DotNet.Helix.Sdk" Version="8.0.0-beta.24172.5">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>cd10e5d3748676d70ae2b4d9c84f073eeb203cac</Sha>
+      <Sha>ceb071c1060b8e6de404c065b4045442570caa18</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.SharedFramework.Sdk" Version="8.0.0-beta.24161.7">
+    <Dependency Name="Microsoft.DotNet.SharedFramework.Sdk" Version="8.0.0-beta.24172.5">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>cd10e5d3748676d70ae2b4d9c84f073eeb203cac</Sha>
+      <Sha>ceb071c1060b8e6de404c065b4045442570caa18</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.RemoteExecutor" Version="8.0.0-beta.24161.7">
+    <Dependency Name="Microsoft.DotNet.RemoteExecutor" Version="8.0.0-beta.24172.5">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>cd10e5d3748676d70ae2b4d9c84f073eeb203cac</Sha>
+      <Sha>ceb071c1060b8e6de404c065b4045442570caa18</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.24161.7">
+    <Dependency Name="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.24172.5">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>cd10e5d3748676d70ae2b4d9c84f073eeb203cac</Sha>
+      <Sha>ceb071c1060b8e6de404c065b4045442570caa18</Sha>
     </Dependency>
     <Dependency Name="Microsoft.DotNet.XliffTasks" Version="1.0.0-beta.23475.1" CoherentParentDependency="Microsoft.DotNet.Arcade.Sdk">
       <Uri>https://github.com/dotnet/xliff-tasks</Uri>
       <Sha>73f0850939d96131c28cf6ea6ee5aacb4da0083a</Sha>
     </Dependency>
     <!-- Intermediate is necessary for source build. -->
-    <Dependency Name="Microsoft.SourceBuild.Intermediate.arcade" Version="8.0.0-beta.24161.7">
+    <Dependency Name="Microsoft.SourceBuild.Intermediate.arcade" Version="8.0.0-beta.24172.5">
       <Uri>https://github.com/dotnet/arcade</Uri>
-      <Sha>cd10e5d3748676d70ae2b4d9c84f073eeb203cac</Sha>
+      <Sha>ceb071c1060b8e6de404c065b4045442570caa18</Sha>
       <SourceBuild RepoName="arcade" ManagedOnly="true" />
     </Dependency>
     <!-- Intermediate is necessary for source build. -->

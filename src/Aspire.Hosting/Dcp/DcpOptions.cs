@@ -25,7 +25,7 @@ internal sealed class DcpOptions
     public string? CliPath { get; set; }
 
     /// <summary>
-    /// Optional path to a folder containing the DCP extension assemblies (dcpd, dcpctrl, etc.).
+    /// Optional path to a folder containing the DCP extension assemblies (dcpctrl, etc.).
     /// </summary>
     /// <example>
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\
@@ -70,12 +70,16 @@ internal sealed class DcpOptions
     /// <summary>
     /// Whether to delete resources created by this application when the application is shut down.
     /// </summary>
-    public bool? DeleteResourcesOnShutdown { get; set; }
+    public bool DeleteResourcesOnShutdown { get; set; }
 
     /// <summary>
     /// Whether to randomize ports used by resources during orchestration.
     /// </summary>
-    public bool? RandomizePorts { get; set; }
+    public bool RandomizePorts { get; set; }
+
+    public int KubernetesConfigReadRetryCount { get; set; } = 300;
+
+    public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
 
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
     {
@@ -125,10 +129,16 @@ internal sealed class DcpOptions
             DependencyCheckTimeout = coreConfiguration.GetValue<int>("DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT", DependencyCheckTimeout);
         }
 
+        KubernetesConfigReadRetryCount = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryCount), KubernetesConfigReadRetryCount);
+        KubernetesConfigReadRetryIntervalMilliseconds = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryIntervalMilliseconds), KubernetesConfigReadRetryIntervalMilliseconds);
+
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(ResourceNameSuffix)]))
         {
             ResourceNameSuffix = dcpPublisherConfiguration[nameof(ResourceNameSuffix)];
         }
+
+        DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue<bool>(nameof(DeleteResourcesOnShutdown), DeleteResourcesOnShutdown);
+        RandomizePorts = dcpPublisherConfiguration.GetValue<bool>(nameof(RandomizePorts), RandomizePorts);
 
         if (string.IsNullOrEmpty(CliPath))
         {
