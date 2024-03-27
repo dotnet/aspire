@@ -31,6 +31,11 @@ public sealed record CustomResourceSnapshot
     public string? State { get; init; }
 
     /// <summary>
+    /// Represents the style of the state of the resource.
+    /// </summary>
+    public string? StateStyle { get; init; }
+
+    /// <summary>
     /// The exit code of the resource.
     /// </summary>
     public int? ExitCode { get; init; }

@@ -97,6 +97,7 @@ internal sealed class BicepProvisioner(
             return state with
             {
                 State = "Running",
+                StateStyle = "success",
                 Urls = [.. portalUrls],
                 Properties = props
             };
@@ -111,6 +112,7 @@ internal sealed class BicepProvisioner(
         {
             ResourceType = resource.GetType().Name,
             State = "Starting",
+            StateStyle = "info",
             Properties = [
                 new("azure.subscription.id", context.Subscription.Id.Name),
                 new("azure.resource.group", context.ResourceGroup.Id.Name),
@@ -152,6 +154,13 @@ internal sealed class BicepProvisioner(
 
             if (keyVault is null)
             {
+                await notificationService.PublishUpdateAsync(resource, state => state with
+                {
+                    State = "Provisioning Keyvault",
+                    StateStyle = "info"
+
+                }).ConfigureAwait(false);
+
                 // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
                 // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
                 var vaultName = $"v{Guid.NewGuid().ToString("N")[0..20]}";
@@ -190,6 +199,16 @@ internal sealed class BicepProvisioner(
             OnErrorData = data => resourceLogger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = "Compiling ARM template",
+                StateStyle = "info"
+            };
+        })
+        .ConfigureAwait(false);
+
         if (!await ExecuteCommand(templateSpec).ConfigureAwait(false))
         {
             throw new InvalidOperationException();
@@ -204,6 +223,16 @@ internal sealed class BicepProvisioner(
         await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var sw = Stopwatch.StartNew();
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = "Creating ARM Deployment",
+                StateStyle = "info"
+            };
+        })
+        .ConfigureAwait(false);
 
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
@@ -222,6 +251,8 @@ internal sealed class BicepProvisioner(
         {
             return state with
             {
+                State = "Waiting for Deployment",
+                StateStyle = "info",
                 Urls = [.. state.Urls, new(Name: "deployment", Url: url, IsInternal: false)],
             };
         })
@@ -316,6 +347,7 @@ internal sealed class BicepProvisioner(
             return state with
             {
                 State = "Running",
+                StateStyle = "success",
                 CreationTimeStamp = DateTime.UtcNow,
                 Properties = properties
             };

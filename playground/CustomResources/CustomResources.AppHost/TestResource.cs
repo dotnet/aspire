@@ -35,7 +35,8 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
     {
         foreach (var resource in appModel.Resources.OfType<TestResource>())
         {
-            var states = new[] { "Starting", "Running", "Finished" };
+            var states = new[] { "Starting", "Running", "Finished", "Uploading", "Downloading", "Processing", "Provisioning" };
+            var stateStyles = new[] { "info", "success", "warning", "error" };
 
             var logger = loggerService.GetLogger(resource);
 
@@ -55,10 +56,11 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
                 while (await timer.WaitForNextTickAsync(_tokenSource.Token))
                 {
                     var randomState = states[Random.Shared.Next(0, states.Length)];
-
+                    var randomStyle = stateStyles[Random.Shared.Next(0, stateStyles.Length)];
                     await notificationService.PublishUpdateAsync(resource, state => state with
                     {
-                        State = randomState
+                        State = randomState,
+                        StateStyle = randomStyle
                     });
 
                     logger.LogInformation("Test resource {ResourceName} is now in state {State}", resource.Name, randomState);
