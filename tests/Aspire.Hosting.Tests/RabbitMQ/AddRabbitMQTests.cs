@@ -15,8 +15,7 @@ public class AddRabbitMQTests
     [InlineData(DistributedApplicationOperation.Publish)]
     public void AddRabbitMQContainerWithDefaultsAddsAnnotationMetadata(DistributedApplicationOperation operation)
     {
-        DistributedApplicationOptions options = operation == DistributedApplicationOperation.Run ? new() : new() { Args = ["Publishing:Publisher=manifest"] };
-        var appBuilder = DistributedApplication.CreateBuilder(options);
+        var appBuilder = TestDistributedApplicationBuilder.Create(operation);
 
         appBuilder.AddRabbitMQ("rabbit");
 
