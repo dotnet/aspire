@@ -27,7 +27,7 @@ internal static partial class FormatHelpers
     private static readonly ConcurrentDictionary<CultureDetailsKey, MillisecondFormatStrings> s_formatStrings = new();
 
     // Colon and dot are the only time separators used by registered cultures. Regex checks for both.
-    [GeneratedRegex("(:ss|.ss|:s|.s)")]
+    [GeneratedRegex(@"(:ss|\.ss|:s|\.s)")]
     private static partial Regex MatchSecondsInTimeFormatPattern();
 
     private static MillisecondFormatStrings GetMillisecondFormatStrings(CultureInfo cultureInfo)
