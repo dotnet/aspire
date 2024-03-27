@@ -198,8 +198,22 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             {
                 CopyDcpLogs();
             }
-            using ToolCommand psCmd = new("/bin/sh", _testOutput, "ps");
-            await psCmd.ExecuteAsync("-c \"ps aux\"");
+            {
+                using ToolCommand psCmd = new("/bin/sh", _testOutput, "ps");
+                await psCmd.ExecuteAsync("-c \"ps aux\"");
+            }
+
+            {
+                try
+                {
+                    using ToolCommand freeCmd = new("/bin/sh", _testOutput, "free");
+                    await freeCmd.ExecuteAsync("-c free");
+                }
+                catch (Exception ex)
+                {
+                    _testOutput.WriteLine($"Failed to run free: {ex}");
+                }
+            }
 
             // foreach (var p in Process.GetProcesses())
             // {
