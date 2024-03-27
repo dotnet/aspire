@@ -34,12 +34,7 @@ public class TestProgram : IDisposable
             disableDashboard = true;
         }
 
-        AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
-
-        if (allowUnsecuredTransport)
-        {
-            AppBuilder.Configuration[KnownConfigNames.AllowUnsecuredTransport] = "true";
-        }
+        AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName, AllowUnsecuredTransport = allowUnsecuredTransport });
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 

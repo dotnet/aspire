@@ -43,6 +43,11 @@ public sealed class DistributedApplicationOptions
 
     internal bool DashboardEnabled => !DisableDashboard;
 
+    /// <summary>
+    /// Allows the use of HTTP urls for for the AppHost resource endpoint.
+    /// </summary>
+    public bool AllowUnsecuredTransport { get; set; }
+
     private string? ResolveProjectDirectory()
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();

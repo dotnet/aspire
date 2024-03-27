@@ -15,7 +15,8 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Success;
         }
 
-        if (configuration[KnownConfigNames.AspNetCoreUrls] is not { } applicationUrls || string.IsNullOrEmpty(applicationUrls))
+        var applicationUrls = configuration[KnownConfigNames.AspNetCoreUrls];
+        if (string.IsNullOrEmpty(applicationUrls))
         {
             return ValidateOptionsResult.Fail($"AppHost does not have applicationUrl in launch profile, or {KnownConfigNames.AspNetCoreUrls} environment variable set.");
         }

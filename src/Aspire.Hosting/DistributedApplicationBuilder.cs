@@ -82,6 +82,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Directory"] = AppHostDirectory
         });
 
+        if (options.AllowUnsecuredTransport)
+        {
+            _innerBuilder.Configuration[KnownConfigNames.AllowUnsecuredTransport] = "true";
+        }
+
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
@@ -96,7 +101,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
         _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
-        _innerBuilder.Services.AddSingleton<IDashboardTokenProvider, DashboardTokenProvider>();
 
         // DCP stuff
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
