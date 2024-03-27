@@ -1,0 +1,9 @@
+# For more info on HTTP files go to https://aka.ms/vs/httpfile
+@Url=http://localhost:5078
+
+POST {{Url}}/message
+Content-Type: application/json
+
+{
+  "message": "Hello, {{$randomInt 0 100}}"
+}
