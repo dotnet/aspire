@@ -21,8 +21,6 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireRedisExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:StackExchange:Redis";
-    // Name taken from https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/219e41848a810479c2024c2e48b8cb7ae3a5d3e6/src/OpenTelemetry.Instrumentation.StackExchangeRedis/StackExchangeRedisConnectionInstrumentation.cs#L21
-    private const string ActivitySourceName = "OpenTelemetry.Instrumentation.StackExchangeRedis";
 
     /// <summary>
     /// Registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -153,7 +151,7 @@ public static class AspireRedisExtensions
             builder.Services.AddOpenTelemetry()
                 .WithTracing(t =>
                 {
-                    t.AddSource(ActivitySourceName);
+                    t.AddSource(StackExchangeRedisConnectionInstrumentation.ActivitySourceName);
                     // This ensures the core Redis instrumentation services from OpenTelemetry.Instrumentation.StackExchangeRedis are added
                     t.ConfigureRedisInstrumentation(_ => { });
                     // This ensures that any logic performed by the AddInstrumentation method is executed (this is usually called by AddRedisInstrumentation())

@@ -31,7 +31,7 @@ public class OrderProcessingWorker : BackgroundService
             _messageConnection = _serviceProvider.GetRequiredService<IConnection>();
 
             _messageChannel = _messageConnection.CreateModel();
-            _messageChannel.QueueDeclare(queueName, exclusive: false);
+            _messageChannel.QueueDeclare(queueName, durable: true, exclusive: false);
 
             var consumer = new EventingBasicConsumer(_messageChannel);
             consumer.Received += ProcessMessageAsync;

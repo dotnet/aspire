@@ -8,9 +8,11 @@ using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Authentication.OtlpConnection;
 using Aspire.Dashboard.Components;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Hosting;
 using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -19,6 +21,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
@@ -26,17 +29,11 @@ namespace Aspire.Dashboard;
 
 public sealed class DashboardWebApplication : IAsyncDisposable
 {
-    internal const string FrontendAuthModeKey = "Frontend:AuthMode";
-
-    internal const string OtlpAuthModeKey = "Otlp:AuthMode";
-    internal const string OtlpApiKeyKey = "Otlp:ApiKey";
-
-    internal const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     internal const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
-    internal const string DashboardUrlVariableName = "ASPNETCORE_URLS";
     internal const string DashboardUrlDefaultValue = "http://localhost:18888";
 
     private readonly WebApplication _app;
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
     private Func<EndpointInfo>? _browserEndPointAccessor;
     private Func<EndpointInfo>? _otlpServiceEndPointAccessor;
 
@@ -49,6 +46,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     {
         get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
+
+    public IOptionsMonitor<DashboardOptions> DashboardOptionsMonitor => _dashboardOptionsMonitor;
 
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
@@ -67,12 +66,25 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 #endif
 
-        var dashboardConfig = LoadDashboardConfig(builder.Configuration);
+        // Allow for a user specified JSON config file on disk. Throw an error if the specified file doesn't exist.
+        if (builder.Configuration[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] is { Length: > 0 } configFilePath)
+        {
+            builder.Configuration.AddJsonFile(configFilePath, optional: false, reloadOnChange: true);
+        }
 
-        ConfigureKestrelEndpoints(builder, dashboardConfig);
+        var dashboardConfigSection = builder.Configuration.GetSection("Dashboard");
+        builder.Services.AddOptions<DashboardOptions>()
+            .Bind(dashboardConfigSection)
+            .ValidateOnStart();
+        builder.Services.AddSingleton<IPostConfigureOptions<DashboardOptions>, PostConfigureDashboardOptions>();
+        builder.Services.AddSingleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>();
 
-        var browserHttpsPort = dashboardConfig.BrowserUris.FirstOrDefault(IsHttps)?.Port;
-        var isAllHttps = browserHttpsPort is not null && IsHttps(dashboardConfig.OtlpUri);
+        var dashboardOptions = GetDashboardOptions(builder, dashboardConfigSection);
+
+        ConfigureKestrelEndpoints(builder, dashboardOptions);
+
+        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointUris().FirstOrDefault(IsHttps)?.Port;
+        var isAllHttps = browserHttpsPort is not null && IsHttps(dashboardOptions.Otlp.GetEndpointUri());
         if (isAllHttps)
         {
             // Explicitly configure the HTTPS redirect port as we're possibly listening on multiple HTTPS addresses
@@ -80,7 +92,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             builder.Services.Configure<HttpsRedirectionOptions>(options => options.HttpsPort = browserHttpsPort);
         }
 
-        ConfigureAuthentication(builder, dashboardConfig);
+        ConfigureAuthentication(builder, dashboardOptions);
 
         // Add services to the container.
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
@@ -109,6 +121,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddLocalization();
 
         _app = builder.Build();
+
+        _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
         var logger = _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
 
@@ -210,39 +224,59 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpLogsService>();
     }
 
+    /// <summary>
+    /// Load <see cref="DashboardOptions"/> from configuration without using DI. This performs
+    /// the same steps as getting the options from DI but without the need for a service provider.
+    /// </summary>
+    private static DashboardOptions GetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection)
+    {
+        var dashboardOptions = new DashboardOptions();
+        dashboardConfigSection.Bind(dashboardOptions);
+        new PostConfigureDashboardOptions(builder.Configuration).PostConfigure(name: string.Empty, dashboardOptions);
+        var result = new ValidateDashboardOptions().Validate(name: string.Empty, dashboardOptions);
+        if (result.Failed)
+        {
+            throw new OptionsValidationException(optionsName: string.Empty, typeof(DashboardOptions), result.Failures);
+        }
+
+        return dashboardOptions;
+    }
+
     // Kestrel endpoints are loaded from configuration. This is done so that advanced configuration of endpoints is
     // possible from the caller. e.g., using environment variables to configure each endpoint's TLS certificate.
-    private void ConfigureKestrelEndpoints(WebApplicationBuilder builder, DashboardStartupConfiguration dashboardStartupConfig)
+    private void ConfigureKestrelEndpoints(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         // A single endpoint is configured if URLs are the same and the port isn't dynamic.
-        var singleEndpoint = dashboardStartupConfig.BrowserUris.Length == 1 && dashboardStartupConfig.BrowserUris[0] == dashboardStartupConfig.OtlpUri && dashboardStartupConfig.OtlpUri.Port != 0;
+        var frontendUris = dashboardOptions.Frontend.GetEndpointUris();
+        var otlpUri = dashboardOptions.Otlp.GetEndpointUri();
+        var hasSingleEndpoint = frontendUris.Count == 1 && frontendUris[0] == otlpUri && otlpUri.Port != 0;
 
         var initialValues = new Dictionary<string, string?>();
-        var browserEndpointNames = new List<string>(capacity: dashboardStartupConfig.BrowserUris.Length);
+        var browserEndpointNames = new List<string>(capacity: frontendUris.Count);
 
-        if (!singleEndpoint)
+        if (!hasSingleEndpoint)
         {
             // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
             // to Kestrel's schema for loading endpoints from configuration.
-            AddEndpointConfiguration(initialValues, "Otlp", dashboardStartupConfig.OtlpUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardStartupConfig.OtlpAuthMode == OtlpAuthMode.ClientCertificate);
-            if (dashboardStartupConfig.BrowserUris.Length == 1)
+            AddEndpointConfiguration(initialValues, "Otlp", otlpUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            if (frontendUris.Count == 1)
             {
                 browserEndpointNames.Add("Browser");
-                AddEndpointConfiguration(initialValues, "Browser", dashboardStartupConfig.BrowserUris[0].OriginalString);
+                AddEndpointConfiguration(initialValues, "Browser", frontendUris[0].OriginalString);
             }
             else
             {
-                for (var i = 0; i < dashboardStartupConfig.BrowserUris.Length; i++)
+                for (var i = 0; i < frontendUris.Count; i++)
                 {
                     var name = $"Browser{i}";
                     browserEndpointNames.Add(name);
-                    AddEndpointConfiguration(initialValues, name, dashboardStartupConfig.BrowserUris[i].OriginalString);
+                    AddEndpointConfiguration(initialValues, name, frontendUris[i].OriginalString);
                 }
             }
         }
         else
         {
-            AddEndpointConfiguration(initialValues, "Otlp", dashboardStartupConfig.OtlpUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardStartupConfig.OtlpAuthMode == OtlpAuthMode.ClientCertificate);
+            AddEndpointConfiguration(initialValues, "Otlp", otlpUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
         }
 
         static void AddEndpointConfiguration(Dictionary<string, string?> values, string endpointName, string url, HttpProtocols? protocols = null, bool requiredClientCertificate = false)
@@ -284,7 +318,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             configurationLoader.Endpoint("Otlp", endpointConfiguration =>
             {
                 _otlpServiceEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
-                if (singleEndpoint)
+                if (hasSingleEndpoint)
                 {
                     logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
 
@@ -322,23 +356,17 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
     }
 
-    private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardStartupConfiguration dashboardStartupConfig)
+    private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         var authentication = builder.Services
             .AddAuthentication()
-            .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o =>
-            {
-                o.OtlpAuthMode = dashboardStartupConfig.OtlpAuthMode;
-            })
-            .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o =>
-            {
-                o.OtlpApiKey = dashboardStartupConfig.OtlpApiKey;
-            })
+            .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
+            .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpConnectionAuthenticationHandlerOptions, OtlpConnectionAuthenticationHandler>(OtlpConnectionAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddCertificate(options =>
             {
                 // Bind options to configuration so they can be overridden by environment variables.
-                builder.Configuration.Bind("CertificateAuthentication", options);
+                builder.Configuration.Bind("Dashboard:Otlp:CertificateAuthOptions", options);
 
                 options.Events = new CertificateAuthenticationEvents
                 {
@@ -362,7 +390,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 };
             });
 
-        if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.OpenIdConnect)
+        if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
         {
             authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
             {
@@ -409,28 +437,27 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     .RequireClaim(OtlpAuthorization.OtlpClaimName)
                     .Build());
 
-            if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.OpenIdConnect)
+            switch (dashboardOptions.Frontend.AuthMode)
             {
-                // Frontend is secured with OIDC, so delegate to that authentication scheme.
-                options.AddPolicy(
-                    name: FrontendAuthorizationDefaults.PolicyName,
-                    policy: new AuthorizationPolicyBuilder(
-                        FrontendAuthenticationDefaults.AuthenticationScheme)
-                        .RequireAuthenticatedUser()
-                        .Build());
-            }
-            else if (dashboardStartupConfig.FrontendAuthMode == FrontendAuthMode.Unsecured)
-            {
-                // Frontend is unsecured so our policy doesn't need any special handling.
-                options.AddPolicy(
-                    name: FrontendAuthorizationDefaults.PolicyName,
-                    policy: new AuthorizationPolicyBuilder()
-                        .RequireAssertion(_ => true)
-                        .Build());
-            }
-            else
-            {
-                throw new NotSupportedException($"Unexpected {nameof(FrontendAuthMode)} enum member.");
+                case FrontendAuthMode.OpenIdConnect:
+                    // Frontend is secured with OIDC, so delegate to that authentication scheme.
+                    options.AddPolicy(
+                        name: FrontendAuthorizationDefaults.PolicyName,
+                        policy: new AuthorizationPolicyBuilder(
+                            FrontendAuthenticationDefaults.AuthenticationScheme)
+                            .RequireAuthenticatedUser()
+                            .Build());
+                    break;
+                case FrontendAuthMode.Unsecured:
+                    // Frontend is unsecured so our policy doesn't need any special handling.
+                    options.AddPolicy(
+                        name: FrontendAuthorizationDefaults.PolicyName,
+                        policy: new AuthorizationPolicyBuilder()
+                            .RequireAssertion(_ => true)
+                            .Build());
+                    break;
+                default:
+                    throw new NotSupportedException($"Unexpected {nameof(FrontendAuthMode)} enum member: {dashboardOptions.Frontend.AuthMode}");
             }
         });
     }
@@ -448,73 +475,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     private static bool IsHttps(Uri uri) => string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 
-    private static DashboardStartupConfiguration LoadDashboardConfig(IConfiguration configuration)
-    {
-        var browserUris = configuration.GetUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
-        if (browserUris.Length == 0)
-        {
-            throw new InvalidOperationException($"At least one URL for Aspire dashboard browser endpoint with {DashboardOtlpUrlDefaultValue} is required.");
-        }
-
-        var frontendAuthMode = configuration.GetEnum<FrontendAuthMode>(FrontendAuthModeKey);
-
-        var otlpUris = configuration.GetUris(DashboardOtlpUrlVariableName, new(DashboardOtlpUrlDefaultValue));
-        if (otlpUris.Length != 1)
-        {
-            throw new InvalidOperationException($"One URL for Aspire dashboard OTLP endpoint with {DashboardUrlDefaultValue} is required, not {otlpUris.Length}.");
-        }
-
-        var otlpAuthMode = configuration.GetEnum<OtlpAuthMode>(OtlpAuthModeKey);
-
-        string? otlpApiKey = null;
-
-        switch (otlpAuthMode)
-        {
-            case OtlpAuthMode.ApiKey:
-                otlpApiKey = configuration[OtlpApiKeyKey];
-                if (string.IsNullOrEmpty(otlpApiKey))
-                {
-                    throw new InvalidOperationException($"{OtlpAuthModeKey} value of {nameof(OtlpAuthMode.ApiKey)} requires an API key from {OtlpApiKeyKey}.");
-                }
-                break;
-            case OtlpAuthMode.ClientCertificate:
-                if (!IsHttps(otlpUris[0]))
-                {
-                    throw new InvalidOperationException($"{OtlpAuthModeKey} value of {nameof(OtlpAuthMode.ClientCertificate)} requires a HTTPS OTLP endpoint.");
-                }
-                break;
-            default:
-                break;
-        }
-
-        return new DashboardStartupConfiguration
-        {
-            BrowserUris = browserUris,
-            FrontendAuthMode = frontendAuthMode,
-            OtlpUri = otlpUris[0],
-            OtlpAuthMode = otlpAuthMode,
-            OtlpApiKey = otlpApiKey
-        };
-    }
-
-    private enum FrontendAuthMode
-    {
-        Unsecured,
-        OpenIdConnect
-    }
-
     public static class FrontendAuthenticationDefaults
     {
         public const string AuthenticationScheme = "Frontend";
-    }
-
-    private sealed class DashboardStartupConfiguration
-    {
-        public required Uri[] BrowserUris { get; init; }
-        public required Uri OtlpUri { get; init; }
-        public required OtlpAuthMode OtlpAuthMode { get; init; }
-        public required FrontendAuthMode FrontendAuthMode { get; init; }
-        public required string? OtlpApiKey { get; init; }
     }
 }
 
