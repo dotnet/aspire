@@ -33,7 +33,6 @@
 
   <ItemGroup>
     <Compile Include="..\Common\TestResourceNames.cs" />
-    <Compile Include="..\..\..\src\Shared\KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
 
     <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" AspireProjectMetadataTypeName="IntegrationServiceA" />
     <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" AspireProjectMetadataTypeName="ServiceA" />
