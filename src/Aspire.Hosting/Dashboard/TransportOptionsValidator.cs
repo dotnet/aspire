@@ -6,11 +6,13 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal class TransportOptionsValidator(IConfiguration configuration, DistributedApplicationExecutionContext executionContext) : IValidateOptions<TransportOptions>
+internal class TransportOptionsValidator(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, DistributedApplicationOptions distributedApplicationOptions) : IValidateOptions<TransportOptions>
 {
-    public ValidateOptionsResult Validate(string? name, TransportOptions options)
+    public ValidateOptionsResult Validate(string? name, TransportOptions transportOptions)
     {
-        if (executionContext.IsPublishMode)
+        var effectiveAllowUnsecureTransport = transportOptions.AllowUnsecureTransport || distributedApplicationOptions.DisableDashboard || distributedApplicationOptions.AllowUnsecuredTransport;
+
+        if (executionContext.IsPublishMode || effectiveAllowUnsecureTransport)
         {
             return ValidateOptionsResult.Success;
         }
@@ -28,7 +30,7 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting of the launch profile has value '{firstApplicationUrl}' which could not be parsed as a URI.");
         }
 
-        if (parsedFirstApplicationUrl.Scheme == "http" && !options.AllowUnsecureTransport)
+        if (parsedFirstApplicationUrl.Scheme == "http" && !effectiveAllowUnsecureTransport)
         {
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
         }
