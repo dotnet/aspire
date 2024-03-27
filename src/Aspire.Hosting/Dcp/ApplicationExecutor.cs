@@ -679,43 +679,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return true;
     }
 
-    private async Task<List<KeyValuePair<string, string>>> GetDashboardEnvironmentVariablesAsync(IConfiguration configuration, string? defaultDashboardUrl, CancellationToken cancellationToken)
-    {
-        var dashboardUrls = configuration["ASPNETCORE_URLS"] ?? defaultDashboardUrl;
-        if (string.IsNullOrEmpty(dashboardUrls))
-        {
-            throw new DistributedApplicationException("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
-        }
-
-        if (configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] is not { } otlpEndpointUrl)
-        {
-            throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
-        }
-
-        var resourceServiceUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
-
-        var env = new List<KeyValuePair<string, string>>
-        {
-            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendUrlName.EnvVarName, dashboardUrls),
-            KeyValuePair.Create(DashboardConfigNames.ResourceServiceUrlName.EnvVarName, resourceServiceUrl),
-            KeyValuePair.Create(DashboardConfigNames.DashboardOtlpUrlName.EnvVarName, otlpEndpointUrl),
-            KeyValuePair.Create(DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName, "Unsecured"),
-            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "Unsecured"),
-        };
-
-        if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
-        {
-            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "ApiKey"));
-            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName, otlpApiKey));
-        }
-        else
-        {
-            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "Unsecured"));
-        }
-
-        return env;
-    }
-
     private void ConfigureAspireDashboardResource(IResource dashboardResource)
     {
         // Don't publish the resource to the manifest.
@@ -794,6 +757,43 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         var dashboardUrls = env.Single(e => e.Key == DashboardConfigNames.DashboardFrontendUrlName.EnvVarName).Value;
         PrintDashboardUrls(dashboardUrls);
+    }
+
+    private async Task<List<KeyValuePair<string, string>>> GetDashboardEnvironmentVariablesAsync(IConfiguration configuration, string? defaultDashboardUrl, CancellationToken cancellationToken)
+    {
+        var dashboardUrls = configuration["ASPNETCORE_URLS"] ?? defaultDashboardUrl;
+        if (string.IsNullOrEmpty(dashboardUrls))
+        {
+            throw new DistributedApplicationException("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
+        }
+
+        if (configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] is not { } otlpEndpointUrl)
+        {
+            throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
+        }
+
+        var resourceServiceUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+
+        var env = new List<KeyValuePair<string, string>>
+        {
+            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendUrlName.EnvVarName, dashboardUrls),
+            KeyValuePair.Create(DashboardConfigNames.ResourceServiceUrlName.EnvVarName, resourceServiceUrl),
+            KeyValuePair.Create(DashboardConfigNames.DashboardOtlpUrlName.EnvVarName, otlpEndpointUrl),
+            KeyValuePair.Create(DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName, "Unsecured"),
+            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "Unsecured"),
+        };
+
+        if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+        {
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "ApiKey"));
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName, otlpApiKey));
+        }
+        else
+        {
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "Unsecured"));
+        }
+
+        return env;
     }
 
     private void PrintDashboardUrls(string delimitedUrlList)
