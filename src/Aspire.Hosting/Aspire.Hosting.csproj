@@ -52,7 +52,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Testing" />
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
   </ItemGroup>
 
