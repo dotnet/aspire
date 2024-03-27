@@ -30,22 +30,6 @@
                 "EventHubs": {
                   "type": "object",
                   "properties": {
-                    "BlobClientConnectionName": {
-                      "type": "string",
-                      "description": "Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used."
-                    },
-                    "BlobContainerName": {
-                      "type": "string",
-                      "description": "Get or sets the name of the blob container used to store the checkpoint data. If this container does not exist, Aspire will attempt to create it.\nIf this is not provided, Aspire will attempt to automatically create a container with a name based on the Namespace, Event Hub name and Consumer Group.\nIf a container is provided in the connection string, it will override this value and the container will be assumed to exist."
-                    },
-                    "ConnectionString": {
-                      "type": "string",
-                      "description": "Gets or sets the connection string used to connect to the Event Hubs namespace."
-                    },
-                    "ConsumerGroup": {
-                      "type": "string",
-                      "description": "Gets or sets the name of the consumer group."
-                    },
                     "EventHubConsumerClient": {
                       "type": "object",
                       "properties": {
@@ -121,12 +105,29 @@
                             }
                           },
                           "description": "The set of options that can be specified when creating an 'Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient' to configure its behavior."
+                        },
+                        "ConnectionString": {
+                          "type": "string",
+                          "description": "Gets or sets the connection string used to connect to the Event Hubs namespace."
+                        },
+                        "ConsumerGroup": {
+                          "type": "string",
+                          "description": "Gets or sets the name of the consumer group."
+                        },
+                        "EventHubName": {
+                          "type": "string",
+                          "description": "Gets or sets the name of the Event Hub."
+                        },
+                        "Namespace": {
+                          "type": "string",
+                          "description": "Gets or sets the fully qualified Event Hubs namespace."
+                        },
+                        "Tracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
-                      }
-                    },
-                    "EventHubName": {
-                      "type": "string",
-                      "description": "Gets or sets the name of the Event Hub."
+                      },
+                      "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient'."
                     },
                     "EventHubProducerClient": {
                       "type": "object",
@@ -203,12 +204,37 @@
                             }
                           },
                           "description": "The set of options that can be specified when creating an 'Azure.Messaging.EventHubs.Producer.EventHubProducerClient' to configure its behavior."
+                        },
+                        "ConnectionString": {
+                          "type": "string",
+                          "description": "Gets or sets the connection string used to connect to the Event Hubs namespace."
+                        },
+                        "EventHubName": {
+                          "type": "string",
+                          "description": "Gets or sets the name of the Event Hub."
+                        },
+                        "Namespace": {
+                          "type": "string",
+                          "description": "Gets or sets the fully qualified Event Hubs namespace."
+                        },
+                        "Tracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
-                      }
+                      },
+                      "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.Producer.EventHubProducerClient'."
                     },
                     "EventProcessorClient": {
                       "type": "object",
                       "properties": {
+                        "BlobClientConnectionName": {
+                          "type": "string",
+                          "description": "Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used."
+                        },
+                        "BlobContainerName": {
+                          "type": "string",
+                          "description": "Get or sets the name of the blob container used to store the checkpoint data. If this container does not exist, Aspire will attempt to create it.\nIf this is not provided, Aspire will attempt to automatically create a container with a name based on the Namespace, Event Hub name and Consumer Group.\nIf a container is provided in the connection string, it will override this value and the container will be assumed to exist."
+                        },
                         "ClientOptions": {
                           "type": "object",
                           "properties": {
@@ -319,16 +345,29 @@
                             }
                           },
                           "description": "The set of options that can be specified when creating an 'Azure.Messaging.EventHubs.EventProcessorClient' to configure its behavior."
+                        },
+                        "ConnectionString": {
+                          "type": "string",
+                          "description": "Gets or sets the connection string used to connect to the Event Hubs namespace."
+                        },
+                        "ConsumerGroup": {
+                          "type": "string",
+                          "description": "Gets or sets the name of the consumer group."
+                        },
+                        "EventHubName": {
+                          "type": "string",
+                          "description": "Gets or sets the name of the Event Hub."
+                        },
+                        "Namespace": {
+                          "type": "string",
+                          "description": "Gets or sets the fully qualified Event Hubs namespace."
+                        },
+                        "Tracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
-                      }
-                    },
-                    "Namespace": {
-                      "type": "string",
-                      "description": "Gets or sets the fully qualified Event Hubs namespace."
-                    },
-                    "PartitionId": {
-                      "type": "string",
-                      "description": "Gets or sets the partition identifier."
+                      },
+                      "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.EventProcessorClient'."
                     },
                     "PartitionReceiver": {
                       "type": "object",
@@ -426,15 +465,35 @@
                             }
                           },
                           "description": "The set of options that can be specified when creating a 'Azure.Messaging.EventHubs.Primitives.PartitionReceiver' to configure its behavior."
+                        },
+                        "ConnectionString": {
+                          "type": "string",
+                          "description": "Gets or sets the connection string used to connect to the Event Hubs namespace."
+                        },
+                        "ConsumerGroup": {
+                          "type": "string",
+                          "description": "Gets or sets the name of the consumer group."
+                        },
+                        "EventHubName": {
+                          "type": "string",
+                          "description": "Gets or sets the name of the Event Hub."
+                        },
+                        "Namespace": {
+                          "type": "string",
+                          "description": "Gets or sets the fully qualified Event Hubs namespace."
+                        },
+                        "PartitionId": {
+                          "type": "string",
+                          "description": "Gets or sets the partition identifier."
+                        },
+                        "Tracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
-                      }
-                    },
-                    "Tracing": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
+                      },
+                      "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.Primitives.PartitionReceiver'."
                     }
-                  },
-                  "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient'."
+                  }
                 }
               }
             }

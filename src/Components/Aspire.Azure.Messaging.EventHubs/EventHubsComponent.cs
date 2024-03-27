@@ -51,7 +51,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                 EventHubsConnectionStringProperties.Parse(settings.ConnectionString).FullyQualifiedNamespace :
                 new Uri(settings.Namespace).Host;
 
-            ns = fullyQualifiedNs[..fullyQualifiedNs.IndexOf('.', StringComparison.Ordinal)];
+            ns = fullyQualifiedNs[..fullyQualifiedNs.IndexOf('.')];
         }
         catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException)
         {
