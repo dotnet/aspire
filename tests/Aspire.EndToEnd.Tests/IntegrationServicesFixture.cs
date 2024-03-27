@@ -335,6 +335,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             var dstFile = Path.Combine(dcpLogPath, Path.GetFileName(srcFile));
             try
             {
+                if (File.Exists(dstFile))
+                {
+                    continue;
+                }
                 File.Copy(srcFile, dstFile, overwrite: true);
                 Console.WriteLine ($"Copied {srcFile} to {dstFile}");
             } catch (IOException ioex) {
