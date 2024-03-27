@@ -34,33 +34,36 @@ public class FormatHelpersTests
     }
 
     [Theory]
-    [InlineData("06/15/2009 13:45:30.000", true, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("06/15/2009 13:45:30.123", true, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("06/15/2009 13:45:30", false, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("06/15/2009 13:45:30", false, "2009-06-15T13:45:30.1234567Z")]
-    public void FormatDateTime_WithMilliseconds_InvariantCulture(string expected, bool includeMilliseconds, string value)
+    [InlineData("06/15/2009 13:45:30.000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("06/15/2009 13:45:30.123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("06/15/2009 13:45:30.1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("06/15/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("06/15/2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z")]
+    public void FormatDateTime_WithMilliseconds_InvariantCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
     {
         var date = GetLocalDateTime(value);
         Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.InvariantCulture));
     }
 
     [Theory]
-    [InlineData("15.06.2009 13:45:30,000", true, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15.06.2009 13:45:30,123", true, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("15.06.2009 13:45:30", false, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15.06.2009 13:45:30", false, "2009-06-15T13:45:30.1234567Z")]
-    public void FormatDateTime_WithMilliseconds_GermanCulture(string expected, bool includeMilliseconds, string value)
+    [InlineData("15.06.2009 13:45:30,000", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("15.06.2009 13:45:30,123", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("15.06.2009 13:45:30,1234567", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("15.06.2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("15.06.2009 13:45:30", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z")]
+    public void FormatDateTime_WithMilliseconds_GermanCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
     {
         var date = GetLocalDateTime(value);
         Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("de-DE")));
     }
 
     [Theory]
-    [InlineData("15/06/2009 1:45:30.000 pm", true, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15/06/2009 1:45:30.123 pm", true, "2009-06-15T13:45:30.1234567Z")]
-    [InlineData("15/06/2009 1:45:30 pm", false, "2009-06-15T13:45:30.0000000Z")]
-    [InlineData("15/06/2009 1:45:30 pm", false, "2009-06-15T13:45:30.1234567Z")]
-    public void FormatDateTime_WithMilliseconds_NewZealandCulture(string expected, bool includeMilliseconds, string value)
+    [InlineData("15/06/2009 1:45:30.000 pm", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("15/06/2009 1:45:30.123 pm", MillisecondsDisplay.Truncated, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("15/06/2009 1:45:30.1234567 pm", MillisecondsDisplay.Full, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("15/06/2009 1:45:30 pm", MillisecondsDisplay.None, "2009-06-15T13:45:30.1234567Z")]
+    public void FormatDateTime_WithMilliseconds_NewZealandCulture(string expected, MillisecondsDisplay includeMilliseconds, string value)
     {
         var date = GetLocalDateTime(value);
         Assert.Equal(expected, FormatHelpers.FormatDateTime(CreateTimeProvider(), date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("en-NZ")));

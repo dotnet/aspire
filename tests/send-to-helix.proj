@@ -34,6 +34,14 @@
     <_TestRunCommandArguments Include="-s .runsettings" />
     <_TestRunCommandArguments Include="$(_TestNameEnvVar).dll" />
     <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
+    <_TestRunCommandArguments Include="--blame-hang" />
+    <_TestRunCommandArguments Include="--blame-hang-dump-type" />
+    <_TestRunCommandArguments Include="full" />
+    <_TestRunCommandArguments Include="--blame-hang-timeout" />
+    <_TestRunCommandArguments Include="10m" />
+    <_TestRunCommandArguments Include="--blame-crash" />
+    <_TestRunCommandArguments Include="--blame-crash-dump-type" />
+    <_TestRunCommandArguments Include="full" />
   </ItemGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)send-to-helix-workload-tests.proj" />
