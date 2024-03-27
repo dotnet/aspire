@@ -405,7 +405,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Cosmos
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.OperationalInsights", "src\Aspire.Hosting.Azure.OperationalInsights\Aspire.Hosting.Azure.OperationalInsights.csproj", "{8CF39705-FCA7-42F5-B3E3-1FBD9100BAFF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.PostgreSql", "src\Aspire.Hosting.Azure.PostgreSql\Aspire.Hosting.Azure.PostgreSql.csproj", "{B6F2387B-2AB0-41F4-A609-9EA13E408145}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.PostgreSQL", "src\Aspire.Hosting.Azure.PostgreSQL\Aspire.Hosting.Azure.PostgreSQL.csproj", "{B6F2387B-2AB0-41F4-A609-9EA13E408145}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Search", "src\Aspire.Hosting.Azure.Search\Aspire.Hosting.Azure.Search.csproj", "{927F564C-D037-4296-AB8F-A7F9FF24B3BB}"
 EndProject
