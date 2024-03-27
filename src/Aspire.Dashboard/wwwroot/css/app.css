@@ -25,6 +25,8 @@ fluent-toolbar[orientation=horizontal] {
 }
 
 :root {
+    --dotnet-purple: #512bd4;
+
     --log-critical: #F8ECEB;
     --log-error: #F8ECEB;
     --log-warning: #FBF3DD;

@@ -1,17 +1,40 @@
 ﻿@page "/token"
+@layout EmptyLayout
 @attribute [AllowAnonymous]
 
 <PageTitle>Token!</PageTitle>
 
-<div class="token-form-container">
+<div class="token-backdrop">
     <EditForm EditContext="@EditContext" OnValidSubmit="@GetToken">
         <DataAnnotationsValidator />
-
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-            <FluentTextField @bind-Value="_formModel.Token" Placeholder="Enter token" />
-            <ValidationMessage For="() => _formModel.Token" />
-        </FluentStack>
-
-        <FluentButton Color="Color.Primary" Type="ButtonType.Submit">Submit</FluentButton>
+        <div class="token-form-container">
+            <div class="token-logo">
+                <AspireLogo Height="128" Width="128" />
+            </div>
+            <div class="token-entry-container">
+                <div class="token-entry">
+                    <FluentTextField @ref="_tokenTextField" @bind-Value="_formModel.Token" Placeholder="Enter token..." Class="token-entry-text" />
+                    <FluentIcon id="inlineHelpIcon" Value="@(new Icons.Regular.Size20.QuestionCircle())" />
+                    <FluentTooltip Anchor="inlineHelpIcon" Position="TooltipPosition.Right">
+                        <div class="token-help-container">
+                            <div class="token-help-text">Look for your token in the console output:</div>
+                            <img class="token-help-image" src="/TempScreenshot.png"
+                                 alt="Screenshot of console output showing where to find the dashboard frontend token" />
+                        </div>
+                    </FluentTooltip>
+                </div>
+                <div class="token-entry-footer">
+                    <a href="https://go.microsoft.com/fwlink/?linkid=2265718" target="_blank">More Info</a>
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">Submit</FluentButton>
+                </div>
+            </div>
+            
+            <div class="token-validation">
+                <ValidationMessage For="() => _formModel.Token" />
+            </div>
+        </div>
     </EditForm>
+    <div class="version-info">
+        @s_version
+    </div>
 </div>
