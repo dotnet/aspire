@@ -3,6 +3,7 @@
 
 using System.Text;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
@@ -16,10 +17,20 @@ internal interface IDashboardTokenProvider
 
 internal class DashboardTokenProvider : IDashboardTokenProvider
 {
-    public DashboardTokenProvider(IOptions<TransportOptions> transportOptions)
+    public DashboardTokenProvider(ILogger<DashboardTokenProvider> logger, IOptions<TransportOptions> transportOptions)
     {
-        BrowserToken = transportOptions.Value.BrowserToken ?? GenerateToken();
-        OltpToken = GenerateToken();
+        if (transportOptions.Value.BrowserToken is not { } browserToken)
+        {
+            logger.LogDebug("Browser token was not supplied from environment, will be automatically generated.");
+            BrowserToken = GenerateToken();
+        }
+        else
+        {
+            logger.LogDebug("Browser token was supplied from environment, will not be generated.");
+            BrowserToken = browserToken;
+        }
+
+        DashboardOtlpToken = GenerateToken();
         ResourceServerToken = GenerateToken();
     }
 
@@ -38,6 +49,6 @@ internal class DashboardTokenProvider : IDashboardTokenProvider
     }
 
     public string BrowserToken { get; }
-    public string OltpToken { get; }
+    public string DashboardOtlpToken { get; }
     public string ResourceServerToken { get; }
 }
