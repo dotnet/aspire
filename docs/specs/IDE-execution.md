@@ -141,6 +141,31 @@ Used by DCP to subscribe to run session change notification.
 **Response** <br/>
 If successful, the connection should be upgraded to a web sockets connection, which will be then used by the IDE to stream run session change notifications to DCP. See next paragraph for description of possible change notifications.
 
+### IDE endpoint information request
+
+Used by DCP to get information about capabilities of the IDE run session endpoint. 
+
+**HTTP verb and path** <br/>
+`GET /info`
+
+**Headers** <br/>
+`Authorization: Bearer <security token>`
+
+**Response** <br/>
+A JSON document describing the capabilities of the IDE run session endpoint. For example:
+```jsonc
+{
+    "protocols_supported": [ "2024-03-03" ]
+}
+```
+
+The properties of the IDE endpoint information document are:
+
+| Property | Description | Type |
+| --- | --------- | --- |
+| `protocols_supported` | List of protocols supported by the IDE endpoint. See [protocol versioning](#protocol-versioning) for more information. | `string[]` |
+
+
 ## Run session change notifications
 
 The run session change notifications are delivered from IDE to DCP via the web socket connection. The format of notification is JSON Lines (one JSON object per line of text).
