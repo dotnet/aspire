@@ -194,7 +194,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
         if (!projectsParsed.Task.IsCompletedSuccessfully || !appRunning.Task.IsCompletedSuccessfully)
         {
-            if (BuildEnvironment.IsRunningOnCI)
+            if (BuildEnvironment.IsRunningOnCI || EnvironmentVariables.TestLogPath is not null)
             {
                 CopyDcpLogs();
             }
@@ -334,7 +334,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             }
             await _appHostProcess.WaitForExitAsync();
 
-            if (BuildEnvironment.IsRunningOnCI)
+            if (BuildEnvironment.IsRunningOnCI || EnvironmentVariables.TestLogPath is not null)
             {
                 CopyDcpLogs();
             }
@@ -347,46 +347,54 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             return;
         }
-        string dcpLogPath = Path.Combine(BuildEnvironment.LogRootPath, "dcp");
-        if (!Directory.Exists(dcpLogPath))
-        {
-            Directory.CreateDirectory(dcpLogPath);
-        }
 
-        string dcpSessionDir = Path.Combine(BuildEnvironment.LogRootPath, "dcp-session-dir");
-        if (Directory.Exists(dcpSessionDir))
+        CopyDcpLogs(Path.Combine(BuildEnvironment.LogRootPath, "dcp-diag-logs"), Path.Combine(BuildEnvironment.LogRootPath, "dcp-diag-logs-copy"));
+        CopyDcpLogs(Path.Combine(BuildEnvironment.LogRootPath, "dcp-session-dir"), Path.Combine(BuildEnvironment.LogRootPath, "dcp-session-dir-copy"));
+
+        static void CopyDcpLogs(string srcDir, string dstDir)
         {
-            Console.WriteLine ($"*** Listing files in {dcpSessionDir}");
-            foreach (var f in Directory.EnumerateFiles(dcpSessionDir, "*", SearchOption.AllDirectories))
+            if (!Directory.Exists(dstDir))
             {
-                Console.WriteLine($"- {f}");
+                Directory.CreateDirectory(dstDir);
             }
-        }
-        else
-        {
-            Console.WriteLine ($"*** No dcp session dir found at {dcpSessionDir}");
-        }
 
-        var logFiles = Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_err_*", SearchOption.AllDirectories)
-                        .Concat(Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_out_*", SearchOption.AllDirectories));
-        if (!logFiles.Any())
-        {
-            Console.WriteLine ($"*** No log files found to copy to {dcpLogPath}");
-            return;
-        }
-        foreach (var srcFile in logFiles)
-        {
-            var dstFile = Path.Combine(dcpLogPath, Path.GetFileName(srcFile));
-            try
+            if (Directory.Exists(srcDir))
             {
-                if (File.Exists(dstFile))
+                Console.WriteLine($"*** Listing files in {srcDir}");
+                foreach (var f in Directory.EnumerateFiles(srcDir, "*", SearchOption.AllDirectories))
                 {
-                    continue;
+                    Console.WriteLine($"- {f}");
                 }
-                File.Copy(srcFile, dstFile, overwrite: true);
-                Console.WriteLine ($"Copied {srcFile} to {dstFile}");
-            } catch (IOException ioex) {
-                Console.WriteLine ($"Failed to copy {srcFile} to {dstFile}: {ioex.Message}");
+            }
+            else
+            {
+                Console.WriteLine($"*** No dcp session dir found at {srcDir}");
+            }
+
+            // var logFiles = Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_err_*", SearchOption.AllDirectories)
+            //                 .Concat(Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_out_*", SearchOption.AllDirectories));
+            var logFiles = Directory.EnumerateFiles(srcDir, "*", SearchOption.AllDirectories);
+            if (!logFiles.Any())
+            {
+                Console.WriteLine($"*** No log files found to copy from {srcDir} to {dstDir}");
+                return;
+            }
+            foreach (var srcFile in logFiles)
+            {
+                var dstFile = Path.Combine(dstDir, Path.GetFileName(srcFile));
+                try
+                {
+                    if (File.Exists(dstFile))
+                    {
+                        continue;
+                    }
+                    File.Copy(srcFile, dstFile, overwrite: true);
+                    Console.WriteLine($"Copied {srcFile} to {dstFile}");
+                }
+                catch (IOException ioex)
+                {
+                    Console.WriteLine($"Failed to copy {srcFile} to {dstFile}: {ioex.Message}");
+                }
             }
         }
         _copiedLogs = true;
