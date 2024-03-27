@@ -82,11 +82,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Directory"] = AppHostDirectory
         });
 
-        if (options.AllowUnsecuredTransport)
-        {
-            _innerBuilder.Configuration[KnownConfigNames.AllowUnsecuredTransport] = "true";
-        }
-
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
