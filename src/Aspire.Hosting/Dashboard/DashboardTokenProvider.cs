@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Dashboard;
 internal interface IDashboardTokenProvider
 {
     public string BrowserToken { get; }
-    public string OltpToken { get; }
+    public string DashboardOtlpToken { get; }
     public string ResourceServerToken { get; }
 }
 
