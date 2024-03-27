@@ -414,7 +414,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             resourcesToSkip.Add(nameof(TestResourceNames.oracledatabase));
         }
 
-        resourcesToSkip.Add(nameof(TestResourceNames.dashboard));
+        // resourcesToSkip.Add(nameof(TestResourceNames.dashboard));
 
         return resourcesToSkip;
     }

@@ -147,6 +147,8 @@ public class BuildEnvironment
             string dcpSessionDir = Path.Combine(LogRootPath, "dcp-session-dir");
             EnvVars["DCP_SESSION_FOLDER"] = dcpSessionDir;
             Directory.CreateDirectory(dcpSessionDir);
+            EnvVars["DCP_DIAGNOSTICS_LOG_LEVEL"] = "debug";
+            EnvVars["DCP_DIAGNOSTICS_LOG_FOLDER"] = Path.Combine(LogRootPath, "dcp-diag-logs");
         }
         else
         {

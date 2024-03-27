@@ -216,7 +216,7 @@ public class TestProgram : IDisposable
         }
     }
 
-    private sealed class TestResourceLifecycleHook(/*ResourceNotificationService notificationService, */ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
+    private sealed class TestResourceLifecycleHook(ResourceNotificationService notificationService, ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
     {
         // private readonly CancellationTokenSource _tokenSource = new();
 
@@ -242,6 +242,16 @@ public class TestProgram : IDisposable
                     }
                 }, cancellationToken);
             }
+
+            _ = Task.Run(async () =>
+            {
+                await foreach (var resourceEvent in notificationService.WatchAsync().ConfigureAwait(false))
+                {
+                    IResource resource = resourceEvent.Resource;
+                    CustomResourceSnapshot snapshot = resourceEvent.Snapshot;
+                    Console.WriteLine($"[{resource.Name}] State: {snapshot.State}, ExitCode: {snapshot.ExitCode}, {resourceEvent}");
+                }
+            }, cancellationToken);
 
             await Task.CompletedTask;
         }
