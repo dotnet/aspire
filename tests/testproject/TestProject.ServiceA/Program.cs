@@ -5,6 +5,13 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 
 var builder = WebApplication.CreateBuilder(args);
+string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
+if (logPath is not null)
+{
+    AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+        File.WriteAllText(Path.Combine(logPath, "servicea-exception.log"), eventArgs.ExceptionObject.ToString());
+};
+
 var app = builder.Build();
 
 app.MapGet("/", () => "Hello World!");

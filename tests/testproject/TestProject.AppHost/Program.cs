@@ -10,8 +10,10 @@ _ = Task.Run(async () =>
     var s = Console.ReadLine();
     if (s == "Stop")
     {
+        Console.WriteLine ($"*** Got 'Stop'");
         if (testProgram.App is not null)
         {
+            Console.WriteLine ($"*** \tStopping app");
             await testProgram.App.StopAsync();
         }
     }

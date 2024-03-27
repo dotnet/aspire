@@ -37,10 +37,18 @@ public class TestProgram : IDisposable
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
-        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http");
-        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb", launchProfileName: "http");
-        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http");
-        WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
+        var logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH")
+                        ?? Assembly.GetEntryAssembly()?.Location
+                        ?? Path.GetTempPath();
+
+        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http")
+                                    .WithEnvironment("TEST_LOG_PATH", logPath);
+        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb", launchProfileName: "http")
+                                    .WithEnvironment("TEST_LOG_PATH", logPath);
+        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http")
+                                    .WithEnvironment("TEST_LOG_PATH", logPath);
+        WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera")
+                                    .WithEnvironment("TEST_LOG_PATH", logPath);
 
         if (includeNodeApp)
         {
@@ -118,6 +126,8 @@ public class TestProgram : IDisposable
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
             }
+
+            IntegrationServiceABuilder.WithEnvironment("TEST_LOG_PATH", logPath);
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
@@ -165,6 +175,7 @@ public class TestProgram : IDisposable
     {
         public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
         {
+            Console.WriteLine ($"*** AfterEndpointsAllocatedAsync");
             var root = new JsonObject();
             foreach (var project in appModel.Resources.OfType<ProjectResource>())
             {
