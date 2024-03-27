@@ -47,6 +47,7 @@ public class TestingBuilderTests
     public async Task HttpClientGetTest()
     {
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        appHost.Configuration[KnownEnvironmentVariables.AllowUnsecuredTransport] = "true";
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 

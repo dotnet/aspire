@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class TestingFactoryTests(DistributedApplicationFixtureWithAllowUnsecureTransport<Projects.TestingAppHost1_AppHost> fixture) : IClassFixture<DistributedApplicationFixture<Projects.TestingAppHost1_AppHost>>
+public class TestingFactoryTests(DistributedApplicationFixtureWithAllowUnsecureTransport<Projects.TestingAppHost1_AppHost> fixture) : IClassFixture<DistributedApplicationFixtureWithAllowUnsecureTransport<Projects.TestingAppHost1_AppHost>>
 {
     private readonly DistributedApplication _app = fixture.Application;
 
@@ -53,12 +53,7 @@ public class DistributedApplicationFixtureWithAllowUnsecureTransport<TEntryPoint
 {
     protected override void OnBuilding(DistributedApplicationBuilder applicationBuilder)
     {
-        base.OnBuilding(applicationBuilder);
-    }
-
-    protected override void OnBuilderCreated(DistributedApplicationBuilder applicationBuilder)
-    {
         applicationBuilder.Configuration[KnownEnvironmentVariables.AllowUnsecuredTransport] = "true";
-        base.OnBuilderCreated(applicationBuilder);
+        base.OnBuilding(applicationBuilder);
     }
 }
