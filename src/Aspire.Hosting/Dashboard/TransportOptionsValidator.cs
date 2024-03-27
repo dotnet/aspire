@@ -15,7 +15,7 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Success;
         }
 
-        if (configuration[KnownConfigNames.AspNetCoreUrls] is not { } applicationUrls)
+        if (configuration[KnownConfigNames.AspNetCoreUrls] is not { } applicationUrls || string.IsNullOrEmpty(applicationUrls))
         {
             return ValidateOptionsResult.Fail($"AppHost does not have applicationUrl in launch profile, or {KnownConfigNames.AspNetCoreUrls} environment variable set.");
         }
@@ -27,7 +27,7 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting of the launch profile has value '{firstApplicationUrl}' which could not be parsed as a URI.");
         }
 
-        if (parsedFirstApplicationUrl.Scheme == "http" && !options.AllowUnsecureTransport.GetValueOrDefault(false))
+        if (parsedFirstApplicationUrl.Scheme == "http" && !options.AllowUnsecureTransport)
         {
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
         }

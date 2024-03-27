@@ -82,6 +82,25 @@ public class TransportOptionsValidatorTests
     }
 
     [Fact]
+    public void ValidationFailsWithStringEmptyUrl()
+    {
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var options = new TransportOptions();
+        options.AllowUnsecureTransport = false;
+
+        var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
+        config[KnownConfigNames.AspNetCoreUrls] = string.Empty;
+
+        var validator = new TransportOptionsValidator(config, executionContext);
+        var result = validator.Validate(null, options);
+        Assert.True(result.Failed);
+        Assert.Equal(
+            $"AppHost does not have applicationUrl in launch profile, or {KnownConfigNames.AspNetCoreUrls} environment variable set.",
+            result.FailureMessage
+            );
+    }
+
+    [Fact]
     public void ValidationSucceedsWhenHttpUrlSpecifiedWithAllowSecureTransportSetToTrue()
     {
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
