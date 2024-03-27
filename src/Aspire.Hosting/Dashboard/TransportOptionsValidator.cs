@@ -17,6 +17,7 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Success;
         }
 
+        // Validate ASPNETCORE_URLS
         var applicationUrls = configuration[KnownConfigNames.AspNetCoreUrls];
         if (string.IsNullOrEmpty(applicationUrls))
         {
@@ -30,9 +31,43 @@ internal class TransportOptionsValidator(IConfiguration configuration, Distribut
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting of the launch profile has value '{firstApplicationUrl}' which could not be parsed as a URI.");
         }
 
-        if (parsedFirstApplicationUrl.Scheme == "http" && !effectiveAllowUnsecureTransport)
+        if (parsedFirstApplicationUrl.Scheme == "http")
         {
             return ValidateOptionsResult.Fail($"The 'applicationUrl' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+        }
+
+        // Vaidate DOTNET_DASHBOARD_OTLP_ENDPOINT_URL
+        var dashboardOtlpEndpointUrl = configuration[KnownConfigNames.DashboardOtlpEndpointUrl];
+        if (string.IsNullOrEmpty(dashboardOtlpEndpointUrl))
+        {
+            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.DashboardOtlpEndpointUrl} setting defined.");
+        }
+
+        if (!Uri.TryCreate(dashboardOtlpEndpointUrl, UriKind.Absolute, out var parsedDashboardOtlpEndpointUrl))
+        {
+            return ValidateOptionsResult.Fail($"The {KnownConfigNames.DashboardOtlpEndpointUrl} setting with a value of '{dashboardOtlpEndpointUrl}' could not be parsed as a URI.");
+        }
+
+        if (parsedDashboardOtlpEndpointUrl.Scheme == "http")
+        {
+            return ValidateOptionsResult.Fail($"The '{KnownConfigNames.DashboardOtlpEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+        }
+
+        // Vaidate DOTNET_DASHBOARD_RESOURCE_SERVER_ENDPOINT_URL
+        var resourceServiceEndpointUrl = configuration[KnownConfigNames.ResourceServiceEndpointUrl];
+        if (string.IsNullOrEmpty(resourceServiceEndpointUrl))
+        {
+            return ValidateOptionsResult.Fail($"AppHost does not have the {KnownConfigNames.ResourceServiceEndpointUrl} setting defined.");
+        }
+
+        if (!Uri.TryCreate(resourceServiceEndpointUrl, UriKind.Absolute, out var parsedResourceServiceEndpointUrl))
+        {
+            return ValidateOptionsResult.Fail($"The {KnownConfigNames.ResourceServiceEndpointUrl} setting with a value of '{resourceServiceEndpointUrl}' could not be parsed as a URI.");
+        }
+
+        if (parsedResourceServiceEndpointUrl.Scheme == "http")
+        {
+            return ValidateOptionsResult.Fail($"The '{KnownConfigNames.ResourceServiceEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
         }
 
         return ValidateOptionsResult.Success;
