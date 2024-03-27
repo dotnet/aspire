@@ -131,6 +131,7 @@ public class TestProgram : IDisposable
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
+        AppBuilder.Services.AddLifecycleHook<TestResourceLifecycleHook>();
     }
 
     public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
@@ -151,6 +152,14 @@ public class TestProgram : IDisposable
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         App = AppBuilder.Build();
+        // var notificationService = App.Services.GetService<ResourceNotificationService>();
+        // _ = Task.Run(async () =>
+        // {
+        //     await foreach (ResourceEvent? resourceEvent in notificationService!.WatchAsync().ConfigureAwait(false))
+        //     {
+        //         Console.WriteLine($"Resource {resourceEvent.Resource.Name} is {resourceEvent}");
+        //     }
+        // }, cancellationToken);
         await App.RunAsync(cancellationToken);
     }
 
@@ -204,6 +213,37 @@ public class TestProgram : IDisposable
 
             // write the whole json in a single line so it's easier to parse by the external process
             await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+        }
+    }
+
+    private sealed class TestResourceLifecycleHook(/*ResourceNotificationService notificationService, */ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
+    {
+        // private readonly CancellationTokenSource _tokenSource = new();
+
+        public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+        {
+            foreach (var resource in appModel.Resources)
+            {
+                Console.WriteLine($"Found resource: {resource.Name}, type: {resource.GetType().Name}");
+                if (resource is not ProjectResource && resource is not ContainerResource)
+                {
+                    continue;
+                }
+
+                _ = Task.Run(async () =>
+                {
+                    Console.WriteLine ($"[{resource.Name}] Watching logs...");
+                    await foreach (IReadOnlyList<LogLine> lines in loggerService.WatchAsync(resource).ConfigureAwait(false))
+                    {
+                        foreach (var line in lines)
+                        {
+                            Console.WriteLine($"[{resource.Name}] {(line.IsErrorMessage ? "error" : "info")}: {line.Content}");
+                        }
+                    }
+                }, cancellationToken);
+            }
+
+            await Task.CompletedTask;
         }
     }
 }
