@@ -24,7 +24,7 @@ internal class TransportOptionsValidator(IConfiguration configuration) : IValida
 
         if (parsedFirstApplicationUrl.Scheme == "http" && !options.AllowUnsecureTransport.GetValueOrDefault(false))
         {
-            return ValidateOptionsResult.Fail($"Use of a non-TLS URL in the 'applicationUrl' setting of the launch profile unless the 'ASPIRE_ALLOW_UNSECURED_TRANSPORT' environment variable is set to 'true'. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
+            return ValidateOptionsResult.Fail($"Use of a non-TLS URL in the 'applicationUrl' setting of the launch profile unless the '{KnownEnvironmentVariables.AllowUnsecuredTransport}' environment variable is set to 'true'. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.");
         }
 
         return ValidateOptionsResult.Success;

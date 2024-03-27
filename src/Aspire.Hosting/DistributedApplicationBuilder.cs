@@ -126,7 +126,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private void MapTransportOptionsFromCustomKeys(TransportOptions options)
     {
-        options.AllowUnsecureTransport = Configuration.GetBool(KnownEnvironmentVariables.AllowUnsecuredTransport, false);
+        if (Configuration.GetBool(KnownEnvironmentVariables.AllowUnsecuredTransport) is { } allowUnsecuredTransport)
+        {
+            options.AllowUnsecureTransport = allowUnsecuredTransport;
+        }
     }
 
     private static bool IsOtlpApiKeyAuthDisabled(IConfiguration configuration)
