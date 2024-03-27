@@ -10,7 +10,7 @@ Service discovery uses configured _resolvers_ to resolve service endpoints. When
 
 Resolvers implement the `IServiceEndPointResolver` interface. They are created by an instance of `IServiceEndPointResolverProvider`, which are registered with the [.NET dependency injection](https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection) system.
 
-Developers typically add service discovery to their [`HttpClient`](https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient) using the [`IHttpClientFactory`](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-factory) with the `UseServiceDiscovery` extension method.
+Developers typically add service discovery to their [`HttpClient`](https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient) using the [`IHttpClientFactory`](https://learn.microsoft.com/en-us/dotnet/core/extensions/httpclient-factory) with the `AddServiceDiscovery` extension method.
 
 Services can be resolved directly by calling `ServiceEndPointResolverRegistry`'s `GetEndPointsAsync` method, which returns a collection of resolved endpoints.
 
@@ -48,13 +48,13 @@ In the _Program.cs_ file of your project, call the `AddServiceDiscovery` extensi
 builder.Services.AddServiceDiscovery();
 ```
 
-Add service discovery to an individual `IHttpClientBuilder` by calling the `UseServiceDiscovery` extension method:
+Add service discovery to an individual `IHttpClientBuilder` by calling the `AddServiceDiscovery` extension method:
 
 ```csharp
 builder.Services.AddHttpClient<CatalogServiceClient>(c =>
 {
   c.BaseAddress = new("http://catalog"));
-}).UseServiceDiscovery();
+}).AddServiceDiscovery();
 ```
 
 Alternatively, you can add service discovery to all `HttpClient` instances by default:
@@ -63,7 +63,7 @@ Alternatively, you can add service discovery to all `HttpClient` instances by de
 builder.Services.ConfigureHttpClientDefaults(http =>
 {
     // Turn on service discovery by default
-    http.UseServiceDiscovery();
+    http.AddServiceDiscovery();
 });
 ```
 
@@ -133,12 +133,12 @@ In the case of Azure Container Apps, the service name should match the app name.
 
 ## Load-balancing with endpoint selectors
 
-Each time an endpoint is resolved by the `HttpClient` pipeline, a single endpoint will be selected from the set of all known endpoints for the requested service. If multiple endpoints are available, it may be desirable to balance traffic across all such endpoints. To accomplish this, a customizable _endpoint selector_ can be used. By default, endpoints are selected in round-robin order. To use a different endpoint selector, provide an `IServiceEndPointSelector` instance to the `UseServiceDiscovery` method call. For example, to select a random endpoint from the set of resolved endpoints, specify `RandomServiceEndPointSelector.Instance` as the endpoint selector:
+Each time an endpoint is resolved by the `HttpClient` pipeline, a single endpoint will be selected from the set of all known endpoints for the requested service. If multiple endpoints are available, it may be desirable to balance traffic across all such endpoints. To accomplish this, a customizable _endpoint selector_ can be used. By default, endpoints are selected in round-robin order. To use a different endpoint selector, provide an `IServiceEndPointSelector` instance to the `AddServiceDiscovery` method call. For example, to select a random endpoint from the set of resolved endpoints, specify `RandomServiceEndPointSelector.Instance` as the endpoint selector:
 
 ```csharp
 builder.Services.AddHttpClient<CatalogServiceClient>(
     static client => client.BaseAddress = new("http://catalog"));
-  .UseServiceDiscovery(RandomServiceEndPointSelector.Instance);
+  .AddServiceDiscovery(RandomServiceEndPointSelector.Instance);
 ```
 
 The _Microsoft.Extensions.ServiceDiscovery_ package includes the following endpoint selector providers:
