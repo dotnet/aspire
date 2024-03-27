@@ -198,10 +198,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             {
                 CopyDcpLogs();
             }
-            foreach (var p in Process.GetProcesses())
-            {
-                _testOutput.WriteLine($"Process [{p.Id}]: {p.ProcessName}");
-            }
+            using ToolCommand psCmd = new("/bin/sh", _testOutput, "ps");
+            await psCmd.ExecuteAsync("-c \"ps aux\"");
+
+            // foreach (var p in Process.GetProcesses())
+            // {
+            //     _testOutput.WriteLine($"Process [{p.Id}]: {p.ProcessName}");
+            // }
         }
         Assert.True(resultTask == successfulTask, $"App run failed (got endpoints: {projectsParsed.Task.IsCompletedSuccessfully}, got app-started: {appRunning.Task.IsCompletedSuccessfully}: {Environment.NewLine}{outputMessage}");
 
