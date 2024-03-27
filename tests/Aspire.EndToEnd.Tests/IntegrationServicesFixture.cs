@@ -336,6 +336,20 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             Directory.CreateDirectory(dcpLogPath);
         }
 
+        string dcpSessionDir = Path.Combine(BuildEnvironment.LogRootPath, "dcp-session-dir");
+        if (Directory.Exists(dcpSessionDir))
+        {
+            Console.WriteLine ($"*** Listing files in {dcpSessionDir}");
+            foreach (var f in Directory.EnumerateFiles(dcpSessionDir, "*", SearchOption.AllDirectories))
+            {
+                Console.WriteLine($"- {f}");
+            }
+        }
+        else
+        {
+            Console.WriteLine ($"*** No dcp session dir found at {dcpSessionDir}");
+        }
+
         var logFiles = Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_err_*", SearchOption.AllDirectories)
                         .Concat(Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_out_*", SearchOption.AllDirectories));
         if (!logFiles.Any())
