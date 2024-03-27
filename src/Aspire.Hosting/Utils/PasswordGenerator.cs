@@ -55,8 +55,8 @@ internal static class PasswordGenerator
     /// log base 2 [67^x * 23^a * 23^b * 10^c * 11^d * (a + b + c + d)! / (a! * b! * c! * d!)]
     /// </remarks>
     public static string Generate(int minLength,
-        bool lower, bool upper, bool numeric, bool special,
-        int minLower, int minUpper, int minNumeric, int minSpecial)
+        bool lower = true, bool upper = true, bool numeric = true, bool special = true,
+        int minLower = 0, int minUpper = 0, int minNumeric = 0, int minSpecial = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(minLength);
         ArgumentOutOfRangeException.ThrowIfNegative(minLower);

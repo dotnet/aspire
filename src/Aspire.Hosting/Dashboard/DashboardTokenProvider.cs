@@ -25,9 +25,15 @@ internal class DashboardTokenProvider : IDashboardTokenProvider
 
     private static string GenerateToken()
     {
-        var rawToken = PasswordGenerator.Generate(24, true, true, true, true, 0, 0, 0, 0);
+        var rawToken = PasswordGenerator.Generate(24);
         var rawTokenBytes = Encoding.UTF8.GetBytes(rawToken);
+
+#if NET9_0_OR_GREATER
+        var encodedToken = Convert.ToHexStringLower(rawTokenBytes);
+#else
         var encodedToken = Convert.ToHexString(rawTokenBytes).ToLower();
+#endif
+
         return encodedToken;
     }
 
