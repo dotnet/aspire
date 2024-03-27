@@ -2,10 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 var builder = DistributedApplication.CreateBuilder(args);
 
-var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
-{
-    container.WithDataBindMount();
-});
+builder.AddAzureProvisioning();
+
+var storage = builder.AddAzureStorage("storage");
 
 var blobs = storage.AddBlobs("blobs");
 
