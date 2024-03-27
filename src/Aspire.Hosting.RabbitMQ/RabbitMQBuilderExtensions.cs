@@ -46,7 +46,7 @@ public static class RabbitMQBuilderExtensions
         {
             // Configure for management plugin
             rabbitmq.WithImage(RabbitMQContainerImageTags.Image, RabbitMQContainerImageTags.TagMangement)
-                    .WithHttpEndpoint(containerPort: 15672, name: RabbitMQServerResource.MangementEndpointName);
+                    .WithHttpEndpoint(containerPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
         }
         else
         {
