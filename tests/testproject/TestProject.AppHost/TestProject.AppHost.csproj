@@ -8,6 +8,10 @@
     <IsAspireHost>true</IsAspireHost>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Include="$(SharedDir)KnownEnvironmentVariables.cs" Link="Utils\KnownEnvironmentVariables.cs" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.CosmosDB\Aspire.Hosting.Azure.CosmosDB.csproj" IsAspireProjectResource="false" />
