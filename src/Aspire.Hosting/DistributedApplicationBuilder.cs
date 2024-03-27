@@ -8,6 +8,7 @@ using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -170,7 +171,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Configuration.AddInMemoryCollection(
                     new Dictionary<string, string?>
                     {
-                        ["AppHost:OtlpApiKey"] = Guid.NewGuid().ToString()
+                        ["AppHost:OtlpApiKey"] = TokenGenerator.GenerateToken()
                     }
                 );
             }
