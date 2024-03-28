@@ -40,7 +40,8 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     Urls = snapshot.Urls,
                     Environment = snapshot.EnvironmentVariables,
                     ExitCode = snapshot.ExitCode,
-                    State = snapshot.State
+                    State = snapshot.State?.Text,
+                    StateStyle = snapshot.State?.Style,
                 };
             }
 

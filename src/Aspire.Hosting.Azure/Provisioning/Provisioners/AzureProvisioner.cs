@@ -81,12 +81,6 @@ internal sealed class AzureProvisioner(
                                                   .ToLookup(x => x.Root, x => x.Child);
 
         // Sets the state of the resource and all of its children
-        Task SetStateAsync(IAzureResource resource, string state) =>
-            UpdateStateAsync(resource, s => s with
-            {
-                State = state
-            });
-
         async Task UpdateStateAsync(IAzureResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
         {
             await notificationService.PublishUpdateAsync(resource, stateFactory).ConfigureAwait(false);
@@ -104,11 +98,19 @@ internal sealed class AzureProvisioner(
             {
                 await resource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
 
-                await SetStateAsync(resource, "Running").ConfigureAwait(false);
+                await UpdateStateAsync(resource, s => s with
+                {
+                    State = new("Running", KnownResourceStateStyles.Success)
+                })
+                .ConfigureAwait(false);
             }
             catch (Exception)
             {
-                await SetStateAsync(resource, "FailedToStart").ConfigureAwait(false);
+                await UpdateStateAsync(resource, s => s with
+                {
+                    State = new("Failed to Provision", KnownResourceStateStyles.Error)
+                })
+                .ConfigureAwait(false);
             }
         }
 
@@ -117,7 +119,11 @@ internal sealed class AzureProvisioner(
         {
             r.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await SetStateAsync(r, "Starting").ConfigureAwait(false);
+            await UpdateStateAsync(r, s => s with
+            {
+                State = new("Starting", KnownResourceStateStyles.Info)
+            })
+            .ConfigureAwait(false);
 
             // After the resource is provisioned, set its state
             _ = AfterProvisionAsync(r);
