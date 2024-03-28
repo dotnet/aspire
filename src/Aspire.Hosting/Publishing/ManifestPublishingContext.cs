@@ -277,6 +277,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
                 Writer.WriteString("transport", endpoint.Transport);
 
+                if (endpoint.Port is { } port)
+                {
+                    Writer.WriteNumber("port", port);
+                }
+
                 if (emitContainerPort && endpoint.ContainerPort is { } containerPort)
                 {
                     Writer.WriteNumber("containerPort", containerPort);
