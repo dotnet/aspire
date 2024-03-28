@@ -59,7 +59,7 @@ public class AddSqlServerTests
     public async Task SqlServerCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass1";
+        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder
@@ -73,7 +73,7 @@ public class AddSqlServerTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=pass1;TrustServerCertificate=true", connectionString);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true", connectionString);
         Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -81,7 +81,7 @@ public class AddSqlServerTests
     public async Task SqlServerDatabaseCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass2";
+        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder
@@ -97,7 +97,7 @@ public class AddSqlServerTests
         var connectionStringResource = (IResourceWithConnectionString)sqlResource;
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=pass2;TrustServerCertificate=true;Database=mydb", connectionString);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=mydb", connectionString);
         Assert.Equal("{sqlserver.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
