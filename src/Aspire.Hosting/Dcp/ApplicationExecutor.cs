@@ -97,6 +97,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
+        Console.WriteLine ($"*** RunApplicationAsync ENTER");
 
         _dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
 
@@ -120,13 +121,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             PrepareContainers();
             PrepareExecutables();
 
+            Console.WriteLine ($"*** Ready to call PublishResourcesWithInitialStateAsync");
             await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
 
+            Console.WriteLine ($"*** Ready to call WatchResourceChanges");
             // Watch for changes to the resource state.
             WatchResourceChanges(cancellationToken);
 
+            Console.WriteLine ($"*** Ready to call CreateServicesAsync");
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
+            Console.WriteLine ($"*** Ready to call CreateContainersAndExecutablesAsync");
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
             Console.WriteLine ($"*** Ready to call AfterResourcesCreatedAsync");
@@ -1408,6 +1413,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PrepareContainers()
     {
+        Console.WriteLine ($"*** PrepareContainers");
         var modelContainerResources = _model.GetContainerResources();
 
         foreach (var container in modelContainerResources)
