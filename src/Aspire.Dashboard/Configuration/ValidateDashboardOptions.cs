@@ -17,14 +17,23 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             errorMessages.Add(frontendParseErrorMessage);
         }
 
+        switch (options.Frontend.AuthMode)
+        {
+            case FrontendAuthMode.Unsecured:
+                break;
+            case FrontendAuthMode.OpenIdConnect:
+                break;
+            case null:
+                errorMessages.Add($"Frontend endpoint authentication is not configured. Either specify {DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey}=true, or specify {DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(FrontendAuthMode).GetEnumNames())}");
+                break;
+            default:
+                errorMessages.Add($"Unexpected frontend authentication mode: {options.Otlp.AuthMode}");
+                break;
+        }
+
         if (!options.Otlp.TryParseOptions(out var otlpParseErrorMessage))
         {
             errorMessages.Add(otlpParseErrorMessage);
-        }
-
-        if (!options.ResourceServiceClient.TryParseOptions(out var resourceServiceClientParseErrorMessage))
-        {
-            errorMessages.Add(resourceServiceClientParseErrorMessage);
         }
 
         switch (options.Otlp.AuthMode)
@@ -47,18 +56,9 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                 break;
         }
 
-        switch (options.Frontend.AuthMode)
+        if (!options.ResourceServiceClient.TryParseOptions(out var resourceServiceClientParseErrorMessage))
         {
-            case FrontendAuthMode.Unsecured:
-                break;
-            case FrontendAuthMode.OpenIdConnect:
-                break;
-            case null:
-                errorMessages.Add($"Frontend endpoint authentication is not configured. Either specify {DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey}=true, or specify {DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(FrontendAuthMode).GetEnumNames())}");
-                break;
-            default:
-                errorMessages.Add($"Unexpected frontend authentication mode: {options.Otlp.AuthMode}");
-                break;
+            errorMessages.Add(resourceServiceClientParseErrorMessage);
         }
 
         if (options.ResourceServiceClient.GetUri() != null)
