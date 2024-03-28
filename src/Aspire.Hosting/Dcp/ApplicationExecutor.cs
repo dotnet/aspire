@@ -129,7 +129,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
-            //Console.WriteLine ($"*** Ready to call AfterResourcesCreatedAsync");
+            Console.WriteLine ($"*** Ready to call AfterResourcesCreatedAsync");
             foreach (var lifecycleHook in _lifecycleHooks)
             {
                 await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
@@ -895,16 +895,24 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
-        //Console.WriteLine ($"*** CreateContainersAndExecutablesAsync");
+        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync");
+        foreach (var res in _appResources)
+        {
+            Console.WriteLine ($"*** \tCreateContainersAndExecutableAsync: {res.DcpResource.Metadata.Name}: {res.DcpResource.Kind}, type: {res.DcpResource.GetType()}");
+        }
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
+        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync: Ready to call AfterEndpointsAllocatedAsync");
         foreach (var lifecycleHook in _lifecycleHooks)
         {
+            Console.WriteLine ($"\t*** \tCreateContainersAndExecutablesAsync: lifecycleHook: {lifecycleHook.GetType()}");
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
         }
 
+        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync: Ready to call CreateContainers");
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
+        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync: Ready to call CreateExecutables");
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken);
 
         await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
@@ -917,10 +925,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var appResource in resources)
         {
-            //Console.WriteLine ($"*** \t{appResource.DcpResource.Metadata.Name}");
+            Console.WriteLine ($"*** \t{appResource.DcpResource.Metadata.Name}");
             foreach (var sp in appResource.ServicesProduced)
             {
-                //Console.WriteLine ($"*** \t\t{sp.EndpointAnnotation.Name}");
+                Console.WriteLine ($"*** \t\t{sp.EndpointAnnotation.Name}");
                 var svc = (Service)sp.DcpResource;
 
                 if (!svc.HasCompleteAddress && sp.EndpointAnnotation.IsProxied)
