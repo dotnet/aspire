@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class TestingFactoryTests(DistributedApplicationFixtureWithAllowUnsecureTransport<Projects.TestingAppHost1_AppHost> fixture) : IClassFixture<DistributedApplicationFixtureWithAllowUnsecureTransport<Projects.TestingAppHost1_AppHost>>
+public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingAppHost1_AppHost> fixture) : IClassFixture<DistributedApplicationFixture<Projects.TestingAppHost1_AppHost>>
 {
     private readonly DistributedApplication _app = fixture.Application;
 
@@ -46,14 +46,5 @@ public class TestingFactoryTests(DistributedApplicationFixtureWithAllowUnsecureT
     private sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
     {
         public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
-}
-
-public class DistributedApplicationFixtureWithAllowUnsecureTransport<TEntryPoint> : DistributedApplicationFixture<TEntryPoint> where TEntryPoint: class
-{
-    protected override void OnBuilding(DistributedApplicationBuilder applicationBuilder)
-    {
-        applicationBuilder.Configuration[KnownConfigNames.AllowUnsecuredTransport] = "true";
-        base.OnBuilding(applicationBuilder);
     }
 }
