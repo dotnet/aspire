@@ -162,7 +162,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             // NOTE: Telemetry is enabled by default.
             if (this._options.EnableTelemetry != false)
             {
-                OtlpConfigurationExtensions.AddOtlpEnvironment(daprCli, _configuration, _environment);
+                OtlpConfigurationExtensions.AddOtlpEnvironment(appModel.Resources,  daprCli, _environment);
             }
 
             daprCli.Annotations.Add(

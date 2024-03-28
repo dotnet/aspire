@@ -5,5 +5,5 @@ namespace Aspire.Hosting;
 
 internal static class KnownResourceNames
 {
-    public static string AspireDashboard => "aspire-dashboard";
+    public const string AspireDashboard = "aspire-dashboard";
 }

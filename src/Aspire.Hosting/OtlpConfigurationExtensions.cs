@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -12,16 +11,13 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class OtlpConfigurationExtensions
 {
-    private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
-    private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
-
     /// <summary>
     /// Configures OpenTelemetry in projects using environment variables.
     /// </summary>
+    /// <param name="resources">The set of resources in the model.</param>
     /// <param name="resource">The resource to add annotations to.</param>
-    /// <param name="configuration">The configuration to use for the OTLP exporter endpoint URL.</param>
     /// <param name="environment">The host environment to check if the application is running in development mode.</param>
-    public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment)
+    public static void AddOtlpEnvironment(IResourceCollection resources, IResource resource, IHostEnvironment environment)
     {
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
@@ -34,14 +30,30 @@ public static class OtlpConfigurationExtensions
                 return;
             }
 
-            var url = configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
-            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = new HostUrl(url);
+            var otlpServer = (from r in resources
+                              let otlpServerAnnotation = r.TryGetLastAnnotation<OtlpServerResourceAnnotation>(out var annotation) ? annotation : null
+                              where otlpServerAnnotation is not null
+                              select otlpServerAnnotation).FirstOrDefault();
+
+            if (otlpServer is null)
+            {
+                return;
+            }
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";
 
-            if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+            if (otlpServer.GrpcEndpoint is not null)
+            {
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpServer.GrpcEndpoint;
+            }
+            else if (otlpServer.GrpcUrl is { } otlpGrpcUrl)
+            {
+                context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlpGrpcUrl;
+            }
+
+            if (otlpServer.ApiKey is { } otlpApiKey)
             {
                 context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={otlpApiKey}";
             }
@@ -69,7 +81,7 @@ public static class OtlpConfigurationExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithOtlpExporter<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
     {
-        AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
+        AddOtlpEnvironment(builder.ApplicationBuilder.Resources, builder.Resource, builder.ApplicationBuilder.Environment);
         return builder;
     }
 }

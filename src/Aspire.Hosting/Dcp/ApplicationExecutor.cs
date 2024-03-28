@@ -94,6 +94,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private string DefaultContainerHostName => configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
 
+    private bool ShowAspireDashboardResource => configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is true;
+
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
@@ -109,7 +111,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 if (_model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not { } dashboardResource)
                 {
                     // No dashboard is specified, so start one.
-                    await StartDashboardAsDcpExecutableAsync(cancellationToken).ConfigureAwait(false);
+                    StartDashboardAsDcpExecutable();
                 }
                 else
                 {
@@ -517,6 +519,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         var urls = GetUrls(executable);
 
+        var state = (executable.AppModelResourceName, ShowAspireDashboardResource) switch
+        {
+            (KnownResourceNames.AspireDashboard, false) => "Hidden",
+            _ => executable.Status?.State
+        };
+
         var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
 
         if (projectPath is not null)
@@ -524,7 +532,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             return previous with
             {
                 ResourceType = KnownResourceTypes.Project,
-                State = executable.Status?.State,
+                State = state,
                 ExitCode = executable.Status?.ExitCode,
                 Properties = [
                     new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
@@ -542,7 +550,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return previous with
         {
             ResourceType = KnownResourceTypes.Executable,
-            State = executable.Status?.State,
+            State = state,
             ExitCode = executable.Status?.ExitCode,
             Properties = [
                 new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
@@ -694,16 +702,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
         {
-            var env = await GetDashboardEnvironmentVariablesAsync(configuration, defaultDashboardUrl: null, context.CancellationToken).ConfigureAwait(false);
-
-            foreach (var e in env)
-            {
-                context.EnvironmentVariables[e.Key] = e.Value;
-            }
+            await SetDashboardEnvironmentVariablesAsync(configuration, context).ConfigureAwait(false);
         }));
     }
 
-    private async Task StartDashboardAsDcpExecutableAsync(CancellationToken cancellationToken = default)
+    private void StartDashboardAsDcpExecutable()
     {
         if (!distributedApplicationOptions.DashboardEnabled)
         {
@@ -725,42 +728,43 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             WorkingDirectory = dashboardWorkingDirectory
         };
 
+        ExecutableResource executable;
+
         if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
         {
             // The dashboard path is a DLL, so run it with `dotnet <dll>`
-            dashboardExecutableSpec.ExecutablePath = "dotnet";
-            dashboardExecutableSpec.Args = [fullyQualifiedDashboardPath];
+            executable = new ExecutableResource(KnownResourceNames.AspireDashboard, "dotnet", dashboardWorkingDirectory ?? "");
+            executable.Annotations.Add(new CommandLineArgsCallbackAnnotation(context =>
+            {
+                context.Add(fullyQualifiedDashboardPath);
+            }));
         }
         else
         {
             // Assume the dashboard path is directly executable
             dashboardExecutableSpec.ExecutablePath = fullyQualifiedDashboardPath;
+            executable = new ExecutableResource(KnownResourceNames.AspireDashboard, fullyQualifiedDashboardPath, dashboardWorkingDirectory ?? "");
         }
 
+        // Mark it hidden
+        executable.Annotations.Add(new ResourceSnapshotAnnotation(new()
+        {
+            Properties = [],
+            ResourceType = "Dashboard",
+            State = "Hidden"
+        }));
+
+        ConfigureAspireDashboardResource(executable);
+
+        _model.Resources.Insert(0, executable);
+        _applicationModel[KnownResourceNames.AspireDashboard] = executable;
+    }
+
+    private async Task SetDashboardEnvironmentVariablesAsync(IConfiguration configuration, EnvironmentCallbackContext context)
+    {
         // Matches DashboardWebApplication.DashboardUrlDefaultValue
         const string defaultDashboardUrl = "http://localhost:18888";
 
-        var env = await GetDashboardEnvironmentVariablesAsync(configuration, defaultDashboardUrl: defaultDashboardUrl, cancellationToken).ConfigureAwait(false);
-
-        dashboardExecutableSpec.Env = [];
-        foreach (var e in env)
-        {
-            dashboardExecutableSpec.Env.Add(new() { Name = e.Key, Value = e.Value });
-        }
-
-        var dashboardExecutable = new Executable(dashboardExecutableSpec)
-        {
-            Metadata = { Name = KnownResourceNames.AspireDashboard }
-        };
-
-        await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-
-        var dashboardUrls = env.Single(e => e.Key == DashboardConfigNames.DashboardFrontendUrlName.EnvVarName).Value;
-        PrintDashboardUrls(dashboardUrls);
-    }
-
-    private async Task<List<KeyValuePair<string, string>>> GetDashboardEnvironmentVariablesAsync(IConfiguration configuration, string? defaultDashboardUrl, CancellationToken cancellationToken)
-    {
         var dashboardUrls = configuration["ASPNETCORE_URLS"] ?? defaultDashboardUrl;
         if (string.IsNullOrEmpty(dashboardUrls))
         {
@@ -772,28 +776,26 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
         }
 
-        var resourceServiceUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        var resourceServiceUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
 
-        var env = new List<KeyValuePair<string, string>>
-        {
-            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendUrlName.EnvVarName, dashboardUrls),
-            KeyValuePair.Create(DashboardConfigNames.ResourceServiceUrlName.EnvVarName, resourceServiceUrl),
-            KeyValuePair.Create(DashboardConfigNames.DashboardOtlpUrlName.EnvVarName, otlpEndpointUrl),
-            KeyValuePair.Create(DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName, "Unsecured"),
-            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "Unsecured"),
-        };
+        var environment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
+
+        context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
+        context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = dashboardUrls;
+        context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
+        context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpUrlName.EnvVarName] = otlpEndpointUrl;
+        context.EnvironmentVariables[DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName] = "Unsecured";
+        context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "Unsecured";
 
         if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
         {
-            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "ApiKey"));
-            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName, otlpApiKey));
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "ApiKey";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName] = otlpApiKey;
         }
         else
         {
-            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "Unsecured"));
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
         }
-
-        return env;
     }
 
     private void PrintDashboardUrls(string delimitedUrlList)
