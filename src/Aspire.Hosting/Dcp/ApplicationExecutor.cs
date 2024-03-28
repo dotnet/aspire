@@ -873,11 +873,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 return;
             }
 
-            Console.WriteLine ($"*** CreateServicesAsync: needAddressAllocated services: {needAddressAllocated.Count}");
-            foreach (var svc in needAddressAllocated)
-            {
-                Console.WriteLine ($"\t*** CreateServicesAsync: needAddressAllocated: {svc.Service.Metadata.Name}");
-            }
+            Console.WriteLine ($"*** CreateServicesAsync: needAddressAllocated services: {needAddressAllocated.Count}: {string.Join(',', needAddressAllocated.Select(r => r.Service.Metadata.Name))}");
 
             Console.WriteLine ($"*** CreateServicesAsync: Ready to call WatchAsync");
 
@@ -899,7 +895,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     srvResource.Service.ApplyAddressInfoFrom(updated);
                     needAddressAllocated.Remove(srvResource);
                     Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: {updated.Metadata.Name} has full address information.");
-                    Console.WriteLine ($"\t\t*** remaining needAddressAllocated: {string.Join(',', needAddressAllocated.Select(r => r.Service.Metadata.Name))}");
+                    Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: remaining needAddressAllocated: {string.Join(',', needAddressAllocated.Select(r => r.Service.Metadata.Name))}");
                 }
                 else
                 {
