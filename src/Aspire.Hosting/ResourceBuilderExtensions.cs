@@ -131,14 +131,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(async context =>
         {
-            var connectionString = await sourceBuilder.Resource.GetConnectionStringAsync().ConfigureAwait(true);
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new DistributedApplicationException($"A connection string for '{sourceBuilder.Resource.Name}' could not be retrieved.");
-            }
-
-            context.EnvironmentVariables[envVarName] = connectionString;
+            context.EnvironmentVariables[envVarName] = new ConnectionStringReference(sourceBuilder.Resource, optional: false);
         });
     }
 
