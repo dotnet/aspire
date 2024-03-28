@@ -9,4 +9,4 @@ namespace Aspire.Hosting.AWS.CDK;
 ///
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public delegate T ConstructBuilderDelegate<out T>(Construct app) where T : Construct;
+public delegate T ConstructBuilderDelegate<out T>(Construct scope) where T : Construct;

@@ -18,12 +18,16 @@ internal sealed class ConstructOutputAnnotation<T>(string name, ConstructOutputD
 
     public void ChangeConstruct(Construct construct)
     {
-        var target = (T)construct;
-        _ = new CfnOutput(construct, Name, new CfnOutputProps
+        if (construct is not Stack stack)
         {
-            Value = output(target),
+            stack = construct.Node.Scopes.OfType<Stack>().FirstOrDefault() ?? throw new InvalidOperationException("Construct is not part of a Stack");
+        }
+
+        _ = new CfnOutput(stack, Name, new CfnOutputProps
+        {
+            Key = $"{construct.StackUniqueId()}{Name}",
+            Value = output((T)construct),
             Description = Description,
-            ExportName = ExportName ?? $"{construct.Node.Id}::{Name}"
         });
     }
 }

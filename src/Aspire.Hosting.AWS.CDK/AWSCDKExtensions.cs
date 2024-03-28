@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CDK;
 using Aspire.Hosting.Lifecycle;
 using Constructs;
-using InvalidOperationException = Amazon.CloudFormation.Model.InvalidOperationException;
 
 namespace Aspire.Hosting;
 
@@ -135,9 +134,10 @@ public static class AWSCDKExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource> constructResourceBuilder, string configSection = "AWS::Resources")
         where TDestination : IResourceWithEnvironment
     {
+        var constructId = constructResourceBuilder.Resource.Construct.StackUniqueId();
         var stackResourceBuilder = constructResourceBuilder.FindResourceBuilder<IStackResource>();
         return stackResourceBuilder is null
             ? throw new InvalidOperationException("No IStackResource found for Construct")
-            : builder.WithReference(stackResourceBuilder, configSection);
+            : builder.WithReference(stackResourceBuilder, configSection, output => output.OutputKey.StartsWith(constructId), output => output.OutputKey.TrimStart(constructId));
     }
 }

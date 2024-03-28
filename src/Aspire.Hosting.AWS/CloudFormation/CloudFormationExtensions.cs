@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Amazon.CloudFormation;
+using Amazon.CloudFormation.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CloudFormation;
@@ -129,8 +130,12 @@ public static class CloudFormationExtensions
     /// <param name="builder"></param>
     /// <param name="cloudFormationResourceBuilder">The CloudFormation resource.</param>
     /// <param name="configSection">The config section in IConfiguration to add the output parameters.</param>
+    /// <param name="filter"></param>
+    /// <param name="keySelector"></param>
     /// <returns></returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = "AWS::Resources")
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = "AWS::Resources",
+        Func<Output, bool>? filter = null,
+        Func<Output, string>? keySelector = null)
         where TDestination : IResourceWithEnvironment
     {
         cloudFormationResourceBuilder.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
@@ -154,10 +159,15 @@ public static class CloudFormationExtensions
             }
 
             configSection = configSection.Replace(':', '_');
-
-            foreach (var output in cloudFormationResourceBuilder.Resource.Outputs)
+            var outputs = cloudFormationResourceBuilder.Resource.Outputs;
+            if (filter != null)
             {
-                var envName = $"{configSection}__{output.ExportName?.Replace(':', '_') ?? output.OutputKey}";
+                outputs = outputs.Where(filter).ToList();
+            }
+            foreach (var output in outputs)
+            {
+                var key = keySelector != null ? keySelector(output) : output.OutputKey;
+                var envName = $"{configSection}__{key}";
                 context.EnvironmentVariables[envName] = output.OutputValue;
             }
         });
