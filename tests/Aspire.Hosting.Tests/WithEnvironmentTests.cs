@@ -186,11 +186,17 @@ public class WithEnvironmentTests
         targetBuilder.WithEnvironment(envVarName, sourceBuilder);
         testProgram.Build();
 
-        // Call environment variable callbacks with the Publish operation.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(targetBuilder.Resource, DistributedApplicationOperation.Publish);
+        // Call environment variable callbacks for the Run operation.
+        var runConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(targetBuilder.Resource, DistributedApplicationOperation.Run);
 
         // Assert
-        Assert.Single(config, kvp => kvp.Key == envVarName && kvp.Value == "{sourceService.connectionString}");
+        Assert.Single(runConfig, kvp => kvp.Key == envVarName && kvp.Value == sourceCon);
+
+        // Call environment variable callbacks for the Publish operation.
+        var publishConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(targetBuilder.Resource, DistributedApplicationOperation.Publish);
+
+        // Assert
+        Assert.Single(publishConfig, kvp => kvp.Key == envVarName && kvp.Value == "{sourceService.connectionString}");
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
