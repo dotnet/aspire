@@ -44,7 +44,7 @@ public partial class Token : IAsyncDisposable
             var state = await authStateTask;
             if (state.User.Identity?.IsAuthenticated ?? false)
             {
-                NavigationManager.NavigateTo(ReturnUrl ?? "/", forceLoad: true);
+                NavigationManager.NavigateTo(GetRedirectUrl(), forceLoad: true);
                 return;
             }
         }
@@ -84,7 +84,7 @@ public partial class Token : IAsyncDisposable
         {
             if (success)
             {
-                NavigationManager.NavigateTo(ReturnUrl ?? "/", forceLoad: true);
+                NavigationManager.NavigateTo(GetRedirectUrl(), forceLoad: true);
                 return;
             }
             else
@@ -97,6 +97,11 @@ public partial class Token : IAsyncDisposable
             Logger.LogWarning("Unexpected result from validateToken: {Result}", result);
             _validationFailedMessage = Loc[nameof(Dashboard.Resources.Token.UnexpectedValidationError)];
         }
+    }
+
+    private string GetRedirectUrl()
+    {
+        return ReturnUrl ?? DashboardUrls.ResourcesUrl();
     }
 
     public async ValueTask DisposeAsync()

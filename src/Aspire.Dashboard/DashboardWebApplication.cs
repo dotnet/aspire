@@ -12,6 +12,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Certificate;
@@ -225,17 +226,21 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
 
-        _app.MapGet("/validate-token", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
+        _app.MapPost("/api/validate-token", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
         {
-            if (string.IsNullOrEmpty(token) || token != dashboardOptions.CurrentValue.Frontend.BrowserToken)
+            if (string.IsNullOrEmpty(token) || dashboardOptions.CurrentValue.Frontend.GetBrowserTokenBytes() is not { } browserTokenBytes)
             {
                 return false;
             }
 
-            var claimsIdentity = new ClaimsIdentity(new List<Claim>
+            if (!CompareHelpers.CompareKey(browserTokenBytes, token))
             {
-                new Claim(ClaimTypes.NameIdentifier, "Local")
-            }, authenticationType: CookieAuthenticationDefaults.AuthenticationScheme);
+                return false;
+            }
+
+            var claimsIdentity = new ClaimsIdentity(
+                [new Claim(ClaimTypes.NameIdentifier, "Local")],
+                authenticationType: CookieAuthenticationDefaults.AuthenticationScheme);
             var claims = new ClaimsPrincipal(claimsIdentity);
 
             await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claims).ConfigureAwait(false);

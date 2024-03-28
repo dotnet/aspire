@@ -1,4 +1,9 @@
 export async function validateToken(token) {
-    var response = await fetch(`/validate-token?token=${encodeURIComponent(token)}`);
-    return response.text();
+    try {
+        var url = `/api/validate-token?token=${encodeURIComponent(token)}`;
+        var response = await fetch(url, { method: 'POST' });
+        return response.text();
+    } catch (ex) {
+        return `Error validating token: ${ex}`;
+    }
 }
