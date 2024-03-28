@@ -36,7 +36,7 @@ public static class RabbitMQBuilderExtensions
         var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, passwordParameter);
         var rabbitmq = builder.AddResource(rabbitMq)
                               .WithImage(RabbitMQContainerImageTags.Image, RabbitMQContainerImageTags.Tag)
-                              .WithEndpoint(hostPort: port, containerPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
+                              .WithEndpoint(port: port, targetPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
                               .WithEnvironment(context =>
                               {
                                   context.EnvironmentVariables["RABBITMQ_DEFAULT_USER"] = rabbitMq.UserNameReference;
@@ -127,7 +127,7 @@ public static class RabbitMQBuilderExtensions
 
         if (handled)
         {
-            builder.WithHttpEndpoint(containerPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
+            builder.WithHttpEndpoint(targetPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
             return builder;
         }
 
