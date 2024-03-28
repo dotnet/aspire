@@ -146,17 +146,17 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
                         var http = daprCli.GetEndpoint("http");
                         var grpc = daprCli.GetEndpoint("grpc");
-
+                        
                         context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", grpc);
                         context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", http);
                     }));
 
-            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
-            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
-            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort, uriScheme: "http"));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort, uriScheme: "http"));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort, uriScheme: "http"));
             if (sidecarOptions?.EnableProfiling == true)
             {
-                daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
+                daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort, uriScheme: "http"));
             }
 
             // NOTE: Telemetry is enabled by default.
@@ -174,7 +174,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         EndpointReference? httpEndPoint = null;
                         if (resource is IResourceWithEndpoints resourceWithEndpoints)
                         {
-                            httpEndPoint = resourceWithEndpoints.GetEndpoint("http");
+                            var endpointName = sidecarOptions?.AppProtocol ?? "http";
+                            httpEndPoint = resourceWithEndpoints.GetEndpoint(endpointName.ToLower());
 
                             if (httpEndPoint.IsAllocated && sidecarOptions?.AppPort is null)
                             {
