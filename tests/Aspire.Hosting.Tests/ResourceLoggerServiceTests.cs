@@ -33,8 +33,8 @@ public class ResourceLoggerServiceTests
 
         var backlog = service.WatchAsync(testResource).ToBlockingEnumerable().SelectMany(x => x).ToList();
 
-        // the backlog should be cleared since the first enumeration was complete and there are no more subscribers
-        Assert.Empty(backlog);
+        Assert.Equal("Hello, world!", backlog[0].Content);
+        Assert.Equal("Hello, error!", backlog[1].Content);
     }
 
     [Fact]
@@ -60,8 +60,11 @@ public class ResourceLoggerServiceTests
         Assert.DoesNotContain("Hello, again!", allLogs.Select(x => x.Content));
 
         await using var backlogEnumerator = service.WatchAsync(testResource).GetAsyncEnumerator();
+        Assert.True(await backlogEnumerator.MoveNextAsync());
+        Assert.Equal("Hello, world!", backlogEnumerator.Current[0].Content);
+        Assert.Equal("Hello, error!", backlogEnumerator.Current[1].Content);
 
-        // We're done because the backlog was cleared after the last subscriber was done.
+        // We're done
         Assert.False(await backlogEnumerator.MoveNextAsync());
     }
 
@@ -100,9 +103,11 @@ public class ResourceLoggerServiceTests
 
         Assert.False(await subscriber2Enumerator.MoveNextAsync());
 
+        service.ClearBacklog(testResource.Name);
+
         var backlog = service.WatchAsync(testResource).ToBlockingEnumerable().SelectMany(x => x).ToList();
 
-        // the backlog should be cleared since both enumerations were complete
+        // the backlog should be cleared
         Assert.Empty(backlog);
     }
 

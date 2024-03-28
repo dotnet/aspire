@@ -216,6 +216,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         cts.Cancel();
                     }
+
+                    if (_containersMap.TryGetValue(subscribers.Name, out var _) ||
+                        _executablesMap.TryGetValue(subscribers.Name, out var _))
+                    {
+                        // Clear out the backlog for containers and executables after the last subscriber leaves.
+                        // When a new subscriber is added, the full log will be replayed.
+                        loggerService.ClearBacklog(subscribers.Name);
+                    }
                 }
             }
         },

@@ -116,6 +116,19 @@ public class ResourceLoggerService
         }
     }
 
+    /// <summary>
+    /// Clears the log stream's backlog for the resource.
+    /// </summary>
+    public void ClearBacklog(string resourceName)
+    {
+        ArgumentNullException.ThrowIfNull(resourceName);
+
+        if (_loggers.TryGetValue(resourceName, out var logger))
+        {
+            logger.ClearBacklog();
+        }
+    }
+
     private ResourceLoggerState GetResourceLoggerState(string resourceName) =>
         _loggers.GetOrAdd(resourceName, (name, context) =>
         {
@@ -253,13 +266,6 @@ public class ResourceLoggerService
                     if (_count == 0)
                     {
                         raiseSubscribersChanged = true;
-
-                        // Clear out the backlog after the last subscriber leaves.
-                        // The expectation is that the full log will be replayed when a new subscriber is added.
-                        lock (_backlog)
-                        {
-                            _backlog.Clear();
-                        }
                     }
                 }
 
@@ -282,6 +288,14 @@ public class ResourceLoggerService
         {
             // REVIEW: Do we clean up the backlog?
             _logStreamCts.Cancel();
+        }
+
+        public void ClearBacklog()
+        {
+            lock (_backlog)
+            {
+                _backlog.Clear();
+            }
         }
 
         private sealed class ResourceLogger(ResourceLoggerState loggerState) : ILogger
