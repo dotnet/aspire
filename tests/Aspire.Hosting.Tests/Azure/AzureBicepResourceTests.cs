@@ -39,6 +39,10 @@ public class AzureBicepResourceTests
         Action<IDistributedApplicationBuilder>[] extensionCalls = [
             (IDistributedApplicationBuilder builder) => builder.AddAzureAppConfiguration("x"),
             (IDistributedApplicationBuilder builder) => builder.AddAzureApplicationInsights("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddBicepTemplate("x", "template.bicep"),
+            (IDistributedApplicationBuilder builder) => builder.AddBicepTemplateString("x", "content"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureConstruct("x", _ => { }),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureOpenAI("x"),
             (IDistributedApplicationBuilder builder) => builder.AddAzureOpenAI("x"),
             (IDistributedApplicationBuilder builder) => builder.AddAzureCosmosDB("x"),
             (IDistributedApplicationBuilder builder) => builder.AddAzureEventHubs("x"),
