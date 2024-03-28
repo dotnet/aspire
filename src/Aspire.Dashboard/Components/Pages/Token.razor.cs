@@ -49,6 +49,7 @@ public partial class Token : IAsyncDisposable
         EditContext = new EditContext(_formModel);
         EditContext.OnValidationStateChanged += (s, e) =>
         {
+            // Clear the validation message when the form changes.
             _validationFailedMessage = null;
         };
     }
