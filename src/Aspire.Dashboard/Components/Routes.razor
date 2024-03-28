@@ -3,6 +3,7 @@
 
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
+        <!-- AuthorizeRouteView protects pages from being accessed when authorization is required -->
         <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
     </Found>
     <NotFound>

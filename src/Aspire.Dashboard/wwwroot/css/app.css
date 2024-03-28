@@ -132,13 +132,6 @@ fluent-data-grid .loading-content-cell .stack-horizontal {
     margin-right: 10px;
 }
 
-.unauthorized-body-content {
-    grid-row-start: nav;
-    grid-column-start: nav;
-    grid-row-end: nav;
-    grid-column-end: main;
-}
-
 /* The fluent dialog's default fill color is too dark in our current dark theme.
    Setting it to the floating layer allows it to stand out more and doesn't impact light theme. */
 fluent-dialog::part(control) {

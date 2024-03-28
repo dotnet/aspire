@@ -121,7 +121,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<BrowserTimeProvider>();
 
         builder.Services.AddLocalization();
-        builder.Services.AddHttpContextAccessor();
 
         _app = builder.Build();
 
@@ -238,6 +237,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             return true;
         });
 
+        // Temporary for testing.
         _app.MapGet("/sign-out", async (HttpContext httpContext) =>
         {
             await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
@@ -458,6 +458,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 authentication.AddCookie(options =>
                 {
                     options.LoginPath = "/token";
+                    options.ReturnUrlParameter = "returnUrl";
                 });
                 break;
         }
