@@ -6,7 +6,6 @@ using Aspire.Dashboard;
 var app = new DashboardWebApplication();
 if (app.ValidationFailures.Count > 0)
 {
-    app.PrintValidationFailures();
     return -1;
 }
 

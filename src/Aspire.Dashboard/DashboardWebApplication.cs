@@ -94,6 +94,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             _validationFailures = failureMessages.ToList();
             _logger = GetLogger();
             WriteVersion(_logger);
+            WriteValidationFailures(_logger, _validationFailures);
             return;
         }
         else
@@ -239,20 +240,18 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpLogsService>();
     }
 
-    public void PrintValidationFailures()
-    {
-        Debug.Assert(_validationFailures.Count > 0);
-
-        _logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", _validationFailures.Count);
-        foreach (var message in _validationFailures)
-        {
-            _logger.LogError("{ErrorMessage}", message);
-        }
-    }
-
     private ILogger<DashboardWebApplication> GetLogger()
     {
         return _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
+    }
+
+    private static void WriteValidationFailures(ILogger<DashboardWebApplication> logger, IReadOnlyList<string> validationFailures)
+    {
+        logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", validationFailures.Count);
+        foreach (var message in validationFailures)
+        {
+            logger.LogError("{ErrorMessage}", message);
+        }
     }
 
     private static void WriteVersion(ILogger<DashboardWebApplication> logger)
