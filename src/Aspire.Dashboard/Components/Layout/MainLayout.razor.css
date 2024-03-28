@@ -45,7 +45,6 @@
     align-items: center;
     justify-content: center;
     background-color: var(--neutral-layer-4);
-    min-width: 62px;
 }
 
 ::deep.layout > header {
