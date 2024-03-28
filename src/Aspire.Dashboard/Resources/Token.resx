@@ -140,4 +140,7 @@
   <data name="TextFieldPlaceholder" xml:space="preserve">
     <value>Enter token to log in...</value>
   </data>
+  <data name="TokenRequiredErrorMessage" xml:space="preserve">
+    <value>Token is required</value>
+  </data>
 </root>

@@ -122,5 +122,14 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("TextFieldPlaceholder", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Token is required.
+        /// </summary>
+        public static string TokenRequiredErrorMessage {
+            get {
+                return ResourceManager.GetString("TokenRequiredErrorMessage", resourceCulture);
+            }
+        }
     }
 }

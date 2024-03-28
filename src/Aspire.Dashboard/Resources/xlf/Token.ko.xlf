@@ -37,6 +37,11 @@
         <target state="new">Enter token to log in...</target>
         <note />
       </trans-unit>
+      <trans-unit id="TokenRequiredErrorMessage">
+        <source>Token is required</source>
+        <target state="new">Token is required</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
