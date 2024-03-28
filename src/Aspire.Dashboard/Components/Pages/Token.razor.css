@@ -46,15 +46,7 @@
 }
 
 .token-entry-header {
-    display: flex;
-    justify-content: center;
     color: var(--accent-foreground-rest);
-    max-width: var(--token-entry-max-width);
-}
-
-.token-entry-instructions {
-    display: flex;
-    justify-content: center;
     max-width: var(--token-entry-max-width);
 }
 

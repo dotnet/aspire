@@ -17,11 +17,6 @@
         <target state="new">Screenshot of console output showing where to find the dashboard frontend token</target>
         <note />
       </trans-unit>
-      <trans-unit id="InstructionalText">
-        <source>Please enter the dashboard token to log in</source>
-        <target state="new">Please enter the dashboard token to log in</target>
-        <note />
-      </trans-unit>
       <trans-unit id="LogInButtonText">
         <source>Log in</source>
         <target state="new">Log in</target>
@@ -38,8 +33,8 @@
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TextFieldPlaceholder">
-        <source>Enter token...</source>
-        <target state="new">Enter token...</target>
+        <source>Enter token to log in...</source>
+        <target state="new">Enter token to log in...</target>
         <note />
       </trans-unit>
     </body>
