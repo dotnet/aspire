@@ -59,8 +59,7 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
                     var randomStyle = stateStyles[Random.Shared.Next(0, stateStyles.Length)];
                     await notificationService.PublishUpdateAsync(resource, state => state with
                     {
-                        State = randomState,
-                        StateStyle = randomStyle
+                        State = new(randomState, randomStyle)
                     });
 
                     logger.LogInformation("Test resource {ResourceName} is now in state {State}", resource.Name, randomState);

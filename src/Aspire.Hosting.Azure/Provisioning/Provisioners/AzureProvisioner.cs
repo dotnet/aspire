@@ -100,8 +100,7 @@ internal sealed class AzureProvisioner(
 
                 await UpdateStateAsync(resource, s => s with
                 {
-                    State = "Running",
-                    StateStyle = "success"
+                    State = new("Running", KnownResourceStateStyles.Success)
                 })
                 .ConfigureAwait(false);
             }
@@ -109,8 +108,7 @@ internal sealed class AzureProvisioner(
             {
                 await UpdateStateAsync(resource, s => s with
                 {
-                    State = "Failed to Provision",
-                    StateStyle = "error"
+                    State = new("Failed to Provision", KnownResourceStateStyles.Error)
                 })
                 .ConfigureAwait(false);
             }
@@ -123,8 +121,7 @@ internal sealed class AzureProvisioner(
 
             await UpdateStateAsync(r, s => s with
             {
-                State = "Starting",
-                StateStyle = "info"
+                State = new("Starting", KnownResourceStateStyles.Info)
             })
             .ConfigureAwait(false);
 
