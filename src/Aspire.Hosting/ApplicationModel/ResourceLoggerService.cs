@@ -210,19 +210,7 @@ public class ResourceLoggerService
         /// <returns>The log stream for the resource.</returns>
         public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync()
         {
-            if (_backlog is null)
-            {
-                return new LogAsyncEnumerable(this, []);
-            }
-
-            // REVIEW: Performance makes me very sad, but we can optimize this later.
-            LogLine[] backlogSnapshot;
-            lock (_backlog)
-            {
-                backlogSnapshot = [.. _backlog];
-            }
-
-            return new LogAsyncEnumerable(this, backlogSnapshot);
+            return new LogAsyncEnumerable(this);
         }
 
         private Action<LogLine>? _onNewLog;
@@ -265,18 +253,18 @@ public class ResourceLoggerService
                     if (_count == 0)
                     {
                         raiseSubscribersChanged = true;
+
+                        // Clear out the backlog after the last subscriber leaves.
+                        // The expectation is that the full log will be replayed when a new subscriber is added.
+                        lock (_backlog)
+                        {
+                            _backlog.Clear();
+                        }
                     }
                 }
 
                 if (raiseSubscribersChanged)
                 {
-                    // Clear out the backlog after the last subscriber leaves.
-                    // The expectation is that the full log will be replayed when a new subscriber is added.
-                    lock (_backlog)
-                    {
-                        _backlog.Clear();
-                    }
-
                     _onSubscribersChanged?.Invoke(false);
                 }
             }
@@ -328,15 +316,10 @@ public class ResourceLoggerService
             }
         }
 
-        private sealed class LogAsyncEnumerable(ResourceLoggerState state, LogLine[] backlogSnapshot) : IAsyncEnumerable<IReadOnlyList<LogLine>>
+        private sealed class LogAsyncEnumerable(ResourceLoggerState state) : IAsyncEnumerable<IReadOnlyList<LogLine>>
         {
             public async IAsyncEnumerator<IReadOnlyList<LogLine>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
             {
-                if (backlogSnapshot.Length > 0)
-                {
-                    yield return backlogSnapshot;
-                }
-
                 var channel = Channel.CreateUnbounded<LogLine>();
 
                 using var _ = state._logStreamCts.Token.Register(() => channel.Writer.TryComplete());
@@ -347,6 +330,21 @@ public class ResourceLoggerService
                 }
 
                 state.OnNewLog += Log;
+
+                // ensure the backlog snapshot is taken after subscribing to OnNewLog
+                // to ensure the backlog snapshot contains the correct logs. The backlog
+                // gets cleared when there are no subscribers, so we ensure we are subscribing first.
+                LogLine[] backlogSnapshot;
+                lock (state._backlog)
+                {
+                    // REVIEW: Performance makes me very sad, but we can optimize this later.
+                    backlogSnapshot = [.. state._backlog];
+                }
+
+                if (backlogSnapshot.Length > 0)
+                {
+                    yield return backlogSnapshot;
+                }
 
                 try
                 {
