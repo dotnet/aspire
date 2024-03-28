@@ -59,7 +59,7 @@ public static class AzurePostgresExtensions
             postgres.AssignProperty(x => x.Sku.Tier, "'Burstable'");
             postgres.AssignProperty(x => x.Version, "'16'");
             postgres.AssignProperty(x => x.HighAvailability.Mode, "'Disabled'");
-            postgres.AssignProperty(x => x.StorageSizeInGB, "32");
+            postgres.AssignProperty(x => x.Storage.StorageSizeInGB, "32");
             postgres.AssignProperty(x => x.Backup.BackupRetentionDays, "7");
             postgres.AssignProperty(x => x.Backup.GeoRedundantBackup, "'Disabled'");
             postgres.AssignProperty(x => x.AvailabilityZone, "'1'");
