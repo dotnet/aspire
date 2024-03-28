@@ -3,8 +3,6 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var deploymentAndModelName = "gpt-35-turbo";
 var openai = builder.AddAzureOpenAI("openai").AddDeployment(
     new(deploymentAndModelName, deploymentAndModelName, "0613")

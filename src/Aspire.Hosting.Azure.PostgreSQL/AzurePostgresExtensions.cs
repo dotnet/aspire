@@ -47,6 +47,8 @@ public static class AzurePostgresExtensions
         Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         bool useProvisioner = false)
     {
+        builder.ApplicationBuilder.AddAzureProvisioning();
+
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var administratorLogin = new Parameter("administratorLogin");

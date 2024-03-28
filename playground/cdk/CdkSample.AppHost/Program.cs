@@ -9,7 +9,6 @@ using Azure.ResourceManager.ApplicationInsights.Models;
 using Azure.ResourceManager.OperationalInsights.Models;
 
 var builder = DistributedApplication.CreateBuilder(args);
-builder.AddAzureProvisioning();
 
 var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 

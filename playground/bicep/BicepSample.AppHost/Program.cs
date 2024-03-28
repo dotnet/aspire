@@ -5,8 +5,6 @@ using Aspire.Hosting.Azure;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var parameter = builder.AddParameter("val");
 
 AzureBicepResource? temp00 = null;

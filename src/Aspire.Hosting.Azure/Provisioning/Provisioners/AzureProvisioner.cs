@@ -104,6 +104,14 @@ internal sealed class AzureProvisioner(
                 })
                 .ConfigureAwait(false);
             }
+            catch (MissingConfigurationException)
+            {
+                await UpdateStateAsync(resource, s => s with
+                {
+                    State = new("Missing subscription configuration", KnownResourceStateStyles.Error)
+                })
+                .ConfigureAwait(false);
+            }
             catch (Exception)
             {
                 await UpdateStateAsync(resource, s => s with
@@ -262,6 +270,16 @@ internal sealed class AzureProvisioner(
                     cancellationToken).ConfigureAwait(false);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
+            }
+            catch (AzureCliNotOnPathException ex)
+            {
+                resourceLogger.LogCritical("Using Azure resources during local development requires the installation of the Azure CLI. See https://aka.ms/dotnet/aspire/azcli for instructions.");
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+            }
+            catch (MissingConfigurationException ex)
+            {
+                resourceLogger.LogCritical("Resource could not be provisioned because Azure subscription, location, and resource group information is missing. See https://aka.ms/dotnet/aspire/azure/provisioning for more details.");
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
             }
             catch (JsonException ex)
             {
