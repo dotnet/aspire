@@ -953,7 +953,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PrepareServices()
     {
-        //Console.WriteLine ($"*** PrepareServices");
+        Console.WriteLine($"*** PrepareServices");
         var serviceProducers = _model.Resources
             .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>()))
             .Where(sp => sp.Endpoints.Any());
@@ -997,7 +997,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PreparePlainExecutables()
     {
-        //Console.WriteLine ($"*** PreparePlainExecutables");
+        Console.WriteLine ($"*** PreparePlainExecutables");
         var modelExecutableResources = _model.GetExecutableResources();
 
         foreach (var executable in modelExecutableResources)
@@ -1020,7 +1020,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PrepareProjectExecutables()
     {
-        //Console.WriteLine ($"*** PrepareProjectExecutables");
+        Console.WriteLine ($"*** PrepareProjectExecutables");
         var modelProjectResources = _model.GetProjectResources();
 
         foreach (var project in modelProjectResources)
