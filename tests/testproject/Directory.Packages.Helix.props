@@ -13,7 +13,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.OperationalInsights" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.PostgreSql" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Redis" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="$(PackageVersion)" />
