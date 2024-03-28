@@ -104,6 +104,14 @@ internal sealed class AzureProvisioner(
                 })
                 .ConfigureAwait(false);
             }
+            catch (MissingConfigurationException)
+            {
+                await UpdateStateAsync(resource, s => s with
+                {
+                    State = new("Missing subscription configuration", KnownResourceStateStyles.Error)
+                })
+                .ConfigureAwait(false);
+            }
             catch (Exception)
             {
                 await UpdateStateAsync(resource, s => s with
