@@ -97,6 +97,19 @@ h1 {
  }
 
  #components-reconnect-modal {
+     /* avoid making modal take the entire screen dimensions */
+     inset: unset !important;
+
+     /* force modal to be compact, centered, and towards the top */
+     top: 5% !important;
+     left: 30% !important;
+     right: 30% !important;
+     height: 105px;
+
+     /* avoid modal being see-through */
+     opacity: 1 !important;
+
+     /* ensure sufficient contrast between all elements in the modal and its background */
      background-color: var(--reconnection-ui-bg) !important;
  }
 
