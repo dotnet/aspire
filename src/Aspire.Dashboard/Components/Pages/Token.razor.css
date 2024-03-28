@@ -7,6 +7,10 @@
     width: 100vw;
 }
 
+[data-theme="dark"] .token-backdrop {
+    background-color: var(--neutral-layer-3);
+}
+
 .token-form-container {
     --error: #FF8181;
     background-color: var(--neutral-layer-floating);
@@ -76,5 +80,4 @@
     position: fixed;
     right: calc(var(--design-unit) * 4px);
     bottom: calc(var(--design-unit) * 3px);
-    color: white;
 }
