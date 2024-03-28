@@ -774,8 +774,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         var resourceServiceUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
 
+        var environment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
+
         var env = new List<KeyValuePair<string, string>>
         {
+            KeyValuePair.Create("ASPNETCORE_ENVIRONMENT", environment),
             KeyValuePair.Create(DashboardConfigNames.DashboardFrontendUrlName.EnvVarName, dashboardUrls),
             KeyValuePair.Create(DashboardConfigNames.ResourceServiceUrlName.EnvVarName, resourceServiceUrl),
             KeyValuePair.Create(DashboardConfigNames.DashboardOtlpUrlName.EnvVarName, otlpEndpointUrl),
