@@ -129,7 +129,7 @@ public static class ResourceBuilderExtensions
         IResourceBuilder<IResourceWithConnectionString> sourceBuilder)
         where T : IResourceWithEnvironment
     {
-        return builder.WithEnvironment(async context =>
+        return builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[envVarName] = new ConnectionStringReference(sourceBuilder.Resource, optional: false);
         });
