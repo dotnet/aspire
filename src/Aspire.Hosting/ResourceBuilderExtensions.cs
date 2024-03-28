@@ -121,17 +121,17 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The destination resource type.</typeparam>
     /// <param name="builder">The destination resource builder to which the environment variable will be added.</param>
     /// <param name="envVarName">The name of the environment variable under which the connection string will be set.</param>
-    /// <param name="sourceBuilder">The resource builder of the referenced service from which to pull the connection string.</param>
+    /// <param name="resource">The resource builder of the referenced service from which to pull the connection string.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(
         this IResourceBuilder<T> builder,
         string envVarName,
-        IResourceBuilder<IResourceWithConnectionString> sourceBuilder)
+        IResourceBuilder<IResourceWithConnectionString> resource)
         where T : IResourceWithEnvironment
     {
         return builder.WithEnvironment(context =>
         {
-            context.EnvironmentVariables[envVarName] = new ConnectionStringReference(sourceBuilder.Resource, optional: false);
+            context.EnvironmentVariables[envVarName] = new ConnectionStringReference(resource.Resource, optional: false);
         });
     }
 
