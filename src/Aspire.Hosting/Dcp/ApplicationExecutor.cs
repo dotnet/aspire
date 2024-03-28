@@ -857,12 +857,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateServicesAsync(CancellationToken cancellationToken = default)
     {
+        List<ServiceAppResource>? needAddressAllocated = null;
         try
         {
             AspireEventSource.Instance.DcpServicesCreationStart();
 
             Console.WriteLine ($"*** CreateServicesAsync ENTER");
-            var needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
+            needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
 
@@ -913,6 +914,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         catch (Exception ex)
         {
             Console.WriteLine ($"*** CreateServicesAsync EXCEPTION: {ex.Message}");
+            if (needAddressAllocated is not null)
+            {
+                Console.WriteLine ($"*** \tCreateServicesAsync {string.Join(',', needAddressAllocated.Select(r => r.Service.Metadata.Name))}");
+            }
             throw;
         }
         finally
