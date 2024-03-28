@@ -97,6 +97,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
+        Console.WriteLine ($"*** RunApplicationAsync ENTER");
 
         _dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(cancellationToken).ConfigureAwait(false);
 
@@ -120,15 +121,20 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             PrepareContainers();
             PrepareExecutables();
 
+            Console.WriteLine ($"*** Ready to call PublishResourcesWithInitialStateAsync");
             await PublishResourcesWithInitialStateAsync().ConfigureAwait(false);
 
+            Console.WriteLine ($"*** Ready to call WatchResourceChanges");
             // Watch for changes to the resource state.
             WatchResourceChanges(cancellationToken);
 
+            Console.WriteLine ($"*** Ready to call CreateServicesAsync");
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
+            Console.WriteLine ($"*** Ready to call CreateContainersAndExecutablesAsync");
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
+            Console.WriteLine ($"*** Ready to call AfterResourcesCreatedAsync");
             foreach (var lifecycleHook in _lifecycleHooks)
             {
                 await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
@@ -179,6 +185,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void WatchResourceChanges(CancellationToken cancellationToken)
     {
+        //Console.WriteLine ($"*** WatchResourceChanges");
         var semaphore = new SemaphoreSlim(1);
 
         Task.Run(
@@ -806,40 +813,68 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateServicesAsync(CancellationToken cancellationToken = default)
     {
+        List<ServiceAppResource>? needAddressAllocated = null;
         try
         {
             AspireEventSource.Instance.DcpServicesCreationStart();
 
-            var needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
+            Console.WriteLine ($"*** CreateServicesAsync ENTER");
+            needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
 
             if (needAddressAllocated.Count == 0)
             {
                 // No need to wait for any updates to Service objects from the orchestrator.
+                Console.WriteLine ($"*** CreateServicesAsync EXIT#2");
                 return;
             }
 
+            Console.WriteLine ($"*** CreateServicesAsync: needAddressAllocated services: {needAddressAllocated.Count}: {string.Join(',', needAddressAllocated.Select(r => r.Service.Metadata.Name))}");
+
+            Console.WriteLine ($"*** CreateServicesAsync: Ready to call WatchAsync");
+
             // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
             IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
-            await foreach (var (evt, updated) in serviceChangeEnumerator)
+            await foreach (var (evt, updated) in serviceChangeEnumerator.ConfigureAwait(false))
             {
+                Console.WriteLine ($"\t*** CreateServicesAsync: WatchAsync: {evt}, service: {updated.Metadata.Name}");
                 if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
 
                 var srvResource = needAddressAllocated.Where(sr => sr.Service.Metadata.Name == updated.Metadata.Name).FirstOrDefault();
-                if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
+                if (srvResource == null) {
+                    Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: {updated.Metadata.Name} not found in needAddressAllocated list.");
+                    continue;
+                } // This service most likely already has full address information, so it is not on needAddressAllocated list.
 
                 if (updated.HasCompleteAddress || updated.Spec.AddressAllocationMode == AddressAllocationModes.Proxyless)
                 {
                     srvResource.Service.ApplyAddressInfoFrom(updated);
                     needAddressAllocated.Remove(srvResource);
+                    Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: {updated.Metadata.Name} has full address information.");
+                    Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: remaining needAddressAllocated: {string.Join(',', needAddressAllocated.Select(r => r.Service.Metadata.Name))}");
+                }
+                else
+                {
+                    Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: {updated.Metadata.Name} does not have full address information, allocation mode: {updated.Spec.AddressAllocationMode}");
                 }
 
                 if (needAddressAllocated.Count == 0)
                 {
+                    Console.WriteLine ($"*** CreateServicesAsync EXIT#0");
                     return; // We are done
                 }
             }
+            Console.WriteLine ($"*** CreateServicesAsync EXIT#1");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine ($"*** CreateServicesAsync EXCEPTION: {ex.Message}");
+            if (needAddressAllocated is not null)
+            {
+                Console.WriteLine ($"*** \tCreateServicesAsync {string.Join(',', needAddressAllocated.Select(r => r.Service.Metadata.Name))}");
+            }
+            throw;
         }
         finally
         {
@@ -849,15 +884,24 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
+        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync");
+        foreach (var res in _appResources)
+        {
+            Console.WriteLine ($"*** \tCreateContainersAndExecutableAsync: {res.DcpResource.Metadata.Name}: {res.DcpResource.Kind}, type: {res.DcpResource.GetType()}");
+        }
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
+        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync: Ready to call AfterEndpointsAllocatedAsync");
         foreach (var lifecycleHook in _lifecycleHooks)
         {
+            Console.WriteLine ($"\t*** \tCreateContainersAndExecutablesAsync: lifecycleHook: {lifecycleHook.GetType()}");
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
         }
 
+        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync: Ready to call CreateContainers");
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
+        Console.WriteLine ($"*** CreateContainersAndExecutablesAsync: Ready to call CreateExecutables");
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken);
 
         await Task.WhenAll(containersTask, executablesTask).ConfigureAwait(false);
@@ -865,12 +909,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
     {
+        Console.WriteLine ($"*** AddAllocatedEndpointInfo");
         var containerHost = DefaultContainerHostName;
 
         foreach (var appResource in resources)
         {
+            Console.WriteLine ($"*** \t{appResource.DcpResource.Metadata.Name}");
             foreach (var sp in appResource.ServicesProduced)
             {
+                Console.WriteLine ($"*** \t\t{sp.EndpointAnnotation.Name}");
                 var svc = (Service)sp.DcpResource;
 
                 if (!svc.HasCompleteAddress && sp.EndpointAnnotation.IsProxied)
@@ -895,6 +942,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PrepareServices()
     {
+        Console.WriteLine($"*** PrepareServices");
         var serviceProducers = _model.Resources
             .Select(r => (ModelResource: r, Endpoints: r.Annotations.OfType<EndpointAnnotation>()))
             .Where(sp => sp.Endpoints.Any());
@@ -938,6 +986,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PreparePlainExecutables()
     {
+        Console.WriteLine ($"*** PreparePlainExecutables");
         var modelExecutableResources = _model.GetExecutableResources();
 
         foreach (var executable in modelExecutableResources)
@@ -960,6 +1009,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PrepareProjectExecutables()
     {
+        Console.WriteLine ($"*** PrepareProjectExecutables");
         var modelProjectResources = _model.GetProjectResources();
 
         foreach (var project in modelProjectResources)
@@ -1347,6 +1397,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private void PrepareContainers()
     {
+        Console.WriteLine ($"*** PrepareContainers");
         var modelContainerResources = _model.GetContainerResources();
 
         foreach (var container in modelContainerResources)
@@ -1612,6 +1663,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateResourcesAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
     {
+        Console.WriteLine ($"*** CreateResourcesAsync: {typeof(RT).Name}");
         try
         {
             var resourcesToCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();

@@ -38,10 +38,18 @@ public class TestProgram : IDisposable
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
-        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http");
-        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb", launchProfileName: "http");
-        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http");
-        WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
+        var logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH")
+                        ?? Assembly.GetEntryAssembly()?.Location
+                        ?? Path.GetTempPath();
+
+        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http")
+                                    .WithEnvironment("TEST_LOG_PATH", logPath);
+        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb", launchProfileName: "http")
+                                    .WithEnvironment("TEST_LOG_PATH", logPath);
+        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http")
+                                    .WithEnvironment("TEST_LOG_PATH", logPath);
+        WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera")
+                                    .WithEnvironment("TEST_LOG_PATH", logPath);
 
         if (includeNodeApp)
         {
@@ -119,9 +127,12 @@ public class TestProgram : IDisposable
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
             }
+
+            IntegrationServiceABuilder.WithEnvironment("TEST_LOG_PATH", logPath);
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
+        AppBuilder.Services.AddLifecycleHook<TestResourceLifecycleHook>();
     }
 
     public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true, bool allowUnsecuredTransport = true) =>
@@ -142,6 +153,14 @@ public class TestProgram : IDisposable
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         App = AppBuilder.Build();
+        // var notificationService = App.Services.GetService<ResourceNotificationService>();
+        // _ = Task.Run(async () =>
+        // {
+        //     await foreach (ResourceEvent? resourceEvent in notificationService!.WatchAsync().ConfigureAwait(false))
+        //     {
+        //         Console.WriteLine($"Resource {resourceEvent.Resource.Name} is {resourceEvent}");
+        //     }
+        // }, cancellationToken);
         await App.RunAsync(cancellationToken);
     }
 
@@ -166,6 +185,7 @@ public class TestProgram : IDisposable
     {
         public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
         {
+            Console.WriteLine ($"*** AfterEndpointsAllocatedAsync");
             var root = new JsonObject();
             foreach (var project in appModel.Resources.OfType<ProjectResource>())
             {
@@ -194,6 +214,47 @@ public class TestProgram : IDisposable
 
             // write the whole json in a single line so it's easier to parse by the external process
             await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+        }
+    }
+
+    private sealed class TestResourceLifecycleHook(ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
+    {
+        // private readonly CancellationTokenSource _tokenSource = new();
+
+        public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+        {
+            foreach (var resource in appModel.Resources)
+            {
+                Console.WriteLine($"Found resource: {resource.Name}, type: {resource.GetType().Name}");
+                if (resource is not ProjectResource && resource is not ContainerResource)
+                {
+                    continue;
+                }
+
+                _ = Task.Run(async () =>
+                {
+                    Console.WriteLine ($"[{resource.Name}] Watching logs...");
+                    await foreach (IReadOnlyList<LogLine> lines in loggerService.WatchAsync(resource).ConfigureAwait(false))
+                    {
+                        foreach (var line in lines)
+                        {
+                            Console.WriteLine($"[{resource.Name}] {(line.IsErrorMessage ? "error" : "info")}: {line.Content}");
+                        }
+                    }
+                }, cancellationToken);
+            }
+
+            // _ = Task.Run(async () =>
+            // {
+            //     await foreach (var resourceEvent in notificationService.WatchAsync().ConfigureAwait(false))
+            //     {
+            //         IResource resource = resourceEvent.Resource;
+            //         CustomResourceSnapshot snapshot = resourceEvent.Snapshot;
+            //         Console.WriteLine($"[{resource.Name}] State: {snapshot.State}, ExitCode: {snapshot.ExitCode}, {resourceEvent}");
+            //     }
+            // }, cancellationToken);
+
+            await Task.CompletedTask;
         }
     }
 }

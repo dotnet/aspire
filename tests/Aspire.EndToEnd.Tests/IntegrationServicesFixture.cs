@@ -36,6 +36,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private Dictionary<string, ProjectInfo>? _projects;
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
+    private bool _copiedLogs;
 
     public IntegrationServicesFixture(IMessageSink diagnosticMessageSink)
     {
@@ -162,13 +163,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5));
 
         string outputMessage;
-        var resultTask = await Task.WhenAny(successfulTask, failedAppTask, timeoutTask);
+        var resultTask = await Task.WhenAny(successfulTask, failedAppTask, timeoutTask).ConfigureAwait(true);
         if (resultTask == failedAppTask)
         {
             // wait for all the output to be read
             var allOutputComplete = Task.WhenAll(stdoutComplete.Task, stderrComplete.Task);
             var appExitTimeout = Task.Delay(TimeSpan.FromSeconds(5));
-            var t = await Task.WhenAny(allOutputComplete, appExitTimeout);
+            var t = await Task.WhenAny(allOutputComplete, appExitTimeout).ConfigureAwait(true);
             if (t == appExitTimeout)
             {
                 _testOutput.WriteLine($"\tand timed out waiting for the full output");
@@ -192,7 +193,35 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             outputMessage = output.ToString();
         }
-        Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{outputMessage}");
+        if (!projectsParsed.Task.IsCompletedSuccessfully || !appRunning.Task.IsCompletedSuccessfully)
+        {
+            if (BuildEnvironment.IsRunningOnCI || EnvironmentVariables.TestLogPath is not null)
+            {
+                CopyDcpLogs();
+            }
+            {
+                using ToolCommand psCmd = new("/bin/sh", _testOutput, "ps");
+                await psCmd.ExecuteAsync("-c \"ps aux\"");
+            }
+
+            {
+                try
+                {
+                    using ToolCommand freeCmd = new("/bin/sh", _testOutput, "free");
+                    await freeCmd.ExecuteAsync("-c free");
+                }
+                catch (Exception ex)
+                {
+                    _testOutput.WriteLine($"Failed to run free: {ex}");
+                }
+            }
+
+            // foreach (var p in Process.GetProcesses())
+            // {
+            //     _testOutput.WriteLine($"Process [{p.Id}]: {p.ProcessName}");
+            // }
+        }
+        Assert.True(resultTask == successfulTask, $"App run failed (got endpoints: {projectsParsed.Task.IsCompletedSuccessfully}, got app-started: {appRunning.Task.IsCompletedSuccessfully}: {Environment.NewLine}{outputMessage}");
 
         var client = CreateHttpClient();
         foreach (var project in Projects.Values)
@@ -305,7 +334,71 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 _appHostProcess.StandardInput.WriteLine("Stop");
             }
             await _appHostProcess.WaitForExitAsync();
+
+            if (BuildEnvironment.IsRunningOnCI || EnvironmentVariables.TestLogPath is not null)
+            {
+                CopyDcpLogs();
+            }
         }
+    }
+
+    private void CopyDcpLogs()
+    {
+        if (_copiedLogs)
+        {
+            return;
+        }
+
+        // CopyDcpLogs(Path.Combine(BuildEnvironment.LogRootPath, "dcp-diag-logs"), Path.Combine(BuildEnvironment.LogRootPath, "dcp-diag-logs-copy"));
+        CopyDcpLogs(Path.Combine(BuildEnvironment.LogRootPath, "dcp-session-dir"), Path.Combine(BuildEnvironment.LogRootPath, "dcp-session-dir-copy"));
+
+        static void CopyDcpLogs(string srcDir, string dstDir)
+        {
+            if (!Directory.Exists(dstDir))
+            {
+                Directory.CreateDirectory(dstDir);
+            }
+
+            if (Directory.Exists(srcDir))
+            {
+                Console.WriteLine($"*** Listing files in {srcDir}");
+                foreach (var f in Directory.EnumerateFiles(srcDir, "*", SearchOption.AllDirectories))
+                {
+                    Console.WriteLine($"- {f}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"*** No dcp session dir found at {srcDir}");
+            }
+
+            // var logFiles = Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_err_*", SearchOption.AllDirectories)
+            //                 .Concat(Directory.EnumerateFiles(BuildEnvironment.LogRootPath, "*_out_*", SearchOption.AllDirectories));
+            var logFiles = Directory.EnumerateFiles(srcDir, "*", SearchOption.AllDirectories);
+            if (!logFiles.Any())
+            {
+                Console.WriteLine($"*** No log files found to copy from {srcDir} to {dstDir}");
+                return;
+            }
+            foreach (var srcFile in logFiles)
+            {
+                var dstFile = Path.Combine(dstDir, Path.GetFileName(srcFile));
+                try
+                {
+                    if (File.Exists(dstFile))
+                    {
+                        continue;
+                    }
+                    File.Copy(srcFile, dstFile, overwrite: true);
+                    Console.WriteLine($"Copied {srcFile} to {dstFile}");
+                }
+                catch (IOException ioex)
+                {
+                    Console.WriteLine($"Failed to copy {srcFile} to {dstFile}: {ioex.Message}");
+                }
+            }
+        }
+        _copiedLogs = true;
     }
 
     public void EnsureAppHostRunning()

@@ -143,11 +143,18 @@ public class BuildEnvironment
             {
                 Directory.CreateDirectory(LogRootPath);
             }
+
+            string dcpSessionDir = Path.Combine(LogRootPath, "dcp-session-dir");
+            EnvVars["DCP_SESSION_FOLDER"] = dcpSessionDir;
+            Directory.CreateDirectory(dcpSessionDir);
+            EnvVars["DCP_DIAGNOSTICS_LOG_LEVEL"] = "debug";
+            EnvVars["DCP_DIAGNOSTICS_LOG_FOLDER"] = Path.Combine(LogRootPath, "dcp-diag-logs");
         }
         else
         {
             LogRootPath = Environment.CurrentDirectory;
         }
+        EnvVars["TEST_LOG_PATH"] = LogRootPath;
 
         if (Directory.Exists(TmpPath))
         {

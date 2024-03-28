@@ -2,7 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestProject;
+// using Serilog.Extensions.Logging;
 
+string? logPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
+if (logPath is not null)
+{
+    File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-start.log"), "");
+    AppDomain.CurrentDomain.UnhandledException += (sender, eventArgs) =>
+        File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-exception.log"), eventArgs.ExceptionObject.ToString());
+}
+
+try
+{
 var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
 var resourcesToSkip = !string.IsNullOrEmpty(skipResourcesValue)
@@ -68,6 +79,14 @@ if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 {
     builder.AddAzureCosmosDBClient("cosmos");
 }
+if (!string.IsNullOrEmpty(logPath))
+{
+    builder.Logging.AddFile(Path.Combine(logPath, "integrationServiceA.log"));
+}
+else
+{
+    throw new InvalidOperationException("TEST_LOG_PATH environment variable is not set.");
+}
 
 var app = builder.Build();
 
@@ -132,3 +151,13 @@ if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
 }
 
 app.Run();
+
+}
+catch (Exception ex)
+{
+    if (logPath is not null)
+    {
+        File.WriteAllText(Path.Combine(logPath, "IntegrationServiceA-stop.log"), ex.ToString());
+    }
+    throw;
+}

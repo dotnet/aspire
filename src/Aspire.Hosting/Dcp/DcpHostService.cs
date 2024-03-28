@@ -111,6 +111,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             // Enable Unix Domain Socket based log streaming from DCP
             try
             {
+                _logger.LogInformation($"Creating logging socket at {_locations.DcpLogSocket}");
                 AspireEventSource.Instance.DcpLogSocketCreateStart();
                 var loggingSocket = CreateLoggingSocket(_locations.DcpLogSocket);
                 loggingSocket.Listen(LoggingSocketConnectionBacklog);
@@ -145,7 +146,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             throw new FileNotFoundException($"The Aspire application host is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
         }
 
-        var arguments = $"start-apiserver --monitor {Environment.ProcessId} --detach --kubeconfig \"{locations.DcpKubeconfigPath}\"";
+        var arguments = $"start-apiserver --monitor {Environment.ProcessId} -v debug --detach --kubeconfig \"{locations.DcpKubeconfigPath}\"";
         if (!string.IsNullOrEmpty(_dcpOptions.ContainerRuntime))
         {
             arguments += $" --container-runtime \"{_dcpOptions.ContainerRuntime}\"";
@@ -155,8 +156,8 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         {
             WorkingDirectory = Directory.GetCurrentDirectory(),
             Arguments = arguments,
-            OnOutputData = Console.Out.Write,
-            OnErrorData = Console.Error.Write,
+            OnOutputData = msg => Console.Out.WriteLine($"[dcp-out] {msg}"),
+            OnErrorData = msg => Console.Out.WriteLine($"[dcp-err] {msg}"),
             InheritEnv = false,
         };
 
@@ -184,7 +185,8 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
         // Set an environment variable to contain session info that should be deleted when DCP is done
         // Currently this contains the Unix socket for logging and the kubeconfig
-        dcpProcessSpec.EnvironmentVariables.Add("DCP_SESSION_FOLDER", locations.DcpSessionDir);
+        dcpProcessSpec.EnvironmentVariables.TryAdd("DCP_SESSION_FOLDER", locations.DcpSessionDir);
+
         return dcpProcessSpec;
     }
 

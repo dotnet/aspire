@@ -149,6 +149,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
         where T : CustomResource
     {
         var resourceType = GetResourceFor<T>();
+        Console.WriteLine($"Watching {resourceType} in namespace {namespaceParameter}");
         var result = await ExecuteWithRetry(
             DcpApiOperationType.Watch,
             resourceType,
