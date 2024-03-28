@@ -164,7 +164,7 @@ public class AddRabbitMQTests
     [InlineData(true)]
     public async Task VerifyManifest(bool withManagementPlugin)
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var rabbit = builder.AddRabbitMQ("rabbit");
         if (withManagementPlugin)
