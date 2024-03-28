@@ -85,14 +85,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // The options have validation failures. Write them out to the user and return a non-zero exit code.
             // We don't want to start the app, but we need to build the app to access the logger to log the errors.
             _app = builder.Build();
-            _app.Logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", failureMessages.Length);
-            foreach (var message in failureMessages)
-            {
-                _app.Logger.LogError("{ErrorMessage}", message);
-            }
             _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
-            Environment.Exit(-1);
+            HandleConfigurationError(failureMessages);
             return;
         }
 
@@ -139,7 +134,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
-        var logger = _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
+        var logger = GetLogger();
 
         // this needs to be explicitly enumerated for each supported language
         // our language list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
@@ -152,12 +147,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .AddSupportedCultures(supportedLanguages)
             .AddSupportedUICultures(supportedLanguages));
 
-        if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
-        {
-            // Write version at info level so it's written to the console by default. Help us debug user issues.
-            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
-            logger.LogInformation("Aspire version: {Version}", informationalVersion);
-        }
+        WriteVersion(logger);
 
         _app.Lifetime.ApplicationStarted.Register(() =>
         {
@@ -237,6 +227,34 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpMetricsService>();
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
+    }
+
+    private void HandleConfigurationError(string[] failureMessages)
+    {
+        var logger = GetLogger();
+        WriteVersion(logger);
+        logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", failureMessages.Length);
+        foreach (var message in failureMessages)
+        {
+            logger.LogError("{ErrorMessage}", message);
+        }
+
+        Environment.Exit(-1);
+    }
+
+    private ILogger<DashboardWebApplication> GetLogger()
+    {
+        return _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
+    }
+
+    private void WriteVersion(ILogger<DashboardWebApplication> logger)
+    {
+        if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
+        {
+            // Write version at info level so it's written to the console by default. Help us debug user issues.
+            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
+            logger.LogInformation("Aspire version: {Version}", informationalVersion);
+        }
     }
 
     /// <summary>
