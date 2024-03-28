@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.Extensions.Logging;
@@ -60,8 +61,20 @@ public class ResourceLoggerService
     /// <summary>
     /// Watch for changes to the log stream for a resource.
     /// </summary>
+    /// <param name="resource">The resource to watch for logs.</param>
+    /// <returns>An async enumerable that returns the logs as they are written.</returns>
+    public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(IResource resource)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        return WatchAsync(resource.Name);
+    }
+
+    /// <summary>
+    /// Watch for changes to the log stream for a resource.
+    /// </summary>
     /// <param name="resourceName">The resource name</param>
-    /// <returns></returns>
+    /// <returns>An async enumerable that returns the logs as they are written.</returns>
     public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(string resourceName)
     {
         ArgumentNullException.ThrowIfNull(resourceName);
@@ -72,20 +85,37 @@ public class ResourceLoggerService
     /// <summary>
     /// Watch for subscribers to the log stream for a resource.
     /// </summary>
-    /// <returns></returns>
-    public IAsyncEnumerable<LogSubscriber> WatchAnySubscribersAsync() =>
-        new AnySubscribersAsyncEnumerable(this);
-
-    /// <summary>
-    /// Watch for changes to the log stream for a resource.
-    /// </summary>
-    /// <param name="resource">The resource to watch for logs.</param>
-    /// <returns></returns>
-    public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync(IResource resource)
+    /// <returns>
+    /// An async enumerable that returns when the first subscriber is added to a log,
+    /// or when the last subscriber is removed.
+    /// </returns>
+    public async IAsyncEnumerable<LogSubscriber> WatchAnySubscribersAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(resource);
+        var channel = Channel.CreateUnbounded<LogSubscriber>();
 
-        return WatchAsync(resource.Name);
+        void OnLoggerAdded((string Name, ResourceLoggerState State) loggerItem)
+        {
+            var (name, state) = loggerItem;
+
+            state.OnSubscribersChanged += (hasSubscribers) =>
+            {
+                channel.Writer.TryWrite(new(name, hasSubscribers));
+            };
+        }
+
+        LoggerAdded += OnLoggerAdded;
+
+        try
+        {
+            await foreach (var entry in channel.Reader.ReadAllAsync(cancellationToken))
+            {
+                yield return entry;
+            }
+        }
+        finally
+        {
+            LoggerAdded -= OnLoggerAdded;
+        }
     }
 
     /// <summary>
@@ -138,38 +168,6 @@ public class ResourceLoggerService
         },
         this);
 
-    private sealed class AnySubscribersAsyncEnumerable(ResourceLoggerService loggerService) : IAsyncEnumerable<LogSubscriber>
-    {
-        public async IAsyncEnumerator<LogSubscriber> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-        {
-            var channel = Channel.CreateUnbounded<LogSubscriber>();
-
-            void OnLoggerAdded((string Name, ResourceLoggerState State) loggerItem)
-            {
-                var (name, state) = loggerItem;
-
-                state.OnSubscribersChanged += (hasSubscribers) =>
-                {
-                    channel.Writer.TryWrite(new(name, hasSubscribers));
-                };
-            }
-
-            loggerService.LoggerAdded += OnLoggerAdded;
-
-            try
-            {
-                await foreach (var entry in channel.Reader.ReadAllAsync(cancellationToken))
-                {
-                    yield return entry;
-                }
-            }
-            finally
-            {
-                loggerService.LoggerAdded -= OnLoggerAdded;
-            }
-        }
-    }
-
     /// <summary>
     /// A logger for the resource to write to.
     /// </summary>
@@ -189,7 +187,6 @@ public class ResourceLoggerService
         }
 
         private Action<bool>? _onSubscribersChanged;
-
         public event Action<bool> OnSubscribersChanged
         {
             add
@@ -200,7 +197,7 @@ public class ResourceLoggerService
 
                 lock (this)
                 {
-                    if (_count > 0)
+                    if (_onNewLog is not null) // we have subscribers
                     {
                         hasSubscribers = true;
                     }
@@ -221,31 +218,57 @@ public class ResourceLoggerService
         /// Watch for changes to the log stream for a resource.
         /// </summary>
         /// <returns>The log stream for the resource.</returns>
-        public IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync()
+        public async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            return new LogAsyncEnumerable(this);
+            var channel = Channel.CreateUnbounded<LogLine>();
+
+            using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
+
+            void Log(LogLine log)
+            {
+                channel.Writer.TryWrite(log);
+            }
+
+            OnNewLog += Log;
+
+            // ensure the backlog snapshot is taken after subscribing to OnNewLog
+            // to ensure the backlog snapshot contains the correct logs. The backlog
+            // can get cleared when there are no subscribers, so we ensure we are subscribing first.
+
+            // REVIEW: Performance makes me very sad, but we can optimize this later.
+            var backlogSnapshot = GetBacklogSnapshot();
+            if (backlogSnapshot.Length > 0)
+            {
+                yield return backlogSnapshot;
+            }
+
+            try
+            {
+                await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken))
+                {
+                    yield return entry;
+                }
+            }
+            finally
+            {
+                OnNewLog -= Log;
+
+                channel.Writer.TryComplete();
+            }
         }
 
-        private Action<LogLine>? _onNewLog;
-        private int _count;
-
         // This provides the fan out to multiple subscribers.
+        private Action<LogLine>? _onNewLog;
         private event Action<LogLine> OnNewLog
         {
             add
             {
-                _onNewLog += value;
-
-                var raiseSubscribersChanged = false;
-
+                bool raiseSubscribersChanged;
                 lock (this)
                 {
-                    _count++;
+                    raiseSubscribersChanged = _onNewLog is null; // is this the first subscriber?
 
-                    if (_count == 1)
-                    {
-                        raiseSubscribersChanged = true;
-                    }
+                    _onNewLog += value;
                 }
 
                 if (raiseSubscribersChanged)
@@ -255,18 +278,12 @@ public class ResourceLoggerService
             }
             remove
             {
-                _onNewLog -= value;
-
-                var raiseSubscribersChanged = false;
-
+                bool raiseSubscribersChanged;
                 lock (this)
                 {
-                    _count--;
+                    _onNewLog -= value;
 
-                    if (_count == 0)
-                    {
-                        raiseSubscribersChanged = true;
-                    }
+                    raiseSubscribersChanged = _onNewLog is null; // is this the last subscriber?
                 }
 
                 if (raiseSubscribersChanged)
@@ -337,48 +354,6 @@ public class ResourceLoggerService
                 loggerState._onNewLog?.Invoke(logLine);
             }
         }
-
-        private sealed class LogAsyncEnumerable(ResourceLoggerState state) : IAsyncEnumerable<IReadOnlyList<LogLine>>
-        {
-            public async IAsyncEnumerator<IReadOnlyList<LogLine>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-            {
-                var channel = Channel.CreateUnbounded<LogLine>();
-
-                using var _ = state._logStreamCts.Token.Register(() => channel.Writer.TryComplete());
-
-                void Log(LogLine log)
-                {
-                    channel.Writer.TryWrite(log);
-                }
-
-                state.OnNewLog += Log;
-
-                // ensure the backlog snapshot is taken after subscribing to OnNewLog
-                // to ensure the backlog snapshot contains the correct logs. The backlog
-                // can get cleared when there are no subscribers, so we ensure we are subscribing first.
-                
-                // REVIEW: Performance makes me very sad, but we can optimize this later.
-                var backlogSnapshot = state.GetBacklogSnapshot();
-                if (backlogSnapshot.Length > 0)
-                {
-                    yield return backlogSnapshot;
-                }
-
-                try
-                {
-                    await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken))
-                    {
-                        yield return entry;
-                    }
-                }
-                finally
-                {
-                    state.OnNewLog -= Log;
-
-                    channel.Writer.TryComplete();
-                }
-            }
-        }
     }
 }
 
@@ -387,4 +362,4 @@ public class ResourceLoggerService
 /// </summary>
 /// <param name="Name">The the resource name.</param>
 /// <param name="AnySubscribers">Determines if there are any subscribers.</param>
-public record struct LogSubscriber(string Name, bool AnySubscribers);
+public readonly record struct LogSubscriber(string Name, bool AnySubscribers);
