@@ -105,9 +105,13 @@ public sealed class OtlpOptions
 public sealed class FrontendOptions
 {
     private List<Uri>? _parsedEndpointUrls;
+    private byte[]? _browserTokenBytes;
 
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
+    public string? BrowserToken { get; set; }
+
+    public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;
 
     public IReadOnlyList<Uri> GetEndpointUris()
     {
@@ -138,6 +142,8 @@ public sealed class FrontendOptions
             }
             _parsedEndpointUrls = uris;
         }
+
+        _browserTokenBytes = BrowserToken != null ? Encoding.UTF8.GetBytes(BrowserToken) : null;
 
         errorMessage = null;
         return true;

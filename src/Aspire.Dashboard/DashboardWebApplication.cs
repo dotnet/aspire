@@ -12,7 +12,9 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -96,6 +98,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Add services to the container.
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+        builder.Services.AddCascadingAuthenticationState();
 
         // Data from the server.
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
@@ -178,6 +181,21 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             await next(context).ConfigureAwait(false);
         });
 
+        _app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.Equals("/token", StringComparisons.UrlPath) && context.Request.Query.TryGetValue("t", out var value))
+            {
+                var dashboardOptions = context.RequestServices.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
+                if (await TryAuthenticateAsync(value.ToString(), context, dashboardOptions).ConfigureAwait(false))
+                {
+                    context.Response.Redirect(DashboardUrls.ResourcesUrl());
+                    return;
+                }
+            }
+
+            await next(context).ConfigureAwait(false);
+        });
+
         // Configure the HTTP request pipeline.
         if (_app.Environment.IsDevelopment())
         {
@@ -222,6 +240,39 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpMetricsService>();
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
+
+        _app.MapPost("/api/validate-token", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
+        {
+            return await TryAuthenticateAsync(token, httpContext, dashboardOptions).ConfigureAwait(false);
+        });
+
+        // Temporary for testing.
+        _app.MapGet("/sign-out", async (HttpContext httpContext) =>
+        {
+            await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
+            httpContext.Response.Redirect("/");
+        });
+    }
+
+    private static async Task<bool> TryAuthenticateAsync(string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions)
+    {
+        if (string.IsNullOrEmpty(token) || dashboardOptions.CurrentValue.Frontend.GetBrowserTokenBytes() is not { } browserTokenBytes)
+        {
+            return false;
+        }
+
+        if (!CompareHelpers.CompareKey(browserTokenBytes, token))
+        {
+            return false;
+        }
+
+        var claimsIdentity = new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, "Local")],
+            authenticationType: CookieAuthenticationDefaults.AuthenticationScheme);
+        var claims = new ClaimsPrincipal(claimsIdentity);
+
+        await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claims).ConfigureAwait(false);
+        return true;
     }
 
     /// <summary>
@@ -359,7 +410,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         var authentication = builder.Services
-            .AddAuthentication()
+            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpConnectionAuthenticationHandlerOptions, OtlpConnectionAuthenticationHandler>(OtlpConnectionAuthenticationDefaults.AuthenticationScheme, o => { })
@@ -390,42 +441,56 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 };
             });
 
-        if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
+        switch (dashboardOptions.Frontend.AuthMode)
         {
-            authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
-            {
-                // The frontend authentication scheme just redirects to OpenIdConnect and Cookie schemes, as appropriate.
-                o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
-                o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
-            });
-
-            authentication.AddCookie();
-
-            authentication.AddOpenIdConnect(options =>
-            {
-                // Use authorization code flow so clients don't see access tokens.
-                options.ResponseType = OpenIdConnectResponseType.Code;
-
-                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-
-                // Scopes "openid" and "profile" are added by default, but need to be re-added
-                // in case configuration exists for Authentication:Schemes:OpenIdConnect:Scope.
-                if (!options.Scope.Contains(OpenIdConnectScope.OpenId))
+            case FrontendAuthMode.OpenIdConnect:
+                authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
                 {
-                    options.Scope.Add(OpenIdConnectScope.OpenId);
-                }
+                    // The frontend authentication scheme just redirects to OpenIdConnect and Cookie schemes, as appropriate.
+                    o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
+                    o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
+                });
 
-                if (!options.Scope.Contains("profile"))
+                authentication.AddCookie();
+
+                authentication.AddOpenIdConnect(options =>
                 {
-                    options.Scope.Add("profile");
-                }
+                    // Use authorization code flow so clients don't see access tokens.
+                    options.ResponseType = OpenIdConnectResponseType.Code;
 
-                // Redirect to resources upon sign-in.
-                options.CallbackPath = TargetLocationInterceptor.ResourcesPath;
+                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 
-                // Avoid "message.State is null or empty" due to use of CallbackPath above.
-                options.SkipUnrecognizedRequests = true;
-            });
+                    // Scopes "openid" and "profile" are added by default, but need to be re-added
+                    // in case configuration exists for Authentication:Schemes:OpenIdConnect:Scope.
+                    if (!options.Scope.Contains(OpenIdConnectScope.OpenId))
+                    {
+                        options.Scope.Add(OpenIdConnectScope.OpenId);
+                    }
+
+                    if (!options.Scope.Contains("profile"))
+                    {
+                        options.Scope.Add("profile");
+                    }
+
+                    // Redirect to resources upon sign-in.
+                    options.CallbackPath = TargetLocationInterceptor.ResourcesPath;
+
+                    // Avoid "message.State is null or empty" due to use of CallbackPath above.
+                    options.SkipUnrecognizedRequests = true;
+                });
+                break;
+            case FrontendAuthMode.BrowserToken:
+                authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
+                {
+                    o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
+                });
+
+                authentication.AddCookie(options =>
+                {
+                    options.LoginPath = "/token";
+                    options.ReturnUrlParameter = "returnUrl";
+                });
+                break;
         }
 
         builder.Services.AddAuthorization(options =>
@@ -441,6 +506,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             {
                 case FrontendAuthMode.OpenIdConnect:
                     // Frontend is secured with OIDC, so delegate to that authentication scheme.
+                    options.AddPolicy(
+                        name: FrontendAuthorizationDefaults.PolicyName,
+                        policy: new AuthorizationPolicyBuilder(
+                            FrontendAuthenticationDefaults.AuthenticationScheme)
+                            .RequireAuthenticatedUser()
+                            .Build());
+                    break;
+                case FrontendAuthMode.BrowserToken:
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
                         policy: new AuthorizationPolicyBuilder(

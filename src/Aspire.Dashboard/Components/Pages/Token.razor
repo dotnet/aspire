@@ -1,0 +1,46 @@
+﻿@page "/token"
+@using Aspire.Dashboard.Utils
+@layout EmptyLayout
+@attribute [AllowAnonymous]
+@inject IStringLocalizer<Dashboard.Resources.Token> Loc
+
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Token.PageTitle)" Loc="@Loc" /></PageTitle>
+
+<div class="token-backdrop">
+    <EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync">
+        <DataAnnotationsValidator />
+        <div class="token-form-container">
+            <div class="token-logo">
+                <AspireLogo Height="128" Width="128" />
+            </div>
+            <div class="token-entry-container">
+                <div class="token-entry-header">
+                    <h1><ApplicationName ResourceName="@nameof(Dashboard.Resources.Token.Header)" Loc="@Loc" /></h1>
+                </div>
+                <div class="token-entry">
+                    <FluentTextField @ref="_tokenTextField" @bind-Value="_formModel.Token" Placeholder="@Loc[nameof(Dashboard.Resources.Token.TextFieldPlaceholder)]" Class="token-entry-text" />
+                    <FluentIcon id="inlineHelpIcon" Value="@(new Icons.Regular.Size20.QuestionCircle())" />
+                    <FluentTooltip Anchor="inlineHelpIcon" Position="TooltipPosition.Right">
+                        <div class="token-help-container">
+                            <div class="token-help-text">@Loc[nameof(Dashboard.Resources.Token.HelpPopupText)]</div>
+                            <img class="token-help-image" src="/TempScreenshot.png"
+                                 alt="@Loc[nameof(Dashboard.Resources.Token.HelpScreenshotAltText)]" />
+                        </div>
+                    </FluentTooltip>
+                </div>
+                <div class="token-entry-footer">
+                    <a href="https://go.microsoft.com/fwlink/?linkid=2265718" target="_blank">@Loc[nameof(Dashboard.Resources.Token.MoreInfoLinkText)]</a>
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">@Loc[nameof(Dashboard.Resources.Token.LogInButtonText)]</FluentButton>
+                </div>
+            </div>
+            
+            <div class="token-validation">
+                <ValidationMessage For="() => _formModel.Token" />
+                <div class="validation-message">@_validationFailedMessage</div>
+            </div>
+        </div>
+    </EditForm>
+    <div class="version-info">
+        @VersionHelpers.DashboardDisplayVersion
+    </div>
+</div>

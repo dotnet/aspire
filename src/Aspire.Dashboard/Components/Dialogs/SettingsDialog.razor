@@ -1,4 +1,5 @@
 ﻿@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dialogs> Loc
 
 <FluentStack Orientation="Orientation.Vertical" Style="display: contents">
@@ -8,5 +9,5 @@
         <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingDark">@Loc[nameof(Dialogs.SettingsDialogDarkTheme)]</FluentRadio>
     </FluentRadioGroup>
     <div style="height: 100%;"></div>
-    <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], s_version)</div>
+    <div class="version">@string.Format(Loc[nameof(Dialogs.SettingsDialogVersion)], VersionHelpers.DashboardDisplayVersion)</div>
 </FluentStack>
