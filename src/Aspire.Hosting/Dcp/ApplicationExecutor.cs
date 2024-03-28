@@ -873,10 +873,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 return;
             }
 
+            Console.WriteLine ($"*** CreateServicesAsync: Ready to call WatchAsync");
             // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
             IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
-            await foreach (var (evt, updated) in serviceChangeEnumerator)
+            await foreach (var (evt, updated) in serviceChangeEnumerator.ConfigureAwait(false))
             {
+                Console.WriteLine ($"\t*** CreateServicesAsync: WatchAsync: {evt}");
                 if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
 
                 var srvResource = needAddressAllocated.Where(sr => sr.Service.Metadata.Name == updated.Metadata.Name).FirstOrDefault();
