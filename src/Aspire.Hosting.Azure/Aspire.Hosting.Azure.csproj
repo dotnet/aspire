@@ -21,9 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting.PostgreSQL\Aspire.Hosting.PostgreSQL.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" />
-    <ProjectReference Include="..\Aspire.Hosting.SqlServer\Aspire.Hosting.SqlServer.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.ResourceManager.Authorization" />
