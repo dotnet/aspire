@@ -124,14 +124,14 @@ public static class ResourceBuilderExtensions
     /// <param name="sourceBuilder">The resource builder of the referenced service from which to pull the connection string.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(
-        this IResourceBuilder<T> builder, 
-        string envVarName, 
-        IResourceBuilder<IResourceWithConnectionString> sourceBuilder) 
+        this IResourceBuilder<T> builder,
+        string envVarName,
+        IResourceBuilder<IResourceWithConnectionString> sourceBuilder)
         where T : IResourceWithEnvironment
     {
-        return builder.WithEnvironment(context =>
+        return builder.WithEnvironment(async context =>
         {
-            var connectionString = sourceBuilder.Resource.GetConnectionString();
+            var connectionString = await sourceBuilder.Resource.GetConnectionStringAsync().ConfigureAwait(true);
 
             if (string.IsNullOrEmpty(connectionString))
             {
