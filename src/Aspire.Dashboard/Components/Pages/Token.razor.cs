@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -14,7 +13,6 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Token : IAsyncDisposable
 {
-    private static readonly string? s_version = typeof(Token).Assembly.GetDisplayVersion();
     private IJSObjectReference? _jsModule;
     private FluentTextField? _tokenTextField;
 

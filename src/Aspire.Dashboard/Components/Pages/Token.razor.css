@@ -13,8 +13,9 @@
 
 .token-form-container {
     --error: #FF8181;
-    background-color: var(--neutral-layer-floating);
-    padding: calc((var(--design-unit) * 2px) + var(--type-ramp-base-line-height));
+    --token-entry-max-width: 25em;
+    background-color: var(--neutral-layer-1);
+    padding: calc((var(--design-unit) * 3px) + var(--type-ramp-base-line-height));
     padding-bottom: calc(var(--design-unit) * 2px);
     border-radius: calc(var(--design-unit) * 2.5px);
     display: grid;
@@ -36,13 +37,25 @@
 }
 
 .token-entry-container {
-    --token-entry-max-width: 25em;
     grid-area: entry;
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: calc(var(--design-unit) * 3px);
 
+}
+
+.token-entry-header {
+    display: flex;
+    justify-content: center;
+    color: var(--accent-foreground-rest);
+    max-width: var(--token-entry-max-width);
+}
+
+.token-entry-instructions {
+    display: flex;
+    justify-content: center;
+    max-width: var(--token-entry-max-width);
 }
 
 .token-entry {
@@ -68,6 +81,7 @@
     grid-area: validation;
     min-height: var(--type-ramp-base-line-height);
     max-width: var(--token-entry-max-width);
+    margin-top: calc(var(--design-unit) * 1px);
 }
 
 .token-help-container {

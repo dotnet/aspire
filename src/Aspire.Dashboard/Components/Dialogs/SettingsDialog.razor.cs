@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -13,7 +12,6 @@ namespace Aspire.Dashboard.Components.Dialogs;
 public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 {
     private string _currentSetting = ThemeManager.ThemeSettingSystem;
-    private static readonly string? s_version = typeof(SettingsDialog).Assembly.GetDisplayVersion();
 
     private IJSObjectReference? _jsModule;
     private IDisposable? _themeChangedSubscription;
