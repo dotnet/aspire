@@ -2,10 +2,10 @@
   <PropertyGroup>
     <!-- This repo version -->
     <MajorVersion>8</MajorVersion>
-    <MinorVersion>0</MinorVersion>
+    <MinorVersion>1</MinorVersion>
     <PatchVersion>0</PatchVersion>
-    <VersionPrefix>8.0.0</VersionPrefix>
-    <PreReleaseVersionLabel>preview.6</PreReleaseVersionLabel>
+    <VersionPrefix>8.1.0</VersionPrefix>
+    <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
     <UseVSTestRunner>true</UseVSTestRunner>
   </PropertyGroup>
   <PropertyGroup>
