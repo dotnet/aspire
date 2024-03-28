@@ -891,6 +891,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     continue;
                 } // This service most likely already has full address information, so it is not on needAddressAllocated list.
 
+                Console.WriteLine ($"\t\t\t*** CreateServicesAsync: WatchAsync: spec.port: {updated.Spec.Port}, updated.Status.EffectivePort: {updated.Status?.EffectivePort}, Spec.Address: {updated.Spec.Address}, Status.EffectiveAddress: {updated.Status?.EffectiveAddress}, AllocatedAddress: {updated.AllocatedAddress}, AllocatedPort: {updated.AllocatedPort}, HasCompleteAddress: {updated.HasCompleteAddress}, AddressAllocationMode: {updated.Spec.AddressAllocationMode}");
+
                 if (updated.HasCompleteAddress || updated.Spec.AddressAllocationMode == AddressAllocationModes.Proxyless)
                 {
                     srvResource.Service.ApplyAddressInfoFrom(updated);
