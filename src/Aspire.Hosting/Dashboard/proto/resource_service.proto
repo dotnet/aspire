@@ -157,7 +157,7 @@ message Resource {
     repeated Url urls = 13;
 
     // The style of the state. This is used to determine the state icon.
-    // Supported styles are success", "warning", "info". Any other style
+    // Supported styles are "success", "info", "warning" and "error". Any other style
     // will be treated as "unknown".
     optional string state_style = 14;
 }
