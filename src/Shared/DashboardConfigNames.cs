@@ -7,7 +7,7 @@ internal static class DashboardConfigNames
 {
     public static readonly ConfigName DashboardFrontendUrlName = new("ASPNETCORE_URLS");
     public static readonly ConfigName DashboardOtlpUrlName = new("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-    public static readonly ConfigName DashboardInsecureAllowAnonymousName = new("DOTNET_DASHBOARD_INSECURE_ALLOW_ANONYMOUS");
+    public static readonly ConfigName DashboardUnsecuredAllowAnonymousName = new("DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS");
     public static readonly ConfigName DashboardConfigFilePathName = new("DOTNET_DASHBOARD_CONFIG_FILE_PATH");
     public static readonly ConfigName ResourceServiceUrlName = new("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL");
 

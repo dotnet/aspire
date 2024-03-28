@@ -9,8 +9,9 @@ using Aspire.TestProject;
 
 public class TestProgram : IDisposable
 {
-    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard)
+    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard, bool allowUnsecuredTransport)
     {
+
         ISet<TestResourceNames>? resourcesToSkip = null;
         for (int i = 0; i < args.Length; i++)
         {
@@ -33,7 +34,7 @@ public class TestProgram : IDisposable
             disableDashboard = true;
         }
 
-        AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
+        AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName, AllowUnsecuredTransport = allowUnsecuredTransport });
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
@@ -123,8 +124,8 @@ public class TestProgram : IDisposable
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
     }
 
-    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, includeNodeApp, disableDashboard);
+    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true, bool allowUnsecuredTransport = true) =>
+        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, includeNodeApp, disableDashboard, allowUnsecuredTransport);
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }

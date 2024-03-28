@@ -30,7 +30,7 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         {
             options.ResourceServiceClient.Url = resourceServiceUrl;
         }
-        if (_configuration.GetBool(DashboardConfigNames.DashboardInsecureAllowAnonymousName.ConfigKey) ?? false)
+        if (_configuration.GetBool(DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey) ?? false)
         {
             options.Frontend.AuthMode = FrontendAuthMode.Unsecured;
             options.Otlp.AuthMode = OtlpAuthMode.Unsecured;

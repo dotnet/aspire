@@ -79,7 +79,8 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; could not be found. The error from the container runtime check was: {1}..
+        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; could not be found. The error from the container runtime check was: {1}.
+        ///See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes..
         /// </summary>
         internal static string ContainerRuntimePrerequisiteMissingExceptionMessage {
             get {

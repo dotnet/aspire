@@ -51,6 +51,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
         }
+        BuildEnvironment.EnvVars.Add("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
     }
 
     public async Task InitializeAsync()

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -124,7 +124,8 @@
     <value>Bind mounts must specify a source path.</value>
   </data>
   <data name="ContainerRuntimePrerequisiteMissingExceptionMessage" xml:space="preserve">
-    <value>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</value>
+    <value>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
+See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</value>
   </data>
   <data name="ContainerRuntimeUnhealthyExceptionMessage" xml:space="preserve">
     <value>Container runtime '{0}' was found but appears to be unhealthy. The error from the container runtime check was {1}.</value>

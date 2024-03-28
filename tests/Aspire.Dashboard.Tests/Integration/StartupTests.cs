@@ -214,7 +214,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             additionalConfiguration: data =>
             {
                 data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
-                data[DashboardConfigNames.DashboardInsecureAllowAnonymousName.ConfigKey] = bool.TrueString;
+                data[DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey] = bool.TrueString;
             });
 
         // Act

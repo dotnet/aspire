@@ -17,9 +17,9 @@ namespace Aspire.Hosting.Azure;
 ///         provision an Azure resource for an Aspire resource type that does not itself derive from <see cref="AzureBicepResource"/>.
 ///     </para>
 ///     <para>
-///         For example, the following code adds a <see cref="SqlServerServerResource"/> resource to the application model. This type
-///         does not derive from <see cref="AzureBicepResource"/> but can be annotated with <see cref="AzureBicepResourceAnnotation"/>
-///         by using the AzureSqlExtensions.AsAzureSqlDatabase()) extension method.
+///         For example, the following code adds a <see href="https://learn.microsoft.com/dotnet/api/aspire.hosting.applicationmodel.sqlserverserverresource"/>
+///         resource to the application model. This type does not derive from <see cref="AzureBicepResource"/> but can be annotated with
+///         <see cref="AzureBicepResourceAnnotation"/> by using the AzureSqlExtensions.AsAzureSqlDatabase() extension method.
 ///     </para>
 ///     <code>
 ///         var builder = DistributedApplication.CreateBuilder();
