@@ -37,7 +37,7 @@ public class ResourceLoggerService
     /// Gets the logger for the resource to write to.
     /// </summary>
     /// <param name="resource">The resource name</param>
-    /// <returns>An <see cref="ILogger"/>.</returns>
+    /// <returns>An <see cref="ILogger"/> which represents the resource.</returns>
     public ILogger GetLogger(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
@@ -49,25 +49,12 @@ public class ResourceLoggerService
     /// Gets the logger for the resource to write to.
     /// </summary>
     /// <param name="resourceName">The name of the resource from the Aspire application model.</param>
-    /// <returns>An <see cref="ILogger"/> which repesents the named resource.</returns>
-    /// <returns>An <see cref="ILogger"/>.</returns>
+    /// <returns>An <see cref="ILogger"/> which represents the named resource.</returns>
     public ILogger GetLogger(string resourceName)
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
         return GetResourceLoggerState(resourceName).Logger;
-    }
-
-    /// <summary>
-    /// Gets a logger for the resource to write logs to. This logger will not include any buffering.
-    /// </summary>
-    /// <param name="resourceName">The resource name. </param>
-    /// <returns>An <see cref="ILogger"/>.</returns>
-    public ILogger GetStreamingLogger(string resourceName)
-    {
-        ArgumentNullException.ThrowIfNull(resourceName);
-
-        return GetResourceLoggerState(resourceName).StreamingLogger;
     }
 
     /// <summary>
@@ -176,7 +163,6 @@ public class ResourceLoggerService
     private sealed class ResourceLoggerState
     {
         private readonly ResourceLogger _logger;
-        private readonly ResourceLogger _streamingLogger;
         private readonly CancellationTokenSource _logStreamCts = new();
 
         private readonly CircularBuffer<LogLine> _backlog = new(10000);
@@ -186,8 +172,7 @@ public class ResourceLoggerService
         /// </summary>
         public ResourceLoggerState()
         {
-            _logger = new ResourceLogger(this, useBacklog: true);
-            _streamingLogger = new ResourceLogger(this, useBacklog: false);
+            _logger = new ResourceLogger(this);
         }
 
         private Action<bool>? _onSubscribersChanged;
@@ -230,11 +215,14 @@ public class ResourceLoggerService
                 return new LogAsyncEnumerable(this, []);
             }
 
+            // REVIEW: Performance makes me very sad, but we can optimize this later.
+            LogLine[] backlogSnapshot;
             lock (_backlog)
             {
-                // REVIEW: Performance makes me very sad, but we can optimize this later.
-                return new LogAsyncEnumerable(this, [.. _backlog]);
+                backlogSnapshot = [.. _backlog];
             }
+
+            return new LogAsyncEnumerable(this, backlogSnapshot);
         }
 
         private Action<LogLine>? _onNewLog;
@@ -282,6 +270,13 @@ public class ResourceLoggerService
 
                 if (raiseSubscribersChanged)
                 {
+                    // Clear out the backlog after the last subscriber leaves.
+                    // The expectation is that the full log will be replayed when a new subscriber is added.
+                    lock (_backlog)
+                    {
+                        _backlog.Clear();
+                    }
+
                     _onSubscribersChanged?.Invoke(false);
                 }
             }
@@ -292,8 +287,6 @@ public class ResourceLoggerService
         /// </summary>
         public ILogger Logger => _logger;
 
-        public ILogger StreamingLogger => _streamingLogger;
-
         /// <summary>
         /// Close the log stream for the resource. Future subscribers will not receive any updates and will complete immediately.
         /// </summary>
@@ -303,7 +296,7 @@ public class ResourceLoggerService
             _logStreamCts.Cancel();
         }
 
-        private sealed class ResourceLogger(ResourceLoggerState loggerState, bool useBacklog) : ILogger
+        private sealed class ResourceLogger(ResourceLoggerState loggerState) : ILogger
         {
             private int _lineNumber;
 
@@ -322,15 +315,13 @@ public class ResourceLoggerService
                 var log = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
                 var isErrorMessage = logLevel >= LogLevel.Error;
 
-                _lineNumber++;
-                var logLine = new LogLine(_lineNumber, log, isErrorMessage);
-
-                if (useBacklog)
+                LogLine logLine;
+                lock (loggerState._backlog)
                 {
-                    lock (loggerState._backlog)
-                    {
-                        loggerState._backlog.Add(logLine);
-                    }
+                    _lineNumber++;
+                    logLine = new LogLine(_lineNumber, log, isErrorMessage);
+
+                    loggerState._backlog.Add(logLine);
                 }
 
                 loggerState._onNewLog?.Invoke(logLine);

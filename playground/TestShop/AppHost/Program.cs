@@ -12,7 +12,8 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
                             .WithReference(catalogDb)
                             .WithReplicas(2);
 
-var messaging = builder.AddRabbitMQ("messaging")
+var rabbitMqPassword = builder.AddParameter("rabbitmq-password", secret: true);
+var messaging = builder.AddRabbitMQ("messaging", password: rabbitMqPassword)
                        .WithDataVolume()
                        .PublishAsContainer();
 

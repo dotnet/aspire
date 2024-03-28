@@ -392,7 +392,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     }
 
                     // Pump the logs from the enumerable into the logger
-                    var logger = loggerService.GetStreamingLogger(resource.Metadata.Name);
+                    var logger = loggerService.GetLogger(resource.Metadata.Name);
 
                     await foreach (var batch in enumerable.WithCancellation(cts.Token))
                     {
