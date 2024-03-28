@@ -298,6 +298,14 @@ public class ResourceLoggerService
             }
         }
 
+        private LogLine[] GetBacklogSnapshot()
+        {
+            lock (_backlog)
+            {
+                return [.. _backlog];
+            }
+        }
+
         private sealed class ResourceLogger(ResourceLoggerState loggerState) : ILogger
         {
             private int _lineNumber;
@@ -347,14 +355,10 @@ public class ResourceLoggerService
 
                 // ensure the backlog snapshot is taken after subscribing to OnNewLog
                 // to ensure the backlog snapshot contains the correct logs. The backlog
-                // gets cleared when there are no subscribers, so we ensure we are subscribing first.
-                LogLine[] backlogSnapshot;
-                lock (state._backlog)
-                {
-                    // REVIEW: Performance makes me very sad, but we can optimize this later.
-                    backlogSnapshot = [.. state._backlog];
-                }
-
+                // can get cleared when there are no subscribers, so we ensure we are subscribing first.
+                
+                // REVIEW: Performance makes me very sad, but we can optimize this later.
+                var backlogSnapshot = state.GetBacklogSnapshot();
                 if (backlogSnapshot.Length > 0)
                 {
                     yield return backlogSnapshot;
