@@ -861,6 +861,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             AspireEventSource.Instance.DcpServicesCreationStart();
 
+            Console.WriteLine ($"*** CreateServicesAsync ENTER");
             var needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
@@ -868,6 +869,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             if (needAddressAllocated.Count == 0)
             {
                 // No need to wait for any updates to Service objects from the orchestrator.
+                Console.WriteLine ($"*** CreateServicesAsync EXIT#2");
                 return;
             }
 
@@ -888,9 +890,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (needAddressAllocated.Count == 0)
                 {
+                    Console.WriteLine ($"*** CreateServicesAsync EXIT#0");
                     return; // We are done
                 }
             }
+            Console.WriteLine ($"*** CreateServicesAsync EXIT#1");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine ($"*** CreateServicesAsync EXCEPTION: {ex.Message}");
+            throw;
         }
         finally
         {
@@ -1679,6 +1688,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateResourcesAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
     {
+        Console.WriteLine ($"*** CreateResourcesAsync: {typeof(RT).Name}");
         try
         {
             var resourcesToCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();
