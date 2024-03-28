@@ -96,8 +96,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = "Running",
-                StateStyle = "success",
+                State = new("Running", KnownResourceStateStyles.Success),
                 Urls = [.. portalUrls],
                 Properties = props
             };
@@ -111,8 +110,7 @@ internal sealed class BicepProvisioner(
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
             ResourceType = resource.GetType().Name,
-            State = "Starting",
-            StateStyle = "info",
+            State = new("Starting", KnownResourceStateStyles.Info),
             Properties = [
                 new("azure.subscription.id", context.Subscription.Id.Name),
                 new("azure.resource.group", context.ResourceGroup.Id.Name),
@@ -156,8 +154,7 @@ internal sealed class BicepProvisioner(
             {
                 await notificationService.PublishUpdateAsync(resource, state => state with
                 {
-                    State = "Provisioning Keyvault",
-                    StateStyle = "info"
+                    State = new("Provisioning Keyvault", KnownResourceStateStyles.Info)
 
                 }).ConfigureAwait(false);
 
@@ -203,8 +200,7 @@ internal sealed class BicepProvisioner(
         {
             return state with
             {
-                State = "Compiling ARM template",
-                StateStyle = "info"
+                State = new("Compiling ARM template", KnownResourceStateStyles.Info)
             };
         })
         .ConfigureAwait(false);
@@ -228,8 +224,7 @@ internal sealed class BicepProvisioner(
         {
             return state with
             {
-                State = "Creating ARM Deployment",
-                StateStyle = "info"
+                State = new("Creating ARM Deployment", KnownResourceStateStyles.Info)
             };
         })
         .ConfigureAwait(false);
@@ -251,8 +246,7 @@ internal sealed class BicepProvisioner(
         {
             return state with
             {
-                State = "Waiting for Deployment",
-                StateStyle = "info",
+                State = new("Waiting for Deployment", KnownResourceStateStyles.Info),
                 Urls = [.. state.Urls, new(Name: "deployment", Url: url, IsInternal: false)],
             };
         })
@@ -346,8 +340,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = "Running",
-                StateStyle = "success",
+                State = new("Running", KnownResourceStateStyles.Success),
                 CreationTimeStamp = DateTime.UtcNow,
                 Properties = properties
             };

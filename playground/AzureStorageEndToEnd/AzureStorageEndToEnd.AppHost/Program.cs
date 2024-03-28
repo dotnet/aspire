@@ -4,7 +4,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
-var storage = builder.AddAzureStorage("storage");
+var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
+{
+    container.WithDataBindMount();
+});
 
 var blobs = storage.AddBlobs("blobs");
 
