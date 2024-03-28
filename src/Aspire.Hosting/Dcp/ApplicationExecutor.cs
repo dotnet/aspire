@@ -694,36 +694,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
         {
-            if (configuration["ASPNETCORE_URLS"] is not { } appHostApplicationUrl)
+            var env = await GetDashboardEnvironmentVariablesAsync(configuration, defaultDashboardUrl: null, context.CancellationToken).ConfigureAwait(false);
+
+            foreach (var e in env)
             {
-                throw new DistributedApplicationException("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
-            }
-
-            if (configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] is not { } otlpEndpointUrl)
-            {
-                throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
-            }
-
-            // Grab the resource service URL. We need to inject this into the resource.
-
-            var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
-
-            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = appHostApplicationUrl;
-            context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = grpcEndpointUrl;
-            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpUrlName.EnvVarName] = otlpEndpointUrl;
-
-            // No auth in local dev experience
-            context.EnvironmentVariables[DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName] = "Unsecured";
-            context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "Unsecured";
-
-            if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
-            {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "ApiKey";
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName] = otlpApiKey;
-            }
-            else
-            {
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
+                context.EnvironmentVariables[e.Key] = e.Value;
             }
         }));
     }
@@ -762,73 +737,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             dashboardExecutableSpec.ExecutablePath = fullyQualifiedDashboardPath;
         }
 
-        var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
-
         // Matches DashboardWebApplication.DashboardUrlDefaultValue
         const string defaultDashboardUrl = "http://localhost:18888";
 
-        var otlpEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"];
-        var dashboardUrls = configuration["ASPNETCORE_URLS"] ?? defaultDashboardUrl;
-        var aspnetcoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"];
+        var env = await GetDashboardEnvironmentVariablesAsync(configuration, defaultDashboardUrl: defaultDashboardUrl, cancellationToken).ConfigureAwait(false);
 
-        dashboardExecutableSpec.Env =
-        [
-            new()
-            {
-                Name = DashboardConfigNames.ResourceServiceUrlName.EnvVarName,
-                Value = grpcEndpointUrl
-            },
-            new()
-            {
-                Name = DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName,
-                Value = "Unsecured" // No auth in local dev experience
-            },
-            new()
-            {
-                Name = DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName,
-                Value = "Unsecured" // No auth in local dev experience
-            },
-            new()
-            {
-                Name = DashboardConfigNames.DashboardFrontendUrlName.EnvVarName,
-                Value = dashboardUrls
-            },
-            new()
-            {
-                Name = DashboardConfigNames.DashboardOtlpUrlName.EnvVarName,
-                Value = otlpEndpointUrl
-            },
-            new()
-            {
-                Name = "ASPNETCORE_ENVIRONMENT",
-                Value = aspnetcoreEnvironment
-            }
-        ];
-
-        if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+        dashboardExecutableSpec.Env = [];
+        foreach (var e in env)
         {
-            dashboardExecutableSpec.Env.AddRange([
-                new()
-                {
-                    Name = DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName,
-                    Value = otlpApiKey
-                },
-                new()
-                {
-                    Name = DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName,
-                    Value = "ApiKey" // Matches value in OtlpAuthMode enum.
-                }
-            ]);
-        }
-        else
-        {
-            dashboardExecutableSpec.Env.AddRange([
-                new()
-                {
-                    Name = DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName,
-                    Value = "Unsecured" // Matches value in OtlpAuthMode enum.
-                }
-            ]);
+            dashboardExecutableSpec.Env.Add(new() { Name = e.Key, Value = e.Value });
         }
 
         var dashboardExecutable = new Executable(dashboardExecutableSpec)
@@ -837,7 +754,46 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
+
+        var dashboardUrls = env.Single(e => e.Key == DashboardConfigNames.DashboardFrontendUrlName.EnvVarName).Value;
         PrintDashboardUrls(dashboardUrls);
+    }
+
+    private async Task<List<KeyValuePair<string, string>>> GetDashboardEnvironmentVariablesAsync(IConfiguration configuration, string? defaultDashboardUrl, CancellationToken cancellationToken)
+    {
+        var dashboardUrls = configuration["ASPNETCORE_URLS"] ?? defaultDashboardUrl;
+        if (string.IsNullOrEmpty(dashboardUrls))
+        {
+            throw new DistributedApplicationException("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
+        }
+
+        if (configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] is not { } otlpEndpointUrl)
+        {
+            throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
+        }
+
+        var resourceServiceUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+
+        var env = new List<KeyValuePair<string, string>>
+        {
+            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendUrlName.EnvVarName, dashboardUrls),
+            KeyValuePair.Create(DashboardConfigNames.ResourceServiceUrlName.EnvVarName, resourceServiceUrl),
+            KeyValuePair.Create(DashboardConfigNames.DashboardOtlpUrlName.EnvVarName, otlpEndpointUrl),
+            KeyValuePair.Create(DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName, "Unsecured"),
+            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "Unsecured"),
+        };
+
+        if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+        {
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "ApiKey"));
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName, otlpApiKey));
+        }
+        else
+        {
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "Unsecured"));
+        }
+
+        return env;
     }
 
     private void PrintDashboardUrls(string delimitedUrlList)
