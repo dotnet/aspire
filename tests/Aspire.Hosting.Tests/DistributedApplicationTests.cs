@@ -222,7 +222,8 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR");
+            .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
+            .WithContainerRunArgs("--add-host", "testlocalhost:127.0.0.1");
 
         await using var app = testProgram.Build();
 
@@ -236,6 +237,7 @@ public class DistributedApplicationTests
             {
                 Assert.Equal("redis:latest", item.Spec.Image);
                 Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
+                Assert.Equal(["--add-host", "testlocalhost:127.0.0.1"], item.Spec.RunArgs);
             });
 
         await app.StopAsync();
