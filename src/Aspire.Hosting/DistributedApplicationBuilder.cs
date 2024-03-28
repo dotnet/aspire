@@ -10,8 +10,10 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -93,6 +95,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
 
         // Dashboard
+        _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
+        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
         _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
@@ -121,6 +125,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton<DistributedApplicationExecutionContext>(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private void MapTransportOptionsFromCustomKeys(TransportOptions options)
+    {
+        if (Configuration.GetBool(KnownConfigNames.AllowUnsecuredTransport) is { } allowUnsecuredTransport)
+        {
+            options.AllowUnsecureTransport = allowUnsecuredTransport;
+        }
     }
 
     private static bool IsOtlpApiKeyAuthDisabled(IConfiguration configuration)
