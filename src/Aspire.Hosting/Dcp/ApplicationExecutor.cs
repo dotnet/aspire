@@ -1130,6 +1130,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException($"Expected an Executable-like resource, but got {er.DcpResource.Kind} instead");
         }
 
+        bool failedToApplyArgs = false;
         spec.Args ??= [];
 
         if (er.ModelResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var exeArgsCallbacks))
@@ -1144,17 +1145,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             foreach (var arg in args)
             {
-                var value = arg switch
+                try
                 {
-                    string s => s,
-                    IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: false, cancellationToken).ConfigureAwait(false),
-                    null => null,
-                    _ => throw new InvalidOperationException($"Unexpected value for {arg}")
-                };
+                    var value = arg switch
+                    {
+                        string s => s,
+                        IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: false, cancellationToken).ConfigureAwait(false),
+                        null => null,
+                        _ => throw new InvalidOperationException($"Unexpected value for {arg}")
+                    };
 
-                if (value is not null)
+                    if (value is not null)
+                    {
+                        spec.Args.Add(value);
+                    }
+                }
+                catch (Exception ex)
                 {
-                    spec.Args.Add(value);
+                    resourceLogger.LogCritical("Failed to apply arguments. A dependency may have failed to start.");
+                    _logger.LogDebug(ex, "Failed to apply arguments. A dependency may have failed to start.");
+                    await notificationService.PublishUpdateAsync(er.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                    failedToApplyArgs = true;
                 }
             }
         }
@@ -1199,21 +1210,37 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
+        bool failedToApplyConfiguration = false;
         spec.Env = [];
         foreach (var c in config)
         {
-            var value = c.Value switch
+            try
             {
-                string s => s,
-                IValueProvider valueProvider => await GetValue(c.Key, valueProvider, resourceLogger, isContainer: false, cancellationToken).ConfigureAwait(false),
-                null => null,
-                _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{c.Key}\".")
-            };
+                var value = c.Value switch
+                {
+                    string s => s,
+                    IValueProvider valueProvider => await GetValue(c.Key, valueProvider, resourceLogger, isContainer: false, cancellationToken).ConfigureAwait(false),
+                    null => null,
+                    _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{c.Key}\".")
+                };
 
-            if (value is not null)
-            {
-                spec.Env.Add(new EnvVar { Name = c.Key, Value = value });
+                if (value is not null)
+                {
+                    spec.Env.Add(new EnvVar { Name = c.Key, Value = value });
+                }
             }
+            catch (Exception ex)
+            {
+                resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
+                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
+                await notificationService.PublishUpdateAsync(er.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                failedToApplyConfiguration = true;
+            }
+        }
+
+        if (failedToApplyConfiguration || failedToApplyArgs)
+        {
+            return;
         }
 
         await createResource().ConfigureAwait(false);
@@ -1514,22 +1541,34 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
+        bool failedToApplyConfiguration = false;
         foreach (var kvp in config)
         {
-            var value = kvp.Value switch
+            try
             {
-                string s => s,
-                IValueProvider valueProvider => await GetValue(kvp.Key, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
-                null => null,
-                _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{kvp.Key}\".")
-            };
+                var value = kvp.Value switch
+                {
+                    string s => s,
+                    IValueProvider valueProvider => await GetValue(kvp.Key, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
+                    null => null,
+                    _ => throw new InvalidOperationException($"Unexpected value for environment variable \"{kvp.Key}\".")
+                };
 
-            if (value is not null)
+                if (value is not null)
+                {
+                    dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = value });
+                }
+            }
+            catch (Exception ex)
             {
-                dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = value });
+                resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
+                _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
+                await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                failedToApplyConfiguration = true;
             }
         }
 
+        var failedToApplyArgs = false;
         if (modelContainerResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
         {
             dcpContainerResource.Spec.Args ??= [];
@@ -1545,17 +1584,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             foreach (var arg in args)
             {
-                var value = arg switch
+                try
                 {
-                    string s => s,
-                    IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
-                    null => null,
-                    _ => throw new InvalidOperationException($"Unexpected value for {arg}")
-                };
+                    var value = arg switch
+                    {
+                        string s => s,
+                        IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
+                        null => null,
+                        _ => throw new InvalidOperationException($"Unexpected value for {arg}")
+                    };
 
-                if (value is not null)
+                    if (value is not null)
+                    {
+                        dcpContainerResource.Spec.Args.Add(value);
+                    }
+                }
+                catch (Exception ex)
                 {
-                    dcpContainerResource.Spec.Args.Add(value);
+                    resourceLogger.LogCritical("Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    _logger.LogDebug(ex, "Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
+                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                    failedToApplyArgs = true;
                 }
             }
         }
@@ -1563,6 +1612,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         if (modelContainerResource is ContainerResource containerResource)
         {
             dcpContainerResource.Spec.Command = containerResource.Entrypoint;
+        }
+
+        if (failedToApplyArgs || failedToApplyConfiguration)
+        {
+            return;
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
