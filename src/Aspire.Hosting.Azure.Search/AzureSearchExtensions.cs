@@ -40,6 +40,8 @@ public static class AzureSearchExtensions
         string name,
         Action<IResourceBuilder<AzureSearchResource>, ResourceModuleConstruct, SearchService>? configureResource)
     {
+        builder.AddAzureProvisioning();
+
         AzureSearchResource resource = new(name, ConfigureSearch);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)

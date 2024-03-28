@@ -123,8 +123,10 @@ internal sealed class BicepProvisioner(
 
         PopulateWellKnownParameters(resource, context);
 
-        var azPath = FindFullPathFromPath("az") ??
-            throw new InvalidOperationException("Azure CLI not found in PATH");
+        if (FindFullPathFromPath("az") is not { } azPath)
+        {
+            throw new AzureCliNotOnPathException();
+        }
 
         var template = resource.GetBicepTemplateFile();
 
