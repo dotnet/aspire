@@ -15,6 +15,7 @@ public partial class Token : IAsyncDisposable
 {
     private IJSObjectReference? _jsModule;
     private FluentTextField? _tokenTextField;
+    private string? _validationFailedMessage;
 
     private TokenFormModel _formModel = default!;
     public EditContext EditContext { get; private set; } = default!;
@@ -46,6 +47,10 @@ public partial class Token : IAsyncDisposable
 
         _formModel = new TokenFormModel();
         EditContext = new EditContext(_formModel);
+        EditContext.OnValidationStateChanged += (s, e) =>
+        {
+            _validationFailedMessage = null;
+        };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -58,7 +63,7 @@ public partial class Token : IAsyncDisposable
         }
     }
 
-    private async Task GetToken()
+    private async Task SubmitAsync()
     {
         if (_jsModule is null)
         {
@@ -71,6 +76,10 @@ public partial class Token : IAsyncDisposable
         {
             NavigationManager.NavigateTo(ReturnUrl ?? "/", forceLoad: true);
             return;
+        }
+        else
+        {
+            _validationFailedMessage = "Invalid token. Please try again.";
         }
     }
 

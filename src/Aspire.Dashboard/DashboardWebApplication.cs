@@ -225,8 +225,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
 
-        _app.MapGet("/validate-token", async (string token, HttpContext httpContext) =>
+        _app.MapGet("/validate-token", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
         {
+            if (string.IsNullOrEmpty(token) || token != dashboardOptions.CurrentValue.Frontend.BrowserToken)
+            {
+                return false;
+            }
+
             var claimsIdentity = new ClaimsIdentity(new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, "Local")

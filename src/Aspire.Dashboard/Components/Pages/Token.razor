@@ -7,7 +7,7 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Token.PageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="token-backdrop">
-    <EditForm EditContext="@EditContext" OnValidSubmit="@GetToken">
+    <EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync">
         <DataAnnotationsValidator />
         <div class="token-form-container">
             <div class="token-logo">
@@ -39,6 +39,7 @@
             
             <div class="token-validation">
                 <ValidationMessage For="() => _formModel.Token" />
+                <div class="validation-message">@_validationFailedMessage</div>
             </div>
         </div>
     </EditForm>

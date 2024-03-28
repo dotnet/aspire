@@ -94,6 +94,7 @@ public sealed class FrontendOptions
 
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
+    public string? BrowserToken { get; set; }
 
     public IReadOnlyList<Uri> GetEndpointUris()
     {
