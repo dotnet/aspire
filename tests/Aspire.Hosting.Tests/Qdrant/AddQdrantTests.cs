@@ -131,13 +131,17 @@ public class AddQdrantTests
     public async Task QdrantCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var postgres = appBuilder.AddQdrant("my-qdrant")
+
+        appBuilder.Configuration["Parameters:pass"] = "pass";
+        var pass = appBuilder.AddParameter("pass");
+
+        var postgres = appBuilder.AddQdrant("my-qdrant", pass)
                                  .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334));
 
         var connectionStringResource = postgres.Resource as IResourceWithConnectionString;
 
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
-        Assert.Equal($"http://localhost:6334", connectionString);
+        Assert.Equal($"Endpoint=http://localhost:6334;Key=pass", connectionString);
     }
 
     [Fact]
@@ -151,10 +155,10 @@ public class AddQdrantTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port}",
+              "connectionString": "Endpoint=http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port};Key={qdrant-Key.value}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
-                "QDRANT__SERVICE__API_KEY": "{qdrant-ApiKey.value}",
+                "QDRANT__SERVICE__API_KEY": "{qdrant-Key.value}",
                 "QDRANT__SERVICE__ENABLE_STATIC_CONTENT": "0"
               },
               "bindings": {
@@ -189,7 +193,7 @@ public class AddQdrantTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port}",
+              "connectionString": "Endpoint=http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port};Key={QdrantApiKey.value}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{QdrantApiKey.value}",

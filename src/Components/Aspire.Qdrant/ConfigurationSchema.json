@@ -18,13 +18,13 @@
             "Client": {
               "type": "object",
               "properties": {
-                "ConnectionString": {
+                "Endpoint": {
                   "type": "string",
-                  "description": "The connection string of the Qdrant server to connect to."
+                  "description": "The endpoint URI string of the Qdrant server to connect to."
                 },
-                "ApiKey": {
+                "Key": {
                   "type": "string",
-                  "description": "The API Key for the connection string of the Qdrant server to connect to."
+                  "description": "The API Key for the endpoint of the Qdrant server to connect to."
                 }
               },
               "description": "Provides the client configuration settings for connecting to a Qdrant server using QdrantClient."

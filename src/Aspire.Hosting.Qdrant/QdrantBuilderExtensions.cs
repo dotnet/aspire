@@ -32,7 +32,7 @@ public static class QdrantBuilderExtensions
         int? port = null)
     {
         var apiKeyParameter = apiKey?.Resource ??
-            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-ApiKey", special: false);
+            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
@@ -82,9 +82,8 @@ public static class QdrantBuilderExtensions
         builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}"] = new ConnectionStringReference(qdrantResource.Resource, optional: false);
-            context.EnvironmentVariables[$"Aspire__Qdrant__Client__{qdrantResource.Resource.Name}__ApiKey"] = qdrantResource.Resource.ApiKeyParameter;
 
-            var restEndpointUrl = qdrantResource.Resource.GetEndpoint("rest");
+            var restEndpointUrl = $"Endpoint={qdrantResource.Resource.GetEndpoint("rest").Url};Key={qdrantResource.Resource.ApiKeyParameter.Value}";
             if (restEndpointUrl is not null)
             {
                 context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}_rest"] = restEndpointUrl;

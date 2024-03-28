@@ -60,12 +60,12 @@ public static class AspireQdrantExtensions
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            settings.ConnectionString = connectionString;
+            settings.ParseConnectionString(connectionString);
         }
 
-        if (builder.Configuration[$"{DefaultConfigSectionName}:{connectionName}:ApiKey"] is string apiKey)
+        if (builder.Configuration[$"{DefaultConfigSectionName}:{connectionName}:Key"] is string apiKey)
         {
-            settings.ApiKey = apiKey;
+            settings.Key = apiKey;
         }
 
         configureSettings?.Invoke(settings);
@@ -81,15 +81,15 @@ public static class AspireQdrantExtensions
 
         QdrantClient ConfigureQdrant()
         {
-            if (!string.IsNullOrEmpty(settings.ConnectionString))
+            if (settings.Endpoint is not null)
             {
-                return new QdrantClient(new Uri(settings.ConnectionString), apiKey: settings.ApiKey);
+                return new QdrantClient(settings.Endpoint, apiKey: settings.Key);
             }
             else
             {
                 throw new InvalidOperationException(
                         $"A QdrantClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
-                        $"{nameof(settings.ConnectionString)} must be provided " +
+                        $"{nameof(settings.Endpoint)} must be provided " +
                         $"in the '{configurationSectionName}' configuration section.");
             }
         }
