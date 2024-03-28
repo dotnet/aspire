@@ -79,7 +79,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} Traces.
+        ///   Looks up a localized string similar to {0} trace.
         /// </summary>
         public static string TraceDetailPageTitle {
             get {

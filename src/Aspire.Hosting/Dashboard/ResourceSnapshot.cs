@@ -17,6 +17,7 @@ internal abstract class ResourceSnapshot
     public required string DisplayName { get; init; }
     public required string Uid { get; init; }
     public required string? State { get; init; }
+    public required string? StateStyle { get; init; }
     public required int? ExitCode { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }

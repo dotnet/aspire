@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="TraceDetailPageTitle" xml:space="preserve">
-    <value>{0} Traces</value>
+    <value>{0} trace</value>
     <comment>{0} is an application name</comment>
   </data>
   <data name="TraceDetailTraceStartHeader" xml:space="preserve">

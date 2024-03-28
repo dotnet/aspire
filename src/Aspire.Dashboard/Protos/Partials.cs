@@ -26,6 +26,7 @@ partial class Resource
             Environment = GetEnvironment(),
             Urls = GetUrls(),
             State = HasState ? State : null,
+            StateStyle = HasStateStyle ? StateStyle : null,
             Commands = GetCommands()
         };
 

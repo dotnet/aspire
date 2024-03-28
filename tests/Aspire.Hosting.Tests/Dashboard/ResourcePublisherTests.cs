@@ -186,7 +186,8 @@ public class ResourcePublisherTests
         {
             Name = name,
             Uid = "",
-            State = "",
+            State = null,
+            StateStyle = null,
             ExitCode = null,
             CreationTimeStamp = null,
             DisplayName = "",
