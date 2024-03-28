@@ -125,8 +125,7 @@ internal sealed class BicepProvisioner(
 
         if (FindFullPathFromPath("az") is not { } azPath)
         {
-            resourceLogger.LogCritical("Using Azure resources during local development requires the installation of the Azure CLI. See https://aka.ms/dotnet/aspire/azcli for instructions.");
-            return;
+            throw new AzureCliNotOnPathException();
         }
 
         var template = resource.GetBicepTemplateFile();

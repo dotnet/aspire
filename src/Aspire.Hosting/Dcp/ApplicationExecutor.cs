@@ -1133,6 +1133,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     await CreateExecutableAsync(cr, logger, cancellationToken).ConfigureAwait(false);
                 }
+                catch (FailedToApplyEnvironmentException)
+                {
+                    // For this exception we don't want the noise of the stack trace, we've already
+                    // provided more detail where we detected the issue (e.g. envvar name). To get
+                    // more diagnostic information reduce logging level for DCP log category to Debug.
+                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to create resource {ResourceName}", cr.ModelResource.Name);
@@ -1208,7 +1215,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     resourceLogger.LogCritical("Failed to apply arguments. A dependency may have failed to start.");
                     _logger.LogDebug(ex, "Failed to apply arguments. A dependency may have failed to start.");
-                    await notificationService.PublishUpdateAsync(er.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
                     failedToApplyArgs = true;
                 }
             }
@@ -1277,14 +1283,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
                 _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", c.Key);
-                await notificationService.PublishUpdateAsync(er.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
                 failedToApplyConfiguration = true;
             }
         }
 
         if (failedToApplyConfiguration || failedToApplyArgs)
         {
-            return;
+            throw new FailedToApplyEnvironmentException();
         }
 
         await createResource().ConfigureAwait(false);
@@ -1500,6 +1505,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     await CreateContainerAsync(cr, logger, cancellationToken).ConfigureAwait(false);
                 }
+                catch (FailedToApplyEnvironmentException)
+                {
+                    // For this exception we don't want the noise of the stack trace, we've already
+                    // provided more detail where we detected the issue (e.g. envvar name). To get
+                    // more diagnostic information reduce logging level for DCP log category to Debug.
+                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
+                }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to create container resource {ResourceName}", cr.ModelResource.Name);
@@ -1607,7 +1619,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
                 _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
-                await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
                 failedToApplyConfiguration = true;
             }
         }
@@ -1647,7 +1658,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     resourceLogger.LogCritical("Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
                     _logger.LogDebug(ex, "Failed to apply container arguments '{ConfigKey}'. A dependency may have failed to start.", arg);
-                    await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
                     failedToApplyArgs = true;
                 }
             }
@@ -1660,7 +1670,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         if (failedToApplyArgs || failedToApplyConfiguration)
         {
-            return;
+            throw new FailedToApplyEnvironmentException();
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
