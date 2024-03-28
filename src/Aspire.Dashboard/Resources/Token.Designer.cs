@@ -88,6 +88,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid token. Please try again.
+        /// </summary>
+        public static string InvalidTokenErrorMessage {
+            get {
+                return ResourceManager.GetString("InvalidTokenErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Log in.
         /// </summary>
         public static string LogInButtonText {
@@ -129,6 +138,15 @@ namespace Aspire.Dashboard.Resources {
         public static string TokenRequiredErrorMessage {
             get {
                 return ResourceManager.GetString("TokenRequiredErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unexpected error when validating the token.
+        /// </summary>
+        public static string UnexpectedValidationError {
+            get {
+                return ResourceManager.GetString("UnexpectedValidationError", resourceCulture);
             }
         }
     }

@@ -26,6 +26,9 @@ public partial class Token : IAsyncDisposable
     [Inject]
     public required IJSRuntime JS { get; set; }
 
+    [Inject]
+    public required ILogger<Token> Logger { get; set; }
+
     [Parameter]
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
@@ -35,6 +38,7 @@ public partial class Token : IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        // If the browser is already authenticated then redirect to the app.
         if (AuthenticationState is { } authStateTask)
         {
             var state = await authStateTask;
@@ -71,16 +75,27 @@ public partial class Token : IAsyncDisposable
             return;
         }
 
+        // Invoke a JS function to validate the token. This is required because a cookie can't be set from a SignalR connection.
+        // The JS function calls an API back on the server to validate the token and that API call sets the cookie.
+        // Because the browser made the API call the cookie is set in the browser.
         var result = await _jsModule.InvokeAsync<string>("validateToken", _formModel.Token);
 
-        if (bool.TryParse(result, out var success) && success)
+        if (bool.TryParse(result, out var success))
         {
-            NavigationManager.NavigateTo(ReturnUrl ?? "/", forceLoad: true);
-            return;
+            if (success)
+            {
+                NavigationManager.NavigateTo(ReturnUrl ?? "/", forceLoad: true);
+                return;
+            }
+            else
+            {
+                _validationFailedMessage = Loc[nameof(Dashboard.Resources.Token.InvalidTokenErrorMessage)];
+            }
         }
         else
         {
-            _validationFailedMessage = "Invalid token. Please try again.";
+            Logger.LogWarning("Unexpected result from validateToken: {Result}", result);
+            _validationFailedMessage = Loc[nameof(Dashboard.Resources.Token.UnexpectedValidationError)];
         }
     }
 

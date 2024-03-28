@@ -127,6 +127,9 @@
   <data name="HelpScreenshotAltText" xml:space="preserve">
     <value>Screenshot of console output showing where to find the dashboard frontend token</value>
   </data>
+  <data name="InvalidTokenErrorMessage" xml:space="preserve">
+    <value>Invalid token. Please try again</value>
+  </data>
   <data name="LogInButtonText" xml:space="preserve">
     <value>Log in</value>
   </data>
@@ -142,5 +145,8 @@
   </data>
   <data name="TokenRequiredErrorMessage" xml:space="preserve">
     <value>Token is required</value>
+  </data>
+  <data name="UnexpectedValidationError" xml:space="preserve">
+    <value>Unexpected error when validating the token</value>
   </data>
 </root>
