@@ -127,6 +127,9 @@
   <data name="HelpScreenshotAltText" xml:space="preserve">
     <value>Screenshot of console output showing where to find the dashboard frontend token</value>
   </data>
+  <data name="InstructionalText" xml:space="preserve">
+    <value>Please enter the dashboard token to log in</value>
+  </data>
   <data name="LogInButtonText" xml:space="preserve">
     <value>Log in</value>
   </data>

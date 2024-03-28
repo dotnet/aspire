@@ -88,6 +88,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Please enter the dashboard token to log in.
+        /// </summary>
+        public static string InstructionalText {
+            get {
+                return ResourceManager.GetString("InstructionalText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Log in.
         /// </summary>
         public static string LogInButtonText {

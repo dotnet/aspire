@@ -18,7 +18,7 @@
                     <h1><ApplicationName ResourceName="@nameof(Dashboard.Resources.Token.Header)" Loc="@Loc" /></h1>
                 </div>
                 <div class="token-entry-instructions">
-                    Please enter the dashboard token to log in
+                    @Loc[nameof(Dashboard.Resources.Token.InstructionalText)]
                 </div>
                 <div class="token-entry">
                     <FluentTextField @ref="_tokenTextField" @bind-Value="_formModel.Token" Placeholder="@Loc[nameof(Dashboard.Resources.Token.TextFieldPlaceholder)]" Class="token-entry-text" />

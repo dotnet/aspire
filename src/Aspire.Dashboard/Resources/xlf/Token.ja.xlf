@@ -17,6 +17,11 @@
         <target state="new">Screenshot of console output showing where to find the dashboard frontend token</target>
         <note />
       </trans-unit>
+      <trans-unit id="InstructionalText">
+        <source>Please enter the dashboard token to log in</source>
+        <target state="new">Please enter the dashboard token to log in</target>
+        <note />
+      </trans-unit>
       <trans-unit id="LogInButtonText">
         <source>Log in</source>
         <target state="new">Log in</target>
