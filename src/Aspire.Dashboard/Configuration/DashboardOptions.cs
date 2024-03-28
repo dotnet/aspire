@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace Aspire.Dashboard.Configuration;
 
@@ -55,6 +56,8 @@ public sealed class ResourceServiceClientCertificateOptions
 public sealed class OtlpOptions
 {
     private Uri? _parsedEndpointUrl;
+    private byte[]? _primaryApiKeyBytes;
+    private byte[]? _secondaryApiKeyBytes;
 
     public string? PrimaryApiKey { get; set; }
     public string? SecondaryApiKey { get; set; }
@@ -66,6 +69,14 @@ public sealed class OtlpOptions
         Debug.Assert(_parsedEndpointUrl is not null, "Should have been parsed during validation.");
         return _parsedEndpointUrl;
     }
+
+    public byte[] GetPrimaryApiKeyBytes()
+    {
+        Debug.Assert(_primaryApiKeyBytes is not null, "Should have been parsed during validation.");
+        return _primaryApiKeyBytes;
+    }
+
+    public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
@@ -82,6 +93,9 @@ public sealed class OtlpOptions
                 return false;
             }
         }
+
+        _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
+        _secondaryApiKeyBytes = SecondaryApiKey != null ? Encoding.UTF8.GetBytes(SecondaryApiKey) : null;
 
         errorMessage = null;
         return true;
