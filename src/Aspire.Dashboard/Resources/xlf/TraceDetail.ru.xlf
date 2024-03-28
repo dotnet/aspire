@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
-        <source>{0} Traces</source>
-        <target state="translated">Трассировок: {0}</target>
+        <source>{0} trace</source>
+        <target state="needs-review-translation">Трассировок: {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
