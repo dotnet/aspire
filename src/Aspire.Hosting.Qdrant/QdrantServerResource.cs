@@ -38,5 +38,5 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create(
-            $"Endpoint={PrimaryEndpoint.Scheme}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
+            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Scheme)}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
 }
