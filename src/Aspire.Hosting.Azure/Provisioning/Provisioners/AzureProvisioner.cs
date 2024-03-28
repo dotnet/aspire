@@ -263,6 +263,11 @@ internal sealed class AzureProvisioner(
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
+            catch (MissingConfigurationException ex)
+            {
+                resourceLogger.LogCritical("Resource could not be provisioned because Azure subscription, location, and resource group information is missing. See https://aka.ms/dotnet/aspire/azure/provisioning for more details.");
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+            }
             catch (JsonException ex)
             {
                 resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.Name);
