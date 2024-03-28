@@ -2,13 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplication> logger, IConfiguration configuration, DistributedApplicationExecutionContext executionContext) : IHostedLifecycleService
+internal sealed class DistributedApplicationLifecycle(
+    ILogger<DistributedApplication> logger,
+    IConfiguration configuration,
+    DistributedApplicationExecutionContext executionContext,
+    DistributedApplicationOptions distributedApplicationOptions) : IHostedLifecycleService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -17,6 +22,13 @@ internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplica
 
     public Task StartedAsync(CancellationToken cancellationToken)
     {
+        if (distributedApplicationOptions.DashboardEnabled &&
+            configuration["ASPNETCORE_URLS"] is { } dashboardUrls &&
+            StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
+        {
+            logger.LogInformation("Launch dashboard at {DashboardUrl}", $"{firstDashboardUrl.GetLeftPart(UriPartial.Authority)}/token?t={configuration["AppHost:BrowserToken"]}");
+        }
+
         if (executionContext.IsRunMode)
         {
             logger.LogInformation("Distributed application started. Press Ctrl+C to shut down.");

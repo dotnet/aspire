@@ -181,6 +181,21 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             await next(context).ConfigureAwait(false);
         });
 
+        _app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.Equals("/token", StringComparisons.UrlPath) && context.Request.Query.TryGetValue("t", out var value))
+            {
+                var dashboardOptions = context.RequestServices.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
+                if (await TryAuthenticateAsync(value.ToString(), context, dashboardOptions).ConfigureAwait(false))
+                {
+                    context.Response.Redirect(DashboardUrls.ResourcesUrl());
+                    return;
+                }
+            }
+
+            await next(context).ConfigureAwait(false);
+        });
+
         // Configure the HTTP request pipeline.
         if (_app.Environment.IsDevelopment())
         {
@@ -228,23 +243,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.MapPost("/api/validate-token", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
         {
-            if (string.IsNullOrEmpty(token) || dashboardOptions.CurrentValue.Frontend.GetBrowserTokenBytes() is not { } browserTokenBytes)
-            {
-                return false;
-            }
-
-            if (!CompareHelpers.CompareKey(browserTokenBytes, token))
-            {
-                return false;
-            }
-
-            var claimsIdentity = new ClaimsIdentity(
-                [new Claim(ClaimTypes.NameIdentifier, "Local")],
-                authenticationType: CookieAuthenticationDefaults.AuthenticationScheme);
-            var claims = new ClaimsPrincipal(claimsIdentity);
-
-            await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claims).ConfigureAwait(false);
-            return true;
+            return await TryAuthenticateAsync(token, httpContext, dashboardOptions).ConfigureAwait(false);
         });
 
         // Temporary for testing.
@@ -253,6 +252,27 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
             httpContext.Response.Redirect("/");
         });
+    }
+
+    private static async Task<bool> TryAuthenticateAsync(string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions)
+    {
+        if (string.IsNullOrEmpty(token) || dashboardOptions.CurrentValue.Frontend.GetBrowserTokenBytes() is not { } browserTokenBytes)
+        {
+            return false;
+        }
+
+        if (!CompareHelpers.CompareKey(browserTokenBytes, token))
+        {
+            return false;
+        }
+
+        var claimsIdentity = new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, "Local")],
+            authenticationType: CookieAuthenticationDefaults.AuthenticationScheme);
+        var claims = new ClaimsPrincipal(claimsIdentity);
+
+        await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claims).ConfigureAwait(false);
+        return true;
     }
 
     /// <summary>

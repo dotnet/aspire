@@ -781,7 +781,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             KeyValuePair.Create(DashboardConfigNames.DashboardOtlpUrlName.EnvVarName, otlpEndpointUrl),
             KeyValuePair.Create(DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName, "Unsecured"),
             KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "BrowserToken"),
-            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName, "abc"),
+            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName, configuration["AppHost:BrowserToken"]!),
         };
 
         if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
