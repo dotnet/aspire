@@ -43,7 +43,7 @@ public class AddRabbitMQTests
     public async Task RabbitMQCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass1";
+        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder
@@ -58,7 +58,7 @@ public class AddRabbitMQTests
         var connectionStringResource = rabbitMqResource as IResourceWithConnectionString;
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("amqp://guest:pass1@localhost:27011", connectionString);
+        Assert.Equal("amqp://guest:p@ssw0rd1@localhost:27011", connectionString);
         Assert.Equal("amqp://guest:{pass.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
