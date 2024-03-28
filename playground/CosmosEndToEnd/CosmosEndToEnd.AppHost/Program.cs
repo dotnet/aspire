@@ -3,8 +3,6 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var db = builder.AddAzureCosmosDB("cosmos")
                 .AddDatabase("db")
                 .RunAsEmulator();
