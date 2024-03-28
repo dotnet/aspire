@@ -87,7 +87,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             _app = builder.Build();
             _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
-            HandleConfigurationError(failureMessages);
+            HandleConfigurationError(GetLogger(), failureMessages);
             return;
         }
 
@@ -229,9 +229,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpLogsService>();
     }
 
-    private void HandleConfigurationError(string[] failureMessages)
+    private static void HandleConfigurationError(ILogger<DashboardWebApplication> logger, string[] failureMessages)
     {
-        var logger = GetLogger();
         WriteVersion(logger);
         logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", failureMessages.Length);
         foreach (var message in failureMessages)
@@ -247,9 +246,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         return _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
     }
 
-    private void WriteVersion(ILogger<DashboardWebApplication> logger)
+    private static void WriteVersion(ILogger<DashboardWebApplication> logger)
     {
-        if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
+        if (typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
         {
             // Write version at info level so it's written to the console by default. Help us debug user issues.
             // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
