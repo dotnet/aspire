@@ -873,21 +873,37 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 return;
             }
 
+            Console.WriteLine ($"*** CreateServicesAsync: needAddressAllocated services: {needAddressAllocated.Count}");
+            foreach (var svc in needAddressAllocated)
+            {
+                Console.WriteLine ($"\t*** CreateServicesAsync: needAddressAllocated: {svc.Service.Metadata.Name}");
+            }
+
             Console.WriteLine ($"*** CreateServicesAsync: Ready to call WatchAsync");
+
             // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
             IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
             await foreach (var (evt, updated) in serviceChangeEnumerator.ConfigureAwait(false))
             {
-                Console.WriteLine ($"\t*** CreateServicesAsync: WatchAsync: {evt}");
+                Console.WriteLine ($"\t*** CreateServicesAsync: WatchAsync: {evt}, service: {updated.Metadata.Name}");
                 if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
 
                 var srvResource = needAddressAllocated.Where(sr => sr.Service.Metadata.Name == updated.Metadata.Name).FirstOrDefault();
-                if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
+                if (srvResource == null) {
+                    Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: {updated.Metadata.Name} not found in needAddressAllocated list.");
+                    continue;
+                } // This service most likely already has full address information, so it is not on needAddressAllocated list.
 
                 if (updated.HasCompleteAddress || updated.Spec.AddressAllocationMode == AddressAllocationModes.Proxyless)
                 {
                     srvResource.Service.ApplyAddressInfoFrom(updated);
                     needAddressAllocated.Remove(srvResource);
+                    Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: {updated.Metadata.Name} has full address information.");
+                    Console.WriteLine ($"\t\t*** remaining needAddressAllocated: {string.Join(',', needAddressAllocated.Select(r => r.Service.Metadata.Name))}");
+                }
+                else
+                {
+                    Console.WriteLine ($"\t\t*** CreateServicesAsync: WatchAsync: {updated.Metadata.Name} does not have full address information, allocation mode: {updated.Spec.AddressAllocationMode}");
                 }
 
                 if (needAddressAllocated.Count == 0)
