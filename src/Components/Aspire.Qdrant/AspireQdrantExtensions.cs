@@ -19,7 +19,7 @@ public static class AspireQdrantExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="QdrantSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:Qdrant" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Qdrant:Client" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddQdrantClient(
         this IHostApplicationBuilder builder,
@@ -36,7 +36,7 @@ public static class AspireQdrantExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The connection name to use to find a connection string.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="QdrantSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:Qdrant" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Qdrant:Client" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddKeyedQdrantClient(
         this IHostApplicationBuilder builder,

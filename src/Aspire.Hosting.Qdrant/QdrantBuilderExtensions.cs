@@ -18,12 +18,15 @@ public static class QdrantBuilderExtensions
     private const string DisableStaticContentEnvVarName = "QDRANT__SERVICE__ENABLE_STATIC_CONTENT";
 
     /// <summary>
-    /// Adds a Qdrant resource to the application. A container is used for local development.  This version the package defaults to the v1.8.3 tag of the qdrant/qdrant container image.
-    /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
+    /// Adds a Qdrant resource to the application. A container is used for local development.  
     /// </summary>
+    /// <remarks>
+    /// This version the package defaults to the v1.8.3 tag of the qdrant/qdrant container image.
+    /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
+    /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
-    /// <param name="apiKey">The parameter used to provide the API Key for the Qdrant resource. If <see langword="null"/> a random key will be generated as {name}-ApiKey.</param>
+    /// <param name="apiKey">The parameter used to provide the API Key for the Qdrant resource. If <see langword="null"/> a random key will be generated as {name}-Key.</param>
     /// <param name="port">The host port of Qdrant database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{QdrantServerResource}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> AddQdrant(this IDistributedApplicationBuilder builder,

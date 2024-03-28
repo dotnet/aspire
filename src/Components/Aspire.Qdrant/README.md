@@ -1,4 +1,4 @@
-# Aspire.Qdrant library
+# Aspire.Qdrant.Client library
 
 Registers [QdrantClient](https://github.com/qdrant/qdrant-dotnet) in the DI container for connecting to a Qdrant server.
 
@@ -10,7 +10,7 @@ Registers [QdrantClient](https://github.com/qdrant/qdrant-dotnet) in the DI cont
 
 ### Install the package
 
-Install the .NET Aspire Qdrant library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Qdrant Client library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Qdrant
@@ -26,7 +26,7 @@ builder.AddQdrant("qdrant");
 
 ## Configuration
 
-The .NET Aspire Qdrant component provides multiple options to configure the server connection based on the requirements and conventions of your project.
+The .NET Aspire Qdrant Client component provides multiple options to configure the server connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -41,7 +41,7 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 ```json
 {
   "ConnectionStrings": {
-    "qdrant": "http://localhost:6334"
+    "qdrant": "Endpoint=http://localhost:6334;Key=123456!@#$%"
   }
 }
 ```
@@ -50,13 +50,15 @@ By default the `QdrantClient` uses the gRPC API endpoint.
 
 ### Use configuration providers
 
-The .NET Aspire Qdrant component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `QdrantSettings` from configuration by using the `Aspire:Qdrant` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Qdrant Client component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `QdrantSettings` from configuration by using the `Aspire:Qdrant` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
   "Aspire": {
     "Qdrant": {
-      "ApiKey": "123456!@#$%"
+      "Client": {
+        "Key": "123456!@#$%"
+      }
     }
   }
 }
