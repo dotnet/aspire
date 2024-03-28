@@ -45,6 +45,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Collection(ex.Failures,
             s => s.Contains("Dashboard:Frontend:EndpointUrls"),
+            s => s.Contains("Dashboard:Frontend:AuthMode"),
             s => s.Contains("Dashboard:Otlp:EndpointUrl"),
             s => s.Contains("Dashboard:Otlp:AuthMode"));
     }
