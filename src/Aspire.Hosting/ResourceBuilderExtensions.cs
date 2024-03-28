@@ -116,6 +116,33 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Configures a connection string from a referenced resource builder to be set as an environment variable with a custom name.
+    /// </summary>
+    /// <typeparam name="T">The destination resource type.</typeparam>
+    /// <param name="builder">The destination resource builder to which the environment variable will be added.</param>
+    /// <param name="envVarName">The name of the environment variable under which the connection string will be set.</param>
+    /// <param name="sourceBuilder">The resource builder of the referenced service from which to pull the connection string.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(
+        this IResourceBuilder<T> builder, 
+        string envVarName, 
+        IResourceBuilder<IResourceWithConnectionString> sourceBuilder) 
+        where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironment(context =>
+        {
+            var connectionString = sourceBuilder.Resource.GetConnectionString();
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new DistributedApplicationException($"A connection string for '{sourceBuilder.Resource.Name}' could not be retrieved.");
+            }
+
+            context.EnvironmentVariables[envVarName] = connectionString;
+        });
+    }
+
+    /// <summary>
     /// Adds the arguments to be passed to a container resource when the container is started.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
