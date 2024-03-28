@@ -244,3 +244,5 @@ The version always follows `YYYY-mm-dd` format and allows for older/equal/newer 
 If the protocol version is old (no longer supported by the IDE), the IDE should return a 400 Bad Request response with the message indicating that the developer should consider upgrading the Aspire libraries and tooling used by their application.
 
 If the protocol version is newer than the latest the IDE supports, the IDE should make an attempt to parse the request according to its latest supported version. If that fails, the IDE should return `400 Bad Request` error.
+
+> The `api-version` parameter will be attached to all requests except the `/info` request (which is designed to facilitate protocol version negotiation).
