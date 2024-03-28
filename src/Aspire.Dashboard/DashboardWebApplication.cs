@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Reflection;
@@ -34,7 +35,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     internal const string DashboardUrlDefaultValue = "http://localhost:18888";
 
     private readonly WebApplication _app;
+    private readonly ILogger<DashboardWebApplication> _logger;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
+    private readonly IReadOnlyList<string> _validationFailures;
     private Func<EndpointInfo>? _browserEndPointAccessor;
     private Func<EndpointInfo>? _otlpServiceEndPointAccessor;
 
@@ -49,6 +52,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     }
 
     public IOptionsMonitor<DashboardOptions> DashboardOptionsMonitor => _dashboardOptionsMonitor;
+
+    public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
@@ -86,9 +91,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // We don't want to start the app, but we need to build the app to access the logger to log the errors.
             _app = builder.Build();
             _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
-
-            HandleConfigurationError(GetLogger(), failureMessages);
+            _validationFailures = failureMessages.ToList();
+            _logger = GetLogger();
+            WriteVersion(_logger);
             return;
+        }
+        else
+        {
+            _validationFailures = Array.Empty<string>();
         }
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
@@ -134,7 +144,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
-        var logger = GetLogger();
+        _logger = GetLogger();
 
         // this needs to be explicitly enumerated for each supported language
         // our language list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
@@ -147,20 +157,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .AddSupportedCultures(supportedLanguages)
             .AddSupportedUICultures(supportedLanguages));
 
-        WriteVersion(logger);
+        WriteVersion(_logger);
 
         _app.Lifetime.ApplicationStarted.Register(() =>
         {
             if (_browserEndPointAccessor != null)
             {
                 // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709
-                logger.LogInformation("Now listening on: {DashboardUri}", GetEndpointUrl(_browserEndPointAccessor()));
+                _logger.LogInformation("Now listening on: {DashboardUri}", GetEndpointUrl(_browserEndPointAccessor()));
             }
 
             if (_otlpServiceEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", GetEndpointUrl(_otlpServiceEndPointAccessor()));
+                _logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", GetEndpointUrl(_otlpServiceEndPointAccessor()));
             }
 
             static string GetEndpointUrl(EndpointInfo info) => $"{(info.isHttps ? "https" : "http")}://{info.EndPoint}";
@@ -229,16 +239,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpLogsService>();
     }
 
-    private static void HandleConfigurationError(ILogger<DashboardWebApplication> logger, string[] failureMessages)
+    public void PrintValidationFailures()
     {
-        WriteVersion(logger);
-        logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", failureMessages.Length);
-        foreach (var message in failureMessages)
-        {
-            logger.LogError("{ErrorMessage}", message);
-        }
+        Debug.Assert(_validationFailures.Count > 0);
 
-        Environment.Exit(-1);
+        _logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", _validationFailures.Count);
+        foreach (var message in _validationFailures)
+        {
+            _logger.LogError("{ErrorMessage}", message);
+        }
     }
 
     private ILogger<DashboardWebApplication> GetLogger()
@@ -260,7 +269,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// Load <see cref="DashboardOptions"/> from configuration without using DI. This performs
     /// the same steps as getting the options from DI but without the need for a service provider.
     /// </summary>
-    private static bool TryGetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection, [NotNullWhen(true)] out DashboardOptions? dashboardOptions, [NotNullWhen(false)] out string[]? failureMessages)
+    private static bool TryGetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection, [NotNullWhen(true)] out DashboardOptions? dashboardOptions, [NotNullWhen(false)] out IEnumerable<string>? failureMessages)
     {
         dashboardOptions = new DashboardOptions();
         dashboardConfigSection.Bind(dashboardOptions);
@@ -268,7 +277,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         var result = new ValidateDashboardOptions().Validate(name: string.Empty, dashboardOptions);
         if (result.Failed)
         {
-            failureMessages = result.Failures.ToArray();
+            failureMessages = result.Failures;
             return false;
         }
         else
@@ -498,11 +507,23 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         });
     }
 
-    public void Run() => _app.Run();
+    public void Run()
+    {
+        Debug.Assert(_validationFailures.Count == 0);
+        _app.Run();
+    }
 
-    public Task StartAsync(CancellationToken cancellationToken = default) => _app.StartAsync(cancellationToken);
+    public Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        Debug.Assert(_validationFailures.Count == 0);
+        return _app.StartAsync(cancellationToken);
+    }
 
-    public Task StopAsync(CancellationToken cancellationToken = default) => _app.StopAsync(cancellationToken);
+    public Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        Debug.Assert(_validationFailures.Count == 0);
+        return _app.StopAsync(cancellationToken);
+    }
 
     public ValueTask DisposeAsync()
     {

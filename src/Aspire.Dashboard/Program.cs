@@ -3,5 +3,12 @@
 
 using Aspire.Dashboard;
 
-// TODO potentially inline DashboardWebApplication in this file
-new DashboardWebApplication().Run();
+var app = new DashboardWebApplication();
+if (app.ValidationFailures.Count > 0)
+{
+    app.PrintValidationFailures();
+    return -1;
+}
+
+app.Run();
+return 0;
