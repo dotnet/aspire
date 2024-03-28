@@ -38,7 +38,7 @@ builder.AddProject<Projects.Frontend>("Frontend")
 
 ## Provisioning application resources with AWS CloudFormation
 
-AWS application resources like Amazon DynamoDB tables or Amazon Simple Queue Service (SQS) queues can be provisioning during AppHost
+AWS application resources like Amazon DynamoDB tables or Amazon Simple Queue Service (SQS) queues can be provisioned during AppHost
 startup using a CloudFormation template.
 
 In the AppHost project create either a JSON or YAML CloudFormation template. Here is an example template called `app-resources.template` that creates a queue and topic.
@@ -62,7 +62,7 @@ In the AppHost project create either a JSON or YAML CloudFormation template. Her
             "Type" : "AWS::SNS::Topic",
             "Properties" : {
                 "Subscription" : [
-                    {"Protocol" : "sqs", "Endpoint" : {"Fn::GetAtt" : [ "ChatMessagesQueue", "Arn"]}}
+                    { "Protocol" : "sqs", "Endpoint" : { "Fn::GetAtt" : [ "ChatMessagesQueue", "Arn" ] } }
                 ]
             }
         }
