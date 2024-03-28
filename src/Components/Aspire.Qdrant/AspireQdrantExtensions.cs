@@ -10,7 +10,7 @@ namespace Microsoft.Extensions.Hosting;
 
 public static class AspireQdrantExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:Qdrant";
+    private const string DefaultConfigSectionName = "Aspire:Qdrant:Client";
 
     /// <summary>
     /// Registers <see cref="Qdrant.Client.QdrantClient" /> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -69,10 +69,6 @@ public static class AspireQdrantExtensions
         }
 
         configureSettings?.Invoke(settings);
-
-        // TODO: Configure Tracing
-        // TODO: Configure Health Checks
-        // TODO: Configure Metrics
 
         if (serviceKey is null)
         {

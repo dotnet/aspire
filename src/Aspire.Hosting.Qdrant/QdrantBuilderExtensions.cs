@@ -82,7 +82,7 @@ public static class QdrantBuilderExtensions
         builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}"] = new ConnectionStringReference(qdrantResource.Resource, optional: false);
-            context.EnvironmentVariables[$"Aspire__Qdrant__{qdrantResource.Resource.Name}__ApiKey"] = qdrantResource.Resource.ApiKeyParameter;
+            context.EnvironmentVariables[$"Aspire__Qdrant__Client__{qdrantResource.Resource.Name}__ApiKey"] = qdrantResource.Resource.ApiKeyParameter;
 
             var restEndpointUrl = qdrantResource.Resource.GetEndpoint("rest");
             if (restEndpointUrl is not null)
