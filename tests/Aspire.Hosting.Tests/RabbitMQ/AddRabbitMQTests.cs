@@ -118,6 +118,7 @@ public class AddRabbitMQTests
     [InlineData(".123")]
     [InlineData(".")]
     [InlineData(".1.2")]
+    [InlineData("1.2.")]
     [InlineData("1.٩.3")]
     [InlineData("1.2..3")]
     [InlineData("not-supported")]
