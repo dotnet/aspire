@@ -34,7 +34,12 @@
     }
 
     @{
-        (string, object)[] uncapturedAttributes = [("alt", PreCopyToolTip), ("title", string.Empty), ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)])];
+        (string, object)[] uncapturedAttributes = [
+            ("alt", PreCopyToolTip),
+            ("title", string.Empty),
+            ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]),
+            ("tabindex", "0")
+        ];
     }
 
     <FluentButton Appearance="Appearance.Lightweight"
