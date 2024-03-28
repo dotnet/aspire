@@ -171,6 +171,28 @@ public class WithEnvironmentTests
         Assert.Equal("{test.connectionString};name=1", manifestConfig["HOST"]);
     }
 
+    [Fact]
+    public async Task EnvironmentWithConnectionStringSetsProperEnvironmentVariable()
+    {
+        // Arrange
+        const string sourceCon = "sourceConnectionString";
+        using var testProgram = CreateTestProgram();
+        var sourceBuilder = testProgram.AppBuilder.AddResource(new TestResource("sourceService", sourceCon));
+        var targetBuilder = testProgram.AppBuilder.AddContainer("targetContainer", "targetImage");
+
+        string envVarName = "CUSTOM_CONNECTION_STRING";
+
+        // Act
+        targetBuilder.WithEnvironment(envVarName, sourceBuilder);
+        testProgram.Build();
+
+        // Call environment variable callbacks with the Publish operation.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(targetBuilder.Resource, DistributedApplicationOperation.Publish);
+
+        // Assert
+        Assert.Single(config, kvp => kvp.Key == envVarName && kvp.Value == "{sourceService.connectionString}");
+    }
+
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>
