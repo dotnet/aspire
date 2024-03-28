@@ -15,6 +15,7 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
 var rabbitMqPassword = builder.AddParameter("rabbitmq-password", secret: true);
 var messaging = builder.AddRabbitMQ("messaging", password: rabbitMqPassword)
                        .WithDataVolume()
+                       .WithManagementPlugin()
                        .PublishAsContainer();
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
