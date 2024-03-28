@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
@@ -79,7 +80,21 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddSingleton<IPostConfigureOptions<DashboardOptions>, PostConfigureDashboardOptions>();
         builder.Services.AddSingleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>();
 
-        var dashboardOptions = GetDashboardOptions(builder, dashboardConfigSection);
+        if (!TryGetDashboardOptions(builder, dashboardConfigSection, out var dashboardOptions, out var failureMessages))
+        {
+            // The options have validation failures. Write them out to the user and return a non-zero exit code.
+            // We don't want to start the app, but we need to build the app to access the logger to log the errors.
+            _app = builder.Build();
+            _app.Logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", failureMessages.Length);
+            foreach (var message in failureMessages)
+            {
+                _app.Logger.LogError("{ErrorMessage}", message);
+            }
+            _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
+
+            Environment.Exit(-1);
+            return;
+        }
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
 
@@ -228,18 +243,22 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// Load <see cref="DashboardOptions"/> from configuration without using DI. This performs
     /// the same steps as getting the options from DI but without the need for a service provider.
     /// </summary>
-    private static DashboardOptions GetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection)
+    private static bool TryGetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection, [NotNullWhen(true)] out DashboardOptions? dashboardOptions, [NotNullWhen(false)] out string[]? failureMessages)
     {
-        var dashboardOptions = new DashboardOptions();
+        dashboardOptions = new DashboardOptions();
         dashboardConfigSection.Bind(dashboardOptions);
         new PostConfigureDashboardOptions(builder.Configuration).PostConfigure(name: string.Empty, dashboardOptions);
         var result = new ValidateDashboardOptions().Validate(name: string.Empty, dashboardOptions);
         if (result.Failed)
         {
-            throw new OptionsValidationException(optionsName: string.Empty, typeof(DashboardOptions), result.Failures);
+            failureMessages = result.Failures.ToArray();
+            return false;
         }
-
-        return dashboardOptions;
+        else
+        {
+            failureMessages = null;
+            return true;
+        }
     }
 
     // Kestrel endpoints are loaded from configuration. This is done so that advanced configuration of endpoints is
