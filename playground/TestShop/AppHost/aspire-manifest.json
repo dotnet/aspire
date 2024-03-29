@@ -61,14 +61,12 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 80
+          "transport": "http"
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 443
+          "transport": "http"
         }
       }
     },
@@ -126,14 +124,12 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http2",
-          "port": 80
+          "transport": "http2"
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http2",
-          "port": 443
+          "transport": "http2"
         }
       }
     },
@@ -153,14 +149,12 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 80
+          "transport": "http"
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 443
+          "transport": "http"
         }
       }
     },
@@ -189,14 +183,12 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 80
+          "transport": "http"
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 443
+          "transport": "http"
         }
       }
     },
@@ -213,14 +205,12 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 80
+          "transport": "http"
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 443
+          "transport": "http"
         }
       }
     },

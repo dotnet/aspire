@@ -26,14 +26,12 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 80
+          "transport": "http"
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http",
-          "port": 443
+          "transport": "http"
         }
       }
     }

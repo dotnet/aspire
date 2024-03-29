@@ -298,9 +298,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     // We have a target port, not need to specify an exposedPort
                     // it will default to the targetPort
                     (_, null, int p) => null,
-                    // Default to 80 for http and 443 for https
-                    ("http", null, null) => 80,
-                    ("https", null, null) => 443,
+                    // Let the tool infer the default http and https ports
+                    ("http", null, null) => null,
+                    ("https", null, null) => null,
                     // Other schemes just allocate a port
                     _ => allocator.AllocatePort()
                 };
