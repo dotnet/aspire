@@ -376,7 +376,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
-    /// <param name="port">An optional port. This is the port that will be given to other resource to communicate with this resource.</param>
+    /// <param name="port">An optional port. This is the port that will be given to other resources to communicate with this resource.</param>
     /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
     /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
     /// <param name="env">An optional name of the environment variable to inject.</param>
@@ -409,7 +409,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
-    /// <param name="port">An optional port. This is the port that will be given to other resource to communicate with this resource.</param>
+    /// <param name="port">An optional port. This is the port that will be given to other resources to communicate with this resource.</param>
     /// <param name="name">An optional name of the endpoint. Defaults to "http" if not specified.</param>
     /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
