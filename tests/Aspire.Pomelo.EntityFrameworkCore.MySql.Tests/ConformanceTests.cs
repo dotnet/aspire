@@ -124,7 +124,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
         Assert.NotNull(dbContext);
     }
 
-    [RequiresDockerFact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
+    [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
         => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
 
