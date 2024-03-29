@@ -107,7 +107,7 @@ internal static partial class ProcessUtil
                 {
                     processLifetimeTcs.TrySetResult(new ProcessResult(process.ExitCode));
                 }
-            }, TaskScheduler.Default).ConfigureAwait(false);
+            }, TaskScheduler.Current).ConfigureAwait(false);
         }
         finally
         {
