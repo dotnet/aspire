@@ -9,7 +9,6 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "port": 8000,
           "containerPort": 27017
         }
       }

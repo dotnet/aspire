@@ -268,31 +268,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         if (resource.TryGetEndpoints(out var endpoints))
         {
-            var allocatedPortStart = 8000;
-            // We only care about ports generated
-            var usedPorts = new HashSet<int>();
-
-            int AllocatePort()
-            {
-                // Loop until you find an unused port
-                while (true)
-                {
-                    if (!usedPorts.Contains(allocatedPortStart))
-                    {
-                        return allocatedPortStart;
-                    }
-
-                    allocatedPortStart++;
-                }
-            }
-
-            void UsePort(int? port)
-            {
-                if (port is not null)
-                {
-                    usedPorts.Add(port.Value);
-                }
-            }
+            var allocator = new PortAllocator();
 
             Writer.WriteStartObject("bindings");
             foreach (var endpoint in endpoints)
@@ -302,30 +278,46 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
                 Writer.WriteString("transport", endpoint.Transport);
 
-                var port = (endpoint.UriScheme, endpoint.Port) switch
-                {
-                    ("http", null) => 80,
-                    ("https", null) => 443,
-                    (_, var p) => p ?? AllocatePort()
-                };
-
-                UsePort(port);
-
                 int? targetPort = (resource, endpoint.UriScheme, endpoint.ContainerPort) switch
                 {
+                    // The port was specified so use it
                     (_, _, int p) => p,
-                    (ProjectResource p, "http", null) => null,
-                    (ProjectResource p, "https", null) => null,
-                    _ => AllocatePort()
+
+                    // Project resources get their default port from the deployment tool
+                    // ideally we would default to a known port but we don't know it at this point
+                    (ProjectResource, var scheme, null) when scheme is "http" or "https" => null,
+
+                    // Allocate a dynamic port
+                    _ => allocator.AllocatePort()
                 };
 
-                Writer.WriteNumber("port", port);
-
-                // This port is special for projects
-                if (targetPort is not null)
+                int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
                 {
-                    Writer.WriteNumber("containerPort", targetPort.Value);
-                    UsePort(targetPort);
+                    // Port was specified, so use it
+                    (_, int p, _) => p,
+                    // We have a target port, not need to specify an exposedPort
+                    // it will default to the targetPort
+                    (_, null, int p) => null,
+                    // Default to 80 for http and 443 for https
+                    ("http", null, null) => 80,
+                    ("https", null, null) => 443,
+                    // Other schemes just allocate a port
+                    _ => allocator.AllocatePort()
+                };
+
+                if (exposedPort is int ep)
+                {
+                    allocator.AddUsedPort(ep);
+
+                    // This is the port used by clients
+                    Writer.WriteNumber("port", ep);
+                }
+
+                // This is the port that the container binds to
+                if (targetPort is int tp)
+                {
+                    Writer.WriteNumber("containerPort", tp);
+                    allocator.AddUsedPort(tp);
                 }
 
                 if (endpoint.IsExternal)
@@ -570,5 +562,30 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
 
         _referencedResources.Clear();
+    }
+
+    // Add the following class definition inside the namespace
+    internal class PortAllocator(int startPort = 8000)
+    {
+        private int _allocatedPortStart = startPort;
+        private readonly HashSet<int> _usedPorts = [];
+
+        public int AllocatePort()
+        {
+            while (true)
+            {
+                if (!_usedPorts.Contains(_allocatedPortStart))
+                {
+                    return _allocatedPortStart;
+                }
+
+                _allocatedPortStart++;
+            }
+        }
+
+        public void AddUsedPort(int port)
+        {
+            _usedPorts.Add(port);
+        }
     }
 }

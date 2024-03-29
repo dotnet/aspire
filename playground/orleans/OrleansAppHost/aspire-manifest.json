@@ -29,7 +29,7 @@
         "Orleans__GrainStorage__Default__ProviderType": "AzureBlobStorage",
         "Orleans__GrainStorage__Default__ServiceKey": "grainstate",
         "ConnectionStrings__grainstate": "{grainstate.connectionString}",
-        "Orleans__ClusterId": "509217731d414da9a0df80e6367602ac",
+        "Orleans__ClusterId": "5179116e0d41450e9bcb05f7936f1a66",
         "Orleans__EnableDistributedTracing": "true",
         "Orleans__Endpoints__SiloPort": "{silo.bindings.orleans-silo.containerPort}",
         "Orleans__Endpoints__GatewayPort": "{silo.bindings.orleans-gateway.containerPort}"
@@ -51,15 +51,13 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "port": 8000,
-          "containerPort": 8001
+          "containerPort": 8000
         },
         "orleans-gateway": {
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "port": 8002,
-          "containerPort": 8003
+          "containerPort": 8001
         }
       }
     }
