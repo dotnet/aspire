@@ -32,7 +32,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
             });
         });
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -45,6 +45,80 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
         // Ensure the Region from the lambda was respected
         Assert.Equal("westus", extension.Region);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CanConfigureRequestTimeout(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosConnection", ConnectionString),
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:RequestTimeout", "00:10:08"),
+            ]);
+        }
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
+                configureDbContextOptions: optionsBuilder => optionsBuilder.UseCosmos(ConnectionString, "databaseName"),
+                configureSettings: useSettings ? settings => settings.RequestTimeout = TimeSpan.FromSeconds(608) : null);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<CosmosOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // Ensure the RequestTimeout was respected
+        Assert.Equal(TimeSpan.FromSeconds(608), extension.RequestTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RequestTimeoutFromBuilderWinsOverOthers(bool useSettings)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosConnection", ConnectionString),
+        ]);
+        if (!useSettings)
+        {
+            builder.Configuration.AddInMemoryCollection([
+                new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:RequestTimeout", "400"),
+            ]);
+        }
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
+                configureDbContextOptions: optionsBuilder =>
+                {
+                    optionsBuilder.UseCosmos(ConnectionString, "databaseName", cosmosBuilder =>
+                    {
+                        cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(123));
+                    });
+                },
+                configureSettings: useSettings ? settings => settings.RequestTimeout = TimeSpan.FromSeconds(300) : null);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<CosmosOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // Ensure the RequestTimeout from builder was respected
+        Assert.Equal(TimeSpan.FromSeconds(123), extension.RequestTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
@@ -66,7 +140,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         builder.AddCosmosDbContext<TestDbContext>("cosmos", "test");
         builder.AddCosmosDbContext<TestDbContext2>("cosmos2", "test2");
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
         var context2 = host.Services.GetRequiredService<TestDbContext2>();
 

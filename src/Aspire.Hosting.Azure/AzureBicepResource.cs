@@ -176,11 +176,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                 };
 
                 context.Writer.WriteString(input.Key, value);
+
+                context.TryAddDependentResources(input.Value);
             }
             context.Writer.WriteEndObject();
         }
-
-        context.WriteInputs(this);
     }
 
     /// <summary>
@@ -249,7 +249,7 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 /// </summary>
 /// <param name="name">The name of the secret output.</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider
+public class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the output.
@@ -294,6 +294,8 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
     /// The expression used in the manifest to reference the value of the secret output.
     /// </summary>
     public string ValueExpression => $"{{{Resource.Name}.secretOutputs.{Name}}}";
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 }
 
 /// <summary>
@@ -301,7 +303,7 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
 /// </summary>
 /// <param name="name">The name of the output</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider
+public class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the output.
@@ -312,6 +314,8 @@ public class BicepOutputReference(string name, AzureBicepResource resource) : IM
     /// The instance of the bicep resource.
     /// </summary>
     public AzureBicepResource Resource { get; } = resource;
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 
     /// <summary>
     /// The value of the output.

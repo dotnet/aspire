@@ -38,15 +38,7 @@ public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
     public bool Tracing { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
+    /// Gets or sets the time in seconds to wait for the command to execute.
     /// </summary>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
-    public bool Metrics { get; set; } = true;
-
-    /// <summary>
-    /// The time in seconds to wait for the command to execute.
-    /// </summary>
-    public int? Timeout { get; set; }
+    public int? CommandTimeout { get; set; }
 }

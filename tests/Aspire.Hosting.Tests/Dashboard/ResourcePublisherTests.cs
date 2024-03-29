@@ -190,10 +190,8 @@ public class ResourcePublisherTests
             ExitCode = null,
             CreationTimeStamp = null,
             DisplayName = "",
-            Endpoints = [],
+            Urls = [],
             Environment = [],
-            ExpectedEndpointsCount = null,
-            Services = [],
         };
     }
 }

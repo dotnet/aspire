@@ -1,10 +1,10 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Service Defaults",
-  "description": "A project template for creating a .NET Aspire service defaults project.",
-  "symbols/Framework/description": "The target framework for the project.",
+  "name": "Padrões do serviço .NET Server",
+  "description": "Um modelo de projeto para criar um projeto padrão do serviço .NET Aspire.",
+  "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net9.0/description": "Target net9.0",
-  "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",
-  "postActions/restore/description": "Restore NuGet packages required by this project.",
-  "postActions/restore/manualInstructions/default/text": "Run 'dotnet restore'"
+  "symbols/skipRestore/description": "Se especificado, ignora a restauração automática do projeto sendo criado.",
+  "postActions/restore/description": "Restaure os pacotes NuGet exigidos por este projeto.",
+  "postActions/restore/manualInstructions/default/text": "Executa 'dotnet restore'"
 }

@@ -71,7 +71,7 @@
                         <GridValue Value="@context.Name" />
                     </TemplateColumn>
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
-                        <GridValue Value="@context.Address" MaxDisplayLength="0">
+                        <GridValue Value="@context.Text" MaxDisplayLength="0">
                             <ContentAfterValue>
                                 @if (context.Url != null)
                                 {
