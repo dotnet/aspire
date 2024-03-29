@@ -898,7 +898,7 @@ public class AzureBicepResourceTests
         // Setup to verify that connection strings is acquired via resource connectionstring redirct.
         Assert.NotNull(azurePostgres);
         azurePostgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
-        Assert.Equal("myconnectionstring", await postgres.Resource.GetConnectionStringAsync(default));
+        Assert.Equal("myconnectionstring", await ((IResourceWithConnectionString)postgres.Resource).GetConnectionStringAsync(default));
 
         var expectedManifest = """
             {
@@ -913,6 +913,8 @@ public class AzureBicepResourceTests
             }
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        var s = manifest.BicepText;
 
         var expectedBicep = """
             targetScope = 'resourceGroup'
@@ -997,6 +999,15 @@ public class AzureBicepResourceTests
               }
             }
 
+            resource keyVaultSecret_42elsACQb 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+              parent: keyVault_IeF8jZvXV
+              name: 'db'
+              location: location
+              properties: {
+                value: 'Host=${postgreSqlFlexibleServer_NYWb9Nbel.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=dbName'
+              }
+            }
+
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
@@ -1021,7 +1032,7 @@ public class AzureBicepResourceTests
         // still uses the local endpoint.
         postgres.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1234));
         var expectedConnectionString = $"Host=localhost;Port=1234;Username=user;Password=password";
-        Assert.Equal(expectedConnectionString, await postgres.Resource.GetConnectionStringAsync());
+        Assert.Equal(expectedConnectionString, await ((IResourceWithConnectionString)postgres.Resource).GetConnectionStringAsync());
 
         var expectedManifest = """
             {

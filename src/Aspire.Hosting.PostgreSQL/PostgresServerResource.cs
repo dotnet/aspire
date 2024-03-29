@@ -27,6 +27,11 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     }
 
     /// <summary>
+    /// 
+    /// </summary>
+    public IPostgresResource? PostgresResource { get; set; }
+
+    /// <summary>
     /// Gets the primary endpoint for the Redis server.
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
@@ -53,35 +58,19 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <summary>
     /// Gets the connection string expression for the PostgreSQL server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression
-    {
-        get
-        {
-            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-            {
-                return connectionStringAnnotation.Resource.ConnectionStringExpression;
-            }
-
-            return ConnectionString;
-        }
-    }
+    public ReferenceExpression ConnectionStringExpression =>
+        PostgresResource?.ConnectionStringExpression ?? ConnectionString;
 
     /// <summary>
-    /// Gets the connection string for the PostgreSQL server.
+    /// Gets the connection string expression for the PostgreSQL server with the specified database name.
     /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>A connection string for the PostgreSQL server in the form "Host=host;Port=port;Username=postgres;Password=password".</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-        {
-            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
-        }
+    /// <param name="databaseName"></param>
+    /// <returns></returns>
+    public ReferenceExpression GetDatabaseConnectionString(string databaseName) =>
+        PostgresResource?.GetDatabaseConnectionString(databaseName) ??
+        ReferenceExpression.Create($"{ConnectionStringExpression};Database={databaseName}");
 
-        return ConnectionStringExpression.GetValueAsync(cancellationToken);
-    }
-
-    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
+    private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
@@ -92,4 +81,17 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     {
         _databases.TryAdd(name, databaseName);
     }
+}
+
+/// <summary>
+/// 
+/// </summary>
+public interface IPostgresResource : IResourceWithConnectionString
+{
+    /// <summary>
+    /// Gets the connection string expression for the PostgreSQL server with the specified database name.
+    /// </summary>
+    /// <param name="databaseName"></param>
+    /// <returns></returns>
+    ReferenceExpression GetDatabaseConnectionString(string databaseName);
 }
