@@ -12,10 +12,11 @@ using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests.Azure;
 
-public class AzureBicepResourceTests
+public class AzureBicepResourceTests(ITestOutputHelper output)
 {
     [Fact]
     public void AddBicepResource()
@@ -179,8 +180,8 @@ public class AzureBicepResourceTests
               name: keyVaultName
             }
 
-            resource cosmosDBAccount_5pKmb8KAZ 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
-              name: toLower(take(concat('cosmos', uniqueString(resourceGroup().id)), 24))
+            resource cosmosDBAccount_MZyw35gqp 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+              name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'cosmos'
@@ -200,8 +201,8 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource cosmosDBSqlDatabase_TRuxXYh2M 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
-              parent: cosmosDBAccount_5pKmb8KAZ
+            resource cosmosDBSqlDatabase_2kiHyuwCU 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+              parent: cosmosDBAccount_MZyw35gqp
               name: 'mydatabase'
               location: location
               properties: {
@@ -216,11 +217,12 @@ public class AzureBicepResourceTests
               name: 'connectionString'
               location: location
               properties: {
-                value: 'AccountEndpoint=${cosmosDBAccount_5pKmb8KAZ.properties.documentEndpoint};AccountKey=${cosmosDBAccount_5pKmb8KAZ.listkeys(cosmosDBAccount_5pKmb8KAZ.apiVersion).primaryMasterKey}'
+                value: 'AccountEndpoint=${cosmosDBAccount_MZyw35gqp.properties.documentEndpoint};AccountKey=${cosmosDBAccount_MZyw35gqp.listkeys(cosmosDBAccount_MZyw35gqp.apiVersion).primaryMasterKey}'
               }
             }
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
 
         Assert.NotNull(callbackDatabases);
@@ -276,8 +278,8 @@ public class AzureBicepResourceTests
             param principalType string
 
 
-            resource appConfigurationStore_j2IqAZkBh 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
-              name: toLower(take(concat('appConfig', uniqueString(resourceGroup().id)), 24))
+            resource appConfigurationStore_xM7mBhesj 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
+              name: toLower(take('appConfig${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'appConfig'
@@ -289,9 +291,9 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource roleAssignment_umUNaNdeG 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: appConfigurationStore_j2IqAZkBh
-              name: guid(appConfigurationStore_j2IqAZkBh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
+            resource roleAssignment_3uatMWw7h 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: appConfigurationStore_xM7mBhesj
+              name: guid(appConfigurationStore_xM7mBhesj.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b')
                 principalId: principalId
@@ -299,9 +301,10 @@ public class AzureBicepResourceTests
               }
             }
 
-            output appConfigEndpoint string = appConfigurationStore_j2IqAZkBh.properties.endpoint
+            output appConfigEndpoint string = appConfigurationStore_xM7mBhesj.properties.endpoint
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
@@ -346,8 +349,8 @@ public class AzureBicepResourceTests
             param logAnalyticsWorkspaceId string
 
 
-            resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
-              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
+            resource applicationInsightsComponent_eYAu4rv7j 'Microsoft.Insights/components@2020-02-02' = {
+              name: toLower(take('appInsights${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'appInsights'
@@ -359,9 +362,10 @@ public class AzureBicepResourceTests
               }
             }
 
-            output appInsightsConnectionString string = applicationInsightsComponent_fo9MneV12.properties.ConnectionString
+            output appInsightsConnectionString string = applicationInsightsComponent_eYAu4rv7j.properties.ConnectionString
 
             """;
+        output.WriteLine(appInsightsManifest.BicepText);
         Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
     }
 
@@ -391,8 +395,8 @@ public class AzureBicepResourceTests
             param location string = resourceGroup().location
 
 
-            resource operationalInsightsWorkspace_uzGUFQdnZ 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-              name: toLower(take(concat('logAnalyticsWorkspace', uniqueString(resourceGroup().id)), 24))
+            resource operationalInsightsWorkspace_DuWNVIPPL 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+              name: toLower(take('logAnalyticsWorkspace${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'logAnalyticsWorkspace'
@@ -404,9 +408,10 @@ public class AzureBicepResourceTests
               }
             }
 
-            output logAnalyticsWorkspaceId string = operationalInsightsWorkspace_uzGUFQdnZ.id
+            output logAnalyticsWorkspaceId string = operationalInsightsWorkspace_DuWNVIPPL.id
 
             """;
+        output.WriteLine(appInsightsManifest.BicepText);
         Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
     }
 
@@ -563,8 +568,8 @@ public class AzureBicepResourceTests
               name: keyVaultName
             }
 
-            resource redisCache_p9fE6TK3F 'Microsoft.Cache/Redis@2020-06-01' = {
-              name: toLower(take(concat('cache', uniqueString(resourceGroup().id)), 24))
+            resource redisCache_enclX3umP 'Microsoft.Cache/Redis@2020-06-01' = {
+              name: toLower(take('cache${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'cache'
@@ -585,11 +590,12 @@ public class AzureBicepResourceTests
               name: 'connectionString'
               location: location
               properties: {
-                value: '${redisCache_p9fE6TK3F.properties.hostName},ssl=true,password=${redisCache_p9fE6TK3F.listKeys(redisCache_p9fE6TK3F.apiVersion).primaryKey}'
+                value: '${redisCache_enclX3umP.properties.hostName},ssl=true,password=${redisCache_enclX3umP.listKeys(redisCache_enclX3umP.apiVersion).primaryKey}'
               }
             }
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
@@ -628,8 +634,8 @@ public class AzureBicepResourceTests
             param principalType string
 
 
-            resource keyVault_IKWI2x0B5 'Microsoft.KeyVault/vaults@2022-07-01' = {
-              name: toLower(take(concat('mykv', uniqueString(resourceGroup().id)), 24))
+            resource keyVault_aMZbuK3Sy 'Microsoft.KeyVault/vaults@2022-07-01' = {
+              name: toLower(take('mykv${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'mykv'
@@ -637,16 +643,16 @@ public class AzureBicepResourceTests
               properties: {
                 tenantId: tenant().tenantId
                 sku: {
-                  name: 'standard'
                   family: 'A'
+                  name: 'standard'
                 }
                 enableRbacAuthorization: true
               }
             }
 
-            resource roleAssignment_Z4xb36awa 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: keyVault_IKWI2x0B5
-              name: guid(keyVault_IKWI2x0B5.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
+            resource roleAssignment_hVU9zjQV1 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: keyVault_aMZbuK3Sy
+              name: guid(keyVault_aMZbuK3Sy.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
                 principalId: principalId
@@ -654,9 +660,10 @@ public class AzureBicepResourceTests
               }
             }
 
-            output vaultUri string = keyVault_IKWI2x0B5.properties.vaultUri
+            output vaultUri string = keyVault_aMZbuK3Sy.properties.vaultUri
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
@@ -695,8 +702,8 @@ public class AzureBicepResourceTests
             param principalType string
 
 
-            resource signalRService_hoCuRhvyj 'Microsoft.SignalRService/signalR@2022-02-01' = {
-              name: toLower(take(concat('signalr', uniqueString(resourceGroup().id)), 24))
+            resource signalRService_iD3Yrl49T 'Microsoft.SignalRService/signalR@2022-02-01' = {
+              name: toLower(take('signalr${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'signalr'
@@ -721,9 +728,9 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource roleAssignment_O1jxNBUgA 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: signalRService_hoCuRhvyj
-              name: guid(signalRService_hoCuRhvyj.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
+            resource roleAssignment_35voRFfVj 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: signalRService_iD3Yrl49T
+              name: guid(signalRService_iD3Yrl49T.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7')
                 principalId: principalId
@@ -731,9 +738,10 @@ public class AzureBicepResourceTests
               }
             }
 
-            output hostName string = signalRService_hoCuRhvyj.properties.hostName
+            output hostName string = signalRService_iD3Yrl49T.properties.hostName
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
@@ -783,15 +791,14 @@ public class AzureBicepResourceTests
             param principalType string
 
 
-            resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2020-11-01-preview' = {
-              name: toLower(take(concat('sql', uniqueString(resourceGroup().id)), 24))
+            resource sqlServer_lF9QWGqAt 'Microsoft.Sql/servers@2020-11-01-preview' = {
+              name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'sql'
               }
               properties: {
                 version: '12.0'
-                minimalTlsVersion: '1.2'
                 publicNetworkAccess: 'Enabled'
                 administrators: {
                   administratorType: 'ActiveDirectory'
@@ -804,8 +811,8 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource sqlFirewallRule_Kr30BcxQt 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
-              parent: sqlServer_l5O9GRsSn
+            resource sqlFirewallRule_vcw7qNn72 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+              parent: sqlServer_lF9QWGqAt
               name: 'AllowAllAzureIps'
               properties: {
                 startIpAddress: '0.0.0.0'
@@ -813,8 +820,8 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource sqlFirewallRule_fA0ew2DcB 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
-              parent: sqlServer_l5O9GRsSn
+            resource sqlFirewallRule_IgqbBC6Hr 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+              parent: sqlServer_lF9QWGqAt
               name: 'fw'
               properties: {
                 startIpAddress: '0.0.0.0'
@@ -822,17 +829,18 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource sqlDatabase_F6FwuheAS 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
-              parent: sqlServer_l5O9GRsSn
+            resource sqlDatabase_m3U42g9Y8 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
+              parent: sqlServer_lF9QWGqAt
               name: 'dbName'
               location: location
               properties: {
               }
             }
 
-            output sqlServerFqdn string = sqlServer_l5O9GRsSn.properties.fullyQualifiedDomainName
+            output sqlServerFqdn string = sqlServer_lF9QWGqAt.properties.fullyQualifiedDomainName
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
@@ -897,8 +905,8 @@ public class AzureBicepResourceTests
               name: keyVaultName
             }
 
-            resource postgreSqlFlexibleServer_NYWb9Nbel 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
-              name: toLower(take(concat('postgres', uniqueString(resourceGroup().id)), 24))
+            resource postgreSqlFlexibleServer_hFZg1J8nf 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
+              name: toLower(take('postgres${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'postgres'
@@ -925,8 +933,8 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource postgreSqlFirewallRule_2vbo6vMGo 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
-              parent: postgreSqlFlexibleServer_NYWb9Nbel
+            resource postgreSqlFirewallRule_t5EgXW1q4 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+              parent: postgreSqlFlexibleServer_hFZg1J8nf
               name: 'AllowAllAzureIps'
               properties: {
                 startIpAddress: '0.0.0.0'
@@ -934,8 +942,8 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource postgreSqlFirewallRule_oFtHmDYkz 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
-              parent: postgreSqlFlexibleServer_NYWb9Nbel
+            resource postgreSqlFirewallRule_T9qS4dcOa 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+              parent: postgreSqlFlexibleServer_hFZg1J8nf
               name: 'AllowAllIps'
               properties: {
                 startIpAddress: '0.0.0.0'
@@ -943,8 +951,8 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource postgreSqlFlexibleServerDatabase_TDYmKfyJc 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
-              parent: postgreSqlFlexibleServer_NYWb9Nbel
+            resource postgreSqlFlexibleServerDatabase_QJSbpnLQ9 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
+              parent: postgreSqlFlexibleServer_hFZg1J8nf
               name: 'dbName'
               properties: {
               }
@@ -955,11 +963,12 @@ public class AzureBicepResourceTests
               name: 'connectionString'
               location: location
               properties: {
-                value: 'Host=${postgreSqlFlexibleServer_NYWb9Nbel.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+                value: 'Host=${postgreSqlFlexibleServer_hFZg1J8nf.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
               }
             }
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
@@ -1113,8 +1122,8 @@ public class AzureBicepResourceTests
             param principalType string
 
 
-            resource serviceBusNamespace_RuSlLOK64 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
-              name: toLower(take(concat('sb', uniqueString(resourceGroup().id)), 24))
+            resource serviceBusNamespace_1RzZvI0LZ 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
+              name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'sb'
@@ -1123,13 +1132,12 @@ public class AzureBicepResourceTests
                 name: sku
               }
               properties: {
-                minimumTlsVersion: '1.2'
               }
             }
 
-            resource roleAssignment_IS9HJzhT8 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: serviceBusNamespace_RuSlLOK64
-              name: guid(serviceBusNamespace_RuSlLOK64.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+            resource roleAssignment_GAWCqJpjI 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: serviceBusNamespace_1RzZvI0LZ
+              name: guid(serviceBusNamespace_1RzZvI0LZ.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
                 principalId: principalId
@@ -1137,49 +1145,50 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource serviceBusQueue_XlB4dhrJO 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-              parent: serviceBusNamespace_RuSlLOK64
+            resource serviceBusQueue_kQwbucWhl 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
+              parent: serviceBusNamespace_1RzZvI0LZ
               name: 'queue1'
               location: location
               properties: {
               }
             }
 
-            resource serviceBusQueue_Q6ytJFbRX 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-              parent: serviceBusNamespace_RuSlLOK64
+            resource serviceBusQueue_4iiWSBLWy 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
+              parent: serviceBusNamespace_1RzZvI0LZ
               name: 'queue2'
               location: location
               properties: {
               }
             }
 
-            resource serviceBusTopic_Ghv0Edotu 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = {
-              parent: serviceBusNamespace_RuSlLOK64
+            resource serviceBusTopic_6HCaIBS2e 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+              parent: serviceBusNamespace_1RzZvI0LZ
               name: 't1'
               location: location
               properties: {
               }
             }
 
-            resource serviceBusSubscription_uPeK9Nyv8 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2022-10-01-preview' = {
-              parent: serviceBusTopic_Ghv0Edotu
+            resource serviceBusSubscription_ZeDpI38Lv 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+              parent: serviceBusTopic_6HCaIBS2e
               name: 's3'
               location: location
               properties: {
               }
             }
 
-            resource serviceBusTopic_v5qGIuxZg 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = {
-              parent: serviceBusNamespace_RuSlLOK64
+            resource serviceBusTopic_VUuvZGvsD 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+              parent: serviceBusNamespace_1RzZvI0LZ
               name: 't2'
               location: location
               properties: {
               }
             }
 
-            output serviceBusEndpoint string = serviceBusNamespace_RuSlLOK64.properties.serviceBusEndpoint
+            output serviceBusEndpoint string = serviceBusNamespace_1RzZvI0LZ.properties.serviceBusEndpoint
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
@@ -1263,8 +1272,8 @@ public class AzureBicepResourceTests
             param storagesku string
 
 
-            resource storageAccount_65zdmu5tK 'Microsoft.Storage/storageAccounts@2022-09-01' = {
-              name: toLower(take(concat('storage', uniqueString(resourceGroup().id)), 24))
+            resource storageAccount_1XR3Um8QY 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+              name: toLower(take('storage${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'storage'
@@ -1278,16 +1287,16 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource blobService_24WqMwYy8 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
-              parent: storageAccount_65zdmu5tK
+            resource blobService_vTLU20GRg 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
+              parent: storageAccount_1XR3Um8QY
               name: 'default'
               properties: {
               }
             }
 
-            resource roleAssignment_ryHNwVXTs 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: storageAccount_65zdmu5tK
-              name: guid(storageAccount_65zdmu5tK.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
+            resource roleAssignment_Gz09cEnxb 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: storageAccount_1XR3Um8QY
+              name: guid(storageAccount_1XR3Um8QY.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
                 principalId: principalId
@@ -1295,9 +1304,9 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource roleAssignment_hqRD0luQx 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: storageAccount_65zdmu5tK
-              name: guid(storageAccount_65zdmu5tK.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
+            resource roleAssignment_HRj6MDafS 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: storageAccount_1XR3Um8QY
+              name: guid(storageAccount_1XR3Um8QY.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
                 principalId: principalId
@@ -1305,9 +1314,9 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource roleAssignment_5PGf5zmoW 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: storageAccount_65zdmu5tK
-              name: guid(storageAccount_65zdmu5tK.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
+            resource roleAssignment_r0wA6OpKE 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: storageAccount_1XR3Um8QY
+              name: guid(storageAccount_1XR3Um8QY.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
                 principalId: principalId
@@ -1315,11 +1324,12 @@ public class AzureBicepResourceTests
               }
             }
 
-            output blobEndpoint string = storageAccount_65zdmu5tK.properties.primaryEndpoints.blob
-            output queueEndpoint string = storageAccount_65zdmu5tK.properties.primaryEndpoints.queue
-            output tableEndpoint string = storageAccount_65zdmu5tK.properties.primaryEndpoints.table
+            output blobEndpoint string = storageAccount_1XR3Um8QY.properties.primaryEndpoints.blob
+            output queueEndpoint string = storageAccount_1XR3Um8QY.properties.primaryEndpoints.queue
+            output tableEndpoint string = storageAccount_1XR3Um8QY.properties.primaryEndpoints.table
 
             """;
+        output.WriteLine(storageManifest.BicepText);
         Assert.Equal(expectedBicep, storageManifest.BicepText);
 
         // Check blob resource.
@@ -1424,14 +1434,14 @@ public class AzureBicepResourceTests
             param searchSku string
 
 
-            resource searchService_7WkaGluF0 'Microsoft.Search/searchServices@2023-11-01' = {
-              name: toLower(take(concat('search', uniqueString(resourceGroup().id)), 24))
+            resource searchService_j3umigYGT 'Microsoft.Search/searchServices@2023-11-01' = {
+              name: toLower(take('search${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
                 'aspire-resource-name': 'search'
               }
               sku: {
-                name: 'basic'
+                name: searchSku
               }
               properties: {
                 replicaCount: 1
@@ -1441,9 +1451,9 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource roleAssignment_7uytIREoa 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: searchService_7WkaGluF0
-              name: guid(searchService_7WkaGluF0.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7'))
+            resource roleAssignment_f77ijNEYF 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: searchService_j3umigYGT
+              name: guid(searchService_j3umigYGT.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
                 principalId: principalId
@@ -1451,9 +1461,9 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource roleAssignment_QpFzCj55x 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: searchService_7WkaGluF0
-              name: guid(searchService_7WkaGluF0.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0'))
+            resource roleAssignment_s0J7B4aGN 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: searchService_j3umigYGT
+              name: guid(searchService_j3umigYGT.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
                 principalId: principalId
@@ -1461,9 +1471,10 @@ public class AzureBicepResourceTests
               }
             }
 
-            output connectionString string = 'Endpoint=https://${searchService_7WkaGluF0.name}.search.windows.net'
+            output connectionString string = 'Endpoint=https://${searchService_j3umigYGT.name}.search.windows.net'
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
@@ -1536,8 +1547,8 @@ public class AzureBicepResourceTests
             param principalType string
 
 
-            resource cognitiveServicesAccount_6g8jyEjX5 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
-              name: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
+            resource cognitiveServicesAccount_wXAGTFUId 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+              name: toLower(take('openai${uniqueString(resourceGroup().id)}', 24))
               location: location
               kind: 'OpenAI'
               sku: {
@@ -1549,9 +1560,9 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource roleAssignment_X7ie0XqR2 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: cognitiveServicesAccount_6g8jyEjX5
-              name: guid(cognitiveServicesAccount_6g8jyEjX5.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
+            resource roleAssignment_Hsk8rxWY8 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: cognitiveServicesAccount_wXAGTFUId
+              name: guid(cognitiveServicesAccount_wXAGTFUId.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
               properties: {
                 roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
                 principalId: principalId
@@ -1559,8 +1570,8 @@ public class AzureBicepResourceTests
               }
             }
 
-            resource cognitiveServicesAccountDeployment_paT2Ndfh7 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
-              parent: cognitiveServicesAccount_6g8jyEjX5
+            resource cognitiveServicesAccountDeployment_5K9aRgiZP 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+              parent: cognitiveServicesAccount_wXAGTFUId
               name: 'mymodel'
               sku: {
                 name: 'Basic'
@@ -1568,16 +1579,17 @@ public class AzureBicepResourceTests
               }
               properties: {
                 model: {
-                  name: 'gpt-35-turbo'
                   format: 'OpenAI'
+                  name: 'gpt-35-turbo'
                   version: '0613'
                 }
               }
             }
 
-            output connectionString string = 'Endpoint=${cognitiveServicesAccount_6g8jyEjX5.properties.endpoint}'
+            output connectionString string = 'Endpoint=${cognitiveServicesAccount_wXAGTFUId.properties.endpoint}'
 
             """;
+        output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 }
