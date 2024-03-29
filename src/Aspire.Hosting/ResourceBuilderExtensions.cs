@@ -116,7 +116,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Configures a connection string from a referenced resource builder to be set as an environment variable with a custom name.
+    /// Adds an environment variable to the resource with the connection string from the referenced resource.
     /// </summary>
     /// <typeparam name="T">The destination resource type.</typeparam>
     /// <param name="builder">The destination resource builder to which the environment variable will be added.</param>
