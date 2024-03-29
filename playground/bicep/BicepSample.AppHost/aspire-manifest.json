@@ -23,7 +23,7 @@
     },
     "test0": {
       "type": "azure.bicep.v0",
-      "path": "../../../../../Users/midenn/AppData/Local/Temp/tmpjkt1f3.tmp.bicep"
+      "path": "../../../../../../Users/davifowl/AppData/Local/Temp/tmppj1k21.tmp.bicep"
     },
     "kv3": {
       "type": "azure.bicep.v0",
@@ -176,12 +176,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     }

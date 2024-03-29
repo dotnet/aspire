@@ -79,6 +79,6 @@ public static class ExecutableResourceBuilderExtensions
         }
 
         await context.WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
-        context.WriteBindings(executable, emitContainerPort: true);
+        context.WriteBindings(executable);
     }
 }

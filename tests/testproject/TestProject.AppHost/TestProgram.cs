@@ -51,10 +51,10 @@ public class TestProgram : IDisposable
             var scriptPath = Path.Combine(path, "app.js");
 
             NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
-                .WithHttpEndpoint(hostPort: 5031, env: "PORT");
+                .WithHttpEndpoint(port: 5031, env: "PORT");
 
             NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
-                .WithHttpEndpoint(hostPort: 5032, env: "PORT");
+                .WithHttpEndpoint(port: 5032, env: "PORT");
         }
 
         if (includeIntegrationServices)
