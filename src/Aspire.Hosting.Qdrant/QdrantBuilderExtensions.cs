@@ -89,7 +89,7 @@ public static class QdrantBuilderExtensions
 
             // REST endpoint
             var restEndpoint = qdrantResource.Resource.GetEndpoint("rest");
-            context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}_rest"] = $"Endpoint={restEndpoint?.Url};Key={qdrantResource.Resource.ApiKeyParameter}";
+            context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}_rest"] = ReferenceExpression.Create($"Endpoint={restEndpoint};Key={qdrantResource.Resource.ApiKeyParameter}");
         });
 
         return builder;
