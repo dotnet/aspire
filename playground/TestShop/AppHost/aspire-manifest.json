@@ -15,6 +15,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
+          "port": 8000,
           "containerPort": 5432
         }
       }
@@ -34,7 +35,7 @@
       ],
       "volumes": [
         {
-          "name": "basketcache-data",
+          "name": "TestShop.AppHost-basketcache-data",
           "target": "/data",
           "readOnly": false
         }
@@ -44,6 +45,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
+          "port": 8000,
           "containerPort": 6379
         }
       }
@@ -61,29 +63,56 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 80
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 443
+        }
+      }
+    },
+    "rabbitmq-password": {
+      "type": "parameter.v0",
+      "value": "{rabbitmq-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
         }
       }
     },
     "messaging": {
       "type": "container.v0",
-      "connectionString": "amqp://guest:{messaging-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
-      "image": "rabbitmq:3",
+      "connectionString": "amqp://guest:{rabbitmq-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
+      "image": "rabbitmq:3-management",
+      "volumes": [
+        {
+          "name": "TestShop.AppHost-messaging-data",
+          "target": "/var/lib/rabbitmq",
+          "readOnly": false
+        }
+      ],
       "env": {
         "RABBITMQ_DEFAULT_USER": "guest",
-        "RABBITMQ_DEFAULT_PASS": "{messaging-password.value}"
+        "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
       },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
+          "port": 8000,
           "containerPort": 5672
+        },
+        "management": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "port": 80,
+          "containerPort": 15672
         }
       }
     },
@@ -101,12 +130,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http2"
+          "transport": "http2",
+          "port": 80
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http2"
+          "transport": "http2",
+          "port": 443
         }
       }
     },
@@ -126,12 +157,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 80
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 443
         }
       }
     },
@@ -160,12 +193,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 80
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 443
         }
       }
     },
@@ -182,12 +217,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 80
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 443
         }
       }
     },
@@ -201,22 +238,6 @@
           "default": {
             "generate": {
               "minLength": 22
-            }
-          }
-        }
-      }
-    },
-    "messaging-password": {
-      "type": "parameter.v0",
-      "value": "{messaging-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22,
-              "special": false
             }
           }
         }

@@ -9,6 +9,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
+          "port": 8000,
           "containerPort": 27017
         }
       }
@@ -26,12 +27,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 80
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 443
         }
       }
     }

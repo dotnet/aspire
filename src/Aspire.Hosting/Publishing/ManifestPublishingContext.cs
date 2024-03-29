@@ -242,7 +242,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         WriteContainerMounts(container);
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
-        WriteBindings(container, emitContainerPort: true);
+        WriteBindings(container);
     }
 
     /// <summary>
@@ -264,11 +264,36 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// collection.
     /// </summary>
     /// <param name="resource">The <see cref="IResource"/> that contains <see cref="EndpointAnnotation"/> annotations.</param>
-    /// <param name="emitContainerPort">Flag to determine whether container port is emitted.</param>
-    public void WriteBindings(IResource resource, bool emitContainerPort = false)
+    public void WriteBindings(IResource resource)
     {
         if (resource.TryGetEndpoints(out var endpoints))
         {
+            var allocatedPortStart = 8000;
+            // We only care about ports generated
+            var usedPorts = new HashSet<int>();
+
+            int AllocatePort()
+            {
+                // Loop until you find an unused port
+                while (true)
+                {
+                    if (!usedPorts.Contains(allocatedPortStart))
+                    {
+                        return allocatedPortStart;
+                    }
+
+                    allocatedPortStart++;
+                }
+            }
+
+            void UsePort(int? port)
+            {
+                if (port is not null)
+                {
+                    usedPorts.Add(port.Value);
+                }
+            }
+
             Writer.WriteStartObject("bindings");
             foreach (var endpoint in endpoints)
             {
@@ -277,14 +302,30 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
                 Writer.WriteString("transport", endpoint.Transport);
 
-                if (endpoint.Port is { } port)
+                var port = (endpoint.UriScheme, endpoint.Port) switch
                 {
-                    Writer.WriteNumber("port", port);
-                }
+                    ("http", null) => 80,
+                    ("https", null) => 443,
+                    (_, var p) => p ?? AllocatePort()
+                };
 
-                if (emitContainerPort && endpoint.ContainerPort is { } containerPort)
+                UsePort(port);
+
+                int? targetPort = (resource, endpoint.UriScheme, endpoint.ContainerPort) switch
                 {
-                    Writer.WriteNumber("containerPort", containerPort);
+                    (_, _, int p) => p,
+                    (ProjectResource p, "http", null) => null,
+                    (ProjectResource p, "https", null) => null,
+                    _ => AllocatePort()
+                };
+
+                Writer.WriteNumber("port", port);
+
+                // This port is special for projects
+                if (targetPort is not null)
+                {
+                    Writer.WriteNumber("containerPort", targetPort.Value);
+                    UsePort(targetPort);
                 }
 
                 if (endpoint.IsExternal)
@@ -392,7 +433,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     continue;
                 }
 
-                Writer.WriteString(endpoint.EnvironmentVariable, $"{{{resource.Name}.bindings.{endpoint.Name}.port}}");
+                Writer.WriteString(endpoint.EnvironmentVariable, $"{{{resource.Name}.bindings.{endpoint.Name}.containerPort}}");
             }
         }
     }
