@@ -1,9 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Qdrant;
+using Aspire.Qdrant.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Qdrant.Client;
 
 namespace Microsoft.Extensions.Hosting;
@@ -63,27 +64,22 @@ public static class AspireQdrantExtensions
             settings.ParseConnectionString(connectionString);
         }
 
-        if (builder.Configuration[$"{DefaultConfigSectionName}:{connectionName}:Key"] is string apiKey)
-        {
-            settings.Key = apiKey;
-        }
-
         configureSettings?.Invoke(settings);
 
         if (serviceKey is null)
         {
-            builder.Services.AddSingleton(_ => ConfigureQdrant());
+            builder.Services.AddSingleton(ConfigureQdrant);
         }
         else
         {
-            builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureQdrant());
+            builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureQdrant(sp));
         }
 
-        QdrantClient ConfigureQdrant()
+        QdrantClient ConfigureQdrant(IServiceProvider serviceProvider)
         {
             if (settings.Endpoint is not null)
             {
-                return new QdrantClient(settings.Endpoint, apiKey: settings.Key);
+                return new QdrantClient(settings.Endpoint, apiKey: settings.Key, loggerFactory: serviceProvider.GetRequiredService<ILoggerFactory>());
             }
             else
             {

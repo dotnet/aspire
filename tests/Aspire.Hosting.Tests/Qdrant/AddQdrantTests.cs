@@ -135,13 +135,38 @@ public class AddQdrantTests
         appBuilder.Configuration["Parameters:pass"] = "pass";
         var pass = appBuilder.AddParameter("pass");
 
-        var postgres = appBuilder.AddQdrant("my-qdrant", pass)
+        var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
                                  .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334));
 
-        var connectionStringResource = postgres.Resource as IResourceWithConnectionString;
+        var connectionStringResource = qdrant.Resource as IResourceWithConnectionString;
 
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
         Assert.Equal($"Endpoint=http://localhost:6334;Key=pass", connectionString);
+    }
+
+    [Fact]
+    public async Task QdrantClientAppWithReferenceContainsConnectionStrings()
+    {
+        using var testProgram = CreateTestProgram();
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.Configuration["Parameters:pass"] = "pass";
+        var pass = appBuilder.AddParameter("pass");
+
+        var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
+            .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost",6334))
+            .WithEndpoint("rest", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333));
+
+        testProgram.ServiceABuilder.WithReference(qdrant);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource);
+
+        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
+        Assert.Equal(2, servicesKeysCount);
+
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-qdrant" && kvp.Value == "Endpoint=http://localhost:6334;Key=pass");
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-qdrant_rest" && kvp.Value == "Endpoint=http://localhost:6333;Key=pass");
     }
 
     [Fact]
@@ -217,4 +242,6 @@ public class AddQdrantTests
             """;
         Assert.Equal(expectedManifest, serverManifest.ToString());
     }
+
+    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<AddQdrantTests>(args);
 }

@@ -331,6 +331,14 @@ Aspire.Pomelo.EntityFrameworkCore.MySql:
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
+Aspire.Qdrant.Client:
+- Log categories:
+  "Qdrant.Client"
+- Activity source names:
+  - N/A (not currently supported by Qdrant.Client library) 
+- Metric names:
+  - none (currently not supported by Qdrant.Client library)
+
 Aspire.RabbitMQ.Client:
 - Log categories:
   - "RabbitMQ.Client"

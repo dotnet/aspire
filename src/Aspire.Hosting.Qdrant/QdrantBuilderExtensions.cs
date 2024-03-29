@@ -40,7 +40,7 @@ public static class QdrantBuilderExtensions
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
-            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortHttp, name: "rest")
+            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortHttp, name: QdrantServerResource.RestEndpointName)
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[ApiKeyEnvVarName] = qdrant.ApiKeyParameter;
@@ -80,16 +80,15 @@ public static class QdrantBuilderExtensions
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="qdrantResource">The Qdrant server resource</param>
     /// <returns></returns>
-    public static IResourceBuilder<ProjectResource> WithReference(this IResourceBuilder<ProjectResource> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
+    public static IResourceBuilder<IResourceWithEnvironment> WithReference(this IResourceBuilder<ProjectResource> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
     {
         builder.WithEnvironment(context =>
         {
             // primary endpoint (gRPC)
-            context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}"] = new ConnectionStringReference(qdrantResource.Resource, optional: false);
+            context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}"] = qdrantResource.Resource.ConnectionStringExpression;
 
             // REST endpoint
-            var restEndpoint = qdrantResource.Resource.GetEndpoint("rest");
-            context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}_rest"] = ReferenceExpression.Create($"Endpoint={restEndpoint};Key={qdrantResource.Resource.ApiKeyParameter}");
+            context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}_{QdrantServerResource.RestEndpointName}"] = qdrantResource.Resource.RestConnectionStringExpression;
         });
 
         return builder;

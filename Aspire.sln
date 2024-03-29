@@ -419,7 +419,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Tests.Shared
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.KeyVault", "src\Aspire.Hosting.Azure.KeyVault\Aspire.Hosting.Azure.KeyVault.csproj", "{427F4D7C-8969-4015-AD1A-5EFFE921A184}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Qdrant.Client", "src\Components\Aspire.Qdrant\Aspire.Qdrant.Client.csproj", "{E0E1B557-D3CF-4446-B993-E5CE719234FB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Qdrant.Client", "src\Components\Aspire.Qdrant.Client\Aspire.Qdrant.Client.csproj", "{E0E1B557-D3CF-4446-B993-E5CE719234FB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Qdrant.Client.Tests", "tests\Aspire.Qdrant.Client.Tests\Aspire.Qdrant.Client.Tests.csproj", "{A9CFA376-0C90-4231-9152-FBF14065195A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -427,6 +429,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A9CFA376-0C90-4231-9152-FBF14065195A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9CFA376-0C90-4231-9152-FBF14065195A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9CFA376-0C90-4231-9152-FBF14065195A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9CFA376-0C90-4231-9152-FBF14065195A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -1116,6 +1122,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{A9CFA376-0C90-4231-9152-FBF14065195A} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 		{E958BE04-81C2-434C-9E6C-CA145A2B8218} = {A68BA1A5-1604-433D-9778-DC0199831C2A}
 		{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1} = {A68BA1A5-1604-433D-9778-DC0199831C2A}

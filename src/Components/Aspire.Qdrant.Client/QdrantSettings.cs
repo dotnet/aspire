@@ -3,7 +3,7 @@
 
 using System.Data.Common;
 
-namespace Aspire.Qdrant;
+namespace Aspire.Qdrant.Client;
 public sealed class QdrantSettings
 {
     private const string ConnectionStringEndpoint = "Endpoint";

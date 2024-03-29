@@ -20,6 +20,7 @@
               "properties": {
                 "Endpoint": {
                   "type": "string",
+                  "format": "uri",
                   "description": "The endpoint URI string of the Qdrant server to connect to."
                 },
                 "Key": {
@@ -32,7 +33,7 @@
           }
         }
       }
-    },
-    "type": "object"
-  }
+    }
+  },
+  "type": "object"
 }

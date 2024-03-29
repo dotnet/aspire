@@ -9,6 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public class QdrantServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "http";
+    internal const string RestEndpointName = "rest";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="QdrantServerResource"/> class.
@@ -34,9 +35,16 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
-    /// Gets the connection string expression for the Qdrant database.
+    /// Gets the connection string expression for the Qdrant gRPC endpoint.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create(
             $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Scheme)}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
+
+    /// <summary>
+    /// Gets the connection string expression for the Qdrant REST endpoint.
+    /// </summary>
+    public ReferenceExpression RestConnectionStringExpression =>
+        ReferenceExpression.Create(
+            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Scheme)}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:6333;Key={ApiKeyParameter}");
 }
