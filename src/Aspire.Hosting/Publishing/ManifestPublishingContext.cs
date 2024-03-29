@@ -295,12 +295,15 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 {
                     // Port was specified, so use it
                     (_, int p, _) => p,
+
                     // We have a target port, not need to specify an exposedPort
                     // it will default to the targetPort
                     (_, null, int p) => null,
+
                     // Let the tool infer the default http and https ports
                     ("http", null, null) => null,
                     ("https", null, null) => null,
+
                     // Other schemes just allocate a port
                     _ => allocator.AllocatePort()
                 };
