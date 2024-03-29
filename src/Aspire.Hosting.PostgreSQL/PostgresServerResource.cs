@@ -68,7 +68,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <returns></returns>
     public ReferenceExpression GetDatabaseConnectionString(string databaseName) =>
         PostgresResource?.GetDatabaseConnectionString(databaseName) ??
-        ReferenceExpression.Create($"{ConnectionStringExpression};Database={databaseName}");
+        ReferenceExpression.Create($"{this};Database={databaseName}");
 
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 

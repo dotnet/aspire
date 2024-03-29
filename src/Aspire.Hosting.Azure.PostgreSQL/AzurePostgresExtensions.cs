@@ -105,14 +105,13 @@ public static class AzurePostgresExtensions
                                                         .WithManifestPublishingCallback(resource.WriteToManifest)
                                                         .WithLoginAndPassword(builder.Resource);
 
-        // Use this implementation of pg
-        builder.Resource.PostgresResource = resource;
-
         if (useProvisioner)
         {
+            // Use this implementation of pg
+            builder.Resource.PostgresResource = resource;
+
             // Used to hold a reference to the azure surrogate for use with the provisioner.
             builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
-            builder.WithConnectionStringRedirection(resource);
 
             // Remove the container annotation so that DCP doesn't do anything with it.
             if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault() is { } containerAnnotation)
