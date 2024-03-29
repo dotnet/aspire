@@ -15,7 +15,6 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "port": 8000,
           "containerPort": 5432
         }
       }
@@ -45,7 +44,6 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "port": 8000,
           "containerPort": 6379
         }
       }
@@ -104,14 +102,12 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "port": 8000,
           "containerPort": 5672
         },
         "management": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 80,
           "containerPort": 15672
         }
       }
