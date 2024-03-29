@@ -155,7 +155,7 @@ public class AddQdrantTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Endpoint=http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port};Key={qdrant-Key.value}",
+              "connectionString": "Endpoint={qdrant.bindings.http.scheme}://{qdrant.bindings.http.host}:{qdrant.bindings.http.port};Key={qdrant-Key.value}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{qdrant-Key.value}",
@@ -193,7 +193,7 @@ public class AddQdrantTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Endpoint=http://{qdrant.bindings.http.host}:{qdrant.bindings.http.port};Key={QdrantApiKey.value}",
+              "connectionString": "Endpoint={qdrant.bindings.http.scheme}://{qdrant.bindings.http.host}:{qdrant.bindings.http.port};Key={QdrantApiKey.value}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{QdrantApiKey.value}",

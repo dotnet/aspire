@@ -84,13 +84,12 @@ public static class QdrantBuilderExtensions
     {
         builder.WithEnvironment(context =>
         {
+            // primary endpoint (gRPC)
             context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}"] = new ConnectionStringReference(qdrantResource.Resource, optional: false);
 
-            var restEndpointUrl = $"Endpoint={qdrantResource.Resource.GetEndpoint("rest").Url};Key={qdrantResource.Resource.ApiKeyParameter.Value}";
-            if (restEndpointUrl is not null)
-            {
-                context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}_rest"] = restEndpointUrl;
-            }
+            // REST endpoint
+            var restEndpoint = qdrantResource.Resource.GetEndpoint("rest");
+            context.EnvironmentVariables[$"ConnectionStrings__{qdrantResource.Resource.Name}_rest"] = $"Endpoint={restEndpoint?.Url};Key={qdrantResource.Resource.ApiKeyParameter}";
         });
 
         return builder;
