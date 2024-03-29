@@ -26,7 +26,7 @@ public static class SqlServerBuilderExtensions
 
         var sqlServer = new SqlServerServerResource(name, passwordParameter);
         return builder.AddResource(sqlServer)
-                      .WithEndpoint(hostPort: port, containerPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
+                      .WithEndpoint(port: port, targetPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithImage(SqlServerContainerImageTags.Image, SqlServerContainerImageTags.Tag)
                       .WithImageRegistry(SqlServerContainerImageTags.Registry)
                       .WithEnvironment("ACCEPT_EULA", "Y")

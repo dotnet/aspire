@@ -85,7 +85,7 @@ public class ManifestGenerationTests
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithHttpsEndpoint(containerPort: 3000, env: "HTTPS_PORT")
+        program.NodeAppBuilder!.WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
             .PublishAsDockerFile();
 
         // Build AppHost so that publisher can be resolved.
@@ -109,9 +109,9 @@ public class ManifestGenerationTests
         Assert.True(nodeapp.TryGetProperty("env", out var env));
         Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
 
-        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("containerPort").GetInt32());
+        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("targetPort").GetInt32());
         Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
-        Assert.Equal("{nodeapp.bindings.https.port}", env.GetProperty("HTTPS_PORT").GetString());
+        Assert.Equal("{nodeapp.bindings.https.targetPort}", env.GetProperty("HTTPS_PORT").GetString());
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class ManifestGenerationTests
         var grafana = resources.GetProperty("grafana");
         var bindings = grafana.GetProperty("bindings");
         var httpBinding = bindings.GetProperty("http");
-        Assert.Equal(3000, httpBinding.GetProperty("containerPort").GetInt32());
+        Assert.Equal(3000, httpBinding.GetProperty("targetPort").GetInt32());
     }
 
     [Fact]
@@ -456,9 +456,9 @@ public class ManifestGenerationTests
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithHttpEndpoint(hostPort: 5031, env: "PORT");
+            .WithHttpEndpoint(port: 5031, env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithHttpEndpoint(hostPort: 5032, env: "PORT");
+            .WithHttpEndpoint(port: 5032, env: "PORT");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -482,7 +482,7 @@ public class ManifestGenerationTests
             Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
 
             var env = jsonElement.GetProperty("env");
-            Assert.Equal($$"""{{{resourceName}}.bindings.http.port}""", env.GetProperty("PORT").GetString());
+            Assert.Equal($$"""{{{resourceName}}.bindings.http.targetPort}""", env.GetProperty("PORT").GetString());
             Assert.Equal(program.AppBuilder.Environment.EnvironmentName.ToLowerInvariant(), env.GetProperty("NODE_ENV").GetString());
 
             var command = jsonElement.GetProperty("command");
@@ -648,7 +648,7 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "containerPort": 1433
+                      "targetPort": 1433
                     }
                   }
                 },
@@ -669,7 +669,7 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "containerPort": 3306
+                      "targetPort": 3306
                     }
                   }
                 },
@@ -686,7 +686,7 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "containerPort": 6379
+                      "targetPort": 6379
                     }
                   }
                 },
@@ -706,7 +706,7 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "containerPort": 5432
+                      "targetPort": 5432
                     }
                   }
                 },
@@ -727,7 +727,7 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "containerPort": 5672
+                      "targetPort": 5672
                     }
                   }
                 },
@@ -740,7 +740,7 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "containerPort": 27017
+                      "targetPort": 27017
                     }
                   }
                 },
@@ -760,7 +760,7 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "containerPort": 1521
+                      "targetPort": 1521
                     }
                   }
                 },
@@ -780,7 +780,7 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "containerPort": 9092
+                      "targetPort": 9092
                     }
                   }
                 },

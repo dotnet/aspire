@@ -24,11 +24,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="transport">Transport that is being used (e.g. http, http2, http3 etc).</param>
     /// <param name="name">Name of the service.</param>
     /// <param name="port">Desired port for the service.</param>
-    /// <param name="containerPort">If the endpoint is used for the container, this is the port the container process is listening on.</param>
+    /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
     /// <param name="env">The name of the environment variable that will be set to the port number of this endpoint.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null, bool isProxied = true)
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, string? env = null, bool isProxied = true)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -45,7 +45,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _transport = transport;
         Name = name;
         Port = port;
-        ContainerPort = containerPort ?? port;
+        TargetPort = targetPort ?? port;
         IsExternal = isExternal ?? false;
         EnvironmentVariable = env;
         IsProxied = isProxied;
@@ -67,12 +67,12 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public int? Port { get; set; }
 
     /// <summary>
-    /// If the endpoint is used for the container, this is the port the container process is listening on.
+    /// This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.
     /// </summary>
     /// <remarks>
     /// Defaults to <see cref="Port"/>.
     /// </remarks>
-    public int? ContainerPort { get; set; }
+    public int? TargetPort { get; set; }
 
     /// <summary>
     /// If a service is URI-addressable, this property will contain the URI scheme to use for constructing service URI.

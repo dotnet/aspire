@@ -57,6 +57,7 @@ var serviceBus = builder.AddAzureServiceBus("sb")
 var signalr = builder.AddAzureSignalR("signalr");
 
 builder.AddProject<Projects.BicepSample_ApiService>("api")
+       .WithExternalHttpEndpoints()
        .WithReference(sqlServer)
        .WithReference(pg)
        .WithReference(cosmosDb)

@@ -26,7 +26,7 @@ public class AddNatsTests
         Assert.Equal("nats", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(4222, endpoint.ContainerPort);
+        Assert.Equal(4222, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -65,7 +65,7 @@ public class AddNatsTests
         Assert.Equal("-js -sd /data".Split(' '), args);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(4222, endpoint.ContainerPort);
+        Assert.Equal(4222, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(1234, endpoint.Port);
@@ -107,7 +107,7 @@ public class AddNatsTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 4222
+                  "targetPort": 4222
                 }
               }
             }
