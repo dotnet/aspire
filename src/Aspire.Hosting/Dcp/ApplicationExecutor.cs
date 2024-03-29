@@ -1653,12 +1653,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             if (modelResource.IsContainer())
             {
-                if (sp.EndpointAnnotation.ContainerPort is null)
+                if (sp.EndpointAnnotation.TargetPort is null)
                 {
                     throw new InvalidOperationException($"The endpoint for container resource {modelResourceName} must specify the ContainerPort");
                 }
 
-                sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.ContainerPort;
+                sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.TargetPort;
             }
             else if (!sp.EndpointAnnotation.IsProxied)
             {

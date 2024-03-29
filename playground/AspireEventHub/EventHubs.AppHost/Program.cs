@@ -12,6 +12,7 @@ builder.AddProject<Projects.EventHubsConsumer>("consumer")
     .WithReference(blob);
 
 builder.AddProject<Projects.EventHubsApi>("api")
+    .WithExternalHttpEndpoints()
     .WithReference(eventHub);
 
 builder.Build().Run();

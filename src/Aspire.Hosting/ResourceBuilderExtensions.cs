@@ -336,30 +336,6 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
-    /// The endpoint name will be the scheme name if not specified.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="hostPort">An optional host port.</param>
-    /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
-    /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
-    /// <param name="env">An optional name of the environment variable to inject.</param>
-    /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
-    {
-        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
-        {
-            throw new DistributedApplicationException($"Endpoint '{name}' already exists. Endpoint names are case-insensitive.");
-        }
-
-        var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, env: env, isProxied: isProxied);
-        return builder.WithAnnotation(annotation);
-    }
-
-    /// <summary>
     /// Changes an existing creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
     /// </summary>
     /// <param name="builder">Resource builder for resource with endpoints.</param>
@@ -394,52 +370,20 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
-    /// The endpoint name will be "http" if not specified.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="hostPort">An optional host port.</param>
-    /// <param name="name">An optional name of the endpoint. Defaults to "http" if not specified.</param>
-    /// <param name="env">An optional name of the environment variable to inject.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
-    {
-        return builder.WithEndpoint(hostPort: hostPort, scheme: "http", name: name, env: env);
-    }
-
-    /// <summary>
-    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
-    /// The endpoint name will be "https" if not specified.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="hostPort">An optional host port.</param>
-    /// <param name="name">An optional name of the endpoint. Defaults to "https" if not specified.</param>
-    /// <param name="env">An optional name of the environment variable to inject.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
-    {
-        return builder.WithEndpoint(hostPort: hostPort, scheme: "https", name: name, env: env);
-    }
-
-    /// <summary>
     /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="containerPort">The container port.</param>
-    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
+    /// <param name="port">An optional port. This is the port that will be given to other resources to communicate with this resource.</param>
     /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
     /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
     /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
     {
         if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
         {
@@ -450,8 +394,8 @@ public static class ResourceBuilderExtensions
             protocol: ProtocolType.Tcp,
             uriScheme: scheme,
             name: name,
-            port: hostPort,
-            containerPort: containerPort,
+            port: port,
+            targetPort: targetPort,
             env: env,
             isProxied: isProxied);
 
@@ -464,16 +408,16 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="containerPort">The container port.</param>
-    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
+    /// <param name="port">An optional port. This is the port that will be given to other resources to communicate with this resource.</param>
     /// <param name="name">An optional name of the endpoint. Defaults to "http" if not specified.</param>
     /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
+    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
     {
-        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: "http", name: name, env: env, isProxied: isProxied);
+        return builder.WithEndpoint(targetPort: targetPort, port: port, scheme: "http", name: name, env: env, isProxied: isProxied);
     }
 
     /// <summary>
@@ -482,20 +426,44 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="containerPort">The container port.</param>
-    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
+    /// <param name="port">An optional host port.</param>
     /// <param name="name">An optional name of the endpoint. Defaults to "https" if not specified.</param>
     /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
+    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
     {
-        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: "https", name: name, env: env, isProxied: isProxied);
+        return builder.WithEndpoint(targetPort: targetPort, port: port, scheme: "https", name: name, env: env, isProxied: isProxied);
     }
 
     /// <summary>
-    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithEndpoint{T}(IResourceBuilder{T}, int?, string?, string?, string?, bool)"/> or by launch settings (for project resources).
+    /// Marks existing http or https endpoints on a resource as external.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithExternalHttpEndpoints<T>(this IResourceBuilder<T> builder) where T : IResourceWithEndpoints
+    {
+        if (!builder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
+        {
+            return builder;
+        }
+
+        foreach (var endpoint in endpoints)
+        {
+            if (endpoint.UriScheme == "http" || endpoint.UriScheme == "https")
+            {
+                endpoint.IsExternal = true;
+            }
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithEndpoint{T}(IResourceBuilder{T}, int?, int?, string?, string?, string?, bool)"/> or by launch settings (for project resources).
     /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

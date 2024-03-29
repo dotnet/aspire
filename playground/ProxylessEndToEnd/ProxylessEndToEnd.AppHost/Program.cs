@@ -17,7 +17,7 @@ builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api")
     .WithReference(redis);
 
 builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api2", launchProfileName: null)
-    .WithEndpoint(13456, "http")
+    .WithHttpEndpoint(port: 13456)
     .WithReference(redis);
 
 // This project is only added in playground projects to support development/debugging

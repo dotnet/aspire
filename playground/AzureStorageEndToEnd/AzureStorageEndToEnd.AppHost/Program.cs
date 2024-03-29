@@ -10,6 +10,7 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
 var blobs = storage.AddBlobs("blobs");
 
 builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
+       .WithExternalHttpEndpoints()
        .WithReference(blobs);
 
 // This project is only added in playground projects to support development/debugging
