@@ -89,6 +89,7 @@ var appInsights = builder.AddAzureApplicationInsights(
 });
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
+    .WithExternalHttpEndpoints()
     .WithReference(signalr)
     .WithReference(blobs)
     .WithReference(sqldb)

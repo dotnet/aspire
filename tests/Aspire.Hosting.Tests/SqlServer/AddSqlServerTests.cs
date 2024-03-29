@@ -26,7 +26,7 @@ public class AddSqlServerTests
         Assert.Equal("sqlserver", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1433, endpoint.ContainerPort);
+        Assert.Equal(1433, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -125,7 +125,7 @@ public class AddSqlServerTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 1433
+                  "targetPort": 1433
                 }
               }
             }
@@ -165,7 +165,7 @@ public class AddSqlServerTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 1433
+                  "targetPort": 1433
                 }
               }
             }

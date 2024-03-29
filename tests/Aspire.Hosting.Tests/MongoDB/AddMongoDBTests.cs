@@ -27,7 +27,7 @@ public class AddMongoDBTests
         Assert.Equal("mongodb", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(27017, endpoint.ContainerPort);
+        Assert.Equal(27017, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -55,7 +55,7 @@ public class AddMongoDBTests
         Assert.Equal("mongodb", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(27017, endpoint.ContainerPort);
+        Assert.Equal(27017, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(9813, endpoint.Port);
@@ -161,7 +161,7 @@ public class AddMongoDBTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 27017
+                  "targetPort": 27017
                 }
               }
             }

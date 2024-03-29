@@ -32,7 +32,7 @@ public class AddRabbitMQTests
         Assert.Equal("rabbit", containerResource.Name);
 
         var primaryEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "tcp"));
-        Assert.Equal(5672, primaryEndpoint.ContainerPort);
+        Assert.Equal(5672, primaryEndpoint.TargetPort);
         Assert.False(primaryEndpoint.IsExternal);
         Assert.Equal("tcp", primaryEndpoint.Name);
         Assert.Null(primaryEndpoint.Port);
@@ -43,7 +43,7 @@ public class AddRabbitMQTests
         if (withManagementPlugin)
         {
             var mangementEndpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>().Where(e => e.Name == "management"));
-            Assert.Equal(15672, mangementEndpoint.ContainerPort);
+            Assert.Equal(15672, mangementEndpoint.TargetPort);
             Assert.False(primaryEndpoint.IsExternal);
             Assert.Equal("management", mangementEndpoint.Name);
             Assert.Null(mangementEndpoint.Port);
@@ -182,7 +182,7 @@ public class AddRabbitMQTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "containerPort": 15672
+                  "targetPort": 15672
                 }
             """
             : "";
@@ -200,7 +200,7 @@ public class AddRabbitMQTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 5672
+                  "targetPort": 5672
                 }{{managementBinding}}
               }
             }
@@ -234,7 +234,7 @@ public class AddRabbitMQTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 5672
+                  "targetPort": 5672
                 }
               }
             }
@@ -258,7 +258,7 @@ public class AddRabbitMQTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 5672
+                  "targetPort": 5672
                 }
               }
             }
@@ -282,7 +282,7 @@ public class AddRabbitMQTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 5672
+                  "targetPort": 5672
                 }
               }
             }
