@@ -7,6 +7,7 @@ var db1 = builder.AddSqlServer("sql1").PublishAsAzureSqlDatabase().AddDatabase("
 var db2 = builder.AddSqlServer("sql2").PublishAsContainer().AddDatabase("db2");
 
 builder.AddProject<Projects.SqlServerEndToEnd_ApiService>("api")
+       .WithExternalHttpEndpoints()
        .WithReference(db1)
        .WithReference(db2);
 

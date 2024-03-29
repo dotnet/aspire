@@ -95,9 +95,9 @@ public static class AzureStorageExtensions
             return builder;
         }
 
-        builder.WithEndpoint(name: "blob", containerPort: 10000)
-               .WithEndpoint(name: "queue", containerPort: 10001)
-               .WithEndpoint(name: "table", containerPort: 10002)
+        builder.WithEndpoint(name: "blob", targetPort: 10000)
+               .WithEndpoint(name: "queue", targetPort: 10001)
+               .WithEndpoint(name: "table", targetPort: 10002)
                .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "3.29.0" });
 
         if (configureContainer != null)

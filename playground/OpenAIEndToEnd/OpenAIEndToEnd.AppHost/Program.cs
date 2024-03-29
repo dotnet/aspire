@@ -9,6 +9,7 @@ var openai = builder.AddAzureOpenAI("openai").AddDeployment(
     );
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
+       .WithExternalHttpEndpoints()
        .WithReference(openai)
        .WithEnvironment("OpenAI__DeploymentName", deploymentAndModelName);
 
