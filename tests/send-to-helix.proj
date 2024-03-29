@@ -11,6 +11,8 @@
 
     <GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</GlobalJsonContent>
     <DotNetCliVersion>$([System.Text.RegularExpressions.Regex]::Match($(GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</DotNetCliVersion>
+
+    <BuildHelixWorkItemsDependsOn>BuildHelixWorkItemsForDefaultTests</BuildHelixWorkItemsDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -103,7 +105,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="BuildHelixWorkItems" DependsOnTargets="BuildHelixWorkItemsForDefaultTests;BuildHelixWorkItemsForEnd2EndTests">
+  <Target Name="BuildHelixWorkItems" DependsOnTargets="$(BuildHelixWorkItemsDependsOn)">
     <Message Text="HelixCorrelationPayload: %(HelixCorrelationPayload.Identity)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
     <Message Text="HelixWorkItem: %(HelixWorkItem.Identity), Command: %(HelixWorkItem.Command), PreCommands: %(HelixWorkItem.PreCommands) with PayloadArchive: %(HelixWorkItem.PayloadArchive)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
     <Error Text="Stopping the build for dry run" Condition="'$(HelixDryRun)' == 'true'" />

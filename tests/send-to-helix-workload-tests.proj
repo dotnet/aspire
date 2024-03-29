@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <WorkItemArchiveWildCardWorkloadTests>$(TestArchiveTestsDirForWorkloadTests)**/*.zip</WorkItemArchiveWildCardWorkloadTests>
+    <_E2ETestsArchivePath>$(TestArchiveTestsDirForEndToEndTests)Aspire.EndToEnd.Tests.zip</_E2ETestsArchivePath>
+
+    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForEnd2EndTests</BuildHelixWorkItemsDependsOn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,9 +39,19 @@
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
   </ItemGroup>
 
-  <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="@(_DefaultWorkItemsWorkloadTests->Count()) > 0">
+  <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="'$(_E2ETestsArchivePath)' != '' and Exists($(_E2ETestsArchivePath))">
     <PropertyGroup>
-      <_WorkItemTimeoutForWorkloadTests>00:20:00</_WorkItemTimeoutForWorkloadTests>
+      <_TestScenarioEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_SCENARIO%</_TestScenarioEnvVar>
+      <_TestScenarioEnvVar Condition="'$(OS)' != 'Windows_NT'">$TEST_SCENARIO</_TestScenarioEnvVar>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_TestRunCommandArguments Include="--filter scenario=$(_TestScenarioEnvVar)" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_WorkItemTimeoutForEndToEndTests>00:20:00</_WorkItemTimeoutForEndToEndTests>
+      <_WorkItemName>$([System.IO.Path]::GetFileNameWithoutExtension($(_E2ETestsArchivePath)))</_WorkItemName>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
       <HelixPostCommands>$(HelixPostCommands);@(HelixPostCommand)</HelixPostCommands>
@@ -51,18 +64,23 @@
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolPath)=$(_DotNetCoverageToolPath)" />
 
     <ItemGroup>
+      <_E2ETestScenarios Include="scenario0" />
+      <_E2ETestScenarios Include="sqlserver" />
+      <_E2ETestScenarios Include="cosmos" />
+
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />
       <HelixCorrelationPayload Include="$(ArtifactsShippingPackagesDir)" Destination="built-nugets" />
 
-      <HelixWorkItem Include="@(_DefaultWorkItemsWorkloadTests -> '%(FileName)')">
-        <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+      <HelixWorkItem Include="@(_E2ETestScenarios -> '$(_WorkItemName)-%(Identity)')">
+        <PayloadArchive>$(_E2ETestsArchivePath)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=$(_WorkItemName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=$(_WorkItemName)&quot; &amp;&amp; export TEST_SCENARIO=%(Identity)</PreCommands>
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+        <!-- FIXME: does sharing the TEST_NAME affect the reports? Yes, TestNameEnvVar - gets used for these reports. Make sure they end up in different directories! -->
+        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests.cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

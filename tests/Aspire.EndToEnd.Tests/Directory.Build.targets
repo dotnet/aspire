@@ -1,0 +1,6 @@
+<Project>
+  <Import Project="..\Directory.Build.targets" />
+  <PropertyGroup>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
+  </PropertyGroup>
+</Project>
