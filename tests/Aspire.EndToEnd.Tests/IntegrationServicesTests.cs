@@ -25,11 +25,11 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Trait("scenario", "scenario0")]
     [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.mysql)]
+    [InlineData(TestResourceNames.efmysql)]
     [InlineData(TestResourceNames.postgres)]
+    [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
-    [InlineData(TestResourceNames.efnpgsql)]
-    [InlineData(TestResourceNames.efmysql)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
@@ -90,9 +90,9 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     [Fact]
     // Include all the scenarios here so this test gets run for all of them.
-    [Trait("scenario", "scenario0")]
-    [Trait("scenario", "oracle")]
     [Trait("scenario", "cosmos")]
+    [Trait("scenario", "oracle")]
+    [Trait("scenario", "scenario0")]
     [Trait("scenario", "sqlserver")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>
