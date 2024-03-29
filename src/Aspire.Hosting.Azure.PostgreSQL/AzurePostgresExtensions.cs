@@ -91,8 +91,7 @@ public static class AzurePostgresExtensions
 
             foreach (var database in builder.Resource.Databases)
             {
-                var secret = new KeyVaultSecret(construct, name: database.Key);
-                secret.AssignProperty(x => x.Properties.Value, $"'{severConnectionString.Value};Database={database.Value}'");
+                var secret = new KeyVaultSecret(construct, name: database.Key, connectionString: new DatabaseConnectionString(severConnectionString, database.Value));
                 azureResource.DatabaseConnectionStrings[database.Value] = new BicepSecretOutputReference(database.Key, azureResource);
             }
 
@@ -125,13 +124,9 @@ public static class AzurePostgresExtensions
         return builder;
     }
 
-    class DatabaseConnectionString : ConnectionString
-    {
-        public DatabaseConnectionString(string value) : base(value)
-        {
-        }
-    }
-
+    class DatabaseConnectionString(PostgreSqlConnectionString parent, string databaseName) :
+        ConnectionString($"{parent.Value};Database={databaseName}");
+    
     /// <summary>
     /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
     /// </summary>

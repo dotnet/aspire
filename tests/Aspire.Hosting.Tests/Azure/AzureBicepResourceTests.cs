@@ -1007,7 +1007,7 @@ public class AzureBicepResourceTests
                 value: 'Host=${postgreSqlFlexibleServer_NYWb9Nbel.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword};Database=dbName'
               }
             }
-
+            
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
