@@ -72,7 +72,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
         {
             var previousState = GetCurrentSnapshot(resource, notificationState);
 
-            var newState = stateFactory(previousState!);
+            var newState = stateFactory(previousState);
 
             notificationState.LastSnapshot = newState;
 
@@ -97,7 +97,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
         return PublishUpdateAsync(resource, resource.Name, stateFactory);
     }
 
-    private static CustomResourceSnapshot? GetCurrentSnapshot(IResource resource, ResourceNotificationState notificationState)
+    private static CustomResourceSnapshot GetCurrentSnapshot(IResource resource, ResourceNotificationState notificationState)
     {
         var previousState = notificationState.LastSnapshot;
 
