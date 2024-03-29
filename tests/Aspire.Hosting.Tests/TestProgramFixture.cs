@@ -1,8 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Tests.Helpers;
-using Microsoft.Extensions.DependencyInjection;
+using Aspire.Hosting.Testing;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -14,13 +13,10 @@ public abstract class TestProgramFixture : IAsyncLifetime
 {
     private DistributedApplication? _app;
     private TestProgram? _testProgram;
-    private HttpClient? _httpClient;
 
     public TestProgram TestProgram => _testProgram!;
 
     public DistributedApplication App => _app!;
-
-    public HttpClient HttpClient => _httpClient!;
 
     public abstract TestProgram CreateTestProgram();
 
@@ -36,8 +32,6 @@ public abstract class TestProgramFixture : IAsyncLifetime
         _testProgram = CreateTestProgram();
 
         _app = _testProgram.Build();
-
-        _httpClient = _app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
@@ -55,7 +49,6 @@ public abstract class TestProgramFixture : IAsyncLifetime
         }
 
         _testProgram?.Dispose();
-        _httpClient?.Dispose();
     }
 }
 
@@ -69,24 +62,20 @@ public class SlimTestProgramFixture : TestProgramFixture
 {
     public override TestProgram CreateTestProgram()
     {
-        var testProgram = TestProgram.Create<DistributedApplicationTests>();
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        return testProgram;
+        return TestProgram.Create<DistributedApplicationTests>(randomizePorts: false);
     }
 
     public override async Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
     {
         // Make sure services A, B and C are running
-        await TestProgram.ServiceABuilder.HttpGetPidAsync(HttpClient, "http", cancellationToken);
-        await TestProgram.ServiceBBuilder.HttpGetPidAsync(HttpClient, "http", cancellationToken);
-        await TestProgram.ServiceCBuilder.HttpGetPidAsync(HttpClient, "http", cancellationToken);
+        using var clientA = App.CreateHttpClient(TestProgram.ServiceABuilder.Resource.Name, "http");
+        await clientA.GetStringAsync("/", cancellationToken);
+
+        using var clientB = App.CreateHttpClient(TestProgram.ServiceBBuilder.Resource.Name, "http");
+        await clientB.GetStringAsync("/", cancellationToken);
+
+        using var clientC = App.CreateHttpClient(TestProgram.ServiceCBuilder.Resource.Name, "http");
+        await clientC.GetStringAsync("/", cancellationToken);
     }
 }
 
@@ -98,23 +87,12 @@ public class SlimTestProgramFixture : TestProgramFixture
 /// </remarks>
 public class NodeAppFixture : TestProgramFixture
 {
-    public override TestProgram CreateTestProgram()
+    public override TestProgram CreateTestProgram() => TestProgram.Create<DistributedApplicationTests>(includeNodeApp: true, randomizePorts: false);
+
+    public override async Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
     {
-        var testProgram = TestProgram.Create<DistributedApplicationTests>(includeNodeApp: true);
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        return testProgram;
-    }
-
-    public override Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
-    {
-        return TestProgram.NodeAppBuilder!.HttpGetStringWithRetryAsync(HttpClient, "http", "/", cancellationToken);
+        using var client = TestProgram.App!.CreateHttpClient(TestProgram.NodeAppBuilder!.Resource.Name, endpointName: "http");
+        await client.GetStringAsync("/", cancellationToken);
     }
 }
 
