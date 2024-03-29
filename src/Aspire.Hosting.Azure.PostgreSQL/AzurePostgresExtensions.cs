@@ -84,7 +84,7 @@ public static class AzurePostgresExtensions
             }
 
             var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-            _ = new KeyVaultSecret(construct, "connectionString", postgres.GetConnectionString(administratorLogin, administratorLoginPassword));
+            _ = new KeyVaultSecret(construct, "connectionString", postgres.GetConnectionString(administratorLogin, administratorLoginPassword), keyVault);
 
             var azureResource = (AzurePostgresResource)construct.Resource;
             var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);
