@@ -15,6 +15,12 @@ public class DaprTests
     public async Task WithDaprSideCarAddsAnnotationAndSidecarResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddDapr(o =>
+        {
+            // Fake path to avoid throwing
+            o.DaprPath = "dapr";
+        });
+
         builder.AddContainer("name", "image")
             .WithEndpoint("http", e =>
             {
