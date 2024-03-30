@@ -344,7 +344,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public async Task AddApplicationInsights()
+    public async Task AddApplicationInsightsWithoutExplicitLawGetsDefaultLawParameter()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -363,7 +363,74 @@ public class AzureBicepResourceTests
            {
              "type": "azure.bicep.v0",
              "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
-             "path": "appInsights.module.bicep"
+             "path": "appInsights.module.bicep",
+             "params": {
+               "logAnalyticsWorkspaceId": ""
+             }
+           }
+           """;
+        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param applicationType string = 'web'
+
+            @description('')
+            param kind string = 'web'
+
+            @description('')
+            param logAnalyticsWorkspaceId string
+
+
+            resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
+              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'appInsights'
+              }
+              kind: kind
+              properties: {
+                Application_Type: applicationType
+                WorkspaceResourceId: logAnalyticsWorkspaceId
+              }
+            }
+
+            output appInsightsConnectionString string = applicationInsightsComponent_fo9MneV12.properties.ConnectionString
+
+            """;
+        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddApplicationInsightsWithExplicitLawArgumentDoesntGetDefaultParameter()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var law = builder.AddAzureLogAnalyticsWorkspace("mylaw");
+        var appInsights = builder.AddAzureApplicationInsights("appInsights", law);
+
+        appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
+
+        var connectionStringResource = (IResourceWithConnectionString)appInsights.Resource;
+
+        Assert.Equal("appInsights", appInsights.Resource.Name);
+        Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
+        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
+
+        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
+        var expectedManifest = """
+           {
+             "type": "azure.bicep.v0",
+             "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+             "path": "appInsights.module.bicep",
+             "params": {
+               "logAnalyticsWorkspaceId": "{mylaw.outputs.logAnalyticsWorkspaceId}"
+             }
            }
            """;
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
