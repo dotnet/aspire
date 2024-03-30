@@ -23,7 +23,7 @@
     },
     "test0": {
       "type": "azure.bicep.v0",
-      "path": "../../../../../Users/midenn/AppData/Local/Temp/tmpvqsa5k.tmp.bicep"
+      "path": "test0.bicep"
     },
     "kv3": {
       "type": "azure.bicep.v0",
@@ -128,6 +128,14 @@
       "path": "ai.module.bicep",
       "params": {
         "logAnalyticsWorkspaceId": "{lawkspc.outputs.logAnalyticsWorkspaceId}"
+      }
+    },
+    "aiwithoutlaw": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{aiwithoutlaw.outputs.appInsightsConnectionString}",
+      "path": "aiwithoutlaw.module.bicep",
+      "params": {
+        "logAnalyticsWorkspaceId": ""
       }
     },
     "redis": {
