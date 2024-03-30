@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} trace</source>
-        <target state="new">{0} trace</target>
+        <target state="translated">{0} のトレース</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TraceDetailResourcesHeader">
