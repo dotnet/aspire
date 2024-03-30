@@ -70,7 +70,14 @@ internal sealed class EventProcessorClientComponent()
 
         // look for keyed client first, then default client (the serviceKey is always the connection name, if keyed)
         var blobClient = provider.GetKeyedService<BlobServiceClient>(settings.BlobClientConnectionName) ??
-                         provider.GetRequiredService<BlobServiceClient>();
+                         provider.GetService<BlobServiceClient>();
+
+        if (blobClient is null)
+        {
+            throw new InvalidOperationException(
+                $"An EventProcessorClient could not be configured. Ensure a valid blob connection name was provided in " +
+                $"the '{configurationSectionName}:BlobClientConnectionName' configuration section, or use the settings callback to configure it in code.");
+        }
 
         // consumer group and blob container names have similar constraints (alphanumeric, hyphen) but we should sanitize nonetheless
         var consumerGroup = (string.IsNullOrWhiteSpace(settings.ConsumerGroup)) ? "default" : settings.ConsumerGroup;
