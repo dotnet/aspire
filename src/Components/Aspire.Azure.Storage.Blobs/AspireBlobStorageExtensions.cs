@@ -101,9 +101,11 @@ public static class AspireBlobStorageExtensions
 
     private sealed class BlobStorageComponent : AzureComponent<AzureStorageBlobsSettings, BlobServiceClient, BlobClientOptions>
     {
-        protected override IAzureClientBuilder<BlobServiceClient, BlobClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureStorageBlobsSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<BlobServiceClient, BlobClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureStorageBlobsSettings settings, string connectionName,
+            string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<BlobServiceClient, BlobClientOptions>((options, cred) =>
+            return azureFactoryBuilder.AddClient<BlobServiceClient, BlobClientOptions>((options, cred, _) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)
@@ -114,7 +116,7 @@ public static class AspireBlobStorageExtensions
                 return !string.IsNullOrEmpty(connectionString) ? new BlobServiceClient(connectionString, options) :
                     cred is not null ? new BlobServiceClient(settings.ServiceUri, cred, options) :
                     new BlobServiceClient(settings.ServiceUri, options);
-            }, requiresCredential: false);
+            });
         }
 
         protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<BlobServiceClient, BlobClientOptions> clientBuilder, IConfiguration configuration)

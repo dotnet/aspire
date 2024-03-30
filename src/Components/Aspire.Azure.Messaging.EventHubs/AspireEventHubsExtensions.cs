@@ -33,7 +33,7 @@ public static class AspireEventHubsExtensions
         Action<AzureMessagingEventHubsProcessorSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>>? configureClientBuilder = null)
     {
-        new EventProcessorClientComponent(builder.Configuration)
+        new EventProcessorClientComponent()
             .AddClient(builder, DefaultConfigSectionName + nameof(EventProcessorClient),
                 configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
@@ -59,7 +59,7 @@ public static class AspireEventHubsExtensions
             .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName +
                                                     nameof(EventProcessorClient));
 
-        new EventProcessorClientComponent(builder.Configuration)
+        new EventProcessorClientComponent()
             .AddClient(builder, configurationSectionName, configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
     }
