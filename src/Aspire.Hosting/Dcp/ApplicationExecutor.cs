@@ -813,7 +813,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             AspireEventSource.Instance.DcpServicesCreationStart();
 
-            var needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
+            var needAddressAllocated = _appResources.OfType<ServiceAppResource>()
+                .Where(sr => !sr.Service.HasCompleteAddress && sr.Service.Spec.AddressAllocationMode != AddressAllocationModes.Proxyless)
+                .ToList();
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
 
@@ -823,26 +825,53 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 return;
             }
 
-            // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
-            IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
-            await foreach (var (evt, updated) in serviceChangeEnumerator)
+            const int watchAttempts = 2;
+
+            for (int attempt = 0; attempt < watchAttempts; attempt++)
             {
-                if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
+                var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(TimeSpan.FromSeconds(10));
 
-                var srvResource = needAddressAllocated.Where(sr => sr.Service.Metadata.Name == updated.Metadata.Name).FirstOrDefault();
-                if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
-
-                if (updated.HasCompleteAddress || updated.Spec.AddressAllocationMode == AddressAllocationModes.Proxyless)
+                try
                 {
-                    srvResource.Service.ApplyAddressInfoFrom(updated);
-                    needAddressAllocated.Remove(srvResource);
+                    // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
+                    IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: cts.Token);
+                    await foreach (var (evt, updated) in serviceChangeEnumerator)
+                    {
+                        if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
+
+                        var srvResource = needAddressAllocated.Where(sr => sr.Service.Metadata.Name == updated.Metadata.Name).FirstOrDefault();
+                        if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
+
+                        if (updated.HasCompleteAddress)
+                        {
+                            srvResource.Service.ApplyAddressInfoFrom(updated);
+                            needAddressAllocated.Remove(srvResource);
+                        }
+
+                        if (needAddressAllocated.Count == 0)
+                        {
+                            return; // We are done
+                        }
+                    }
                 }
+                catch { }
+            }
 
-                if (needAddressAllocated.Count == 0)
+            // If there are still services that need address allocated, try a final direct query in case the watch missed some updates.
+            foreach(var sar in needAddressAllocated)
+            {
+                var dcpSvc = await kubernetesService.GetAsync<Service>(sar.Service.Metadata.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (dcpSvc.HasCompleteAddress)
                 {
-                    return; // We are done
+                    sar.Service.ApplyAddressInfoFrom(dcpSvc);
+                }
+                else
+                {
+                    distributedApplicationLogger.LogWarning($"Unable to allocate a network port for service '{sar.Service.Metadata.Name}'; service may be unreachable and its clients may not work properly.");
                 }
             }
+            
         }
         finally
         {
