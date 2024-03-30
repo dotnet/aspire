@@ -147,7 +147,7 @@ public class AddPostgresTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var postgresResource = Assert.Single(appModel.Resources.OfType<PostgresServerResource>());
-        var postgresConnectionString = await postgresResource.GetConnectionStringAsync();
+        var postgresConnectionString = await ((IResourceWithConnectionString)postgresResource).GetConnectionStringAsync();
         var postgresDatabaseResource = Assert.Single(appModel.Resources.OfType<PostgresDatabaseResource>());
         var postgresDatabaseConnectionStringResource = (IResourceWithConnectionString)postgresDatabaseResource;
         var dbConnectionString = await postgresDatabaseConnectionStringResource.GetConnectionStringAsync();

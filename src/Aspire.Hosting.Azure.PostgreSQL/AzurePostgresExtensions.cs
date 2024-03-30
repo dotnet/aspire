@@ -75,7 +75,7 @@ public static class AzurePostgresExtensions
                 var openFirewallRule = new PostgreSqlFirewallRule(construct, "0.0.0.0", "255.255.255.255", postgres, "AllowAllIps");
             }
 
-            List<PostgreSqlFlexibleServerDatabase> sqlDatabases = new List<PostgreSqlFlexibleServerDatabase>();
+            List<PostgreSqlFlexibleServerDatabase> sqlDatabases = [];
             foreach (var databaseNames in builder.Resource.Databases)
             {
                 var databaseName = databaseNames.Value;
@@ -84,9 +84,17 @@ public static class AzurePostgresExtensions
             }
 
             var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-            _ = new KeyVaultSecret(construct, "connectionString", postgres.GetConnectionString(administratorLogin, administratorLoginPassword));
+            var severConnectionString = postgres.GetConnectionString(administratorLogin, administratorLoginPassword);
+            _ = new KeyVaultSecret(construct, "connectionString", severConnectionString);
 
             var azureResource = (AzurePostgresResource)construct.Resource;
+
+            foreach (var database in builder.Resource.Databases)
+            {
+                var secret = new KeyVaultSecret(construct, name: database.Key, connectionString: new DatabaseConnectionString(severConnectionString, database.Value));
+                azureResource.DatabaseConnectionStrings[database.Value] = new BicepSecretOutputReference(database.Key, azureResource);
+            }
+
             var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);
             configureResource?.Invoke(azureResourceBuilder, construct, postgres);
         };
@@ -99,9 +107,11 @@ public static class AzurePostgresExtensions
 
         if (useProvisioner)
         {
+            // Use this implementation of pg
+            builder.Resource.PostgresResource = resource;
+
             // Used to hold a reference to the azure surrogate for use with the provisioner.
             builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
-            builder.WithConnectionStringRedirection(resource);
 
             // Remove the container annotation so that DCP doesn't do anything with it.
             if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault() is { } containerAnnotation)
@@ -113,6 +123,9 @@ public static class AzurePostgresExtensions
         return builder;
     }
 
+    class DatabaseConnectionString(PostgreSqlConnectionString parent, string databaseName) :
+        ConnectionString($"{parent.Value};Database={databaseName}");
+    
     /// <summary>
     /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
     /// </summary>
