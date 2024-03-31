@@ -23,7 +23,7 @@
     },
     "test0": {
       "type": "azure.bicep.v0",
-      "path": "../../../../../../Users/davifowl/AppData/Local/Temp/tmppj1k21.tmp.bicep"
+      "path": "../../../../../Users/midenn/AppData/Local/Temp/tmpya0thd.tmp.bicep"
     },
     "kv3": {
       "type": "azure.bicep.v0",
@@ -120,8 +120,11 @@
     },
     "ai": {
       "type": "azure.bicep.v0",
-      "connectionString": "{ai.outputs.appInsightsConnectionString}",
-      "path": "ai.module.bicep"
+      "connectionString": "{ai.secretOutputs.connectionString}",
+      "path": "ai.module.bicep",
+      "params": {
+        "keyVaultName": ""
+      }
     },
     "redis": {
       "type": "azure.bicep.v0",

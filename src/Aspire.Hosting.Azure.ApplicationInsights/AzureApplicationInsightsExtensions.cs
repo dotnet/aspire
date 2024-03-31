@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.ApplicationInsights;
+using Azure.Provisioning.KeyVaults;
 
 namespace Aspire.Hosting;
 
@@ -47,7 +48,9 @@ public static class AzureApplicationInsightsExtensions
             appInsights.AssignProperty(p => p.Kind, new Parameter("kind", defaultValue: "web"));
             appInsights.AssignProperty(p => p.WorkspaceResourceId, new Parameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
 
-            appInsights.AddOutput("appInsightsConnectionString", p => p.ConnectionString);
+            var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
+            var connectionString = new KeyVaultSecret(construct, keyVault, "connectionString");
+            connectionString.AssignProperty(x => x.Properties.Value, $$"""'${{{appInsights.Name}}.listKeys().ConnectionString}'""");
 
             if (configureResource != null)
             {
@@ -59,6 +62,7 @@ public static class AzureApplicationInsightsExtensions
         var resource = new AzureApplicationInsightsResource(name, configureConstruct);
 
         return builder.AddResource(resource)
+                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

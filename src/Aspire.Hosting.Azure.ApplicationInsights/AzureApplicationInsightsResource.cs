@@ -17,7 +17,7 @@ public class AzureApplicationInsightsResource(string name, Action<ResourceModule
     /// <summary>
     /// Gets the "appInsightsConnectionString" output reference for the Azure Application Insights resource.
     /// </summary>
-    public BicepOutputReference ConnectionString => new("appInsightsConnectionString", this);
+    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
 
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Application Insights resource.
