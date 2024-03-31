@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -102,7 +103,7 @@ public class WithEndpointTests
     }
 
     [Fact]
-    public void CanAddEndpointsWithContainerPortAndEnv()
+    public async Task CanAddEndpointsWithContainerPortAndEnv()
     {
         using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.AddExecutable("foo", "foo", ".")
@@ -114,13 +115,16 @@ public class WithEndpointTests
         var exeResources = appModel.GetExecutableResources();
 
         var resource = Assert.Single(exeResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
         Assert.Equal("foo", resource.Name);
         var endpoints = resource.Annotations.OfType<EndpointAnnotation>().ToArray();
         Assert.Single(endpoints);
         Assert.Equal("mybinding", endpoints[0].Name);
         Assert.Equal(3001, endpoints[0].TargetPort);
         Assert.Equal("http", endpoints[0].UriScheme);
-        Assert.Equal("PORT", endpoints[0].EnvironmentVariable);
+        Assert.Equal("3001", config["PORT"]);
     }
 
     [Fact]
