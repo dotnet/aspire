@@ -457,7 +457,7 @@ public class AzureBicepResourceTests
 
         appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
 
-        var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
+        var serviceA = builder.AddProject<ProjectA>("serviceA")
             .WithReference(appInsights);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(serviceA.Resource);
@@ -1513,7 +1513,7 @@ public class AzureBicepResourceTests
         var ai = builder.AddAzureApplicationInsights("ai").PublishAsConnectionString();
         var serviceBus = builder.AddAzureServiceBus("servicebus").PublishAsConnectionString();
 
-        var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
+        var serviceA = builder.AddProject<ProjectA>("serviceA")
             .WithReference(ai)
             .WithReference(serviceBus);
 
@@ -1617,5 +1617,12 @@ public class AzureBicepResourceTests
 
             """;
         Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    private sealed class ProjectA : IProjectMetadata
+    {
+        public string ProjectPath => "projectA";
+
+        public LaunchSettings LaunchSettings { get; } = new();
     }
 }
