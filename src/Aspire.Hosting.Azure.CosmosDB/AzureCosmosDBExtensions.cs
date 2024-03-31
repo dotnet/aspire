@@ -38,6 +38,8 @@ public static class AzureCosmosExtensions
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureCosmosDBResource>, ResourceModuleConstruct, CosmosDBAccount, IEnumerable<CosmosDBSqlDatabase>>? configureResource)
     {
+        builder.AddAzureProvisioning();
+
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var cosmosAccount = new CosmosDBAccount(construct, CosmosDBAccountKind.GlobalDocumentDB, name: name);
@@ -90,7 +92,7 @@ public static class AzureCosmosExtensions
             return builder;
         }
 
-        builder.WithEndpoint(name: "emulator", containerPort: 8081)
+        builder.WithEndpoint(name: "emulator", targetPort: 8081)
                .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
 
         if (configureContainer != null)

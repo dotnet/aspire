@@ -27,7 +27,7 @@ public static class RedisBuilderExtensions
     {
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
-                      .WithEndpoint(hostPort: port, containerPort: 6379, name: RedisResource.PrimaryEndpointName)
+                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag);
     }
 
@@ -52,7 +52,7 @@ public static class RedisBuilderExtensions
         var resource = new RedisCommanderResource(containerName);
         builder.ApplicationBuilder.AddResource(resource)
                                   .WithImage("rediscommander/redis-commander", "latest")
-                                  .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
+                                  .WithHttpEndpoint(targetPort: 8081, port: hostPort, name: containerName)
                                   .ExcludeFromManifest();
 
         return builder;

@@ -23,7 +23,7 @@
     },
     "test0": {
       "type": "azure.bicep.v0",
-      "path": "../../../../../AppData/Local/Temp/tmphmltkq.tmp.bicep"
+      "path": "test0.bicep"
     },
     "kv3": {
       "type": "azure.bicep.v0",
@@ -118,10 +118,25 @@
         "keyVaultName": ""
       }
     },
+    "lawkspc": {
+      "type": "azure.bicep.v0",
+      "path": "lawkspc.module.bicep"
+    },
     "ai": {
       "type": "azure.bicep.v0",
       "connectionString": "{ai.outputs.appInsightsConnectionString}",
-      "path": "ai.module.bicep"
+      "path": "ai.module.bicep",
+      "params": {
+        "logAnalyticsWorkspaceId": "{lawkspc.outputs.logAnalyticsWorkspaceId}"
+      }
+    },
+    "aiwithoutlaw": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{aiwithoutlaw.outputs.appInsightsConnectionString}",
+      "path": "aiwithoutlaw.module.bicep",
+      "params": {
+        "logAnalyticsWorkspaceId": ""
+      }
     },
     "redis": {
       "type": "azure.bicep.v0",
@@ -176,12 +191,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     }

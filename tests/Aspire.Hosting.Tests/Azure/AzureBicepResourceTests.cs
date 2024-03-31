@@ -5,12 +5,14 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -30,6 +32,42 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("content", bicepResource.Resource.TemplateString);
         Assert.Equal("value1", bicepResource.Resource.Parameters["param1"]);
         Assert.Equal("value2", bicepResource.Resource.Parameters["param2"]);
+    }
+
+    [Fact]
+    public void AzureExtensionsAutomaticallyAddAzureProvisioning()
+    {
+        Action<IDistributedApplicationBuilder>[] extensionCalls = [
+            (IDistributedApplicationBuilder builder) => builder.AddAzureAppConfiguration("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureApplicationInsights("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddBicepTemplate("x", "template.bicep"),
+            (IDistributedApplicationBuilder builder) => builder.AddBicepTemplateString("x", "content"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureConstruct("x", _ => { }),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureOpenAI("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureOpenAI("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureCosmosDB("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureEventHubs("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureKeyVault("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureLogAnalyticsWorkspace("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddPostgres("x").AsAzurePostgresFlexibleServer(),
+            (IDistributedApplicationBuilder builder) => builder.AddRedis("x").AsAzureRedis(),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureSearch("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureServiceBus("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureSignalR("x"),
+            (IDistributedApplicationBuilder builder) => builder.AddSqlServer("x").AsAzureSqlDatabase(),
+            (IDistributedApplicationBuilder builder) => builder.AddAzureStorage("x"),
+            ];
+
+        foreach (var extensionCall in extensionCalls)
+        {
+            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+            extensionCall(builder);
+
+            var app = builder.Build();
+            var hooks = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
+            var provisionerHook = hooks.OfType<AzureProvisioner>();
+            Assert.Single<AzureProvisioner>(provisionerHook);
+        }
     }
 
     [Fact]
@@ -309,7 +347,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task AddApplicationInsights()
+    public async Task AddApplicationInsightsWithoutExplicitLawGetsDefaultLawParameter()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -328,7 +366,74 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
            {
              "type": "azure.bicep.v0",
              "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
-             "path": "appInsights.module.bicep"
+             "path": "appInsights.module.bicep",
+             "params": {
+               "logAnalyticsWorkspaceId": ""
+             }
+           }
+           """;
+        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param applicationType string = 'web'
+
+            @description('')
+            param kind string = 'web'
+
+            @description('')
+            param logAnalyticsWorkspaceId string
+
+
+            resource applicationInsightsComponent_fo9MneV12 'Microsoft.Insights/components@2020-02-02' = {
+              name: toLower(take(concat('appInsights', uniqueString(resourceGroup().id)), 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'appInsights'
+              }
+              kind: kind
+              properties: {
+                Application_Type: applicationType
+                WorkspaceResourceId: logAnalyticsWorkspaceId
+              }
+            }
+
+            output appInsightsConnectionString string = applicationInsightsComponent_fo9MneV12.properties.ConnectionString
+
+            """;
+        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddApplicationInsightsWithExplicitLawArgumentDoesntGetDefaultParameter()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var law = builder.AddAzureLogAnalyticsWorkspace("mylaw");
+        var appInsights = builder.AddAzureApplicationInsights("appInsights", law);
+
+        appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
+
+        var connectionStringResource = (IResourceWithConnectionString)appInsights.Resource;
+
+        Assert.Equal("appInsights", appInsights.Resource.Name);
+        Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
+        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
+
+        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
+        var expectedManifest = """
+           {
+             "type": "azure.bicep.v0",
+             "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+             "path": "appInsights.module.bicep",
+             "params": {
+               "logAnalyticsWorkspaceId": "{mylaw.outputs.logAnalyticsWorkspaceId}"
+             }
            }
            """;
         Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());

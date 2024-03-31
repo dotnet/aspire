@@ -5,8 +5,6 @@ using Aspire.Hosting.Azure;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var parameter = builder.AddParameter("val");
 
 AzureBicepResource? temp00 = null;
@@ -46,7 +44,11 @@ var pg = builder.AddPostgres("postgres2", administratorLogin, administratorLogin
 var cosmosDb = builder.AddAzureCosmosDB("cosmos")
                       .AddDatabase("db3");
 
-var appInsights = builder.AddAzureApplicationInsights("ai");
+var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("lawkspc");
+var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);
+
+// To verify that AZD will populate the LAW parameter.
+builder.AddAzureApplicationInsights("aiwithoutlaw");
 
 // Redis takes forever to spin up...
 var redis = builder.AddRedis("redis")
@@ -59,6 +61,7 @@ var serviceBus = builder.AddAzureServiceBus("sb")
 var signalr = builder.AddAzureSignalR("signalr");
 
 builder.AddProject<Projects.BicepSample_ApiService>("api")
+       .WithExternalHttpEndpoints()
        .WithReference(sqlServer)
        .WithReference(pg)
        .WithReference(cosmosDb)

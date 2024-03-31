@@ -23,6 +23,7 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
                            .WithReference(messaging);
 
 builder.AddProject<Projects.MyFrontend>("frontend")
+       .WithExternalHttpEndpoints()
        .WithReference(basketService)
        .WithReference(catalogService);
 

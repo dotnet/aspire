@@ -29,7 +29,7 @@ public static class MySqlBuilderExtensions
 
         var resource = new MySqlServerResource(name, passwordParameter);
         return builder.AddResource(resource)
-                      .WithEndpoint(hostPort: port, containerPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
+                      .WithEndpoint(port: port, targetPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
                       .WithImage(MySqlContainerImageTags.Image, MySqlContainerImageTags.Tag)
                       .WithEnvironment(context =>
                       {
@@ -75,7 +75,7 @@ public static class MySqlBuilderExtensions
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
                                   .WithImage("phpmyadmin", "5.2")
-                                  .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
+                                  .WithHttpEndpoint(targetPort: 80, port: hostPort, name: containerName)
                                   .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
                                   .ExcludeFromManifest();
 

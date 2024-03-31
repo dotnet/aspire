@@ -22,6 +22,8 @@ public static class AzureBicepResourceExtensions
     /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepResource> AddBicepTemplate(this IDistributedApplicationBuilder builder, string name, string bicepFile)
     {
+        builder.AddAzureProvisioning();
+
         var path = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, bicepFile));
         var resource = new AzureBicepResource(name, templateFile: path, templateString: null);
         return builder.AddResource(resource)
@@ -37,6 +39,8 @@ public static class AzureBicepResourceExtensions
     /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepResource> AddBicepTemplateString(this IDistributedApplicationBuilder builder, string name, string bicepContent)
     {
+        builder.AddAzureProvisioning();
+
         var resource = new AzureBicepResource(name, templateFile: null, templateString: bicepContent);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
