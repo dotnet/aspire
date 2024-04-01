@@ -72,7 +72,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (_dcpOptions.DeleteResourcesOnShutdown is true)
+        if (_dcpOptions.DeleteResourcesOnShutdown)
         {
             try
             {

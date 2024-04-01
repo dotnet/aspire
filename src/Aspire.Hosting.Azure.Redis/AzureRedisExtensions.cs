@@ -41,6 +41,8 @@ public static class AzureRedisExtensions
 
     internal static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource, bool useProvisioner = false)
     {
+        builder.ApplicationBuilder.AddAzureProvisioning();
+
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var redisCache = new RedisCache(construct, name: builder.Resource.Name);

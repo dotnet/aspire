@@ -51,6 +51,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
         }
+        BuildEnvironment.EnvVars.Add("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
     }
 
     public async Task InitializeAsync()
@@ -70,6 +71,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         await BuildProjectAsync();
 
         // Run project
+        object outputLock = new();
         var output = new StringBuilder();
         var projectsParsed = new TaskCompletionSource();
         var appRunning = new TaskCompletionSource();
@@ -107,7 +109,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 return;
             }
 
-            output.AppendLine(e.Data);
+            lock(outputLock)
+            {
+                output.AppendLine(e.Data);
+            }
             _testOutput.WriteLine($"[apphost] {e.Data}");
 
             if (e.Data?.StartsWith("$ENDPOINTS: ") == true)
@@ -129,7 +134,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 return;
             }
 
-            output.AppendLine(e.Data);
+            lock(outputLock)
+            {
+                output.AppendLine(e.Data);
+            }
             _testOutput.WriteLine($"[apphost] {e.Data}");
         };
 
@@ -153,6 +161,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var failedAppTask = _appExited.Task;
         var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5));
 
+        string outputMessage;
         var resultTask = await Task.WhenAny(successfulTask, failedAppTask, timeoutTask);
         if (resultTask == failedAppTask)
         {
@@ -165,7 +174,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 _testOutput.WriteLine($"\tand timed out waiting for the full output");
             }
 
-            var outputMessage = output.ToString();
+            lock(outputLock)
+            {
+                outputMessage = output.ToString();
+            }
             var exceptionMessage = $"App run failed: {Environment.NewLine}{outputMessage}";
             if (outputMessage.Contains("docker was found but appears to be unhealthy", StringComparison.OrdinalIgnoreCase))
             {
@@ -175,7 +187,12 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             // should really fail and quit after this
             throw new ArgumentException(exceptionMessage);
         }
-        Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{output}");
+
+        lock(outputLock)
+        {
+            outputMessage = output.ToString();
+        }
+        Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{outputMessage}");
 
         var client = CreateHttpClient();
         foreach (var project in Projects.Values)

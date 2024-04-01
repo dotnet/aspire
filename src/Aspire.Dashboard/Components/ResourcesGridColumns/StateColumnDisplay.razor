@@ -36,6 +36,37 @@ else if (Resource is { State: /* unknown */ null or { Length: 0 } })
                 Color="Color.Neutral"
                 Class="severity-icon" />
 }
+else if (!string.IsNullOrEmpty(Resource.StateStyle))
+{
+    switch (Resource.StateStyle)
+    {
+        case "warning":
+            <FluentIcon Icon="Icons.Filled.Size16.Warning"
+                        Color="Color.Warning"
+                        Class="severity-icon" />
+            break;
+        case "error":
+            <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle"
+                        Color="Color.Error"
+                        Class="severity-icon" />
+            break;
+        case "success":
+            <FluentIcon Icon="Icons.Filled.Size16.Circle"
+                        Color="Color.Success"
+                        Class="severity-icon" />
+            break;
+        case "info":
+            <FluentIcon Icon="Icons.Filled.Size16.Circle"
+                        Color="Color.Info"
+                        Class="severity-icon" />
+            break;
+        default:
+            <FluentIcon Icon="Icons.Filled.Size16.Circle"
+                        Color="Color.Neutral"
+                        Class="severity-icon" />
+            break;
+    }
+}
 else
 {
     <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"

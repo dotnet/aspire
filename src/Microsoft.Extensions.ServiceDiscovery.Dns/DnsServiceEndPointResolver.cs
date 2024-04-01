@@ -4,7 +4,6 @@
 using System.Net;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
@@ -45,8 +44,7 @@ internal sealed partial class DnsServiceEndPointResolver(
 
         if (endPoints.Count == 0)
         {
-            SetException(new InvalidOperationException($"No DNS records were found for service {ServiceName} (DNS name: {hostName})."));
-            return;
+            throw new InvalidOperationException($"No DNS records were found for service {ServiceName} (DNS name: {hostName}).");
         }
 
         SetResult(endPoints, ttl);

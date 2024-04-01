@@ -5,9 +5,12 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire;
 using Aspire.Oracle.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Oracle.EntityFrameworkCore;
+using Oracle.EntityFrameworkCore.Infrastructure.Internal;
+using Oracle.EntityFrameworkCore.Storage.Internal;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -105,14 +108,56 @@ public static class AspireOracleEFCoreExtensions
 
         void ConfigureRetry()
         {
-            if (!settings.Retry)
+#pragma warning disable EF1001 // Internal EF Core API usage.
+            if (settings.Retry || settings.CommandTimeout.HasValue)
             {
-                return;
-            }
+                builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseOracle(options =>
+                {
+                    var extension = optionsBuilder.Options.FindExtension<OracleOptionsExtension>();
 
-            builder.PatchServiceDescriptor<TContext>(optionsBuilder =>
-                optionsBuilder.UseOracle(options => options.ExecutionStrategy(context => new OracleRetryingExecutionStrategy(context)))
-            );
+                    if (settings.Retry)
+                    {
+                        var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
+
+                        if (executionStrategy != null)
+                        {
+                            if (executionStrategy is OracleRetryingExecutionStrategy)
+                            {
+                                // Keep custom Retry strategy.
+                                // Any sub-class of OracleRetryingExecutionStrategy is a valid retry strategy
+                                // which shouldn't be replaced even with Retry == true
+                            }
+                            else if (executionStrategy.GetType() != typeof(OracleExecutionStrategy))
+                            {
+                                // Check OracleExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
+
+                                throw new InvalidOperationException($"{nameof(OracleEntityFrameworkCoreSettings)}.Retry can't be set when a custom Execution Strategy is configured.");
+                            }
+                            else
+                            {
+                                options.ExecutionStrategy(context => new OracleRetryingExecutionStrategy(context));
+                            }
+                        }
+                        else
+                        {
+                            options.ExecutionStrategy(context => new OracleRetryingExecutionStrategy(context));
+                        }
+                    }
+
+                    if (settings.CommandTimeout.HasValue)
+                    {
+                        if (extension != null &&
+                            extension.CommandTimeout.HasValue &&
+                            extension.CommandTimeout != settings.CommandTimeout)
+                        {
+                            throw new InvalidOperationException($"Conflicting values for 'CommandTimeout' were found in {nameof(OracleEntityFrameworkCoreSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
+                        }
+
+                        options.CommandTimeout(settings.CommandTimeout);
+                    }
+                }));
+            }
+#pragma warning restore EF1001 // Internal EF Core API usage.
         }
     }
 

@@ -127,6 +127,7 @@ extends:
           enablePublishUsingPipelines: true
           enablePublishBuildAssets: true
           enableTelemetry: true
+          enableSourceBuild: true
           enableSourceIndex: false
           # Publish build logs
           enablePublishBuildArtifacts: true

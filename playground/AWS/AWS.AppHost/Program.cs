@@ -21,6 +21,7 @@ var awsResources = builder.AddAWSCloudFormationTemplate("AspireSampleDevResource
 //                        .WithReference(awsConfig);
 
 builder.AddProject<Projects.Frontend>("Frontend")
+       .WithExternalHttpEndpoints()
         // Demonstrating binding all of the output variables to a section in IConfiguration. By default they are bound to the AWS::Resources prefix.
         // The prefix is configurable by the optional configSection parameter.
         .WithReference(awsResources)

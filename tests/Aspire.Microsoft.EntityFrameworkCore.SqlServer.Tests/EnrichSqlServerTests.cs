@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Microsoft.Data.SqlClient.Tests;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
@@ -16,6 +17,11 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class EnrichSqlServerTests : ConformanceTests
 {
+    public EnrichSqlServerTests(SqlServerContainerFixture containerFixture)
+        : base(containerFixture)
+    {
+    }
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseSqlServer(ConnectionString));
@@ -82,6 +88,26 @@ public class EnrichSqlServerTests : ConformanceTests
         Assert.Equal(new WorkaroundToReadProtectedField(context).MaxRetryCount, retryStrategy.MaxRetryCount);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void EnrichWithConflictingCommandTimeoutThrows()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            optionsBuilder.UseSqlServer(ConnectionString, builder =>
+            {
+                builder.CommandTimeout(123);
+            });
+        });
+
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("Conflicting values for 'CommandTimeout' were found in MicrosoftEntityFrameworkCoreSqlServerSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
     }
 
     [Fact]
@@ -160,7 +186,7 @@ public class EnrichSqlServerTests : ConformanceTests
     }
 
     [Fact]
-    public void EnrichOverridesCustomRetryIfNotDisabled()
+    public void EnrichDoesntOverridesCustomRetry()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -192,8 +218,7 @@ public class EnrichSqlServerTests : ConformanceTests
         Assert.NotNull(extension.ExecutionStrategyFactory);
         var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
         var retryStrategy = Assert.IsType<SqlServerRetryingExecutionStrategy>(executionStrategy);
-        Assert.Equal(new WorkaroundToReadProtectedField(context).MaxRetryCount, retryStrategy.MaxRetryCount);
-
+        Assert.Equal(456, retryStrategy.MaxRetryCount);
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
@@ -233,5 +258,78 @@ public class EnrichSqlServerTests : ConformanceTests
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
         Assert.NotNull(context);
+    }
+
+    [Fact]
+    public void EnrichWithoutRetryPreservesCustomExecutionStrategy()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            optionsBuilder.UseSqlServer(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
+        });
+
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.Retry = false);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<SqlServerOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the retry strategy is enabled and set to its default value
+        Assert.NotNull(extension.ExecutionStrategyFactory);
+        var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
+        Assert.IsType<CustomExecutionStrategy>(executionStrategy);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void EnrichWithRetryAndCustomExecutionStrategyThrows()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            optionsBuilder.UseSqlServer(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
+        });
+
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.Retry = true);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("MicrosoftEntityFrameworkCoreSqlServerSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
+    }
+
+    [Fact]
+    public void EnrichWithRetryAndCustomRetryExecutionStrategy()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            optionsBuilder.UseSqlServer(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomRetryExecutionStrategy(c)));
+        });
+
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.Retry = true);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<SqlServerOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the retry strategy is enabled and set to its default value
+        Assert.NotNull(extension.ExecutionStrategyFactory);
+        var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
+        Assert.IsType<CustomRetryExecutionStrategy>(executionStrategy);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
     }
 }

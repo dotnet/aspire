@@ -9,7 +9,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 6379
+          "targetPort": 6379
         }
       }
     },

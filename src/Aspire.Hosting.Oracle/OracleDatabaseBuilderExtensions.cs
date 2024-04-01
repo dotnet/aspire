@@ -42,7 +42,7 @@ public static class OracleDatabaseBuilderExtensions
 
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, passwordParameter);
         return builder.AddResource(oracleDatabaseServer)
-                      .WithEndpoint(hostPort: port, containerPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
+                      .WithEndpoint(port: port, targetPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
                       .WithImage("database/free", "23.3.0.0")
                       .WithImageRegistry("container-registry.oracle.com")
                       .WithEnvironment(context =>
