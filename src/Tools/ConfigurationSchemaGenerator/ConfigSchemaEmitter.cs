@@ -408,7 +408,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     const string HourMinute = @$"([01]?\d|2[0-3]):{MinutesOrSeconds}";
     const string HourMinuteSecond = HourMinute + $":{MinutesOrSeconds}";
     const string SecondsFractionOption = @"(\.\d{1,7})?";
-    const string TimeSpanRegex = $"^{NegativeOption}({DaysAlone}|({DaysPrefixOption}({HourMinute}|{HourMinuteSecond}){SecondsFractionOption}))$";
+    internal const string TimeSpanRegex = $"^{NegativeOption}({DaysAlone}|({DaysPrefixOption}({HourMinute}|{HourMinuteSecond}){SecondsFractionOption}))$";
 
     private void AppendParsableFromString(JsonObject propertyNode, ParsableFromStringSpec parsable)
     {
