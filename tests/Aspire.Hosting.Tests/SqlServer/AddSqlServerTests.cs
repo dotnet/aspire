@@ -59,8 +59,11 @@ public class AddSqlServerTests
     public async Task SqlServerCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
+        appBuilder.Configuration["Parameters:pass"] = "pass1";
+
+        var pass = appBuilder.AddParameter("pass");
         appBuilder
-            .AddSqlServer("sqlserver")
+            .AddSqlServer("sqlserver", pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433));
 
         using var app = appBuilder.Build();
@@ -69,18 +72,20 @@ public class AddSqlServerTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        var password = connectionStringResource.Password;
 
-        Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true", connectionString);
-        Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=pass1;TrustServerCertificate=true", connectionString);
+        Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
     public async Task SqlServerDatabaseCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
+        appBuilder.Configuration["Parameters:pass"] = "pass2";
+
+        var pass = appBuilder.AddParameter("pass");
         appBuilder
-            .AddSqlServer("sqlserver")
+            .AddSqlServer("sqlserver", pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 1433))
             .AddDatabase("mydb");
 
@@ -91,17 +96,16 @@ public class AddSqlServerTests
         var sqlResource = Assert.Single(appModel.Resources.OfType<SqlServerDatabaseResource>());
         var connectionStringResource = (IResourceWithConnectionString)sqlResource;
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
-        var password = sqlResource.Parent.Password;
 
-        Assert.Equal($"Server=127.0.0.1,1433;User ID=sa;Password={password};TrustServerCertificate=true;Database=mydb", connectionString);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=pass2;TrustServerCertificate=true;Database=mydb", connectionString);
         Assert.Equal("{sqlserver.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var sqlServer = appBuilder.AddSqlServer("sqlserver");
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var sqlServer = builder.AddSqlServer("sqlserver");
         var db = sqlServer.AddDatabase("db");
 
         var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
@@ -110,11 +114,11 @@ public class AddSqlServerTests
         var expectedManifest = """
             {
               "type": "container.v0",
-              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver.inputs.password};TrustServerCertificate=true",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
               "image": "mcr.microsoft.com/mssql/server:2022-latest",
               "env": {
                 "ACCEPT_EULA": "Y",
-                "MSSQL_SA_PASSWORD": "{sqlserver.inputs.password}"
+                "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
               },
               "bindings": {
                 "tcp": {
@@ -122,20 +126,6 @@ public class AddSqlServerTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "containerPort": 1433
-                }
-              },
-              "inputs": {
-                "password": {
-                  "type": "string",
-                  "secret": true,
-                  "default": {
-                    "generate": {
-                      "minLength": 22,
-                      "minLower": 1,
-                      "minUpper": 1,
-                      "minNumeric": 1
-                    }
-                  }
                 }
               }
             }
@@ -152,9 +142,41 @@ public class AddSqlServerTests
     }
 
     [Fact]
+    public async Task VerifyManifestWithPasswordParameter()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var pass = builder.AddParameter("pass");
+
+        var sqlServer = builder.AddSqlServer("sqlserver", pass);
+        var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true",
+              "image": "mcr.microsoft.com/mssql/server:2022-latest",
+              "env": {
+                "ACCEPT_EULA": "Y",
+                "MSSQL_SA_PASSWORD": "{pass.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "containerPort": 1433
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
+    }
+
+    [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db = builder.AddSqlServer("sqlserver1");
         db.AddDatabase("db");
@@ -165,7 +187,7 @@ public class AddSqlServerTests
     [Fact]
     public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddSqlServer("sqlserver1")
             .AddDatabase("db");
@@ -177,7 +199,7 @@ public class AddSqlServerTests
     [Fact]
     public void CanAddDatabasesWithDifferentNamesOnSingleServer()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var sqlserver1 = builder.AddSqlServer("sqlserver1");
 
@@ -194,7 +216,7 @@ public class AddSqlServerTests
     [Fact]
     public void CanAddDatabasesWithTheSameNameOnMultipleServers()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var db1 = builder.AddSqlServer("sqlserver1")
             .AddDatabase("db1", "imports");

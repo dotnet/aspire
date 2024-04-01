@@ -53,6 +53,7 @@ public class AspireRabbitMQLoggingTests
         using var connection = host.Services.GetRequiredService<IConnection>();
 
         await rabbitMqContainer.StopAsync();
+        await rabbitMqContainer.DisposeAsync();
 
         await tsc.Task.WaitAsync(TimeSpan.FromMinutes(1));
 

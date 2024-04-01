@@ -51,6 +51,10 @@
             "EntityFrameworkCore": {
               "type": "object",
               "properties": {
+                "CommandTimeout": {
+                  "type": "integer",
+                  "description": "Gets or sets the time in seconds to wait for the command to execute."
+                },
                 "ConnectionString": {
                   "type": "string",
                   "description": "The connection string of the Oracle database to connect to."
@@ -59,22 +63,10 @@
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not. The default value is true."
                 },
-                "Metrics": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not. The default value is true."
-                },
                 "Retry": {
                   "type": "boolean",
                   "description": "Gets or sets whether retries should be enabled.",
                   "default": true
-                },
-                "Timeout": {
-                  "type": "integer",
-                  "description": "The time in seconds to wait for the command to execute."
-                },
-                "Tracing": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not. The default value is true."
                 }
               },
               "description": "Provides the client configuration settings for connecting to a Oracle database using EntityFrameworkCore."

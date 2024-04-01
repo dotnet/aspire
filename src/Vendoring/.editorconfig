@@ -1,0 +1,19 @@
+[*.{cs,vb}]
+
+# CA2007: Consider calling ConfigureAwait on the awaited task
+dotnet_diagnostic.CA2007.severity = silent
+
+# IDE1006: Required naming style
+dotnet_diagnostic.IDE1006.severity = silent
+
+# IDE0028: Use collection initializers
+dotnet_diagnostic.IDE0028.severity = silent
+
+# CA1852: Seal internal types
+dotnet_diagnostic.CA1852.severity = silent
+
+# IDE0060: Remove unused parameters
+dotnet_diagnostic.IDE0060.severity = silent
+
+# IDE0005: Using directive is unnecessary
+dotnet_diagnostic.IDE0005.severity = silent

@@ -64,7 +64,7 @@ public class EnrichSqlServerTests : ConformanceTests
 
         builder.EnrichSqlServerDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -99,7 +99,7 @@ public class EnrichSqlServerTests : ConformanceTests
 
         builder.EnrichSqlServerDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -142,7 +142,7 @@ public class EnrichSqlServerTests : ConformanceTests
         Assert.NotNull(optionsDescriptor);
         Assert.Same(oldOptionsDescriptor, optionsDescriptor);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -180,7 +180,7 @@ public class EnrichSqlServerTests : ConformanceTests
 
         builder.EnrichSqlServerDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -209,7 +209,7 @@ public class EnrichSqlServerTests : ConformanceTests
 
         builder.EnrichSqlServerDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
         Assert.NotNull(context);
     }
@@ -230,7 +230,7 @@ public class EnrichSqlServerTests : ConformanceTests
         Assert.NotNull(optionsDescriptor);
         Assert.Equal(ServiceLifetime.Singleton, optionsDescriptor.Lifetime);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
         Assert.NotNull(context);
     }

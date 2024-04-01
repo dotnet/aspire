@@ -29,7 +29,6 @@
     <PackageReference Include="Polly.Extensions" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />
 
     <!-- ToDo: Remove the bellow reference as it should come transitively from Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore once Pomelo.EntityFrameworkCore.MySql removes their version constraint -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
