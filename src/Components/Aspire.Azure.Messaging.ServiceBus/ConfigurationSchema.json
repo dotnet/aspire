@@ -35,7 +35,7 @@
                       "properties": {
                         "ConnectionIdleTimeout": {
                           "type": "string",
-                          "format": "duration",
+                          "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                           "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
                         },
                         "CustomEndpointAddress": {
@@ -56,12 +56,12 @@
                           "properties": {
                             "Delay": {
                               "type": "string",
-                              "format": "duration",
+                              "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                               "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
                             },
                             "MaxDelay": {
                               "type": "string",
-                              "format": "duration",
+                              "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                               "description": "The maximum permissible delay between retry attempts."
                             },
                             "MaxRetries": {
@@ -77,7 +77,7 @@
                             },
                             "TryTimeout": {
                               "type": "string",
-                              "format": "duration",
+                              "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                               "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
                             }
                           },
