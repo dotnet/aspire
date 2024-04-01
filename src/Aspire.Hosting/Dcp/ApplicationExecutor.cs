@@ -830,7 +830,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             for (int attempt = 0; attempt < watchAttempts; attempt++)
             {
                 var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(TimeSpan.FromSeconds(10));
+                cts.CancelAfter(configuration.GetValue<TimeSpan>("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", TimeSpan.FromSeconds(10)));
 
                 try
                 {
@@ -840,7 +840,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
 
-                        var srvResource = needAddressAllocated.Where(sr => sr.Service.Metadata.Name == updated.Metadata.Name).FirstOrDefault();
+                        var srvResource = needAddressAllocated.FirstOrDefault(sr => sr.Service.Metadata.Name == updated.Metadata.Name);
                         if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
 
                         if (updated.HasCompleteAddress)
