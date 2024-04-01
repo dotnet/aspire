@@ -44,7 +44,11 @@ var pg = builder.AddPostgres("postgres2", administratorLogin, administratorLogin
 var cosmosDb = builder.AddAzureCosmosDB("cosmos")
                       .AddDatabase("db3");
 
-var appInsights = builder.AddAzureApplicationInsights("ai");
+var logAnalytics = builder.AddAzureLogAnalyticsWorkspace("lawkspc");
+var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);
+
+// To verify that AZD will populate the LAW parameter.
+builder.AddAzureApplicationInsights("aiwithoutlaw");
 
 // Redis takes forever to spin up...
 var redis = builder.AddRedis("redis")
