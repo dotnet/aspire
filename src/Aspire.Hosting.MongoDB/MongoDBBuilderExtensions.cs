@@ -28,7 +28,7 @@ public static class MongoDBBuilderExtensions
 
         return builder
             .AddResource(mongoDBContainer)
-            .WithEndpoint(hostPort: port, containerPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
+            .WithEndpoint(port: port, targetPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
             .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag);
     }
 
@@ -66,7 +66,7 @@ public static class MongoDBBuilderExtensions
         builder.ApplicationBuilder.AddResource(mongoExpressContainer)
                                   .WithImage("mongo-express", "1.0.2-20")
                                   .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
-                                  .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
+                                  .WithHttpEndpoint(targetPort: 8081, port: hostPort, name: containerName)
                                   .ExcludeFromManifest();
 
         return builder;

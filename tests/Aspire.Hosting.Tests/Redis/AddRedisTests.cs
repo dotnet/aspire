@@ -26,7 +26,7 @@ public class AddRedisTests
         Assert.Equal("myRedis", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(6379, endpoint.ContainerPort);
+        Assert.Equal(6379, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -54,7 +54,7 @@ public class AddRedisTests
         Assert.Equal("myRedis", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(6379, endpoint.ContainerPort);
+        Assert.Equal(6379, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(9813, endpoint.Port);
@@ -103,7 +103,7 @@ public class AddRedisTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 6379
+                  "targetPort": 6379
                 }
               }
             }

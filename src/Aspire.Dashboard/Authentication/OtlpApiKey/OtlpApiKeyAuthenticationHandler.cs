@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Buffers;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 using Aspire.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;
@@ -23,16 +26,17 @@ public class OtlpApiKeyAuthenticationHandler : AuthenticationHandler<OtlpApiKeyA
     {
         var options = _dashboardOptions.CurrentValue.Otlp;
 
-        if (string.IsNullOrEmpty(options.PrimaryApiKey))
-        {
-            throw new InvalidOperationException("OTLP API key is not configured.");
-        }
-
         if (Context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKey))
         {
-            if (options.PrimaryApiKey != apiKey)
+            // There must be only one header with the API key.
+            if (apiKey.Count != 1)
             {
-                if (string.IsNullOrEmpty(options.SecondaryApiKey) || options.SecondaryApiKey != apiKey)
+                return Task.FromResult(AuthenticateResult.Fail($"Multiple '{ApiKeyHeaderName}' headers in request."));
+            }
+
+            if (!CompareApiKey(options.GetPrimaryApiKeyBytes(), apiKey.ToString()))
+            {
+                if (options.GetSecondaryApiKeyBytes() is not { } secondaryBytes || !CompareApiKey(secondaryBytes, apiKey.ToString()))
                 {
                     return Task.FromResult(AuthenticateResult.Fail($"Incoming API key from '{ApiKeyHeaderName}' header doesn't match configured API key."));
                 }
@@ -44,6 +48,50 @@ public class OtlpApiKeyAuthenticationHandler : AuthenticationHandler<OtlpApiKeyA
         }
 
         return Task.FromResult(AuthenticateResult.NoResult());
+    }
+
+    // This method is used to compare two API keys in a way that avoids timing attacks.
+    private static bool CompareApiKey(byte[] expectedApiKeyBytes, string requestApiKey)
+    {
+        const int StackAllocThreshold = 256;
+
+        var requestByteCount = Encoding.UTF8.GetByteCount(requestApiKey);
+
+        // API key will never match if lengths are different. But still do all the work to avoid timing attacks.
+        var lengthsEqual = expectedApiKeyBytes.Length == requestByteCount;
+
+        var requestSpanLength = Math.Max(requestByteCount, expectedApiKeyBytes.Length);
+        byte[]? requestPooled = null;
+        var requestBytesSpan = (requestSpanLength <= StackAllocThreshold ?
+            stackalloc byte[StackAllocThreshold] :
+            (requestPooled = RentClearedArray(requestSpanLength))).Slice(0, requestSpanLength);
+
+        try
+        {
+            // Always succeeds because the byte span is always as big or bigger than required.
+            Encoding.UTF8.GetBytes(requestApiKey, requestBytesSpan);
+
+            // Trim request bytes to the same length as expected bytes. Need to be the same size for fixed time comparison.
+            var equals = CryptographicOperations.FixedTimeEquals(expectedApiKeyBytes, requestBytesSpan.Slice(0, expectedApiKeyBytes.Length));
+
+            return equals && lengthsEqual;
+        }
+        finally
+        {
+            if (requestPooled != null)
+            {
+                ArrayPool<byte>.Shared.Return(requestPooled);
+            }
+        }
+
+        static byte[] RentClearedArray(int byteCount)
+        {
+            // UTF8 bytes are copied into the array but remaining bytes are untouched.
+            // Because all bytes in the array are compared, clear the array to avoid comparing previous data.
+            var array = ArrayPool<byte>.Shared.Rent(byteCount);
+            Array.Clear(array);
+            return array;
+        }
     }
 }
 

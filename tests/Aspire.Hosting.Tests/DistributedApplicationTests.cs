@@ -254,7 +254,7 @@ public class DistributedApplicationTests
             .WithHttpEndpoint(name: "http0", env: "PORT0");
 
         testProgram.AppBuilder.AddContainer("redis0", "redis")
-            .WithEndpoint(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
+            .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         await using var app = testProgram.Build();
 

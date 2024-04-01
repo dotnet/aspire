@@ -70,12 +70,12 @@ internal sealed class DcpOptions
     /// <summary>
     /// Whether to delete resources created by this application when the application is shut down.
     /// </summary>
-    public bool? DeleteResourcesOnShutdown { get; set; }
+    public bool DeleteResourcesOnShutdown { get; set; }
 
     /// <summary>
     /// Whether to randomize ports used by resources during orchestration.
     /// </summary>
-    public bool? RandomizePorts { get; set; }
+    public bool RandomizePorts { get; set; }
 
     public int KubernetesConfigReadRetryCount { get; set; } = 300;
 
@@ -136,6 +136,9 @@ internal sealed class DcpOptions
         {
             ResourceNameSuffix = dcpPublisherConfiguration[nameof(ResourceNameSuffix)];
         }
+
+        DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue<bool>(nameof(DeleteResourcesOnShutdown), DeleteResourcesOnShutdown);
+        RandomizePorts = dcpPublisherConfiguration.GetValue<bool>(nameof(RandomizePorts), RandomizePorts);
 
         if (string.IsNullOrEmpty(CliPath))
         {

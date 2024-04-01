@@ -10,8 +10,8 @@ param principalId string
 param principalType string
 
 
-resource signalRService_hoCuRhvyj 'Microsoft.SignalRService/signalR@2022-02-01' = {
-  name: toLower(take(concat('signalr', uniqueString(resourceGroup().id)), 24))
+resource signalRService_iD3Yrl49T 'Microsoft.SignalRService/signalR@2022-02-01' = {
+  name: toLower(take('signalr${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'signalr'
@@ -36,9 +36,9 @@ resource signalRService_hoCuRhvyj 'Microsoft.SignalRService/signalR@2022-02-01' 
   }
 }
 
-resource roleAssignment_O1jxNBUgA 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: signalRService_hoCuRhvyj
-  name: guid(signalRService_hoCuRhvyj.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
+resource roleAssignment_35voRFfVj 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: signalRService_iD3Yrl49T
+  name: guid(signalRService_iD3Yrl49T.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7')
     principalId: principalId
@@ -46,4 +46,4 @@ resource roleAssignment_O1jxNBUgA 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-output hostName string = signalRService_hoCuRhvyj.properties.hostName
+output hostName string = signalRService_iD3Yrl49T.properties.hostName

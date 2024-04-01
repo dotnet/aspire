@@ -5,6 +5,9 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire;
 using Aspire.Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.SqlServer.Infrastructure.Internal;
+using Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Trace;
@@ -107,15 +110,56 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
         void ConfigureRetry()
         {
-            if (!settings.Retry)
+#pragma warning disable EF1001 // Internal EF Core API usage.
+            if (settings.Retry || settings.CommandTimeout.HasValue)
             {
-                return;
-            }
+                builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseSqlServer(options =>
+                {
+                    var extension = optionsBuilder.Options.FindExtension<SqlServerOptionsExtension>();
 
-            builder.PatchServiceDescriptor<TContext>(optionsBuilder =>
-            {
-                optionsBuilder.UseSqlServer(options => options.EnableRetryOnFailure());
-            });
+                    if (settings.Retry)
+                    {
+                        var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
+
+                        if (executionStrategy != null)
+                        {
+                            if (executionStrategy is SqlServerRetryingExecutionStrategy)
+                            {
+                                // Keep custom Retry strategy.
+                                // Any sub-class of SqlServerRetryingExecutionStrategy is a valid retry strategy
+                                // which shouldn't be replaced even with Retry == true
+                            }
+                            else if (executionStrategy.GetType() != typeof(SqlServerExecutionStrategy))
+                            {
+                                // Check SqlServerExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
+
+                                throw new InvalidOperationException($"{nameof(MicrosoftEntityFrameworkCoreSqlServerSettings)}.Retry can't be set when a custom Execution Strategy is configured.");
+                            }
+                            else
+                            {
+                                options.EnableRetryOnFailure();
+                            }
+                        }
+                        else
+                        {
+                            options.EnableRetryOnFailure();
+                        }
+                    }
+
+                    if (settings.CommandTimeout.HasValue)
+                    {
+                        if (extension != null &&
+                            extension.CommandTimeout.HasValue &&
+                            extension.CommandTimeout != settings.CommandTimeout)
+                        {
+                            throw new InvalidOperationException($"Conflicting values for 'CommandTimeout' were found in {nameof(MicrosoftEntityFrameworkCoreSqlServerSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
+                        }
+
+                        options.CommandTimeout(settings.CommandTimeout);
+                    }
+                }));
+            }
+#pragma warning restore EF1001 // Internal EF Core API usage.
         }
     }
 

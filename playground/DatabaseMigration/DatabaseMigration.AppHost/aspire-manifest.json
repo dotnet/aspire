@@ -13,7 +13,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 1433
+          "targetPort": 1433
         }
       }
     },
@@ -34,12 +34,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },

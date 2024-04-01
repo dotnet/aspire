@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
@@ -16,7 +15,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
-    private readonly ServiceEndPointResolverFactory _resolverProvider;
+    private readonly ServiceEndPointWatcherFactory _resolverProvider;
     private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, ResolverEntry> _resolvers = new();
     private ITimer? _cleanupTimer;
@@ -28,7 +27,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
     /// </summary>
     /// <param name="resolverProvider">The resolver factory.</param>
     /// <param name="timeProvider">The time provider.</param>
-    internal ServiceEndPointResolver(ServiceEndPointResolverFactory resolverProvider, TimeProvider timeProvider)
+    internal ServiceEndPointResolver(ServiceEndPointWatcherFactory resolverProvider, TimeProvider timeProvider)
     {
         _resolverProvider = resolverProvider;
         _timeProvider = timeProvider;
@@ -40,7 +39,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
     /// <param name="serviceName">The service name.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>The resolved service endpoints.</returns>
-    public async ValueTask<ServiceEndPointCollection> GetEndPointsAsync(string serviceName, CancellationToken cancellationToken)
+    public async ValueTask<ServiceEndPointSource> GetEndPointsAsync(string serviceName, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(serviceName);
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -157,7 +156,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
 
     private ResolverEntry CreateResolver(string serviceName)
     {
-        var resolver = _resolverProvider.CreateResolver(serviceName);
+        var resolver = _resolverProvider.CreateWatcher(serviceName);
         resolver.Start();
         return new ResolverEntry(resolver);
     }
@@ -182,7 +181,7 @@ public sealed class ServiceEndPointResolver : IAsyncDisposable
             return (status & (CountMask | RecentUseFlag)) == 0;
         }
 
-        public async ValueTask<(bool Valid, ServiceEndPointCollection? EndPoints)> GetEndPointsAsync(CancellationToken cancellationToken)
+        public async ValueTask<(bool Valid, ServiceEndPointSource? EndPoints)> GetEndPointsAsync(CancellationToken cancellationToken)
         {
             try
             {
