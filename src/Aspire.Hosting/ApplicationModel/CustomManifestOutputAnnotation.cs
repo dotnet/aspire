@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 ///
 /// Produces output such as `"custom": { "name": "value" }`.
 /// </summary>
-public sealed class CustomManifestOutputAnnotation : IResourceAnnotation
+public class CustomManifestOutputAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Name of the custom manifest annotation.
