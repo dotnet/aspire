@@ -63,7 +63,7 @@ public static class AzureCosmosExtensions
             }
 
             var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-            _ = new KeyVaultSecret(construct, "connectionString", cosmosAccount.GetConnectionString());
+            _ = new KeyVaultSecret(construct, "connectionString", cosmosAccount.GetConnectionString(), keyVault);
 
             configureResource?.Invoke(azureResourceBuilder, construct, cosmosAccount, cosmosSqlDatabases);
         };

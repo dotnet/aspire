@@ -110,7 +110,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
         RunAsync().Wait();
     }
 
-    private async Task ExecuteBeforeStartHooksAsync(CancellationToken cancellationToken)
+    // Internal for testing
+    internal async Task ExecuteBeforeStartHooksAsync(CancellationToken cancellationToken)
     {
         AspireEventSource.Instance.AppBeforeStartHooksStart();
 
