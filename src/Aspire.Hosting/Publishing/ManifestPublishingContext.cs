@@ -3,7 +3,6 @@
 
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 
@@ -150,30 +149,16 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         if (resource.TryGetAnnotationsOfType<CustomManifestOutputAnnotation>(out var customAnnotations))
         {
             // Group by name
-            var groupedAnnotations = customAnnotations.GroupBy(a => a.Name).ToFrozenDictionary(m => m.Key, m => m.ToArray());
+            var groupedAnnotations = customAnnotations
+                .GroupBy(a => a.Name)
+                .ToFrozenDictionary(m => m.Key, m => m.ToArray());
             foreach(var (name, annotations) in groupedAnnotations)
             {
                 Writer.WritePropertyName(name);
                 Writer.WriteStartArray();
                 foreach (var annotation in annotations)
                 {
-                    switch (annotation.ValueKind)
-                    {
-                        case JsonValueKind.String:
-                            Writer.WriteStringValue(annotation.Value.ToString());
-                            break;
-                        case JsonValueKind.Number:
-                            Writer.WriteNumberValue(Convert.ToDouble(annotation.Value, CultureInfo.InvariantCulture));
-                            break;
-                        case JsonValueKind.True:
-                            Writer.WriteBooleanValue(true);
-                            break;
-                        case JsonValueKind.False:
-                            Writer.WriteBooleanValue(false);
-                            break;
-                        default:
-                            throw new DistributedApplicationException($"Unsupported value kind {annotation.ValueKind} for custom manifest annotation.");
-                    }
+                    JsonSerializer.Serialize(Writer, annotation.Value);
                 }
                 Writer.WriteEndArray();
             }

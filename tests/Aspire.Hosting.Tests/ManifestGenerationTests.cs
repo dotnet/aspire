@@ -521,9 +521,9 @@ public class ManifestGenerationTests
 
         program.ServiceABuilder
             .WithAnnotation(new CustomManifestOutputAnnotation("testStringAnnotation", "TestValue"))
-            .WithAnnotation(new CustomManifestOutputAnnotation("testTrueAnnotation", true, JsonValueKind.True))
-            .WithAnnotation(new CustomManifestOutputAnnotation("testFalseAnnotation", false, JsonValueKind.False))
-            .WithAnnotation(new CustomManifestOutputAnnotation("testNumberAnnotation", 42, JsonValueKind.Number));
+            .WithAnnotation(new CustomManifestOutputAnnotation("testTrueAnnotation", true))
+            .WithAnnotation(new CustomManifestOutputAnnotation("testFalseAnnotation", false))
+            .WithAnnotation(new CustomManifestOutputAnnotation("testNumberAnnotation", 42));
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
