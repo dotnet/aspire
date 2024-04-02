@@ -129,6 +129,7 @@ extends:
           enableTelemetry: true
           enableSourceBuild: true
           enableSourceIndex: false
+          publishAssetsImmediately: true
           # Publish build logs
           enablePublishBuildArtifacts: true
           # Publish test logs
@@ -204,28 +205,4 @@ extends:
             LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
             MirrorRepo: aspire
             MirrorBranch: main
-
-    - template: /eng/common/templates-official/post-build/post-build.yml@self
-      parameters:
-        validateDependsOn:
-        - build
-        publishingInfraVersion: 3
-        enableSymbolValidation: false
-        enableSigningValidation: false
-        enableNugetValidation: false
-        enableSourceLinkValidation: false
-        # these param values come from the DotNet-Winforms-SDLValidation-Params azdo variable group
-        SDLValidationParameters:
-          enable: false
-          params: ' -SourceToolsList $(_TsaSourceToolsList)
-            -TsaInstanceURL $(_TsaInstanceURL)
-            -TsaProjectName $(_TsaProjectName)
-            -TsaNotificationEmail $(_TsaNotificationEmail)
-            -TsaCodebaseAdmin $(_TsaCodebaseAdmin)
-            -TsaBugAreaPath $(_TsaBugAreaPath)
-            -TsaIterationPath $(_TsaIterationPath)
-            -TsaRepositoryName $(_TsaRepositoryName)
-            -TsaCodebaseName $(_TsaCodebaseName)
-            -TsaOnboard $(_TsaOnboard)
-            -TsaPublish $(_TsaPublish)'
 
