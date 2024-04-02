@@ -15,7 +15,6 @@ using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -26,7 +25,6 @@ internal sealed class AzureProvisioner(
     IOptions<AzureProvisionerOptions> options,
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
-    IHostEnvironment environment,
     ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
     ResourceNotificationService notificationService,
@@ -362,14 +360,10 @@ internal sealed class AzureProvisioner(
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
 
-        var unique = $"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}";
-
-        // Name of the resource group to create based on the machine name and application name
-        var (resourceGroupName, createIfAbsent) = _options.ResourceGroup switch
+        if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
-            null or { Length: 0 } => ($"rg-aspire-{unique}", true),
-            string rg => (rg, _options.AllowResourceGroupCreation ?? false)
-        };
+            throw new MissingConfigurationException("A resource group name is required. Set the Azure:ResourceGroup configuration value.");
+        }
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
 
@@ -378,25 +372,25 @@ internal sealed class AzureProvisioner(
         AzureLocation location = new(_options.Location);
         try
         {
-            var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
+            var response = await resourceGroups.GetAsync(_options.ResourceGroup, cancellationToken).ConfigureAwait(false);
             resourceGroup = response.Value;
 
             logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
         }
         catch (Exception)
         {
-            if (!createIfAbsent)
+            if (!_options.AllowResourceGroupCreation ?? false)
             {
                 throw;
             }
 
             // REVIEW: Is it possible to do this without an exception?
 
-            logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
+            logger.LogInformation("Creating resource group {rgName} in {location}...", _options.ResourceGroup, location);
 
             var rgData = new ResourceGroupData(location);
             rgData.Tags.Add("aspire", "true");
-            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
+            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, _options.ResourceGroup, rgData, cancellationToken).ConfigureAwait(false);
             resourceGroup = operation.Value;
 
             logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
