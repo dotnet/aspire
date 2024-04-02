@@ -15,7 +15,8 @@
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
 See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="needs-review-translation">Nie można odnaleźć środowiska uruchomieniowego kontenera „{0}”. Błąd sprawdzania środowiska uruchomieniowego kontenera: {1}.</target>
+        <target state="translated">Nie można odnaleźć środowiska uruchomieniowego kontenera „{0}”. Błąd podczas sprawdzania środowiska uruchomieniowego kontenera: {1}.
+Aby uzyskać więcej informacji o obsługiwanych środowiskach uruchomieniowych kontenerów, zobacz https://aka.ms/dotnet/aspire/containers.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
