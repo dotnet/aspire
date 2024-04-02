@@ -5,7 +5,6 @@ using System.Text.Json;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
-using IdentityModel.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -534,12 +533,12 @@ public class ManifestGenerationTests
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
 
         var service = resources.GetProperty("servicea");
-        var annotation = service.TryGetValue("testStringAnnotation");
-        Assert.Equal(JsonValueKind.Array, annotation.ValueKind);
-        Assert.Equal("TestValue", annotation[0].GetString());
-        Assert.True(service.TryGetValue("testTrueAnnotation")[0].GetBoolean());
-        Assert.False(service.TryGetValue("testFalseAnnotation")[0].GetBoolean());
-        Assert.Equal(42, service.TryGetValue("testNumberAnnotation")[0].GetInt32());
+        Assert.True(service.TryGetProperty("testStringAnnotation", out var testStringAnnotation));
+        Assert.Equal(JsonValueKind.Array, testStringAnnotation.ValueKind);
+        Assert.Equal("TestValue", testStringAnnotation[0].GetString());
+        Assert.True(service.GetProperty("testTrueAnnotation")[0].GetBoolean());
+        Assert.False(service.GetProperty("testFalseAnnotation")[0].GetBoolean());
+        Assert.Equal(42, service.GetProperty("testNumberAnnotation")[0].GetInt32());
     }
 
     [Fact]
