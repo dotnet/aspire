@@ -5,6 +5,7 @@ using System.Text.Json;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using IdentityModel.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -511,6 +512,34 @@ public class ManifestGenerationTests
 
         var container = resources.GetProperty("testresource");
         Assert.False(container.TryGetProperty("metadata", out var _));
+    }
+
+    [Fact]
+    public void EnsureCustomAnnotationsAreWritten()
+    {
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.ServiceABuilder
+            .WithAnnotation(new CustomManifestOutputAnnotation("testStringAnnotation", "TestValue"))
+            .WithAnnotation(new CustomManifestOutputAnnotation("testTrueAnnotation", true, JsonValueKind.True))
+            .WithAnnotation(new CustomManifestOutputAnnotation("testFalseAnnotation", false, JsonValueKind.False))
+            .WithAnnotation(new CustomManifestOutputAnnotation("testNumberAnnotation", 42, JsonValueKind.Number));
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var service = resources.GetProperty("servicea");
+        var annotation = service.TryGetValue("testStringAnnotation");
+        Assert.Equal(JsonValueKind.Array, annotation.ValueKind);
+        Assert.Equal("TestValue", annotation[0].GetString());
+        Assert.True(service.TryGetValue("testTrueAnnotation")[0].GetBoolean());
+        Assert.False(service.TryGetValue("testFalseAnnotation")[0].GetBoolean());
+        Assert.Equal(42, service.TryGetValue("testNumberAnnotation")[0].GetInt32());
     }
 
     [Fact]
