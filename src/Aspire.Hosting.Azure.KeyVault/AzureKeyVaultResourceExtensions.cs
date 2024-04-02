@@ -46,6 +46,14 @@ public static class AzureKeyVaultResourceExtensions
 
             keyVault.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
+            // TODO: Waiting on issue.
+            //if (builder.ExecutionContext.IsPublishMode)
+            //{
+            //    // If we are in publish mode then we lock things down to just Azure services.
+            //    keyVault.AssignProperty(p => p.Properties.NetworkRuleSet.DefaultAction, "'Deny'");
+            //    keyVault.AssignProperty(p => p.Properties.NetworkRuleSet.Bypass, "'AzureServices'");
+            //}
+
             var keyVaultAdministratorRoleAssignment = keyVault.AssignRole(RoleDefinition.KeyVaultAdministrator);
             keyVaultAdministratorRoleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
             keyVaultAdministratorRoleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);

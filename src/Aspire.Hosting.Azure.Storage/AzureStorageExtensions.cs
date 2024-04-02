@@ -49,6 +49,14 @@ public static class AzureStorageExtensions
                 sku: StorageSkuName.StandardGrs
                 );
 
+            if (builder.ExecutionContext.IsPublishMode)
+            {
+                // TODO: Waiting for CDK fix.
+                //// In publish mode we block access to everything except other Azure services.
+                //storageAccount.AssignProperty(p => p.NetworkRuleSet.DefaultAction, "'Deny'");
+                //storageAccount.AssignProperty(p => p.NetworkRuleSet.Bypass, "'AzureServices'");
+            }
+
             storageAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
             var blobService = new BlobService(construct);
