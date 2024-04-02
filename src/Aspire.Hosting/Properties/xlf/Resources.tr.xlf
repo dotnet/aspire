@@ -13,8 +13,9 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</source>
-        <target state="translated">'{0}' kapsayıcı çalışma zamanı bulunamadı. Kapsayıcı çalışma zamanı denetimi hatası: {1}.</target>
+        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
+See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="needs-review-translation">'{0}' kapsayıcı çalışma zamanı bulunamadı. Kapsayıcı çalışma zamanı denetimi hatası: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">

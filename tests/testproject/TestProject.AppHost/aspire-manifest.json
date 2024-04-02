@@ -119,7 +119,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 1433
+          "targetPort": 1433
         }
       },
       "connectionString": "Server={sqlservercontainer.bindings.tcp.host},{sqlservercontainer.bindings.tcp.port};User ID=sa;Password={sqlservercontainer.inputs.password};TrustServerCertificate=true;",
@@ -146,7 +146,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 3306
+          "targetPort": 3306
         }
       },
       "connectionString": "Server={mysqlcontainer.bindings.tcp.host};Port={mysqlcontainer.bindings.tcp.port};User ID=root;Password={mysqlcontainer.inputs.password}",
@@ -170,7 +170,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 6379
+          "targetPort": 6379
         }
       },
       "connectionString": "{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}"
@@ -188,7 +188,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5432
+          "targetPort": 5432
         }
       },
       "connectionString": "Host={postgrescontainer.bindings.tcp.host};Port={postgrescontainer.bindings.tcp.port};Username=postgres;Password={postgrescontainer.inputs.password};",
@@ -216,13 +216,13 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5672
+          "targetPort": 5672
         },
         "management": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "containerPort": 15672
+          "targetPort": 15672
         }
       },
       "connectionString": "amqp://guest:{rabbitmqcontainer.inputs.password}@{rabbitmqcontainer.bindings.management.host}:{rabbitmqcontainer.bindings.management.port}",
@@ -249,7 +249,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 9092
+          "targetPort": 9092
         }
       },
       "connectionString": "{kafkacontainer.bindings.tcp.host}:{kafkacontainer.bindings.tcp.port}"
@@ -262,7 +262,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 27017
+          "targetPort": 27017
         }
       },
       "connectionString": "{mongodbcontainer.bindings.tcp.host}:{mongodbcontainer.bindings.tcp.port}"
@@ -279,7 +279,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 1433
+          "targetPort": 1433
         }
       },
       "connectionString": "Server={sqlserverabstract.bindings.tcp.host},{sqlserverabstract.bindings.tcp.port};User ID=sa;Password={sqlserverabstract.inputs.password};TrustServerCertificate=true;",
@@ -306,7 +306,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 3306
+          "targetPort": 3306
         }
       },
       "connectionString": "Server={mysqlabstract.bindings.tcp.host};Port={mysqlabstract.bindings.tcp.port};User ID=root;Password={mysqlabstract.inputs.password}",
@@ -330,7 +330,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 6379
+          "targetPort": 6379
         }
       },
       "connectionString": "{redisabstract.bindings.tcp.host}:{redisabstract.bindings.tcp.port}"
@@ -348,7 +348,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5432
+          "targetPort": 5432
         }
       },
       "connectionString": "Host={postgresabstract.bindings.tcp.host};Port={postgresabstract.bindings.tcp.port};Username=postgres;Password={postgresabstract.inputs.password};",
@@ -376,13 +376,13 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5672
+          "targetPort": 5672
         },
         "management": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "containerPort": 15672
+          "targetPort": 15672
         }
       },
       "connectionString": "amqp://guest:{rabbitmqabstract.inputs.password}@{rabbitmqabstract.bindings.management.host}:{rabbitmqabstract.bindings.management.port}",
@@ -409,7 +409,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 9092
+          "targetPort": 9092
         }
       },
       "connectionString": "{kafkaabstract.bindings.tcp.host}:{kafkaabstract.bindings.tcp.port}"

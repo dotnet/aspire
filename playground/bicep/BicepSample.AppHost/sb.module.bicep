@@ -13,8 +13,8 @@ param principalId string
 param principalType string
 
 
-resource serviceBusNamespace_RuSlLOK64 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
-  name: toLower(take(concat('sb', uniqueString(resourceGroup().id)), 24))
+resource serviceBusNamespace_1RzZvI0LZ 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
+  name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'sb'
@@ -23,13 +23,12 @@ resource serviceBusNamespace_RuSlLOK64 'Microsoft.ServiceBus/namespaces@2022-10-
     name: sku
   }
   properties: {
-    minimumTlsVersion: '1.2'
   }
 }
 
-resource roleAssignment_IS9HJzhT8 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: serviceBusNamespace_RuSlLOK64
-  name: guid(serviceBusNamespace_RuSlLOK64.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+resource roleAssignment_GAWCqJpjI 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: serviceBusNamespace_1RzZvI0LZ
+  name: guid(serviceBusNamespace_1RzZvI0LZ.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
     principalId: principalId
@@ -37,52 +36,52 @@ resource roleAssignment_IS9HJzhT8 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource serviceBusQueue_XlB4dhrJO 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-  parent: serviceBusNamespace_RuSlLOK64
+resource serviceBusQueue_kQwbucWhl 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
+  parent: serviceBusNamespace_1RzZvI0LZ
   name: 'queue1'
   location: location
   properties: {
   }
 }
 
-resource serviceBusTopic_bemnWZskJ 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = {
-  parent: serviceBusNamespace_RuSlLOK64
+resource serviceBusTopic_768oqOlcX 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+  parent: serviceBusNamespace_1RzZvI0LZ
   name: 'topic1'
   location: location
   properties: {
   }
 }
 
-resource serviceBusSubscription_pWgs2FLAX 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2022-10-01-preview' = {
-  parent: serviceBusTopic_bemnWZskJ
+resource serviceBusSubscription_IcxQHWZBG 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+  parent: serviceBusTopic_768oqOlcX
   name: 'subscription1'
   location: location
   properties: {
   }
 }
 
-resource serviceBusSubscription_qojP3oFII 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2022-10-01-preview' = {
-  parent: serviceBusTopic_bemnWZskJ
+resource serviceBusSubscription_exANvItuE 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+  parent: serviceBusTopic_768oqOlcX
   name: 'subscription2'
   location: location
   properties: {
   }
 }
 
-resource serviceBusTopic_Sh8X0ue6x 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = {
-  parent: serviceBusNamespace_RuSlLOK64
+resource serviceBusTopic_nemvFxmjZ 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+  parent: serviceBusNamespace_1RzZvI0LZ
   name: 'topic2'
   location: location
   properties: {
   }
 }
 
-resource serviceBusSubscription_I0aPXc6VB 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2022-10-01-preview' = {
-  parent: serviceBusTopic_Sh8X0ue6x
+resource serviceBusSubscription_qiv2k0Nuu 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+  parent: serviceBusTopic_nemvFxmjZ
   name: 'subscription1'
   location: location
   properties: {
   }
 }
 
-output serviceBusEndpoint string = serviceBusNamespace_RuSlLOK64.properties.serviceBusEndpoint
+output serviceBusEndpoint string = serviceBusNamespace_1RzZvI0LZ.properties.serviceBusEndpoint

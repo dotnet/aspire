@@ -24,7 +24,7 @@ public class AddKafkaTests
         Assert.Equal("kafka", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(9092, endpoint.ContainerPort);
+        Assert.Equal(9092, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -79,7 +79,7 @@ public class AddKafkaTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 9092
+                  "targetPort": 9092
                 }
               }
             }

@@ -47,17 +47,18 @@ public static class AzurePostgresExtensions
         Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         bool useProvisioner = false)
     {
+        builder.ApplicationBuilder.AddAzureProvisioning();
+
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var administratorLogin = new Parameter("administratorLogin");
             var administratorLoginPassword = new Parameter("administratorLoginPassword", isSecure: true);
 
-            var postgres = new PostgreSqlFlexibleServer(construct, administratorLogin, administratorLoginPassword, name: construct.Resource.Name);
+            var postgres = new PostgreSqlFlexibleServer(construct, administratorLogin, administratorLoginPassword, name: construct.Resource.Name, storageSizeInGB: 32);
             postgres.AssignProperty(x => x.Sku.Name, "'Standard_B1ms'");
             postgres.AssignProperty(x => x.Sku.Tier, "'Burstable'");
             postgres.AssignProperty(x => x.Version, "'16'");
             postgres.AssignProperty(x => x.HighAvailability.Mode, "'Disabled'");
-            postgres.AssignProperty(x => x.Storage.StorageSizeInGB, "32");
             postgres.AssignProperty(x => x.Backup.BackupRetentionDays, "7");
             postgres.AssignProperty(x => x.Backup.GeoRedundantBackup, "'Disabled'");
             postgres.AssignProperty(x => x.AvailabilityZone, "'1'");
@@ -82,7 +83,7 @@ public static class AzurePostgresExtensions
             }
 
             var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-            _ = new KeyVaultSecret(construct, "connectionString", postgres.GetConnectionString(administratorLogin, administratorLoginPassword));
+            _ = new KeyVaultSecret(construct, "connectionString", postgres.GetConnectionString(administratorLogin, administratorLoginPassword), keyVault);
 
             var azureResource = (AzurePostgresResource)construct.Resource;
             var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);

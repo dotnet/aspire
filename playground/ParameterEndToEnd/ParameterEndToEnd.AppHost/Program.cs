@@ -22,6 +22,7 @@ var db = builder.AddSqlServer("sql")
 var insertionrows = builder.AddParameter("insertionrows");
 
 builder.AddProject<Projects.ParameterEndToEnd_ApiService>("api")
+       .WithExternalHttpEndpoints()
        .WithEnvironment("InsertionRows", insertionrows)
        .WithReference(db);
 

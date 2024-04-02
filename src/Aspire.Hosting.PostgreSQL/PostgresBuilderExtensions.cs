@@ -35,7 +35,7 @@ public static class PostgresBuilderExtensions
 
         var postgresServer = new PostgresServerResource(name, userName?.Resource, passwordParameter);
         return builder.AddResource(postgresServer)
-                      .WithEndpoint(hostPort: port, containerPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
+                      .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
@@ -84,7 +84,7 @@ public static class PostgresBuilderExtensions
         var pgAdminContainer = new PgAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
                                   .WithImage("dpage/pgadmin4", "8.3")
-                                  .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
+                                  .WithHttpEndpoint(targetPort: 80, port: hostPort, name: containerName)
                                   .WithEnvironment(SetPgAdminEnvironmentVariables)
                                   .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                   .ExcludeFromManifest();

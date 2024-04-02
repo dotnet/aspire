@@ -8,6 +8,7 @@ var db = builder.AddMongoDB("mongo")
     .PublishAsContainer();
 
 builder.AddProject<Projects.Mongo_ApiService>("api")
+       .WithExternalHttpEndpoints()
        .WithReference(db);
 
 // This project is only added in playground projects to support development/debugging

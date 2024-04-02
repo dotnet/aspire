@@ -9,6 +9,11 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppHost", "playground\TestShop\AppHost\AppHost.csproj", "{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "playground", "playground", "{D173887B-AF42-4576-B9C1-96B9E9B3D9C0}"
+	ProjectSection(SolutionItems) = preProject
+		playground\.editorconfig = playground\.editorconfig
+		playground\Directory.Build.props = playground\Directory.Build.props
+		playground\README.md = playground\README.md
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "playground\TestShop\ServiceDefaults\ServiceDefaults.csproj", "{C7B2309C-073A-4552-A508-A69768B64C6F}"
 EndProject
@@ -145,6 +150,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		Directory.Packages.props = Directory.Packages.props
 		spelling.dic = spelling.dic
+		eng\Versions.props = eng\Versions.props
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RabbitMQ.Client", "src\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj", "{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4}"
@@ -405,7 +411,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Cosmos
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.OperationalInsights", "src\Aspire.Hosting.Azure.OperationalInsights\Aspire.Hosting.Azure.OperationalInsights.csproj", "{8CF39705-FCA7-42F5-B3E3-1FBD9100BAFF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.PostgreSql", "src\Aspire.Hosting.Azure.PostgreSql\Aspire.Hosting.Azure.PostgreSql.csproj", "{B6F2387B-2AB0-41F4-A609-9EA13E408145}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.PostgreSQL", "src\Aspire.Hosting.Azure.PostgreSQL\Aspire.Hosting.Azure.PostgreSQL.csproj", "{B6F2387B-2AB0-41F4-A609-9EA13E408145}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Search", "src\Aspire.Hosting.Azure.Search\Aspire.Hosting.Azure.Search.csproj", "{927F564C-D037-4296-AB8F-A7F9FF24B3BB}"
 EndProject

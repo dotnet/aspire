@@ -75,7 +75,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             additionalConfiguration: initialData =>
             {
                 initialData["Dashboard:Otlp:AuthMode"] = nameof(OtlpAuthMode.ApiKey);
-                initialData["Dashboard:Otlp:PrimaryApiKey"] = "abc123";
+                initialData["Dashboard:Otlp:PrimaryApiKey"] = "TestKey123!";
             });
 
         // Act
@@ -83,7 +83,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Equal(OtlpAuthMode.ApiKey, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
-        Assert.Equal("abc123", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
+        Assert.Equal("TestKey123!", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             additionalConfiguration: data =>
             {
                 data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
-                data[DashboardConfigNames.DashboardInsecureAllowAnonymousName.ConfigKey] = bool.TrueString;
+                data[DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey] = bool.TrueString;
             });
 
         // Act

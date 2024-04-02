@@ -40,6 +40,8 @@ public static class AzureEventHubsExtensions
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, string name,
         Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHubsNamespace>? configureResource)
     {
+        builder.AddAzureProvisioning();
+
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var eventHubsNamespace = new EventHubsNamespace(construct, name: name);
