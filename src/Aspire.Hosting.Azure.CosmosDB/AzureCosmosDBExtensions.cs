@@ -50,6 +50,12 @@ public static class AzureCosmosExtensions
 
             cosmosAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
+            if (builder.ExecutionContext.IsPublishMode)
+            {
+                // If we are in publish mode then we lock things down to just Azure services.
+                cosmosAccount.AssignProperty(x => x.NetworkAclBypass, "'AzureServices'");
+            }
+
             var keyVaultNameParameter = new Parameter("keyVaultName");
             construct.AddParameter(keyVaultNameParameter);
 

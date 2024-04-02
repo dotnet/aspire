@@ -276,6 +276,106 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task AddAzureCosmosDBPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        IEnumerable<CosmosDBSqlDatabase>? callbackDatabases = null;
+        var cosmos = builder.AddAzureCosmosDB("cosmos", (resource, construct, account, databases) =>
+        {
+            callbackDatabases = databases;
+        });
+        cosmos.AddDatabase("mydatabase");
+
+        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(cosmos.Resource);
+
+        var expectedManifest = """
+                               {
+                                 "type": "azure.bicep.v0",
+                                 "connectionString": "{cosmos.secretOutputs.connectionString}",
+                                 "path": "cosmos.module.bicep",
+                                 "params": {
+                                   "keyVaultName": ""
+                                 }
+                               }
+                               """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param keyVaultName string
+
+
+            resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+              name: keyVaultName
+            }
+
+            resource cosmosDBAccount_MZyw35gqp 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+              name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'cosmos'
+              }
+              kind: 'GlobalDocumentDB'
+              properties: {
+                databaseAccountOfferType: 'Standard'
+                consistencyPolicy: {
+                  defaultConsistencyLevel: 'Session'
+                }
+                locations: [
+                  {
+                    locationName: location
+                    failoverPriority: 0
+                  }
+                ]
+                networkAclBypass: 'AzureServices'
+              }
+            }
+
+            resource cosmosDBSqlDatabase_2kiHyuwCU 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+              parent: cosmosDBAccount_MZyw35gqp
+              name: 'mydatabase'
+              location: location
+              properties: {
+                resource: {
+                  id: 'mydatabase'
+                }
+              }
+            }
+
+            resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+              parent: keyVault_IeF8jZvXV
+              name: 'connectionString'
+              location: location
+              properties: {
+                value: 'AccountEndpoint=${cosmosDBAccount_MZyw35gqp.properties.documentEndpoint};AccountKey=${cosmosDBAccount_MZyw35gqp.listkeys(cosmosDBAccount_MZyw35gqp.apiVersion).primaryMasterKey}'
+              }
+            }
+
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+
+        Assert.NotNull(callbackDatabases);
+        Assert.Collection(
+            callbackDatabases,
+            (database) => Assert.Equal("mydatabase", database.Properties.Name)
+            );
+
+        var connectionStringResource = (IResourceWithConnectionString)cosmos.Resource;
+
+        Assert.Equal("cosmos", cosmos.Resource.Name);
+        Assert.Equal("mycosmosconnectionstring", await connectionStringResource.GetConnectionStringAsync());
+    }
+
+    [Fact]
     public async Task AddAzureAppConfiguration()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
