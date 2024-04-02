@@ -18,6 +18,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -825,38 +826,54 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 return;
             }
 
-            const int watchAttempts = 2;
-
-            for (int attempt = 0; attempt < watchAttempts; attempt++)
+            var withTimeout = new TimeoutStrategyOptions()
             {
-                var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(configuration.GetValue<TimeSpan>("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", TimeSpan.FromSeconds(10)));
+                Timeout = _options.Value.ServiceStartupWatchTimeout
+            };
 
-                try
+            var tryTwice = new RetryStrategyOptions()
+            {
+                BackoffType = DelayBackoffType.Constant,
+                MaxDelay = TimeSpan.FromSeconds(1),
+                UseJitter = true,
+                MaxRetryAttempts = 2,
+                ShouldHandle = new PredicateBuilder().Handle<Exception>(),
+                OnRetry = (retry) =>
                 {
-                    // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
-                    IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: cts.Token);
-                    await foreach (var (evt, updated) in serviceChangeEnumerator)
+                    _logger.LogDebug(
+                        retry.Outcome.Exception,
+                        "Watching for service port allocation ended with an error after {WatchDurationMs} (iteration {Iteration})",
+                        retry.Duration.TotalMilliseconds,
+                        retry.AttemptNumber
+                    );
+                    return ValueTask.CompletedTask;
+                }
+            };
+
+            var execution = new ResiliencePipelineBuilder().AddRetry(tryTwice).AddTimeout(withTimeout).Build();
+
+            await execution.ExecuteAsync(async (attemptCancellationToken) =>
+            {
+                IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: attemptCancellationToken);
+                await foreach (var (evt, updated) in serviceChangeEnumerator)
+                {
+                    if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
+
+                    var srvResource = needAddressAllocated.FirstOrDefault(sr => sr.Service.Metadata.Name == updated.Metadata.Name);
+                    if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
+
+                    if (updated.HasCompleteAddress)
                     {
-                        if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
+                        srvResource.Service.ApplyAddressInfoFrom(updated);
+                        needAddressAllocated.Remove(srvResource);
+                    }
 
-                        var srvResource = needAddressAllocated.FirstOrDefault(sr => sr.Service.Metadata.Name == updated.Metadata.Name);
-                        if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
-
-                        if (updated.HasCompleteAddress)
-                        {
-                            srvResource.Service.ApplyAddressInfoFrom(updated);
-                            needAddressAllocated.Remove(srvResource);
-                        }
-
-                        if (needAddressAllocated.Count == 0)
-                        {
-                            return; // We are done
-                        }
+                    if (needAddressAllocated.Count == 0)
+                    {
+                        return; // We are done
                     }
                 }
-                catch { }
-            }
+            }, cancellationToken).ConfigureAwait(false);
 
             // If there are still services that need address allocated, try a final direct query in case the watch missed some updates.
             foreach(var sar in needAddressAllocated)
