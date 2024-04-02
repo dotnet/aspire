@@ -1045,7 +1045,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 else
                 {
-#pragma warning disable CS0612 // These annotations are obsolete; remove in Aspire Preview 6
+#pragma warning disable CS0612 // These annotations are obsolete; remove after Aspire GA
                     annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
 
                     // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
