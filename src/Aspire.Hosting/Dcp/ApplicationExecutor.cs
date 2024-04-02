@@ -885,7 +885,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 else
                 {
-                    distributedApplicationLogger.LogWarning($"Unable to allocate a network port for service '{sar.Service.Metadata.Name}'; service may be unreachable and its clients may not work properly.");
+                    distributedApplicationLogger.LogWarning("Unable to allocate a network port for service '{ServiceName}'; service may be unreachable and its clients may not work properly.", sar.Service.Metadata.Name);
                 }
             }
             
