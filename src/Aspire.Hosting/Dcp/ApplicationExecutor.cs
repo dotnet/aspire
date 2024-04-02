@@ -94,7 +94,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private DcpInfo? _dcpInfo;
 
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
-    private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>();
+    private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
+        new UnboundedChannelOptions { SingleReader = true });
 
     private string DefaultContainerHostName => configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
 
@@ -224,6 +225,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     (logsAvailable, hasSubscribers) = stateEntry;
                 }
+
+                // LogsAvailable can only go from false => true. Once it is true, it can never go back to false.
+                Debug.Assert(!entry.LogsAvailable.HasValue || entry.LogsAvailable.Value, "entry.LogsAvailable should never be 'false'");
 
                 logsAvailable = entry.LogsAvailable ?? logsAvailable;
                 hasSubscribers = entry.HasSubscribers ?? hasSubscribers;
