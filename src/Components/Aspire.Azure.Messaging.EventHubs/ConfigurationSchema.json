@@ -41,7 +41,7 @@
                               "properties": {
                                 "ConnectionIdleTimeout": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
                                 },
                                 "CustomEndpointAddress": {
@@ -76,12 +76,12 @@
                               "properties": {
                                 "Delay": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
                                 },
                                 "MaximumDelay": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The maximum permissible delay between retry attempts."
                                 },
                                 "MaximumRetries": {
@@ -97,7 +97,7 @@
                                 },
                                 "TryTimeout": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
                                 }
                               },
@@ -140,7 +140,7 @@
                               "properties": {
                                 "ConnectionIdleTimeout": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
                                 },
                                 "CustomEndpointAddress": {
@@ -175,12 +175,12 @@
                               "properties": {
                                 "Delay": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
                                 },
                                 "MaximumDelay": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The maximum permissible delay between retry attempts."
                                 },
                                 "MaximumRetries": {
@@ -196,7 +196,7 @@
                                 },
                                 "TryTimeout": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
                                 }
                               },
@@ -247,7 +247,7 @@
                               "properties": {
                                 "ConnectionIdleTimeout": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
                                 },
                                 "CustomEndpointAddress": {
@@ -286,17 +286,17 @@
                             },
                             "LoadBalancingUpdateInterval": {
                               "type": "string",
-                              "format": "duration",
+                              "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                               "description": "The desired amount of time to allow between load balancing verification attempts."
                             },
                             "MaximumWaitTime": {
                               "type": "string",
-                              "format": "duration",
+                              "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                               "description": "The maximum amount of time to wait for an event to become available for a given partition before emitting\nan empty event."
                             },
                             "PartitionOwnershipExpirationInterval": {
                               "type": "string",
-                              "format": "duration",
+                              "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                               "description": "The desired amount of time to consider a partition owned by a specific event processor\ninstance before the ownership is considered stale and the partition becomes eligible to be\nrequested by another event processor that wishes to assume responsibility for processing it."
                             },
                             "PrefetchCount": {
@@ -312,12 +312,12 @@
                               "properties": {
                                 "Delay": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
                                 },
                                 "MaximumDelay": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The maximum permissible delay between retry attempts."
                                 },
                                 "MaximumRetries": {
@@ -333,7 +333,7 @@
                                 },
                                 "TryTimeout": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
                                 }
                               },
@@ -380,7 +380,7 @@
                               "properties": {
                                 "ConnectionIdleTimeout": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
                                 },
                                 "CustomEndpointAddress": {
@@ -408,7 +408,7 @@
                             },
                             "DefaultMaximumReceiveWaitTime": {
                               "type": "string",
-                              "format": "duration",
+                              "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                               "description": "The default amount of time to wait for the requested amount of messages when reading; if this\nperiod elapses before the requested amount of messages were available or read, then the set of\nmessages that were read will be returned."
                             },
                             "Identifier": {
@@ -432,12 +432,12 @@
                               "properties": {
                                 "Delay": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
                                 },
                                 "MaximumDelay": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The maximum permissible delay between retry attempts."
                                 },
                                 "MaximumRetries": {
@@ -453,7 +453,7 @@
                                 },
                                 "TryTimeout": {
                                   "type": "string",
-                                  "format": "duration",
+                                  "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                                   "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
                                 }
                               },

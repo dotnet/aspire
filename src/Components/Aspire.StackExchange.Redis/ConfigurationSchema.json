@@ -81,7 +81,7 @@
                     },
                     "HeartbeatInterval": {
                       "type": "string",
-                      "format": "duration",
+                      "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Controls how often the connection heartbeats. A heartbeat includes:\n- Evaluating if any messages have timed out\n- Evaluating connection status (checking for failures)\n- Sending a server message to keep the connection alive if needed"
                     },
                     "IncludeDetailInExceptions": {

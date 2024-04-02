@@ -48,7 +48,7 @@
                     },
                     "ContinuationTimeout": {
                       "type": "string",
-                      "format": "duration",
+                      "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Amount of time protocol  operations (e.g. queue.declare ) are allowed to take before\ntiming out."
                     },
                     "DefaultAddressFamily": {
@@ -208,7 +208,7 @@
                     },
                     "HandshakeContinuationTimeout": {
                       "type": "string",
-                      "format": "duration",
+                      "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Amount of time protocol handshake operations are allowed to take before\ntiming out."
                     },
                     "HostName": {
@@ -221,7 +221,7 @@
                     },
                     "NetworkRecoveryInterval": {
                       "type": "string",
-                      "format": "duration",
+                      "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Amount of time client will wait for before re-trying  to recover connection."
                     },
                     "Password": {
@@ -238,7 +238,7 @@
                     },
                     "RequestedConnectionTimeout": {
                       "type": "string",
-                      "format": "duration",
+                      "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Timeout setting for connection attempts."
                     },
                     "RequestedFrameMax": {
@@ -247,17 +247,17 @@
                     },
                     "RequestedHeartbeat": {
                       "type": "string",
-                      "format": "duration",
+                      "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Heartbeat timeout to use when negotiating with the server."
                     },
                     "SocketReadTimeout": {
                       "type": "string",
-                      "format": "duration",
+                      "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Timeout setting for socket read operations."
                     },
                     "SocketWriteTimeout": {
                       "type": "string",
-                      "format": "duration",
+                      "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Timeout setting for socket write operations."
                     },
                     "Ssl": {

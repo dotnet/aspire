@@ -47,7 +47,7 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
                     "TrimBlobNameSlashes": true,
                     "Retry": {
                       "Mode": "Exponential",
-                      "Delay": "PT3S"
+                      "Delay": "00:00:03"
                     }
                   }
                 }
@@ -62,7 +62,7 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
             ("""{"Aspire": { "Azure": { "Storage":{ "Blobs": { "ServiceUri": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
             ("""{"Aspire": { "Azure": { "Storage":{ "Blobs": { "ServiceUri": "http://YOUR_URI", "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Azure": { "Storage":{ "Blobs": { "ServiceUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"Mode": "Fast"}}}}}}}""", "Value should match one of the values specified by the enum"),
-            ("""{"Aspire": { "Azure": { "Storage":{ "Blobs": { "ServiceUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"NetworkTimeout": "3S"}}}}}}}""", "Value does not match format \"duration\"")
+            ("""{"Aspire": { "Azure": { "Storage":{ "Blobs": { "ServiceUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"NetworkTimeout": "3S"}}}}}}}""", "The string value is not a match for the indicated regular expression")
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
