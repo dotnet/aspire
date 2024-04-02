@@ -7,18 +7,18 @@ namespace Aspire.TestProject;
 public enum TestResourceNames
 {
     None = 0,
-    cosmos = 1,
-    dashboard = 2,
-    kafka = 4,
-    mongodb = 8,
-    mysql = 16,
-    oracledatabase = 32,
-    efmysql = 64,
-    postgres = 128,
-    rabbitmq = 256,
-    redis = 512,
-    sqlserver = 1024,
-    efnpgsql = 2048,
+    cosmos = 1 << 0,
+    dashboard = 1 << 1,
+    kafka = 1 << 2,
+    mongodb = 1 << 3,
+    mysql = 1 << 4,
+    oracledatabase = 1 << 5,
+    efmysql = 1 << 6,
+    postgres = 1 << 7,
+    rabbitmq = 1 << 8,
+    redis = 1 << 9,
+    sqlserver = 1 << 10,
+    efnpgsql = 1 << 11,
     All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql
 }
 
