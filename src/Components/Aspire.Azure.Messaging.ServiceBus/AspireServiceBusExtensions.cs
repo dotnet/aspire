@@ -31,23 +31,6 @@ public static class AspireServiceBusExtensions
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.Namespace"/> is provided.</exception>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureServiceBusClient)} instead.")]
-    public static void AddAzureServiceBus(
-        this IHostApplicationBuilder builder,
-        string connectionName,
-        Action<AzureMessagingServiceBusSettings>? configureSettings = null,
-        Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>>? configureClientBuilder = null)
-        => AddAzureServiceBusClient(builder, connectionName, configureSettings, configureClientBuilder);
-
-    /// <summary>
-    /// Registers <see cref="ServiceBusClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus" section.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.Namespace"/> is provided.</exception>
     public static void AddAzureServiceBusClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -56,23 +39,6 @@ public static class AspireServiceBusExtensions
     {
         new MessageBusComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
-
-    /// <summary>
-    /// Registers <see cref="ServiceBusClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus:{name}" section.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.Namespace"/> is provided.</exception>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedAzureServiceBusClient)} instead.")]
-    public static void AddKeyedAzureServiceBus(
-        this IHostApplicationBuilder builder,
-        string name,
-        Action<AzureMessagingServiceBusSettings>? configureSettings = null,
-        Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>>? configureClientBuilder = null)
-        => AddKeyedAzureServiceBusClient(builder, name, configureSettings, configureClientBuilder);
 
     /// <summary>
     /// Registers <see cref="ServiceBusClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
