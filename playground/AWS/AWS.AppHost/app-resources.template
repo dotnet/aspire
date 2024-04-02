@@ -20,6 +20,32 @@
                     {"Protocol" : "sqs", "Endpoint" : {"Fn::GetAtt" : [ "ChatMessagesQueue", "Arn"]}}
                 ]
             }
+        },
+        "ChatMessagesQueuePolicy": {
+            "Type": "AWS::SQS::QueuePolicy",
+            "Properties": {
+                "Queues": [
+                    { "Ref": "ChatMessagesQueue" }
+                ],
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "sqs:SendMessage",
+                            "Principal": {
+                                "Service": "sns.amazonaws.com"
+                            },
+                            "Resource": { "Fn::GetAtt": [ "ChatMessagesQueue", "Arn" ] },
+                            "Condition": {
+                                "ArnEquals": {
+                                    "aws:SourceArn": { "Ref": "ChatTopic" }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
         }
     },
     "Outputs" : {
