@@ -21,7 +21,7 @@ internal sealed class MockKubernetesService : IKubernetesService
         );
         if (res == null)
         {
-            throw new ArgumentException($"Resource '{name}' not found");
+            throw new ArgumentException($"Resource '{namespaceParameter ?? ""}/{name}' not found");
         }
         return Task.FromResult(res);
     }
