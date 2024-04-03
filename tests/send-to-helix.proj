@@ -46,7 +46,7 @@
     <_TestRunCommandArguments Include="full" />
   </ItemGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)send-to-helix-workload-tests.proj" />
+  <Import Project="$(MSBuildThisFileDirectory)send-to-helix-workload-tests.targets" />
 
   <Target Name="BuildHelixWorkItemsForDefaultTests" DependsOnTargets="_StageDependenciesForHelix">
     <PropertyGroup>
