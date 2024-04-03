@@ -7,6 +7,9 @@
     <VersionPrefix>8.1.0</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
     <UseVSTestRunner>true</UseVSTestRunner>
+    <!-- Enable to remove prerelease label. -->
+    <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
+    <DotNetFinalVersionKind Condition="'$(StabilizePackageVersion)' == 'true'">release</DotNetFinalVersionKind>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
