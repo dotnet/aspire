@@ -44,9 +44,23 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _transport = transport;
         Name = name;
         Port = port;
-        TargetPort = targetPort ?? port;
+
+        TargetPort = targetPort;
+
+        // If the target port was not explicitly set and the service is not being proxied,
+        // we can set the target port to the port.
+        if (TargetPort is null && !isProxied)
+        {
+            TargetPort = port;
+        }
+
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
+
+        if (TargetPort is int && Port is int && TargetPort == Port && IsProxied)
+        {
+            throw new ArgumentException($"When {nameof(isProxied)} is true, {nameof(targetPort)} must not be equal to {nameof(port)}.");
+        }
     }
 
     /// <summary>
