@@ -5,7 +5,6 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -91,11 +90,7 @@ public class ProjectResourceTests
     [InlineData(null, true)]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata_OtlpAuthDisabledSetting(string? value, bool hasHeader)
     {
-        var appBuilder = CreateBuilder();
-        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["DOTNET_DISABLE_OTLP_API_KEY_AUTH"] = value
-        });
+        var appBuilder = CreateBuilder(args: [$"DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS={value}"]);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
@@ -108,7 +103,14 @@ public class ProjectResourceTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
-        Assert.Equal(hasHeader, config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"));
+        if (hasHeader)
+        {
+            Assert.True(config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"), "Config should have 'OTEL_EXPORTER_OTLP_HEADERS' header and doesn't.");
+        }
+        else
+        {
+            Assert.False(config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"), "Config shouldn't have 'OTEL_EXPORTER_OTLP_HEADERS' header and does.");
+        }
     }
 
     [Fact]
@@ -281,10 +283,18 @@ public class ProjectResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    private static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
+    private static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
-        var args = operation == DistributedApplicationOperation.Publish ? new[] { "--publisher", "manifest" } : Array.Empty<string>();
-        var appBuilder = DistributedApplication.CreateBuilder(args);
+        var resolvedArgs = new List<string>();
+        if (args != null)
+        {
+            resolvedArgs.AddRange(args);
+        }
+        if (operation == DistributedApplicationOperation.Publish)
+        {
+            resolvedArgs.AddRange(["--publisher", "manifest"]);
+        }
+        var appBuilder = DistributedApplication.CreateBuilder(resolvedArgs.ToArray());
         // Block DCP from actually starting anything up as we don't need it for this test.
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
 
