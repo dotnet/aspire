@@ -83,7 +83,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         string processArguments = $"run --no-build -- ";
         _resourcesToSkip = GetResourcesToSkip();
-        if (_resourcesToSkip > 0)
+        if (_resourcesToSkip != TestResourceNames.None)
         {
             if (_resourcesToSkip.ToCSVString() is string skipArg)
             {
