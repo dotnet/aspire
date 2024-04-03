@@ -21,6 +21,9 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+
+    <!-- Pinned version for Component Governance - Remove when root dependencies are updated tracked by https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->
+    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
 </Project>
