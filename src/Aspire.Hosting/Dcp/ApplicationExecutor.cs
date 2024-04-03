@@ -836,7 +836,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 BackoffType = DelayBackoffType.Constant,
                 MaxDelay = TimeSpan.FromSeconds(1),
                 UseJitter = true,
-                MaxRetryAttempts = 2,
+                MaxRetryAttempts = 1,
                 ShouldHandle = new PredicateBuilder().Handle<Exception>(),
                 OnRetry = (retry) =>
                 {
