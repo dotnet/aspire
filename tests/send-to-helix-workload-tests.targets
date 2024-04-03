@@ -42,7 +42,7 @@
   <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="'$(_E2ETestsArchivePath)' != '' and Exists($(_E2ETestsArchivePath))">
     <PropertyGroup>
       <_TestScenarioEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_SCENARIO%</_TestScenarioEnvVar>
-      <_TestScenarioEnvVar Condition="'$(OS)' != 'Windows_NT'">$TEST_SCENARIO</_TestScenarioEnvVar>
+      <_TestScenarioEnvVar Condition="'$(OS)' != 'Windows_NT'">${TEST_SCENARIO}</_TestScenarioEnvVar>
     </PropertyGroup>
 
     <ItemGroup>
@@ -72,13 +72,13 @@
 
       <HelixWorkItem Include="@(_E2ETestScenarios -> '$(_WorkItemName)-%(Identity)')">
         <PayloadArchive>$(_E2ETestsArchivePath)</PayloadArchive>
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=$(_WorkItemName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=$(_WorkItemName)&quot; &amp;&amp; export TEST_SCENARIO=%(Identity)</PreCommands>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=$(_WorkItemName)&quot; &amp; set TEST_SCENARIO=%(Identity) &amp; set &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=$(_WorkItemName)&quot; &amp;&amp; export TEST_SCENARIO=%(Identity) &amp;&amp; export &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests.cobertura.xml</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>
