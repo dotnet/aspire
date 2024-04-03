@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -902,7 +903,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             AspireEventSource.Instance.DcpServicesCreationStart();
 
-            var needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
+            var needAddressAllocated = _appResources.OfType<ServiceAppResource>()
+                .Where(sr => !sr.Service.HasCompleteAddress && sr.Service.Spec.AddressAllocationMode != AddressAllocationModes.Proxyless)
+                .ToList();
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
 
@@ -912,26 +915,69 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 return;
             }
 
-            // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
-            IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
-            await foreach (var (evt, updated) in serviceChangeEnumerator)
+            var withTimeout = new TimeoutStrategyOptions()
             {
-                if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
+                Timeout = _options.Value.ServiceStartupWatchTimeout
+            };
 
-                var srvResource = needAddressAllocated.Where(sr => sr.Service.Metadata.Name == updated.Metadata.Name).FirstOrDefault();
-                if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
-
-                if (updated.HasCompleteAddress || updated.Spec.AddressAllocationMode == AddressAllocationModes.Proxyless)
+            var tryTwice = new RetryStrategyOptions()
+            {
+                BackoffType = DelayBackoffType.Constant,
+                MaxDelay = TimeSpan.FromSeconds(1),
+                UseJitter = true,
+                MaxRetryAttempts = 1,
+                ShouldHandle = new PredicateBuilder().Handle<Exception>(),
+                OnRetry = (retry) =>
                 {
-                    srvResource.Service.ApplyAddressInfoFrom(updated);
-                    needAddressAllocated.Remove(srvResource);
+                    _logger.LogDebug(
+                        retry.Outcome.Exception,
+                        "Watching for service port allocation ended with an error after {WatchDurationMs} (iteration {Iteration})",
+                        retry.Duration.TotalMilliseconds,
+                        retry.AttemptNumber
+                    );
+                    return ValueTask.CompletedTask;
                 }
+            };
 
-                if (needAddressAllocated.Count == 0)
+            var execution = new ResiliencePipelineBuilder().AddRetry(tryTwice).AddTimeout(withTimeout).Build();
+
+            await execution.ExecuteAsync(async (attemptCancellationToken) =>
+            {
+                IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: attemptCancellationToken);
+                await foreach (var (evt, updated) in serviceChangeEnumerator)
                 {
-                    return; // We are done
+                    if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
+
+                    var srvResource = needAddressAllocated.FirstOrDefault(sr => sr.Service.Metadata.Name == updated.Metadata.Name);
+                    if (srvResource == null) { continue; } // This service most likely already has full address information, so it is not on needAddressAllocated list.
+
+                    if (updated.HasCompleteAddress)
+                    {
+                        srvResource.Service.ApplyAddressInfoFrom(updated);
+                        needAddressAllocated.Remove(srvResource);
+                    }
+
+                    if (needAddressAllocated.Count == 0)
+                    {
+                        return; // We are done
+                    }
+                }
+            }, cancellationToken).ConfigureAwait(false);
+
+            // If there are still services that need address allocated, try a final direct query in case the watch missed some updates.
+            foreach(var sar in needAddressAllocated)
+            {
+                var dcpSvc = await kubernetesService.GetAsync<Service>(sar.Service.Metadata.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (dcpSvc.HasCompleteAddress)
+                {
+                    sar.Service.ApplyAddressInfoFrom(dcpSvc);
+                }
+                else
+                {
+                    distributedApplicationLogger.LogWarning("Unable to allocate a network port for service '{ServiceName}'; service may be unreachable and its clients may not work properly.", sar.Service.Metadata.Name);
                 }
             }
+            
         }
         finally
         {
@@ -1089,7 +1135,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 else
                 {
-#pragma warning disable CS0612 // These annotations are obsolete; remove in Aspire Preview 6
+#pragma warning disable CS0612 // These annotations are obsolete; remove after Aspire GA
                     annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
 
                     // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.

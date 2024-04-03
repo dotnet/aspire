@@ -81,6 +81,8 @@ internal sealed class DcpOptions
 
     public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
 
+    public TimeSpan ServiceStartupWatchTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
     {
         string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
@@ -144,6 +146,8 @@ internal sealed class DcpOptions
         {
             throw new InvalidOperationException($"Could not resolve the path to the Aspire application host. The application cannot be run without it.");
         }
+
+        ServiceStartupWatchTimeout = coreConfiguration.GetValue<TimeSpan>("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", ServiceStartupWatchTimeout);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
