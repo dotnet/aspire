@@ -201,29 +201,6 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Configures which launch profile should be used when running the project.
-    /// </summary>
-    /// <param name="builder">The project resource builder.</param>
-    /// <param name="launchProfileName">The name of the launch profile to use for execution.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName. Method will be removed by GA.")]
-    public static IResourceBuilder<ProjectResource> WithLaunchProfile(this IResourceBuilder<ProjectResource> builder, string launchProfileName)
-    {
-        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Method will be removed by GA.");
-    }
-
-    /// <summary>
-    /// Configures the project to exclude launch profile settings when running.
-    /// </summary>
-    /// <param name="builder">The project resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile. Method will be removed by GA.")]
-    public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
-    {
-        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile. Method will be removed by GA.");
-    }
-
-    /// <summary>
     /// Configures the project to disable forwarded headers when being published.
     /// </summary>
     /// <param name="builder">The project resource builder.</param>

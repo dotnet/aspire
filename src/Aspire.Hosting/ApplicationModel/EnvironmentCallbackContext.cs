@@ -14,12 +14,6 @@ namespace Aspire.Hosting.ApplicationModel;
 public class EnvironmentCallbackContext(DistributedApplicationExecutionContext executionContext, Dictionary<string, object>? environmentVariables = null, CancellationToken cancellationToken = default)
 {
     /// <summary>
-    /// Obsolete. Use ExecutionContext instead. Will be removed in next preview.
-    /// </summary>
-    [Obsolete("Use ExecutionContext instead")]
-    public string PublisherName => ExecutionContext.IsPublishMode ? "manifest" : "dcp";
-
-    /// <summary>
     /// Gets the environment variables associated with the callback context.
     /// </summary>
     public Dictionary<string, object> EnvironmentVariables { get; } = environmentVariables ?? new();
