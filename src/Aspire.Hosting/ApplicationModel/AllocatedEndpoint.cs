@@ -18,8 +18,8 @@ public class AllocatedEndpoint
     /// <param name="address">The IP address of the endpoint.</param>
     /// <param name="containerHostAddress">The address of the container host.</param>
     /// <param name="port">The port number of the endpoint.</param>
-    /// <param name="dcpServiceName">The name of the DCP service.</param>
-    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null, string? dcpServiceName = null)
+    /// <param name="targetPortExpression">A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.</param>
+    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null, string? targetPortExpression = null)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1, nameof(port));
@@ -29,7 +29,7 @@ public class AllocatedEndpoint
         Address = address;
         ContainerHostAddress = containerHostAddress;
         Port = port;
-        DcpServiceName = dcpServiceName;
+        TargetPortExpression = targetPortExpression;
     }
 
     /// <summary>
@@ -68,9 +68,9 @@ public class AllocatedEndpoint
     public string UriString => $"{UriScheme}://{EndPointString}";
 
     /// <summary>
-    /// The associated service name created in DCP for this endpoint.
+    /// A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.
     /// </summary>
-    public string? DcpServiceName { get; }
+    public string? TargetPortExpression { get; }
 
     /// <summary>
     /// Returns a string representation of the allocated endpoint URI.

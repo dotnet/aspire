@@ -193,11 +193,9 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         // There is no way to resolve the value of the target port until runtime. Even then, replicas make this very complex because
         // the target port is not known until the replica is allocated.
         // Instead, we return an expression that will be resolved at runtime by the orchestrator.
-        return $$$"""{{- portForServing "{{{DcpServiceName}}}" -}}""";
+        return Endpoint.AllocatedEndpoint.TargetPortExpression
+            ?? throw new InvalidOperationException("The endpoint does not have an associated TargetPortExpression from the orchestrator.");
     }
-
-    private string DcpServiceName => Endpoint.AllocatedEndpoint.DcpServiceName
-        ?? throw new InvalidOperationException("The endpoint does not have an associated service name in the orchestrator.");
 
     IEnumerable<object> IValueWithReferences.References => [Endpoint];
 }
