@@ -143,8 +143,7 @@ public class ProjectResourceTests
         var projectResources = appModel.GetProjectResources();
 
         var resource = Assert.Single(projectResources);
-        // LaunchProfileAnnotation isn't public, so we just check the type name
-        Assert.Contains(resource.Annotations, a => a.GetType().Name == "LaunchProfileAnnotation");
+        Assert.Contains(resource.Annotations, a => a is LaunchProfileAnnotation);
     }
 
     [Fact]

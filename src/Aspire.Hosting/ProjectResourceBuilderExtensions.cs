@@ -121,7 +121,7 @@ public static class ProjectResourceBuilderExtensions
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            // Automatically add EndpointAnnotation to project resources based on ApplicationUrl set in the launch profile.
+            // Process the launch profile and turn it into environment variables and endpoints.
             var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
             if (launchProfile is null)
             {
@@ -141,6 +141,55 @@ public static class ProjectResourceBuilderExtensions
                 },
                 createIfNotExists: true);
             }
+
+            builder.WithEnvironment(context =>
+            {
+                // Populate DOTNET_LAUNCH_PROFILE environment variable for consistency with "dotnet run" and "dotnet watch".
+                context.EnvironmentVariables.TryAdd("DOTNET_LAUNCH_PROFILE", launchProfileName!);
+
+                foreach (var envVar in launchProfile.EnvironmentVariables)
+                {
+                    var value = Environment.ExpandEnvironmentVariables(envVar.Value);
+                    context.EnvironmentVariables.TryAdd(envVar.Key, value);
+                }
+
+                if (context.EnvironmentVariables.ContainsKey("ASPNETCORE_URLS"))
+                {
+                    // If the user has already set ASPNETCORE_URLS, we don't want to override it.
+                    return;
+                }
+
+                var aspnetCoreUrls = new ReferenceExpressionBuilder();
+
+                var processedHttpsPort = false;
+                var first = true;
+
+                // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
+                foreach (var e in builder.Resource.GetEndpoints().Where(e => e.EndpointAnnotation.UriScheme is "http" or "https"))
+                {
+                    if (!first)
+                    {
+                        aspnetCoreUrls.AppendLiteral(";");
+                    }
+
+                    if (!processedHttpsPort && e.EndpointAnnotation.UriScheme == "https")
+                    {
+                        // Add the environment variable for the HTTPS port if we have an HTTPS service. This will make sure the
+                        // HTTPS redirection middleware avoids redirecting to the internal port.
+                        context.EnvironmentVariables["ASPNETCORE_HTTPS_PORT"] = e.Property(EndpointProperty.Port);
+
+                        processedHttpsPort = true;
+                    }
+
+                    aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://localhost:{e.Property(EndpointProperty.TargetPort)}");
+                    first = false;
+                }
+
+                // Combine into a single expression
+                context.EnvironmentVariables["ASPNETCORE_URLS"] = aspnetCoreUrls.Build();
+            });
+
+            // TODO: Process command line arguments here
         }
         else
         {
