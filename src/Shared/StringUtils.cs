@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Utils;
 
 internal static class StringUtils
 {
-    public static bool TryGetUriFromDelimitedString(string input, string delimiter, [NotNullWhen(true)] out Uri? uri)
+    public static bool TryGetUriFromDelimitedString([NotNullWhen(true)] string? input, string delimiter, [NotNullWhen(true)] out Uri? uri)
     {
         if (!string.IsNullOrEmpty(input)
             && input.Split(delimiter) is { Length: > 0 } splitInput

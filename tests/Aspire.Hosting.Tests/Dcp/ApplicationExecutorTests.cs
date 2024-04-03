@@ -32,6 +32,54 @@ public class ApplicationExecutorTests
     }
 
     [Fact]
+    public async Task RunApplicationAsync_AuthConfigured_EnvVarsPresent()
+    {
+        // Arrange
+        var distributedAppModel = new DistributedApplicationModel(new ResourceCollection());
+        var kubernetesService = new MockKubernetesService();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dashboard = Assert.IsType<Executable>(Assert.Single(kubernetesService.CreatedResources));
+        Assert.NotNull(dashboard.Spec.Env);
+
+        Assert.Equal("BrowserToken", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
+        Assert.Equal("TestBrowserToken!", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName).Value);
+
+        Assert.Equal("ApiKey", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
+        Assert.Equal("TestOtlpApiKey!", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName).Value);
+    }
+
+    [Fact]
+    public async Task RunApplicationAsync_AuthRemoved_EnvVarsUnsecured()
+    {
+        // Arrange
+        var distributedAppModel = new DistributedApplicationModel(new ResourceCollection());
+        var kubernetesService = new MockKubernetesService();
+        var builder = new ConfigurationBuilder();
+        builder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+        });
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, configuration: builder.Build(), kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dashboard = Assert.IsType<Executable>(Assert.Single(kubernetesService.CreatedResources));
+        Assert.NotNull(dashboard.Spec.Env);
+
+        Assert.Equal("Unsecured", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
+        Assert.Equal("Unsecured", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
+    }
+
+    [Fact]
     public async Task ContainersArePassedOtelServiceName()
     {
         // Arrange
@@ -63,7 +111,9 @@ public class ApplicationExecutorTests
             var builder = new ConfigurationBuilder();
             builder.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost",
+                ["AppHost:BrowserToken"] = "TestBrowserToken!",
+                ["AppHost:OtlpApiKey"] = "TestOtlpApiKey!"
             });
 
             configuration = builder.Build();
