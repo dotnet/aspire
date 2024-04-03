@@ -50,7 +50,7 @@ public class DaprTests
 
         foreach (var e in endpoints)
         {
-            e.AllocatedEndpoint = new(e, "localhost", ports[e.Name]);
+            e.AllocatedEndpoint = new(e, "localhost", ports[e.Name], dcpServiceName: e.Name);
         }
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container);
@@ -67,11 +67,11 @@ public class DaprTests
             "--app-port",
             "80",
             "--dapr-grpc-port",
-            "{{- portForServing \"name-dapr-cli_grpc\" -}}",
+            "{{- portForServing \"grpc\" -}}",
             "--dapr-http-port",
-            "{{- portForServing \"name-dapr-cli_http\" -}}",
+            "{{- portForServing \"http\" -}}",
             "--metrics-port",
-            "{{- portForServing \"name-dapr-cli_metrics\" -}}",
+            "{{- portForServing \"metrics\" -}}",
             "--app-channel-address",
             "localhost"
         };

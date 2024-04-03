@@ -366,8 +366,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 TryAddDependentResources(value);
             }
 
-            WritePortBindingEnvironmentVariables(resource);
-
             Writer.WriteEndObject();
         }
     }
@@ -410,26 +408,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
 
             Writer.WriteEndArray();
-        }
-    }
-
-    /// <summary>
-    /// Write environment variables for port bindings related to <see cref="EndpointAnnotation"/> annotations.
-    /// </summary>
-    /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
-    public void WritePortBindingEnvironmentVariables(IResource resource)
-    {
-        if (resource.TryGetEndpoints(out var endpoints))
-        {
-            foreach (var endpoint in endpoints)
-            {
-                if (endpoint.EnvironmentVariable is null)
-                {
-                    continue;
-                }
-
-                Writer.WriteString(endpoint.EnvironmentVariable, $"{{{resource.Name}.bindings.{endpoint.Name}.targetPort}}");
-            }
         }
     }
 

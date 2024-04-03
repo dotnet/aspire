@@ -26,9 +26,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="port">Desired port for the service.</param>
     /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
-    /// <param name="env">The name of the environment variable that will be set to the port number of this endpoint.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, string? env = null, bool isProxied = true)
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -47,7 +46,6 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         Port = port;
         TargetPort = targetPort ?? port;
         IsExternal = isExternal ?? false;
-        EnvironmentVariable = env;
         IsProxied = isProxied;
     }
 
@@ -92,11 +90,6 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// Indicates that this endpoint should be exposed externally at publish time.
     /// </summary>
     public bool IsExternal { get; set; }
-
-    /// <summary>
-    /// The name of the environment variable that will be set to the port number of this endpoint.
-    /// </summary>
-    public string? EnvironmentVariable { get; set; }
 
     /// <summary>
     /// Indicates that this endpoint should be managed by DCP. This means it can be replicated and use a different port internally than the one publicly exposed.

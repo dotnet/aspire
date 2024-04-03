@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -15,14 +16,16 @@ public class WithEndpointTests
     [Fact]
     public void WithEndpointInvokesCallback()
     {
-        using var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithEndpoint(3000, 1000, name: "mybinding");
-        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
-        {
-            endpoint.Port = 2000;
-        });
+        using var builder = TestDistributedApplicationBuilder.Create();
 
-        var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>()
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithEndpoint(3000, 1000, name: "mybinding")
+                              .WithEndpoint("mybinding", endpoint =>
+                              {
+                                  endpoint.Port = 2000;
+                              });
+
+        var endpoint = projectA.Resource.Annotations.OfType<EndpointAnnotation>()
             .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
         Assert.Equal(2000, endpoint.Port);
     }
@@ -32,16 +35,17 @@ public class WithEndpointTests
     {
         var executed = false;
 
-        using var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
-        {
-            executed = true;
-        },
-        createIfNotExists: false);
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithEndpoint("mybinding", endpoint =>
+                              {
+                                  executed = true;
+                              },
+                              createIfNotExists: false);
 
         Assert.False(executed);
-        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var annotations));
-        Assert.DoesNotContain(annotations, e => string.Equals(e.Name, "mybinding", EndpointAnnotationName));
+        Assert.False(projectA.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var annotations));
     }
 
     [Fact]
@@ -49,14 +53,16 @@ public class WithEndpointTests
     {
         var executed = false;
 
-        using var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
-        {
-            executed = true;
-        });
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithEndpoint("mybinding", endpoint =>
+                              {
+                                  executed = true;
+                              });
 
         Assert.True(executed);
-        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
+        Assert.True(projectA.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
     }
 
     [Fact]
@@ -64,15 +70,16 @@ public class WithEndpointTests
     {
         var executed = false;
 
-        using var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta").WithEndpoint("mybinding", endpoint =>
         {
             executed = true;
         },
         createIfNotExists: true);
 
         Assert.True(executed);
-        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
+        Assert.True(projectA.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
     }
 
     [Fact]
@@ -80,9 +87,11 @@ public class WithEndpointTests
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            using var testProgram = CreateTestProgram();
-            testProgram.ServiceABuilder.WithHttpsEndpoint(3000, 1000, name: "mybinding");
-            testProgram.ServiceABuilder.WithHttpsEndpoint(3000, 2000, name: "mybinding");
+            using var builder = TestDistributedApplicationBuilder.Create();
+
+            builder.AddProject<ProjectA>("projecta")
+                    .WithHttpsEndpoint(3000, 1000, name: "mybinding")
+                    .WithHttpsEndpoint(3000, 2000, name: "mybinding");
         });
 
         Assert.Equal("Endpoint with name 'mybinding' already exists", ex.Message);
@@ -93,34 +102,39 @@ public class WithEndpointTests
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            using var testProgram = CreateTestProgram();
-            testProgram.ServiceABuilder.WithHttpsEndpoint(1000, name: "mybinding");
-            testProgram.ServiceABuilder.WithHttpsEndpoint(2000, name: "mybinding");
+            using var builder = TestDistributedApplicationBuilder.Create();
+            builder.AddProject<ProjectB>("projectb")
+                   .WithHttpsEndpoint(1000, name: "mybinding")
+                   .WithHttpsEndpoint(2000, name: "mybinding");
         });
 
         Assert.Equal("Endpoint with name 'mybinding' already exists", ex.Message);
     }
 
     [Fact]
-    public void CanAddEndpointsWithContainerPortAndEnv()
+    public async Task CanAddEndpointsWithContainerPortAndEnv()
     {
-        using var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.AddExecutable("foo", "foo", ".")
-                              .WithHttpEndpoint(targetPort: 3001, name: "mybinding", env: "PORT");
+        using var builder = TestDistributedApplicationBuilder.Create();
 
-        var app = testProgram.Build();
+        builder.AddExecutable("foo", "foo", ".")
+               .WithHttpEndpoint(targetPort: 3001, name: "mybinding", env: "PORT");
+
+        using var app = builder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var exeResources = appModel.GetExecutableResources();
 
         var resource = Assert.Single(exeResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
         Assert.Equal("foo", resource.Name);
         var endpoints = resource.Annotations.OfType<EndpointAnnotation>().ToArray();
         Assert.Single(endpoints);
         Assert.Equal("mybinding", endpoints[0].Name);
         Assert.Equal(3001, endpoints[0].TargetPort);
         Assert.Equal("http", endpoints[0].UriScheme);
-        Assert.Equal("PORT", endpoints[0].EnvironmentVariable);
+        Assert.Equal("3001", config["PORT"]);
     }
 
     [Fact]
@@ -437,12 +451,22 @@ public class WithEndpointTests
         Assert.Equal(expectedManifest1, manifests[1].ToString());
     }
 
-    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithEndpointTests>(args);
-
-    sealed class TestProject : IProjectMetadata
+    private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "projectpath";
 
         public LaunchSettings? LaunchSettings { get; } = new();
+    }
+    private sealed class ProjectA : IProjectMetadata
+    {
+        public string ProjectPath => "projectA";
+
+        public LaunchSettings LaunchSettings { get; } = new();
+    }
+
+    private sealed class ProjectB : IProjectMetadata
+    {
+        public string ProjectPath => "projectB";
+        public LaunchSettings LaunchSettings { get; } = new();
     }
 }
