@@ -2,11 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
 using k8s.Exceptions;
 using k8s.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Retry;
+using YamlDotNet.Core;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -17,10 +23,13 @@ internal enum DcpApiOperationType
     Delete = 3,
     Watch = 4,
     GetLogSubresource = 5,
+    Get = 6,
 }
 
 internal interface IKubernetesService
 {
+    Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
+        where T: CustomResource;
     Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource;
     Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
@@ -39,7 +48,7 @@ internal interface IKubernetesService
         CancellationToken cancellationToken = default) where T : CustomResource;
 }
 
-internal sealed class KubernetesService(Locations locations) : IKubernetesService, IDisposable
+internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOptions<DcpOptions> dcpOptions, Locations locations) : IKubernetesService, IDisposable
 {
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
@@ -47,6 +56,36 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
     private DcpKubernetesClient? _kubernetes;
 
     public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(20);
+
+    public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
+        where T : CustomResource
+    {
+        var resourceType = GetResourceFor<T>();
+
+        return ExecuteWithRetry(
+            DcpApiOperationType.Get,
+            resourceType,
+            async (kubernetes) =>
+            {
+                var response = string.IsNullOrEmpty(namespaceParameter)
+                ? await kubernetes.CustomObjects.GetClusterCustomObjectWithHttpMessagesAsync(
+                    GroupVersion.Group,
+                    GroupVersion.Version,
+                    resourceType,
+                    name,
+                    cancellationToken: cancellationToken).ConfigureAwait(false)
+                : await kubernetes.CustomObjects.GetNamespacedCustomObjectWithHttpMessagesAsync(
+                    GroupVersion.Group,
+                    GroupVersion.Version,
+                    namespaceParameter,
+                    resourceType,
+                    name,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                return KubernetesJson.Deserialize<T>(response.Body.ToString());
+            },
+            cancellationToken);
+    }
 
     public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource
@@ -212,6 +251,7 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
 
     public void Dispose()
     {
+        _kubeconfigReadSemaphore?.Dispose();
         _kubernetes?.Dispose();
     }
 
@@ -254,7 +294,7 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
             {
                 try
                 {
-                    EnsureKubernetes();
+                    await EnsureKubernetesAsync(cancellationToken).ConfigureAwait(false);
                     return await operation(_kubernetes!).ConfigureAwait(false);
                 }
                 catch (Exception e) when (IsRetryable(e))
@@ -280,16 +320,82 @@ internal sealed class KubernetesService(Locations locations) : IKubernetesServic
 
     private static bool IsRetryable(Exception ex) => ex is HttpRequestException || ex is KubeConfigException;
 
-    private void EnsureKubernetes()
+    private readonly SemaphoreSlim _kubeconfigReadSemaphore = new(1);
+
+    private ResiliencePipeline? _resiliencePipeline;
+
+    private ResiliencePipeline GetReadKubeconfigResiliencePipeline()
     {
-        if (_kubernetes != null) { return; }
-
-        lock (Model.Dcp.Schema)
+        if (_resiliencePipeline == null)
         {
-            if (_kubernetes != null) { return; }
+            var configurationReadRetry = new RetryStrategyOptions()
+            {
+                // Handle exceptions caused by races between writing and reading the configuration file.
+                // If the file is loaded while it is still being written, this can result in a YamlException being thrown.
+                ShouldHandle = new PredicateBuilder().Handle<KubeConfigException>().Handle<YamlException>(),
+                BackoffType = DelayBackoffType.Constant,
+                MaxRetryAttempts = dcpOptions.Value.KubernetesConfigReadRetryCount,
+                MaxDelay = TimeSpan.FromMilliseconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalMilliseconds),
+                OnRetry = (retry) =>
+                {
+                    logger.LogDebug(
+                        "Waiting for Kubernetes configuration file at '{DcpKubeconfigPath}' (attempt {Iteration}).",
+                        locations.DcpKubeconfigPath,
+                        retry.AttemptNumber
+                        );
+                    return ValueTask.CompletedTask;
+                }
+            };
 
-            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: locations.DcpKubeconfigPath, useRelativePaths: false);
-            _kubernetes = new DcpKubernetesClient(config);
+            _resiliencePipeline = new ResiliencePipelineBuilder().AddRetry(configurationReadRetry).Build();
+        }
+
+        return _resiliencePipeline;
+    }
+
+    private async Task EnsureKubernetesAsync(CancellationToken cancellationToken = default)
+    {
+        // Return early before waiting for the semaphore if we can.
+        if (_kubernetes != null)
+        {
+            return;
+        }
+
+        await _kubeconfigReadSemaphore.WaitAsync(-1, cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            // Second chance shortcut if multiple threads got caught.
+            if (_kubernetes != null)
+            {
+                return;
+            }
+
+            // We retry reading the kubeconfig file because DCP takes a few moments to write
+            // it to disk. This retry pipeline will only be invoked by a single thread the
+            // rest will be held at the semaphore.
+            var readStopwatch = new Stopwatch();
+            readStopwatch.Start();
+
+            var pipeline = GetReadKubeconfigResiliencePipeline();
+            _kubernetes = await pipeline.ExecuteAsync<DcpKubernetesClient>(async (cancellationToken) =>
+            {
+                var fileInfo = new FileInfo(locations.DcpKubeconfigPath);
+                var config = await KubernetesClientConfiguration.BuildConfigFromConfigFileAsync(kubeconfig: fileInfo, useRelativePaths: false).ConfigureAwait(false);
+                readStopwatch.Stop();
+
+                logger.LogDebug(
+                    "Successfully read Kubernetes configuration from '{DcpKubeconfigPath}' after {DurationMs} milliseconds.",
+                    locations.DcpKubeconfigPath,
+                    readStopwatch.ElapsedMilliseconds
+                    );
+
+                return new DcpKubernetesClient(config);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _kubeconfigReadSemaphore.Release();
         }
     }
 }

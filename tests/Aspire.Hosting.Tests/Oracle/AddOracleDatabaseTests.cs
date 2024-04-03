@@ -30,7 +30,7 @@ public class AddOracleTests
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.Equal(1521, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -70,7 +70,7 @@ public class AddOracleTests
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.Equal(1521, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(1234, endpoint.Port);
@@ -108,7 +108,7 @@ public class AddOracleTests
     }
 
     [Fact]
-    public async void OracleCreatesConnectionStringWithDatabase()
+    public async Task OracleCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracle("orcl")
@@ -153,7 +153,7 @@ public class AddOracleTests
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.Equal(1521, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(1234, endpoint.Port);
@@ -194,7 +194,7 @@ public class AddOracleTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 1521
+                  "targetPort": 1521
                 }
               }
             }
@@ -232,7 +232,7 @@ public class AddOracleTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 1521
+                  "targetPort": 1521
                 }
               }
             }

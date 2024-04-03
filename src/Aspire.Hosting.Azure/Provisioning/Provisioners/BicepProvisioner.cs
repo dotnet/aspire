@@ -96,7 +96,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = "Running",
+                State = new("Running", KnownResourceStateStyles.Success),
                 Urls = [.. portalUrls],
                 Properties = props
             };
@@ -110,7 +110,7 @@ internal sealed class BicepProvisioner(
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
             ResourceType = resource.GetType().Name,
-            State = "Starting",
+            State = new("Starting", KnownResourceStateStyles.Info),
             Properties = [
                 new("azure.subscription.id", context.Subscription.Id.Name),
                 new("azure.resource.group", context.ResourceGroup.Id.Name),
@@ -123,8 +123,10 @@ internal sealed class BicepProvisioner(
 
         PopulateWellKnownParameters(resource, context);
 
-        var azPath = FindFullPathFromPath("az") ??
-            throw new InvalidOperationException("Azure CLI not found in PATH");
+        if (FindFullPathFromPath("az") is not { } azPath)
+        {
+            throw new AzureCliNotOnPathException();
+        }
 
         var template = resource.GetBicepTemplateFile();
 
@@ -152,6 +154,12 @@ internal sealed class BicepProvisioner(
 
             if (keyVault is null)
             {
+                await notificationService.PublishUpdateAsync(resource, state => state with
+                {
+                    State = new("Provisioning Keyvault", KnownResourceStateStyles.Info)
+
+                }).ConfigureAwait(false);
+
                 // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
                 // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
                 var vaultName = $"v{Guid.NewGuid().ToString("N")[0..20]}";
@@ -190,6 +198,15 @@ internal sealed class BicepProvisioner(
             OnErrorData = data => resourceLogger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Compiling ARM template", KnownResourceStateStyles.Info)
+            };
+        })
+        .ConfigureAwait(false);
+
         if (!await ExecuteCommand(templateSpec).ConfigureAwait(false))
         {
             throw new InvalidOperationException();
@@ -204,6 +221,15 @@ internal sealed class BicepProvisioner(
         await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var sw = Stopwatch.StartNew();
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Creating ARM Deployment", KnownResourceStateStyles.Info)
+            };
+        })
+        .ConfigureAwait(false);
 
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
@@ -222,6 +248,7 @@ internal sealed class BicepProvisioner(
         {
             return state with
             {
+                State = new("Waiting for Deployment", KnownResourceStateStyles.Info),
                 Urls = [.. state.Urls, new(Name: "deployment", Url: url, IsInternal: false)],
             };
         })
@@ -315,7 +342,7 @@ internal sealed class BicepProvisioner(
 
             return state with
             {
-                State = "Running",
+                State = new("Running", KnownResourceStateStyles.Success),
                 CreationTimeStamp = DateTime.UtcNow,
                 Properties = properties
             };

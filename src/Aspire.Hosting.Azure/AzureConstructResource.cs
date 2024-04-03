@@ -92,6 +92,8 @@ public static class AzureConstructResourceExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct> configureConstruct)
     {
+        builder.AddAzureProvisioning();
+
         var resource = new AzureConstructResource(name, configureConstruct);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);

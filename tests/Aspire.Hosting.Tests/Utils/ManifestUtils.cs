@@ -28,6 +28,35 @@ internal sealed class ManifestUtils
         return resourceNode;
     }
 
+    public static async Task<JsonNode[]> GetManifests(IResource[] resources)
+    {
+        using var ms = new MemoryStream();
+        var writer = new Utf8JsonWriter(ms);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var context = new ManifestPublishingContext(executionContext, Path.Combine(Environment.CurrentDirectory, "manifest.json"), writer);
+
+        var results = new List<JsonNode>();
+
+        foreach (var r in resources)
+        {
+            writer.WriteStartObject();
+            await context.WriteResourceAsync(r);
+            writer.WriteEndObject();
+            writer.Flush();
+            ms.Position = 0;
+            var obj = JsonNode.Parse(ms);
+            Assert.NotNull(obj);
+            var resourceNode = obj[r.Name];
+            Assert.NotNull(resourceNode);
+            results.Add(resourceNode);
+
+            ms.Position = 0;
+            writer.Reset(ms);
+        }
+
+        return [.. results];
+    }
+
     public static async Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource)
     {
         var manifestNode = await GetManifest(resource);

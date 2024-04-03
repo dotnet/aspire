@@ -4,28 +4,18 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.ServiceDiscovery.Abstractions;
-using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
 internal sealed partial class DnsServiceEndPointResolverProvider(
     IOptionsMonitor<DnsServiceEndPointResolverOptions> options,
     ILogger<DnsServiceEndPointResolver> logger,
-    TimeProvider timeProvider,
-    ServiceNameParser parser) : IServiceEndPointResolverProvider
+    TimeProvider timeProvider) : IServiceEndPointProviderFactory
 {
     /// <inheritdoc/>
-    public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
+    public bool TryCreateProvider(ServiceEndPointQuery query, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
     {
-        if (!parser.TryParse(serviceName, out var parts))
-        {
-            DnsServiceEndPointResolverBase.Log.ServiceNameIsNotUriOrDnsName(logger, serviceName);
-            resolver = default;
-            return false;
-        }
-
-        resolver = new DnsServiceEndPointResolver(serviceName, hostName: parts.Host, options, logger, timeProvider);
+        resolver = new DnsServiceEndPointResolver(query.OriginalString, hostName: query.ServiceName, options, logger, timeProvider);
         return true;
     }
 }

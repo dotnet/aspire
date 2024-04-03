@@ -10,15 +10,14 @@ param principalId string
 param principalName string
 
 
-resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2020-11-01-preview' = {
-  name: toLower(take(concat('sql', uniqueString(resourceGroup().id)), 24))
+resource sqlServer_lF9QWGqAt 'Microsoft.Sql/servers@2020-11-01-preview' = {
+  name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'sql'
   }
   properties: {
     version: '12.0'
-    minimalTlsVersion: '1.2'
     publicNetworkAccess: 'Enabled'
     administrators: {
       administratorType: 'ActiveDirectory'
@@ -30,8 +29,8 @@ resource sqlServer_l5O9GRsSn 'Microsoft.Sql/servers@2020-11-01-preview' = {
   }
 }
 
-resource sqlFirewallRule_Kr30BcxQt 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
-  parent: sqlServer_l5O9GRsSn
+resource sqlFirewallRule_vcw7qNn72 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+  parent: sqlServer_lF9QWGqAt
   name: 'AllowAllAzureIps'
   properties: {
     startIpAddress: '0.0.0.0'
@@ -39,12 +38,12 @@ resource sqlFirewallRule_Kr30BcxQt 'Microsoft.Sql/servers/firewallRules@2020-11-
   }
 }
 
-resource sqlDatabase_nUUkbFiVl 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
-  parent: sqlServer_l5O9GRsSn
+resource sqlDatabase_8az8VbeiX 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
+  parent: sqlServer_lF9QWGqAt
   name: 'sqldb'
   location: location
   properties: {
   }
 }
 
-output sqlServerFqdn string = sqlServer_l5O9GRsSn.properties.fullyQualifiedDomainName
+output sqlServerFqdn string = sqlServer_lF9QWGqAt.properties.fullyQualifiedDomainName

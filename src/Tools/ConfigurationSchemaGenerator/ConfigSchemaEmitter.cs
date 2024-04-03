@@ -401,12 +401,21 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
     }
 
+    const string NegativeOption = @"-?";
+    const string DaysAlone = @"\d{1,7}";
+    const string DaysPrefixOption = @$"({DaysAlone}[\.:])?";
+    const string MinutesOrSeconds = @"[0-5]?\d";
+    const string HourMinute = @$"([01]?\d|2[0-3]):{MinutesOrSeconds}";
+    const string HourMinuteSecond = HourMinute + $":{MinutesOrSeconds}";
+    const string SecondsFractionOption = @"(\.\d{1,7})?";
+    internal const string TimeSpanRegex = $"^{NegativeOption}({DaysAlone}|({DaysPrefixOption}({HourMinute}|{HourMinuteSecond}){SecondsFractionOption}))$";
+
     private void AppendParsableFromString(JsonObject propertyNode, ParsableFromStringSpec parsable)
     {
         if (parsable.DisplayString == "TimeSpan")
         {
             propertyNode["type"] = "string";
-            propertyNode["format"] = "duration";
+            propertyNode["pattern"] = TimeSpanRegex;
         }
         else if (parsable.StringParsableTypeKind == StringParsableTypeKind.Enum)
         {

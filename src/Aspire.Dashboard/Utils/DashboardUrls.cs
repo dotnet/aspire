@@ -100,4 +100,19 @@ internal static class DashboardUrls
     {
         return $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
     }
+
+    public static string LoginUrl(string? returnUrl = null, string? token = null)
+    {
+        var url = "/login";
+        if (returnUrl != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "returnUrl", returnUrl);
+        }
+        if (token != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "t", token);
+        }
+
+        return url;
+    }
 }

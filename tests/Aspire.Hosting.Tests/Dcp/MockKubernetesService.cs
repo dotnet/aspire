@@ -11,7 +11,20 @@ internal sealed class MockKubernetesService : IKubernetesService
 {
     internal sealed record DeletedResource(Type Type, object Value);
 
-    public List<object> CreatedResources { get; } = [];
+    public List<CustomResource> CreatedResources { get; } = [];
+
+    public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken _ = default) where T : CustomResource
+    {
+        var res = CreatedResources.OfType<T>().FirstOrDefault(r =>
+            r.Metadata.Name == name &&
+            string.Equals(r.Metadata.NamespaceProperty ?? string.Empty, namespaceParameter ?? string.Empty)
+        );
+        if (res == null)
+        {
+            throw new ArgumentException($"Resource '{namespaceParameter ?? ""}/{name}' not found");
+        }
+        return Task.FromResult(res);
+    }
 
     public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default) where T : CustomResource
     {
