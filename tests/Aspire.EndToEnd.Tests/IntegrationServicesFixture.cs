@@ -380,7 +380,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             {
                 resourcesToSkip |= TestResourceNames.cosmos;
                 resourcesToSkip |= TestResourceNames.oracledatabase;
-                resourcesToSkip |= TestResourceNames.sqlserver;
             }
         }
 
