@@ -1,6 +1,6 @@
 # Aspire.EndToEnd.Tests
 
-## TL;dr or How do I use this?
+## TL;DR or How do I use this?
 
 ### Steps to prepare for `out-of-repo` runs
 
