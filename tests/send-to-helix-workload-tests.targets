@@ -78,7 +78,6 @@
         <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <!-- FIXME: does sharing the TEST_NAME affect the reports? Yes, TestNameEnvVar - gets used for these reports. Make sure they end up in different directories! -->
         <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests.cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
