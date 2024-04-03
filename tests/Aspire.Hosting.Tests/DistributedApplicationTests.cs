@@ -272,12 +272,6 @@ public class DistributedApplicationTests
         var nodeApp = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "nodeapp", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(nodeApp);
 
-        string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
-        {
-            Assert.NotNull(envVars);
-            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
-        };
-
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
         Assert.Equal("{{- portForServing \"redis0\" }}", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
         Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
@@ -293,6 +287,89 @@ public class DistributedApplicationTests
         Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
 
         await app.StopAsync();
+
+        static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
+        {
+            Assert.NotNull(envVars);
+            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+        }
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
+    {
+        var browserToken = "ThisIsATestToken";
+        var args = new string[] {
+            "ASPNETCORE_URLS=http://localhost:0",
+            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
+            $"DOTNET_DASHBOARD_FRONTEND_BROWSERTOKEN={browserToken}"
+        };
+        using var testProgram = CreateTestProgram(args: args, disableDashboard: false);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+
+        await app.StartAsync();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var aspireDashboard = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "aspire-dashboard", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(aspireDashboard);
+
+        Assert.Equal("BrowserToken", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
+        Assert.Equal("ThisIsATestToken", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__BROWSERTOKEN"));
+
+        Assert.Equal("ApiKey", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__AUTHMODE"));
+        var keyBytes = Convert.FromHexString(GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__PRIMARYAPIKEY")!);
+        Assert.Equal(16, keyBytes.Length);
+
+        await app.StopAsync();
+
+        static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
+        {
+            Assert.NotNull(envVars);
+            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+        }
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
+    {
+        var args = new string[] {
+            "ASPNETCORE_URLS=http://localhost:0",
+            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
+            "DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true"
+        };
+        using var testProgram = CreateTestProgram(args: args, disableDashboard: false);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+
+        await app.StartAsync();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var aspireDashboard = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "aspire-dashboard", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(aspireDashboard);
+
+        Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
+        Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__OTLP__AUTHMODE"));
+
+        await app.StopAsync();
+
+        static string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
+        {
+            Assert.NotNull(envVars);
+            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+        }
     }
 
     [LocalOnlyFact("docker")]
@@ -716,6 +793,6 @@ public class DistributedApplicationTests
         }
     }
 
-    private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
-        TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices: includeIntegrationServices, includeNodeApp: includeNodeApp);
+    private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
+        TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices: includeIntegrationServices, includeNodeApp: includeNodeApp, disableDashboard: disableDashboard);
 }

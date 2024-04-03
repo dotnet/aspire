@@ -8,7 +8,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplication> logger, IConfiguration configuration, DistributedApplicationExecutionContext executionContext) : IHostedLifecycleService
+internal sealed class DistributedApplicationLifecycle(
+    ILogger<DistributedApplication> logger,
+    IConfiguration configuration,
+    DistributedApplicationExecutionContext executionContext,
+    DistributedApplicationOptions distributedApplicationOptions) : IHostedLifecycleService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -17,6 +21,11 @@ internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplica
 
     public Task StartedAsync(CancellationToken cancellationToken)
     {
+        if (distributedApplicationOptions.DashboardEnabled && configuration["AppHost:BrowserToken"] is { Length: > 0 } browserToken)
+        {
+            LoggingHelpers.WriteDashboardUrl(logger, configuration["ASPNETCORE_URLS"], browserToken);
+        }
+
         if (executionContext.IsRunMode)
         {
             logger.LogInformation("Distributed application started. Press Ctrl+C to shut down.");
