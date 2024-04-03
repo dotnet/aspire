@@ -539,6 +539,7 @@ public class ManifestGenerationTests
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
                   },
                   "bindings": {
@@ -560,6 +561,7 @@ public class ManifestGenerationTests
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
                   },
                   "bindings": {
@@ -581,6 +583,7 @@ public class ManifestGenerationTests
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
                   },
                   "bindings": {
@@ -601,7 +604,8 @@ public class ManifestGenerationTests
                   "path": "testproject/TestProject.WorkerA/TestProject.WorkerA.csproj",
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
                   }
                 },
                 "integrationservicea": {
@@ -610,6 +614,7 @@ public class ManifestGenerationTests
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
