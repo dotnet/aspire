@@ -369,7 +369,8 @@ public class WithEndpointTests
               "path": "projectpath",
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
               },
               "bindings": {
                 "hp": {
