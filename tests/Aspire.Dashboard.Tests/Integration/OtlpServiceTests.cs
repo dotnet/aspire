@@ -35,10 +35,13 @@ public class OtlpServiceTests
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
-        var response = await client.ExportAsync(new ExportLogsServiceRequest());
+        var response = client.ExportAsync(new ExportLogsServiceRequest());
+        var message = await response.ResponseAsync;
+        var headers = await response.ResponseHeadersAsync;
 
         // Assert
-        Assert.Equal(0, response.PartialSuccess.RejectedLogRecords);
+        Assert.Null(headers.GetValue("content-security-policy"));
+        Assert.Equal(0, message.PartialSuccess.RejectedLogRecords);
     }
 
     [Fact]
