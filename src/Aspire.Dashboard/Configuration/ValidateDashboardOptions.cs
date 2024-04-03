@@ -78,7 +78,6 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                 case ResourceClientAuthMode.Unsecured:
                     break;
                 case ResourceClientAuthMode.Certificate:
-
                     switch (options.ResourceServiceClient.ClientCertificates.Source)
                     {
                         case DashboardClientCertificateSource.File:
@@ -94,12 +93,12 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                             }
                             break;
                         default:
-                            errorMessages.Add($"Unexpected resource service client certificate source: {options.Otlp.AuthMode}");
+                            errorMessages.Add($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificates.Source}");
                             break;
                     }
                     break;
                 default:
-                    errorMessages.Add($"Unexpected resource service client authentication mode: {options.Otlp.AuthMode}");
+                    errorMessages.Add($"Unexpected resource service client authentication mode: {options.ResourceServiceClient.AuthMode}");
                     break;
             }
         }
