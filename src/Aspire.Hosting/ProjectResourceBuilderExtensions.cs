@@ -91,6 +91,11 @@ public static class ProjectResourceBuilderExtensions
         // implements IDistributedApplicationResourceWithEnvironment.
         builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true");
         builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
+        // .NET SDK has experimental support for retries. Enable with env var.
+        // https://github.com/open-telemetry/opentelemetry-dotnet/pull/5495
+        // Remove once retry feature in opentelemetry-dotnet is enabled by default.
+        builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", "in_memory");
+
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
 

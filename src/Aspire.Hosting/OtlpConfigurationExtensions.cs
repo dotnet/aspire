@@ -46,14 +46,18 @@ public static class OtlpConfigurationExtensions
                 context.EnvironmentVariables["OTEL_EXPORTER_OTLP_HEADERS"] = $"x-otlp-api-key={otlpApiKey}";
             }
 
-            // Set a small batch schedule delay in development.
-            // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
+            // Configure OTLP to quickly provide all data with a small delay in development.
             if (environment.IsDevelopment())
             {
+                // Set a small batch schedule delay in development.
+                // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
                 var value = "1000"; // milliseconds
                 context.EnvironmentVariables["OTEL_BLRP_SCHEDULE_DELAY"] = value;
                 context.EnvironmentVariables["OTEL_BSP_SCHEDULE_DELAY"] = value;
                 context.EnvironmentVariables["OTEL_METRIC_EXPORT_INTERVAL"] = value;
+
+                // Configure trace sampler to send all traces to the dashboard.
+                context.EnvironmentVariables["OTEL_TRACES_SAMPLER"] = "always_on";
             }
         }));
     }
