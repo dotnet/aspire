@@ -75,7 +75,7 @@
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=$(_WorkItemName)&quot; &amp; set TEST_SCENARIO=%(Identity) &amp; set &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=$(_WorkItemName)&quot; &amp;&amp; export TEST_SCENARIO=%(Identity) &amp;&amp; export &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
         <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_WorkItemTimeoutForWorkloadTests)</Timeout>
+        <Timeout>$(_WorkItemTimeoutForEndToEndTests)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).cobertura.xml</DownloadFilesFromResults>
