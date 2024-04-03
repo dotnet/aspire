@@ -18,7 +18,7 @@ public static class CosmosExtensions
             var policy = Policy
                 .Handle<HttpRequestException>()
                 // retry 60 times with a 1 second delay between retries
-                .WaitAndRetryAsync(20, retryAttempt => TimeSpan.FromSeconds(1));
+                .WaitAndRetryAsync(60, retryAttempt => TimeSpan.FromSeconds(1));
 
             var db = await policy.ExecuteAsync(
                 async () => (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database);
