@@ -3,5 +3,5 @@
 
 using Aspire.Dashboard;
 
-// TODO potentially inline DashboardWebApplication in this file
-new DashboardWebApplication().Run();
+var app = new DashboardWebApplication();
+return app.Run();
