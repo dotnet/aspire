@@ -100,11 +100,15 @@ h1 {
      /* avoid making modal take the entire screen dimensions */
      inset: unset !important;
 
-     /* force modal to be compact, centered, and towards the top */
+     /* force modal to be compact, centered, slightly padded, and towards the top */
      top: 5% !important;
      left: 30% !important;
      right: 30% !important;
      height: 105px;
+     padding: 2px;
+
+     /* add a slight shadow */
+     box-shadow: 2px 2px 2px var(--neutral-fill-secondary-rest);
 
      /* avoid modal being see-through */
      opacity: 1 !important;
