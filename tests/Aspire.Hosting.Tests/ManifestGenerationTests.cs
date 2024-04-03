@@ -611,7 +611,7 @@ public class ManifestGenerationTests
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-                    "SKIP_RESOURCES": "",
+                    "SKIP_RESOURCES": "None",
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
