@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -362,14 +363,24 @@ internal sealed class AzureProvisioner(
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
 
-        var unique = $"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}";
+        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
-        // Name of the resource group to create based on the machine name and application name
-        var (resourceGroupName, createIfAbsent) = _options.ResourceGroup switch
+        string resourceGroupName;
+        bool createIfAbsent;
+
+        if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
-            null or { Length: 0 } => ($"rg-aspire-{unique}", true),
-            string rg => (rg, _options.AllowResourceGroupCreation ?? false)
-        };
+            // Create a unique resource group name and save it in user secrets
+            resourceGroupName = $"rg-aspire-{RandomNumberGenerator.GetHexString(8, true)}-{environment.ApplicationName.ToLowerInvariant()}";
+            createIfAbsent = true;
+
+            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+        }
+        else
+        {
+            resourceGroupName = _options.ResourceGroup;
+            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
+        }
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
 
@@ -405,8 +416,6 @@ internal sealed class AzureProvisioner(
         var principal = await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
 
         var resourceMap = new Dictionary<string, ArmResource>();
-
-        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
         return new ProvisioningContext(
                     credential,
