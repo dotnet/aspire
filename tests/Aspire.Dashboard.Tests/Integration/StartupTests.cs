@@ -6,7 +6,6 @@ using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
-using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
 using Xunit.Abstractions;
@@ -33,17 +32,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task Configuration_NoExtraConfig_Error()
     {
         // Arrange & Act
-        var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
-        {
-            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
-                additionalConfiguration: data =>
-                {
-                    data.Clear();
-                });
-        });
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Clear();
+            });
 
         // Assert
-        Assert.Collection(ex.Failures,
+        Assert.Collection(app.ValidationFailures,
             s => s.Contains("Dashboard:Frontend:EndpointUrls"),
             s => s.Contains("Dashboard:Frontend:AuthMode"),
             s => s.Contains("Dashboard:Otlp:EndpointUrl"),
@@ -194,17 +190,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task Configuration_NoOtlpAuthMode_Error()
     {
         // Arrange & Act
-        var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
-        {
-            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
-                additionalConfiguration: data =>
-                {
-                    data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
-                });
-        });
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
+            });
 
         // Assert
-        Assert.Contains("Dashboard:Otlp:AuthMode", ex.Message);
+        Assert.Contains("Dashboard:Otlp:AuthMode", app.ValidationFailures.Single());
     }
 
     [Fact]
