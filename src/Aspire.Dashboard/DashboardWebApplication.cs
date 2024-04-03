@@ -467,6 +467,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     options.LoginPath = "/login";
                     options.ReturnUrlParameter = "returnUrl";
                     options.ExpireTimeSpan = TimeSpan.FromDays(1);
+                    options.Events.OnSigningIn = context =>
+                    {
+                        // Add claim when signing in with cookies from browser token.
+                        // Authorization requires this claim. This prevents an identity from another auth scheme from being allow.
+                        var claimsIdentity = (ClaimsIdentity)context.Principal!.Identity!;
+                        claimsIdentity.AddClaim(new Claim(FrontendAuthorizationDefaults.BrowserTokenClaimName, bool.TrueString));
+                        return Task.CompletedTask;
+                    };
                 });
                 break;
         }
@@ -475,8 +483,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             options.AddPolicy(
                 name: OtlpAuthorization.PolicyName,
-                policy: new AuthorizationPolicyBuilder(
-                    OtlpCompositeAuthenticationDefaults.AuthenticationScheme)
+                policy: new AuthorizationPolicyBuilder(OtlpCompositeAuthenticationDefaults.AuthenticationScheme)
                     .RequireClaim(OtlpAuthorization.OtlpClaimName)
                     .Build());
 
@@ -486,25 +493,26 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     // Frontend is secured with OIDC, so delegate to that authentication scheme.
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
-                        policy: new AuthorizationPolicyBuilder(
-                            FrontendAuthenticationDefaults.AuthenticationScheme)
+                        policy: new AuthorizationPolicyBuilder(FrontendAuthenticationDefaults.AuthenticationScheme)
                             .RequireAuthenticatedUser()
                             .Build());
                     break;
                 case FrontendAuthMode.BrowserToken:
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
-                        policy: new AuthorizationPolicyBuilder(
-                            FrontendAuthenticationDefaults.AuthenticationScheme)
-                            .RequireAuthenticatedUser()
+                        policy: new AuthorizationPolicyBuilder(FrontendAuthenticationDefaults.AuthenticationScheme)
+                            .RequireClaim(FrontendAuthorizationDefaults.BrowserTokenClaimName)
                             .Build());
                     break;
                 case FrontendAuthMode.Unsecured:
-                    // Frontend is unsecured so our policy doesn't need any special handling.
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
                         policy: new AuthorizationPolicyBuilder()
-                            .RequireAssertion(_ => true)
+                            .RequireAssertion(_ =>
+                            {
+                                // Frontend is unsecured so our policy doesn't require anything.
+                                return true;
+                            })
                             .Build());
                     break;
                 default:
@@ -537,4 +545,5 @@ public record EndpointInfo(IPEndPoint EndPoint, bool isHttps);
 public static class FrontendAuthorizationDefaults
 {
     public const string PolicyName = "Frontend";
+    public const string BrowserTokenClaimName = "BrowserTokenClaim";
 }
