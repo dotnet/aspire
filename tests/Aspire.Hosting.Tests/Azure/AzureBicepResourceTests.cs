@@ -138,7 +138,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var expectedManifest = """
             {
               "type": "azure.bicep.v0",
-              "path": "templ.bicep",
+              "path": "templ.module.bicep",
               "params": {
                 "param1": "value1",
                 "param2": [

@@ -74,8 +74,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             isTempFile = directory is null;
 
             path = TempDirectory is null
-                ? Path.Combine(directory ?? Directory.CreateTempSubdirectory("aspire").FullName, $"{Name.ToLowerInvariant()}.bicep")
-                : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.bicep");
+                ? Path.Combine(directory ?? Directory.CreateTempSubdirectory("aspire").FullName, $"{Name.ToLowerInvariant()}.module.bicep")
+                : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.module.bicep");
 
             if (TemplateResourceName is null)
             {
