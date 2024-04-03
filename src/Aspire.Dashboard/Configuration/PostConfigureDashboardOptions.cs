@@ -35,5 +35,9 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             options.Frontend.AuthMode = FrontendAuthMode.Unsecured;
             options.Otlp.AuthMode = OtlpAuthMode.Unsecured;
         }
+        if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken && string.IsNullOrEmpty(options.Frontend.BrowserToken))
+        {
+            options.Frontend.BrowserToken = TokenGenerator.GenerateToken();
+        }
     }
 }

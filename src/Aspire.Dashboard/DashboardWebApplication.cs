@@ -34,12 +34,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     private readonly WebApplication _app;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
-    private Func<EndpointInfo>? _browserEndPointAccessor;
+    private Func<EndpointInfo>? _frontendEndPointAccessor;
     private Func<EndpointInfo>? _otlpServiceEndPointAccessor;
 
-    public Func<EndpointInfo> BrowserEndPointAccessor
+    public Func<EndpointInfo> FrontendEndPointAccessor
     {
-        get => _browserEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+        get => _frontendEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
 
     public Func<EndpointInfo> OtlpServiceEndPointAccessor
@@ -96,6 +96,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Add services to the container.
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+        builder.Services.AddCascadingAuthenticationState();
 
         // Data from the server.
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
@@ -146,10 +147,16 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.Lifetime.ApplicationStarted.Register(() =>
         {
-            if (_browserEndPointAccessor != null)
+            if (_frontendEndPointAccessor != null)
             {
-                // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709
-                logger.LogInformation("Now listening on: {DashboardUri}", GetEndpointUrl(_browserEndPointAccessor()));
+                var url = GetEndpointUrl(_frontendEndPointAccessor());
+                logger.LogInformation("Now listening on: {DashboardUri}", url);
+
+                var options = _app.Services.GetRequiredService<IOptions<DashboardOptions>>().Value;
+                if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
+                {
+                    LoggingHelpers.WriteDashboardUrl(logger, url, options.Frontend.BrowserToken);
+                }
             }
 
             if (_otlpServiceEndPointAccessor != null)
@@ -177,6 +184,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
             await next(context).ConfigureAwait(false);
         });
+
+        _app.UseMiddleware<ValidateTokenMiddleware>();
 
         // Configure the HTTP request pipeline.
         if (_app.Environment.IsDevelopment())
@@ -222,6 +231,25 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapGrpcService<OtlpMetricsService>();
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
+
+        if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
+        {
+            _app.MapPost("/api/validatetoken", async (string token, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions) =>
+            {
+                return await ValidateTokenMiddleware.TryAuthenticateAsync(token, httpContext, dashboardOptions).ConfigureAwait(false);
+            });
+
+#if DEBUG
+            // Available in local debug for testing.
+            _app.MapGet("/api/signout", async (HttpContext httpContext) =>
+            {
+                await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
+                    httpContext,
+                    CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
+                httpContext.Response.Redirect("/");
+            });
+#endif
+        }
     }
 
     /// <summary>
@@ -311,7 +339,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     // Only the last endpoint is accessible. Tests should only need one but
                     // this will need to be improved if that changes.
-                    _browserEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
+                    _frontendEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
                 });
             }
 
@@ -329,7 +357,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                             "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
                     }
 
-                    _browserEndPointAccessor = _otlpServiceEndPointAccessor;
+                    _frontendEndPointAccessor = _otlpServiceEndPointAccessor;
                 }
 
                 endpointConfiguration.ListenOptions.UseOtlpConnection();
@@ -359,7 +387,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         var authentication = builder.Services
-            .AddAuthentication()
+            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpConnectionAuthenticationHandlerOptions, OtlpConnectionAuthenticationHandler>(OtlpConnectionAuthenticationDefaults.AuthenticationScheme, o => { })
@@ -390,42 +418,57 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 };
             });
 
-        if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
+        switch (dashboardOptions.Frontend.AuthMode)
         {
-            authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
-            {
-                // The frontend authentication scheme just redirects to OpenIdConnect and Cookie schemes, as appropriate.
-                o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
-                o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
-            });
-
-            authentication.AddCookie();
-
-            authentication.AddOpenIdConnect(options =>
-            {
-                // Use authorization code flow so clients don't see access tokens.
-                options.ResponseType = OpenIdConnectResponseType.Code;
-
-                options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-
-                // Scopes "openid" and "profile" are added by default, but need to be re-added
-                // in case configuration exists for Authentication:Schemes:OpenIdConnect:Scope.
-                if (!options.Scope.Contains(OpenIdConnectScope.OpenId))
+            case FrontendAuthMode.OpenIdConnect:
+                authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
                 {
-                    options.Scope.Add(OpenIdConnectScope.OpenId);
-                }
+                    // The frontend authentication scheme just redirects to OpenIdConnect and Cookie schemes, as appropriate.
+                    o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
+                    o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
+                });
 
-                if (!options.Scope.Contains("profile"))
+                authentication.AddCookie();
+
+                authentication.AddOpenIdConnect(options =>
                 {
-                    options.Scope.Add("profile");
-                }
+                    // Use authorization code flow so clients don't see access tokens.
+                    options.ResponseType = OpenIdConnectResponseType.Code;
 
-                // Redirect to resources upon sign-in.
-                options.CallbackPath = TargetLocationInterceptor.ResourcesPath;
+                    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 
-                // Avoid "message.State is null or empty" due to use of CallbackPath above.
-                options.SkipUnrecognizedRequests = true;
-            });
+                    // Scopes "openid" and "profile" are added by default, but need to be re-added
+                    // in case configuration exists for Authentication:Schemes:OpenIdConnect:Scope.
+                    if (!options.Scope.Contains(OpenIdConnectScope.OpenId))
+                    {
+                        options.Scope.Add(OpenIdConnectScope.OpenId);
+                    }
+
+                    if (!options.Scope.Contains("profile"))
+                    {
+                        options.Scope.Add("profile");
+                    }
+
+                    // Redirect to resources upon sign-in.
+                    options.CallbackPath = TargetLocationInterceptor.ResourcesPath;
+
+                    // Avoid "message.State is null or empty" due to use of CallbackPath above.
+                    options.SkipUnrecognizedRequests = true;
+                });
+                break;
+            case FrontendAuthMode.BrowserToken:
+                authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
+                {
+                    o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
+                });
+
+                authentication.AddCookie(options =>
+                {
+                    options.LoginPath = "/login";
+                    options.ReturnUrlParameter = "returnUrl";
+                    options.ExpireTimeSpan = TimeSpan.FromDays(1);
+                });
+                break;
         }
 
         builder.Services.AddAuthorization(options =>
@@ -441,6 +484,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             {
                 case FrontendAuthMode.OpenIdConnect:
                     // Frontend is secured with OIDC, so delegate to that authentication scheme.
+                    options.AddPolicy(
+                        name: FrontendAuthorizationDefaults.PolicyName,
+                        policy: new AuthorizationPolicyBuilder(
+                            FrontendAuthenticationDefaults.AuthenticationScheme)
+                            .RequireAuthenticatedUser()
+                            .Build());
+                    break;
+                case FrontendAuthMode.BrowserToken:
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
                         policy: new AuthorizationPolicyBuilder(
