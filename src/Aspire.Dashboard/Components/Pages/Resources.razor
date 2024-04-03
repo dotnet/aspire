@@ -34,7 +34,7 @@
                         <FluentCheckbox
                             Label="@resourceType"
                             @bind-Value:get="isChecked"
-                            @bind-Value:set="c => OnResourceTypeVisibilityChanged(resourceType, c)"
+                            @bind-Value:set="c => OnResourceTypeVisibilityChangedAsync(resourceType, c)"
                             />
                     }
                 </FluentStack>
@@ -44,11 +44,11 @@
                       Immediate="true"
                       @bind-Value="_filter"
                       slot="end"
-                      @bind-Value:after="HandleSearchFilterChanged" />
+                      @bind-Value:after="HandleSearchFilterChangedAsync" />
     </FluentToolbar>
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"
-                        OnDismiss="() => ClearSelectedResource()"
+                        OnDismiss="@ClearSelectedResourceAsync"
                         SelectedValue="@SelectedResource"
                         ViewKey="ResourcesList">
         <Summary>
@@ -77,9 +77,13 @@
                         <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis">
+                        @{
+                            var id = $"details-button-{context.Uid}";
+                        }
                         <FluentButton Appearance="Appearance.Lightweight"
+                                      Id="@id"
                                       Title="@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]"
-                                      OnClick="() => ShowResourceDetails(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                      OnClick="@(() => ShowResourceDetailsAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
                     @if (HasResourcesWithCommands)
                     {

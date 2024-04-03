@@ -27,6 +27,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private Subscription? _logsSubscription;
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
+    private string? _elementIdBeforeDetailsViewOpened;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => "StructuredLogs_PageState";
@@ -147,13 +148,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         return this.AfterViewModelChangedAsync();
     }
 
-    private Task HandleSelectedLogLevelChangedAsync()
+    private async Task HandleSelectedLogLevelChangedAsync()
     {
         _applicationChanged = true;
 
-        ClearSelectedLogEntry();
-
-        return this.AfterViewModelChangedAsync();
+        await ClearSelectedLogEntryAsync();
+        await this.AfterViewModelChangedAsync();
     }
 
     private void UpdateSubscription()
@@ -170,11 +170,13 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private void OnShowProperties(OtlpLogEntry entry)
+    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string buttonId)
     {
+        _elementIdBeforeDetailsViewOpened = buttonId;
+
         if (SelectedLogEntry?.LogEntry == entry)
         {
-            ClearSelectedLogEntry();
+            await ClearSelectedLogEntryAsync();
         }
         else
         {
@@ -187,9 +189,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private void ClearSelectedLogEntry()
+    private async Task ClearSelectedLogEntryAsync()
     {
         SelectedLogEntry = null;
+
+        if (_elementIdBeforeDetailsViewOpened is not null)
+        {
+            await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
+        }
     }
 
     private async Task OpenFilterAsync(LogFilter? entry)
@@ -213,7 +220,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
 
-    private Task HandleFilterDialog(DialogResult result)
+    private async Task HandleFilterDialog(DialogResult result)
     {
         if (result.Data is FilterDialogResult filterResult && filterResult.Filter is LogFilter filter)
         {
@@ -226,10 +233,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
                 ViewModel.AddFilter(filter);
             }
 
-            ClearSelectedLogEntry();
+            await ClearSelectedLogEntryAsync();
         }
 
-        return this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync();
     }
 
     private void HandleFilter(ChangeEventArgs args)
@@ -237,13 +244,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         if (args.Value is string newFilter)
         {
             PageViewModel.Filter = newFilter;
-            ClearSelectedLogEntry();
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
             var cts = _filterCts = new CancellationTokenSource();
             _ = Task.Run(async () =>
             {
+                await ClearSelectedLogEntryAsync();
+
                 await Task.Delay(400, cts.Token);
                 ViewModel.FilterText = newFilter;
                 await InvokeAsync(StateHasChanged);
@@ -251,11 +259,15 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private void HandleClear()
+    private async Task HandleClearAsync()
     {
-        _filterCts?.Cancel();
+        if (_filterCts is not null)
+        {
+            await _filterCts.CancelAsync();
+        }
+
         ViewModel.FilterText = string.Empty;
-        ClearSelectedLogEntry();
+        await ClearSelectedLogEntryAsync();
         StateHasChanged();
     }
 
