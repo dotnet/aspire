@@ -64,8 +64,7 @@
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolPath)=$(_DotNetCoverageToolPath)" />
 
     <ItemGroup>
-      <_E2ETestScenarios Include="scenario0" />
-      <_E2ETestScenarios Include="sqlserver" />
+      <_E2ETestScenarios Include="basicservices" />
       <_E2ETestScenarios Include="cosmos" />
 
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />

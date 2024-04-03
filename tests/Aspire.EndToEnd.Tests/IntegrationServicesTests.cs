@@ -22,7 +22,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Theory]
-    [Trait("scenario", "scenario0")]
+    [Trait("scenario", "basicservices")]
     [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.mysql)]
     [InlineData(TestResourceNames.efmysql)]
@@ -30,6 +30,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
+    [InlineData(TestResourceNames.sqlserver)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
@@ -47,12 +48,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
                 throw;
             }
         });
-
-    [Theory]
-    [Trait("scenario", "sqlserver")]
-    [InlineData(TestResourceNames.sqlserver)]
-    public Task VerifySqlServerComponentWorks(TestResourceNames resourceName)
-        => VerifyComponentWorks(resourceName);
 
     [Fact(Skip="https://github.com/dotnet/aspire/issues/3161")]
     [Trait("scenario", "oracle")]
@@ -72,7 +67,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Fact]
-    [Trait("scenario", "scenario0")]
+    [Trait("scenario", "basicservices")]
     public Task KafkaComponentCanProduceAndConsume()
         => RunTestAsync(async() =>
         {
@@ -92,8 +87,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     // Include all the scenarios here so this test gets run for all of them.
     [Trait("scenario", "cosmos")]
     [Trait("scenario", "oracle")]
-    [Trait("scenario", "scenario0")]
-    [Trait("scenario", "sqlserver")]
+    [Trait("scenario", "basicservices")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>
         {
