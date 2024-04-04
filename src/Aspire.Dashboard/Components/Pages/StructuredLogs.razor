@@ -30,7 +30,7 @@
                       slot="end" />
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMinimumLogFilter)]" slot="end" style="display: flex;align-items: center;">
-            <span>Level:</span>
+            <span>@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]</span>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
