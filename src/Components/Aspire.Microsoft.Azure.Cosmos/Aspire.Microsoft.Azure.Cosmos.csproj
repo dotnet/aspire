@@ -22,7 +22,9 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
 
-    <!-- Pinned version for Component Governance - Remove when root dependencies are updated tracked by https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->
+    <!-- Pinned version for Component Governance
+      Newtonsoft.Json is transitive dependency from Cosmos package.
+      See the following link on Cosmos repo for more detail https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
