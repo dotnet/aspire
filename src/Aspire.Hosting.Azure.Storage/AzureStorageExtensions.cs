@@ -49,19 +49,10 @@ public static class AzureStorageExtensions
                 sku: StorageSkuName.StandardGrs
                 );
 
-            // NOTE: Currently the CDK injects networkAcls by default and sets them to deny. This is sub-optimimal
-            //       as we'd probably want the default to omit this field altogether and accept the default of
-            //       Allow. However because that isn't possible we explicitly set the default action to allow
-            //       in Run mode and Deny in publish mode with an exception for Azure services.
-            if (builder.ExecutionContext.IsRunMode)
-            {
-                storageAccount.AssignProperty(p => p.NetworkRuleSet.DefaultAction, "'Allow'");
-            }
-            else
-            {
-                storageAccount.AssignProperty(p => p.NetworkRuleSet.DefaultAction, "'Deny'");
-                storageAccount.AssignProperty(p => p.NetworkRuleSet.Bypass, "'AzureServices'");
-            }
+            // Unfortunately Azure Storage does not list ACA as one of the resource types in which
+            // the AzureServices firewall policy works. This means that we need this Azure Storage
+            // account to have its default action set to Allow.
+            storageAccount.AssignProperty(p => p.NetworkRuleSet.DefaultAction, "'Allow'");
 
             storageAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 

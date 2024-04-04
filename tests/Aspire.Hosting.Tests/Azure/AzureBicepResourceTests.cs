@@ -335,7 +335,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                     failoverPriority: 0
                   }
                 ]
-                networkAclBypass: 'AzureServices'
               }
             }
 
@@ -921,10 +920,6 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                   name: 'standard'
                 }
                 enableRbacAuthorization: true
-                networkAcls: {
-                  bypass: 'AzureServices'
-                  defaultAction: 'Deny'
-                }
               }
             }
 
@@ -1925,8 +1920,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               properties: {
                 accessTier: 'Hot'
                 networkAcls: {
-                  bypass: 'AzureServices'
-                  defaultAction: 'Deny'
+                  defaultAction: 'Allow'
                 }
               }
             }
