@@ -35,7 +35,7 @@ internal static class CompareHelpers
         {
             if (requestPooled != null)
             {
-                ArrayPool<byte>.Shared.Return(requestPooled);
+                ArrayPool<byte>.Shared.Return(requestPooled, clearArray: true);
             }
         }
     }

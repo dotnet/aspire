@@ -24,15 +24,6 @@ internal static class TokenGenerator
 
     private static byte[] GenerateEntropyToken(int size)
     {
-#if NET6_0_OR_GREATER
         return RandomNumberGenerator.GetBytes(size);
-#else
-        using (var rng = new RNGCryptoServiceProvider()) 
-        { 
-            byte[] token = new byte[size]; 
-            rng.GetBytes(token); 
-            return token; 
-        } 
-#endif
     }
 }
