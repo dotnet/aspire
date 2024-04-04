@@ -371,7 +371,7 @@ internal sealed class AzureProvisioner(
         if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
             // Create a unique resource group name and save it in user secrets
-            resourceGroupName = $"rg-aspire-{RandomNumberGenerator.GetHexString(8, true)}-{environment.ApplicationName.ToLowerInvariant()}";
+            resourceGroupName = $"rg-aspire-{environment.ApplicationName.ToLowerInvariant()}-{RandomNumberGenerator.GetHexString(8, true)}";
             createIfAbsent = true;
 
             userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
