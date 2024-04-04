@@ -15,7 +15,7 @@ internal sealed partial class DnsServiceEndpointProviderFactory(
     /// <inheritdoc/>
     public bool TryCreateProvider(ServiceEndpointQuery query, [NotNullWhen(true)] out IServiceEndpointProvider? provider)
     {
-        provider = new DnsServiceEndpointProvider(query.OriginalString, hostName: query.ServiceName, options, logger, timeProvider);
+        provider = new DnsServiceEndpointProvider(query, hostName: query.ServiceName, options, logger, timeProvider);
         return true;
     }
 }

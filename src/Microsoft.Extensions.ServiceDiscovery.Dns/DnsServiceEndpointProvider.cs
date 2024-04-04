@@ -8,11 +8,11 @@ using Microsoft.Extensions.Options;
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
 internal sealed partial class DnsServiceEndpointProvider(
-    string serviceName,
+    ServiceEndpointQuery query,
     string hostName,
     IOptionsMonitor<DnsServiceEndpointProviderOptions> options,
     ILogger<DnsServiceEndpointProvider> logger,
-    TimeProvider timeProvider) : DnsServiceEndpointProviderBase(serviceName, logger, timeProvider), IHostNameFeature
+    TimeProvider timeProvider) : DnsServiceEndpointProviderBase(query, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;
     protected override TimeSpan MinRetryPeriod => options.CurrentValue.MinRetryPeriod;
@@ -34,7 +34,7 @@ internal sealed partial class DnsServiceEndpointProvider(
         {
             var serviceEndpoint = ServiceEndpoint.Create(new IPEndPoint(address, 0));
             serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
-            if (options.CurrentValue.ApplyHostNameMetadata(serviceEndpoint))
+            if (options.CurrentValue.ShouldApplyHostNameMetadata(serviceEndpoint))
             {
                 serviceEndpoint.Features.Set<IHostNameFeature>(this);
             }
@@ -44,7 +44,7 @@ internal sealed partial class DnsServiceEndpointProvider(
 
         if (endpoints.Count == 0)
         {
-            throw new InvalidOperationException($"No DNS records were found for service {ServiceName} (DNS name: {hostName}).");
+            throw new InvalidOperationException($"No DNS records were found for service '{ServiceName}' (DNS name: '{hostName}').");
         }
 
         SetResult(endpoints, ttl);

@@ -15,7 +15,7 @@ internal sealed class PassThroughServiceEndpointProviderFactory(ILogger<PassThro
     /// <inheritdoc/>
     public bool TryCreateProvider(ServiceEndpointQuery query, [NotNullWhen(true)] out IServiceEndpointProvider? provider)
     {
-        var serviceName = query.OriginalString;
+        var serviceName = query.ToString()!;
         if (!TryCreateEndpoint(serviceName, out var endpoint))
         {
             // Propagate the value through regardless, leaving it to the caller to interpret it.

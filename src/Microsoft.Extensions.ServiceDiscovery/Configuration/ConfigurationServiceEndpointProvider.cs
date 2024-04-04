@@ -39,7 +39,7 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
     {
         _serviceName = query.ServiceName;
         _endpointName = query.EndpointName;
-        _schemes = ServiceDiscoveryOptions.ApplyAllowedSchemes(query.IncludeSchemes, serviceDiscoveryOptions.Value.AllowedSchemes);
+        _schemes = ServiceDiscoveryOptions.ApplyAllowedSchemes(query.IncludedSchemes, serviceDiscoveryOptions.Value.AllowedSchemes, serviceDiscoveryOptions.Value.AllowAllSchemes);
         _configuration = configuration;
         _logger = logger;
         _options = options;
@@ -224,7 +224,7 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
     {
         var serviceEndpoint = ServiceEndpoint.Create(endpoint);
         serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
-        if (_options.Value.ApplyHostNameMetadata(serviceEndpoint))
+        if (_options.Value.ShouldApplyHostNameMetadata(serviceEndpoint))
         {
             serviceEndpoint.Features.Set<IHostNameFeature>(this);
         }

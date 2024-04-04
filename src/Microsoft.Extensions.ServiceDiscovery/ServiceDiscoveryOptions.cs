@@ -11,13 +11,11 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 public sealed class ServiceDiscoveryOptions
 {
     /// <summary>
-    /// The value indicating that all endpoint schemes are allowed.
+    /// Gets or sets a value indicating whether all URI schemes for URIs resolved by the service discovery system are allowed.
+    /// If this value is <see langword="true"/>, all URI schemes are allowed.
+    /// If this value is <see langword="false"/>, only the schemes specified in <see cref="AllowedSchemes"/> are allowed.
     /// </summary>
-#pragma warning disable IDE0300 // Simplify collection initialization
-#pragma warning disable CA1825 // Avoid zero-length array allocations
-    public static readonly string[] AllowAllSchemes = new string[0];
-#pragma warning restore CA1825 // Avoid zero-length array allocations
-#pragma warning restore IDE0300 // Simplify collection initialization
+    public bool AllowAllSchemes { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the period between polling attempts for providers which do not support refresh notifications via <see cref="IChangeToken.ActiveChangeCallbacks"/>.
@@ -28,14 +26,13 @@ public sealed class ServiceDiscoveryOptions
     /// Gets or sets the collection of allowed URI schemes for URIs resolved by the service discovery system when multiple schemes are specified, for example "https+http://_endpoint.service".
     /// </summary>
     /// <remarks>
-    /// When set to <see cref="AllowAllSchemes"/>, all schemes are allowed.
-    /// Schemes are not case-sensitive.
+    /// When <see cref="AllowAllSchemes"/> is <see langword="true"/>, this property is ignored.
     /// </remarks>
-    public string[] AllowedSchemes { get; set; } = AllowAllSchemes;
+    public IList<string> AllowedSchemes { get; set; } = new List<string>();
 
-    internal static string[] ApplyAllowedSchemes(IReadOnlyList<string> schemes, IReadOnlyList<string> allowedSchemes)
+    internal static string[] ApplyAllowedSchemes(IReadOnlyList<string> schemes, IList<string> allowedSchemes, bool allowAllSchemes)
     {
-        if (allowedSchemes.Equals(AllowAllSchemes))
+        if (allowAllSchemes)
         {
             if (schemes is string[] array)
             {
