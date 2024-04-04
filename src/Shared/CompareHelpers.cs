@@ -6,12 +6,12 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Aspire.Dashboard.Utils;
+namespace Aspire;
 
 internal static class CompareHelpers
 {
     // This method is used to compare two keys in a way that avoids timing attacks.
-    public static bool CompareKey(byte[] expectedKeyBytes, string requestKey)
+    internal static bool CompareKey(byte[] expectedKeyBytes, string requestKey)
     {
         const int StackAllocThreshold = 256;
 
