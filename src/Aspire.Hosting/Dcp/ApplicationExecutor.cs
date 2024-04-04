@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
+using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
@@ -91,6 +92,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _logStreams = new();
     private readonly ConcurrentDictionary<IResource, bool> _hiddenResources = new();
     private DcpInfo? _dcpInfo;
+
+    private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
+    private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
+        new UnboundedChannelOptions { SingleReader = true });
 
     private string DefaultContainerHostName => configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
 
@@ -195,6 +200,73 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             },
             cancellationToken);
 
+        Task.Run(async () =>
+        {
+            await foreach (var subscribers in loggerService.WatchAnySubscribersAsync())
+            {
+                _logInformationChannel.Writer.TryWrite(new(subscribers.Name, LogsAvailable: null, subscribers.AnySubscribers));
+            }
+        },
+        cancellationToken);
+
+        // Listen to the "log information channel" - which contains updates when resources have logs available and when they have subscribers.
+        // A resource needs both logs available and subscribers before it starts streaming its logs.
+        // We only want to start the log stream for resources when they have subscribers.
+        // And when there are no more subscribers, we want to stop the stream.
+        Task.Run(async () =>
+        {
+            var resourceLogState = new Dictionary<string, (bool logsAvailable, bool hasSubscribers)>();
+
+            await foreach (var entry in _logInformationChannel.Reader.ReadAllAsync(cancellationToken))
+            {
+                var logsAvailable = false;
+                var hasSubscribers = false;
+                if (resourceLogState.TryGetValue(entry.ResourceName, out (bool, bool) stateEntry))
+                {
+                    (logsAvailable, hasSubscribers) = stateEntry;
+                }
+
+                // LogsAvailable can only go from false => true. Once it is true, it can never go back to false.
+                Debug.Assert(!entry.LogsAvailable.HasValue || entry.LogsAvailable.Value, "entry.LogsAvailable should never be 'false'");
+
+                logsAvailable = entry.LogsAvailable ?? logsAvailable;
+                hasSubscribers = entry.HasSubscribers ?? hasSubscribers;
+
+                if (logsAvailable)
+                {
+                    if (hasSubscribers)
+                    {
+                        if (_containersMap.TryGetValue(entry.ResourceName, out var container))
+                        {
+                            StartLogStream(container);
+                        }
+                        else if (_executablesMap.TryGetValue(entry.ResourceName, out var executable))
+                        {
+                            StartLogStream(executable);
+                        }
+                    }
+                    else
+                    {
+                        if (_logStreams.TryRemove(entry.ResourceName, out var cts))
+                        {
+                            cts.Cancel();
+                        }
+
+                        if (_containersMap.TryGetValue(entry.ResourceName, out var _) ||
+                            _executablesMap.TryGetValue(entry.ResourceName, out var _))
+                        {
+                            // Clear out the backlog for containers and executables after the last subscriber leaves.
+                            // When a new subscriber is added, the full log will be replayed.
+                            loggerService.ClearBacklog(entry.ResourceName);
+                        }
+                    }
+                }
+
+                resourceLogState[entry.ResourceName] = (logsAvailable, hasSubscribers);
+            }
+        },
+        cancellationToken);
+
         async Task WatchKubernetesResource<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
         {
             var retryUntilCancelled = new RetryStrategyOptions()
@@ -273,6 +345,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         cts.Cancel();
                     }
 
+                    // Complete the log stream
+                    loggerService.Complete(resource.Metadata.Name);
+
                     // TODO: Handle resource deletion
                     if (_logger.IsEnabled(LogLevel.Trace))
                     {
@@ -295,7 +370,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     // Notifications are associated with the application model resource, so we need to update with that context
                     await notificationService.PublishUpdateAsync(appModelResource, resource.Metadata.Name, s => snapshotFactory(resource, s)).ConfigureAwait(false);
 
-                    StartLogStream(resource);
+                    if (resource is Container { LogsAvailable: true } ||
+                        resource is Executable { LogsAvailable: true })
+                    {
+                        _logInformationChannel.Writer.TryWrite(new(resource.Metadata.Name, LogsAvailable: true, HasSubscribers: null));
+                    }
                 }
 
                 // Update all child resources of containers
@@ -384,11 +463,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error streaming logs for {ResourceName}", resource.Metadata.Name);
-                }
-                finally
-                {
-                    // Complete the log stream
-                    loggerService.Complete(resource.Metadata.Name);
                 }
             },
             cts.Token);
