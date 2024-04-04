@@ -975,7 +975,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
-                    dcpServiceName: svc.Metadata.Name);
+                    targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
             }
         }
     }
