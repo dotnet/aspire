@@ -15,7 +15,8 @@ public class ProjectResourceTests
     [Fact]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
-        var appBuilder = CreateBuilder();
+        // Explicitly specify development environment and other config so it is constant.
+        var appBuilder = CreateBuilder(args: ["--environment", "Development", "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:18889"]);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
@@ -69,6 +70,26 @@ public class ProjectResourceTests
                 var parts = env.Value.Split('=');
                 Assert.Equal("x-otlp-api-key", parts[0]);
                 Assert.True(Guid.TryParse(parts[1], out _));
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_BLRP_SCHEDULE_DELAY", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_BSP_SCHEDULE_DELAY", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_METRIC_EXPORT_INTERVAL", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_TRACES_SAMPLER", env.Key);
+                Assert.Equal("always_on", env.Value);
             },
             env =>
             {
