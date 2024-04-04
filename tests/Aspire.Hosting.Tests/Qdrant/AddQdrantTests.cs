@@ -36,7 +36,7 @@ public class AddQdrantTests
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
             .FirstOrDefault(e => e.Name == "http");
         Assert.NotNull(endpoint);
-        Assert.Equal(QdrantPortHttp, endpoint.ContainerPort);
+        Assert.Equal(QdrantPortHttp, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("http", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -76,7 +76,7 @@ public class AddQdrantTests
             .FirstOrDefault(e => e.Name == "rest");
 
         Assert.NotNull(endpoint);
-        Assert.Equal(QdrantPortDashboard, endpoint.ContainerPort);
+        Assert.Equal(QdrantPortDashboard, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("rest", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -109,7 +109,7 @@ public class AddQdrantTests
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
             .FirstOrDefault(e => e.Name == "http");
         Assert.NotNull(endpoint);
-        Assert.Equal(QdrantPortHttp, endpoint.ContainerPort);
+        Assert.Equal(QdrantPortHttp, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("http", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -154,13 +154,14 @@ public class AddQdrantTests
         var pass = appBuilder.AddParameter("pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
-            .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost",6334))
+            .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334))
             .WithEndpoint("rest", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333));
 
-        testProgram.ServiceABuilder.WithReference(qdrant);
+        var projectA = appBuilder.AddProject<ProjectA>("projecta")
+            .WithReference(qdrant);
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(testProgram.ServiceABuilder.Resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(2, servicesKeysCount);
@@ -191,13 +192,13 @@ public class AddQdrantTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "containerPort": 6334
+                  "targetPort": 6334
                 },
                 "rest": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "containerPort": 6333
+                  "targetPort": 6333
                 }
               }
             }
@@ -229,13 +230,13 @@ public class AddQdrantTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "containerPort": 6334
+                  "targetPort": 6334
                 },
                 "rest": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "containerPort": 6333
+                  "targetPort": 6333
                 }
               }
             }
@@ -244,4 +245,11 @@ public class AddQdrantTests
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<AddQdrantTests>(args);
+
+    private sealed class ProjectA : IProjectMetadata
+    {
+        public string ProjectPath => "projectA";
+
+        public LaunchSettings LaunchSettings { get; } = new();
+    }
 }

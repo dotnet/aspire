@@ -41,6 +41,8 @@ public static class AzureRedisExtensions
 
     internal static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, RedisCache>? configureResource, bool useProvisioner = false)
     {
+        builder.ApplicationBuilder.AddAzureProvisioning();
+
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var redisCache = new RedisCache(construct, name: builder.Resource.Name);
@@ -65,14 +67,8 @@ public static class AzureRedisExtensions
 
         var resource = new AzureRedisResource(builder.Resource, configureConstruct);
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
-                                     .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                                      .WithManifestPublishingCallback(resource.WriteToManifest);
-
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            resourceBuilder.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
-        }
 
         if (useProvisioner)
         {

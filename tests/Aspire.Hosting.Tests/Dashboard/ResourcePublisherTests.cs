@@ -186,14 +186,13 @@ public class ResourcePublisherTests
         {
             Name = name,
             Uid = "",
-            State = "",
+            State = null,
+            StateStyle = null,
             ExitCode = null,
             CreationTimeStamp = null,
             DisplayName = "",
-            Endpoints = [],
+            Urls = [],
             Environment = [],
-            ExpectedEndpointsCount = null,
-            Services = [],
         };
     }
 }

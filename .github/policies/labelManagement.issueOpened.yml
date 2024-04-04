@@ -1,6 +1,6 @@
 id: labelManagement.issueOpened
 name: New Issues
-description: Adds CodeFlow link to new PRs
+description: Adds information when PRs are opened
 owner:
 resource: repository
 disabled: false
@@ -15,3 +15,16 @@ configuration:
               action: Opened
         then:
           - addCodeFlowLink
+      - description: Add Servicing-consider label to PRs against release branches
+        if:
+          - payloadType: Pull_Request
+          - isAction:
+              action: Opened
+          - not:
+              hasLabel:
+                label: Servicing-consider
+          - targetsBranch:
+              branch: release/8.0
+        then:
+          - addLabel:
+              label: Servicing-consider

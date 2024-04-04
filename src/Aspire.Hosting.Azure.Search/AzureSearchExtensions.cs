@@ -40,6 +40,8 @@ public static class AzureSearchExtensions
         string name,
         Action<IResourceBuilder<AzureSearchResource>, ResourceModuleConstruct, SearchService>? configureResource)
     {
+        builder.AddAzureProvisioning();
+
         AzureSearchResource resource = new(name, ConfigureSearch);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
@@ -61,10 +63,13 @@ public static class AzureSearchExtensions
                     }
                 };
 
-            search.AssignRole(RoleDefinition.SearchIndexDataContributor)
-                  .AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
-            search.AssignRole(RoleDefinition.SearchServiceContributor)
-                  .AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
+            var searchIndexContributorRole = search.AssignRole(RoleDefinition.SearchIndexDataContributor);
+            searchIndexContributorRole.AssignProperty(role => role.PrincipalId, construct.PrincipalIdParameter);
+            searchIndexContributorRole.AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
+
+            var searchServiceContributorRole = search.AssignRole(RoleDefinition.SearchServiceContributor);
+            searchServiceContributorRole.AssignProperty(role => role.PrincipalId, construct.PrincipalIdParameter);
+            searchServiceContributorRole.AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
 
             // TODO: The endpoint format should move into the CDK so we can maintain this
             // logic in a single location and have a better chance at supporting more than

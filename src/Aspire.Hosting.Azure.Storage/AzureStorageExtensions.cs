@@ -39,6 +39,8 @@ public static class AzureStorageExtensions
     [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount>? configureResource)
     {
+        builder.AddAzureProvisioning();
+
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var storageAccount = construct.AddStorageAccount(
@@ -52,12 +54,15 @@ public static class AzureStorageExtensions
             var blobService = new BlobService(construct);
 
             var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
+            blobRole.AssignProperty(p => p.PrincipalId, construct.PrincipalIdParameter);
             blobRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
+            tableRole.AssignProperty(p => p.PrincipalId, construct.PrincipalIdParameter);
             tableRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
+            queueRole.AssignProperty(p => p.PrincipalId, construct.PrincipalIdParameter);
             queueRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
 
             storageAccount.AddOutput("blobEndpoint", sa => sa.PrimaryEndpoints.BlobUri);
@@ -90,9 +95,9 @@ public static class AzureStorageExtensions
             return builder;
         }
 
-        builder.WithEndpoint(name: "blob", containerPort: 10000)
-               .WithEndpoint(name: "queue", containerPort: 10001)
-               .WithEndpoint(name: "table", containerPort: 10002)
+        builder.WithEndpoint(name: "blob", targetPort: 10000)
+               .WithEndpoint(name: "queue", targetPort: 10001)
+               .WithEndpoint(name: "table", targetPort: 10002)
                .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "3.29.0" });
 
         if (configureContainer != null)
@@ -103,30 +108,6 @@ public static class AzureStorageExtensions
         }
 
         return builder;
-    }
-
-    /// <summary>
-    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model. This version the package defaults to version 3.29.0 of the mcr.microsoft.com/azure-storage/azurite container image.
-    /// </summary>
-    /// <param name="builder">The Azure storage resource builder.</param>
-    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Renamed to RunAsEmulator. Will be removed in next preview.")]
-    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
-    {
-        return builder.RunAsEmulator(configureContainer);
-    }
-
-    /// <summary>
-    /// Enables persistence in the Azure Storage emulator.
-    /// </summary>
-    /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
-    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs.</param>
-    /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
-    [Obsolete("Use WithDataBindMount or WithDataVolume instead. Will be removed in next preview.")]
-    public static IResourceBuilder<AzureStorageEmulatorResource> UsePersistence(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? path = null)
-    {
-        return builder.WithDataBindMount(path);
     }
 
     /// <summary>

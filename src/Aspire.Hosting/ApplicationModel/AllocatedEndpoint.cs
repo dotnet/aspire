@@ -18,7 +18,8 @@ public class AllocatedEndpoint
     /// <param name="address">The IP address of the endpoint.</param>
     /// <param name="containerHostAddress">The address of the container host.</param>
     /// <param name="port">The port number of the endpoint.</param>
-    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null)
+    /// <param name="targetPortExpression">A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.</param>
+    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null, string? targetPortExpression = null)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1, nameof(port));
@@ -28,6 +29,7 @@ public class AllocatedEndpoint
         Address = address;
         ContainerHostAddress = containerHostAddress;
         Port = port;
+        TargetPortExpression = targetPortExpression;
     }
 
     /// <summary>
@@ -64,6 +66,11 @@ public class AllocatedEndpoint
     /// URI in string representation.
     /// </summary>
     public string UriString => $"{UriScheme}://{EndPointString}";
+
+    /// <summary>
+    /// A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.
+    /// </summary>
+    public string? TargetPortExpression { get; }
 
     /// <summary>
     /// Returns a string representation of the allocated endpoint URI.

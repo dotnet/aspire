@@ -5,7 +5,6 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -16,7 +15,8 @@ public class ProjectResourceTests
     [Fact]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
-        var appBuilder = CreateBuilder();
+        // Explicitly specify development environment and other config so it is constant.
+        var appBuilder = CreateBuilder(args: ["--environment", "Development", "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:18889"]);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
@@ -26,7 +26,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
-        Assert.Equal(7, resource.Annotations.Count);
+        Assert.Equal(8, resource.Annotations.Count);
 
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
@@ -46,8 +46,18 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", env.Key);
+                Assert.Equal("in_memory", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("OTEL_EXPORTER_OTLP_ENDPOINT", env.Key);
                 Assert.Equal("http://localhost:18889", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_EXPORTER_OTLP_PROTOCOL", env.Key);
+                Assert.Equal("grpc", env.Value);
             },
             env =>
             {
@@ -65,6 +75,26 @@ public class ProjectResourceTests
                 var parts = env.Value.Split('=');
                 Assert.Equal("x-otlp-api-key", parts[0]);
                 Assert.True(Guid.TryParse(parts[1], out _));
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_BLRP_SCHEDULE_DELAY", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_BSP_SCHEDULE_DELAY", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_METRIC_EXPORT_INTERVAL", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_TRACES_SAMPLER", env.Key);
+                Assert.Equal("always_on", env.Value);
             },
             env =>
             {
@@ -91,11 +121,7 @@ public class ProjectResourceTests
     [InlineData(null, true)]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata_OtlpAuthDisabledSetting(string? value, bool hasHeader)
     {
-        var appBuilder = CreateBuilder();
-        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["DOTNET_DISABLE_OTLP_API_KEY_AUTH"] = value
-        });
+        var appBuilder = CreateBuilder(args: [$"DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS={value}"]);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
@@ -108,7 +134,14 @@ public class ProjectResourceTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
-        Assert.Equal(hasHeader, config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"));
+        if (hasHeader)
+        {
+            Assert.True(config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"), "Config should have 'OTEL_EXPORTER_OTLP_HEADERS' header and doesn't.");
+        }
+        else
+        {
+            Assert.False(config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"), "Config shouldn't have 'OTEL_EXPORTER_OTLP_HEADERS' header and does.");
+        }
     }
 
     [Fact]
@@ -143,8 +176,7 @@ public class ProjectResourceTests
         var projectResources = appModel.GetProjectResources();
 
         var resource = Assert.Single(projectResources);
-        // LaunchProfileAnnotation isn't public, so we just check the type name
-        Assert.Contains(resource.Annotations, a => a.GetType().Name == "LaunchProfileAnnotation");
+        Assert.Contains(resource.Annotations, a => a is LaunchProfileAnnotation);
     }
 
     [Fact]
@@ -213,11 +245,11 @@ public class ProjectResourceTests
     }
 
     [Fact]
-    public void DisabledForwadedHeadersAddsAnnotationToProject()
+    public void DisabledForwardedHeadersAddsAnnotationToProject()
     {
         var appBuilder = CreateBuilder();
 
-        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwadedHeaders();
+        appBuilder.AddProject<Projects.ServiceA>("projectName").DisableForwardedHeaders();
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -239,7 +271,7 @@ public class ProjectResourceTests
         var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName");
         if (disableForwardedHeaders)
         {
-            project.DisableForwadedHeaders();
+            project.DisableForwardedHeaders();
         }
 
         using var app = appBuilder.Build();
@@ -262,7 +294,8 @@ public class ProjectResourceTests
               "path": "another-path",
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"{{fordwardedHeadersEnvVar}}
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"{{fordwardedHeadersEnvVar}}
               },
               "bindings": {
                 "http": {
@@ -282,10 +315,18 @@ public class ProjectResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    private static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
+    private static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
-        var args = operation == DistributedApplicationOperation.Publish ? new[] { "--publisher", "manifest" } : Array.Empty<string>();
-        var appBuilder = DistributedApplication.CreateBuilder(args);
+        var resolvedArgs = new List<string>();
+        if (args != null)
+        {
+            resolvedArgs.AddRange(args);
+        }
+        if (operation == DistributedApplicationOperation.Publish)
+        {
+            resolvedArgs.AddRange(["--publisher", "manifest"]);
+        }
+        var appBuilder = DistributedApplication.CreateBuilder(resolvedArgs.ToArray());
         // Block DCP from actually starting anything up as we don't need it for this test.
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
 

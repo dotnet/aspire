@@ -15,7 +15,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5432
+          "targetPort": 5432
         }
       }
     },
@@ -38,7 +38,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5432
+          "targetPort": 5432
         }
       }
     },
@@ -61,7 +61,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5432
+          "targetPort": 5432
         }
       }
     },
@@ -88,7 +88,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5432
+          "targetPort": 5432
         }
       }
     },
@@ -111,7 +111,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5432
+          "targetPort": 5432
         }
       }
     },
@@ -134,7 +134,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 5432
+          "targetPort": 5432
         }
       }
     },
@@ -187,12 +187,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },

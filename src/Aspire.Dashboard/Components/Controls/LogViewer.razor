@@ -6,7 +6,27 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-<div class="log-overflow">
+<div class="log-overflow continuous-scroll-overflow">
     <div class="log-container" id="logContainer">
+        <Virtualize Items="_logEntries" ItemSize="20" OverscanCount="100">
+            <div class="line-row-container">
+                <div class="line-row">
+                    <span class="line-area" role="log">
+                        <span class="line-number">@context.LineNumber</span>
+                        <span class="content">
+                            @if (context.Timestamp is { } timestamp)
+                            {
+                                <span class="timestamp">@GetDisplayTimestamp(timestamp)</span>
+                            }
+                            @if (context.Type == LogEntryType.Error)
+                            {
+                                <fluent-badge appearance="accent">stderr</fluent-badge>
+                            }
+                            @((MarkupString)(context.Content ?? string.Empty))
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </Virtualize>
     </div>
 </div>

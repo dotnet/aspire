@@ -35,46 +35,12 @@ public static class AspireRabbitMQExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client" section.</remarks>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddRabbitMQClient)} instead.")]
-    public static void AddRabbitMQ(
-        this IHostApplicationBuilder builder,
-        string connectionName,
-        Action<RabbitMQClientSettings>? configureSettings = null,
-        Action<ConnectionFactory>? configureConnectionFactory = null)
-        => AddRabbitMQClient(builder, connectionName, configureSettings, configureConnectionFactory);
-
-    /// <summary>
-    /// Registers <see cref="IConnection"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// Enables retries, corresponding health check, logging, and telemetry.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client" section.</remarks>
     public static void AddRabbitMQClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<RabbitMQClientSettings>? configureSettings = null,
         Action<ConnectionFactory>? configureConnectionFactory = null)
         => AddRabbitMQClient(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
-
-    /// <summary>
-    /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// Enables retries, corresponding health check, logging, and telemetry.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client:{name}" section.</remarks>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedRabbitMQClient)} instead.")]
-    public static void AddKeyedRabbitMQ(
-        this IHostApplicationBuilder builder,
-        string name,
-        Action<RabbitMQClientSettings>? configureSettings = null,
-        Action<ConnectionFactory>? configureConnectionFactory = null)
-        => AddKeyedRabbitMQClient(builder, name, configureSettings, configureConnectionFactory);
 
     /// <summary>
     /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.

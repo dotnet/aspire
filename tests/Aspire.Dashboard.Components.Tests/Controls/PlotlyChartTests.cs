@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
-using Aspire.Dashboard.Otlp.Storage;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -51,7 +51,7 @@ public class PlotlyChartTests : TestContext
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
 
-        var options = new TelemetryOptions();
+        var options = new TelemetryLimitOptions();
         var instrument = new OtlpInstrument
         {
             Name = "Name-<b>Bold</b>",

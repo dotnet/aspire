@@ -39,8 +39,8 @@ public static class QdrantBuilderExtensions
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
-            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
-            .WithHttpEndpoint(hostPort: port, containerPort: QdrantPortHttp, name: QdrantServerResource.RestEndpointName)
+            .WithHttpEndpoint(port: port, targetPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
+            .WithHttpEndpoint(port: port, targetPort: QdrantPortHttp, name: QdrantServerResource.RestEndpointName)
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[ApiKeyEnvVarName] = qdrant.ApiKeyParameter;

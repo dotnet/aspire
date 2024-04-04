@@ -15,7 +15,6 @@ public class TestingBuilderTests
     {
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
         await using var app = await appHost.BuildAsync();
-
         await app.StartAsync();
 
         // Get an endpoint from a resource

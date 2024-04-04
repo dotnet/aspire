@@ -3,13 +3,12 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var db = builder.AddAzureCosmosDB("cosmos")
                 .AddDatabase("db")
                 .RunAsEmulator();
 
 builder.AddProject<Projects.CosmosEndToEnd_ApiService>("api")
+       .WithExternalHttpEndpoints()
        .WithReference(db);
 
 // This project is only added in playground projects to support development/debugging

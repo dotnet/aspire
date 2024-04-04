@@ -108,6 +108,16 @@ message Service {
     optional int32 allocated_port = 3;
 }
 
+message Url {
+    // The name of the url
+    string name = 1;
+    // The uri of the url. Format is scheme://host:port/{*path}
+    string full_url = 2;
+    // Determines if this url shows up in the details view only by default.
+    // If true, the url will not be shown in the list of urls in the top level resources view.
+    bool is_internal = 3;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
@@ -127,9 +137,12 @@ message Resource {
     optional string state = 5;
     optional google.protobuf.Timestamp created_at = 6;
     repeated EnvironmentVariable environment = 7;
-    optional int32 expected_endpoints_count = 8;
-    repeated Endpoint endpoints = 9;
-    repeated Service services = 10;
+
+    // Deprecated and replaced with urls
+    optional int32 expected_endpoints_count = 8 [deprecated = true];
+    repeated Endpoint endpoints = 9 [deprecated = true];
+    repeated Service services = 10 [deprecated = true];
+
     repeated ResourceCommand commands = 11;
 
     // Properties holding data not modeled directly on the message.
@@ -139,6 +152,14 @@ message Resource {
     // - Executables: process_id, executable_path, working_directory, arguments
     // - Projects: process_id, project_path
     repeated ResourceProperty properties = 12;
+
+    // The list of urls that this resource exposes
+    repeated Url urls = 13;
+
+    // The style of the state. This is used to determine the state icon.
+    // Supported styles are "success", "info", "warning" and "error". Any other style
+    // will be treated as "unknown".
+    optional string state_style = 14;
 }
 
 ////////////////////////////////////////////
@@ -192,6 +213,7 @@ message ConsoleLogLine {
     string text = 1;
     // Indicates whether this line came from STDERR or not.
     optional bool is_std_err = 2;
+    int32 line_number = 3;
 }
 
 // Initiates a subscription for the logs of a resource.

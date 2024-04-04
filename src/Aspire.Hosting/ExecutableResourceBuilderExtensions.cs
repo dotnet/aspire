@@ -38,18 +38,6 @@ public static class ExecutableResourceBuilderExtensions
 
     /// <summary>
     /// Adds annotation to <see cref="ExecutableResource" /> to support containerization during deployment.
-    /// </summary>
-    /// <typeparam name="T">Type of executable resource</typeparam>
-    /// <param name="builder">Resource builder</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Use PublishAsDockerFile instead")]
-    public static IResourceBuilder<T> AsDockerfileInManifest<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
-    {
-        return builder.PublishAsDockerFile();
-    }
-
-    /// <summary>
-    /// Adds annotation to <see cref="ExecutableResource" /> to support containerization during deployment.
     /// The resulting container image is built, and when the optional <paramref name="buildArgs"/> are provided
     /// they're used with <c>docker build --build-arg</c>.
     /// </summary>
@@ -79,6 +67,6 @@ public static class ExecutableResourceBuilderExtensions
         }
 
         await context.WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
-        context.WriteBindings(executable, emitContainerPort: true);
+        context.WriteBindings(executable);
     }
 }

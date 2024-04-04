@@ -13,7 +13,7 @@ var serviceBuilder = builder.AddProject<Projects.Stress_ApiService>("stress-apis
 for (var i = 0; i < 30; i++)
 {
     var port = 5180 + i;
-    serviceBuilder.WithHttpEndpoint(port, $"http-{port}");
+    serviceBuilder.WithHttpEndpoint(port, name: $"http-{port}");
 }
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice");

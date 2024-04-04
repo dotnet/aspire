@@ -8,6 +8,18 @@
     {
       "placeholder": "fake",
       "_justification": "This is fake key name, used in integration tests to try to connect to Azure ServiceBus."
+    },
+    {
+      "placeholder": "TestKey123!",
+      "_justification": "This is fake API key, used in integration tests to try to connect to OTLP services."
+    },
+    {
+      "placeholder": "!321yeKtseT",
+      "_justification": "This is fake API key, used in integration tests to try to connect to OTLP services."
+    },
+    {
+      "placeholder": "p@ssw0rd1",
+      "_justification": "This is fake password, used in integration tests."
     }
   ]
 }

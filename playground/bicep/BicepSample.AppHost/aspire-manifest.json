@@ -23,7 +23,7 @@
     },
     "test0": {
       "type": "azure.bicep.v0",
-      "path": "../../../../../Users/midenn/AppData/Local/Temp/tmp0cmpqc.tmp.bicep"
+      "path": "test0.module.bicep"
     },
     "kv3": {
       "type": "azure.bicep.v0",
@@ -101,7 +101,6 @@
       "connectionString": "{postgres2.secretOutputs.connectionString}",
       "path": "postgres2.module.bicep",
       "params": {
-        "principalId": "",
         "keyVaultName": "",
         "administratorLogin": "{administratorLogin.value}",
         "administratorLoginPassword": "{administratorLoginPassword.value}"
@@ -119,13 +118,24 @@
         "keyVaultName": ""
       }
     },
+    "lawkspc": {
+      "type": "azure.bicep.v0",
+      "path": "lawkspc.module.bicep"
+    },
     "ai": {
       "type": "azure.bicep.v0",
       "connectionString": "{ai.outputs.appInsightsConnectionString}",
       "path": "ai.module.bicep",
       "params": {
-        "principalId": "",
-        "principalType": ""
+        "logAnalyticsWorkspaceId": "{lawkspc.outputs.logAnalyticsWorkspaceId}"
+      }
+    },
+    "aiwithoutlaw": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{aiwithoutlaw.outputs.appInsightsConnectionString}",
+      "path": "aiwithoutlaw.module.bicep",
+      "params": {
+        "logAnalyticsWorkspaceId": ""
       }
     },
     "redis": {
@@ -133,7 +143,6 @@
       "connectionString": "{redis.secretOutputs.connectionString}",
       "path": "redis.module.bicep",
       "params": {
-        "principalId": "",
         "keyVaultName": ""
       }
     },
@@ -182,12 +191,14 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     }

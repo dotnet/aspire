@@ -1,40 +1,96 @@
 # .NET Aspire Dashboard
 
-Configuration is obtained through `IConfiguration`, so it can be provided in several ways, such as via environment variables.
+The .NET Aspire Dashboard is a browser-based app to view run-time information about your distributed application.
 
-## Endpoints
+The dashboard shows:
 
-The dashboard has two kinds of endpoints: a browser endpoint for viewing the dashboard UI and an OTLP endpoint that hosts an OTLP service and receives telemetry.
+- Resources that make up your app, such as .NET projects, executables and containers.
+- Live console logs of resources.
+- Live telemetry, such as structured logs, traces and metrics.
 
-- `ASPNETCORE_URLS` specifies one or more HTTP endpoints through which the dashboard web application is served. Defaults to http://localhost:18888.
-- `DOTNET_DASHBOARD_OTLP_ENDPOINT_URL` specifies the OTLP endpoint. Defaults to http://localhost:18889.
+## Configuration
 
-Endpoints are given names in Kestrel (`Browser` and `Otlp`) and can be configured using [Kestrel endpoint configuration](https://learn.microsoft.com/aspnet/core/fundamentals/servers/kestrel/endpoints#configure-endpoints-in-appsettingsjson).
+The dashboard must be configured when it is started. There are a number of ways to provide configuration:
 
-For example, the default certificate used by HTTPS endpoints can be configured using the `ASPNETCORE_Kestrel__Certificates__Default__Path` and `ASPNETCORE_Kestrel__Certificates__Default__Password` environment variables. Alternatively, the certificate can be configured for individual endpoints, such as `ASPNETCORE_Kestrel__Endpoints__Browser__Path`, etc.
+- Command line arguments.
+- Environment variables. The `:` delimiter should be replaced with double underscore (`__`) in environment variable names.
+- Optional JSON configuration file. The `DOTNET_DASHBOARD_CONFIG_FILE_PATH` setting can be used to specify a JSON configuration file.
 
-### OTLP endpoint authentication
+Example JSON configuration file:
+
+```json
+{
+  "Dashboard": {
+    "TelemetryLimits": {
+      "MaxLogCount": 1000,
+      "MaxTraceCount": 1000,
+      "MaxMetricsCount": 1000
+    }
+  }
+}
+```
+
+### Common configuration
+
+- `ASPNETCORE_URLS` specifies one or more HTTP endpoints through which the dashboard frontend is served. The frontend endpoint is used to view the dashboard in a browser. Defaults to http://localhost:18888.
+- `DOTNET_DASHBOARD_OTLP_ENDPOINT_URL` specifies the OTLP endpoint. OTLP endpoint hosts an OTLP service and recevies telemetry. Defaults to http://localhost:18889.
+- `DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS` specifies the dashboard doesn't use authentication and accepts anonymous access. This setting is a shortcut to configuring `Dashboard:Frontend:AuthMode` and `Dashboard:Otlp:AuthMode` to `Unsecured`.
+- `DOTNET_DASHBOARD_CONFIG_FILE_PATH` specifies the path for an optional JSON configuration file.
+
+### Frontend authentication
+
+The dashboard's frontend supports OpenID Connect (OIDC). Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following configuration:
+
+- `Authentication:Schemes:OpenIdConnect:Authority` &mdash; URL to the identity provider (IdP)
+- `Authentication:Schemes:OpenIdConnect:ClientId` &mdash; Identity of the relying party (RP)
+- `Authentication:Schemes:OpenIdConnect:ClientSecret`&mdash; A secret that only the real RP would know
+- Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
+
+It may also be run unsecured. Set `Dashboard:Frontend:AuthMode` to `Unsecured`. The frontend endpoint will allow anonymous access. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
+
+### OTLP authentication
 
 The OTLP endpoint can be secured with [client certificate](https://learn.microsoft.com/aspnet/core/security/authentication/certauth) or API key authentication.
 
-- `DOTNET_DASHBOARD_OTLP_AUTH_MODE` specifies the authentication mode on the OTLP endpoint. Possible values are `Certificate`, `ApiKey`, `None`. This configuration is required.
-- `DOTNET_DASHBOARD_OTLP_API_KEY` specifies the API key for the OTLP endpoint when API key authentication is enabled. This configuration is required for API key authentication.
+For client certification authentication, set `Dashboard:Otlp:AuthMode` to `Certificate`.
 
-## Resources
+For API key authentication, set `Dashboard:Otlp:AuthMode` to `ApiKey`, then add the following configuration:
 
-- `DOTNET_RESOURCE_SERVICE_ENDPOINT_URL` specifies the gRPC endpoint to which the dashboard connects for its data. There's no default. If this variable is unspecified, the dashboard shows OTEL data but no resource list or console logs.
+- `Dashboard:Otlp:PrimaryApiKey` specifies the primary API key. (required, string)
+- `Dashboard:Otlp:SecondaryApiKey` specifies the secondary API key. (optional, string)
 
-## Telemetry Limits
+It may also be run unsecured. Set `Dashboard:Otlp:AuthMode` to `Unsecured`. The OTLP endpoint will allow anonymous access. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
+
+### Resources
+
+- `Dashboard:ResourceServiceClient:Url` specifies the gRPC endpoint to which the dashboard connects for its data. There's no default. If this variable is unspecified, the dashboard shows OTEL data but no resource list or console logs.
+
+The resource service client supports certificates. Set `Dashboard:ResourceServiceClient:AuthMode` to `Certificate`, then add the following configuration:
+
+- `Dashboard:ResourceServiceClient:ClientCertificate:Source` (required) one of:
+  - `File` to load the cert from a file path, configured with:
+    - `Dashboard:ResourceServiceClient:ClientCertificate:FilePath` (required, string)
+    - `Dashboard:ResourceServiceClient:ClientCertificate:Password` (optional, string)
+  - `KeyStore` to load the cert from a key store, configured with:
+    - `Dashboard:ResourceServiceClient:ClientCertificate:Subject` (required, string)
+    - `Dashboard:ResourceServiceClient:ClientCertificate:Store` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
+    - `Dashboard:ResourceServiceClient:ClientCertificate:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
+
+To opt-out of authentication, set `Dashboard:ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
+
+#### Telemetry Limits
 
 Telemetry is stored in-memory. To avoid excessive memory usage, the dashboard has limits on the count and size of stored telemetry. When a count limit is reached, new telemetry is added, and the oldest telemetry is removed. When a size limit is reached, data is truncated to the limit.
 
-- `DOTNET_DASHBOARD_OTEL_LOG_COUNT_LIMIT` specifies the maximum number of log entries. Defaults to 10,000.
-- `DOTNET_DASHBOARD_OTEL_TRACE_COUNT_LIMIT` specifies the maximum number of traces. Defaults to 10,000.
-- `DOTNET_DASHBOARD_OTEL_METRIC_COUNT_LIMIT` specifies the maximum number of metric data points. Defaults to 50,000.
-- `DOTNET_DASHBOARD_OTEL_ATTRIBUTE_COUNT_LIMIT` specifies the maximum number of attributes on telemetry. Defaults to 128.
-- `DOTNET_DASHBOARD_OTEL_ATTRIBUTE_LENGTH_LIMIT` specifies the maximum length of attributes. Defaults to unlimited.
-- `DOTNET_DASHBOARD_OTEL_SPAN_EVENT_COUNT_LIMIT` specifies the maximum number of events on span attributes. Defaults to unlimited.
+- `Dashboard:TelemetryLimits:MaxLogCount` specifies the maximum number of log entries. Defaults to 10,000.
+- `Dashboard:TelemetryLimits:MaxTraceCount` specifies the maximum number of traces. Defaults to 10,000.
+- `Dashboard:TelemetryLimits:MaxMetricsCount` specifies the maximum number of metric data points. Defaults to 50,000.
+- `Dashboard:TelemetryLimits:MaxAttributeCount` specifies the maximum number of attributes on telemetry. Defaults to 128.
+- `Dashboard:TelemetryLimits:MaxAttributeLength` specifies the maximum length of attributes. Defaults to unlimited.
+- `Dashboard:TelemetryLimits:MaxSpanEventCount` specifies the maximum number of events on span attributes. Defaults to unlimited.
 
-## Other
+Limits are per-resource. For example, a `MaxLogCount` value of 10,000 configures the dashboard to store up to 10,000 log entries per-resource.
 
-- `DOTNET_DASHBOARD_APPLICATION_NAME` specifies the application name to be displayed in the UI. This applies only when no resource service URL is specified. When a resource service exists, the service specifies the application name.
+### Other
+
+- `Dashboard:ApplicationName` specifies the application name to be displayed in the UI. This applies only when no resource service URL is specified. When a resource service exists, the service specifies the application name.
