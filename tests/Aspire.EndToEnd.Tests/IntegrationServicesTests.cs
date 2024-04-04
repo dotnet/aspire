@@ -49,7 +49,8 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             }
         });
 
-    [Fact(Skip="https://github.com/dotnet/aspire/issues/3161")]
+    [ConditionalFact]
+    [SkipOnCI("https://github.com/dotnet/aspire/issues/3161")]
     [Trait("scenario", "oracle")]
     public Task VerifyOracleComponentWorks()
         => VerifyComponentWorks(TestResourceNames.oracledatabase);
