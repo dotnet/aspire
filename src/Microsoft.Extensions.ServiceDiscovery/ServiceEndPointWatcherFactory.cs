@@ -10,49 +10,49 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Creates service endpoint watchers.
 /// </summary>
-internal sealed partial class ServiceEndPointWatcherFactory(
-    IEnumerable<IServiceEndPointProviderFactory> resolvers,
-    ILogger<ServiceEndPointWatcher> resolverLogger,
+internal sealed partial class ServiceEndpointWatcherFactory(
+    IEnumerable<IServiceEndpointProviderFactory> providerFactories,
+    ILogger<ServiceEndpointWatcher> logger,
     IOptions<ServiceDiscoveryOptions> options,
     TimeProvider timeProvider)
 {
-    private readonly IServiceEndPointProviderFactory[] _resolverProviders = resolvers
-        .Where(r => r is not PassThroughServiceEndPointResolverProvider)
-        .Concat(resolvers.Where(static r => r is PassThroughServiceEndPointResolverProvider)).ToArray();
-    private readonly ILogger<ServiceEndPointWatcher> _logger = resolverLogger;
+    private readonly IServiceEndpointProviderFactory[] _providerFactories = providerFactories
+        .Where(r => r is not PassThroughServiceEndpointProviderFactory)
+        .Concat(providerFactories.Where(static r => r is PassThroughServiceEndpointProviderFactory)).ToArray();
+    private readonly ILogger<ServiceEndpointWatcher> _logger = logger;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly IOptions<ServiceDiscoveryOptions> _options = options;
 
     /// <summary>
-    /// Creates a service endpoint resolver for the provided service name.
+    /// Creates a service endpoint watcher for the provided service name.
     /// </summary>
-    public ServiceEndPointWatcher CreateWatcher(string serviceName)
+    public ServiceEndpointWatcher CreateWatcher(string serviceName)
     {
         ArgumentNullException.ThrowIfNull(serviceName);
 
-        if (!ServiceEndPointQuery.TryParse(serviceName, out var query))
+        if (!ServiceEndpointQuery.TryParse(serviceName, out var query))
         {
             throw new ArgumentException("The provided input was not in a valid format. It must be a valid URI.", nameof(serviceName));
         }
 
-        List<IServiceEndPointProvider>? resolvers = null;
-        foreach (var factory in _resolverProviders)
+        List<IServiceEndpointProvider>? providers = null;
+        foreach (var factory in _providerFactories)
         {
-            if (factory.TryCreateProvider(query, out var resolver))
+            if (factory.TryCreateProvider(query, out var provider))
             {
-                resolvers ??= [];
-                resolvers.Add(resolver);
+                providers ??= [];
+                providers.Add(provider);
             }
         }
 
-        if (resolvers is not { Count: > 0 })
+        if (providers is not { Count: > 0 })
         {
-            throw new InvalidOperationException($"No resolver which supports the provided service name, '{serviceName}', has been configured.");
+            throw new InvalidOperationException($"No provider which supports the provided service name, '{serviceName}', has been configured.");
         }
 
-        Log.CreatingResolver(_logger, serviceName, resolvers);
-        return new ServiceEndPointWatcher(
-            resolvers: [.. resolvers],
+        Log.CreatingResolver(_logger, serviceName, providers);
+        return new ServiceEndpointWatcher(
+            providers: [.. providers],
             logger: _logger,
             serviceName: serviceName,
             timeProvider: _timeProvider,

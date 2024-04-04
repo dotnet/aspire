@@ -6,15 +6,15 @@ using System.Diagnostics.CodeAnalysis;
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
-/// Creates <see cref="IServiceEndPointProvider"/> instances.
+/// Creates <see cref="IServiceEndpointProvider"/> instances.
 /// </summary>
-public interface IServiceEndPointProviderFactory
+public interface IServiceEndpointProviderFactory
 {
     /// <summary>
-    /// Tries to create an <see cref="IServiceEndPointProvider"/> instance for the specified <paramref name="query"/>.
+    /// Tries to create an <see cref="IServiceEndpointProvider"/> instance for the specified <paramref name="query"/>.
     /// </summary>
-    /// <param name="query">The service to create the resolver for.</param>
-    /// <param name="resolver">The resolver.</param>
-    /// <returns><see langword="true"/> if the resolver was created, <see langword="false"/> otherwise.</returns>
-    bool TryCreateProvider(ServiceEndPointQuery query, [NotNullWhen(true)] out IServiceEndPointProvider? resolver);
+    /// <param name="query">The service to create the provider for.</param>
+    /// <param name="provider">The provider.</param>
+    /// <returns><see langword="true"/> if the provider was created, <see langword="false"/> otherwise.</returns>
+    bool TryCreateProvider(ServiceEndpointQuery query, [NotNullWhen(true)] out IServiceEndpointProvider? provider);
 }
