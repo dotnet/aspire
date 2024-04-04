@@ -857,10 +857,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             KeyValuePair.Create(DashboardConfigNames.ResourceServiceUrlName.EnvVarName, resourceServiceUrl),
             KeyValuePair.Create(DashboardConfigNames.DashboardOtlpUrlName.EnvVarName, otlpEndpointUrl),
             KeyValuePair.Create(DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName, "Unsecured"),
-            KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "Unsecured"),
         };
 
-        if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
+        if (configuration["AppHost:BrowserToken"] is { Length: > 0 } browserToken)
+        {
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "BrowserToken"));
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName, browserToken));
+        }
+        else
+        {
+            env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "Unsecured"));
+        }
+
+        if (configuration["AppHost:OtlpApiKey"] is { Length: > 0 } otlpApiKey)
         {
             env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "ApiKey"));
             env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName, otlpApiKey));

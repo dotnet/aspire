@@ -17,14 +17,29 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             errorMessages.Add(frontendParseErrorMessage);
         }
 
+        switch (options.Frontend.AuthMode)
+        {
+            case FrontendAuthMode.Unsecured:
+                break;
+            case FrontendAuthMode.OpenIdConnect:
+                break;
+            case FrontendAuthMode.BrowserToken:
+                if (string.IsNullOrEmpty(options.Frontend.BrowserToken))
+                {
+                    errorMessages.Add($"BrowserToken is required when frontend authentication mode is browser token. Specify a {DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey} value.");
+                }
+                break;
+            case null:
+                errorMessages.Add($"Frontend endpoint authentication is not configured. Either specify {DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey}=true, or specify {DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(FrontendAuthMode).GetEnumNames())}");
+                break;
+            default:
+                errorMessages.Add($"Unexpected frontend authentication mode: {options.Otlp.AuthMode}");
+                break;
+        }
+
         if (!options.Otlp.TryParseOptions(out var otlpParseErrorMessage))
         {
             errorMessages.Add(otlpParseErrorMessage);
-        }
-
-        if (!options.ResourceServiceClient.TryParseOptions(out var resourceServiceClientParseErrorMessage))
-        {
-            errorMessages.Add(resourceServiceClientParseErrorMessage);
         }
 
         switch (options.Otlp.AuthMode)
@@ -40,11 +55,16 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             case OtlpAuthMode.ClientCertificate:
                 break;
             case null:
-                errorMessages.Add($"OTLP endpoint authentication is not configured. Either specify {DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey} with a value of true, or specify ${DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
+                errorMessages.Add($"OTLP endpoint authentication is not configured. Either specify {DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey}=true, or specify {DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
                 break;
             default:
                 errorMessages.Add($"Unexpected OTLP authentication mode: {options.Otlp.AuthMode}");
                 break;
+        }
+
+        if (!options.ResourceServiceClient.TryParseOptions(out var resourceServiceClientParseErrorMessage))
+        {
+            errorMessages.Add(resourceServiceClientParseErrorMessage);
         }
 
         if (options.ResourceServiceClient.GetUri() != null)
