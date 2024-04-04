@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.ApplicationInsights;
+using Azure.Provisioning.OperationalInsights;
 
 namespace Aspire.Hosting;
 
@@ -76,12 +77,24 @@ public static class AzureApplicationInsightsExtensions
 
             if (logAnalyticsWorkspace != null)
             {
+                // If someone provides a workspace via the extension method we should use it.
                 appInsights.AssignProperty(p => p.WorkspaceResourceId, logAnalyticsWorkspace.Resource.WorkspaceId, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+            }
+            else if (builder.ExecutionContext.IsRunMode)
+            {
+                // ... otherwise if we are in run mode, the provisioner expects us to create one ourselves.
+                var autoInjectedLogAnalyticsWorkspace = new OperationalInsightsWorkspace(construct, name: $"law-{construct.Resource.Name}");
+                appInsights.Properties.Tags["aspire-resource-name"] = $"law-{construct.Resource.Name}";
+                autoInjectedLogAnalyticsWorkspace.AssignProperty(p => p.Sku.Name, "'PerGB2018'");
+
+                // If the user does not supply a log analytics workspace of their own we still create a parameter on the Aspire
+                // side and the CDK side so that AZD can fill the value in with the one it generates.
+                appInsights.AssignProperty(p => p.WorkspaceResourceId, $"{autoInjectedLogAnalyticsWorkspace.Name}.id");
             }
             else
             {
-                // If the user does not supply a log analytics workspace of their own we still create a parameter on the Aspire
-                // side and the CDK side so that AZD can fill the value in with the one it generates.
+                // If the user does not supply a log analytics workspace of their own, and we are in publish mode
+                // then we want AZD to provide one to us.
                 construct.Resource.Parameters.Add(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, "");
                 appInsights.AssignProperty(p => p.WorkspaceResourceId, new Parameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
             }
