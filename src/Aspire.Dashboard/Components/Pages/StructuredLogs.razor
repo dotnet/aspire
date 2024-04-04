@@ -30,7 +30,7 @@
                       slot="end" />
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMinimumLogFilter)]" slot="end" style="display: flex;align-items: center;">
-            <span>Level:</span>
+            <span>@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]</span>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
@@ -64,7 +64,7 @@
         SelectedValue="@SelectedLogEntry">
         <DetailsTitleTemplate>
             @{
-                var eventName = OtlpHelpers.GetValue(SelectedLogEntry!.LogEntry.Attributes, "event.name") 
+                var eventName = OtlpHelpers.GetValue(SelectedLogEntry!.LogEntry.Attributes, "event.name")
                     ?? OtlpHelpers.GetValue(SelectedLogEntry.LogEntry.Attributes, "logrecord.event.name")
                     ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
             }
