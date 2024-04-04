@@ -4,7 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Azure.Provisioning.Authorization;
+using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 using Azure.ResourceManager.CognitiveServices.Models;
 

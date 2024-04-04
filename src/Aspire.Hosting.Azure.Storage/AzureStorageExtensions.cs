@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
-using Azure.Provisioning.Authorization;
+using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 

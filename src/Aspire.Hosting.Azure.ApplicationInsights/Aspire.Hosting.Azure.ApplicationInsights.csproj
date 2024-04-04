@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure.OperationalInsights\Aspire.Hosting.Azure.OperationalInsights.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
+    <PackageReference Include="Azure.Provisioning.ApplicationInsights" />
   </ItemGroup>
 
   <ItemGroup>
