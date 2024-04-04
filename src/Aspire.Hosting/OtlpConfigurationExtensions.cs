@@ -37,6 +37,11 @@ public static class OtlpConfigurationExtensions
             var url = configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
             context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = new HostUrl(url);
 
+            // The dashboard currently only supports OTLP over gRPC.
+            // Most SDK's OTLP exporters default to gRPC but we should be explicit in case there are exporters
+            // that prefer another protocol. We want them to use grpc.
+            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
             context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";

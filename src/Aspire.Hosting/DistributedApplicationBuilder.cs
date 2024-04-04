@@ -66,6 +66,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         ArgumentNullException.ThrowIfNull(options);
 
         var innerBuilderOptions = new HostApplicationBuilderSettings();
+
+        // Args are set later in config with switch mappings. But specify them when creating the builder
+        // so they're used to initialize some types created immediately, e.g. IHostEnvironment.
+        innerBuilderOptions.Args = options.Args;
+
         LogBuilderConstructing(options, innerBuilderOptions);
         _innerBuilder = new HostApplicationBuilder(innerBuilderOptions);
 
