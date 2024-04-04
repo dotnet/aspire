@@ -21,13 +21,13 @@ internal sealed class DistributedApplicationLifecycle(
 
     public Task StartedAsync(CancellationToken cancellationToken)
     {
-        if (distributedApplicationOptions.DashboardEnabled && configuration["AppHost:BrowserToken"] is { Length: > 0 } browserToken)
-        {
-            LoggingHelpers.WriteDashboardUrl(logger, configuration["ASPNETCORE_URLS"], browserToken);
-        }
-
         if (executionContext.IsRunMode)
         {
+            if (distributedApplicationOptions.DashboardEnabled && configuration["AppHost:BrowserToken"] is { Length: > 0 } browserToken)
+            {
+                LoggingHelpers.WriteDashboardUrl(logger, configuration["ASPNETCORE_URLS"], browserToken);
+            }
+
             logger.LogInformation("Distributed application started. Press Ctrl+C to shut down.");
         }
 
