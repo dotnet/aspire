@@ -29,7 +29,7 @@ resource storageAccount_1XR3Um8QY 'Microsoft.Storage/storageAccounts@2022-09-01'
   properties: {
     accessTier: 'Hot'
     networkAcls: {
-      defaultAction: 'Deny'
+      defaultAction: 'Allow'
     }
   }
 }
