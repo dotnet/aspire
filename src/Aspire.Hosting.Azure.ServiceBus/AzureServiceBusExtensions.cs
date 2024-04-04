@@ -22,9 +22,9 @@ public static class AzureServiceBusExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureServiceBus(name, null);
-#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusNamespace"/> resource.</param>
     /// <returns></returns>
-    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusNamespace>? configureResource)
     {
         builder.AddAzureProvisioning();
@@ -108,9 +108,9 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the queue.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name)
     {
-#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddQueue(name, null);
-#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the queue.</param>
     /// <param name="configureQueue">Callback to configure the underlying <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusQueue"/> resource.</param>
-    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureServiceBusResource> AddQueue(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusQueue>? configureQueue)
     {
         builder.Resource.Queues.Add((name, configureQueue));
@@ -133,9 +133,9 @@ public static class AzureServiceBusExtensions
     /// <param name="name">The name of the topic.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name)
     {
-#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddTopic(name, configureTopic: null);
-#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -144,7 +144,7 @@ public static class AzureServiceBusExtensions
     /// <param name="builder">The Azure Service Bus resource builder.</param>
     /// <param name="name">The name of the topic.</param>
     /// <param name="configureTopic">Callback to configure the underlying <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusTopic"/> resource.</param>
-    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureServiceBusResource> AddTopic(this IResourceBuilder<AzureServiceBusResource> builder, string name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusTopic>? configureTopic)
     {
         builder.Resource.Topics.Add((name, configureTopic));
@@ -159,9 +159,9 @@ public static class AzureServiceBusExtensions
     /// <param name="subscriptionName">The name of the subscription.</param>
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName)
     {
-#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddSubscription(topicName, subscriptionName, null);
-#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -171,7 +171,7 @@ public static class AzureServiceBusExtensions
     /// <param name="topicName">The name of the topic.</param>
     /// <param name="subscriptionName">The name of the subscription.</param>
     /// <param name="configureSubscription">Callback to configure the underlying <see cref="global::Azure.Provisioning.ServiceBus.ServiceBusSubscription"/> resource.</param>
-    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureServiceBusResource> AddSubscription(this IResourceBuilder<AzureServiceBusResource> builder, string topicName, string subscriptionName, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusSubscription>? configureSubscription)
     {
         builder.Resource.Subscriptions.Add((topicName, subscriptionName, configureSubscription));
