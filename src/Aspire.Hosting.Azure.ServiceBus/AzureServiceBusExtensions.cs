@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
