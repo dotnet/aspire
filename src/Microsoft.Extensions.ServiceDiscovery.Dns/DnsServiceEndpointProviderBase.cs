@@ -26,15 +26,15 @@ internal abstract partial class DnsServiceEndpointProviderBase : IServiceEndpoin
     /// <summary>
     /// Initializes a new <see cref="DnsServiceEndpointProviderBase"/> instance.
     /// </summary>
-    /// <param name="serviceName">The service name.</param>
+    /// <param name="query">The service name.</param>
     /// <param name="logger">The logger.</param>
     /// <param name="timeProvider">The time provider.</param>
     protected DnsServiceEndpointProviderBase(
-        string serviceName,
+        ServiceEndpointQuery query,
         ILogger logger,
         TimeProvider timeProvider)
     {
-        ServiceName = serviceName;
+        ServiceName = query.ToString()!;
         _logger = logger;
         _lastEndpointCollection = null;
         _timeProvider = timeProvider;

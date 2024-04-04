@@ -36,7 +36,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="configureOptions">The delegate used to configure service discovery options.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddServiceDiscovery(this IServiceCollection services, Action<ServiceDiscoveryOptions>? configureOptions)
+    public static IServiceCollection AddServiceDiscovery(this IServiceCollection services, Action<ServiceDiscoveryOptions> configureOptions)
     {
         return services.AddServiceDiscoveryCore(configureOptions: configureOptions)
             .AddConfigurationServiceEndpointProvider()
@@ -48,7 +48,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services) => services.AddServiceDiscoveryCore(configureOptions: null);
+    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services) => services.AddServiceDiscoveryCore(configureOptions: _ => { });
 
     /// <summary>
     /// Adds the core service discovery services.
@@ -56,7 +56,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="configureOptions">The delegate used to configure service discovery options.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services, Action<ServiceDiscoveryOptions>? configureOptions)
+    public static IServiceCollection AddServiceDiscoveryCore(this IServiceCollection services, Action<ServiceDiscoveryOptions> configureOptions)
     {
         services.AddOptions();
         services.AddLogging();
@@ -81,7 +81,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <returns>The service collection.</returns>
     public static IServiceCollection AddConfigurationServiceEndpointProvider(this IServiceCollection services)
     {
-        return services.AddConfigurationServiceEndpointProvider(configureOptions: null);
+        return services.AddConfigurationServiceEndpointProvider(configureOptions: _ => { });
     }
 
     /// <summary>
@@ -90,7 +90,7 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     /// <param name="configureOptions">The delegate used to configure the provider.</param>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddConfigurationServiceEndpointProvider(this IServiceCollection services, Action<ConfigurationServiceEndpointProviderOptions>? configureOptions)
+    public static IServiceCollection AddConfigurationServiceEndpointProvider(this IServiceCollection services, Action<ConfigurationServiceEndpointProviderOptions> configureOptions)
     {
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IServiceEndpointProviderFactory, ConfigurationServiceEndpointProviderFactory>();

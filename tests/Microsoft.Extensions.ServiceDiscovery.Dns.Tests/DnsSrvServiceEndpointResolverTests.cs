@@ -178,7 +178,7 @@ public class DnsSrvServiceEndpointResolverTests
             .AddDnsSrvServiceEndpointProvider(options =>
             {
                 options.QuerySuffix = ".ns";
-                options.ApplyHostNameMetadata = _ => true;
+                options.ShouldApplyHostNameMetadata = _ => true;
             })
             .AddConfigurationServiceEndpointProvider();
         }

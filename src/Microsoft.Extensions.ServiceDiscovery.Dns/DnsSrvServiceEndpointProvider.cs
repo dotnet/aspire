@@ -10,13 +10,13 @@ using Microsoft.Extensions.Options;
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
 internal sealed partial class DnsSrvServiceEndpointProvider(
-    string serviceName,
+    ServiceEndpointQuery query,
     string srvQuery,
     string hostName,
     IOptionsMonitor<DnsSrvServiceEndpointProviderOptions> options,
     ILogger<DnsSrvServiceEndpointProvider> logger,
     IDnsQuery dnsClient,
-    TimeProvider timeProvider) : DnsServiceEndpointProviderBase(serviceName, logger, timeProvider), IHostNameFeature
+    TimeProvider timeProvider) : DnsServiceEndpointProviderBase(query, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;
 
@@ -79,8 +79,8 @@ internal sealed partial class DnsSrvServiceEndpointProvider(
         {
             var msg = errorMessage switch
             {
-                { Length: > 0 } => $"No DNS records were found for service {ServiceName} (DNS name: {dnsName}): {errorMessage}.",
-                _ => $"No DNS records were found for service {ServiceName} (DNS name: {dnsName})."
+                { Length: > 0 } => $"No DNS records were found for service '{ServiceName}' (DNS name: '{dnsName}'): {errorMessage}.",
+                _ => $"No DNS records were found for service '{ServiceName}' (DNS name: '{dnsName}')."
             };
             return new InvalidOperationException(msg);
         }
@@ -89,7 +89,7 @@ internal sealed partial class DnsSrvServiceEndpointProvider(
         {
             var serviceEndpoint = ServiceEndpoint.Create(endpoint);
             serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
-            if (options.CurrentValue.ApplyHostNameMetadata(serviceEndpoint))
+            if (options.CurrentValue.ShouldApplyHostNameMetadata(serviceEndpoint))
             {
                 serviceEndpoint.Features.Set<IHostNameFeature>(this);
             }

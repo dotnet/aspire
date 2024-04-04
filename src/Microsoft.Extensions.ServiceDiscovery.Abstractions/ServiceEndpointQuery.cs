@@ -10,6 +10,8 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// </summary>
 public sealed class ServiceEndpointQuery
 {
+    private readonly string _originalString;
+
     /// <summary>
     /// Initializes a new <see cref="ServiceEndpointQuery"/> instance.
     /// </summary>
@@ -19,8 +21,8 @@ public sealed class ServiceEndpointQuery
     /// <param name="endpointName">The optional endpoint name.</param>
     private ServiceEndpointQuery(string originalString, string[] includedSchemes, string serviceName, string? endpointName)
     {
-        OriginalString = originalString;
-        IncludeSchemes = includedSchemes;
+        _originalString = originalString;
+        IncludedSchemes = includedSchemes;
         ServiceName = serviceName;
         EndpointName = endpointName;
     }
@@ -72,14 +74,9 @@ public sealed class ServiceEndpointQuery
     }
 
     /// <summary>
-    /// Gets the string which the query was constructed from.
-    /// </summary>
-    public string OriginalString { get; }
-
-    /// <summary>
     /// Gets the ordered list of included URI schemes.
     /// </summary>
-    public IReadOnlyList<string> IncludeSchemes { get; }
+    public IReadOnlyList<string> IncludedSchemes { get; }
 
     /// <summary>
     /// Gets the endpoint name, or <see langword="null"/> if no endpoint name is specified.
@@ -92,6 +89,6 @@ public sealed class ServiceEndpointQuery
     public string ServiceName { get; }
 
     /// <inheritdoc/>
-    public override string? ToString() => EndpointName is not null ? $"Service: {ServiceName}, Endpoint: {EndpointName}, Schemes: {string.Join(", ", IncludeSchemes)}" : $"Service: {ServiceName}, Schemes: {string.Join(", ", IncludeSchemes)}";
+    public override string? ToString() => _originalString;
 }
 

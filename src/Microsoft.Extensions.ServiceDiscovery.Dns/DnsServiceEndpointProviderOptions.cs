@@ -31,5 +31,5 @@ public class DnsServiceEndpointProviderOptions
     /// <summary>
     /// Gets or sets a delegate used to determine whether to apply host name metadata to each resolved endpoint. Defaults to <c>false</c>.
     /// </summary>
-    public Func<ServiceEndpoint, bool> ApplyHostNameMetadata { get; set; } = _ => false;
+    public Func<ServiceEndpoint, bool> ShouldApplyHostNameMetadata { get; set; } = _ => false;
 }

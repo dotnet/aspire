@@ -64,7 +64,11 @@ public class ConfigurationServiceEndpointResolverTests
             .AddSingleton<IConfiguration>(config.Build())
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndpointProvider()
-            .Configure<ServiceDiscoveryOptions>(o => o.AllowedSchemes = ["https"])
+            .Configure<ServiceDiscoveryOptions>(o =>
+            {
+                o.AllowAllSchemes = false;
+                o.AllowedSchemes = ["https"];
+            })
             .BuildServiceProvider();
         var watcherFactory = services.GetRequiredService<ServiceEndpointWatcherFactory>();
         ServiceEndpointWatcher watcher;
@@ -129,7 +133,7 @@ public class ConfigurationServiceEndpointResolverTests
         var services = new ServiceCollection()
             .AddSingleton<IConfiguration>(config.Build())
             .AddServiceDiscoveryCore()
-            .AddConfigurationServiceEndpointProvider(options => options.ApplyHostNameMetadata = _ => true)
+            .AddConfigurationServiceEndpointProvider(options => options.ShouldApplyHostNameMetadata = _ => true)
             .BuildServiceProvider();
         var watcherFactory = services.GetRequiredService<ServiceEndpointWatcherFactory>();
         ServiceEndpointWatcher watcher;

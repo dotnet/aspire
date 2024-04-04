@@ -30,17 +30,16 @@ internal sealed partial class DnsSrvServiceEndpointProviderFactory(
         // Otherwise, the namespace can be read from /var/run/secrets/kubernetes.io/serviceaccount/namespace and combined with an assumed suffix of "svc.cluster.local".
         // The protocol is assumed to be "tcp".
         // The portName is the name of the port in the service definition. If the serviceName parses as a URI, we use the scheme as the port name, otherwise "default".
-        var serviceName = query.OriginalString;
         if (string.IsNullOrWhiteSpace(_querySuffix))
         {
-            DnsServiceEndpointProviderBase.Log.NoDnsSuffixFound(logger, serviceName);
+            DnsServiceEndpointProviderBase.Log.NoDnsSuffixFound(logger, query.ToString()!);
             provider = default;
             return false;
         }
 
         var portName = query.EndpointName ?? "default";
         var srvQuery = $"_{portName}._tcp.{query.ServiceName}.{_querySuffix}";
-        provider = new DnsSrvServiceEndpointProvider(serviceName, srvQuery, hostName: query.ServiceName, options, logger, dnsClient, timeProvider);
+        provider = new DnsSrvServiceEndpointProvider(query, srvQuery, hostName: query.ServiceName, options, logger, dnsClient, timeProvider);
         return true;
     }
 

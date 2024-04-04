@@ -14,9 +14,9 @@ internal sealed class ConfigurationServiceEndpointProviderOptionsValidator : IVa
             return ValidateOptionsResult.Fail($"{nameof(options.SectionName)} must not be null or empty.");
         }
 
-        if (options.ApplyHostNameMetadata is null)
+        if (options.ShouldApplyHostNameMetadata is null)
         {
-            return ValidateOptionsResult.Fail($"{nameof(options.ApplyHostNameMetadata)} must not be null.");
+            return ValidateOptionsResult.Fail($"{nameof(options.ShouldApplyHostNameMetadata)} must not be null.");
         }
 
         return ValidateOptionsResult.Success;
