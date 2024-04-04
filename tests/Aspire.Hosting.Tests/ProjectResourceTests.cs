@@ -60,6 +60,11 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_EXPORTER_OTLP_PROTOCOL", env.Key);
+                Assert.Equal("grpc", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("OTEL_SERVICE_NAME", env.Key);
                 Assert.Equal("{{- index .Annotations \"otel-service-name\" -}}", env.Value);
             },
