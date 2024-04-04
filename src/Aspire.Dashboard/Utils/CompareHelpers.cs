@@ -35,6 +35,7 @@ internal static class CompareHelpers
         {
             if (requestPooled != null)
             {
+                // Data might be considered sensitive so clear array when returning it.
                 ArrayPool<byte>.Shared.Return(requestPooled, clearArray: true);
             }
         }
