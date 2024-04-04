@@ -5,13 +5,14 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Utils
 @using Microsoft.Extensions.Logging
-@using System.Web
 @using Aspire.Dashboard.Resources
 @using System.Globalization
 @inject IJSRuntime JS
 @implements IDisposable
+
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@inject IStringLocalizer<Logs> LogsLoc
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
@@ -51,7 +52,7 @@
         {
             foreach (var filter in ViewModel.Filters)
             {
-                <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.FilterText</FluentButton>
+                <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.GetDisplayText(LogsLoc)</FluentButton>
                 <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             }
         }
