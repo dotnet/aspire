@@ -5,7 +5,7 @@
 ### Steps to prepare for `out-of-repo` runs
 
 1. `.\build.cmd -pack` - to build all the nugets
-2. `dotnet build tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.csproj /t:InstallWorkloadUsingArtifacts /p:Configuration=<config>`
+2. `dotnet build tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.Tests.csproj /t:InstallWorkloadUsingArtifacts /p:Configuration=<config>`
     - this will install the sdk, and the `aspire` workload using the nugets from `artifacts/packages` into `artifacts/bin/dotnet-latest`
     - note: `artifacts/bin/dotnet-none` contains the sdk+aspire workload manifest but NO workload
 
