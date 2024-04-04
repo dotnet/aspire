@@ -6,7 +6,7 @@ using Microsoft.Extensions.Primitives;
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
-/// Options for service endpoint resolvers.
+/// Options for service endpoint resolution.
 /// </summary>
 public sealed class ServiceDiscoveryOptions
 {
@@ -20,7 +20,7 @@ public sealed class ServiceDiscoveryOptions
 #pragma warning restore IDE0300 // Simplify collection initialization
 
     /// <summary>
-    /// Gets or sets the period between polling attempts for resolvers which do not support refresh notifications via <see cref="IChangeToken.ActiveChangeCallbacks"/>.
+    /// Gets or sets the period between polling attempts for providers which do not support refresh notifications via <see cref="IChangeToken.ActiveChangeCallbacks"/>.
     /// </summary>
     public TimeSpan RefreshPeriod { get; set; } = TimeSpan.FromSeconds(60);
 

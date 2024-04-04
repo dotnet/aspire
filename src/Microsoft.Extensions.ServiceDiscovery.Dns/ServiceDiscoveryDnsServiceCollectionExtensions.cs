@@ -24,12 +24,12 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
     /// DNS SRV queries are able to provide port numbers for endpoints and can support multiple named endpoints per service.
     /// However, not all environment support DNS SRV queries, and in some environments, additional configuration may be required.
     /// </remarks>
-    public static IServiceCollection AddDnsSrvServiceEndPointResolver(this IServiceCollection services, Action<DnsSrvServiceEndPointResolverOptions>? configureOptions = null)
+    public static IServiceCollection AddDnsSrvServiceEndpointProvider(this IServiceCollection services, Action<DnsSrvServiceEndpointProviderOptions>? configureOptions = null)
     {
         services.AddServiceDiscoveryCore();
         services.TryAddSingleton<IDnsQuery, LookupClient>();
-        services.AddSingleton<IServiceEndPointProviderFactory, DnsSrvServiceEndPointResolverProvider>();
-        var options = services.AddOptions<DnsSrvServiceEndPointResolverOptions>();
+        services.AddSingleton<IServiceEndpointProviderFactory, DnsSrvServiceEndpointProviderFactory>();
+        var options = services.AddOptions<DnsSrvServiceEndpointProviderOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
         return services;
     }
@@ -43,11 +43,11 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
     /// <remarks>
     /// DNS A/AAAA queries are widely available but are not able to provide port numbers for endpoints and cannot support multiple named endpoints per service.
     /// </remarks>
-    public static IServiceCollection AddDnsServiceEndPointResolver(this IServiceCollection services, Action<DnsServiceEndPointResolverOptions>? configureOptions = null)
+    public static IServiceCollection AddDnsServiceEndpointProvider(this IServiceCollection services, Action<DnsServiceEndpointProviderOptions>? configureOptions = null)
     {
         services.AddServiceDiscoveryCore();
-        services.AddSingleton<IServiceEndPointProviderFactory, DnsServiceEndPointResolverProvider>();
-        var options = services.AddOptions<DnsServiceEndPointResolverOptions>();
+        services.AddSingleton<IServiceEndpointProviderFactory, DnsServiceEndpointProviderFactory>();
+        var options = services.AddOptions<DnsServiceEndpointProviderOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
         return services;
     }

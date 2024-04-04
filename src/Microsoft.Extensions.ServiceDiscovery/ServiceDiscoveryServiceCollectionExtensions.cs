@@ -26,8 +26,8 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     public static IServiceCollection AddServiceDiscovery(this IServiceCollection services)
     {
         return services.AddServiceDiscoveryCore()
-            .AddConfigurationServiceEndPointResolver()
-            .AddPassThroughServiceEndPointResolver();
+            .AddConfigurationServiceEndpointProvider()
+            .AddPassThroughServiceEndpointProvider();
     }
 
     /// <summary>
@@ -39,8 +39,8 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     public static IServiceCollection AddServiceDiscovery(this IServiceCollection services, Action<ServiceDiscoveryOptions>? configureOptions)
     {
         return services.AddServiceDiscoveryCore(configureOptions: configureOptions)
-            .AddConfigurationServiceEndPointResolver()
-            .AddPassThroughServiceEndPointResolver();
+            .AddConfigurationServiceEndpointProvider()
+            .AddPassThroughServiceEndpointProvider();
     }
 
     /// <summary>
@@ -62,10 +62,10 @@ public static class ServiceDiscoveryServiceCollectionExtensions
         services.AddLogging();
         services.TryAddTransient<IValidateOptions<ServiceDiscoveryOptions>, ServiceDiscoveryOptionsValidator>();
         services.TryAddSingleton(_ => TimeProvider.System);
-        services.TryAddTransient<IServiceEndPointSelector, RoundRobinServiceEndPointSelector>();
-        services.TryAddSingleton<ServiceEndPointWatcherFactory>();
+        services.TryAddTransient<IServiceEndpointSelector, RoundRobinServiceEndpointSelector>();
+        services.TryAddSingleton<ServiceEndpointWatcherFactory>();
         services.TryAddSingleton<IServiceDiscoveryHttpMessageHandlerFactory, ServiceDiscoveryHttpMessageHandlerFactory>();
-        services.TryAddSingleton(sp => new ServiceEndPointResolver(sp.GetRequiredService<ServiceEndPointWatcherFactory>(), sp.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton(sp => new ServiceEndpointResolver(sp.GetRequiredService<ServiceEndpointWatcherFactory>(), sp.GetRequiredService<TimeProvider>()));
         if (configureOptions is not null)
         {
             services.Configure(configureOptions);
@@ -75,26 +75,26 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Configures a service discovery endpoint resolver which uses <see cref="IConfiguration"/> to resolve endpoints.
+    /// Configures a service discovery endpoint provider which uses <see cref="IConfiguration"/> to resolve endpoints.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services)
+    public static IServiceCollection AddConfigurationServiceEndpointProvider(this IServiceCollection services)
     {
-        return services.AddConfigurationServiceEndPointResolver(configureOptions: null);
+        return services.AddConfigurationServiceEndpointProvider(configureOptions: null);
     }
 
     /// <summary>
-    /// Configures a service discovery endpoint resolver which uses <see cref="IConfiguration"/> to resolve endpoints.
+    /// Configures a service discovery endpoint provider which uses <see cref="IConfiguration"/> to resolve endpoints.
     /// </summary>
     /// <param name="configureOptions">The delegate used to configure the provider.</param>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services, Action<ConfigurationServiceEndPointResolverOptions>? configureOptions)
+    public static IServiceCollection AddConfigurationServiceEndpointProvider(this IServiceCollection services, Action<ConfigurationServiceEndpointProviderOptions>? configureOptions)
     {
         services.AddServiceDiscoveryCore();
-        services.AddSingleton<IServiceEndPointProviderFactory, ConfigurationServiceEndPointResolverProvider>();
-        services.AddTransient<IValidateOptions<ConfigurationServiceEndPointResolverOptions>, ConfigurationServiceEndPointResolverOptionsValidator>();
+        services.AddSingleton<IServiceEndpointProviderFactory, ConfigurationServiceEndpointProviderFactory>();
+        services.AddTransient<IValidateOptions<ConfigurationServiceEndpointProviderOptions>, ConfigurationServiceEndpointProviderOptionsValidator>();
         if (configureOptions is not null)
         {
             services.Configure(configureOptions);
@@ -104,14 +104,14 @@ public static class ServiceDiscoveryServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Configures a service discovery endpoint resolver which passes through the input without performing resolution.
+    /// Configures a service discovery endpoint provider which passes through the input without performing resolution.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddPassThroughServiceEndPointResolver(this IServiceCollection services)
+    public static IServiceCollection AddPassThroughServiceEndpointProvider(this IServiceCollection services)
     {
         services.AddServiceDiscoveryCore();
-        services.AddSingleton<IServiceEndPointProviderFactory, PassThroughServiceEndPointResolverProvider>();
+        services.AddSingleton<IServiceEndpointProviderFactory, PassThroughServiceEndpointProviderFactory>();
         return services;
     }
 }
