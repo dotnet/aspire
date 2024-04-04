@@ -277,6 +277,15 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     public async Task DumpComponentLogsAsync(TestResourceNames resource, ITestOutputHelper? testOutputArg = null)
     {
+        if (resource == TestResourceNames.None)
+        {
+            return;
+        }
+        if (resource == TestResourceNames.All || !Enum.IsDefined<TestResourceNames>(resource))
+        {
+            throw new ArgumentException($"Only one resource is supported at a time. resource: {resource}");
+        }
+
         string component = resource switch
         {
             TestResourceNames.cosmos => "cosmos",
