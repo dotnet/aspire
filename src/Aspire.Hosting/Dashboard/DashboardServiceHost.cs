@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -75,6 +76,29 @@ internal sealed class DashboardServiceHost : IHostedService
             // Configuration
             builder.Services.AddSingleton(configuration);
 
+            var resourceServiceConfigSection = configuration.GetSection("AppHost:ResourceService");
+            builder.Services.AddOptions<ResourceServiceOptions>()
+                .Bind(resourceServiceConfigSection)
+                .ValidateOnStart();
+            builder.Services.AddSingleton<IValidateOptions<ResourceServiceOptions>, ValidateResourceServiceOptions>();
+
+            // Configure authentication scheme for the dashboard service
+            builder.Services
+                .AddAuthentication()
+                .AddScheme<ResourceServiceApiKeyAuthenticationOptions, ResourceServiceApiKeyAuthenticationHandler>(
+                    ResourceServiceAuthenticationDefaults.AuthenticationScheme,
+                    options => { });
+
+            // Configure authorization policy for the dashboard service
+            builder.Services
+                .AddAuthorizationBuilder()
+                .AddPolicy(
+                    name: ResourceServiceAuthorization.PolicyName,
+                    policy: new AuthorizationPolicyBuilder(
+                        ResourceServiceAuthenticationDefaults.AuthenticationScheme)
+                        .RequireAssertion(_ => true)
+                        .Build());
+
             // Logging
             builder.Services.AddSingleton(loggerFactory);
             builder.Services.AddSingleton(loggerOptions);
@@ -90,6 +114,9 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.WebHost.ConfigureKestrel(ConfigureKestrel);
 
             _app = builder.Build();
+
+            _app.UseAuthentication();
+            _app.UseAuthorization();
 
             _app.MapGrpcService<DashboardService>();
         }

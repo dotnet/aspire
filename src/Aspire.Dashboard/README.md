@@ -76,6 +76,8 @@ The resource service client supports certificates. Set `Dashboard:ResourceServic
     - `Dashboard:ResourceServiceClient:ClientCertificate:Store` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
     - `Dashboard:ResourceServiceClient:ClientCertificate:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
 
+The resource service client supports API keys. Set `Dashboard:ResourceServiceClient:AuthMode` to `ApiKey` and set `Dashboard:ResourceServiceClient:ApiKey` to the required key.
+
 To opt-out of authentication, set `Dashboard:ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
 #### Telemetry Limits

@@ -37,6 +37,8 @@ namespace Aspire.Dashboard.Model;
 /// </remarks>
 internal sealed class DashboardClient : IDashboardClient
 {
+    private const string ApiKeyHeaderName = "x-resource-service-api-key";
+
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
     private readonly CancellationToken _clientCancellationToken;
@@ -59,6 +61,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     private readonly GrpcChannel? _channel;
     private readonly DashboardService.DashboardServiceClient? _client;
+    private readonly Metadata _headers = [];
 
     private Task? _connection;
 
@@ -88,6 +91,12 @@ internal sealed class DashboardClient : IDashboardClient
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
         _channel = CreateChannel();
+
+        if (_dashboardOptions.ResourceServiceClient.AuthMode is ResourceClientAuthMode.ApiKey)
+        {
+            // We're using an API key for auth, so set it in the headers we pass on each call.
+            _headers.Add(ApiKeyHeaderName, _dashboardOptions.ResourceServiceClient.ApiKey!);
+        }
 
         _client = new DashboardService.DashboardServiceClient(_channel);
 
@@ -226,7 +235,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 try
                 {
-                    var response = await _client!.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
+                    var response = await _client!.GetApplicationInformationAsync(new(), headers: _headers, cancellationToken: cancellationToken);
 
                     _applicationName = response.ApplicationName;
 
@@ -279,7 +288,7 @@ internal sealed class DashboardClient : IDashboardClient
 
                 async Task WatchResourcesAsync()
                 {
-                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
+                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
 
                     await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
                     {
@@ -437,6 +446,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
+            headers: _headers,
             cancellationToken: combinedTokens.Token);
 
         // Write incoming logs to a channel, and then read from that channel to yield the logs.
@@ -498,7 +508,7 @@ internal sealed class DashboardClient : IDashboardClient
         {
             using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
-            var response = await _client!.ExecuteResourceCommandAsync(request, cancellationToken: combinedTokens.Token);
+            var response = await _client!.ExecuteResourceCommandAsync(request, headers: _headers, cancellationToken: combinedTokens.Token);
 
             return response.ToViewModel();
         }

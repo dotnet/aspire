@@ -52,6 +52,9 @@ public class ApplicationExecutorTests
 
         Assert.Equal("ApiKey", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
         Assert.Equal("TestOtlpApiKey!", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName).Value);
+
+        Assert.Equal("ApiKey", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName).Value);
+        Assert.Equal("TestResourceServiceApiKey!", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.ResourceServiceClientApiKeyName.EnvVarName).Value);
     }
 
     [Fact]
@@ -77,6 +80,7 @@ public class ApplicationExecutorTests
 
         Assert.Equal("Unsecured", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
         Assert.Equal("Unsecured", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
+        Assert.Equal("Unsecured", dashboard.Spec.Env.Single(e => e.Name == DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName).Value);
     }
 
     [Fact]
@@ -112,6 +116,8 @@ public class ApplicationExecutorTests
             builder.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost",
+                ["AppHost:ResourceService:AuthMode"] = "ApiKey",
+                ["AppHost:ResourceService:ApiKey"] = "TestResourceServiceApiKey!",
                 ["AppHost:BrowserToken"] = "TestBrowserToken!",
                 ["AppHost:OtlpApiKey"] = "TestOtlpApiKey!"
             });

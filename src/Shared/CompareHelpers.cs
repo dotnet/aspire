@@ -11,7 +11,7 @@ namespace Aspire;
 internal static class CompareHelpers
 {
     // This method is used to compare two keys in a way that avoids timing attacks.
-    internal static bool CompareKey(byte[] expectedKeyBytes, string requestKey)
+    public static bool CompareKey(byte[] expectedKeyBytes, string requestKey)
     {
         const int StackAllocThreshold = 256;
 

@@ -857,9 +857,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             KeyValuePair.Create(DashboardConfigNames.DashboardFrontendUrlName.EnvVarName, dashboardUrls),
             KeyValuePair.Create(DashboardConfigNames.ResourceServiceUrlName.EnvVarName, resourceServiceUrl),
             KeyValuePair.Create(DashboardConfigNames.DashboardOtlpUrlName.EnvVarName, otlpEndpointUrl),
-            KeyValuePair.Create(DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName, "Unsecured"),
         };
 
+        // Configure frontend browser token
         if (configuration["AppHost:BrowserToken"] is { Length: > 0 } browserToken)
         {
             env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "BrowserToken"));
@@ -870,6 +870,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName, "Unsecured"));
         }
 
+        // Configure resource service API key
+        if (StringComparer.OrdinalIgnoreCase.Equals(configuration["AppHost:ResourceService:AuthMode"], nameof(ResourceServiceAuthMode.ApiKey))
+            && configuration["AppHost:ResourceService:ApiKey"] is { Length: > 0 } resourceServiceApiKey)
+        {
+            env.Add(KeyValuePair.Create(DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName, nameof(ResourceServiceAuthMode.ApiKey)));
+            env.Add(KeyValuePair.Create(DashboardConfigNames.ResourceServiceClientApiKeyName.EnvVarName, resourceServiceApiKey));
+        }
+        else
+        {
+            env.Add(KeyValuePair.Create(DashboardConfigNames.ResourceServiceClientAuthModeName.EnvVarName, nameof(ResourceServiceAuthMode.Unsecured)));
+        }
+
+        // Configure OTLP API key
         if (configuration["AppHost:OtlpApiKey"] is { Length: > 0 } otlpApiKey)
         {
             env.Add(KeyValuePair.Create(DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName, "ApiKey"));
