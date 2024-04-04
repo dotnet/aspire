@@ -38,6 +38,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             try
             {
                 var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
+                _testOutput.WriteLine($"response: {response.StatusCode}, {response.ReasonPhrase}, {response.Content}");
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 Assert.True(response.IsSuccessStatusCode, responseContent);
