@@ -13,8 +13,8 @@ param principalId string
 param principalType string
 
 
-resource eventHubsNamespace_skb4aVCrD 'Microsoft.EventHub/namespaces@2022-10-01-preview' = {
-  name: toLower(take(concat('eventhubns', uniqueString(resourceGroup().id)), 24))
+resource eventHubsNamespace_wORIGuvCQ 'Microsoft.EventHub/namespaces@2021-11-01' = {
+  name: toLower(take('eventhubns${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'eventhubns'
@@ -23,13 +23,12 @@ resource eventHubsNamespace_skb4aVCrD 'Microsoft.EventHub/namespaces@2022-10-01-
     name: sku
   }
   properties: {
-    minimumTlsVersion: '1.2'
   }
 }
 
-resource roleAssignment_cky0ZiKdq 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: eventHubsNamespace_skb4aVCrD
-  name: guid(eventHubsNamespace_skb4aVCrD.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
+resource roleAssignment_2so8CKuFt 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: eventHubsNamespace_wORIGuvCQ
+  name: guid(eventHubsNamespace_wORIGuvCQ.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec'))
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
     principalId: principalId
@@ -37,12 +36,12 @@ resource roleAssignment_cky0ZiKdq 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource eventHub_BTiIwkSy2 'Microsoft.EventHub/namespaces/eventhubs@2022-10-01-preview' = {
-  parent: eventHubsNamespace_skb4aVCrD
+resource eventHub_4BpPMTltx 'Microsoft.EventHub/namespaces/eventhubs@2021-11-01' = {
+  parent: eventHubsNamespace_wORIGuvCQ
   name: 'hub'
   location: location
   properties: {
   }
 }
 
-output eventHubsEndpoint string = eventHubsNamespace_skb4aVCrD.properties.serviceBusEndpoint
+output eventHubsEndpoint string = eventHubsNamespace_wORIGuvCQ.properties.serviceBusEndpoint
