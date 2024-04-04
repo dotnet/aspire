@@ -5,7 +5,10 @@ using System.Data.Common;
 
 namespace Aspire.Qdrant.Client;
 
-public sealed class QdrantSettings
+/// <summary>
+/// Provides the client configuration settings for connecting to a Qdrant server using QdrantClient.
+/// </summary>
+public sealed class QdrantClientSettings
 {
     private const string ConnectionStringEndpoint = "Endpoint";
     private const string ConnectionStringKey = "Key";

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Qdrant.Client;
 
 namespace Aspire.Qdrant.Client.Tests;
-public class ConformanceTests : ConformanceTests<QdrantClient, QdrantSettings>
+public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSettings>
 {
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -22,7 +22,7 @@ public class ConformanceTests : ConformanceTests<QdrantClient, QdrantSettings>
 
     protected override string ActivitySourceName => "";
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<QdrantSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<QdrantClientSettings>? configure = null, string? key = null)
     {
         if (key is null)
         {
@@ -45,11 +45,11 @@ public class ConformanceTests : ConformanceTests<QdrantClient, QdrantSettings>
     {
     }
 
-    protected override void SetHealthCheck(QdrantSettings options, bool enabled) => throw new NotImplementedException();
+    protected override void SetHealthCheck(QdrantClientSettings options, bool enabled) => throw new NotImplementedException();
 
-    protected override void SetTracing(QdrantSettings options, bool enabled) => throw new NotImplementedException();
+    protected override void SetTracing(QdrantClientSettings options, bool enabled) => throw new NotImplementedException();
 
-    protected override void SetMetrics(QdrantSettings options, bool enabled) => throw new NotImplementedException();
+    protected override void SetMetrics(QdrantClientSettings options, bool enabled) => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """
                                                  {

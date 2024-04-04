@@ -27,7 +27,8 @@
                   "type": "string",
                   "description": "The API Key of the Qdrant server to connect to."
                 }
-              }
+              },
+              "description": "Provides the client configuration settings for connecting to a Qdrant server using QdrantClient."
             }
           }
         }
