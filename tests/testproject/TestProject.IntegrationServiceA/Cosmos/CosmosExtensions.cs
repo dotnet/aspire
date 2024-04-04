@@ -19,7 +19,7 @@ public static class CosmosExtensions
         StringBuilder errorMessageBuilder = new();
         try
         {
-            ResiliencePipeline pipeline = TestUtils.GetDefaultResiliencePipelineBuilder<HttpRequestException>(args =>
+            ResiliencePipeline pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<HttpRequestException>(args =>
             {
                 errorMessageBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}Service retry #{args.AttemptNumber} due to {args.Outcome.Exception}");
                 return ValueTask.CompletedTask;

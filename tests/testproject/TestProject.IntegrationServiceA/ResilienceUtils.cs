@@ -6,7 +6,7 @@ using Polly.Retry;
 
 namespace Aspire.TestProject;
 
-public static class TestUtils
+public static class ResilienceUtils
 {
     public static ResiliencePipelineBuilder GetDefaultResiliencePipelineBuilder<TException>(Func<OnRetryArguments<object>, ValueTask> onRetry, int overallTimeoutSecs = 90) where TException : Exception
     {

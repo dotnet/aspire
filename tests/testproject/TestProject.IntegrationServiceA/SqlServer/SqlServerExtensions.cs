@@ -19,7 +19,7 @@ public static class SqlServerExtensions
         StringBuilder errorMessageBuilder = new();
         try
         {
-            ResiliencePipeline pipeline = TestUtils.GetDefaultResiliencePipelineBuilder<SqlException>(args =>
+            ResiliencePipeline pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<SqlException>(args =>
             {
                 errorMessageBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}Service retry #{args.AttemptNumber} due to {args.Outcome.Exception}");
                 return ValueTask.CompletedTask;

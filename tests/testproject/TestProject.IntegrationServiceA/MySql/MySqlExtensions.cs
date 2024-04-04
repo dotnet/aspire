@@ -19,7 +19,7 @@ public static class MySqlExtensions
         StringBuilder errorMessageBuilder = new();
         try
         {
-            ResiliencePipelineBuilder pipeline = TestUtils.GetDefaultResiliencePipelineBuilder<MySqlException>(args =>
+            ResiliencePipelineBuilder pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<MySqlException>(args =>
             {
                 errorMessageBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}Service retry #{args.AttemptNumber} due to {args.Outcome.Exception}");
                 return ValueTask.CompletedTask;
