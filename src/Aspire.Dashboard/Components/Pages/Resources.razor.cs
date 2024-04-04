@@ -227,6 +227,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         if (_elementIdBeforeDetailsViewOpened is not null)
         {
             await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
+            _elementIdBeforeDetailsViewOpened = null;
         }
     }
 

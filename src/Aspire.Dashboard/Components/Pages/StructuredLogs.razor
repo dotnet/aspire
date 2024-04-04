@@ -103,7 +103,7 @@
                             </TemplateColumn>
                             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
                                 @{
-                                    var id = $"details-button-{context.GetHashCode()}";
+                                    var id = $"details-button-{context.InternalId}";
                                 }
                                 <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                             </TemplateColumn>
