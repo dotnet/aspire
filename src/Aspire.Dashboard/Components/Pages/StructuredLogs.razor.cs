@@ -189,15 +189,16 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private async Task ClearSelectedLogEntryAsync()
+    private async Task ClearSelectedLogEntryAsync(bool causedByUserAction = false)
     {
         SelectedLogEntry = null;
 
-        if (_elementIdBeforeDetailsViewOpened is not null)
+        if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {
             await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
-            _elementIdBeforeDetailsViewOpened = null;
         }
+
+        _elementIdBeforeDetailsViewOpened = null;
     }
 
     private async Task OpenFilterAsync(LogFilter? entry)

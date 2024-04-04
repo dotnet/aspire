@@ -59,7 +59,7 @@
     </FluentToolbar>
     <SummaryDetailsView
         ShowDetails="SelectedLogEntry is not null"
-        OnDismiss="@ClearSelectedLogEntryAsync"
+        OnDismiss="@(() => ClearSelectedLogEntryAsync(causedByUserAction: true))"
         ViewKey="StructuredLogsList"
         SelectedValue="@SelectedLogEntry">
         <DetailsTitleTemplate>

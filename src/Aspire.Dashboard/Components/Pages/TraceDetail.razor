@@ -42,7 +42,7 @@
 
         <SummaryDetailsView
             ShowDetails="SelectedSpan is not null"
-            OnDismiss="@ClearSelectedSpanAsync"
+            OnDismiss="@(() => ClearSelectedSpanAsync(causedByUserAction: true))"
             ViewKey="TraceDetail"
             SelectedValue="@SelectedSpan">
             <DetailsTitleTemplate>

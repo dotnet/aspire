@@ -269,15 +269,16 @@ public partial class TraceDetail : ComponentBase
         }
     }
 
-    private async Task ClearSelectedSpanAsync()
+    private async Task ClearSelectedSpanAsync(bool causedByUserAction = false)
     {
         SelectedSpan = null;
 
-        if (_elementIdBeforeDetailsViewOpened is not null)
+        if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {
             await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
-            _elementIdBeforeDetailsViewOpened = null;
         }
+
+        _elementIdBeforeDetailsViewOpened = null;
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);

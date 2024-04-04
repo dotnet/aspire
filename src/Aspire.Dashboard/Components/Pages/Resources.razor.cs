@@ -220,15 +220,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private async Task ClearSelectedResourceAsync()
+    private async Task ClearSelectedResourceAsync(bool causedByUserAction = false)
     {
         SelectedResource = null;
 
-        if (_elementIdBeforeDetailsViewOpened is not null)
+        if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {
             await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
-            _elementIdBeforeDetailsViewOpened = null;
         }
+
+        _elementIdBeforeDetailsViewOpened = null;
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);

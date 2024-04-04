@@ -48,7 +48,7 @@
     </FluentToolbar>
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"
-                        OnDismiss="@ClearSelectedResourceAsync"
+                        OnDismiss="@(() => ClearSelectedResourceAsync(causedByUserAction: true))"
                         SelectedValue="@SelectedResource"
                         ViewKey="ResourcesList">
         <Summary>
