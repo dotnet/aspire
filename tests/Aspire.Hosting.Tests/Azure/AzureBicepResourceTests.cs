@@ -446,9 +446,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task AddApplicationInsightsWithoutExplicitLawGetsDefaultLawParameter()
+    public async Task AddApplicationInsightsWithoutExplicitLawGetsDefaultLawParameterInPublishMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var appInsights = builder.AddAzureApplicationInsights("appInsights");
 
@@ -504,6 +504,74 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             output appInsightsConnectionString string = applicationInsightsComponent_eYAu4rv7j.properties.ConnectionString
 
+            """;
+        output.WriteLine(appInsightsManifest.BicepText);
+        Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddApplicationInsightsWithoutExplicitLawGetsDefaultLawParameterInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var appInsights = builder.AddAzureApplicationInsights("appInsights");
+
+        appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
+
+        var connectionStringResource = (IResourceWithConnectionString)appInsights.Resource;
+
+        Assert.Equal("appInsights", appInsights.Resource.Name);
+        Assert.Equal("myinstrumentationkey", await connectionStringResource.GetConnectionStringAsync());
+        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression.ValueExpression);
+
+        var appInsightsManifest = await ManifestUtils.GetManifestWithBicep(appInsights.Resource);
+        var expectedManifest = """
+           {
+             "type": "azure.bicep.v0",
+             "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+             "path": "appInsights.module.bicep"
+           }
+           """;
+        Assert.Equal(expectedManifest, appInsightsManifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param applicationType string = 'web'
+
+            @description('')
+            param kind string = 'web'
+
+
+            resource applicationInsightsComponent_eYAu4rv7j 'Microsoft.Insights/components@2020-02-02' = {
+              name: toLower(take('appInsights${uniqueString(resourceGroup().id)}', 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'law-appInsights'
+              }
+              kind: kind
+              properties: {
+                Application_Type: applicationType
+                WorkspaceResourceId: operationalInsightsWorkspace_smwjw0Wga.id
+              }
+            }
+
+            resource operationalInsightsWorkspace_smwjw0Wga 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+              name: toLower(take('law-appInsights${uniqueString(resourceGroup().id)}', 24))
+              location: location
+              properties: {
+                sku: {
+                  name: 'PerGB2018'
+                }
+              }
+            }
+
+            output appInsightsConnectionString string = applicationInsightsComponent_eYAu4rv7j.properties.ConnectionString
+            
             """;
         output.WriteLine(appInsightsManifest.BicepText);
         Assert.Equal(expectedBicep, appInsightsManifest.BicepText);
