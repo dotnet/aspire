@@ -23,6 +23,7 @@ resource storageAccount_59pNEh4K4 'Microsoft.Storage/storageAccounts@2022-09-01'
   properties: {
     accessTier: 'Hot'
     networkAcls: {
+      bypass: 'AzureServices'
       defaultAction: 'Deny'
     }
   }
