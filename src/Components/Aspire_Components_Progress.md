@@ -29,6 +29,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | Pomelo.EntityFrameworkCore.MySql        |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
 | NATS.Net                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |                      |              ✅                  |
 | Seq                                     |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        N/A           |        N/A           |              ✅                  |
+| Qdrant.Client                           |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |                    |                   |                                |
 
 Nomenclature used in the table above:
 
