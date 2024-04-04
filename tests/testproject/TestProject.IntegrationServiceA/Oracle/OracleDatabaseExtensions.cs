@@ -20,7 +20,7 @@ public static class OracleDatabaseExtensions
         StringBuilder errorMessageBuilder = new();
         try
         {
-            ResiliencePipelineBuilder pipeline = TestUtils.GetDefaultResiliencePipelineBuilder<OracleException>(args =>
+            ResiliencePipelineBuilder pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<OracleException>(args =>
             {
                 errorMessageBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}Service retry #{args.AttemptNumber} due to {args.Outcome.Exception}");
                 return ValueTask.CompletedTask;
