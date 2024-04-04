@@ -55,13 +55,13 @@ public class ProjectResourceTests
             },
             env =>
             {
-                Assert.Equal("OTEL_RESOURCE_ATTRIBUTES", env.Key);
-                Assert.Equal("service.instance.id={{- .Name -}}", env.Value);
+                Assert.Equal("OTEL_EXPORTER_OTLP_PROTOCOL", env.Key);
+                Assert.Equal("grpc", env.Value);
             },
             env =>
             {
-                Assert.Equal("OTEL_EXPORTER_OTLP_PROTOCOL", env.Key);
-                Assert.Equal("grpc", env.Value);
+                Assert.Equal("OTEL_RESOURCE_ATTRIBUTES", env.Key);
+                Assert.Equal("service.instance.id={{- .Name -}}", env.Value);
             },
             env =>
             {
