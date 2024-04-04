@@ -7,7 +7,6 @@ using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
 using Grpc.Core;
-using Grpc.Net.Client;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
@@ -54,7 +53,7 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor().EndPoint}");
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
@@ -76,7 +75,7 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor().EndPoint}");
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -103,7 +102,7 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor().EndPoint}");
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -132,7 +131,7 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor().EndPoint}");
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -179,7 +178,7 @@ public class OtlpServiceTests
             tcs.TrySetResult();
         });
 
-        using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor().EndPoint}");
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -260,23 +259,15 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"https://{app.OtlpServiceEndPointAccessor().EndPoint}", new()
-        {
-            HttpHandler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
-                {
-                    return true;
-                }
-            }
-        });
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
         var ex = await Assert.ThrowsAsync<RpcException>(() => client.ExportAsync(new ExportLogsServiceRequest()).ResponseAsync);
 
         // Assert
-        Assert.Equal(StatusCode.Unavailable, ex.StatusCode);
+        // StatusCode can change depending upon order of execution inside HttpClient.
+        Assert.True(ex.StatusCode is StatusCode.Unavailable or StatusCode.Internal, "gRPC call fails without cert.");
     }
 
     [Fact]
@@ -297,21 +288,16 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = GrpcChannel.ForAddress($"https://{app.OtlpServiceEndPointAccessor().EndPoint}", new()
-        {
-            HttpHandler = new SocketsHttpHandler()
+        var clientCertificates = new X509CertificateCollection(new[] { TestCertificateLoader.GetTestCertificate("eku.client.pfx") });
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel(
+            $"https://{app.OtlpServiceEndPointAccessor().EndPoint}",
+            _testOutputHelper,
+            validationCallback: cert =>
             {
-                SslOptions =
-                {
-                    RemoteCertificateValidationCallback = (message, cert, chain, errors) =>
-                    {
-                        clientCallbackCert = (X509Certificate2)cert!;
-                        return true;
-                    },
-                    ClientCertificates = new X509CertificateCollection(new [] { TestCertificateLoader.GetTestCertificate("eku.client.pfx") })
-                }
-            }
-        });
+                clientCallbackCert = cert;
+            },
+            clientCertificates: clientCertificates);
+
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
