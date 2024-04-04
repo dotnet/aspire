@@ -1,6 +1,6 @@
 # Aspire.Qdrant.Client library
 
-Registers [QdrantClient](https://github.com/qdrant/qdrant-dotnet) in the DI container for connecting to a Qdrant server.
+Registers a [QdrantClient](https://github.com/qdrant/qdrant-dotnet) in the DI container for connecting to a Qdrant server.
 
 ## Getting started
 
@@ -13,15 +13,15 @@ Registers [QdrantClient](https://github.com/qdrant/qdrant-dotnet) in the DI cont
 Install the .NET Aspire Qdrant Client library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Qdrant
+dotnet add package Aspire.Qdrant.Client
 ```
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddQdrant` extension method to register a `QdrantClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddQdrantClient` extension method to register a `QdrantClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddQdrant("qdrant");
+builder.AddQdrantClient("qdrant");
 ```
 
 ## Configuration
@@ -30,10 +30,10 @@ The .NET Aspire Qdrant Client component provides multiple options to configure t
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddQdrant()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddQdrantClient()`:
 
 ```csharp
-builder.AddQdrant("qdrant");
+builder.AddQdrantClient("qdrant");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
@@ -50,7 +50,7 @@ By default the `QdrantClient` uses the gRPC API endpoint.
 
 ### Use configuration providers
 
-The .NET Aspire Qdrant Client component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `QdrantSettings` from configuration by using the `Aspire:Qdrant` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Qdrant Client component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `QdrantSettings` from configuration by using the `Aspire:Qdrant:Client` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -66,10 +66,10 @@ The .NET Aspire Qdrant Client component supports [Microsoft.Extensions.Configura
 
 ### Use inline delegates
 
-Also you can pass the `Action<QdrantSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
+Also you can pass the `Action<QdrantSettings> configureSettings` delegate to set up some or all the options inline, for example to set the API key from code:
 
 ```csharp
-builder.AddQdrant("qdrant", settings => settings.ApiKey = "12345!@#$%");
+builder.AddQdrantClient("qdrant", settings => settings.ApiKey = "12345!@#$%");
 ```
 
 ## AppHost extensions
@@ -89,10 +89,10 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(qdrant);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `qdrant`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `qdrant`. In the _Program.cs_ file of `MyService`, the Qdrant connection can be consumed using:
 
 ```csharp
-builder.AddQdant("qdrant");
+builder.AddQdrantClient("qdrant");
 ```
 
 ## Additional documentation

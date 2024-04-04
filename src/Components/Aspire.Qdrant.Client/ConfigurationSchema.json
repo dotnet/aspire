@@ -2,7 +2,7 @@
   "definitions": {
     "logLevel": {
       "properties": {
-        "Qdrant": {
+        "Qdrant.Client": {
           "$ref": "#/definitions/logLevelThreshold"
         }
       }
@@ -25,10 +25,9 @@
                 },
                 "Key": {
                   "type": "string",
-                  "description": "The API Key for the endpoint of the Qdrant server to connect to."
+                  "description": "The API Key of the Qdrant server to connect to."
                 }
-              },
-              "description": "Provides the client configuration settings for connecting to a Qdrant server using QdrantClient."
+              }
             }
           }
         }

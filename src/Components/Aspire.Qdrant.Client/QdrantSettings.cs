@@ -4,13 +4,14 @@
 using System.Data.Common;
 
 namespace Aspire.Qdrant.Client;
+
 public sealed class QdrantSettings
 {
     private const string ConnectionStringEndpoint = "Endpoint";
     private const string ConnectionStringKey = "Key";
 
     /// <summary>
-    /// The connection string of the Qdrant server to connect to.
+    /// The endpoint URI string of the Qdrant server to connect to.
     /// </summary>
     public Uri? Endpoint { get; set; }
 

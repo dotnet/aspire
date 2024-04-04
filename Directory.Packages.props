@@ -99,7 +99,7 @@
     <PackageVersion Include="Polly.Core" Version="8.3.0" />
     <PackageVersion Include="Polly.Extensions" Version="8.3.0" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.1" />
-    <PackageVersion Include="Qdrant.Client" Version="1.7.0" />
+    <PackageVersion Include="Qdrant.Client" Version="1.8.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="6.8.1" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.27" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />

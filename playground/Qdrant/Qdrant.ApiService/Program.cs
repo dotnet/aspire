@@ -9,16 +9,14 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
-builder.AddKeyedQdrantClient("qdrant");
+builder.AddQdrantClient("qdrant");
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
-var random = new Random();
-
-app.MapGet("/create", async ([FromKeyedServices("qdrant")] QdrantClient client) =>
+app.MapGet("/create", async (QdrantClient client, ILogger<Program> logger) =>
 {
     var collections = await client.ListCollectionsAsync();
     if (collections.Any(x => x.Contains("movie_collection")))
@@ -28,7 +26,7 @@ app.MapGet("/create", async ([FromKeyedServices("qdrant")] QdrantClient client) 
 
     await client.CreateCollectionAsync("movie_collection", new VectorParams { Size = 2, Distance = Distance.Cosine });
     var collectionInfo = await client.GetCollectionInfoAsync("movie_collection");
-    Console.WriteLine(collectionInfo.ToString());
+    logger.LogInformation(collectionInfo.ToString());
 
     // generate some vectors
     var data = new[]
@@ -84,7 +82,7 @@ app.MapGet("/create", async ([FromKeyedServices("qdrant")] QdrantClient client) 
     return updateResult.Status;
 });
 
-app.MapGet("/search", async ([FromKeyedServices("qdrant")] QdrantClient client) =>
+app.MapGet("/search", async (QdrantClient client) =>
 {
     var results = await client.SearchAsync("movie_collection", new[] { 0.12217915f, -0.034832448f }, limit: 3);
     return results.Select(titles => titles.Payload["title"].StringValue);

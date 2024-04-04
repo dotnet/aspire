@@ -3,8 +3,6 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-//var key = builder.AddParameter("QdrantApiKey", true);
-
 var qdrant = builder.AddQdrant("qdrant")
     .WithDataVolume("qdrant_data");
 

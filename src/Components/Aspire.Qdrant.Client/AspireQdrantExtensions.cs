@@ -14,8 +14,8 @@ public static class AspireQdrantExtensions
     private const string DefaultConfigSectionName = "Aspire:Qdrant:Client";
 
     /// <summary>
-    /// Registers <see cref="Qdrant.Client.QdrantClient" /> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// Configures logging and telemetry for the <see cref="Qdrant.Client.QdrantClient" />.
+    /// Registers <see cref="QdrantClient" /> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// Configures logging for the <see cref="QdrantClient" />.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
@@ -31,8 +31,8 @@ public static class AspireQdrantExtensions
     }
 
     /// <summary>
-    /// Registers <see cref="QdrantClient" /> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
-    /// Configures logging and telemetry for the <see cref="QdrantClient" />.
+    /// Registers <see cref="QdrantClient" /> as a keyed singleton for the given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
+    /// Configures logging for the <see cref="QdrantClient" />.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The connection name to use to find a connection string.</param>

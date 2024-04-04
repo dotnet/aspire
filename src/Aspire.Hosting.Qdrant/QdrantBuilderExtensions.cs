@@ -15,7 +15,7 @@ public static class QdrantBuilderExtensions
     private const int QdrantPortGrpc = 6334;
     private const int QdrantPortHttp = 6333;
     private const string ApiKeyEnvVarName = "QDRANT__SERVICE__API_KEY";
-    private const string DisableStaticContentEnvVarName = "QDRANT__SERVICE__ENABLE_STATIC_CONTENT";
+    private const string EnableStaticContentEnvVarName = "QDRANT__SERVICE__ENABLE_STATIC_CONTENT";
 
     /// <summary>
     /// Adds a Qdrant resource to the application. A container is used for local development.  
@@ -49,7 +49,7 @@ public static class QdrantBuilderExtensions
                 // https://github.com/qdrant/qdrant/blob/acb04d5f0d22b46a756b31c0fc507336a0451c15/src/settings.rs#L36-L40
                 if (builder.ExecutionContext.IsPublishMode)
                 {
-                    context.EnvironmentVariables[DisableStaticContentEnvVarName] = "0";
+                    context.EnvironmentVariables[EnableStaticContentEnvVarName] = "0";
                 }
             });
     }
