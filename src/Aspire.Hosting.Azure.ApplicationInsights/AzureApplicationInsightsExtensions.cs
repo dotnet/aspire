@@ -84,7 +84,7 @@ public static class AzureApplicationInsightsExtensions
             {
                 // ... otherwise if we are in run mode, the provisioner expects us to create one ourselves.
                 var autoInjectedLogAnalyticsWorkspace = new OperationalInsightsWorkspace(construct, name: $"law-{construct.Resource.Name}");
-                appInsights.Properties.Tags["aspire-resource-name"] = $"law-{construct.Resource.Name}";
+                autoInjectedLogAnalyticsWorkspace.Properties.Tags["aspire-resource-name"] = $"law-{construct.Resource.Name}";
                 autoInjectedLogAnalyticsWorkspace.AssignProperty(p => p.Sku.Name, "'PerGB2018'");
 
                 // If the user does not supply a log analytics workspace of their own we still create a parameter on the Aspire
