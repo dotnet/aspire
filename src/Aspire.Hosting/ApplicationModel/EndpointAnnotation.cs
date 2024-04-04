@@ -56,11 +56,6 @@ public sealed class EndpointAnnotation : IResourceAnnotation
 
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
-
-        if (TargetPort is int && Port is int && TargetPort == Port && IsProxied)
-        {
-            throw new ArgumentException($"When {nameof(isProxied)} is true, {nameof(targetPort)} must not be equal to {nameof(port)}.");
-        }
     }
 
     /// <summary>
