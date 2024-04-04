@@ -7,13 +7,13 @@ var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
 var resourcesToSkip = !string.IsNullOrEmpty(skipResourcesValue)
                         ? TestResourceNamesExtensions.Parse(skipResourcesValue.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                        : new HashSet<TestResourceNames>();
+                        : TestResourceNames.None;
 
-if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
+if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 {
     builder.AddSqlServerClient("tempdb");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.mysql))
+if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 {
     builder.AddMySqlDataSource("mysqldb", settings =>
     {
@@ -25,36 +25,36 @@ if (!resourcesToSkip.Contains(TestResourceNames.mysql))
         };
         settings.ConnectionString = connectionStringBuilder.ConnectionString;
     });
-    if (!resourcesToSkip.Contains(TestResourceNames.pomelo))
-    {
-        builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
-    }
 }
-if (!resourcesToSkip.Contains(TestResourceNames.redis))
+if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
+{
+    builder.AddMySqlDbContext<PomeloMySqlDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
+}
+if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     builder.AddRedisClient("redis");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.postgres))
+if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDataSource("postgresdb");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.efnpgsql))
+if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDbContext<NpgsqlDbContext>("postgresdb");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
+if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
 {
     builder.AddRabbitMQClient("rabbitmq");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.mongodb))
+if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     builder.AddMongoDBClient("mymongodb");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.oracledatabase))
+if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
     builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
 }
-if (!resourcesToSkip.Contains(TestResourceNames.kafka))
+if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 {
     builder.AddKafkaProducer<string, string>("kafka");
     builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
@@ -64,10 +64,14 @@ if (!resourcesToSkip.Contains(TestResourceNames.kafka))
     });
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
+if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     builder.AddAzureCosmosDBClient("cosmos");
 }
+
+// Ensure healthChecks are added. Some components like Cosmos
+// don't add this
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -77,56 +81,56 @@ app.MapGet("/", () => "Hello World!");
 
 app.MapGet("/pid", () => Environment.ProcessId);
 
-if (!resourcesToSkip.Contains(TestResourceNames.redis))
+if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     app.MapRedisApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.mongodb))
+if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     app.MapMongoDBApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.mysql))
+if (!resourcesToSkip.HasFlag(TestResourceNames.mysql))
 {
     app.MapMySqlApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.pomelo))
+if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 {
     app.MapPomeloEFCoreMySqlApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.postgres))
+if (!resourcesToSkip.HasFlag(TestResourceNames.postgres))
 {
     app.MapPostgresApi();
 }
-if (!resourcesToSkip.Contains(TestResourceNames.efnpgsql))
+if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     app.MapNpgsqlEFCoreApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.sqlserver))
+if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 {
     app.MapSqlServerApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.rabbitmq))
+if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
 {
     app.MapRabbitMQApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.oracledatabase))
+if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
     app.MapOracleDatabaseApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.kafka))
+if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 {
     app.MapKafkaApi();
 }
 
-if (!resourcesToSkip.Contains(TestResourceNames.cosmos))
+if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
 }
