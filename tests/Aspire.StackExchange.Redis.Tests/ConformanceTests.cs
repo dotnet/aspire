@@ -39,7 +39,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
                 "ConfigurationOptions": {
                   "CheckCertificateRevocation": true,
                   "ConnectTimeout": 5,
-                  "HeartbeatInterval": "PT5S",
+                  "HeartbeatInterval": "00:00:02",
                   "Ssl" : true,
                   "SslProtocols" : "Tls11"
                 }
@@ -54,7 +54,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
             ("""{"Aspire": { "StackExchange": { "Redis":{ "ConfigurationOptions": "YOUR_OPTION"}}}}""", "Value is \"string\" but should be \"object\""),
             ("""{"Aspire": { "StackExchange": { "Redis":{ "ConfigurationOptions": { "Proxy": "Fast"}}}}}""", "Value should match one of the values specified by the enum"),
             ("""{"Aspire": { "StackExchange": { "Redis":{ "ConfigurationOptions": { "SslProtocols": "Fast"}}}}}""", "Value should match one of the values specified by the enum"),
-            ("""{"Aspire": { "StackExchange": { "Redis":{ "ConfigurationOptions": { "HeartbeatInterval": "3S"}}}}}""", "Value does not match format \"duration\"")
+            ("""{"Aspire": { "StackExchange": { "Redis":{ "ConfigurationOptions": { "HeartbeatInterval": "3S"}}}}}""", "The string value is not a match for the indicated regular expression")
         };
 
     public ConformanceTests(RedisContainerFixture containerFixture)
