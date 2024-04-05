@@ -419,3 +419,10 @@ window.getBrowserTimeZone = function () {
 
     return options.timeZone;
 }
+
+window.focusElement = function(selector) {
+    const element = document.getElementById(selector);
+    if (element) {
+        element.focus();
+    }
+}

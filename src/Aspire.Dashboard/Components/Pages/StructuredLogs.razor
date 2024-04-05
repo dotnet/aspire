@@ -24,7 +24,7 @@
                         @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
         <FluentSearch @bind-Value="PageViewModel.Filter"
                       @oninput="HandleFilter"
-                      @bind-Value:after="HandleClear"
+                      @bind-Value:after="HandleClearAsync"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageFilter)]"
                       slot="end" />
@@ -60,7 +60,7 @@
     </FluentToolbar>
     <SummaryDetailsView
         ShowDetails="SelectedLogEntry is not null"
-        OnDismiss="() => ClearSelectedLogEntry()"
+        OnDismiss="@(() => ClearSelectedLogEntryAsync(causedByUserAction: true))"
         ViewKey="StructuredLogsList"
         SelectedValue="@SelectedLogEntry">
         <DetailsTitleTemplate>
@@ -103,7 +103,10 @@
                                 }
                             </TemplateColumn>
                             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
-                                <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                @{
+                                    var id = $"details-button-{context.InternalId}";
+                                }
+                                <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                             </TemplateColumn>
                         </ChildContent>
                         <EmptyContent>
