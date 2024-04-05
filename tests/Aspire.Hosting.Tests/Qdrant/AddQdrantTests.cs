@@ -12,8 +12,8 @@ namespace Aspire.Hosting.Tests.Qdrant;
 
 public class AddQdrantTests
 {
-    private const int QdrantPortHttp = 6334;
-    private const int QdrantPortDashboard = 6333;
+    private const int QdrantPortGrpc = 6334;
+    private const int QdrantPortHttp = 6333;
 
     [Fact]
     public async Task AddQdrantWithDefaultsAddsAnnotationMetadata()
@@ -34,11 +34,11 @@ public class AddQdrantTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
-            .FirstOrDefault(e => e.Name == "http");
+            .FirstOrDefault(e => e.Name == "grpc");
         Assert.NotNull(endpoint);
-        Assert.Equal(QdrantPortHttp, endpoint.TargetPort);
+        Assert.Equal(QdrantPortGrpc, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
-        Assert.Equal("http", endpoint.Name);
+        Assert.Equal("grpc", endpoint.Name);
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("http", endpoint.Transport);
@@ -73,12 +73,12 @@ public class AddQdrantTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
-            .FirstOrDefault(e => e.Name == "rest");
+            .FirstOrDefault(e => e.Name == "http");
 
         Assert.NotNull(endpoint);
-        Assert.Equal(QdrantPortDashboard, endpoint.TargetPort);
+        Assert.Equal(QdrantPortHttp, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
-        Assert.Equal("rest", endpoint.Name);
+        Assert.Equal("http", endpoint.Name);
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("http", endpoint.Transport);
@@ -107,11 +107,11 @@ public class AddQdrantTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
-            .FirstOrDefault(e => e.Name == "http");
+            .FirstOrDefault(e => e.Name == "grpc");
         Assert.NotNull(endpoint);
-        Assert.Equal(QdrantPortHttp, endpoint.TargetPort);
+        Assert.Equal(QdrantPortGrpc, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
-        Assert.Equal("http", endpoint.Name);
+        Assert.Equal("grpc", endpoint.Name);
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("http", endpoint.Transport);
@@ -136,7 +136,7 @@ public class AddQdrantTests
         var pass = appBuilder.AddParameter("pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
-                                 .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334));
+                                 .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334));
 
         var connectionStringResource = qdrant.Resource as IResourceWithConnectionString;
 
@@ -154,8 +154,8 @@ public class AddQdrantTests
         var pass = appBuilder.AddParameter("pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
-            .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334))
-            .WithEndpoint("rest", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333));
+            .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334))
+            .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333));
 
         var projectA = appBuilder.AddProject<ProjectA>("projecta")
             .WithReference(qdrant);
@@ -167,7 +167,7 @@ public class AddQdrantTests
         Assert.Equal(2, servicesKeysCount);
 
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-qdrant" && kvp.Value == "Endpoint=http://localhost:6334;Key=pass");
-        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-qdrant_rest" && kvp.Value == "Endpoint=http://localhost:6333;Key=pass");
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-qdrant_http" && kvp.Value == "Endpoint=http://localhost:6333;Key=pass");
     }
 
     [Fact]
@@ -181,20 +181,20 @@ public class AddQdrantTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Endpoint={qdrant.bindings.http.scheme}://{qdrant.bindings.http.host}:{qdrant.bindings.http.port};Key={qdrant-Key.value}",
+              "connectionString": "Endpoint={qdrant.bindings.grpc.scheme}://{qdrant.bindings.grpc.host}:{qdrant.bindings.grpc.port};Key={qdrant-Key.value}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{qdrant-Key.value}",
                 "QDRANT__SERVICE__ENABLE_STATIC_CONTENT": "0"
               },
               "bindings": {
-                "http": {
+                "grpc": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
                   "targetPort": 6334
                 },
-                "rest": {
+                "http": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
@@ -219,20 +219,20 @@ public class AddQdrantTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Endpoint={qdrant.bindings.http.scheme}://{qdrant.bindings.http.host}:{qdrant.bindings.http.port};Key={QdrantApiKey.value}",
+              "connectionString": "Endpoint={qdrant.bindings.grpc.scheme}://{qdrant.bindings.grpc.host}:{qdrant.bindings.grpc.port};Key={QdrantApiKey.value}",
               "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{QdrantApiKey.value}",
                 "QDRANT__SERVICE__ENABLE_STATIC_CONTENT": "0"
               },
               "bindings": {
-                "http": {
+                "grpc": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
                   "targetPort": 6334
                 },
-                "rest": {
+                "http": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
@@ -242,6 +242,39 @@ public class AddQdrantTests
             }
             """;
         Assert.Equal(expectedManifest, serverManifest.ToString());
+    }
+
+    [Fact]
+    public void AddQdrantWithSpecifyingPorts()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var qdrant = builder.AddQdrant("my-qdrant", grpcPort: 5503, httpPort: 5504);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var qdrantResource = Assert.Single(appModel.Resources.OfType<QdrantServerResource>());
+        Assert.Equal("my-qdrant", qdrantResource.Name);
+
+        Assert.Equal(2, qdrantResource.Annotations.OfType<EndpointAnnotation>().Count());
+
+        var grpcEndpoint = qdrantResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "grpc");
+        Assert.Equal(6334, grpcEndpoint.TargetPort);
+        Assert.False(grpcEndpoint.IsExternal);
+        Assert.Equal(5503, grpcEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, grpcEndpoint.Protocol);
+        Assert.Equal("http", grpcEndpoint.Transport);
+        Assert.Equal("http", grpcEndpoint.UriScheme);
+
+        var httpEndpoint = qdrantResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "http");
+        Assert.Equal(6333, httpEndpoint.TargetPort);
+        Assert.False(httpEndpoint.IsExternal);
+        Assert.Equal(5504, httpEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, httpEndpoint.Protocol);
+        Assert.Equal("http", httpEndpoint.Transport);
+        Assert.Equal("http", httpEndpoint.UriScheme);
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<AddQdrantTests>(args);
