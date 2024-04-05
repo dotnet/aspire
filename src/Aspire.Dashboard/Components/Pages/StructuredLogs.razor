@@ -34,6 +34,7 @@
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
+                          Position="SelectPosition.Below"
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="PageViewModel.SelectedLogLevel"
                           @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
@@ -64,7 +65,7 @@
         SelectedValue="@SelectedLogEntry">
         <DetailsTitleTemplate>
             @{
-                var eventName = OtlpHelpers.GetValue(SelectedLogEntry!.LogEntry.Attributes, "event.name") 
+                var eventName = OtlpHelpers.GetValue(SelectedLogEntry!.LogEntry.Attributes, "event.name")
                     ?? OtlpHelpers.GetValue(SelectedLogEntry.LogEntry.Attributes, "logrecord.event.name")
                     ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
             }
