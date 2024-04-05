@@ -27,13 +27,13 @@ public static class QdrantBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
     /// <param name="apiKey">The parameter used to provide the API Key for the Qdrant resource. If <see langword="null"/> a random key will be generated as {name}-Key.</param>
-    /// <param name="gRpcPort">The host port of gRPC endpoint of Qdrant database.</param>
+    /// <param name="grpcPort">The host port of gRPC endpoint of Qdrant database.</param>
     /// <param name="httpPort">The host port of REST endpoint of Qdrant database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{QdrantServerResource}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> AddQdrant(this IDistributedApplicationBuilder builder,
         string name,
         IResourceBuilder<ParameterResource>? apiKey = null,
-        int? gRpcPort = null,
+        int? grpcPort = null,
         int? httpPort = null)
     {
         var apiKeyParameter = apiKey?.Resource ??
@@ -41,7 +41,7 @@ public static class QdrantBuilderExtensions
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
-            .WithHttpEndpoint(port: gRpcPort, targetPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
+            .WithHttpEndpoint(port: grpcPort, targetPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
             .WithHttpEndpoint(port: httpPort, targetPort: QdrantPortHttp, name: QdrantServerResource.RestEndpointName)
             .WithEnvironment(context =>
             {

@@ -3,7 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var qdrant = builder.AddQdrant("qdrant", httpPort:5503)
+var qdrant = builder.AddQdrant("qdrant")
     .WithDataVolume("qdrant_data");
 
 builder.AddProject<Projects.Qdrant_ApiService>("apiservice")
