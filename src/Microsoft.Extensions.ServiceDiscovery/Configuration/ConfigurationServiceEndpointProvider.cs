@@ -139,7 +139,7 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
         var minIndex = _schemes.Length;
         foreach (var ep in resolved)
         {
-            if (ep.Endpoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
+            if (ep.EndPoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
             {
                 var index = Array.IndexOf(_schemes, scheme);
                 if (index >= 0 && index < minIndex)
@@ -152,7 +152,7 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
         var added = 0;
         foreach (var ep in resolved)
         {
-            if (ep.Endpoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
+            if (ep.EndPoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
             {
                 var index = Array.IndexOf(_schemes, scheme);
                 if (index >= 0 && index <= minIndex)
@@ -185,44 +185,44 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
     private void AddEndpoint(List<ServiceEndpoint> endpoints, IConfigurationSection section, string endpointName)
     {
         var value = section.Value;
-        if (string.IsNullOrWhiteSpace(value) || !TryParseEndpoint(value, out var endpoint))
+        if (string.IsNullOrWhiteSpace(value) || !TryParseEndPoint(value, out var endPoint))
         {
             throw new KeyNotFoundException($"The endpoint configuration section for service '{_serviceName}' endpoint '{endpointName}' has an invalid value with key '{section.Key}'.");
         }
 
-        endpoints.Add(CreateEndpoint(endpoint));
+        endpoints.Add(CreateEndpoint(endPoint));
     }
 
-    private static bool TryParseEndpoint(string value, [NotNullWhen(true)] out EndPoint? endpoint)
+    private static bool TryParseEndPoint(string value, [NotNullWhen(true)] out EndPoint? endPoint)
     {
         if (value.IndexOf("://") < 0 && Uri.TryCreate($"fakescheme://{value}", default, out var uri))
         {
             var port = uri.Port > 0 ? uri.Port : 0;
             if (IPAddress.TryParse(uri.Host, out var ip))
             {
-                endpoint = new IPEndPoint(ip, port);
+                endPoint = new IPEndPoint(ip, port);
             }
             else
             {
-                endpoint = new DnsEndPoint(uri.Host, port);
+                endPoint = new DnsEndPoint(uri.Host, port);
             }
         }
         else if (Uri.TryCreate(value, default, out uri))
         {
-            endpoint = new UriEndPoint(uri);
+            endPoint = new UriEndPoint(uri);
         }
         else
         {
-            endpoint = null;
+            endPoint = null;
             return false;
         }
 
         return true;
     }
 
-    private ServiceEndpoint CreateEndpoint(EndPoint endpoint)
+    private ServiceEndpoint CreateEndpoint(EndPoint endPoint)
     {
-        var serviceEndpoint = ServiceEndpoint.Create(endpoint);
+        var serviceEndpoint = ServiceEndpoint.Create(endPoint);
         serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
         if (_options.Value.ShouldApplyHostNameMetadata(serviceEndpoint))
         {

@@ -112,7 +112,7 @@ public class ServiceEndpointResolverTests
             var initialResult = await watcher.GetEndpointsAsync(CancellationToken.None).ConfigureAwait(false);
             Assert.NotNull(initialResult);
             var sep = Assert.Single(initialResult.Endpoints);
-            var ip = Assert.IsType<IPEndPoint>(sep.Endpoint);
+            var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
             Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
             Assert.Equal(8080, ip.Port);
 
@@ -125,7 +125,7 @@ public class ServiceEndpointResolverTests
             Assert.NotNull(resolverResult);
             Assert.True(resolverResult.ResolvedSuccessfully);
             Assert.Equal(2, resolverResult.EndpointSource.Endpoints.Count);
-            var endpoints = resolverResult.EndpointSource.Endpoints.Select(ep => ep.Endpoint).OfType<IPEndPoint>().ToList();
+            var endpoints = resolverResult.EndpointSource.Endpoints.Select(ep => ep.EndPoint).OfType<IPEndPoint>().ToList();
             endpoints.Sort((l, r) => l.Port - r.Port);
             Assert.Equal(new IPEndPoint(IPAddress.Parse("127.1.1.1"), 8080), endpoints[0]);
             Assert.Equal(new IPEndPoint(IPAddress.Parse("127.1.1.2"), 8888), endpoints[1]);
@@ -161,7 +161,7 @@ public class ServiceEndpointResolverTests
         var initialResult = await resolver.GetEndpointsAsync("http://basket", CancellationToken.None).ConfigureAwait(false);
         Assert.NotNull(initialResult);
         var sep = Assert.Single(initialResult.Endpoints);
-        var ip = Assert.IsType<IPEndPoint>(sep.Endpoint);
+        var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
         Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
         Assert.Equal(8080, ip.Port);
 
@@ -198,7 +198,7 @@ public class ServiceEndpointResolverTests
         var httpRequest = new HttpRequestMessage(HttpMethod.Get, "http://basket");
         var endpoint = await resolver.GetEndpointAsync(httpRequest, CancellationToken.None).ConfigureAwait(false);
         Assert.NotNull(endpoint);
-        var ip = Assert.IsType<IPEndPoint>(endpoint.Endpoint);
+        var ip = Assert.IsType<IPEndPoint>(endpoint.EndPoint);
         Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
         Assert.Equal(8080, ip.Port);
 
@@ -282,7 +282,7 @@ public class ServiceEndpointResolverTests
             var result = await task.ConfigureAwait(false);
             Assert.NotSame(initialEndpoints, result);
             var sep = Assert.Single(result.Endpoints);
-            var ip = Assert.IsType<IPEndPoint>(sep.Endpoint);
+            var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
             Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
             Assert.Equal(8080, ip.Port);
         }

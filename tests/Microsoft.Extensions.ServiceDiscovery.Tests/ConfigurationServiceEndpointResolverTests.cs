@@ -41,7 +41,7 @@ public class ConfigurationServiceEndpointResolverTests
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             var ep = Assert.Single(initialResult.EndpointSource.Endpoints);
-            Assert.Equal(new DnsEndPoint("localhost", 8080), ep.Endpoint);
+            Assert.Equal(new DnsEndPoint("localhost", 8080), ep.EndPoint);
 
             Assert.All(initialResult.EndpointSource.Endpoints, ep =>
             {
@@ -99,7 +99,7 @@ public class ConfigurationServiceEndpointResolverTests
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             var ep = Assert.Single(initialResult.EndpointSource.Endpoints);
-            Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.Endpoint);
+            Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
         }
 
         // Specifying either https or http, but in reverse.
@@ -114,7 +114,7 @@ public class ConfigurationServiceEndpointResolverTests
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             var ep = Assert.Single(initialResult.EndpointSource.Endpoints);
-            Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.Endpoint);
+            Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
         }
     }
 
@@ -147,8 +147,8 @@ public class ConfigurationServiceEndpointResolverTests
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(2, initialResult.EndpointSource.Endpoints.Count);
-            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndpointSource.Endpoints[0].Endpoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndpointSource.Endpoints[1].Endpoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndpointSource.Endpoints[1].EndPoint);
 
             Assert.All(initialResult.EndpointSource.Endpoints, ep =>
             {
@@ -169,8 +169,8 @@ public class ConfigurationServiceEndpointResolverTests
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(2, initialResult.EndpointSource.Endpoints.Count);
-            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndpointSource.Endpoints[0].Endpoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndpointSource.Endpoints[1].Endpoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:9090")), initialResult.EndpointSource.Endpoints[1].EndPoint);
 
             Assert.All(initialResult.EndpointSource.Endpoints, ep =>
             {
@@ -214,9 +214,9 @@ public class ConfigurationServiceEndpointResolverTests
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(3, initialResult.EndpointSource.Endpoints.Count);
-            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndpointSource.Endpoints[0].Endpoint);
-            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndpointSource.Endpoints[1].Endpoint);
-            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:4444")), initialResult.EndpointSource.Endpoints[2].Endpoint);
+            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndpointSource.Endpoints[0].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndpointSource.Endpoints[1].EndPoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://remotehost:4444")), initialResult.EndpointSource.Endpoints[2].EndPoint);
 
             Assert.All(initialResult.EndpointSource.Endpoints, ep =>
             {
@@ -261,11 +261,11 @@ public class ConfigurationServiceEndpointResolverTests
             Assert.Equal(3, initialResult.EndpointSource.Endpoints.Count);
 
             // These must be treated as HTTPS by the HttpClient middleware, but that is not the responsibility of the resolver.
-            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndpointSource.Endpoints[0].Endpoint);
-            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndpointSource.Endpoints[1].Endpoint);
+            Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndpointSource.Endpoints[0].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.Loopback, 3333), initialResult.EndpointSource.Endpoints[1].EndPoint);
 
             // We expect the HTTPS endpoint back but not the HTTP one.
-            Assert.Equal(new UriEndPoint(new Uri("https://remotehost:5555")), initialResult.EndpointSource.Endpoints[2].Endpoint);
+            Assert.Equal(new UriEndPoint(new Uri("https://remotehost:5555")), initialResult.EndpointSource.Endpoints[2].EndPoint);
 
             Assert.All(initialResult.EndpointSource.Endpoints, ep =>
             {
