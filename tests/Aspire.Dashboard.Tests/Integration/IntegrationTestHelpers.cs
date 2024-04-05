@@ -76,7 +76,12 @@ public static class IntegrationTestHelpers
         return dashboardWebApplication;
     }
 
-    public static GrpcChannel CreateGrpcChannel(string address, ITestOutputHelper testOutputHelper, Action<X509Certificate2?>? validationCallback = null, int? retryCount = null)
+    public static GrpcChannel CreateGrpcChannel(
+        string address,
+        ITestOutputHelper testOutputHelper,
+        Action<X509Certificate2?>? validationCallback = null,
+        int? retryCount = null,
+        X509CertificateCollection? clientCertificates = null)
     {
         ServiceConfig? serviceConfig = null;
         if (retryCount > 0)
@@ -103,16 +108,25 @@ public static class IntegrationTestHelpers
             builder.SetMinimumLevel(LogLevel.Trace);
         });
 
-        var channel = GrpcChannel.ForAddress(address, new()
+        var handler = new SocketsHttpHandler
         {
-            HttpHandler = new HttpClientHandler
+            SslOptions =
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                RemoteCertificateValidationCallback = (message, cert, chain, errors) =>
                 {
-                    validationCallback?.Invoke(cert);
+                    validationCallback?.Invoke((X509Certificate2)cert!);
                     return true;
                 }
-            },
+            }
+        };
+        if (clientCertificates != null)
+        {
+            handler.SslOptions.ClientCertificates = clientCertificates;
+        }
+
+        var channel = GrpcChannel.ForAddress(address, new()
+        {
+            HttpHandler = handler,
             LoggerFactory = loggerFactory,
             ServiceConfig = serviceConfig
         });
