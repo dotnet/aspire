@@ -284,7 +284,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     (_, _, int target, _) => target,
 
                     // Container resources get their default listening port from the exposed port.
-                    (ContainerResource, _, _, int port) => port,
+                    (ContainerResource, _, null, int port) => port,
 
                     // Project resources get their default listening port from the deployment tool
                     // ideally we would default to a known port but we don't know it at this point
