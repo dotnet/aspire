@@ -551,7 +551,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               name: toLower(take('appInsights${uniqueString(resourceGroup().id)}', 24))
               location: location
               tags: {
-                'aspire-resource-name': 'law-appInsights'
+                'aspire-resource-name': 'appInsights'
               }
               kind: kind
               properties: {
@@ -563,6 +563,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             resource operationalInsightsWorkspace_smwjw0Wga 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
               name: toLower(take('law-appInsights${uniqueString(resourceGroup().id)}', 24))
               location: location
+              tags: {
+                'aspire-resource-name': 'law-appInsights'
+              }
               properties: {
                 sku: {
                   name: 'PerGB2018'
