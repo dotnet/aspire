@@ -7,6 +7,7 @@ using System.Web;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
 using Xunit.Abstractions;
@@ -154,9 +155,9 @@ public class FrontendAuthTests
             },
             w =>
             {
-                Assert.Equal("Login to the dashboard at {DashboardUrl}", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal("Login to the dashboard at {DashboardLoginUrl}", GetValue(w.State, "{OriginalFormat}"));
 
-                var uri = new Uri((string)GetValue(w.State, "DashboardUrl")!, UriKind.Absolute);
+                var uri = new Uri((string)GetValue(w.State, "DashboardLoginUrl")!, UriKind.Absolute);
                 var queryString = HttpUtility.ParseQueryString(uri.Query);
                 Assert.NotNull(queryString["t"]);
             },
@@ -166,6 +167,11 @@ public class FrontendAuthTests
 
                 var uri = new Uri((string)GetValue(w.State, "OtlpEndpointUri")!);
                 Assert.NotEqual(0, uri.Port);
+            },
+            w =>
+            {
+                Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
 
         object? GetValue(object? values, string key)

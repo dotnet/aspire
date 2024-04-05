@@ -42,6 +42,21 @@
         <target state="translated">Recargar</target>
         <note />
       </trans-unit>
+      <trans-unit id="MessageTelemetryBody">
+        <source>Untrusted apps can send telemetry to the dashboard.</source>
+        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageTelemetryLink">
+        <source>More information</source>
+        <target state="new">More information</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageTelemetryTitle">
+        <source>Telemetry endpoint is unsecured</source>
+        <target state="new">Telemetry endpoint is unsecured</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
         <source>Console</source>
         <target state="translated">Consola</target>
