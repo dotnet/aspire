@@ -204,6 +204,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
             }
 
+            CheckForUrlConflict();
+
             var application = new DistributedApplication(_innerBuilder.Build());
             LogAppBuilt(application);
             return application;
@@ -298,5 +300,32 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         T value)
     {
         diagnosticSource.Write(name, value);
+    }
+
+    private void CheckForUrlConflict()
+    {
+        foreach(IResource resource in Resources)
+        {
+            foreach(IResourceAnnotation annotation in resource.Annotations)
+            {
+                if (annotation is IProjectMetadata project)
+                {
+                    LaunchProfile? httpProfile = null;
+                    project.LaunchSettings?.Profiles?.TryGetValue("http", out httpProfile);
+                    if (httpProfile != null)
+                    {
+                        string? otlpEndpoint = null;
+                        httpProfile.EnvironmentVariables?.TryGetValue("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", out otlpEndpoint);
+                        if (otlpEndpoint != null)
+                        {
+                            if (httpProfile.ApplicationUrl == otlpEndpoint)
+                            {
+                                throw new DistributedApplicationException($"ApplicationUrl and DOTNET_DASHBOARD_OTLP_ENDPOINT_URL are both set to {httpProfile.ApplicationUrl}.");
+                            }            
+                        }
+                    }
+                }
+            }
+        }
     }
 }

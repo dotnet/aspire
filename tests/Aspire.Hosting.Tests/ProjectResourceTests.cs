@@ -288,6 +288,14 @@ public class ProjectResourceTests
 
         Assert.Equal(expectedManifest, manifest.ToString());
     }
+    
+    [Fact]
+    public void TestProjectWithSamePortNoHttps()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var project = appBuilder.AddProject<SameUrlProject>("samePortProject");
+        Assert.Throws<DistributedApplicationException>(appBuilder.Build);
+    }
 
     private static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
@@ -331,6 +339,29 @@ public class ProjectResourceTests
                         EnvironmentVariables = new()
                         {
                             ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                        }
+                    }
+                }
+            };
+    }
+
+    private sealed class SameUrlProject : IProjectMetadata
+    {
+        public string ProjectPath => "/same-port-path";
+
+        public LaunchSettings LaunchSettings { get; } = 
+            new LaunchSettings
+            {
+                Profiles = new()
+                {
+                    ["http"] = new()
+                    {
+                        CommandName = "SamePortProject",
+                        LaunchBrowser = true,
+                        ApplicationUrl = "http://127.0.0.1:9050",
+                        EnvironmentVariables = new()
+                        {
+                            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:9050"
                         }
                     }
                 }
