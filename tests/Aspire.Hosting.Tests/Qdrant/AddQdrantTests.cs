@@ -174,7 +174,7 @@ public class AddQdrantTests
     public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions() { Args = new string[] { "--publisher", "manifest" } } );
-        var qdrant = appBuilder.AddQdrant("qdrant", httpPort:5503);
+        var qdrant = appBuilder.AddQdrant("qdrant");
 
         var serverManifest = await ManifestUtils.GetManifest(qdrant.Resource); // using this method does not get any ExecutionContext.IsPublishMode changes
 
@@ -198,7 +198,6 @@ public class AddQdrantTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "port": 5503,
                   "targetPort": 6333
                 }
               }
@@ -243,6 +242,39 @@ public class AddQdrantTests
             }
             """;
         Assert.Equal(expectedManifest, serverManifest.ToString());
+    }
+
+    [Fact]
+    public void AddQdrantWithSpecifyingPorts()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var qdrant = builder.AddQdrant("my-qdrant", grpcPort: 5503, httpPort: 5504);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var qdrantResource = Assert.Single(appModel.Resources.OfType<QdrantServerResource>());
+        Assert.Equal("my-qdrant", qdrantResource.Name);
+
+        Assert.Equal(2, qdrantResource.Annotations.OfType<EndpointAnnotation>().Count());
+
+        var httpEndpoint = qdrantResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "http");
+        Assert.Equal(6334, httpEndpoint.TargetPort);
+        Assert.False(httpEndpoint.IsExternal);
+        Assert.Equal(5503, httpEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, httpEndpoint.Protocol);
+        Assert.Equal("http", httpEndpoint.Transport);
+        Assert.Equal("http", httpEndpoint.UriScheme);
+
+        var restEndpoint = qdrantResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "rest");
+        Assert.Equal(6333, restEndpoint.TargetPort);
+        Assert.False(restEndpoint.IsExternal);
+        Assert.Equal(5504, restEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, restEndpoint.Protocol);
+        Assert.Equal("http", restEndpoint.Transport);
+        Assert.Equal("http", restEndpoint.UriScheme);
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<AddQdrantTests>(args);
