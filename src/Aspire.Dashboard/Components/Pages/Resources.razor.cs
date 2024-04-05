@@ -160,7 +160,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             // Listen for updates and apply.
             _resourceSubscriptionTask = Task.Run(async () =>
             {
-                await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
+                await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token).ConfigureAwait(false))
                 {
                     foreach (var (changeType, resource) in changes)
                     {

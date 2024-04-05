@@ -47,7 +47,7 @@ public sealed partial class LogViewer
         var cancellationToken = await _cancellationSeries.NextAsync();
         var logParser = new LogParser();
 
-        await foreach (var batch in batches.WithCancellation(cancellationToken))
+        await foreach (var batch in batches.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             if (batch.Count is 0)
             {
