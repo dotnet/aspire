@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using System.Text;
 using Aspire.TestProject;
 using Microsoft.Azure.Cosmos;
@@ -21,7 +20,7 @@ public static class CosmosExtensions
         {
             ResiliencePipeline pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<HttpRequestException>(args =>
             {
-                errorMessageBuilder.AppendLine(CultureInfo.InvariantCulture, $"{Environment.NewLine}Service retry #{args.AttemptNumber} due to {args.Outcome.Exception}");
+                errorMessageBuilder.AppendLine($"{Environment.NewLine}Service retry #{args.AttemptNumber} due to {args.Outcome.Exception}");
                 return ValueTask.CompletedTask;
             }).Build();
 
