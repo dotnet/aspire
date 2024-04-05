@@ -4,8 +4,8 @@ targetScope = 'resourceGroup'
 param location string = resourceGroup().location
 
 
-resource operationalInsightsWorkspace_uzGUFQdnZ 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: toLower(take(concat('logAnalyticsWorkspace', uniqueString(resourceGroup().id)), 24))
+resource operationalInsightsWorkspace_DuWNVIPPL 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+  name: toLower(take('logAnalyticsWorkspace${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'logAnalyticsWorkspace'
@@ -17,4 +17,4 @@ resource operationalInsightsWorkspace_uzGUFQdnZ 'Microsoft.OperationalInsights/w
   }
 }
 
-output logAnalyticsWorkspaceId string = operationalInsightsWorkspace_uzGUFQdnZ.id
+output logAnalyticsWorkspaceId string = operationalInsightsWorkspace_DuWNVIPPL.id
