@@ -41,7 +41,7 @@ Example JSON configuration file:
 
 The dashboard frontend endpoint can be secured with OpenID Connect (OIDC) or browser token authentication.
 
-It may also be run unsecured. Set `Dashboard:Frontend:AuthMode` to `Unsecured`. The frontend endpoint will allow anonymous access. This setting should only be used during local development, but is not recommended when hosting the dashboard publically or in other settings.
+It may also be run unsecured. Set `Dashboard:Frontend:AuthMode` to `Unsecured`. The frontend endpoint will allow anonymous access. This setting should only be used during local development. It's not recommended when hosting the dashboard publically or in other settings.
 
 #### Frontend browser token authentication
 
