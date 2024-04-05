@@ -174,7 +174,7 @@ public class AddQdrantTests
     public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions() { Args = new string[] { "--publisher", "manifest" } } );
-        var qdrant = appBuilder.AddQdrant("qdrant");
+        var qdrant = appBuilder.AddQdrant("qdrant", httpPort:5503);
 
         var serverManifest = await ManifestUtils.GetManifest(qdrant.Resource); // using this method does not get any ExecutionContext.IsPublishMode changes
 
@@ -198,6 +198,7 @@ public class AddQdrantTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
+                  "port": 5503,
                   "targetPort": 6333
                 }
               }

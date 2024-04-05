@@ -23,6 +23,7 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     }
 
     private EndpointReference? _primaryEndpoint;
+    private EndpointReference? _restEndpoint;
 
     /// <summary>
     /// Gets the parameter that contains the Qdrant API key.
@@ -30,9 +31,14 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     public ParameterResource ApiKeyParameter { get; }
 
     /// <summary>
-    /// Gets the primary endpoint for the Qdrant database.
+    /// Gets the gRPC endpoint for the Qdrant database.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    /// <summary>
+    /// Gets the REST endpoint for the Qdrant database.
+    /// </summary>
+    public EndpointReference RestEndpoint => _restEndpoint ??= new(this, RestEndpointName);
 
     /// <summary>
     /// Gets the connection string expression for the Qdrant gRPC endpoint.
@@ -46,5 +52,5 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     /// </summary>
     public ReferenceExpression RestConnectionStringExpression =>
         ReferenceExpression.Create(
-            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Scheme)}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:6333;Key={ApiKeyParameter}");
+            $"Endpoint={RestEndpoint.Property(EndpointProperty.Scheme)}://{RestEndpoint.Property(EndpointProperty.Host)}:{RestEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
 }
