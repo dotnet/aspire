@@ -61,6 +61,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Authorized User.
+        /// </summary>
+        public static string AuthorizedUser {
+            get {
+                return ResourceManager.GetString("AuthorizedUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} dashboard.
         /// </summary>
         public static string Header {

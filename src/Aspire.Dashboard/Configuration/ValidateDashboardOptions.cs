@@ -100,6 +100,11 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             }
         }
 
+        if (!options.OpenIdConnect.TryParseOptions(out var messages))
+        {
+            errorMessages.AddRange(messages);
+        }
+
         return errorMessages.Count > 0
             ? ValidateOptionsResult.Fail(errorMessages)
             : ValidateOptionsResult.Success;

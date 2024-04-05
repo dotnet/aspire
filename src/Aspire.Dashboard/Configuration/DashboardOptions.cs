@@ -16,6 +16,7 @@ public sealed class DashboardOptions
     public FrontendOptions Frontend { get; set; } = new FrontendOptions();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new ResourceServiceClientOptions();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new TelemetryLimitOptions();
+    public OpenIdConnectOptions OpenIdConnect { get; set; } = new OpenIdConnectOptions();
 }
 
 // Don't set values after validating/parsing options.
@@ -162,4 +163,53 @@ public sealed class TelemetryLimitOptions
     public int MaxAttributeCount { get; set; } = 128;
     public int MaxAttributeLength { get; set; } = int.MaxValue;
     public int MaxSpanEventCount { get; set; } = int.MaxValue;
+}
+
+public sealed class OpenIdConnectOptions
+{
+    private string[]? _nameClaimTypes;
+    private string[]? _usernameClaimTypes;
+
+    public string NameClaimType { get; set; } = "name";
+    public string UsernameClaimType { get; set; } = "preferred_username";
+
+    public string[] GetNameClaimTypes()
+    {
+        Debug.Assert(_nameClaimTypes is not null, "Should have been parsed during validation.");
+        return _nameClaimTypes;
+    }
+
+    public string[] GetUsernameClaimTypes()
+    {
+        Debug.Assert(_usernameClaimTypes is not null, "Should have been parsed during validation.");
+        return _usernameClaimTypes;
+    }
+
+    internal bool TryParseOptions([NotNullWhen(false)] out IEnumerable<string>? errorMessages)
+    {
+        List<string>? messages = null;
+        if (string.IsNullOrWhiteSpace(NameClaimType))
+        {
+            messages ??= [];
+            messages.Add("OpenID Connect claim type for name not configured. Specify a Dashboard:OpenIdConnect:NameClaimType value.");
+        }
+        else
+        {
+            _nameClaimTypes = NameClaimType.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        if (string.IsNullOrWhiteSpace(UsernameClaimType))
+        {
+            messages ??= [];
+            messages.Add("OpenID Connect claim type for username not configured. Specify a Dashboard:OpenIdConnect:UsernameClaimType value.");
+        }
+        else
+        {
+            _usernameClaimTypes = UsernameClaimType.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        errorMessages = messages;
+
+        return messages is null;
+    }
 }
