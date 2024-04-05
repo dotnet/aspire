@@ -53,10 +53,12 @@ Set `Dashboard:Frontend:AuthMode` to `BrowserToken`. Browser token authenticatio
 
 Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following configuration:
 
-- `Authentication:Schemes:OpenIdConnect:Authority` &mdash; URL to the identity provider (IdP)
-- `Authentication:Schemes:OpenIdConnect:ClientId` &mdash; Identity of the relying party (RP)
-- `Authentication:Schemes:OpenIdConnect:ClientSecret`&mdash; A secret that only the real RP would know
+- `Authentication:Schemes:OpenIdConnect:Authority` URL to the identity provider (IdP)
+- `Authentication:Schemes:OpenIdConnect:ClientId` Identity of the relying party (RP)
+- `Authentication:Schemes:OpenIdConnect:ClientSecret` A secret that only the real RP would know
 - Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
+- `Dashboard:OpenIdConnect:NameClaimType` specifies the claim type(s) that should be used to display the authenticated user's full name. Can be a single claim type or a comma-delimited list of claim types. Defaults to `name`.
+- `Dashboard:OpenIdConnect:UsernameClaimType` specifies the claim type(s) that should be used to display the authenticated user's username. Can be a single claim type or a comma-delimited list of claim types. Defaults to `preferred_username`.
 
 ### OTLP authentication
 

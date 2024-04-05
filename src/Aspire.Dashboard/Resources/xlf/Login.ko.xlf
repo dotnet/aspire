@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../Login.resx">
     <body>
+      <trans-unit id="AuthorizedUser">
+        <source>Authorized User</source>
+        <target state="new">Authorized User</target>
+        <note>Placeholder text for the name of the authorized user when no name claim exists</note>
+      </trans-unit>
       <trans-unit id="Header">
         <source>{0} dashboard</source>
         <target state="translated">{0} 대시보드</target>
