@@ -1692,7 +1692,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 if (sp.EndpointAnnotation.TargetPort is null)
                 {
-                    throw new InvalidOperationException($"The endpoint for container resource '{modelResourceName}' must specify the ContainerPort");
+                    throw new InvalidOperationException($"The endpoint for container resource '{modelResourceName}' must specify the TargetPort");
                 }
 
                 sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.TargetPort;
