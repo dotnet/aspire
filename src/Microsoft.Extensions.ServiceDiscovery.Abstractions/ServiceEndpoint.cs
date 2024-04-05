@@ -39,7 +39,6 @@ public abstract class ServiceEndpoint
     public virtual string GetEndpointString() => EndPoint switch
     {
         DnsEndPoint dns => $"{dns.Host}:{dns.Port}",
-        IPEndPoint ip => ip.ToString(),
         _ => EndPoint.ToString()!
     };
 }
