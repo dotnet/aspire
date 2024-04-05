@@ -206,7 +206,7 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             },
             cancellationToken).ConfigureAwait(false);
 
-        await foreach (var item in result)
+        await foreach (var item in result.ConfigureAwait(false))
         {
             yield return item;
         }

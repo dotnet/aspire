@@ -203,7 +203,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         Task.Run(async () =>
         {
-            await foreach (var subscribers in loggerService.WatchAnySubscribersAsync())
+            await foreach (var subscribers in loggerService.WatchAnySubscribersAsync().ConfigureAwait(false))
             {
                 _logInformationChannel.Writer.TryWrite(new(subscribers.Name, LogsAvailable: null, subscribers.AnySubscribers));
             }
@@ -218,7 +218,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             var resourceLogState = new Dictionary<string, (bool logsAvailable, bool hasSubscribers)>();
 
-            await foreach (var entry in _logInformationChannel.Reader.ReadAllAsync(cancellationToken))
+            await foreach (var entry in _logInformationChannel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 var logsAvailable = false;
                 var hasSubscribers = false;
@@ -447,7 +447,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     // Pump the logs from the enumerable into the logger
                     var logger = loggerService.GetLogger(resource.Metadata.Name);
 
-                    await foreach (var batch in enumerable.WithCancellation(cts.Token))
+                    await foreach (var batch in enumerable.WithCancellation(cts.Token).ConfigureAwait(false))
                     {
                         foreach (var (content, isError) in batch)
                         {
@@ -938,7 +938,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await execution.ExecuteAsync(async (attemptCancellationToken) =>
             {
                 IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: attemptCancellationToken);
-                await foreach (var (evt, updated) in serviceChangeEnumerator)
+                await foreach (var (evt, updated) in serviceChangeEnumerator.ConfigureAwait(false))
                 {
                     if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
 

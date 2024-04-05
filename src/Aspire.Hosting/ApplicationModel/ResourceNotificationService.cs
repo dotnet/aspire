@@ -45,7 +45,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 
         try
         {
-            await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
+            await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 yield return item;
             }
