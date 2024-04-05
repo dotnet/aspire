@@ -1115,7 +1115,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var projectLaunchConfiguration = new ProjectLaunchConfiguration();
             projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
 
-            if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
+            if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]) && Debugger.IsAttached)
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
