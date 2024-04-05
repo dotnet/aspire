@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public class QdrantServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "grpc";
-    internal const string RestEndpointName = "rest";
+    internal const string HttpEndpointName = "http";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="QdrantServerResource"/> class.
@@ -23,7 +23,7 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     }
 
     private EndpointReference? _primaryEndpoint;
-    private EndpointReference? _restEndpoint;
+    private EndpointReference? _httpEndpoint;
 
     /// <summary>
     /// Gets the parameter that contains the Qdrant API key.
@@ -36,9 +36,9 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
-    /// Gets the REST endpoint for the Qdrant database.
+    /// Gets the HTTP endpoint for the Qdrant database.
     /// </summary>
-    public EndpointReference RestEndpoint => _restEndpoint ??= new(this, RestEndpointName);
+    public EndpointReference HttpEndpoint => _httpEndpoint ??= new(this, HttpEndpointName);
 
     /// <summary>
     /// Gets the connection string expression for the Qdrant gRPC endpoint.
@@ -48,9 +48,9 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
             $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Scheme)}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
 
     /// <summary>
-    /// Gets the connection string expression for the Qdrant REST endpoint.
+    /// Gets the connection string expression for the Qdrant HTTP endpoint.
     /// </summary>
-    public ReferenceExpression RestConnectionStringExpression =>
+    public ReferenceExpression HttpConnectionStringExpression =>
         ReferenceExpression.Create(
-            $"Endpoint={RestEndpoint.Property(EndpointProperty.Scheme)}://{RestEndpoint.Property(EndpointProperty.Host)}:{RestEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
+            $"Endpoint={HttpEndpoint.Property(EndpointProperty.Scheme)}://{HttpEndpoint.Property(EndpointProperty.Host)}:{HttpEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
 }

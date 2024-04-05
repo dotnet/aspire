@@ -25,7 +25,6 @@ var myService = builder.AddProject<Projects.MyService>()
 
 ## Additional documentation
 * https://qdrant.tech/documentation
-* https://learn.microsoft.com/azure/cosmos-db/nosql/sdk-dotnet-v3
 
 ## Feedback & contributing
 
