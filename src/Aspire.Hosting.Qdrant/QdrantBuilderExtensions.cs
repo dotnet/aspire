@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 public static class QdrantBuilderExtensions
 {
     private const int QdrantPortGrpc = 6334;
-    private const int QdrantPortHttp = 6333;
+    private const int QdrantPortRest = 6333;
     private const string ApiKeyEnvVarName = "QDRANT__SERVICE__API_KEY";
     private const string EnableStaticContentEnvVarName = "QDRANT__SERVICE__ENABLE_STATIC_CONTENT";
 
@@ -28,13 +28,13 @@ public static class QdrantBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
     /// <param name="apiKey">The parameter used to provide the API Key for the Qdrant resource. If <see langword="null"/> a random key will be generated as {name}-Key.</param>
     /// <param name="grpcPort">The host port of gRPC endpoint of Qdrant database.</param>
-    /// <param name="httpPort">The host port of REST endpoint of Qdrant database.</param>
+    /// <param name="restPort">The host port of REST endpoint of Qdrant database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{QdrantServerResource}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> AddQdrant(this IDistributedApplicationBuilder builder,
         string name,
         IResourceBuilder<ParameterResource>? apiKey = null,
         int? grpcPort = null,
-        int? httpPort = null)
+        int? restPort = null)
     {
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
@@ -42,7 +42,7 @@ public static class QdrantBuilderExtensions
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithHttpEndpoint(port: grpcPort, targetPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
-            .WithHttpEndpoint(port: httpPort, targetPort: QdrantPortHttp, name: QdrantServerResource.RestEndpointName)
+            .WithHttpEndpoint(port: restPort, targetPort: QdrantPortRest, name: QdrantServerResource.RestEndpointName)
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[ApiKeyEnvVarName] = qdrant.ApiKeyParameter;

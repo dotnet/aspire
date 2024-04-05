@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class QdrantServerResource : ContainerResource, IResourceWithConnectionString
 {
-    internal const string PrimaryEndpointName = "http";
+    internal const string PrimaryEndpointName = "grpc";
     internal const string RestEndpointName = "rest";
 
     /// <summary>
