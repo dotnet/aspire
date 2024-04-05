@@ -10,5 +10,9 @@ internal sealed class ServiceEndpointImpl(EndPoint endPoint, IFeatureCollection?
 {
     public override EndPoint EndPoint { get; } = endPoint;
     public override IFeatureCollection Features { get; } = features ?? new FeatureCollection();
-    public override string? ToString() => GetEndpointString();
+    public override string? ToString() => EndPoint switch
+    {
+        DnsEndPoint dns => $"{dns.Host}:{dns.Port}",
+        _ => EndPoint.ToString()!
+    };
 }

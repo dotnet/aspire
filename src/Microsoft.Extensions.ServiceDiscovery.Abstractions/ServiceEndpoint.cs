@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Net;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
@@ -11,7 +10,6 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Represents an endpoint for a service.
 /// </summary>
-[DebuggerDisplay("{GetEndpointString(),nq}")]
 public abstract class ServiceEndpoint
 {
     /// <summary>
@@ -31,14 +29,4 @@ public abstract class ServiceEndpoint
     /// <param name="features">Features of the endpoint.</param>
     /// <returns>A newly initialized <see cref="ServiceEndpoint"/>.</returns>
     public static ServiceEndpoint Create(EndPoint endPoint, IFeatureCollection? features = null) => new ServiceEndpointImpl(endPoint, features);
-
-    /// <summary>
-    /// Gets a string representation of the <see cref="EndPoint"/>.
-    /// </summary>
-    /// <returns>A string representation of the <see cref="EndPoint"/>.</returns>
-    public virtual string GetEndpointString() => EndPoint switch
-    {
-        DnsEndPoint dns => $"{dns.Host}:{dns.Port}",
-        _ => EndPoint.ToString()!
-    };
 }

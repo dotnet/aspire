@@ -29,11 +29,11 @@ partial class ServiceEndpointWatcher
             {
                 if (ep.Features.Get<IServiceEndpointProvider>() is { } provider)
                 {
-                    return $"{ep.GetEndpointString()} ({provider})";
+                    return $"{ep} ({provider})";
                 }
 
-                return ep.GetEndpointString();
-            }   
+                return ep.ToString()!;
+            }
         }
 
         [LoggerMessage(4, LogLevel.Error, "Error resolving endpoints for service '{ServiceName}'.", EventName = "ResolutionFailed")]

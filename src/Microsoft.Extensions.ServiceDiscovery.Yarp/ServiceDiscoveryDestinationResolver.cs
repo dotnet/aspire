@@ -61,7 +61,7 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolve
         var healthUriBuilder = healthUri is { } ? new UriBuilder(healthUri) : null;
         foreach (var endpoint in result.Endpoints)
         {
-            var addressString = endpoint.GetEndpointString();
+            var addressString = endpoint.ToString()!;
             Uri uri;
             if (!addressString.Contains("://"))
             {
