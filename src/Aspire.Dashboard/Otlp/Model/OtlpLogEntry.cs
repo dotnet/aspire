@@ -21,6 +21,7 @@ public class OtlpLogEntry
     public string? OriginalFormat { get; }
     public OtlpApplication Application { get; }
     public OtlpScope Scope { get; }
+    public Guid InternalId { get; }
 
     public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope, TelemetryLimitOptions options)
     {
@@ -56,6 +57,7 @@ public class OtlpLogEntry
         ParentId = parentId ?? string.Empty;
         Application = logApp;
         Scope = scope;
+        InternalId = Guid.NewGuid();
     }
 
     private static LogLevel MapSeverity(SeverityNumber severityNumber) => severityNumber switch
