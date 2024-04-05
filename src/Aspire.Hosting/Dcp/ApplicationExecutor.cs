@@ -1692,7 +1692,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 if (sp.EndpointAnnotation.TargetPort is null)
                 {
-                    throw new InvalidOperationException($"The endpoint for container resource {modelResourceName} must specify the ContainerPort");
+                    throw new InvalidOperationException($"The endpoint for container resource '{modelResourceName}' must specify the TargetPort");
                 }
 
                 sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.TargetPort;
@@ -1707,6 +1707,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 // DCP will not allocate a port for this proxyless service
                 // so we need to specify what the port is so DCP is aware of it.
                 sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.Port;
+            }
+            else
+            {
+                Debug.Assert(sp.EndpointAnnotation.IsProxied);
+
+                var ep = sp.EndpointAnnotation;
+                if (ep.TargetPort is int && ep.Port is int && ep.TargetPort == ep.Port)
+                {
+                    throw new InvalidOperationException(
+                        $"The endpoint for non-container resource '{modelResourceName}' requested a proxy ({nameof(ep.IsProxied)} is true). Non-container resources cannot be proxied when both {nameof(ep.TargetPort)} and {nameof(ep.Port)} are specified with the same value.");
+                }
             }
 
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, sp.DcpServiceProducerAnnotation);
