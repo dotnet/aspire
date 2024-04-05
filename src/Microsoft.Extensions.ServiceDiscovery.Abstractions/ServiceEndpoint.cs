@@ -17,7 +17,7 @@ public abstract class ServiceEndpoint
     /// <summary>
     /// Gets the endpoint.
     /// </summary>
-    public abstract EndPoint Endpoint { get; }
+    public abstract EndPoint EndPoint { get; }
 
     /// <summary>
     /// Gets the collection of endpoint features.
@@ -27,19 +27,19 @@ public abstract class ServiceEndpoint
     /// <summary>
     /// Creates a new <see cref="ServiceEndpoint"/>.
     /// </summary>
-    /// <param name="endpoint">The endpoint being represented.</param>
+    /// <param name="endPoint">The endpoint being represented.</param>
     /// <param name="features">Features of the endpoint.</param>
     /// <returns>A newly initialized <see cref="ServiceEndpoint"/>.</returns>
-    public static ServiceEndpoint Create(EndPoint endpoint, IFeatureCollection? features = null) => new ServiceEndpointImpl(endpoint, features);
+    public static ServiceEndpoint Create(EndPoint endPoint, IFeatureCollection? features = null) => new ServiceEndpointImpl(endPoint, features);
 
     /// <summary>
-    /// Gets a string representation of the <see cref="Endpoint"/>.
+    /// Gets a string representation of the <see cref="EndPoint"/>.
     /// </summary>
-    /// <returns>A string representation of the <see cref="Endpoint"/>.</returns>
-    public virtual string GetEndpointString() => Endpoint switch
+    /// <returns>A string representation of the <see cref="EndPoint"/>.</returns>
+    public virtual string GetEndpointString() => EndPoint switch
     {
         DnsEndPoint dns => $"{dns.Host}:{dns.Port}",
         IPEndPoint ip => ip.ToString(),
-        _ => Endpoint.ToString()!
+        _ => EndPoint.ToString()!
     };
 }

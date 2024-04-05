@@ -116,9 +116,9 @@ public class DnsSrvServiceEndpointResolverTests
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(3, initialResult.EndpointSource.Endpoints.Count);
             var eps = initialResult.EndpointSource.Endpoints;
-            Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].Endpoint);
-            Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].Endpoint);
-            Assert.Equal(new DnsEndPoint("remotehost", 7777), eps[2].Endpoint);
+            Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].EndPoint);
+            Assert.Equal(new DnsEndPoint("remotehost", 7777), eps[2].EndPoint);
 
             Assert.All(initialResult.EndpointSource.Endpoints, ep =>
             {
@@ -207,9 +207,9 @@ public class DnsSrvServiceEndpointResolverTests
                 // We expect only the results from the DNS provider.
                 Assert.Equal(3, initialResult.EndpointSource.Endpoints.Count);
                 var eps = initialResult.EndpointSource.Endpoints;
-                Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].Endpoint);
-                Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].Endpoint);
-                Assert.Equal(new DnsEndPoint("remotehost", 7777), eps[2].Endpoint);
+                Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].EndPoint);
+                Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].EndPoint);
+                Assert.Equal(new DnsEndPoint("remotehost", 7777), eps[2].EndPoint);
 
                 Assert.All(initialResult.EndpointSource.Endpoints, ep =>
                 {
@@ -222,8 +222,8 @@ public class DnsSrvServiceEndpointResolverTests
             {
                 // We expect only the results from the Configuration provider.
                 Assert.Equal(2, initialResult.EndpointSource.Endpoints.Count);
-                Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndpointSource.Endpoints[0].Endpoint);
-                Assert.Equal(new DnsEndPoint("remotehost", 9090), initialResult.EndpointSource.Endpoints[1].Endpoint);
+                Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndpointSource.Endpoints[0].EndPoint);
+                Assert.Equal(new DnsEndPoint("remotehost", 9090), initialResult.EndpointSource.Endpoints[1].EndPoint);
 
                 Assert.All(initialResult.EndpointSource.Endpoints, ep =>
                 {

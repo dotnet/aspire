@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Http.Features;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Internal;
 
-internal sealed class ServiceEndpointImpl(EndPoint endpoint, IFeatureCollection? features = null) : ServiceEndpoint
+internal sealed class ServiceEndpointImpl(EndPoint endPoint, IFeatureCollection? features = null) : ServiceEndpoint
 {
-    public override EndPoint Endpoint { get; } = endpoint;
+    public override EndPoint EndPoint { get; } = endPoint;
     public override IFeatureCollection Features { get; } = features ?? new FeatureCollection();
     public override string? ToString() => GetEndpointString();
 }

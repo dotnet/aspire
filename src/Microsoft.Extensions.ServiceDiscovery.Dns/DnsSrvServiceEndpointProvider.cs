@@ -85,9 +85,9 @@ internal sealed partial class DnsSrvServiceEndpointProvider(
             return new InvalidOperationException(msg);
         }
 
-        ServiceEndpoint CreateEndpoint(EndPoint endpoint)
+        ServiceEndpoint CreateEndpoint(EndPoint endPoint)
         {
-            var serviceEndpoint = ServiceEndpoint.Create(endpoint);
+            var serviceEndpoint = ServiceEndpoint.Create(endPoint);
             serviceEndpoint.Features.Set<IServiceEndpointProvider>(this);
             if (options.CurrentValue.ShouldApplyHostNameMetadata(serviceEndpoint))
             {

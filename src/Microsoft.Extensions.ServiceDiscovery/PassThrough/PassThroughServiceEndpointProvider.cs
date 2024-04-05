@@ -9,14 +9,14 @@ namespace Microsoft.Extensions.ServiceDiscovery.PassThrough;
 /// <summary>
 /// Service endpoint provider which passes through the provided value.
 /// </summary>
-internal sealed partial class PassThroughServiceEndpointProvider(ILogger logger, string serviceName, EndPoint endpoint) : IServiceEndpointProvider
+internal sealed partial class PassThroughServiceEndpointProvider(ILogger logger, string serviceName, EndPoint endPoint) : IServiceEndpointProvider
 {
     public ValueTask PopulateAsync(IServiceEndpointBuilder endpoints, CancellationToken cancellationToken)
     {
         if (endpoints.Endpoints.Count == 0)
         {
             Log.UsingPassThrough(logger, serviceName);
-            var ep = ServiceEndpoint.Create(endpoint);
+            var ep = ServiceEndpoint.Create(endPoint);
             ep.Features.Set<IServiceEndpointProvider>(this);
             endpoints.Endpoints.Add(ep);
         }

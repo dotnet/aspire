@@ -60,9 +60,9 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
 
     internal static Uri GetUriWithEndpoint(Uri uri, ServiceEndpoint serviceEndpoint, ServiceDiscoveryOptions options)
     {
-        var endpoint = serviceEndpoint.Endpoint;
+        var endPoint = serviceEndpoint.EndPoint;
         UriBuilder result;
-        if (endpoint is UriEndPoint { Uri: { } ep })
+        if (endPoint is UriEndPoint { Uri: { } ep })
         {
             result = new UriBuilder(uri)
             {
@@ -84,7 +84,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
         {
             string host;
             int port;
-            switch (endpoint)
+            switch (endPoint)
             {
                 case IPEndPoint ip:
                     host = ip.Address.ToString();
@@ -95,7 +95,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
                     port = dns.Port;
                     break;
                 default:
-                    throw new InvalidOperationException($"Endpoints of type {endpoint.GetType()} are not supported");
+                    throw new InvalidOperationException($"Endpoints of type {endPoint.GetType()} are not supported");
             }
 
             result = new UriBuilder(uri)

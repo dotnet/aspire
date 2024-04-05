@@ -16,21 +16,21 @@ internal sealed class PassThroughServiceEndpointProviderFactory(ILogger<PassThro
     public bool TryCreateProvider(ServiceEndpointQuery query, [NotNullWhen(true)] out IServiceEndpointProvider? provider)
     {
         var serviceName = query.ToString()!;
-        if (!TryCreateEndpoint(serviceName, out var endpoint))
+        if (!TryCreateEndPoint(serviceName, out var endPoint))
         {
             // Propagate the value through regardless, leaving it to the caller to interpret it.
-            endpoint = new DnsEndPoint(serviceName, 0);
+            endPoint = new DnsEndPoint(serviceName, 0);
         }
 
-        provider = new PassThroughServiceEndpointProvider(logger, serviceName, endpoint);
+        provider = new PassThroughServiceEndpointProvider(logger, serviceName, endPoint);
         return true;
     }
 
-    private static bool TryCreateEndpoint(string serviceName, [NotNullWhen(true)] out EndPoint? endpoint)
+    private static bool TryCreateEndPoint(string serviceName, [NotNullWhen(true)] out EndPoint? endPoint)
     {
         if ((serviceName.Contains("://", StringComparison.Ordinal) || !Uri.TryCreate($"fakescheme://{serviceName}", default, out var uri)) && !Uri.TryCreate(serviceName, default, out uri))
         {
-            endpoint = null;
+            endPoint = null;
             return false;
         }
 
@@ -50,15 +50,15 @@ internal sealed class PassThroughServiceEndpointProviderFactory(ILogger<PassThro
         var port = uri.Port > 0 ? uri.Port : 0;
         if (IPAddress.TryParse(host, out var ip))
         {
-            endpoint = new IPEndPoint(ip, port);
+            endPoint = new IPEndPoint(ip, port);
         }
         else if (!string.IsNullOrEmpty(host))
         {
-            endpoint = new DnsEndPoint(host, port);
+            endPoint = new DnsEndPoint(host, port);
         }
         else
         {
-            endpoint = null;
+            endPoint = null;
             return false;
         }
 

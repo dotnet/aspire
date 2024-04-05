@@ -36,7 +36,7 @@ public class PassThroughServiceEndpointResolverTests
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             var ep = Assert.Single(initialResult.EndpointSource.Endpoints);
-            Assert.Equal(new DnsEndPoint("basket", 80), ep.Endpoint);
+            Assert.Equal(new DnsEndPoint("basket", 80), ep.EndPoint);
         }
     }
 
@@ -69,7 +69,7 @@ public class PassThroughServiceEndpointResolverTests
 
             // We expect the basket service to be resolved from Configuration, not the pass-through provider.
             Assert.Single(initialResult.EndpointSource.Endpoints);
-            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndpointSource.Endpoints[0].Endpoint);
+            Assert.Equal(new UriEndPoint(new Uri("http://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
         }
     }
 
@@ -102,7 +102,7 @@ public class PassThroughServiceEndpointResolverTests
 
             // We expect the CATALOG service to be resolved from the pass-through provider.
             Assert.Single(initialResult.EndpointSource.Endpoints);
-            Assert.Equal(new DnsEndPoint("catalog", 80), initialResult.EndpointSource.Endpoints[0].Endpoint);
+            Assert.Equal(new DnsEndPoint("catalog", 80), initialResult.EndpointSource.Endpoints[0].EndPoint);
         }
     }
 
@@ -125,6 +125,6 @@ public class PassThroughServiceEndpointResolverTests
 
         var resolver = services.GetRequiredService<ServiceEndpointResolver>();
         var result = await resolver.GetEndpointsAsync("catalog", default);
-        Assert.Equal(new DnsEndPoint("catalog", 0), result.Endpoints[0].Endpoint);
+        Assert.Equal(new DnsEndPoint("catalog", 0), result.Endpoints[0].EndPoint);
     }
 }
