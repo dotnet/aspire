@@ -278,14 +278,17 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
                 Writer.WriteString("transport", endpoint.Transport);
 
-                int? targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort) switch
+                int? targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
                 {
                     // The port was specified so use it
-                    (_, _, int port) => port,
+                    (_, _, int target, _) => target,
 
-                    // Project resources get their default port from the deployment tool
+                    // Container resources get their default listening port from the exposed port.
+                    (ContainerResource, _, null, int port) => port,
+
+                    // Project resources get their default listening port from the deployment tool
                     // ideally we would default to a known port but we don't know it at this point
-                    (ProjectResource, var scheme, null) when scheme is "http" or "https" => null,
+                    (ProjectResource, var scheme, null, _) when scheme is "http" or "https" => null,
 
                     // Allocate a dynamic port
                     _ => PortAllocator.AllocatePort()
@@ -366,8 +369,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 TryAddDependentResources(value);
             }
 
-            WritePortBindingEnvironmentVariables(resource);
-
             Writer.WriteEndObject();
         }
     }
@@ -410,26 +411,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
 
             Writer.WriteEndArray();
-        }
-    }
-
-    /// <summary>
-    /// Write environment variables for port bindings related to <see cref="EndpointAnnotation"/> annotations.
-    /// </summary>
-    /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
-    public void WritePortBindingEnvironmentVariables(IResource resource)
-    {
-        if (resource.TryGetEndpoints(out var endpoints))
-        {
-            foreach (var endpoint in endpoints)
-            {
-                if (endpoint.EnvironmentVariable is null)
-                {
-                    continue;
-                }
-
-                Writer.WriteString(endpoint.EnvironmentVariable, $"{{{resource.Name}.bindings.{endpoint.Name}.targetPort}}");
-            }
         }
     }
 
