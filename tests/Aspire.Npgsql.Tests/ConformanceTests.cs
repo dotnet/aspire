@@ -15,10 +15,8 @@ namespace Aspire.Npgsql.Tests;
 
 public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
-    private readonly PostgreSQLContainerFixture _containerFixture;
-    private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
-                                        ? _containerFixture.GetConnectionString()
-                                        : "Host=localhost;Database=test_aspire_npgsql;Username=postgres;Password=postgres";
+    private readonly PostgreSQLContainerFixture? _containerFixture;
+    protected string ConnectionString { get; private set; }
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/npgsql/npgsql/blob/ef9db1ffe9e432c1562d855b46dfac3514726b1b/src/Npgsql.OpenTelemetry/TracerProviderBuilderExtensions.cs#L18
@@ -57,8 +55,13 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
             ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
-    public ConformanceTests(PostgreSQLContainerFixture containerFixture)
-        => _containerFixture = containerFixture;
+    public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
+    {
+        _containerFixture = containerFixture;
+        ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
+    }
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
@@ -122,16 +125,14 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
+        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+                                 ConnectionString).Dispose();
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
+        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: "key")),
+                                 ConnectionString).Dispose();
 
-    private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
-    {
-        await using var fixture = new PostgreSQLContainerFixture();
-        await fixture.InitializeAsync();
-        test(new ConformanceTests(fixture));
-    }
+    private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
+        => test(new ConformanceTests(null) { ConnectionString = connectionString });
 }
