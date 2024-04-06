@@ -16,20 +16,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureOpenAIExtensions
 {
-    private static void AddDependency(global::Azure.Provisioning.Resource resource, global::Azure.Provisioning.Resource dependency)
-    {
-        // abstract class Resource
-        // { 
-        //     internal void AddDependency(Resource resource)
-        //     {
-        //         Dependencies.Add(resource);
-        //     }
-        // }
-
-        var addDependencyMethod = typeof(global::Azure.Provisioning.Resource).GetMethod("AddDependency", BindingFlags.NonPublic | BindingFlags.Instance);
-        addDependencyMethod?.Invoke(resource, [dependency]);
-    }
-
     /// <summary>
     /// Adds an Azure OpenAI resource to the application model.
     /// </summary>
@@ -104,6 +90,20 @@ public static class AzureOpenAIExtensions
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
+
+        static void AddDependency(global::Azure.Provisioning.Resource resource, global::Azure.Provisioning.Resource dependency)
+        {
+            // abstract class Resource
+            // { 
+            //     internal void AddDependency(Resource resource)
+            //     {
+            //         Dependencies.Add(resource);
+            //     }
+            // }
+
+            var addDependencyMethod = typeof(global::Azure.Provisioning.Resource).GetMethod("AddDependency", BindingFlags.NonPublic | BindingFlags.Instance);
+            addDependencyMethod?.Invoke(resource, [dependency]);
+        }
     }
 
     /// <summary>
