@@ -16,11 +16,8 @@ namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>, IClassFixture<PostgreSQLContainerFixture>
 {
     // in the future it can become a static property that reads the value from Env Var
-    private readonly PostgreSQLContainerFixture _containerFixture;
-    protected string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
-                                            ? _containerFixture.GetConnectionString()
-                                            : "Host=localhost;Database=test;Username=postgres;Password=postgres";
-
+    private readonly PostgreSQLContainerFixture? _containerFixture;
+    protected string ConnectionString { get; private set; }
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/npgsql/npgsql/blob/ef9db1ffe9e432c1562d855b46dfac3514726b1b/src/Npgsql.OpenTelemetry/TracerProviderBuilderExtensions.cs#L18
@@ -79,8 +76,13 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
             ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    public ConformanceTests(PostgreSQLContainerFixture containerFixture)
-        => _containerFixture = containerFixture;
+    public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
+    {
+        _containerFixture = containerFixture;
+        ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
+    }
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
@@ -131,12 +133,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
+        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+                                 ConnectionString).Dispose();
 
-    private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
-    {
-        await using var fixture = new PostgreSQLContainerFixture();
-        await fixture.InitializeAsync();
-        test(new ConformanceTests(fixture));
-    }
+    private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
+        => test(new ConformanceTests(null) { ConnectionString = connectionString });
 }
