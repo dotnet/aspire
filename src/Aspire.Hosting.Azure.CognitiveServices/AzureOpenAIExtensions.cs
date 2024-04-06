@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -15,6 +16,20 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureOpenAIExtensions
 {
+    private static void AddDependency(global::Azure.Provisioning.Resource resource, global::Azure.Provisioning.Resource dependency)
+    {
+        // abstract class Resource
+        // { 
+        //     internal void AddDependency(Resource resource)
+        //     {
+        //         Dependencies.Add(resource);
+        //     }
+        // }
+
+        var addDependencyMethod = typeof(global::Azure.Provisioning.Resource).GetMethod("AddDependency", BindingFlags.NonPublic | BindingFlags.Instance);
+        addDependencyMethod?.Invoke(resource, [dependency]);
+    }
+
     /// <summary>
     /// Adds an Azure OpenAI resource to the application model.
     /// </summary>
@@ -53,6 +68,8 @@ public static class AzureOpenAIExtensions
 
             var resource = (AzureOpenAIResource)construct.Resource;
 
+            CognitiveServicesAccountDeployment? dependency = null;
+
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
@@ -65,6 +82,17 @@ public static class AzureOpenAIExtensions
                 cdkDeployment.AssignProperty(x => x.Sku.Name, $"'{deployment.SkuName}'");
                 cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
                 cdkDeployments.Add(cdkDeployment);
+
+                // Subsequent deployments need an explicit dependency on the previous one
+                // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
+                // which can't be defined with the CDK
+
+                if (dependency != null)
+                {
+                    AddDependency(cdkDeployment, dependency);
+                }
+
+                dependency = cdkDeployment;
             }
 
             var resourceBuilder = builder.CreateResourceBuilder(resource);
