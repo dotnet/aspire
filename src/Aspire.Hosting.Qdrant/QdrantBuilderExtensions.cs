@@ -82,7 +82,7 @@ public static class QdrantBuilderExtensions
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="qdrantResource">The Qdrant server resource</param>
     /// <returns></returns>
-    public static IResourceBuilder<IResourceWithEnvironment> WithReference(this IResourceBuilder<ProjectResource> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
+    public static IResourceBuilder<ProjectResource> WithReference(this IResourceBuilder<ProjectResource> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
     {
         builder.WithEnvironment(context =>
         {
