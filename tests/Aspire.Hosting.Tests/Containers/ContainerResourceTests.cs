@@ -98,9 +98,69 @@ public class ContainerResourceTests
     }
 
     [Fact]
+    public async Task EnsureContainerWithEndpointsEmitsContainerPort()
+    {
+        var builder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
+
+        builder.AddContainer("grafana", "grafana/grafana")
+               .WithHttpEndpoint(3000);
+
+        using var app = builder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        var manifest = await ManifestUtils.GetManifest(containerResource);
+
+        var expectedManifest =
+            """
+            {
+              "type": "container.v0",
+              "image": "grafana/grafana:latest",
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 3000
+                }
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task EnsureContainerWithCustomEntrypointEmitsEntrypoint()
+    {
+        var builder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
+
+        builder.AddContainer("grafana", "grafana/grafana")
+               .WithEntrypoint("custom");
+
+        // Build AppHost so that publisher can be resolved.
+        using var app = builder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        var manifest = await ManifestUtils.GetManifest(containerResource);
+
+        var expectedManifest =
+            """
+            {
+              "type": "container.v0",
+              "image": "grafana/grafana:latest",
+              "entrypoint": "custom"
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
     public void AddBindMountResolvesRelativePathsRelativeToTheAppHostDirectory()
     {
-        var basePath = OperatingSystem.IsWindows() ? @"C:\foo\bar" : "/foo/bar";
+        var basePath = OperatingSystem.IsWindows() ? @"C:\root\volumes" : "/root/volumes";
 
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { ProjectDirectory = basePath });
 
@@ -114,6 +174,104 @@ public class ContainerResourceTests
         Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
 
         Assert.Equal(Path.Combine(basePath, "source"), mountAnnotation.Source);
+    }
+
+    [Fact]
+    public async Task EnsureContainerWithVolumesEmitsVolumes()
+    {
+        var builder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
+
+        builder.AddContainer("containerwithvolumes", "image/name")
+            .WithVolume("myvolume", "/mount/here")
+            .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
+            .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
+
+        using var app = builder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        var manifest = await ManifestUtils.GetManifest(containerResource);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "image/name:latest",
+              "volumes": [
+                {
+                  "name": "myvolume",
+                  "target": "/mount/here",
+                  "readOnly": false
+                },
+                {
+                  "name": "myreadonlyvolume",
+                  "target": "/mount/there",
+                  "readOnly": true
+                },
+                {
+                  "target": "/mount/everywhere",
+                  "readOnly": false
+                }
+              ]
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task EnsureContainerWithBindMountsEmitsBindMounts()
+    {
+        var appHostPath = OperatingSystem.IsWindows() ? @"C:\projects\apphost" : "/projects/apphost";
+
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            ProjectDirectory = appHostPath,
+            Args = ["--publisher", "manifest"]
+        });
+
+        builder.AddContainer("containerwithbindmounts", "image/name")
+            .WithBindMount("./some/source", "/bound")
+            .WithBindMount("not/relative/qualified", "/another/place")
+            .WithBindMount(".\\some\\other\\source", "\\mount\\here")
+            .WithBindMount("./some/file/path.txt", "/mount/there.txt", isReadOnly: true);
+
+        using var app = builder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        var manifest = await ManifestUtils.GetManifest(containerResource, manifestDirectory: appHostPath);
+
+        var expectedManifest = """
+            {
+              "type": "container.v0",
+              "image": "image/name:latest",
+              "bindMounts": [
+                {
+                  "source": "some/source",
+                  "target": "/bound",
+                  "readOnly": false
+                },
+                {
+                  "source": "not/relative/qualified",
+                  "target": "/another/place",
+                  "readOnly": false
+                },
+                {
+                  "source": "some/other/source",
+                  "target": "/mount/here",
+                  "readOnly": false
+                },
+                {
+                  "source": "some/file/path.txt",
+                  "target": "/mount/there.txt",
+                  "readOnly": true
+                }
+              ]
+            }
+            """;
+
+        Assert.Equal("containerwithbindmounts", containerResource.Name);
+        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString

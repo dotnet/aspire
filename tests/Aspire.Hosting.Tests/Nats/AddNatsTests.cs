@@ -44,8 +44,10 @@ public class AddNatsTests
     [Fact]
     public void AddNatsContainerAddsAnnotationMetadata()
     {
+        var path = OperatingSystem.IsWindows() ? @"C:\tmp\dev-data" : "/tmp/dev-data";
+
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddNats("nats", 1234).WithJetStream(srcMountPath: "/tmp/dev-data");
+        appBuilder.AddNats("nats", 1234).WithJetStream(srcMountPath: path);
 
         using var app = appBuilder.Build();
 
@@ -55,7 +57,7 @@ public class AddNatsTests
         Assert.Equal("nats", containerResource.Name);
 
         var mountAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerMountAnnotation>());
-        Assert.Equal("/tmp/dev-data", mountAnnotation.Source);
+        Assert.Equal(path, mountAnnotation.Source);
         Assert.Equal("/data", mountAnnotation.Target);
 
         var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>());
