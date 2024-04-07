@@ -47,7 +47,8 @@ public sealed partial class LogViewer
         var cancellationToken = await _cancellationSeries.NextAsync();
         var logParser = new LogParser();
 
-        await foreach (var batch in batches.WithCancellation(cancellationToken).ConfigureAwait(false))
+        // This needs to stay on the UI thread since we raise StateHasChanged() in the loop (hence the ConfigureAwait(true)).
+        await foreach (var batch in batches.WithCancellation(cancellationToken).ConfigureAwait(true))
         {
             if (batch.Count is 0)
             {
