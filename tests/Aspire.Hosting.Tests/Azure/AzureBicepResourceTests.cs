@@ -8,6 +8,7 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Storage;
@@ -34,40 +35,68 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("value2", bicepResource.Resource.Parameters["param2"]);
     }
 
-    [Fact]
-    public void AzureExtensionsAutomaticallyAddAzureProvisioning()
+    public static TheoryData<Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>>> AzureExtensions
     {
-        Action<IDistributedApplicationBuilder>[] extensionCalls = [
-            (IDistributedApplicationBuilder builder) => builder.AddAzureAppConfiguration("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureApplicationInsights("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddBicepTemplate("x", "template.bicep"),
-            (IDistributedApplicationBuilder builder) => builder.AddBicepTemplateString("x", "content"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureConstruct("x", _ => { }),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureOpenAI("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureOpenAI("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureCosmosDB("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureEventHubs("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureKeyVault("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureLogAnalyticsWorkspace("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddPostgres("x").AsAzurePostgresFlexibleServer(),
-            (IDistributedApplicationBuilder builder) => builder.AddRedis("x").AsAzureRedis(),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureSearch("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureServiceBus("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureSignalR("x"),
-            (IDistributedApplicationBuilder builder) => builder.AddSqlServer("x").AsAzureSqlDatabase(),
-            (IDistributedApplicationBuilder builder) => builder.AddAzureStorage("x"),
-            ];
 
-        foreach (var extensionCall in extensionCalls)
+        get
         {
-            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
-            extensionCall(builder);
+            static void CreateConstruct(ResourceModuleConstruct construct)
+            {
+                var id = new UserAssignedIdentity(construct);
+                id.AddOutput("cid", c => c.ClientId);
+            }
 
-            var app = builder.Build();
-            var hooks = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
-            var provisionerHook = hooks.OfType<AzureProvisioner>();
-            Assert.Single<AzureProvisioner>(provisionerHook);
+            return new()
+            {
+                { builder => builder.AddAzureAppConfiguration("x") },
+                { builder => builder.AddAzureApplicationInsights("x") },
+                { builder => builder.AddBicepTemplate("x", "template.bicep") },
+                { builder => builder.AddBicepTemplateString("x", "content") },
+                { builder => builder.AddAzureConstruct("x", CreateConstruct) },
+                { builder => builder.AddAzureOpenAI("x") },
+                { builder => builder.AddAzureCosmosDB("x") },
+                { builder => builder.AddAzureEventHubs("x") },
+                { builder => builder.AddAzureKeyVault("x") },
+                { builder => builder.AddAzureLogAnalyticsWorkspace("x") },
+                { builder => builder.AddPostgres("x").AsAzurePostgresFlexibleServer() },
+                { builder => builder.AddRedis("x").AsAzureRedis() },
+                { builder => builder.AddAzureSearch("x") },
+                { builder => builder.AddAzureServiceBus("x") },
+                { builder => builder.AddAzureSignalR("x") },
+                { builder => builder.AddSqlServer("x").AsAzureSqlDatabase() },
+                { builder => builder.AddAzureStorage("x") },
+            };
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(AzureExtensions))]
+    public void AzureExtensionsAutomaticallyAddAzureProvisioning(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        addAzureResource(builder);
+
+        var app = builder.Build();
+        var hooks = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
+        Assert.Single(hooks.OfType<AzureProvisioner>());
+    }
+
+    [Theory]
+    [MemberData(nameof(AzureExtensions))]
+    public void BicepResourcesAreIdempotent(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        var azureResourceBuilder = addAzureResource(builder);
+
+        if (azureResourceBuilder.Resource is not AzureConstructResource bicepResource)
+        {
+            // Skip
+            return;
+        }
+
+        // This makes sure that these don't throw
+        bicepResource.GetBicepTemplateFile();
+        bicepResource.GetBicepTemplateFile();
     }
 
     [Fact]
