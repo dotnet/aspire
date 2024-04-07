@@ -97,6 +97,25 @@ public class ContainerResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
+    [Fact]
+    public void AddBindMountResolvesRelativePathsRelativeToTheAppHostDirectory()
+    {
+        var basePath = OperatingSystem.IsWindows() ? @"C:\foo\bar" : "/foo/bar";
+
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { ProjectDirectory = basePath });
+
+        appBuilder.AddContainer("container", "none")
+            .WithBindMount("source", "/target");
+
+        using var app = appBuilder.Build();
+
+        var containerResource = Assert.Single(app.Services.GetRequiredService<DistributedApplicationModel>().GetContainerResources());
+
+        Assert.True(containerResource.TryGetLastAnnotation<ContainerMountAnnotation>(out var mountAnnotation));
+
+        Assert.Equal(Path.Combine(basePath, "source"), mountAnnotation.Source);
+    }
+
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>
