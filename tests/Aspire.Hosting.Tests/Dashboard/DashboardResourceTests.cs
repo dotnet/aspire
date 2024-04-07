@@ -59,6 +59,74 @@ public class DashboardResourceTests
     }
 
     [Fact]
+    public async Task DashboardDoesNotAddResource_ConfiguresExistingDashboard()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPNETCORE_URLS"] = "http://localhost",
+            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+        });
+
+        var container = builder.AddContainer(KnownResourceNames.AspireDashboard, "my-image");
+
+        var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources);
+
+        Assert.Same(container.Resource, dashboard);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard);
+
+        Assert.Collection(config,
+            e =>
+            {
+                Assert.Equal("ASPNETCORE_ENVIRONMENT", e.Key);
+                Assert.Equal("Production", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ASPNETCORE_URLS", e.Key);
+                Assert.Equal("http://localhost", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", e.Key);
+                Assert.Equal("http://localhost:5000", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", e.Key);
+                Assert.Equal("http://localhost", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE", e.Key);
+                Assert.Equal("Unsecured", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__FRONTEND__AUTHMODE", e.Key);
+                Assert.Equal("Unsecured", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("DASHBOARD__OTLP__AUTHMODE", e.Key);
+                Assert.Equal("Unsecured", e.Value);
+            }
+        );
+    }
+
+    [Fact]
     public async Task DashboardWithDllPathLaunchesDotnet()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -180,6 +248,34 @@ public class DashboardResourceTests
         Assert.Equal("http://localhost:5000", config.Single(e => e.Key == DashboardConfigNames.ResourceServiceUrlName.EnvVarName).Value);
     }
 
+    [Fact]
+    public async Task DashboardIsNotAddedInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        Assert.Empty(model.Resources);
+    }
+
+    [Fact]
+    public async Task DashboardIsNotAddedIfDisabled()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(new DistributedApplicationOptions { DisableDashboard = true });
+
+        var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        Assert.Empty(model.Resources);
+    }
+
     private sealed class MockDashboardEndpointProvider : IDashboardEndpointProvider
     {
         public Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
@@ -187,5 +283,4 @@ public class DashboardResourceTests
             return Task.FromResult("http://localhost:5000");
         }
     }
-
 }

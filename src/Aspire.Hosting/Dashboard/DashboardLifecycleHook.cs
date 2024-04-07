@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
@@ -15,15 +16,18 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                                              IOptions<DcpOptions> dcpOptions,
                                              ILogger<DistributedApplication> distributedApplicationLogger,
-                                             IDashboardEndpointProvider dashboardEndpointProvider) : IDistributedApplicationLifecycleHook
+                                             IDashboardEndpointProvider dashboardEndpointProvider,
+                                             DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
     public Task BeforeStartAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
+        Debug.Assert(executionContext.IsRunMode, "Dashboard resource should only be added in run mode");
+
         if (model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
         {
             ConfigureAspireDashboardResource(dashboardResource);
 
-            // Make it first in the list
+            // Make the dashboard first in the list so it starts as fast as possible.
             model.Resources.Remove(dashboardResource);
             model.Resources.Insert(0, dashboardResource);
         }
@@ -65,6 +69,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         ConfigureAspireDashboardResource(dashboardResource);
 
+        // Make the dashboard first in the list so it starts as fast as possible.
         model.Resources.Insert(0, dashboardResource);
     }
 
@@ -87,7 +92,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 ProjectResource => KnownResourceTypes.Project,
                 _ => KnownResourceTypes.Container
             },
-            State = configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is true ? null : "Hidden"
+            State = configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is true ? null : KnownResourceStates.Hidden
         };
 
         dashboardResource.Annotations.Add(new ResourceSnapshotAnnotation(snapshot));

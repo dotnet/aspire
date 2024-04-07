@@ -526,7 +526,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var urls = GetUrls(container);
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
-        var state = container.AppModelInitialState is "Hidden" ? "Hidden" : container.Status?.State;
+        var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
 
         return previous with
         {
