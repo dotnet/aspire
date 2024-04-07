@@ -70,6 +70,15 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Bind mounts must specify an absolute path..
+        /// </summary>
+        internal static string ContainerMountBindMountsRequireRootedPaths {
+            get {
+                return ResourceManager.GetString("ContainerMountBindMountsRequireRootedPaths", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Bind mounts must specify a source path..
         /// </summary>
         internal static string ContainerMountBindMountsRequireSourceExceptionMessage {

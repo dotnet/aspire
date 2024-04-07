@@ -76,7 +76,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithBindMount<T>(this IResourceBuilder<T> builder, string source, string target, bool isReadOnly = false) where T : ContainerResource
     {
-        var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.BindMount, isReadOnly);
+        var annotation = new ContainerMountAnnotation(Path.GetFullPath(source, builder.ApplicationBuilder.AppHostDirectory), target, ContainerMountType.BindMount, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
 

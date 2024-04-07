@@ -120,6 +120,9 @@
   <data name="ContainerMountAnonymousVolumesReadOnlyExceptionMessage" xml:space="preserve">
     <value>Anonymous volumes cannot be read-only.</value>
   </data>
+  <data name="ContainerMountBindMountsRequireRootedPaths" xml:space="preserve">
+    <value>Bind mounts must specify an absolute path.</value>
+  </data>
   <data name="ContainerMountBindMountsRequireSourceExceptionMessage" xml:space="preserve">
     <value>Bind mounts must specify a source path.</value>
   </data>
