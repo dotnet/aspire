@@ -96,7 +96,7 @@ public static class AzureApplicationInsightsExtensions
             {
                 // If the user does not supply a log analytics workspace of their own, and we are in publish mode
                 // then we want AZD to provide one to us.
-                construct.Resource.Parameters.Add(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, "");
+                construct.Resource.Parameters.TryAdd(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, null);
                 appInsights.AssignProperty(p => p.WorkspaceResourceId, new Parameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
             }
 
