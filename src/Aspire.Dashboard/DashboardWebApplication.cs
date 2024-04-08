@@ -217,13 +217,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         else
         {
             _app.UseExceptionHandler("/Error");
-            //_app.UseHsts();
         }
 
         _app.UseStatusCodePagesWithReExecute("/error/{0}");
 
         if (isAllHttps)
         {
+            _app.UseHsts();
             _app.UseHttpsRedirection();
         }
 
