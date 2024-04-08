@@ -32,7 +32,7 @@ public class AddPostgresTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(5432, endpoint.ContainerPort);
+        Assert.Equal(5432, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -87,7 +87,7 @@ public class AddPostgresTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(5432, endpoint.ContainerPort);
+        Assert.Equal(5432, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(1234, endpoint.Port);
@@ -179,7 +179,7 @@ public class AddPostgresTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(5432, endpoint.ContainerPort);
+        Assert.Equal(5432, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(1234, endpoint.Port);
@@ -238,7 +238,7 @@ public class AddPostgresTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 5432
+                  "targetPort": 5432
                 }
               }
             }
@@ -281,7 +281,7 @@ public class AddPostgresTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 5432
+                  "targetPort": 5432
                 }
               }
             }
@@ -307,7 +307,7 @@ public class AddPostgresTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 5432
+                  "targetPort": 5432
                 }
               }
             }
@@ -333,7 +333,7 @@ public class AddPostgresTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 5432
+                  "targetPort": 5432
                 }
               }
             }

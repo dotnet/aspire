@@ -48,7 +48,7 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
                     "MessageEncoding": "Base64",
                     "Retry": {
                       "Mode": "Exponential",
-                      "Delay": "PT3S"
+                      "Delay": "00:00:03"
                     }
                   }
                 }
@@ -64,7 +64,7 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
             ("""{"Aspire": { "Azure": { "Storage":{ "Queues": { "ServiceUri": "http://YOUR_URI", "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Azure": { "Storage":{ "Queues": { "ClientOptions": {"MessageEncoding": "Fast"}}}}}}""", "Value should match one of the values specified by the enum"),
             ("""{"Aspire": { "Azure": { "Storage":{ "Queues": { "ClientOptions": {"Retry": {"Mode": "Fast"}}}}}}}""", "Value should match one of the values specified by the enum"),
-            ("""{"Aspire": { "Azure": { "Storage":{ "Queues": { "ClientOptions": {"Retry": {"NetworkTimeout": "3S"}}}}}}}""", "Value does not match format \"duration\"")
+            ("""{"Aspire": { "Azure": { "Storage":{ "Queues": { "ClientOptions": {"Retry": {"NetworkTimeout": "PT3S"}}}}}}}""", "The string value is not a match for the indicated regular expression")
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)

@@ -133,6 +133,33 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Untrusted apps can send telemetry to the dashboard..
+        /// </summary>
+        public static string MessageTelemetryBody {
+            get {
+                return ResourceManager.GetString("MessageTelemetryBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to More information.
+        /// </summary>
+        public static string MessageTelemetryLink {
+            get {
+                return ResourceManager.GetString("MessageTelemetryLink", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Telemetry endpoint is unsecured.
+        /// </summary>
+        public static string MessageTelemetryTitle {
+            get {
+                return ResourceManager.GetString("MessageTelemetryTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Console.
         /// </summary>
         public static string NavMenuConsoleLogsTab {

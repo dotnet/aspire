@@ -6,8 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
     <!-- this file is included as a link, as both components rely on different versions of EF (for now) -->
     <Compile Include="..\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\TestDbContext.cs" Link="TestDbContext.cs" />
+    <Compile Include="$(RepoRoot)tests\Aspire.Microsoft.Data.SqlClient.Tests\SqlServerContainerFixture.cs" />
 
     <None Include="$(RepoRoot)src\Components\Aspire.Microsoft.EntityFrameworkCore.SqlServer\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -15,6 +17,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.SqlServer\Aspire.Microsoft.EntityFrameworkCore.SqlServer.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+
+   <PackageReference Include="TestContainers.MsSql" />
   </ItemGroup>
 
 </Project>

@@ -40,13 +40,14 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     Urls = snapshot.Urls,
                     Environment = snapshot.EnvironmentVariables,
                     ExitCode = snapshot.ExitCode,
-                    State = snapshot.State
+                    State = snapshot.State?.Text,
+                    StateStyle = snapshot.State?.Style,
                 };
             }
 
             var timestamp = DateTime.UtcNow;
 
-            await foreach (var @event in resourceNotificationService.WatchAsync().WithCancellation(cancellationToken))
+            await foreach (var @event in resourceNotificationService.WatchAsync().WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 try
                 {
@@ -81,17 +82,17 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         return _resourcePublisher.Subscribe();
     }
 
-    internal IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? SubscribeConsoleLogs(string resourceName)
+    internal IAsyncEnumerable<IReadOnlyList<LogLine>>? SubscribeConsoleLogs(string resourceName)
     {
         var sequence = _resourceLoggerService.WatchAsync(resourceName);
 
         return sequence is null ? null : Enumerate();
 
-        async IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> Enumerate([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        async IAsyncEnumerable<IReadOnlyList<LogLine>> Enumerate([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
 
-            await foreach (var item in sequence.WithCancellation(linked.Token))
+            await foreach (var item in sequence.WithCancellation(linked.Token).ConfigureAwait(false))
             {
                 yield return item;
             }

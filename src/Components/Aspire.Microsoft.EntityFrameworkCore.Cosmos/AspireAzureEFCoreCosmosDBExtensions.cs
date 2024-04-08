@@ -8,6 +8,7 @@ using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Cosmos.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -130,7 +131,28 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.PatchServiceDescriptor<TContext>();
+        if (settings.RequestTimeout.HasValue)
+        {
+            builder.PatchServiceDescriptor<TContext>(optionsBuilder =>
+            {
+#pragma warning disable EF1001 // Internal EF Core API usage.
+                var extension = optionsBuilder.Options.FindExtension<CosmosOptionsExtension>();
+
+                if (extension != null &&
+                    extension.RequestTimeout.HasValue &&
+                    extension.RequestTimeout != settings.RequestTimeout)
+                {
+                    throw new InvalidOperationException($"Conflicting values for 'RequestTimeout' were found in {nameof(EntityFrameworkCoreCosmosDBSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
+                }
+
+                extension?.WithRequestTimeout(settings.RequestTimeout);
+#pragma warning restore EF1001 // Internal EF Core API usage.
+            });
+        }
+        else
+        {
+            builder.PatchServiceDescriptor<TContext>();
+        }
 
         ConfigureInstrumentation<TContext>(builder, settings);
     }

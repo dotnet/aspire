@@ -68,6 +68,49 @@ public class ResourceLoggerServiceTests
         Assert.False(await backlogEnumerator.MoveNextAsync());
     }
 
+    [Fact]
+    public async Task SecondSubscriberGetsBacklog()
+    {
+        var service = new ResourceLoggerService();
+        var testResource = new TestResource("myResource");
+
+        var logger = service.GetLogger(testResource);
+
+        var subscriber1 = service.WatchAsync(testResource);
+        logger.LogInformation("Hello, world!");
+        logger.LogInformation("Hello, world2!");
+
+        await using var subscriber2Enumerator = service.WatchAsync(testResource).GetAsyncEnumerator();
+
+        Assert.True(await subscriber2Enumerator.MoveNextAsync());
+        Assert.Collection(subscriber2Enumerator.Current,
+            log => Assert.Equal("Hello, world!", log.Content),
+            log => Assert.Equal("Hello, world2!", log.Content));
+
+        logger.LogInformation("Hello, again!");
+
+        service.Complete(testResource);
+
+        var subscriber1Logs = subscriber1.ToBlockingEnumerable().SelectMany(x => x).ToList();
+        Assert.Collection(subscriber1Logs,
+            log => Assert.Equal("Hello, world!", log.Content),
+            log => Assert.Equal("Hello, world2!", log.Content),
+            log => Assert.Equal("Hello, again!", log.Content));
+
+        Assert.True(await subscriber2Enumerator.MoveNextAsync());
+        Assert.Collection(subscriber2Enumerator.Current,
+            log => Assert.Equal("Hello, again!", log.Content));
+
+        Assert.False(await subscriber2Enumerator.MoveNextAsync());
+
+        service.ClearBacklog(testResource.Name);
+
+        var backlog = service.WatchAsync(testResource).ToBlockingEnumerable().SelectMany(x => x).ToList();
+
+        // the backlog should be cleared
+        Assert.Empty(backlog);
+    }
+
     private sealed class TestResource(string name) : Resource(name)
     {
 

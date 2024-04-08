@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Configuration;
+using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
@@ -22,8 +24,61 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         // Assert
-        AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
+        AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
+    }
+
+    [Fact]
+    public async Task Configuration_NoExtraConfig_Error()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Clear();
+            });
+
+        // Assert
+        Assert.Collection(app.ValidationFailures,
+            s => s.Contains("Dashboard:Frontend:EndpointUrls"),
+            s => s.Contains("Dashboard:Otlp:EndpointUrl"));
+    }
+
+    [Fact]
+    public async Task Configuration_ConfigFilePathDoesntExist_Error()
+    {
+        // Arrange & Act
+        var configFilePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var ex = await Assert.ThrowsAsync<FileNotFoundException>(async () =>
+        {
+            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                additionalConfiguration: data =>
+                {
+                    data[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configFilePath;
+                });
+        });
+
+        // Assert
+        Assert.Contains(configFilePath, ex.Message);
+    }
+
+    [Fact]
+    public async Task Configuration_OptionsMonitor_CanReadConfiguration()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: initialData =>
+            {
+                initialData["Dashboard:Otlp:AuthMode"] = nameof(OtlpAuthMode.ApiKey);
+                initialData["Dashboard:Otlp:PrimaryApiKey"] = "TestKey123!";
+            });
+
+        // Act
+        await app.StartAsync();
+
+        // Assert
+        Assert.Equal(OtlpAuthMode.ApiKey, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
+        Assert.Equal("TestKey123!", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
     }
 
     [Fact]
@@ -33,13 +88,13 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         DashboardWebApplication? app = null;
         try
         {
-            await ServerRetryHelper.BindPortsWithRetry(async port =>
+            await ServerRetryHelper.BindPortWithRetry(async port =>
             {
                 app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                     additionalConfiguration: initialData =>
                     {
-                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"https://127.0.0.1:{port}";
-                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
                     });
 
                 // Act
@@ -48,7 +103,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // Assert
             Assert.NotNull(app);
-            Assert.Equal(app.BrowserEndPointAccessor().EndPoint.Port, app.OtlpServiceEndPointAccessor().EndPoint.Port);
+            Assert.Equal(app.FrontendEndPointAccessor().EndPoint.Port, app.OtlpServiceEndPointAccessor().EndPoint.Port);
 
             // Check browser access
             using var httpClient = new HttpClient(new HttpClientHandler
@@ -59,14 +114,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 }
             })
             {
-                BaseAddress = new Uri($"https://{app.BrowserEndPointAccessor().EndPoint}")
+                BaseAddress = new Uri($"https://{app.FrontendEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
             var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             // Check OTLP service
-            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.BrowserEndPointAccessor().EndPoint}", testOutputHelper);
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendEndPointAccessor().EndPoint}", testOutputHelper);
             var client = new LogsService.LogsServiceClient(channel);
             var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest());
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
@@ -88,13 +143,13 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         var testSink = new TestSink();
         try
         {
-            await ServerRetryHelper.BindPortsWithRetry(async port =>
+            await ServerRetryHelper.BindPortWithRetry(async port =>
             {
                 app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                     additionalConfiguration: initialData =>
                     {
-                        initialData[DashboardWebApplication.DashboardUrlVariableName] = $"http://127.0.0.1:{port}";
-                        initialData[DashboardWebApplication.DashboardOtlpUrlVariableName] = $"http://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = $"http://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = $"http://127.0.0.1:{port}";
                     },
                     testSink: testSink);
 
@@ -130,20 +185,21 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task Configuration_NoOtlpAuthMode_Error()
+    public async Task Configuration_NoAuthMode_DefaultAuthModes()
     {
         // Arrange & Act
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-        {
-            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
-                additionalConfiguration: data =>
-                {
-                    data.Remove(DashboardWebApplication.OtlpAuthModeKey);
-                });
-        });
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
+                data.Remove(DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey);
+            });
 
         // Assert
-        Assert.Equal("Missing required configuration for Otlp:AuthMode. Valid values are Unsecured, ApiKey, ClientCertificate.", ex.Message);
+        Assert.Equal(FrontendAuthMode.BrowserToken, app.DashboardOptionsMonitor.CurrentValue.Frontend.AuthMode);
+        Assert.Equal(16, Convert.FromHexString(app.DashboardOptionsMonitor.CurrentValue.Frontend.BrowserToken!).Length);
+        Assert.Equal(OtlpAuthMode.Unsecured, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
+        Assert.Empty(app.ValidationFailures);
     }
 
     [Fact]
@@ -153,15 +209,16 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
             additionalConfiguration: data =>
             {
-                data[DashboardWebApplication.OtlpAuthModeKey] = "Unsecured";
+                data[DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey] = bool.TrueString;
             });
 
         // Act
         await app.StartAsync();
 
         // Assert
-        AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
-        AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
+        Assert.Equal(FrontendAuthMode.Unsecured, app.DashboardOptionsMonitor.CurrentValue.Frontend.AuthMode);
+        Assert.Equal(OtlpAuthMode.Unsecured, app.DashboardOptionsMonitor.CurrentValue.Otlp.AuthMode);
+        Assert.Empty(app.ValidationFailures);
     }
 
     [Fact]
@@ -194,6 +251,11 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
                 var uri = new Uri((string)GetValue(w.State, "OtlpEndpointUri")!);
                 Assert.NotEqual(0, uri.Port);
+            },
+            w =>
+            {
+                Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
             });
 
         object? GetValue(object? values, string key)
@@ -204,7 +266,82 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async void EndPointAccessors_AppStarted_BrowserGet_Success()
+    public async Task LogOutput_LocalhostAddress_LocalhostInLogOutput()
+    {
+        // Arrange
+        TestSink? testSink = null;
+        DashboardWebApplication? app = null;
+
+        int? frontendPort1 = null;
+        int? frontendPort2 = null;
+        int? otlpPort = null;
+        try
+        {
+            await ServerRetryHelper.BindPortsWithRetry(async ports =>
+            {
+                frontendPort1 = ports[0];
+                frontendPort2 = ports[1];
+                otlpPort = ports[2];
+
+                testSink = new TestSink();
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                    additionalConfiguration: data =>
+                    {
+                        data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = $"https://localhost:{frontendPort1};http://localhost:{frontendPort2}";
+                        data[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = $"http://localhost:{otlpPort}";
+                    }, testSink: testSink);
+
+                // Act
+                await app.StartAsync();
+            }, NullLogger.Instance, portCount: 3);
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                await app.DisposeAsync();
+            }
+        }
+
+        // Assert
+        Assert.NotNull(testSink);
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
+        Assert.Collection(l,
+            w =>
+            {
+                Assert.Equal("Aspire version: {Version}", GetValue(w.State, "{OriginalFormat}"));
+            },
+            w =>
+            {
+                Assert.Equal("Now listening on: {DashboardUri}", GetValue(w.State, "{OriginalFormat}"));
+
+                var uri = new Uri((string)GetValue(w.State, "DashboardUri")!);
+                Assert.Equal("https", uri.Scheme);
+                Assert.Equal("localhost", uri.Host);
+                Assert.Equal(frontendPort1, uri.Port);
+            },
+            w =>
+            {
+                Assert.Equal("OTLP server running at: {OtlpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
+
+                var uri = new Uri((string)GetValue(w.State, "OtlpEndpointUri")!);
+                Assert.NotEqual(0, uri.Port);
+            },
+            w =>
+            {
+                Assert.Equal("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal(LogLevel.Warning, w.LogLevel);
+            });
+
+        object? GetValue(object? values, string key)
+        {
+            var list = values as IReadOnlyList<KeyValuePair<string, object>>;
+            return list?.SingleOrDefault(kvp => kvp.Key == key).Value;
+        }
+    }
+
+    [Fact]
+    public async Task EndPointAccessors_AppStarted_BrowserGet_Success()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
@@ -212,7 +349,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Act
         await app.StartAsync();
 
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.BrowserEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
 
         // Act
         var response = await client.GetAsync("/");

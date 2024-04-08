@@ -26,7 +26,7 @@ public class AddSqlServerTests
         Assert.Equal("sqlserver", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1433, endpoint.ContainerPort);
+        Assert.Equal(1433, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -35,9 +35,9 @@ public class AddSqlServerTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("2022-latest", containerAnnotation.Tag);
-        Assert.Equal("mssql/server", containerAnnotation.Image);
-        Assert.Equal("mcr.microsoft.com", containerAnnotation.Registry);
+        Assert.Equal(SqlServerContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(SqlServerContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(SqlServerContainerImageTags.Registry, containerAnnotation.Registry);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
 
@@ -59,7 +59,7 @@ public class AddSqlServerTests
     public async Task SqlServerCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass1";
+        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder
@@ -73,7 +73,7 @@ public class AddSqlServerTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<SqlServerServerResource>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
 
-        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=pass1;TrustServerCertificate=true", connectionString);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true", connectionString);
         Assert.Equal("Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -81,7 +81,7 @@ public class AddSqlServerTests
     public async Task SqlServerDatabaseCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass2";
+        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder
@@ -97,7 +97,7 @@ public class AddSqlServerTests
         var connectionStringResource = (IResourceWithConnectionString)sqlResource;
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=pass2;TrustServerCertificate=true;Database=mydb", connectionString);
+        Assert.Equal("Server=127.0.0.1,1433;User ID=sa;Password=p@ssw0rd1;TrustServerCertificate=true;Database=mydb", connectionString);
         Assert.Equal("{sqlserver.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -111,11 +111,11 @@ public class AddSqlServerTests
         var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-              "image": "mcr.microsoft.com/mssql/server:2022-latest",
+              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
               "env": {
                 "ACCEPT_EULA": "Y",
                 "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
@@ -125,7 +125,7 @@ public class AddSqlServerTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 1433
+                  "targetPort": 1433
                 }
               }
             }
@@ -151,11 +151,11 @@ public class AddSqlServerTests
         var sqlServer = builder.AddSqlServer("sqlserver", pass);
         var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true",
-              "image": "mcr.microsoft.com/mssql/server:2022-latest",
+              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
               "env": {
                 "ACCEPT_EULA": "Y",
                 "MSSQL_SA_PASSWORD": "{pass.value}"
@@ -165,7 +165,7 @@ public class AddSqlServerTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 1433
+                  "targetPort": 1433
                 }
               }
             }

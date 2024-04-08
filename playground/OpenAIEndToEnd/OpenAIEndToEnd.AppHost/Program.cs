@@ -3,14 +3,13 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var deploymentAndModelName = "gpt-35-turbo";
 var openai = builder.AddAzureOpenAI("openai").AddDeployment(
     new(deploymentAndModelName, deploymentAndModelName, "0613")
     );
 
 builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
+       .WithExternalHttpEndpoints()
        .WithReference(openai)
        .WithEnvironment("OpenAI__DeploymentName", deploymentAndModelName);
 

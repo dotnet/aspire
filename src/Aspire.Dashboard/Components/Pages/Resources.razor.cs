@@ -10,6 +10,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -30,6 +31,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required IToastService ToastService { get; init; }
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
@@ -41,6 +44,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
+    private string? _elementIdBeforeDetailsViewOpened;
 
     public Resources()
     {
@@ -49,7 +53,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && resource.State != ResourceStates.HiddenState;
 
-    protected void OnResourceTypeVisibilityChanged(string resourceType, bool isVisible)
+    protected Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         if (isVisible)
         {
@@ -60,12 +64,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             _visibleResourceTypes.TryRemove(resourceType, out _);
         }
 
-        ClearSelectedResource();
+        return ClearSelectedResourceAsync();
     }
 
-    private void HandleSearchFilterChanged()
+    private Task HandleSearchFilterChangedAsync()
     {
-        ClearSelectedResource();
+        return ClearSelectedResourceAsync();
     }
 
     private bool? AreAllTypesVisible
@@ -160,7 +164,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             // Listen for updates and apply.
             _resourceSubscriptionTask = Task.Run(async () =>
             {
-                await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
+                await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token).ConfigureAwait(false))
                 {
                     foreach (var (changeType, resource) in changes)
                     {
@@ -202,11 +206,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private void ShowResourceDetails(ResourceViewModel resource)
+    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string buttonId)
     {
+        _elementIdBeforeDetailsViewOpened = buttonId;
+
         if (SelectedResource == resource)
         {
-            ClearSelectedResource();
+            await ClearSelectedResourceAsync();
         }
         else
         {
@@ -214,9 +220,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private void ClearSelectedResource()
+    private async Task ClearSelectedResourceAsync(bool causedByUserAction = false)
     {
         SelectedResource = null;
+
+        if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
+        {
+            await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
+        }
+
+        _elementIdBeforeDetailsViewOpened = null;
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Configuration;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -24,11 +24,11 @@ public class OtlpApplication
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
 
     private readonly ILogger _logger;
-    private readonly TelemetryOptions _options;
+    private readonly TelemetryLimitOptions _options;
 
     public KeyValuePair<string, string>[] Properties { get; }
 
-    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger, TelemetryOptions options)
+    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger, TelemetryLimitOptions options)
     {
         var properties = new List<KeyValuePair<string, string>>();
         foreach (var attribute in resource.Attributes)

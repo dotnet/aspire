@@ -29,31 +29,35 @@
         "Orleans__GrainStorage__Default__ProviderType": "AzureBlobStorage",
         "Orleans__GrainStorage__Default__ServiceKey": "grainstate",
         "ConnectionStrings__grainstate": "{grainstate.connectionString}",
-        "Orleans__ClusterId": "84bf51f8b9c14c58ac7119216fde5c20",
-        "Orleans__EnableDistributedTracing": "true",
-        "Orleans__Endpoints__SiloPort": "{silo.bindings.orleans-silo.port}",
-        "Orleans__Endpoints__GatewayPort": "{silo.bindings.orleans-gateway.port}"
+        "Orleans__ClusterId": "c7673f46dfc745c8b4492b957aa42408",
+        "Orleans__Endpoints__SiloPort": "{silo.bindings.orleans-silo.targetPort}",
+        "Orleans__Endpoints__GatewayPort": "{silo.bindings.orleans-gateway.targetPort}",
+        "Orleans__EnableDistributedTracing": "true"
       },
       "bindings": {
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "orleans-silo": {
           "scheme": "tcp",
           "protocol": "tcp",
-          "transport": "tcp"
+          "transport": "tcp",
+          "targetPort": 8000
         },
         "orleans-gateway": {
           "scheme": "tcp",
           "protocol": "tcp",
-          "transport": "tcp"
+          "transport": "tcp",
+          "targetPort": 8001
         }
       }
     }

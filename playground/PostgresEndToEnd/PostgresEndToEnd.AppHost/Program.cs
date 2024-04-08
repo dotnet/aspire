@@ -22,6 +22,7 @@ var db9 = pg6.AddDatabase("db9", "db8"); // different connection string (db9) on
 var db10 = builder.AddPostgres("pg10").WithPgAdmin().PublishAsConnectionString().AddDatabase("db10");
 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
+       .WithExternalHttpEndpoints()
        .WithReference(db1)
        .WithReference(db2)
        .WithReference(db3)

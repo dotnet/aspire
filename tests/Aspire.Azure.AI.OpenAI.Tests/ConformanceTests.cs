@@ -33,11 +33,11 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
                   "Endpoint": "http://YOUR_URI",
                   "Tracing": true,
                   "ClientOptions": {
-                    "ConnectionIdleTimeout": "PT1S",
+                    "ConnectionIdleTimeout": "00:10",
                     "EnableCrossEntityTransactions": true,
                     "RetryOptions": {
                       "Mode": "Fixed",
-                      "MaxDelay": "PT3S"  
+                      "MaxDelay": "00:00:30"  
                     },
                     "TransportType": "AmqpWebSockets"
                   }
