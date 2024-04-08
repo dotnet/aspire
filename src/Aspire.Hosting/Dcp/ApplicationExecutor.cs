@@ -830,7 +830,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
 
         var dashboardUrls = env.Single(e => e.Key == DashboardConfigNames.DashboardFrontendUrlName.EnvVarName).Value;
-        PrintDashboardUrls(dashboardUrls);
+        var browserToken = env.SingleOrDefault(e => e.Key == DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName).Value;
+        PrintDashboardUrls(dashboardUrls, browserToken);
     }
 
     private async Task<List<KeyValuePair<string, string>>> GetDashboardEnvironmentVariablesAsync(IConfiguration configuration, string? defaultDashboardUrl, CancellationToken cancellationToken)
@@ -882,11 +883,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return env;
     }
 
-    private void PrintDashboardUrls(string delimitedUrlList)
+    private void PrintDashboardUrls(string delimitedUrlList, string? browserToken)
     {
         if (StringUtils.TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
         {
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
+        }
+
+        if (!string.IsNullOrEmpty(browserToken))
+        {
+            LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, delimitedUrlList, browserToken);
         }
     }
 
@@ -1330,7 +1336,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
             }
 
-            PrintDashboardUrls(dashboardUrls);
+            var browserToken = configuration["AppHost:BrowserToken"];
+
+            PrintDashboardUrls(dashboardUrls, browserToken);
         }
     }
 
