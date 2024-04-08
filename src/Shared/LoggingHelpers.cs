@@ -17,7 +17,7 @@ internal static class LoggingHelpers
 
         if (StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
         {
-            logger.LogInformation("Login to the dashboard at {DashboardUrl}", $"{firstDashboardUrl.GetLeftPart(UriPartial.Authority)}/login?t={token}");
+            logger.LogInformation("Login to the dashboard at {DashboardLoginUrl}", $"{firstDashboardUrl.GetLeftPart(UriPartial.Authority)}/login?t={token}");
         }
     }
 }

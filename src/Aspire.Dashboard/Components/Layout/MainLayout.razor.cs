@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -22,6 +24,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private const string SettingsDialogId = "SettingsDialog";
     private const string HelpDialogId = "HelpDialog";
+    private const string MessageBarSection = "MessagesTop";
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -46,6 +49,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required ShortcutManager ShortcutManager { get; init; }
+
+    [Inject]
+    public required IMessageService MessageService { get; init; }
+
+    [Inject]
+    public required IOptionsMonitor<DashboardOptions> Options { get; init; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,6 +87,25 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         var result = await JS.InvokeAsync<string>("window.getBrowserTimeZone");
         TimeProvider.SetBrowserTimeZone(result);
+
+        if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
+        {
+            // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
+            // I think this order allows the message bar provider to be fully initialized.
+            await MessageService.ShowMessageBarAsync(options =>
+            {
+                options.Title = Loc[nameof(Resources.Layout.MessageTelemetryTitle)];
+                options.Body = Loc[nameof(Resources.Layout.MessageTelemetryBody)];
+                options.Link = new()
+                {
+                    Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
+                    Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
+                    Target = "_blank"
+                };
+                options.Intent = MessageIntent.Warning;
+                options.Section = MessageBarSection;
+            });
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

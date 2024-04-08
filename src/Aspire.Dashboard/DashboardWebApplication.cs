@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
@@ -18,6 +19,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -149,10 +151,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             if (_frontendEndPointAccessor != null)
             {
-                var url = GetEndpointUrl(_frontendEndPointAccessor());
+                var url = _frontendEndPointAccessor().Address;
                 logger.LogInformation("Now listening on: {DashboardUri}", url);
 
-                var options = _app.Services.GetRequiredService<IOptions<DashboardOptions>>().Value;
+                var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
                 if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
                 {
                     LoggingHelpers.WriteDashboardUrl(logger, url, options.Frontend.BrowserToken);
@@ -162,10 +164,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             if (_otlpServiceEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", GetEndpointUrl(_otlpServiceEndPointAccessor()));
+                logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", _otlpServiceEndPointAccessor().Address);
             }
 
-            static string GetEndpointUrl(EndpointInfo info) => $"{(info.isHttps ? "https" : "http")}://{info.EndPoint}";
+            if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
+            {
+                logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
+            }
         });
 
         // Redirect browser directly to /structuredlogs address if the dashboard is running without a resource service.
@@ -339,13 +344,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     // Only the last endpoint is accessible. Tests should only need one but
                     // this will need to be improved if that changes.
-                    _frontendEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
+                    _frontendEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 });
             }
 
             configurationLoader.Endpoint("Otlp", endpointConfiguration =>
             {
-                _otlpServiceEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
+                _otlpServiceEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 if (hasSingleEndpoint)
                 {
                     logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
@@ -373,14 +378,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             });
         });
 
-        static Func<EndpointInfo> CreateEndPointAccessor(ListenOptions options, bool isHttps)
+        static Func<EndpointInfo> CreateEndPointAccessor(EndpointConfiguration endpointConfiguration)
         {
             // We want to provide a way for someone to get the IP address of an endpoint.
             // However, if a dynamic port is used, the port is not known until the server is started.
             // Instead of returning the ListenOption's endpoint directly, we provide a func that returns the endpoint.
             // The endpoint on ListenOptions is updated after binding, so accessing it via the func after the server
             // has started returns the resolved port.
-            return () => new EndpointInfo(options.IPEndPoint!, isHttps);
+            var address = BindingAddress.Parse(endpointConfiguration.ConfigSection["Url"]!);
+            return () =>
+            {
+                var endpoint = endpointConfiguration.ListenOptions.IPEndPoint!;
+                var resolvedAddress = address.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + address.Host.ToLowerInvariant() + ":" + endpoint.Port.ToString(CultureInfo.InvariantCulture);
+                return new EndpointInfo(resolvedAddress, endpoint, endpointConfiguration.IsHttps);
+            };
         }
     }
 
@@ -540,7 +551,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     }
 }
 
-public record EndpointInfo(IPEndPoint EndPoint, bool isHttps);
+public record EndpointInfo(string Address, IPEndPoint EndPoint, bool isHttps);
 
 public static class FrontendAuthorizationDefaults
 {

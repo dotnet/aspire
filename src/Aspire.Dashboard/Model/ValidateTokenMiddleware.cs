@@ -51,8 +51,13 @@ internal sealed class ValidateTokenMiddleware
                     var qs = HttpUtility.ParseQueryString(context.Request.QueryString.ToString());
                     qs.Remove("t");
 
+                    // Collection created by ParseQueryString handles escaping names and values.
                     var newQuerystring = qs.ToString();
-                    context.Response.Redirect($"{context.Request.Path}?{newQuerystring}");
+                    if (!string.IsNullOrEmpty(newQuerystring))
+                    {
+                        newQuerystring = "?" + newQuerystring;
+                    }
+                    context.Response.Redirect($"{context.Request.Path}{newQuerystring}");
                 }
 
                 return;
