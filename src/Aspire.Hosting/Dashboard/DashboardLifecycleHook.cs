@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Dashboard;
 
 internal sealed class DashboardLifecycleHook(IConfiguration configuration,
-                                             IOptions<DcpOptions> dcpOptions,
+                                             IOptions<DashboardOptions> dashboardOptions,
                                              ILogger<DistributedApplication> distributedApplicationLogger,
                                              IDashboardEndpointProvider dashboardEndpointProvider,
                                              DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
@@ -41,7 +41,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     private void AddDashboardResource(DistributedApplicationModel model)
     {
-        if (dcpOptions.Value.DashboardPath is not { } dashboardPath)
+        if (dashboardOptions.Value.DashboardPath is not { } dashboardPath)
         {
             throw new DistributedApplicationException("Dashboard path empty or file does not exist.");
         }
@@ -99,21 +99,21 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
         {
-            var dashboardUrls = configuration["ASPNETCORE_URLS"];
+            var options = dashboardOptions.Value;
 
-            if (string.IsNullOrEmpty(dashboardUrls))
-            {
-                throw new DistributedApplicationException("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
-            }
+            // Options should have been validated these should not be null
 
-            if (configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] is not { } otlpEndpointUrl)
-            {
-                throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
-            }
+            Debug.Assert(options.DashboardUrl is not null, "DashboardUrl should not be null");
+            Debug.Assert(options.OtlpEndpointUrl is not null, "OtlpEndpointUrl should not be null");
+
+            var dashboardUrls = options.DashboardUrl;
+            var otlpEndpointUrl = options.OtlpEndpointUrl;
+
+            var environment = options.AspNetCoreEnvironment;
+            var browserToken = options.DashboardToken;
+            var otlpApiKey = options.OtlpApiKey;
 
             var resourceServiceUrl = await dashboardEndpointProvider.GetResourceServiceUriAsync(context.CancellationToken).ConfigureAwait(false);
-
-            var environment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
 
             context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
             context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = dashboardUrls;
@@ -121,7 +121,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpUrlName.EnvVarName] = otlpEndpointUrl;
             context.EnvironmentVariables[DashboardConfigNames.ResourceServiceAuthModeName.EnvVarName] = "Unsecured";
 
-            if (configuration["AppHost:BrowserToken"] is { Length: > 0 } browserToken)
+            if (!string.IsNullOrEmpty(browserToken))
             {
                 context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "BrowserToken";
                 context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName] = browserToken;
@@ -131,7 +131,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName] = "Unsecured";
             }
 
-            if (configuration["AppHost:OtlpApiKey"] is { Length: > 0 } otlpApiKey)
+            if (!string.IsNullOrEmpty(otlpApiKey))
             {
                 context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "ApiKey";
                 context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.EnvVarName] = otlpApiKey;
@@ -146,6 +146,11 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             if (StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var firstDashboardUrl))
             {
                 distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
+            }
+
+            if (!string.IsNullOrEmpty(browserToken))
+            {
+                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrls, browserToken);
             }
         }));
     }
