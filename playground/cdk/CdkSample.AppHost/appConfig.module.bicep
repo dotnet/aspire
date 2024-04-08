@@ -10,8 +10,8 @@ param principalId string
 param principalType string
 
 
-resource appConfigurationStore_j2IqAZkBh 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
-  name: toLower(take(concat('appConfig', uniqueString(resourceGroup().id)), 24))
+resource appConfigurationStore_xM7mBhesj 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
+  name: toLower(take('appConfig${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'appConfig'
@@ -23,9 +23,9 @@ resource appConfigurationStore_j2IqAZkBh 'Microsoft.AppConfiguration/configurati
   }
 }
 
-resource roleAssignment_umUNaNdeG 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: appConfigurationStore_j2IqAZkBh
-  name: guid(appConfigurationStore_j2IqAZkBh.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
+resource roleAssignment_3uatMWw7h 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: appConfigurationStore_xM7mBhesj
+  name: guid(appConfigurationStore_xM7mBhesj.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b')
     principalId: principalId
@@ -33,4 +33,4 @@ resource roleAssignment_umUNaNdeG 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-output appConfigEndpoint string = appConfigurationStore_j2IqAZkBh.properties.endpoint
+output appConfigEndpoint string = appConfigurationStore_xM7mBhesj.properties.endpoint

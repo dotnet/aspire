@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Aspire.Hosting;
 
 namespace Aspire.Dashboard.Configuration;
 
@@ -17,6 +18,7 @@ public sealed class DashboardOptions
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new TelemetryLimitOptions();
 }
 
+// Don't set values after validating/parsing options.
 public sealed class ResourceServiceClientOptions
 {
     private Uri? _parsedUrl;
@@ -53,6 +55,7 @@ public sealed class ResourceServiceClientCertificateOptions
     public StoreLocation? Location { get; set; }
 }
 
+// Don't set values after validating/parsing options.
 public sealed class OtlpOptions
 {
     private Uri? _parsedEndpointUrl;
@@ -82,7 +85,7 @@ public sealed class OtlpOptions
     {
         if (string.IsNullOrEmpty(EndpointUrl))
         {
-            errorMessage = "OTLP endpoint URL is not configured. Specify a Dashboard:Otlp:EndpointUrl value.";
+            errorMessage = $"OTLP endpoint URL is not configured. Specify a {DashboardConfigNames.DashboardOtlpUrlName.EnvVarName} value.";
             return false;
         }
         else
@@ -102,12 +105,17 @@ public sealed class OtlpOptions
     }
 }
 
+// Don't set values after validating/parsing options.
 public sealed class FrontendOptions
 {
     private List<Uri>? _parsedEndpointUrls;
+    private byte[]? _browserTokenBytes;
 
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
+    public string? BrowserToken { get; set; }
+
+    public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;
 
     public IReadOnlyList<Uri> GetEndpointUris()
     {
@@ -138,6 +146,8 @@ public sealed class FrontendOptions
             }
             _parsedEndpointUrls = uris;
         }
+
+        _browserTokenBytes = BrowserToken != null ? Encoding.UTF8.GetBytes(BrowserToken) : null;
 
         errorMessage = null;
         return true;

@@ -31,9 +31,10 @@
     width: 100vw;
     display: grid;
     grid-template-columns: auto 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     grid-template-areas:
         "icon head"
+        "nav messagebar"
         "nav main";
     background-color: var(--fill-color);
     color: var(--neutral-foreground-rest);
@@ -60,6 +61,11 @@
 ::deep.layout > .body-content {
     grid-area: main;
     overflow-x: auto; /* allow horizontal scrolling */
+    border-left: 1px solid var(--neutral-stroke-rest);
+}
+
+::deep.layout > .messagebar-container {
+    grid-area: messagebar;
     border-top: 1px solid var(--neutral-stroke-rest);
     border-left: 1px solid var(--neutral-stroke-rest);
 }

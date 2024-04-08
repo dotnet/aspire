@@ -37,7 +37,7 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
                     "EnableTenantDiscovery": true,
                     "Retry": {
                       "Mode": "Exponential",
-                      "Delay": "PT3S"
+                      "Delay": "00:00:01"
                     }
                   }
                 }
@@ -52,7 +52,7 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
             ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
             ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "http://YOUR_URI", "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"Mode": "Fast"}}}}}}}""", "Value should match one of the values specified by the enum"),
-            ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"NetworkTimeout": "3S"}}}}}}}""", "Value does not match format \"duration\"")
+            ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"NetworkTimeout": "3S"}}}}}}}""", "The string value is not a match for the indicated regular expression")
         };
 
     protected override string[] RequiredLogCategories => new string[]

@@ -5,7 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
-using Azure.Provisioning.Authorization;
+using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 
@@ -24,9 +24,9 @@ public static class AzureStorageExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureStorage(name, null);
-#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public static class AzureStorageExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Storage.StorageAccount"/> resource.</param>
     /// <returns></returns>
-    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureStorageResource>, ResourceModuleConstruct, StorageAccount>? configureResource)
     {
         builder.AddAzureProvisioning();
@@ -48,6 +48,11 @@ public static class AzureStorageExtensions
                 kind: StorageKind.StorageV2,
                 sku: StorageSkuName.StandardGrs
                 );
+
+            // Unfortunately Azure Storage does not list ACA as one of the resource types in which
+            // the AzureServices firewall policy works. This means that we need this Azure Storage
+            // account to have its default action set to Allow.
+            storageAccount.AssignProperty(p => p.NetworkRuleSet.DefaultAction, "'Allow'");
 
             storageAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
@@ -108,30 +113,6 @@ public static class AzureStorageExtensions
         }
 
         return builder;
-    }
-
-    /// <summary>
-    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model. This version the package defaults to version 3.29.0 of the mcr.microsoft.com/azure-storage/azurite container image.
-    /// </summary>
-    /// <param name="builder">The Azure storage resource builder.</param>
-    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Renamed to RunAsEmulator. Will be removed in next preview.")]
-    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
-    {
-        return builder.RunAsEmulator(configureContainer);
-    }
-
-    /// <summary>
-    /// Enables persistence in the Azure Storage emulator.
-    /// </summary>
-    /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
-    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs.</param>
-    /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
-    [Obsolete("Use WithDataBindMount or WithDataVolume instead. Will be removed in next preview.")]
-    public static IResourceBuilder<AzureStorageEmulatorResource> UsePersistence(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? path = null)
-    {
-        return builder.WithDataBindMount(path);
     }
 
     /// <summary>

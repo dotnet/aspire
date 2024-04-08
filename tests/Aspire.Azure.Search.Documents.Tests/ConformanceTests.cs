@@ -36,7 +36,7 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
                   "ClientOptions": {
                     "Retry": {
                       "Mode": "Fixed",
-                      "MaxDelay": "PT3S"  
+                      "MaxDelay": "00:00:03"  
                     }
                   }
                 }

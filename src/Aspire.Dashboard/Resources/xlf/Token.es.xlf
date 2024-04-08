@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="es" original="../Token.resx">
+    <body>
+      <trans-unit id="Header">
+        <source>{0} dashboard</source>
+        <target state="new">{0} dashboard</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="HelpPopupText">
+        <source>Look for the token in the console output:</source>
+        <target state="new">Look for the token in the console output:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpScreenshotAltText">
+        <source>Screenshot of console output showing where to find the dashboard frontend token</source>
+        <target state="new">Screenshot of console output showing where to find the dashboard frontend token</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidTokenErrorMessage">
+        <source>Invalid token. Please try again</source>
+        <target state="new">Invalid token. Please try again</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogInButtonText">
+        <source>Log in</source>
+        <target state="new">Log in</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MoreInfoLinkText">
+        <source>More info</source>
+        <target state="new">More info</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageTitle">
+        <source>{0} login</source>
+        <target state="new">{0} login</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="TextFieldPlaceholder">
+        <source>Enter token to log in...</source>
+        <target state="new">Enter token to log in...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TokenRequiredErrorMessage">
+        <source>Token is required</source>
+        <target state="new">Token is required</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedValidationError">
+        <source>Unexpected error when validating the token</source>
+        <target state="new">Unexpected error when validating the token</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WhereIsMyTokenLinkText">
+        <source>Where do I find the token?</source>
+        <target state="new">Where do I find the token?</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

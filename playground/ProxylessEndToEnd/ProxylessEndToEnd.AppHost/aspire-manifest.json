@@ -9,6 +9,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
+          "port": 9999,
           "targetPort": 6379
         }
       }
@@ -26,7 +27,8 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "port": 12345
         },
         "https": {
           "scheme": "https",
@@ -48,7 +50,8 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "targetPort": 13456
         }
       }
     }

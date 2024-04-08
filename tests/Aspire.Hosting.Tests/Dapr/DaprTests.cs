@@ -14,7 +14,11 @@ public class DaprTests
     [Fact]
     public async Task WithDaprSideCarAddsAnnotationAndSidecarResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(new DistributedApplicationOptions
+        {
+            DisableDashboard = true
+        });
+
         builder.AddDapr(o =>
         {
             // Fake path to avoid throwing
@@ -50,7 +54,7 @@ public class DaprTests
 
         foreach (var e in endpoints)
         {
-            e.AllocatedEndpoint = new(e, "localhost", ports[e.Name]);
+            e.AllocatedEndpoint = new(e, "localhost", ports[e.Name], targetPortExpression: $$$"""{{- portForServing "{{{e.Name}}}" -}}""");
         }
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container);
@@ -67,11 +71,11 @@ public class DaprTests
             "--app-port",
             "80",
             "--dapr-grpc-port",
-            "{{- portForServing \"name-dapr-cli_grpc\" -}}",
+            "{{- portForServing \"grpc\" -}}",
             "--dapr-http-port",
-            "{{- portForServing \"name-dapr-cli_http\" -}}",
+            "{{- portForServing \"http\" -}}",
             "--metrics-port",
-            "{{- portForServing \"name-dapr-cli_metrics\" -}}",
+            "{{- portForServing \"metrics\" -}}",
             "--app-channel-address",
             "localhost"
         };

@@ -23,7 +23,7 @@
     },
     "test0": {
       "type": "azure.bicep.v0",
-      "path": "test0.bicep"
+      "path": "test0.module.bicep"
     },
     "kv3": {
       "type": "azure.bicep.v0",

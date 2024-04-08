@@ -94,10 +94,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             }
 
             var daprAppPortArg = (int? port) => ModelNamedArg("--app-port", port);
-            var daprGrpcPortArg = (string? port) => ModelNamedArg("--dapr-grpc-port", port);
-            var daprHttpPortArg = (string? port) => ModelNamedArg("--dapr-http-port", port);
-            var daprMetricsPortArg = (string? port) => ModelNamedArg("--metrics-port", port);
-            var daprProfilePortArg = (string? port) => ModelNamedArg("--profile-port", port);
+            var daprGrpcPortArg = (object port) => ModelNamedObjectArg("--dapr-grpc-port", port);
+            var daprHttpPortArg = (object port) => ModelNamedObjectArg("--dapr-http-port", port);
+            var daprMetricsPortArg = (object port) => ModelNamedObjectArg("--metrics-port", port);
+            var daprProfilePortArg = (object port) => ModelNamedObjectArg("--profile-port", port);
             var daprAppChannelAddressArg = (string? address) => ModelNamedArg("--app-channel-address", address);
 
             var appId = sidecarOptions?.AppId ?? resource.Name;
@@ -181,13 +181,21 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             }
                         }
 
-                        updatedArgs.AddRange(daprGrpcPortArg($"{{{{- portForServing \"{daprCliResourceName}_grpc\" -}}}}")());
-                        updatedArgs.AddRange(daprHttpPortArg($"{{{{- portForServing \"{daprCliResourceName}_http\" -}}}}")());
-                        updatedArgs.AddRange(daprMetricsPortArg($"{{{{- portForServing \"{daprCliResourceName}_metrics\" -}}}}")());
+                        var grpc = daprCli.GetEndpoint("grpc");
+                        var http = daprCli.GetEndpoint("http");
+                        var metrics = daprCli.GetEndpoint("metrics");
+
+                        updatedArgs.AddRange(daprGrpcPortArg(grpc.Property(EndpointProperty.TargetPort))());
+                        updatedArgs.AddRange(daprHttpPortArg(http.Property(EndpointProperty.TargetPort))());
+                        updatedArgs.AddRange(daprMetricsPortArg(metrics.Property(EndpointProperty.TargetPort))());
+
                         if (sidecarOptions?.EnableProfiling == true)
                         {
-                            updatedArgs.AddRange(daprProfilePortArg($"{{{{- portForServing \"{daprCliResourceName}_profile\" -}}}}")());
+                            var profiling = daprCli.GetEndpoint("profiling");
+
+                            updatedArgs.AddRange(daprProfilePortArg(profiling.Property(EndpointProperty.TargetPort))());
                         }
+
                         if (sidecarOptions?.AppChannelAddress is null && httpEndPoint is not null)
                         {
                             updatedArgs.AddRange(daprAppChannelAddressArg(httpEndPoint.Host)());
