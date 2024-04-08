@@ -269,7 +269,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task LogOutput_LocalhostAddress_LocalhostInLogOutput()
     {
         // Arrange
-        var testSink = new TestSink();
+        TestSink? testSink = null;
         DashboardWebApplication? app = null;
 
         int? frontendPort1 = null;
@@ -283,6 +283,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 frontendPort2 = ports[1];
                 otlpPort = ports[2];
 
+                testSink = new TestSink();
                 app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                     additionalConfiguration: data =>
                     {
@@ -303,6 +304,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         }
 
         // Assert
+        Assert.NotNull(testSink);
         var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
         Assert.Collection(l,
             w =>
