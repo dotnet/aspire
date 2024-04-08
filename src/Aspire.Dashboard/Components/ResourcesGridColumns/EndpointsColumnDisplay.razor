@@ -79,11 +79,11 @@ else
                             <div class="endpoint-link">
                                 @if (d.Url != null)
                                 {
-                                    <a href="@d.Url" target="_blank">@d.Text</a>
+                                    <a href="@d.Url" target="_blank" title="@d.Text">@d.Text</a>
                                 }
                                 else
                                 {
-                                    @d.Text
+                                    <span title="@d.Text">@d.Text</span>
                                 }
                             </div>
                         }
