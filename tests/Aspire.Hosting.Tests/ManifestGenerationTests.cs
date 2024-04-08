@@ -2,7 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.MySql;
+using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.RabbitMQ;
+using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -530,7 +535,7 @@ public class ManifestGenerationTests
 
         program.Run();
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "resources": {
                 "servicea": {
@@ -643,7 +648,7 @@ public class ManifestGenerationTests
                 "sqlserver": {
                   "type": "container.v0",
                   "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-                  "image": "mcr.microsoft.com/mssql/server:2022-latest",
+                  "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
                   "env": {
                     "ACCEPT_EULA": "Y",
                     "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
@@ -664,7 +669,7 @@ public class ManifestGenerationTests
                 "mysql": {
                   "type": "container.v0",
                   "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-                  "image": "mysql:8.3.0",
+                  "image": "{{MySqlContainerImageTags.Registry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
                   "env": {
                     "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
                     "MYSQL_DATABASE": "mysqldb"
@@ -685,7 +690,7 @@ public class ManifestGenerationTests
                 "redis": {
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-                  "image": "redis:7.2.4",
+                  "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -698,7 +703,7 @@ public class ManifestGenerationTests
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-                  "image": "postgres:16.2",
+                  "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                     "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -722,7 +727,7 @@ public class ManifestGenerationTests
                 "rabbitmq": {
                   "type": "container.v0",
                   "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
-                  "image": "rabbitmq:3",
+                  "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
                   "env": {
                     "RABBITMQ_DEFAULT_USER": "guest",
                     "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
@@ -739,7 +744,7 @@ public class ManifestGenerationTests
                 "mongodb": {
                   "type": "container.v0",
                   "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-                  "image": "mongo:7.0.5",
+                  "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -756,7 +761,7 @@ public class ManifestGenerationTests
                 "oracledatabase": {
                   "type": "container.v0",
                   "connectionString": "user id=system;password={oracledatabase-password.value};data source={oracledatabase.bindings.tcp.host}:{oracledatabase.bindings.tcp.port}",
-                  "image": "container-registry.oracle.com/database/free:23.3.0.0",
+                  "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
                   "env": {
                     "ORACLE_PWD": "{oracledatabase-password.value}"
                   },
@@ -776,7 +781,7 @@ public class ManifestGenerationTests
                 "kafka": {
                   "type": "container.v0",
                   "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-                  "image": "confluentinc/confluent-local:7.6.0",
+                  "image": "{{KafkaContainerImageTags.Registry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
                   "env": {
                     "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
                   },
