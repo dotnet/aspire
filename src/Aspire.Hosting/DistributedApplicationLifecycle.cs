@@ -11,8 +11,7 @@ namespace Aspire.Hosting;
 internal sealed class DistributedApplicationLifecycle(
     ILogger<DistributedApplication> logger,
     IConfiguration configuration,
-    DistributedApplicationExecutionContext executionContext,
-    DistributedApplicationOptions distributedApplicationOptions) : IHostedLifecycleService
+    DistributedApplicationExecutionContext executionContext) : IHostedLifecycleService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -23,11 +22,6 @@ internal sealed class DistributedApplicationLifecycle(
     {
         if (executionContext.IsRunMode)
         {
-            if (distributedApplicationOptions.DashboardEnabled && configuration["AppHost:BrowserToken"] is { Length: > 0 } browserToken)
-            {
-                LoggingHelpers.WriteDashboardUrl(logger, configuration["ASPNETCORE_URLS"], browserToken);
-            }
-
             logger.LogInformation("Distributed application started. Press Ctrl+C to shut down.");
         }
 
