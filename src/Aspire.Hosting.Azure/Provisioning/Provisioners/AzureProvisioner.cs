@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
@@ -370,8 +371,15 @@ internal sealed class AzureProvisioner(
 
         if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
+            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName).ToLowerInvariant();
+
+            if (!string.IsNullOrEmpty(normalizedApplicationName))
+            {
+                normalizedApplicationName += "-";
+            }
+
             // Create a unique resource group name and save it in user secrets
-            resourceGroupName = $"rg-aspire-{environment.ApplicationName.ToLowerInvariant()}-{RandomNumberGenerator.GetHexString(8, true)}";
+            resourceGroupName = $"rg-aspire-{normalizedApplicationName}{RandomNumberGenerator.GetHexString(8, lowercase: true)}";
             createIfAbsent = true;
 
             userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
