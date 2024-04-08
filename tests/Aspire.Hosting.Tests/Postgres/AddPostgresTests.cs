@@ -29,7 +29,7 @@ public class AddPostgresTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(PostgresContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(PostgresContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(PostgresContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(5432, endpoint.TargetPort);
@@ -84,7 +84,7 @@ public class AddPostgresTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(PostgresContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(PostgresContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(PostgresContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(5432, endpoint.TargetPort);
@@ -176,7 +176,7 @@ public class AddPostgresTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(PostgresContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(PostgresContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(PostgresContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(5432, endpoint.TargetPort);
@@ -226,7 +226,7 @@ public class AddPostgresTests
             {
               "type": "container.v0",
               "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username=postgres;Password={pg-password.value}",
-              "image": "{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
+              "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -265,11 +265,11 @@ public class AddPostgresTests
         var pgServer = builder.AddPostgres("pg", userNameParameter, passwordParameter);
         var serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username={user.value};Password={pass.value}",
-              "image": "postgres:16.2",
+              "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -291,11 +291,11 @@ public class AddPostgresTests
         pgServer = builder.AddPostgres("pg2", userNameParameter);
         serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
 
-        expectedManifest = """
+        expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Host={pg2.bindings.tcp.host};Port={pg2.bindings.tcp.port};Username={user.value};Password={pg2-password.value}",
-              "image": "postgres:16.2",
+              "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -317,11 +317,11 @@ public class AddPostgresTests
         pgServer = builder.AddPostgres("pg3", password: passwordParameter);
         serverManifest = await ManifestUtils.GetManifest(pgServer.Resource);
 
-        expectedManifest = """
+        expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pass.value}",
-              "image": "postgres:16.2",
+              "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",

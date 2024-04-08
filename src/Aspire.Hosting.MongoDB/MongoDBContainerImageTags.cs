@@ -5,6 +5,7 @@ namespace Aspire.Hosting.MongoDB;
 
 internal static class MongoDBContainerImageTags
 {
-    public const string Image = "mongo";
+    public const string Registry = "docker.io";
+    public const string Image = "library/mongo";
     public const string Tag = "7.0.5";
 }

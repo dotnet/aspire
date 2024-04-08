@@ -5,6 +5,7 @@ namespace Aspire.Hosting.Postgres;
 
 internal static class PostgresContainerImageTags
 {
-    public const string Image = "postgres";
+    public const string Registry = "docker.io";
+    public const string Image = "library/postgres";
     public const string Tag = "16.2";
 }
