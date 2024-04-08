@@ -10,7 +10,7 @@
                                    FooterLink="">
                     <HeaderTemplate>
                         <FluentStack VerticalAlignment="VerticalAlignment.Center">
-                            <FluentLabel>OpenID Connect</FluentLabel>
+                            <FluentLabel>@Loc[nameof(Resources.Login.SignedInAs)]</FluentLabel>
                             <FluentSpacer />
                             <form @formname="sign-out-form" class="sign-out-form" action="authentication/logout" method="post">
                                 <AntiforgeryToken />

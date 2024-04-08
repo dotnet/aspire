@@ -5,7 +5,7 @@ using System.Security.Claims;
 
 namespace Aspire.Dashboard.Extensions;
 
-public static class ClaimsIdentityExtensions
+internal static class ClaimsIdentityExtensions
 {
     /// <summary>
     /// Searches the claims in the <see cref="ClaimsIdentity.Claims"/> for each of the claim types in <paramref name="claimTypes" />

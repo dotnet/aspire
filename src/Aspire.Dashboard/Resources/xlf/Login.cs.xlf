@@ -37,6 +37,11 @@
         <target state="translated">Přihlášení k aplikaci {0}</target>
         <note>{0} is an application name</note>
       </trans-unit>
+      <trans-unit id="SignedInAs">
+        <source>Signed in as:</source>
+        <target state="new">Signed in as:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TextFieldPlaceholder">
         <source>Enter token to log in...</source>
         <target state="translated">Zadejte token pro přihlášení...</target>

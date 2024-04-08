@@ -50,7 +50,6 @@
 
 ::deep.layout > header {
     grid-area: head;
-    /*overflow-x: clip;*/
 }
 
 ::deep.layout > .nav-menu-container {

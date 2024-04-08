@@ -124,6 +124,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Signed in as:.
+        /// </summary>
+        public static string SignedInAs {
+            get {
+                return ResourceManager.GetString("SignedInAs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enter token to log in....
         /// </summary>
         public static string TextFieldPlaceholder {
