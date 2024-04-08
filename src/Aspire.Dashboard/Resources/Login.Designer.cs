@@ -97,6 +97,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Logged in as:.
+        /// </summary>
+        public static string LoggedInAs {
+            get {
+                return ResourceManager.GetString("LoggedInAs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Log in.
         /// </summary>
         public static string LogInButtonText {
@@ -120,15 +129,6 @@ namespace Aspire.Dashboard.Resources {
         public static string PageTitle {
             get {
                 return ResourceManager.GetString("PageTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Signed in as:.
-        /// </summary>
-        public static string SignedInAs {
-            get {
-                return ResourceManager.GetString("SignedInAs", resourceCulture);
             }
         }
         
