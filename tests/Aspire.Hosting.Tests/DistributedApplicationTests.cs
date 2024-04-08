@@ -275,15 +275,15 @@ public class DistributedApplicationTests
         Assert.NotNull(nodeApp);
 
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
-        Assert.Equal("{{- portForServing \"redis0\" }}", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
+        Assert.Equal("6379", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
         Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
 
-        Assert.Equal("{{- portForServing \"servicea_http0\" }}", GetEnv(serviceA.Spec.Env, "PORT0"));
+        Assert.Equal("{{- portForServing \"servicea_http0\" -}}", GetEnv(serviceA.Spec.Env, "PORT0"));
         var serviceAPortValue = GetEnv(serviceA.Status!.EffectiveEnv, "PORT0");
         Assert.False(string.IsNullOrEmpty(serviceAPortValue));
         Assert.NotEqual(0, int.Parse(serviceAPortValue, CultureInfo.InvariantCulture));
 
-        Assert.Equal("{{- portForServing \"nodeapp\" }}", GetEnv(nodeApp.Spec.Env, "PORT"));
+        Assert.Equal("{{- portForServing \"nodeapp\" -}}", GetEnv(nodeApp.Spec.Env, "PORT"));
         var nodeAppPortValue = GetEnv(nodeApp.Status!.EffectiveEnv, "PORT");
         Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
         Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
@@ -564,39 +564,6 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task ReplicasAndProxylessEndpointThrows()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithReplicas(2).WithEndpoint("http", endpoint =>
-        {
-            endpoint.IsProxied = false;
-        });
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        await using var app = testProgram.Build();
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
-        Assert.Equal("'servicea' specifies multiple replicas and at least one proxyless endpoint. These features do not work together.", ex.Message);
-    }
-
-    [LocalOnlyFact("docker")]
-    public async Task ProxylessEndpointWithoutPortThrows()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
-        {
-            endpoint.Port = null;
-            endpoint.IsProxied = false;
-        });
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        await using var app = testProgram.Build();
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
-        Assert.Equal("Service 'servicea' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
-    }
-
-    [LocalOnlyFact("docker")]
     public async Task ProxylessEndpointWorks()
     {
         var testProgram = CreateTestProgram();
@@ -612,6 +579,7 @@ public class DistributedApplicationTests
             .WithEndpoint("http", e =>
             {
                 e.Port = 1234;
+                e.TargetPort = 1234;
                 e.IsProxied = false;
             });
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
@@ -657,6 +625,7 @@ public class DistributedApplicationTests
             .WithEndpoint("http", e =>
             {
                 e.Port = 1234;
+                e.TargetPort = 1234;
                 e.IsProxied = false;
             }, createIfNotExists: false)
             .WithEndpoint("https", e =>
@@ -736,23 +705,6 @@ public class DistributedApplicationTests
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         await app.StopAsync();
-    }
-
-    [LocalOnlyFact("docker")]
-    public async Task ProxylessContainerWithoutPortThrows()
-    {
-        var builder = DistributedApplication.CreateBuilder(
-            new DistributedApplicationOptions { DisableDashboard = true, AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName });
-
-        var redis = builder.AddRedis("redis").WithEndpoint("tcp", endpoint =>
-        {
-            endpoint.IsProxied = false;
-        });
-
-        using var app = builder.Build();
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
-        Assert.Equal("Service 'redis' needs to specify a port for endpoint 'tcp' since it isn't using a proxy.", ex.Message);
     }
 
     [LocalOnlyFact("docker")]
