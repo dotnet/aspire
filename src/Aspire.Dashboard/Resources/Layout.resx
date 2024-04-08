@@ -159,4 +159,13 @@
   <data name="MainLayoutAspire" xml:space="preserve">
     <value>.NET Aspire</value>
   </data>
+  <data name="MessageTelemetryBody" xml:space="preserve">
+    <value>Untrusted apps can send telemetry to the dashboard.</value>
+  </data>
+  <data name="MessageTelemetryLink" xml:space="preserve">
+    <value>More information</value>
+  </data>
+  <data name="MessageTelemetryTitle" xml:space="preserve">
+    <value>Telemetry endpoint is unsecured</value>
+  </data>
 </root>
