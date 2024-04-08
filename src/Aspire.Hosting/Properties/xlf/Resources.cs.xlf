@@ -7,6 +7,11 @@
         <target state="translated">Anonymní svazky nemůžou být jen pro čtení.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="new">Bind mounts must specify an absolute path.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
         <target state="translated">Připojení vazeb musí určovat zdrojovou cestu.</target>
