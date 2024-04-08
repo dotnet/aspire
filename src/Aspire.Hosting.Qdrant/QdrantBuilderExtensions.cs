@@ -77,12 +77,13 @@ public static class QdrantBuilderExtensions
         => builder.WithBindMount(source, "/qdrant/storage", isReadOnly);
 
     /// <summary>
-    /// Add a reference to a Qdrant settings for a project.
+    /// Add a reference to a Qdrant server to the resource.
     /// </summary>
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="qdrantResource">The Qdrant server resource</param>
     /// <returns></returns>
-    public static IResourceBuilder<ProjectResource> WithReference(this IResourceBuilder<ProjectResource> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
+         where TDestination : IResourceWithEnvironment
     {
         builder.WithEnvironment(context =>
         {
