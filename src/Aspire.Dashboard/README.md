@@ -45,8 +45,8 @@ The dashboard's frontend supports OpenID Connect (OIDC). Set `Dashboard:Frontend
 - `Authentication:Schemes:OpenIdConnect:ClientId` Identity of the relying party (RP)
 - `Authentication:Schemes:OpenIdConnect:ClientSecret` A secret that only the real RP would know
 - Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
-- `Dashboard:OpenIdConnect:NameClaimType` specifies the claim type(s) that should be used to display the authenticated user's full name. Can be a single claim type or a comma-delimited list of claim types. Defaults to `name`.
-- `Dashboard:OpenIdConnect:UsernameClaimType` specifies the claim type(s) that should be used to display the authenticated user's username. Can be a single claim type or a comma-delimited list of claim types. Defaults to `preferred_username`.
+- `Dashboard:Frontend:OpenIdConnect:NameClaimType` specifies the claim type(s) that should be used to display the authenticated user's full name. Can be a single claim type or a comma-delimited list of claim types. Defaults to `name`.
+- `Dashboard:Frontend:OpenIdConnect:UsernameClaimType` specifies the claim type(s) that should be used to display the authenticated user's username. Can be a single claim type or a comma-delimited list of claim types. Defaults to `preferred_username`.
 
 It may also be run unsecured. Set `Dashboard:Frontend:AuthMode` to `Unsecured`. The frontend endpoint will allow anonymous access. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 

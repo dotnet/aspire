@@ -48,14 +48,14 @@ public partial class UserProfile : ComponentBase
             if (claimsIdentity?.IsAuthenticated == true)
             {
                 _showUserProfileMenu = true;
-                _name = claimsIdentity.FindFirst(DashboardOptions.CurrentValue.OpenIdConnect.GetNameClaimTypes());
+                _name = claimsIdentity.FindFirst(DashboardOptions.CurrentValue.Frontend.OpenIdConnect.GetNameClaimTypes());
                 if (string.IsNullOrWhiteSpace(_name))
                 {
                     // Make sure there's always a name, even if that name is a placeholder
                     _name = Loc[nameof(Login.AuthorizedUser)];
                 }
 
-                _username = claimsIdentity.FindFirst(DashboardOptions.CurrentValue.OpenIdConnect.GetUsernameClaimTypes());
+                _username = claimsIdentity.FindFirst(DashboardOptions.CurrentValue.Frontend.OpenIdConnect.GetUsernameClaimTypes());
                 _initials = _name.GetInitials();
             }
             else

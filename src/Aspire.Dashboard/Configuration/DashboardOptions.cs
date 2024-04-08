@@ -16,7 +16,6 @@ public sealed class DashboardOptions
     public FrontendOptions Frontend { get; set; } = new FrontendOptions();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new ResourceServiceClientOptions();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new TelemetryLimitOptions();
-    public OpenIdConnectOptions OpenIdConnect { get; set; } = new OpenIdConnectOptions();
 }
 
 // Don't set values after validating/parsing options.
@@ -115,6 +114,7 @@ public sealed class FrontendOptions
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
     public string? BrowserToken { get; set; }
+    public OpenIdConnectOptions OpenIdConnect { get; set; } = new OpenIdConnectOptions();
 
     public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;
 

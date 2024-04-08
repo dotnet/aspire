@@ -100,7 +100,7 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             }
         }
 
-        if (!options.OpenIdConnect.TryParseOptions(out var messages))
+        if (!options.Frontend.OpenIdConnect.TryParseOptions(out var messages))
         {
             errorMessages.AddRange(messages);
         }
