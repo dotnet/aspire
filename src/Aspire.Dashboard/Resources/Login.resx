@@ -134,6 +134,9 @@
   <data name="InvalidTokenErrorMessage" xml:space="preserve">
     <value>Invalid token. Please try again</value>
   </data>
+  <data name="LoggedInAs" xml:space="preserve">
+    <value>Logged in as:</value>
+  </data>
   <data name="LogInButtonText" xml:space="preserve">
     <value>Log in</value>
   </data>
@@ -143,9 +146,6 @@
   <data name="PageTitle" xml:space="preserve">
     <value>{0} login</value>
     <comment>{0} is an application name</comment>
-  </data>
-  <data name="SignedInAs" xml:space="preserve">
-    <value>Signed in as:</value>
   </data>
   <data name="TextFieldPlaceholder" xml:space="preserve">
     <value>Enter token to log in...</value>

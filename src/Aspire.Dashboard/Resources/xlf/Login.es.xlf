@@ -32,6 +32,11 @@
         <target state="new">Log in</target>
         <note />
       </trans-unit>
+      <trans-unit id="LoggedInAs">
+        <source>Logged in as:</source>
+        <target state="new">Logged in as:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MoreInfoLinkText">
         <source>More info</source>
         <target state="new">More info</target>
@@ -41,11 +46,6 @@
         <source>{0} login</source>
         <target state="new">{0} login</target>
         <note>{0} is an application name</note>
-      </trans-unit>
-      <trans-unit id="SignedInAs">
-        <source>Signed in as:</source>
-        <target state="new">Signed in as:</target>
-        <note />
       </trans-unit>
       <trans-unit id="TextFieldPlaceholder">
         <source>Enter token to log in...</source>

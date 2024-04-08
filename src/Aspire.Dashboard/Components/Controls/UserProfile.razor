@@ -10,7 +10,7 @@
                                    FooterLink="">
                     <HeaderTemplate>
                         <FluentStack VerticalAlignment="VerticalAlignment.Center">
-                            <FluentLabel>@Loc[nameof(Resources.Login.SignedInAs)]</FluentLabel>
+                            <FluentLabel>@Loc[nameof(Resources.Login.LoggedInAs)]</FluentLabel>
                             <FluentSpacer />
                             <form @formname="sign-out-form" class="sign-out-form" action="authentication/logout" method="post">
                                 <AntiforgeryToken />
