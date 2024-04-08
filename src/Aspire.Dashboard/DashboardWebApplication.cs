@@ -477,7 +477,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     options.LoginPath = "/login";
                     options.ReturnUrlParameter = "returnUrl";
-                    options.ExpireTimeSpan = TimeSpan.FromDays(1);
+                    options.ExpireTimeSpan = TimeSpan.FromDays(3);
                     options.Events.OnSigningIn = context =>
                     {
                         // Add claim when signing in with cookies from browser token.
