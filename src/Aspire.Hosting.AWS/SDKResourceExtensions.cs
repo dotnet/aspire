@@ -48,12 +48,13 @@ public static class SDKResourceExtensions
     }
 
     /// <summary>
-    /// Add a reference to an AWS SDK configuration a project.
+    /// Add a reference to an AWS SDK configuration to the resource.
     /// </summary>
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="awsSdkConfig">The AWS SDK configuration</param>
     /// <returns></returns>
-    public static IResourceBuilder<ProjectResource> WithReference(this IResourceBuilder<ProjectResource> builder, IAWSSDKConfig awsSdkConfig)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IAWSSDKConfig awsSdkConfig)
+        where TDestination : IResourceWithEnvironment
     {
         builder.WithEnvironment(context =>
         {
