@@ -11,39 +11,11 @@ internal static class ResourceGroupNameHelpers
     public static int MaxResourceGroupNameLength = 90;
 
     /// <summary>
-    /// Excludes any characters which are not valid resource group name components.
-    /// </summary>
-    /// <param name="text">The text to normalize.</param>
-    /// <returns>The normalized resource group name or an empty string if no characters were valid.</returns>
-    public static string NormalizeResourceGroupName(string text)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-
-        var stringBuilder = new StringBuilder(capacity: text.Length);
-
-        for (var i = 0; i < text.Length; i++)
-        {
-            var c = text[i];
-
-            // Only be a letter, digit, '-', '.', '(', ')' or '_'
-            if (!char.IsLetterOrDigit(c) && c != '-' && c != '.' && c != '(' && c != ')' && c != '_')
-            {
-                continue;
-            }
-
-            stringBuilder.Append(c);
-        }
-
-        // Can't end with '.'
-        return stringBuilder.ToString().TrimEnd('.');
-    }
-
-    /// <summary>
-    /// Try to convert or excludes any characters which are not valid resource group name components for AZD.
+    /// Converts or excludes any characters which are not valid resource group name components.
     /// </summary>
     /// <param name="resourceGroupName">The text to normalize.</param>
     /// <returns>The normalized resource group name or an empty string if no characters were valid.</returns>
-    public static string NormalizeResourceGroupNameForAzd(string resourceGroupName)
+    public static string NormalizeResourceGroupName(string resourceGroupName)
     {
         resourceGroupName = RemoveDiacritics(resourceGroupName);
 

@@ -384,7 +384,7 @@ internal sealed class AzureProvisioner(
 
             var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
 
-            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupNameForAzd(environment.ApplicationName.ToLowerInvariant());
+            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
             if (normalizedApplicationName.Length > maxApplicationNameSize)
             {
                 normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
