@@ -113,6 +113,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     internal bool FromLaunchProfile { get; set; }
 
     /// <summary>
+    /// The environment variable that contains the target port. Setting prevents a variable from flowing into ASPNETCORE_URLS for project resources.
+    /// </summary>
+    internal string? TargetPortEnvironmentVariable { get; set; }
+
+    /// <summary>
     /// Gets or sets the allocated endpoint.
     /// </summary>
     public AllocatedEndpoint? AllocatedEndpoint { get; set; }

@@ -379,7 +379,7 @@ public static class ResourceBuilderExtensions
     /// <param name="port">An optional port. This is the port that will be given to other resources to communicate with this resource.</param>
     /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
     /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
-    /// <param name="env">An optional name of the environment variable to inject.</param>
+    /// <param name="env">An optional name of the environment variable that will be used to inject the <paramref name="targetPort"/>. If the target port is null one will be dynamically generated and assigned to the environment variable.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
@@ -403,6 +403,8 @@ public static class ResourceBuilderExtensions
         // Set the environment variable on the resource
         if (env is not null && builder.Resource is IResourceWithEndpoints resourceWithEndpoints and IResourceWithEnvironment)
         {
+            annotation.TargetPortEnvironmentVariable = env;
+
             var endpointReference = new EndpointReference(resourceWithEndpoints, annotation);
 
             builder.WithAnnotation(new EnvironmentCallbackAnnotation(context =>
