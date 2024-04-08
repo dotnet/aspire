@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,16 +28,28 @@ public sealed class TestDistributedApplicationBuilder : IDisposable, IDistribute
 
     public static TestDistributedApplicationBuilder Create(DistributedApplicationOperation operation = DistributedApplicationOperation.Run)
     {
-        if (operation == DistributedApplicationOperation.Publish)
+        var args = operation switch
         {
-            var options = new DistributedApplicationOptions
-            {
-                Args = ["Publishing:Publisher=manifest"]
-            };
-            return new(DistributedApplication.CreateBuilder(options));
-        }
+            DistributedApplicationOperation.Run => (string[])[],
+            DistributedApplicationOperation.Publish => ["Publishing:Publisher=manifest"],
+            _ => throw new ArgumentOutOfRangeException(nameof(operation))
+        };
 
-        return new(DistributedApplication.CreateBuilder());
+        return Create(new DistributedApplicationOptions { Args = args });
+    }
+
+    public static TestDistributedApplicationBuilder Create(DistributedApplicationOptions options)
+    {
+        // Fake dashboard and CLI paths to avoid throwing on build
+        var builder = DistributedApplication.CreateBuilder(options);
+
+        builder.Services.Configure<DcpOptions>(o =>
+        {
+            o.DashboardPath = "dashboard";
+            o.CliPath = "dcp";
+        });
+
+        return new(builder);
     }
 
     private TestDistributedApplicationBuilder(IDistributedApplicationBuilder builder)

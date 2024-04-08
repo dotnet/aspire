@@ -45,7 +45,7 @@ public static class ParameterResourceBuilderExtensions
         {
             ResourceType = "Parameter",
             // hide parameters by default
-            State = "Hidden",
+            State = KnownResourceStates.Hidden,
             Properties = [
                 new("parameter.secret", secret.ToString()),
                 new(CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")

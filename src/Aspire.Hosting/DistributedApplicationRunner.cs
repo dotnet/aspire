@@ -10,12 +10,13 @@ namespace Aspire.Hosting;
 
 internal sealed class DistributedApplicationRunner(DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider) : BackgroundService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var publisher = executionContext.IsPublishMode
-            ? serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest")
-            : serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("dcp");
+        if (executionContext.IsPublishMode)
+        {
+            return serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest").PublishAsync(model, stoppingToken);
+        }
 
-        await publisher.PublishAsync(model, stoppingToken).ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 }
