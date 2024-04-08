@@ -19,18 +19,14 @@ public class OrleansService
         Builder = builder;
         ServiceId = ParameterResourceBuilderExtensions.CreateGeneratedParameter(builder, $"{name}-service-id", secret: false, new GenerateParameterDefault
         {
-            Lower = true,
             Upper = false,
             Special = false,
-            Numeric = true,
             MinLength = 25
         });
         ClusterId = ParameterResourceBuilderExtensions.CreateGeneratedParameter(builder, $"{name}-cluster-id", secret: false, new GenerateParameterDefault
         {
-            Lower = true,
             Upper = false,
             Special = false,
-            Numeric = true,
             MinLength = 25
         });
     }
