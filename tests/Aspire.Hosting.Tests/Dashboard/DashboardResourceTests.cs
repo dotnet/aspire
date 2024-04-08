@@ -276,6 +276,20 @@ public class DashboardResourceTests
         Assert.Empty(model.Resources);
     }
 
+    [Fact]
+    public void ContainerIsValidWithDashboardIsDisabled()
+    {
+        // Set the host environment to "Development" so that the container validates services.
+        using var builder = TestDistributedApplicationBuilder.Create(new DistributedApplicationOptions
+        {
+            DisableDashboard = true,
+            Args = ["--environment", "Development"] }
+        );
+
+        // Container validation logic runs when the service provider is built.
+        using var app = builder.Build();
+    }
+
     private sealed class MockDashboardEndpointProvider : IDashboardEndpointProvider
     {
         public Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
