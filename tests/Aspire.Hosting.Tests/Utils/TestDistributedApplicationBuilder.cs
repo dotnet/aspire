@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,8 +46,16 @@ public sealed class TestDistributedApplicationBuilder : IDisposable, IDistribute
 
         builder.Services.Configure<DcpOptions>(o =>
         {
-            o.DashboardPath = "dashboard";
-            o.CliPath = "dcp";
+            // Make sure we have a dashboard path and CLI path (but don't overwrite them if they're already set)
+            o.DashboardPath ??= "dashboard";
+            o.CliPath ??= "dcp";
+        });
+
+        builder.Services.Configure<DashboardOptions>(o =>
+        {
+            // Make sure we have a dashboard URL and OTLP endpoint URL (but don't overwrite them if they're already set)
+            o.DashboardUrl ??= "http://localhost:8080";
+            o.OtlpEndpointUrl ??= "http://localhost:4317";
         });
 
         return new(builder);
