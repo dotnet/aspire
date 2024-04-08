@@ -371,15 +371,28 @@ internal sealed class AzureProvisioner(
 
         if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
-            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName).ToLowerInvariant();
+            // Generate an resource group name since none was provided
 
-            if (!string.IsNullOrEmpty(normalizedApplicationName))
+            var prefix = "rg-aspire";
+
+            if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
             {
-                normalizedApplicationName += "-";
+                prefix = _options.ResourceGroupPrefix;
+            }
+
+            var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
+
+            var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
+
+            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupNameForAzd(environment.ApplicationName.ToLowerInvariant());
+            if (normalizedApplicationName.Length > maxApplicationNameSize)
+            {
+                normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
             }
 
             // Create a unique resource group name and save it in user secrets
-            resourceGroupName = $"rg-aspire-{normalizedApplicationName}{RandomNumberGenerator.GetHexString(8, lowercase: true)}";
+            resourceGroupName = $"{prefix}-{normalizedApplicationName}-{suffix}";
+
             createIfAbsent = true;
 
             userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
