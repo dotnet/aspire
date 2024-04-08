@@ -5,6 +5,7 @@ namespace Aspire.Hosting.Redis;
 
 internal static class RedisContainerImageTags
 {
-    public const string Image = "redis";
+    public const string Registry = "docker.io";
+    public const string Image = "library/redis";
     public const string Tag = "7.2.4";
 }

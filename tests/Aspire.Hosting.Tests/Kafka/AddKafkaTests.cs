@@ -35,7 +35,7 @@ public class AddKafkaTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("7.6.0", containerAnnotation.Tag);
         Assert.Equal("confluentinc/confluent-local", containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal("docker.io", containerAnnotation.Registry);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class AddKafkaTests
             {
               "type": "container.v0",
               "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-              "image": "confluentinc/confluent-local:7.6.0",
+              "image": "docker.io/confluentinc/confluent-local:7.6.0",
               "env": {
                 "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
               },

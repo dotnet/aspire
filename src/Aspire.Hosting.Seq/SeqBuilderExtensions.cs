@@ -30,6 +30,7 @@ public static class SeqBuilderExtensions
         var resourceBuilder = builder.AddResource(seqResource)
             .WithHttpEndpoint(port: port, targetPort: 80, name: SeqResource.PrimaryEndpointName)
             .WithImage("datalust/seq", "2024.1")
+            .WithImageRegistry("docker.io")
             .WithEnvironment("ACCEPT_EULA", "Y");
 
         if (!string.IsNullOrEmpty(seqDataDirectory))
