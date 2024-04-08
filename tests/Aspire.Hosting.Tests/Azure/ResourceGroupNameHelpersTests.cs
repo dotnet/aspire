@@ -9,22 +9,6 @@ namespace Aspire.Hosting.Tests.Azure;
 public class ResourceGroupNameHelpersTests
 {
     [Theory]
-    [InlineData("äæǽåàçéïôùÀÇÉÏÔÙ", "äæǽåàçéïôùÀÇÉÏÔÙ")]
-    [InlineData("🔥🤔😅🤘", "")]
-    [InlineData("こんにちは", "こんにちは")]
-    [InlineData("", "")]
-    [InlineData("  ", "")]
-    [InlineData("-.()_", "-.()_")]
-    [InlineData("abc.", "abc")]
-    [InlineData("abc...", "abc")]
-    public void ShouldNormalizeResourceGroupNames(string input, string expected)
-    {
-        var result = ResourceGroupNameHelpers.NormalizeResourceGroupName(input);
-
-        Assert.Equal(expected, result);
-    }
-
-    [Theory]
     [InlineData("äæǽåàçéïôùÀÇÉÏÔÙ", "aaaceiouACEIOU")]
     [InlineData("🔥🤔😅🤘", "")]
     [InlineData("こんにちは", "")]
@@ -34,7 +18,7 @@ public class ResourceGroupNameHelpersTests
     [InlineData("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")]
     public void ShouldCreateAzdCompatibleResourceGroupNames(string input, string expected)
     {
-        var result = ResourceGroupNameHelpers.NormalizeResourceGroupNameForAzd(input);
+        var result = ResourceGroupNameHelpers.NormalizeResourceGroupName(input);
 
         Assert.Equal(expected, result);
     }
