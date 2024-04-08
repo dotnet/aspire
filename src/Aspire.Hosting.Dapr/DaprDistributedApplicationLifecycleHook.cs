@@ -146,9 +146,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
                         var http = daprCli.GetEndpoint("http");
                         var grpc = daprCli.GetEndpoint("grpc");
+
                         context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", grpc);
                         context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", http);
                     }));
+
             daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "grpc", port: sidecarOptions?.DaprGrpcPort));
             daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http", port: sidecarOptions?.DaprHttpPort));
             daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "metrics", port: sidecarOptions?.MetricsPort));
