@@ -23,4 +23,19 @@ public class StringUtilsTests
 
         Assert.Equal(expected, result);
     }
+
+    [Theory]
+    [InlineData("äæǽåàçéïôùÀÇÉÏÔÙ", "aaaceiouACEIOU")]
+    [InlineData("🔥🤔😅🤘", "")]
+    [InlineData("こんにちは", "")]
+    [InlineData("", "")]
+    [InlineData("  ", "")]
+    [InlineData("-.()_", "-_")]
+    [InlineData("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")]
+    public void ShouldCreateAzdCompatibleResourceGroupNames(string input, string expected)
+    {
+        var result = ResourceGroupNameHelpers.NormalizeResourceGroupNameForAzd(input);
+
+        Assert.Equal(expected, result);
+    }
 }
