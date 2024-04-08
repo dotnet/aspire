@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace Aspire.Hosting.Utils;
+namespace Aspire.Hosting.Azure.Utils;
 
 internal static class ResourceGroupNameHelpers
 {

@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Utils;
+using Aspire.Hosting.Azure.Utils;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Utils;
+namespace Aspire.Hosting.Tests.Azure;
 
-public class StringUtilsTests
+public class ResourceGroupNameHelpersTests
 {
     [Theory]
     [InlineData("äæǽåàçéïôùÀÇÉÏÔÙ", "äæǽåàçéïôùÀÇÉÏÔÙ")]
