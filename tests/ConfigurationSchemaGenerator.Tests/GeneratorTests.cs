@@ -109,8 +109,9 @@ public partial class GeneratorTests
             referenceAssemblies,
             outputPath);
 
-        var actual = File.ReadAllText(outputPath);
-        var baseline = File.ReadAllText(Path.Combine("Baselines", "IntegrationTest.baseline.json"));
+        // Compare the two, normalizing line endings.
+        var actual = File.ReadAllText(outputPath).ReplaceLineEndings();
+        var baseline = File.ReadAllText(Path.Combine("Baselines", "IntegrationTest.baseline.json")).ReplaceLineEndings();
         Assert.Equal(baseline, actual);
     }
 
