@@ -32,7 +32,7 @@ public class AddMySqlTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(3306, endpoint.ContainerPort);
+        Assert.Equal(3306, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -72,7 +72,7 @@ public class AddMySqlTests
         Assert.Null(containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(3306, endpoint.ContainerPort);
+        Assert.Equal(3306, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(1234, endpoint.Port);
@@ -154,7 +154,7 @@ public class AddMySqlTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 3306
+                  "targetPort": 3306
                 }
               }
             }
@@ -192,7 +192,7 @@ public class AddMySqlTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 3306
+                  "targetPort": 3306
                 }
               }
             }

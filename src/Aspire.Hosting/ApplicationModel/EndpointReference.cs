@@ -34,6 +34,11 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// </summary>
     public bool IsAllocated => _isAllocated ??= GetAllocatedEndpoint() is not null;
 
+    /// <summary>
+    /// Gets a value indicating whether the endpoint exists.
+    /// </summary>
+    public bool Exists => GetEndpointAnnotation() is not null;
+
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Url);
@@ -49,6 +54,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
             EndpointProperty.Host or EndpointProperty.IPV4Host => "host",
             EndpointProperty.Port => "port",
             EndpointProperty.Scheme => "scheme",
+            EndpointProperty.TargetPort => "targetPort",
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
@@ -73,6 +79,11 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public int Port => AllocatedEndpoint.Port;
 
     /// <summary>
+    /// Gets the target port for this endpoint. If the port is dynamically allocated, this will return <see langword="null"/>.
+    /// </summary>
+    public int? TargetPort => EndpointAnnotation.TargetPort;
+
+    /// <summary>
     /// Gets the host for this endpoint.
     /// </summary>
     public string Host => AllocatedEndpoint.Address ?? "localhost";
@@ -85,14 +96,14 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets the scheme for this endpoint.
     /// </summary>
-    public string Scheme => AllocatedEndpoint.UriScheme;
+    public string Scheme => EndpointAnnotation.UriScheme;
 
     /// <summary>
     /// Gets the URL for this endpoint.
     /// </summary>
     public string Url => AllocatedEndpoint.UriString;
 
-    private AllocatedEndpoint AllocatedEndpoint =>
+    internal AllocatedEndpoint AllocatedEndpoint =>
         GetAllocatedEndpoint()
         ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Resource.Name}`.");
 
@@ -158,7 +169,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// Gets the value of the property of the endpoint.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns>A <see cref="String"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
+    /// <returns>A <see cref="string"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
     /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken) => Property switch
     {
@@ -167,8 +178,24 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         EndpointProperty.IPV4Host => new("127.0.0.1"),
         EndpointProperty.Port => new(Endpoint.Port.ToString(CultureInfo.InvariantCulture)),
         EndpointProperty.Scheme => new(Endpoint.Scheme),
+        EndpointProperty.TargetPort => new(ComputeTargetPort()),
         _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
     };
+
+    private string? ComputeTargetPort()
+    {
+        // We have a target port, so we can return it directly.
+        if (Endpoint.TargetPort is int port)
+        {
+            return port.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // There is no way to resolve the value of the target port until runtime. Even then, replicas make this very complex because
+        // the target port is not known until the replica is allocated.
+        // Instead, we return an expression that will be resolved at runtime by the orchestrator.
+        return Endpoint.AllocatedEndpoint.TargetPortExpression
+            ?? throw new InvalidOperationException("The endpoint does not have an associated TargetPortExpression from the orchestrator.");
+    }
 
     IEnumerable<object> IValueWithReferences.References => [Endpoint];
 }
@@ -197,5 +224,9 @@ public enum EndpointProperty
     /// <summary>
     /// The scheme of the endpoint.
     /// </summary>
-    Scheme
+    Scheme,
+    /// <summary>
+    /// The target port of the endpoint.
+    /// </summary>
+    TargetPort
 }

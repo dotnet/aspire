@@ -18,7 +18,17 @@ Aspire.Azure.Data.Tables:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
-Aspire.Azure.Messaging.ServiceBus:
+Aspire.Azure.Messaging.EventHubs:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+  - "Azure.Messaging.EventHubs"
+- Activity source names:
+  - "Azure.Messaging.EventHubs.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
+  - Aspire.Azure.Messaging.ServiceBus:
 - Log categories:
   - "Azure.Core"
   - "Azure.Identity"
@@ -263,6 +273,14 @@ Aspire.Pomelo.EntityFrameworkCore.MySql:
     - "db.client.connections.pending_requests"
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
+
+Aspire.Qdrant.Client:
+- Log categories:
+  "Qdrant.Client"
+- Activity source names:
+  - none (not currently supported by Qdrant.Client library) 
+- Metric names:
+  - none (currently not supported by Qdrant.Client library)
 
 Aspire.RabbitMQ.Client:
 - Log categories:

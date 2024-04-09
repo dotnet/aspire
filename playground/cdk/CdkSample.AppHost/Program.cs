@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIRE0001 // Because we use the CDK callbacks.
+#pragma warning disable AZPROVISION001 // Because we use the CDK callbacks.
 
 using Aspire.Hosting.Azure;
 using Azure.Provisioning.KeyVaults;
@@ -9,7 +9,6 @@ using Azure.ResourceManager.ApplicationInsights.Models;
 using Azure.ResourceManager.OperationalInsights.Models;
 
 var builder = DistributedApplication.CreateBuilder(args);
-builder.AddAzureProvisioning();
 
 var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 
@@ -90,6 +89,7 @@ var appInsights = builder.AddAzureApplicationInsights(
 });
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
+    .WithExternalHttpEndpoints()
     .WithReference(signalr)
     .WithReference(blobs)
     .WithReference(sqldb)

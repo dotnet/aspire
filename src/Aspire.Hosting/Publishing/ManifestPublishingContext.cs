@@ -31,6 +31,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
 
+    private PortAllocator PortAllocator { get; } = new();
+
     /// <summary>
     /// Gets cancellation token for this operation.
     /// </summary>
@@ -242,7 +244,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         WriteContainerMounts(container);
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
-        WriteBindings(container, emitContainerPort: true);
+        WriteBindings(container);
     }
 
     /// <summary>
@@ -264,8 +266,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// collection.
     /// </summary>
     /// <param name="resource">The <see cref="IResource"/> that contains <see cref="EndpointAnnotation"/> annotations.</param>
-    /// <param name="emitContainerPort">Flag to determine whether container port is emitted.</param>
-    public void WriteBindings(IResource resource, bool emitContainerPort = false)
+    public void WriteBindings(IResource resource)
     {
         if (resource.TryGetEndpoints(out var endpoints))
         {
@@ -277,9 +278,52 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
                 Writer.WriteString("transport", endpoint.Transport);
 
-                if (emitContainerPort && endpoint.ContainerPort is { } containerPort)
+                int? targetPort = (resource, endpoint.UriScheme, endpoint.TargetPort, endpoint.Port) switch
                 {
-                    Writer.WriteNumber("containerPort", containerPort);
+                    // The port was specified so use it
+                    (_, _, int target, _) => target,
+
+                    // Container resources get their default listening port from the exposed port.
+                    (ContainerResource, _, null, int port) => port,
+
+                    // Project resources get their default listening port from the deployment tool
+                    // ideally we would default to a known port but we don't know it at this point
+                    (ProjectResource, var scheme, null, _) when scheme is "http" or "https" => null,
+
+                    // Allocate a dynamic port
+                    _ => PortAllocator.AllocatePort()
+                };
+
+                int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
+                {
+                    // Exposed port and target port are the same, we don't need to mention the exposed port
+                    (_, int p0, int p1) when p0 == p1 => null,
+
+                    // Port was specified, so use it
+                    (_, int port, _) => port,
+
+                    // We have a target port, not need to specify an exposedPort
+                    // it will default to the targetPort
+                    (_, null, int port) => null,
+
+                    // Let the tool infer the default http and https ports
+                    ("http", null, null) => null,
+                    ("https", null, null) => null,
+
+                    // Other schemes just allocate a port
+                    _ => PortAllocator.AllocatePort()
+                };
+
+                if (exposedPort is int ep)
+                {
+                    PortAllocator.AddUsedPort(ep);
+                    Writer.WriteNumber("port", ep);
+                }
+
+                if (targetPort is int tp)
+                {
+                    PortAllocator.AddUsedPort(tp);
+                    Writer.WriteNumber("targetPort", tp);
                 }
 
                 if (endpoint.IsExternal)
@@ -325,8 +369,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 TryAddDependentResources(value);
             }
 
-            WritePortBindingEnvironmentVariables(resource);
-
             Writer.WriteEndObject();
         }
     }
@@ -369,26 +411,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             }
 
             Writer.WriteEndArray();
-        }
-    }
-
-    /// <summary>
-    /// Write environment variables for port bindings related to <see cref="EndpointAnnotation"/> annotations.
-    /// </summary>
-    /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
-    public void WritePortBindingEnvironmentVariables(IResource resource)
-    {
-        if (resource.TryGetEndpoints(out var endpoints))
-        {
-            foreach (var endpoint in endpoints)
-            {
-                if (endpoint.EnvironmentVariable is null)
-                {
-                    continue;
-                }
-
-                Writer.WriteString(endpoint.EnvironmentVariable, $"{{{resource.Name}.bindings.{endpoint.Name}.port}}");
-            }
         }
     }
 

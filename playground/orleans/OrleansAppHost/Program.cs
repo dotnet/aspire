@@ -17,6 +17,7 @@ var orleans = builder.AddOrleans("my-app")
 
 builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans)
+       .WithExternalHttpEndpoints()
        .WithReplicas(3);
 
 // This project is only added in playground projects to support development/debugging

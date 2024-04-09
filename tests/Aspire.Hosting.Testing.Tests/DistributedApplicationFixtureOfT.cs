@@ -4,7 +4,7 @@ using Xunit.Sdk;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public sealed class DistributedApplicationFixture<TEntryPoint> : DistributedApplicationFactory<TEntryPoint>, IAsyncLifetime where TEntryPoint : class
+public class DistributedApplicationFixture<TEntryPoint> : DistributedApplicationFactory<TEntryPoint>, IAsyncLifetime where TEntryPoint : class
 {
     public DistributedApplicationFixture()
     {

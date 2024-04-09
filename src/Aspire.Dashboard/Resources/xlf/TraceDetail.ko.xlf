@@ -13,7 +13,7 @@
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
-        <source>{0} Traces</source>
+        <source>{0} trace</source>
         <target state="translated">{0} 추적</target>
         <note>{0} is an application name</note>
       </trans-unit>

@@ -14,7 +14,7 @@ public class ResourceNotificationTests
         var builder = DistributedApplication.CreateBuilder();
 
         var custom = builder.AddResource(new CustomResource("myResource"))
-            .WithEndpoint(name: "ep", scheme: "http", hostPort: 8080)
+            .WithEndpoint(name: "ep", scheme: "http", port: 8080)
             .WithEnvironment("x", "1000")
             .WithInitialState(new()
             {
@@ -48,7 +48,7 @@ public class ResourceNotificationTests
         {
             var values = new List<ResourceEvent>();
 
-            await foreach (var item in notificationService.WatchAsync().WithCancellation(cancellationToken))
+            await foreach (var item in notificationService.WatchAsync(cancellationToken))
             {
                 values.Add(item);
 
@@ -99,7 +99,7 @@ public class ResourceNotificationTests
         {
             var values = new List<ResourceEvent>();
 
-            await foreach (var item in notificationService.WatchAsync().WithCancellation(cancellation))
+            await foreach (var item in notificationService.WatchAsync(cancellation))
             {
                 values.Add(item);
 

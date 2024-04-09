@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
+    <PackageReference Include="Azure.Provisioning.Storage" />
   </ItemGroup>
 
   <ItemGroup>

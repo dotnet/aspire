@@ -15,23 +15,6 @@ namespace Aspire.Hosting.Tests.Dcp;
 public class ApplicationExecutorTests
 {
     [Fact]
-    public async Task RunApplicationAsync_NoResources_DashboardStarted()
-    {
-        // Arrange
-        var distributedAppModel = new DistributedApplicationModel(new ResourceCollection());
-        var kubernetesService = new MockKubernetesService();
-
-        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
-
-        // Act
-        await appExecutor.RunApplicationAsync();
-
-        // Assert
-        var dashboard = Assert.IsType<Executable>(Assert.Single(kubernetesService.CreatedResources));
-        Assert.Equal("aspire-dashboard", dashboard.Metadata.Name);
-    }
-
-    [Fact]
     public async Task ContainersArePassedOtelServiceName()
     {
         // Arrange
@@ -58,19 +41,29 @@ public class ApplicationExecutorTests
         IConfiguration? configuration = null,
         IKubernetesService? kubernetesService = null)
     {
+        if (configuration == null)
+        {
+            var builder = new ConfigurationBuilder();
+            builder.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost",
+                ["AppHost:BrowserToken"] = "TestBrowserToken!",
+                ["AppHost:OtlpApiKey"] = "TestOtlpApiKey!"
+            });
+
+            configuration = builder.Build();
+        }
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
             distributedAppModel,
-            new DistributedApplicationOptions(),
             kubernetesService ?? new MockKubernetesService(),
             Array.Empty<IDistributedApplicationLifecycleHook>(),
-            configuration ?? new ConfigurationBuilder().Build(),
+            configuration,
             Options.Create(new DcpOptions
             {
                 DashboardPath = "./dashboard"
             }),
-            new MockDashboardEndpointProvider(),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
             new ResourceNotificationService(new NullLogger<ResourceNotificationService>()),
             new ResourceLoggerService(),

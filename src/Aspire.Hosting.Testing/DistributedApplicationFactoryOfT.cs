@@ -1,14 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 using System.Diagnostics;
-using System.Reflection;
-using Aspire.Hosting.Dcp;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Testing;
 
@@ -135,6 +130,14 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
         hostBuilderOptions.ApplicationName = typeof(TEntryPoint).Assembly.GetName().Name ?? string.Empty;
         applicationOptions.AssemblyName = typeof(TEntryPoint).Assembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
+        var cfg = hostBuilderOptions.Configuration ??= new();
+        cfg.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["DcpPublisher:RandomizePorts"] = "true",
+            ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
+            ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
+        });
+
         OnBuilderCreating(applicationOptions, hostBuilderOptions);
     }
 
@@ -147,14 +150,6 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
     {
         // Patch DcpOptions configuration
         var services = applicationBuilder.Services;
-        services.RemoveAll<IConfigureOptions<DcpOptions>>();
-        services.AddSingleton<IConfigureOptions<DcpOptions>, ConfigureDcpOptions>();
-        services.Configure<DcpOptions>(o =>
-        {
-            o.ResourceNameSuffix = $"{Random.Shared.Next():x}";
-            o.DeleteResourcesOnShutdown = true;
-            o.RandomizePorts = true;
-        });
 
         services.AddHttpClient();
         services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());
@@ -384,53 +379,5 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
         }
 
         public Task StopAsync(CancellationToken cancellationToken = default) => innerHost.StopAsync(cancellationToken);
-    }
-
-    private sealed class ConfigureDcpOptions(IConfiguration configuration) : IConfigureOptions<DcpOptions>
-    {
-        private const string DcpCliPathMetadataKey = "DcpCliPath";
-        private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
-        private const string DcpBinPathMetadataKey = "DcpBinPath";
-
-        public void Configure(DcpOptions options)
-        {
-            var dcpPublisherConfiguration = configuration.GetSection("DcpPublisher");
-            var publishingConfiguration = configuration.GetSection("Publishing");
-
-            string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
-            string? cliPath;
-
-            if (publisher is not null && publisher != "dcp")
-            {
-                // If DCP is not set as the publisher, don't calculate the DCP config
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(dcpPublisherConfiguration["CliPath"]))
-            {
-                // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
-                cliPath = dcpPublisherConfiguration["CliPath"];
-                options.CliPath = cliPath;
-            }
-            else
-            {
-                var entryPointAssembly = typeof(TEntryPoint).Assembly;
-                var assemblyMetadata = entryPointAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-                cliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
-                options.CliPath = cliPath;
-                options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
-                options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
-            }
-
-            if (string.IsNullOrEmpty(cliPath))
-            {
-                throw new InvalidOperationException($"Could not resolve the path to the Aspire application host. The application cannot be run without it.");
-            }
-        }
-
-        private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
-        {
-            return assemblyMetadata?.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
-        }
     }
 }

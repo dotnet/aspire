@@ -2,12 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography.X509Certificates;
+using Aspire.Dashboard.Configuration;
+using Aspire.Hosting;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.EnvironmentVariables;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -26,10 +29,10 @@ public static class IntegrationTestHelpers
     {
         var initialData = new Dictionary<string, string?>
         {
-            [DashboardWebApplication.DashboardUrlVariableName] = "http://127.0.0.1:0",
-            [DashboardWebApplication.DashboardOtlpUrlVariableName] = "http://127.0.0.1:0",
-            [DashboardWebApplication.OtlpAuthModeKey] = "Unsecured",
-            [DashboardWebApplication.FrontendAuthModeKey] = "Unsecured"
+            [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
+            [DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = "http://127.0.0.1:0",
+            [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
+            [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured)
         };
 
         additionalConfiguration?.Invoke(initialData);
@@ -43,7 +46,18 @@ public static class IntegrationTestHelpers
             {
                 o.Rules.Clear();
             });
+
+            // Remove environment variable source of configuration.
+            var sources = ((IConfigurationBuilder)builder.Configuration).Sources;
+            foreach (var item in sources.ToList())
+            {
+                if (item is EnvironmentVariablesConfigurationSource)
+                {
+                    sources.Remove(item);
+                }
+            }            
             builder.Configuration.AddConfiguration(config);
+
             builder.Logging.AddXunit(testOutputHelper);
             builder.Logging.SetMinimumLevel(LogLevel.Trace);
             if (testSink != null)
@@ -62,7 +76,12 @@ public static class IntegrationTestHelpers
         return dashboardWebApplication;
     }
 
-    public static GrpcChannel CreateGrpcChannel(string address, ITestOutputHelper testOutputHelper, Action<X509Certificate2?>? validationCallback = null, int? retryCount = null)
+    public static GrpcChannel CreateGrpcChannel(
+        string address,
+        ITestOutputHelper testOutputHelper,
+        Action<X509Certificate2?>? validationCallback = null,
+        int? retryCount = null,
+        X509CertificateCollection? clientCertificates = null)
     {
         ServiceConfig? serviceConfig = null;
         if (retryCount > 0)
@@ -89,16 +108,25 @@ public static class IntegrationTestHelpers
             builder.SetMinimumLevel(LogLevel.Trace);
         });
 
-        var channel = GrpcChannel.ForAddress(address, new()
+        var handler = new SocketsHttpHandler
         {
-            HttpHandler = new HttpClientHandler
+            SslOptions =
             {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                RemoteCertificateValidationCallback = (message, cert, chain, errors) =>
                 {
-                    validationCallback?.Invoke(cert);
+                    validationCallback?.Invoke((X509Certificate2)cert!);
                     return true;
                 }
-            },
+            }
+        };
+        if (clientCertificates != null)
+        {
+            handler.SslOptions.ClientCertificates = clientCertificates;
+        }
+
+        var channel = GrpcChannel.ForAddress(address, new()
+        {
+            HttpHandler = handler,
             LoggerFactory = loggerFactory,
             ServiceConfig = serviceConfig
         });
