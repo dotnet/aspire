@@ -54,7 +54,7 @@ public class ContainerResourceBuilderTests
     public void WithImageTagMutatesImageTag()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddRedis(RedisContainerImageTags.Image).WithImageTag(RedisContainerImageTags.Tag);
+        var redis = builder.AddRedis("redis").WithImageTag(RedisContainerImageTags.Tag);
         Assert.Equal(RedisContainerImageTags.Tag, redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
     }
 

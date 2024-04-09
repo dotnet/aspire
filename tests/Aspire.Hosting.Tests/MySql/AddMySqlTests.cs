@@ -29,7 +29,7 @@ public class AddMySqlTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(MySqlContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(MySqlContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(MySqlContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(3306, endpoint.TargetPort);
@@ -69,7 +69,7 @@ public class AddMySqlTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(MySqlContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(MySqlContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(MySqlContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(3306, endpoint.TargetPort);
@@ -145,7 +145,7 @@ public class AddMySqlTests
             {
               "type": "container.v0",
               "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-              "image": "{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
+              "image": "{{MySqlContainerImageTags.Registry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
               "env": {
                 "MYSQL_ROOT_PASSWORD": "{mysql-password.value}"
               },
@@ -179,11 +179,11 @@ public class AddMySqlTests
         var mysql = appBuilder.AddMySql("mysql", pass);
         var serverManifest = await ManifestUtils.GetManifest(mysql.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={pass.value}",
-              "image": "mysql:8.3.0",
+              "image": "{{MySqlContainerImageTags.Registry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
               "env": {
                 "MYSQL_ROOT_PASSWORD": "{pass.value}"
               },
