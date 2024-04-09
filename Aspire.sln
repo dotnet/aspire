@@ -433,15 +433,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Qdrant.ApiService", "playgr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.EventHubs", "src\Aspire.Hosting.Azure.EventHubs\Aspire.Hosting.Azure.EventHubs.csproj", "{2580B014-E7FE-48D9-BE40-E90604365F0E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Tests.SharedShim", "tests\Aspire.Hosting.Tests.SharedShim\Aspire.Hosting.Tests.SharedShim.csproj", "{74644A4D-8F61-4314-B6E8-5CE3802CD6C2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Tests.SharedShim", "tests\Aspire.Hosting.Tests.SharedShim\Aspire.Hosting.Tests.SharedShim.csproj", "{74644A4D-8F61-4314-B6E8-5CE3802CD6C2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.KeyVault", "src\Aspire.Hosting.Azure.KeyVault\Aspire.Hosting.Azure.KeyVault.csproj", "{427F4D7C-8969-4015-AD1A-5EFFE921A184}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Qdrant.Client", "src\Components\Aspire.Qdrant.Client\Aspire.Qdrant.Client.csproj", "{E0E1B557-D3CF-4446-B993-E5CE719234FB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Qdrant.Client.Tests", "tests\Aspire.Qdrant.Client.Tests\Aspire.Qdrant.Client.Tests.csproj", "{A9CFA376-0C90-4231-9152-FBF14065195A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Qdrant.Client.Tests", "tests\Aspire.Qdrant.Client.Tests\Aspire.Qdrant.Client.Tests.csproj", "{A9CFA376-0C90-4231-9152-FBF14065195A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Azure.Messaging.EventHubs.Tests", "tests\Aspire.Azure.Messaging.EventHubs.Tests\Aspire.Azure.Messaging.EventHubs.Tests.csproj", "{8191109E-130C-47F3-B84E-82070A6CD269}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.EventHubs.Tests", "tests\Aspire.Azure.Messaging.EventHubs.Tests\Aspire.Azure.Messaging.EventHubs.Tests.csproj", "{8191109E-130C-47F3-B84E-82070A6CD269}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansClient", "playground\orleans\OrleansClient\OrleansClient.csproj", "{906B5687-31AD-4364-AD9F-B4B26113462D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrleansContracts", "playground\orleans\OrleansContracts\OrleansContracts.csproj", "{75760E8A-7025-4F6A-B152-6622688D0E7D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -449,10 +453,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{A9CFA376-0C90-4231-9152-FBF14065195A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A9CFA376-0C90-4231-9152-FBF14065195A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A9CFA376-0C90-4231-9152-FBF14065195A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A9CFA376-0C90-4231-9152-FBF14065195A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -1157,16 +1157,27 @@ Global
 		{E0E1B557-D3CF-4446-B993-E5CE719234FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0E1B557-D3CF-4446-B993-E5CE719234FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0E1B557-D3CF-4446-B993-E5CE719234FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9CFA376-0C90-4231-9152-FBF14065195A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9CFA376-0C90-4231-9152-FBF14065195A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9CFA376-0C90-4231-9152-FBF14065195A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9CFA376-0C90-4231-9152-FBF14065195A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8191109E-130C-47F3-B84E-82070A6CD269}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8191109E-130C-47F3-B84E-82070A6CD269}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8191109E-130C-47F3-B84E-82070A6CD269}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8191109E-130C-47F3-B84E-82070A6CD269}.Release|Any CPU.Build.0 = Release|Any CPU
+		{906B5687-31AD-4364-AD9F-B4B26113462D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{906B5687-31AD-4364-AD9F-B4B26113462D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{906B5687-31AD-4364-AD9F-B4B26113462D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{906B5687-31AD-4364-AD9F-B4B26113462D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75760E8A-7025-4F6A-B152-6622688D0E7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75760E8A-7025-4F6A-B152-6622688D0E7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75760E8A-7025-4F6A-B152-6622688D0E7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75760E8A-7025-4F6A-B152-6622688D0E7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{A9CFA376-0C90-4231-9152-FBF14065195A} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 		{E958BE04-81C2-434C-9E6C-CA145A2B8218} = {A68BA1A5-1604-433D-9778-DC0199831C2A}
 		{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1} = {A68BA1A5-1604-433D-9778-DC0199831C2A}
@@ -1371,7 +1382,10 @@ Global
 		{74644A4D-8F61-4314-B6E8-5CE3802CD6C2} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{427F4D7C-8969-4015-AD1A-5EFFE921A184} = {77CFE74A-32EE-400C-8930-5025E8555256}
 		{E0E1B557-D3CF-4446-B993-E5CE719234FB} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
+		{A9CFA376-0C90-4231-9152-FBF14065195A} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{8191109E-130C-47F3-B84E-82070A6CD269} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
+		{906B5687-31AD-4364-AD9F-B4B26113462D} = {8BAF2119-8370-4E9E-A887-D92506F8C727}
+		{75760E8A-7025-4F6A-B152-6622688D0E7D} = {8BAF2119-8370-4E9E-A887-D92506F8C727}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
