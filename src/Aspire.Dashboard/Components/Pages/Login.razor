@@ -28,11 +28,18 @@
                 <div class="token-entry-footer">
                     <a href="javascript:;" id="helpLink">@Loc[nameof(Dashboard.Resources.Login.WhereIsMyTokenLinkText)]</a>
                     <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">@Loc[nameof(Dashboard.Resources.Login.LogInButtonText)]</FluentButton>
-                    <FluentTooltip Anchor="helpLink" Position="TooltipPosition.Bottom">
+                    <FluentTooltip Anchor="helpLink" Position="TooltipPosition.Bottom" MaxWidth="650px">
                         <div class="token-help-container">
-                            <div class="token-help-text">@Loc[nameof(Dashboard.Resources.Login.HelpPopupText)]</div>
-                            <img class="token-help-image" src="/img/TokenExample.png"
-                                 alt="@Loc[nameof(Dashboard.Resources.Login.HelpScreenshotAltText)]" />
+                            <div>
+                                <a href="/img/TokenExample.png" target="_blank">
+                                    <img class="token-help-image" src="/img/TokenExample.png"
+                                         alt="@Loc[nameof(Dashboard.Resources.Login.HelpScreenshotAltText)]" />
+                                </a>
+                            </div>
+                            <div>
+                                <p>@Loc[nameof(Dashboard.Resources.Login.TokenHelpTextLine1)]</p>
+                                <p>@Loc[nameof(Dashboard.Resources.Login.TokenHelpTextLine2)]</p>
+                            </div>
                             <FluentAnchor Href="https://go.microsoft.com/fwlink/?linkid=2265718" Target="_blank"
                                           Appearance="Appearance.Hypertext">
                                 @Loc[nameof(Dashboard.Resources.Login.MoreInfoLinkText)]
