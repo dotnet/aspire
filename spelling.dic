@@ -45,6 +45,7 @@ pgadmin
 postgre
 postgres
 protoc
+qdrant
 rabbitmq
 redis
 rediscommander

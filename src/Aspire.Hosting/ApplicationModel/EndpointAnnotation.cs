@@ -44,7 +44,16 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _transport = transport;
         Name = name;
         Port = port;
-        TargetPort = targetPort ?? port;
+
+        TargetPort = targetPort;
+
+        // If the target port was not explicitly set and the service is not being proxied,
+        // we can set the target port to the port.
+        if (TargetPort is null && !isProxied)
+        {
+            TargetPort = port;
+        }
+
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
     }
@@ -102,6 +111,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// Gets or sets a value indicating whether the endpoint is from a launch profile.
     /// </summary>
     internal bool FromLaunchProfile { get; set; }
+
+    /// <summary>
+    /// The environment variable that contains the target port. Setting prevents a variable from flowing into ASPNETCORE_URLS for project resources.
+    /// </summary>
+    internal string? TargetPortEnvironmentVariable { get; set; }
 
     /// <summary>
     /// Gets or sets the allocated endpoint.

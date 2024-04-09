@@ -110,3 +110,14 @@ public static class KnownResourceStateStyles
     public static readonly string Warn = "warn";
 
 }
+
+/// <summary>
+/// The set of well known resource states
+/// </summary>
+public static class KnownResourceStates
+{
+    /// <summary>
+    /// The hidden state. Useful for hiding the resource.
+    /// </summary>
+    public static readonly string Hidden = "Hidden";
+}

@@ -144,6 +144,11 @@ public class ReferenceExpressionBuilder
     private readonly List<string> _manifestExpressions = new();
 
     /// <summary>
+    /// Indicates whether the expression is empty.
+    /// </summary>
+    public bool IsEmpty => _builder.Length == 0;
+
+    /// <summary>
     /// Appends an interpolated string to the expression.
     /// </summary>
     /// <param name="handler"></param>

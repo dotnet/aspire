@@ -47,7 +47,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
 
             var timestamp = DateTime.UtcNow;
 
-            await foreach (var @event in resourceNotificationService.WatchAsync().WithCancellation(cancellationToken))
+            await foreach (var @event in resourceNotificationService.WatchAsync().WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 try
                 {
@@ -92,7 +92,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         {
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
 
-            await foreach (var item in sequence.WithCancellation(linked.Token))
+            await foreach (var item in sequence.WithCancellation(linked.Token).ConfigureAwait(false))
             {
                 yield return item;
             }
