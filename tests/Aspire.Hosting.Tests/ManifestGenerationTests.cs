@@ -309,6 +309,10 @@ public class ManifestGenerationTests
             .WithHttpEndpoint(port: 5031, env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
             .WithHttpEndpoint(port: 5032, env: "PORT");
+        program.AppBuilder.AddYarnApp("yarnapp", "..\\foo", "start")
+            .WithHttpEndpoint(port: 5032, env: "PORT");
+        program.AppBuilder.AddPnpmApp("pnpmapp", "..\\foo", "start")
+            .WithHttpEndpoint(port: 5032, env: "PORT");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -320,6 +324,8 @@ public class ManifestGenerationTests
 
         var nodeApp = resources.GetProperty("nodeapp");
         var npmApp = resources.GetProperty("npmapp");
+        var yarnApp = resources.GetProperty("yarnapp");
+        var pnpmApp = resources.GetProperty("pnpmapp");
 
         static void AssertNodeResource(TestProgram program, string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
@@ -342,6 +348,8 @@ public class ManifestGenerationTests
 
         AssertNodeResource(program, "nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
         AssertNodeResource(program, "npmapp", npmApp, "npm", ["run", "start"]);
+        AssertNodeResource(program, "yarnapp", yarnApp, "yarn", ["run", "start"]);
+        AssertNodeResource(program, "pnpmapp", pnpmApp, "pnpm", ["run", "start"]);
     }
 
     [Fact]
