@@ -1,0 +1,17 @@
+<Project>
+  <Target Name="Test">
+    <ItemGroup>
+      <TestCategory Include="basictests" />
+      <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="endtoendtests" />
+
+      <_ProjectsToBuild Include="send-to-helix-inner.proj"
+                        Condition="'%(TestCategory.Identity)' != ''"
+                        AdditionalProperties="TestCategory=%(TestCategory.Identity);Configuration=$(Configuration)" />
+    </ItemGroup>
+
+    <!-- Invoke MSBuild once for each Category (because of the grouping defined in "_ProjectsToBuild").
+         Create the Helix work items and start the jobs. This is done by invoking the "Test" Helix target.
+    -->
+    <MSBuild Projects="@(_ProjectsToBuild)" Targets="Test" BuildInParallel="true" StopOnFirstFailure="false" />
+  </Target>
+</Project>
