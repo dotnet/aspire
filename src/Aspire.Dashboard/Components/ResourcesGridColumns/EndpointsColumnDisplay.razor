@@ -1,26 +1,9 @@
 ﻿@using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components
-@inject IStringLocalizer<Columns> Loc
 
-@{
-    List<DisplayedEndpoint> displayedEndpoints;
-    string? additionalMessage = null;
-    if (Resource.Urls.Length == 0)
-    {
-        // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
-        additionalMessage = Loc[nameof(Columns.EndpointsColumnDisplayNone)];
-        displayedEndpoints = [];
-    }
-    else
-    {
-        displayedEndpoints = GetEndpoints(Resource);
-    }
-}
-
-@if (displayedEndpoints.Count == 1)
+@if (DisplayedEndpoints.Count == 1)
 {
-    var displayedEndpoint = displayedEndpoints[0];
+    var displayedEndpoint = DisplayedEndpoints[0];
     if (displayedEndpoint.Url != null)
     {
         <a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>
@@ -32,15 +15,12 @@
 }
 else
 {
-    // Make sure that endpoints have a consistent ordering. Show https first, then everything else.
-    displayedEndpoints = displayedEndpoints.OrderByDescending(e => e.Url?.StartsWith("https") == true).ThenBy(e=> e.Url ?? e.Text).ToList();
-
     <FluentOverflow Class="endpoint-overflow">
         <ChildContent>
-            @for (var i = 0; i < displayedEndpoints.Count; i++)
+            @for (var i = 0; i < DisplayedEndpoints.Count; i++)
             {
-                var displayedEndpoint = displayedEndpoints[i];
-                var isLast = i == displayedEndpoints.Count - 1;
+                var displayedEndpoint = DisplayedEndpoints[i];
+                var isLast = i == DisplayedEndpoints.Count - 1;
 
                 <FluentOverflowItem Data="displayedEndpoint">
                     @if (displayedEndpoint.Url != null)
@@ -94,7 +74,7 @@ else
     </FluentOverflow>
 }
 
-@if (!string.IsNullOrEmpty(additionalMessage))
+@if (!string.IsNullOrEmpty(AdditionalMessage))
 {
-    <div>@additionalMessage</div>
+    <div>@AdditionalMessage</div>
 }
