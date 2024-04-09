@@ -14,8 +14,7 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"ms-dotnettools.vscodeintellicode-csharp",
-				"chneau.resource-monitor"
+				"ms-dotnettools.vscodeintellicode-csharp"
 			]
 		}
 	},
