@@ -11,7 +11,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Http;
 /// </summary>
 internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
 {
-    private readonly HttpServiceEndPointResolver _resolver;
+    private readonly HttpServiceEndpointResolver _resolver;
     private readonly ServiceDiscoveryOptions _options;
 
     /// <summary>
@@ -19,7 +19,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
     /// </summary>
     /// <param name="resolver">The endpoint resolver.</param>
     /// <param name="options">The service discovery options.</param>
-    public ResolvingHttpDelegatingHandler(HttpServiceEndPointResolver resolver, IOptions<ServiceDiscoveryOptions> options)
+    public ResolvingHttpDelegatingHandler(HttpServiceEndpointResolver resolver, IOptions<ServiceDiscoveryOptions> options)
     {
         _resolver = resolver;
         _options = options.Value;
@@ -31,7 +31,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
     /// <param name="resolver">The endpoint resolver.</param>
     /// <param name="options">The service discovery options.</param>
     /// <param name="innerHandler">The inner handler.</param>
-    public ResolvingHttpDelegatingHandler(HttpServiceEndPointResolver resolver, IOptions<ServiceDiscoveryOptions> options, HttpMessageHandler innerHandler) : base(innerHandler)
+    public ResolvingHttpDelegatingHandler(HttpServiceEndpointResolver resolver, IOptions<ServiceDiscoveryOptions> options, HttpMessageHandler innerHandler) : base(innerHandler)
     {
         _resolver = resolver;
         _options = options.Value;
@@ -44,7 +44,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
         if (originalUri?.Host is not null)
         {
             var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
-            request.RequestUri = GetUriWithEndPoint(originalUri, result, _options);
+            request.RequestUri = GetUriWithEndpoint(originalUri, result, _options);
             request.Headers.Host ??= result.Features.Get<IHostNameFeature>()?.HostName;
         }
 
@@ -58,11 +58,11 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
         }
     }
 
-    internal static Uri GetUriWithEndPoint(Uri uri, ServiceEndPoint serviceEndPoint, ServiceDiscoveryOptions options)
+    internal static Uri GetUriWithEndpoint(Uri uri, ServiceEndpoint serviceEndpoint, ServiceDiscoveryOptions options)
     {
-        var endpoint = serviceEndPoint.EndPoint;
+        var endPoint = serviceEndpoint.EndPoint;
         UriBuilder result;
-        if (endpoint is UriEndPoint { Uri: { } ep })
+        if (endPoint is UriEndPoint { Uri: { } ep })
         {
             result = new UriBuilder(uri)
             {
@@ -84,7 +84,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
         {
             string host;
             int port;
-            switch (endpoint)
+            switch (endPoint)
             {
                 case IPEndPoint ip:
                     host = ip.Address.ToString();
@@ -95,7 +95,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
                     port = dns.Port;
                     break;
                 default:
-                    throw new InvalidOperationException($"Endpoints of type {endpoint.GetType()} are not supported");
+                    throw new InvalidOperationException($"Endpoints of type {endPoint.GetType()} are not supported");
             }
 
             result = new UriBuilder(uri)
@@ -112,7 +112,7 @@ internal sealed class ResolvingHttpDelegatingHandler : DelegatingHandler
             if (uri.Scheme.IndexOf('+') > 0)
             {
                 var scheme = uri.Scheme.Split('+')[0];
-                if (options.AllowedSchemes.Equals(ServiceDiscoveryOptions.AllowAllSchemes) || options.AllowedSchemes.Contains(scheme, StringComparer.OrdinalIgnoreCase))
+                if (options.AllowAllSchemes || options.AllowedSchemes.Contains(scheme, StringComparer.OrdinalIgnoreCase))
                 {
                     result.Scheme = scheme;
                 }

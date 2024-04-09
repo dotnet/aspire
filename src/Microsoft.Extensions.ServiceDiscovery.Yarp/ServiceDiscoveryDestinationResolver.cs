@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
 /// Initializes a new <see cref="ServiceDiscoveryDestinationResolver"/> instance.
 /// </remarks>
 /// <param name="resolver">The endpoint resolver registry.</param>
-internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolver resolver) : IDestinationResolver
+internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolver resolver) : IDestinationResolver
 {
     /// <inheritdoc/>
     public async ValueTask<ResolvedDestinationCollection> ResolveDestinationsAsync(IReadOnlyDictionary<string, DestinationConfig> destinations, CancellationToken cancellationToken)
@@ -54,14 +54,14 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolve
         var originalHost = originalConfig.Host is { Length: > 0 } h ? h : originalUri.Authority;
         var serviceName = originalUri.GetLeftPart(UriPartial.Authority);
 
-        var result = await resolver.GetEndPointsAsync(serviceName, cancellationToken).ConfigureAwait(false);
-        var results = new List<(string Name, DestinationConfig Config)>(result.EndPoints.Count);
+        var result = await resolver.GetEndpointsAsync(serviceName, cancellationToken).ConfigureAwait(false);
+        var results = new List<(string Name, DestinationConfig Config)>(result.Endpoints.Count);
         var uriBuilder = new UriBuilder(originalUri);
         var healthUri = originalConfig.Health is { Length: > 0 } health ? new Uri(health) : null;
         var healthUriBuilder = healthUri is { } ? new UriBuilder(healthUri) : null;
-        foreach (var endPoint in result.EndPoints)
+        foreach (var endpoint in result.Endpoints)
         {
-            var addressString = endPoint.GetEndPointString();
+            var addressString = endpoint.ToString()!;
             Uri uri;
             if (!addressString.Contains("://"))
             {
