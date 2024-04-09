@@ -5,6 +5,7 @@ namespace Aspire.Hosting.Nats;
 
 internal static class NatsContainerImageTags
 {
-    public const string Image = "nats";
+    public const string Registry = "docker.io";
+    public const string Image = "library/nats";
     public const string Tag = "2";
 }

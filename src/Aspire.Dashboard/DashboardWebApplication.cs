@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
@@ -18,6 +21,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -33,7 +37,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     internal const string DashboardUrlDefaultValue = "http://localhost:18888";
 
     private readonly WebApplication _app;
+    private readonly ILogger<DashboardWebApplication> _logger;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
+    private readonly IReadOnlyList<string> _validationFailures;
     private Func<EndpointInfo>? _frontendEndPointAccessor;
     private Func<EndpointInfo>? _otlpServiceEndPointAccessor;
 
@@ -48,6 +54,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     }
 
     public IOptionsMonitor<DashboardOptions> DashboardOptionsMonitor => _dashboardOptionsMonitor;
+
+    public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
@@ -79,7 +87,22 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddSingleton<IPostConfigureOptions<DashboardOptions>, PostConfigureDashboardOptions>();
         builder.Services.AddSingleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>();
 
-        var dashboardOptions = GetDashboardOptions(builder, dashboardConfigSection);
+        if (!TryGetDashboardOptions(builder, dashboardConfigSection, out var dashboardOptions, out var failureMessages))
+        {
+            // The options have validation failures. Write them out to the user and return a non-zero exit code.
+            // We don't want to start the app, but we need to build the app to access the logger to log the errors.
+            _app = builder.Build();
+            _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
+            _validationFailures = failureMessages.ToList();
+            _logger = GetLogger();
+            WriteVersion(_logger);
+            WriteValidationFailures(_logger, _validationFailures);
+            return;
+        }
+        else
+        {
+            _validationFailures = Array.Empty<string>();
+        }
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
 
@@ -125,7 +148,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
 
-        var logger = _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
+        _logger = GetLogger();
 
         // this needs to be explicitly enumerated for each supported language
         // our language list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
@@ -138,34 +161,32 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .AddSupportedCultures(supportedLanguages)
             .AddSupportedUICultures(supportedLanguages));
 
-        if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
-        {
-            // Write version at info level so it's written to the console by default. Help us debug user issues.
-            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
-            logger.LogInformation("Aspire version: {Version}", informationalVersion);
-        }
+        WriteVersion(_logger);
 
         _app.Lifetime.ApplicationStarted.Register(() =>
         {
             if (_frontendEndPointAccessor != null)
             {
-                var url = GetEndpointUrl(_frontendEndPointAccessor());
-                logger.LogInformation("Now listening on: {DashboardUri}", url);
+                var url = _frontendEndPointAccessor().Address;
+                _logger.LogInformation("Now listening on: {DashboardUri}", url);
 
-                var options = _app.Services.GetRequiredService<IOptions<DashboardOptions>>().Value;
+                var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
                 if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
                 {
-                    LoggingHelpers.WriteDashboardUrl(logger, url, options.Frontend.BrowserToken);
+                    LoggingHelpers.WriteDashboardUrl(_logger, url, options.Frontend.BrowserToken);
                 }
             }
 
             if (_otlpServiceEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", GetEndpointUrl(_otlpServiceEndPointAccessor()));
+                _logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", _otlpServiceEndPointAccessor().Address);
             }
 
-            static string GetEndpointUrl(EndpointInfo info) => $"{(info.isHttps ? "https" : "http")}://{info.EndPoint}";
+            if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
+            {
+                _logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
+            }
         });
 
         // Redirect browser directly to /structuredlogs address if the dashboard is running without a resource service.
@@ -196,7 +217,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         else
         {
             _app.UseExceptionHandler("/Error");
-            //_app.UseHsts();
+            if (isAllHttps)
+            {
+                _app.UseHsts();
+            }
         }
 
         _app.UseStatusCodePagesWithReExecute("/error/{0}");
@@ -223,6 +247,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.UseAuthorization();
 
+        _app.UseMiddleware<BrowserSecurityHeadersMiddleware>();
         _app.UseAntiforgery();
 
         _app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
@@ -252,22 +277,50 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
     }
 
+    private ILogger<DashboardWebApplication> GetLogger()
+    {
+        return _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
+    }
+
+    private static void WriteValidationFailures(ILogger<DashboardWebApplication> logger, IReadOnlyList<string> validationFailures)
+    {
+        logger.LogError("Failed to start the dashboard due to {Count} configuration error(s).", validationFailures.Count);
+        foreach (var message in validationFailures)
+        {
+            logger.LogError("{ErrorMessage}", message);
+        }
+    }
+
+    private static void WriteVersion(ILogger<DashboardWebApplication> logger)
+    {
+        if (typeof(DashboardWebApplication).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
+        {
+            // Write version at info level so it's written to the console by default. Help us debug user issues.
+            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
+            logger.LogInformation("Aspire version: {Version}", informationalVersion);
+        }
+    }
+
     /// <summary>
     /// Load <see cref="DashboardOptions"/> from configuration without using DI. This performs
     /// the same steps as getting the options from DI but without the need for a service provider.
     /// </summary>
-    private static DashboardOptions GetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection)
+    private static bool TryGetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection, [NotNullWhen(true)] out DashboardOptions? dashboardOptions, [NotNullWhen(false)] out IEnumerable<string>? failureMessages)
     {
-        var dashboardOptions = new DashboardOptions();
+        dashboardOptions = new DashboardOptions();
         dashboardConfigSection.Bind(dashboardOptions);
         new PostConfigureDashboardOptions(builder.Configuration).PostConfigure(name: string.Empty, dashboardOptions);
         var result = new ValidateDashboardOptions().Validate(name: string.Empty, dashboardOptions);
         if (result.Failed)
         {
-            throw new OptionsValidationException(optionsName: string.Empty, typeof(DashboardOptions), result.Failures);
+            failureMessages = result.Failures;
+            return false;
         }
-
-        return dashboardOptions;
+        else
+        {
+            failureMessages = null;
+            return true;
+        }
     }
 
     // Kestrel endpoints are loaded from configuration. This is done so that advanced configuration of endpoints is
@@ -339,13 +392,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     // Only the last endpoint is accessible. Tests should only need one but
                     // this will need to be improved if that changes.
-                    _frontendEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
+                    _frontendEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 });
             }
 
             configurationLoader.Endpoint("Otlp", endpointConfiguration =>
             {
-                _otlpServiceEndPointAccessor = CreateEndPointAccessor(endpointConfiguration.ListenOptions, endpointConfiguration.IsHttps);
+                _otlpServiceEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 if (hasSingleEndpoint)
                 {
                     logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
@@ -373,14 +426,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             });
         });
 
-        static Func<EndpointInfo> CreateEndPointAccessor(ListenOptions options, bool isHttps)
+        static Func<EndpointInfo> CreateEndPointAccessor(EndpointConfiguration endpointConfiguration)
         {
             // We want to provide a way for someone to get the IP address of an endpoint.
             // However, if a dynamic port is used, the port is not known until the server is started.
             // Instead of returning the ListenOption's endpoint directly, we provide a func that returns the endpoint.
             // The endpoint on ListenOptions is updated after binding, so accessing it via the func after the server
             // has started returns the resolved port.
-            return () => new EndpointInfo(options.IPEndPoint!, isHttps);
+            var address = BindingAddress.Parse(endpointConfiguration.ConfigSection["Url"]!);
+            return () =>
+            {
+                var endpoint = endpointConfiguration.ListenOptions.IPEndPoint!;
+                var resolvedAddress = address.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + address.Host.ToLowerInvariant() + ":" + endpoint.Port.ToString(CultureInfo.InvariantCulture);
+                return new EndpointInfo(resolvedAddress, endpoint, endpointConfiguration.IsHttps);
+            };
         }
     }
 
@@ -466,7 +525,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     options.LoginPath = "/login";
                     options.ReturnUrlParameter = "returnUrl";
-                    options.ExpireTimeSpan = TimeSpan.FromDays(1);
+                    options.ExpireTimeSpan = TimeSpan.FromDays(3);
                     options.Events.OnSigningIn = context =>
                     {
                         // Add claim when signing in with cookies from browser token.
@@ -521,11 +580,28 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         });
     }
 
-    public void Run() => _app.Run();
+    public int Run()
+    {
+        if (_validationFailures.Count > 0)
+        {
+            return -1;
+        }
 
-    public Task StartAsync(CancellationToken cancellationToken = default) => _app.StartAsync(cancellationToken);
+        _app.Run();
+        return 0;
+    }
 
-    public Task StopAsync(CancellationToken cancellationToken = default) => _app.StopAsync(cancellationToken);
+    public Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        Debug.Assert(_validationFailures.Count == 0);
+        return _app.StartAsync(cancellationToken);
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        Debug.Assert(_validationFailures.Count == 0);
+        return _app.StopAsync(cancellationToken);
+    }
 
     public ValueTask DisposeAsync()
     {
@@ -540,7 +616,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     }
 }
 
-public record EndpointInfo(IPEndPoint EndPoint, bool isHttps);
+public record EndpointInfo(string Address, IPEndPoint EndPoint, bool isHttps);
 
 public static class FrontendAuthorizationDefaults
 {

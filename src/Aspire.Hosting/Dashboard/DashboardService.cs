@@ -77,7 +77,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             await responseStream.WriteAsync(new() { InitialData = data }).ConfigureAwait(false);
 
-            await foreach (var batch in updates.WithCancellation(cts.Token))
+            await foreach (var batch in updates.WithCancellation(cts.Token).ConfigureAwait(false))
             {
                 WatchResourcesChanges changes = new();
 
@@ -131,7 +131,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                 return;
             }
 
-            await foreach (var group in subscription.WithCancellation(cts.Token))
+            await foreach (var group in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
             {
                 WatchResourceConsoleLogsUpdate update = new();
 

@@ -290,7 +290,7 @@ internal sealed class DashboardClient : IDashboardClient
                 {
                     var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
 
-                    await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+                    await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                     {
                         List<ResourceViewModelChange>? changes = null;
 
@@ -458,7 +458,7 @@ internal sealed class DashboardClient : IDashboardClient
         {
             try
             {
-                await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
+                await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
                 {
                     var logLines = new ResourceLogLine[response.LogLines.Count];
 
@@ -477,7 +477,7 @@ internal sealed class DashboardClient : IDashboardClient
             }
         }, combinedTokens.Token);
 
-        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token))
+        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token).ConfigureAwait(false))
         {
             if (batch.Count == 1)
             {

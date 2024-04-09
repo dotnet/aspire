@@ -173,7 +173,7 @@ public class WithEnvironmentTests
                                .WithHttpEndpoint(name: "primary")
                                .WithEndpoint("primary", ep =>
                                {
-                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90, dcpServiceName: "container1_primary");
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90, targetPortExpression: """{{- portForServing "container1_primary" -}}""");
                                });
 
         var endpoint = container.GetEndpoint("primary");

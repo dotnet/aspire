@@ -1,34 +1,55 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.Orleans;
 
 /// <summary>
 /// Describes an Orleans service.
 /// </summary>
-/// <param name="builder">The distributed application builder.</param>
-/// <param name="name">The service name.</param>
-public class OrleansService(IDistributedApplicationBuilder builder, string name)
+public sealed class OrleansService
 {
+    /// <summary>Initializes a new <see cref="OrleansService"/> instance.</summary>
+    /// <param name="builder">The distributed application builder.</param>
+    /// <param name="name">The service name.</param>
+    public OrleansService(IDistributedApplicationBuilder builder, string name)
+    {
+        Name = name;
+        Builder = builder;
+        ServiceId = ParameterResourceBuilderExtensions.CreateGeneratedParameter(builder, $"{name}-service-id", secret: false, new GenerateParameterDefault
+        {
+            Upper = false,
+            Special = false,
+            MinLength = 25
+        });
+        ClusterId = ParameterResourceBuilderExtensions.CreateGeneratedParameter(builder, $"{name}-cluster-id", secret: false, new GenerateParameterDefault
+        {
+            Upper = false,
+            Special = false,
+            MinLength = 25
+        });
+    }
+
     /// <summary>
     /// Gets the name of the service.
     /// </summary>
-    public string Name { get; } = name;
+    public string Name { get; }
 
     /// <summary>
     /// Gets the distributed application builder.
     /// </summary>
-    public IDistributedApplicationBuilder Builder { get; } = builder;
+    public IDistributedApplicationBuilder Builder { get; }
 
     /// <summary>
     /// Gets or sets the service identifier.
     /// </summary>
-    public string? ServiceId { get; set; }
+    internal object ServiceId { get; set; }
 
     /// <summary>
     /// Gets or sets the cluster identifier.
     /// </summary>
-    public string? ClusterId { get; set; } = Guid.NewGuid().ToString("N");
+    internal object ClusterId { get; set; }
 
     /// <summary>
     /// Gets or sets the clustering provider.

@@ -84,7 +84,7 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
         CancellationToken cancellationToken)
     {
         var roleAssignments = armClient.GetRoleAssignments(resourceId);
-        await foreach (var ra in roleAssignments.GetAllAsync(cancellationToken: cancellationToken))
+        await foreach (var ra in roleAssignments.GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             if (ra.Data.PrincipalId == principalId &&
                 ra.Data.RoleDefinitionId.Equals(roleDefinitionId))

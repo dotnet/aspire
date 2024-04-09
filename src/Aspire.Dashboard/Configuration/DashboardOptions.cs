@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Aspire.Hosting;
 
 namespace Aspire.Dashboard.Configuration;
 
@@ -90,7 +91,7 @@ public sealed class OtlpOptions
     {
         if (string.IsNullOrEmpty(EndpointUrl))
         {
-            errorMessage = "OTLP endpoint URL is not configured. Specify a Dashboard:Otlp:EndpointUrl value.";
+            errorMessage = $"OTLP endpoint URL is not configured. Specify a {DashboardConfigNames.DashboardOtlpUrlName.EnvVarName} value.";
             return false;
         }
         else

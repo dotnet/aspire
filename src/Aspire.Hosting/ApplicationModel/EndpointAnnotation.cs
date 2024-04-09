@@ -44,7 +44,16 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _transport = transport;
         Name = name;
         Port = port;
-        TargetPort = targetPort ?? port;
+
+        TargetPort = targetPort;
+
+        // If the target port was not explicitly set and the service is not being proxied,
+        // we can set the target port to the port.
+        if (TargetPort is null && !isProxied)
+        {
+            TargetPort = port;
+        }
+
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
     }

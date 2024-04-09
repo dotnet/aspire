@@ -7,6 +7,11 @@
         <target state="translated">익명 볼륨은 읽기 전용일 수 없습니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="new">Bind mounts must specify an absolute path.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
         <target state="translated">바인딩 탑재는 원본 경로를 지정해야 합니다.</target>
