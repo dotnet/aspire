@@ -144,3 +144,6 @@ node_modules/
 /playground/**/.gitignore
 /playground/**/azure.yaml
 /playground/**/next-steps.md
+
+# Ignore mono files on linux
+.mono/
