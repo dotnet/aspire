@@ -23,8 +23,8 @@
     <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.2.1</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24204.3</MicrosoftDotNetRemoteExecutorPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24204.3</MicrosoftDotNetXUnitExtensionsPackageVersion>
-    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24172.5</MicrosoftDotNetBuildTasksInstallersPackageVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24172.5</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24204.3</MicrosoftDotNetBuildTasksInstallersPackageVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24204.3</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>8.3.0</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.3.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
