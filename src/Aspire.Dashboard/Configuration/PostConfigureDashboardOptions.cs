@@ -34,7 +34,6 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         {
             options.Frontend.AuthMode = FrontendAuthMode.Unsecured;
             options.Otlp.AuthMode = OtlpAuthMode.Unsecured;
-            options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Unsecured;
         }
         else
         {

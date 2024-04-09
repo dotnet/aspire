@@ -89,7 +89,10 @@ internal sealed class DashboardServiceHost : IHostedService
                     ResourceServiceAuthenticationDefaults.AuthenticationScheme,
                     options => { });
 
-            // Configure authorization policy for the dashboard service
+            // Configure authorization policy for the dashboard service.
+            // The authorization policy accepts anyone who successfully authenticates via the
+            // specified scheme, and that scheme enforces a valid API key (when configured to
+            // use API keys for calls.)
             builder.Services
                 .AddAuthorizationBuilder()
                 .AddPolicy(

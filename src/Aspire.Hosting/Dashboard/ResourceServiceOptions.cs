@@ -35,7 +35,7 @@ internal sealed class ResourceServiceOptions
 
     internal byte[] GetApiKeyBytes()
     {
-        return _apiKeyBytes ?? throw new InvalidOperationException($"{nameof(ApiKey)} not specified in configuration.");
+        return _apiKeyBytes ?? throw new InvalidOperationException($"AppHost:ResourceService:ApiKey is not specified in configuration.");
     }
 }
 
@@ -49,7 +49,7 @@ internal sealed class ValidateResourceServiceOptions : IValidateOptions<Resource
         {
             if (string.IsNullOrWhiteSpace(options.ApiKey))
             {
-                AddError($"{nameof(ResourceServiceOptions.ApiKey)} value is required when AuthMode is {nameof(ResourceServiceAuthMode.ApiKey)}.");
+                AddError($"AppHost:ResourceService:ApiKey is required when AppHost:ResourceService:AuthMode is '{nameof(ResourceServiceAuthMode.ApiKey)}'.");
             }
         }
 
