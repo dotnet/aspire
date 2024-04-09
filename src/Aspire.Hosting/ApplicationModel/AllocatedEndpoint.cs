@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint allocated for a service instance.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, UriString = {UriString}, EndpointNameQualifiedUriString = {EndpointNameQualifiedUriString}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Endpoint.Name}, UriString = {UriString}, EndpointNameQualifiedUriString = {EndpointNameQualifiedUriString}")]
 public class AllocatedEndpoint
 {
     /// <summary>

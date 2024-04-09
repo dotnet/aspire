@@ -6,6 +6,7 @@ using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Net.Http.Headers;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
 using Xunit.Abstractions;
@@ -356,6 +357,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         response.EnsureSuccessStatusCode();
+        Assert.NotEmpty(response.Headers.GetValues(HeaderNames.ContentSecurityPolicy).Single());
     }
 
     private static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)

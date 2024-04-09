@@ -217,7 +217,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         else
         {
             _app.UseExceptionHandler("/Error");
-            //_app.UseHsts();
+            if (isAllHttps)
+            {
+                _app.UseHsts();
+            }
         }
 
         _app.UseStatusCodePagesWithReExecute("/error/{0}");
@@ -244,6 +247,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.UseAuthorization();
 
+        _app.UseMiddleware<BrowserSecurityHeadersMiddleware>();
         _app.UseAntiforgery();
 
         _app.MapRazorComponents<App>().AddInteractiveServerRenderMode();

@@ -27,6 +27,8 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(appConfig);
 ```
 
+> NOTE: Consider setting the name of your resource to something other than "config" or "appconfig". Even though durnig deployment random suffix will be added it is still possible to get a name collision.
+
 ## Additional documentation
 
 * https://learn.microsoft.com/azure/azure-app-configuration/

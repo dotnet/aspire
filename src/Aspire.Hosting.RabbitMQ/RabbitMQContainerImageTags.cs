@@ -5,7 +5,8 @@ namespace Aspire.Hosting.RabbitMQ;
 
 internal static class RabbitMQContainerImageTags
 {
-    public const string Image = "rabbitmq";
+    public const string Registry = "docker.io";
+    public const string Image = "library/rabbitmq";
     public const string Tag = "3";
     public const string TagManagement = $"{Tag}-management";
 }

@@ -140,6 +140,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
                 _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<DashboardServiceHost>());
+                _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
                 _innerBuilder.Services.AddLifecycleHook<DashboardLifecycleHook>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
@@ -147,7 +148,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             // DCP stuff
             _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
-            _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
             _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
             _innerBuilder.Services.AddHostedService<DcpHostService>();
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());

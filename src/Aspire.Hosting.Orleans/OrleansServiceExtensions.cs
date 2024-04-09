@@ -43,6 +43,20 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
+    /// Sets the ClusterId of the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="clusterId">The ClusterId value.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithClusterId(
+        this OrleansService orleansServiceBuilder,
+        IResourceBuilder<ParameterResource> clusterId)
+    {
+        orleansServiceBuilder.ClusterId = clusterId.Resource;
+        return orleansServiceBuilder;
+    }
+
+    /// <summary>
     /// Sets the ServiceId of the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
@@ -53,6 +67,20 @@ public static class OrleansServiceExtensions
         string serviceId)
     {
         orleansServiceBuilder.ServiceId = serviceId;
+        return orleansServiceBuilder;
+    }
+
+    /// <summary>
+    /// Sets the ServiceId of the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="serviceId">The ServiceId value.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithServiceId(
+        this OrleansService orleansServiceBuilder,
+        IResourceBuilder<ParameterResource> serviceId)
+    {
+        orleansServiceBuilder.ServiceId = serviceId.Resource;
         return orleansServiceBuilder;
     }
 
@@ -300,6 +328,16 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
+    /// Returns a model of the clients of an Orleans service.
+    /// </summary>
+    /// <param name="orleansService">The Orleans service</param>
+    /// <returns>A model of the clients of an Orleans service.</returns>
+    public static OrleansServiceClient AsClient(this OrleansService orleansService)
+    {
+        return new OrleansServiceClient(orleansService);
+    }
+
+    /// <summary>
     /// Adds Orleans to the resource.
     /// </summary>
     /// <param name="builder">The builder on which add the Orleans service builder.</param>
@@ -309,6 +347,15 @@ public static class OrleansServiceExtensions
     public static IResourceBuilder<T> WithReference<T>(
         this IResourceBuilder<T> builder,
         OrleansService orleansService)
+        where T : IResourceWithEnvironment
+    {
+        return builder.WithOrleansReference(orleansService, isSilo: true);
+    }
+
+    internal static IResourceBuilder<T> WithOrleansReference<T>(
+        this IResourceBuilder<T> builder,
+        OrleansService orleansService,
+        bool isSilo)
         where T : IResourceWithEnvironment
     {
         var res = orleansService;
@@ -323,21 +370,6 @@ public static class OrleansServiceExtensions
             throw new InvalidOperationException("Clustering has not been configured for this service.");
         }
 
-        if (res.Reminders is { } reminders)
-        {
-            reminders.ConfigureResource(builder, "Reminders");
-        }
-
-        foreach (var (name, provider) in res.GrainStorage)
-        {
-            provider.ConfigureResource(builder, $"GrainStorage__{name}");
-        }
-
-        foreach (var (name, provider) in res.GrainDirectory)
-        {
-            provider.ConfigureResource(builder, $"GrainDirectory__{name}");
-        }
-
         foreach (var (name, provider) in res.Streaming)
         {
             provider.ConfigureResource(builder, $"Streaming__{name}");
@@ -348,25 +380,40 @@ public static class OrleansServiceExtensions
             provider.ConfigureResource(builder, $"BroadcastChannel__{name}");
         }
 
-        if (!string.IsNullOrWhiteSpace(res.ClusterId))
+        builder.WithEnvironment(context =>
         {
-            builder.WithEnvironment("Orleans__ClusterId", res.ClusterId);
-        }
+            context.EnvironmentVariables["Orleans__ClusterId"] = res.ClusterId;
+            context.EnvironmentVariables["Orleans__ServiceId"] = res.ServiceId;
 
-        if (!string.IsNullOrWhiteSpace(res.ServiceId))
+            // Enable distributed tracing by default
+            if (res.EnableDistributedTracing != false)
+            {
+                context.EnvironmentVariables["Orleans__EnableDistributedTracing"] = "true";
+            }
+        });
+
+        if (isSilo)
         {
-            builder.WithEnvironment("Orleans__ServiceId", res.ServiceId);
-        }
+            if (res.Reminders is { } reminders)
+            {
+                reminders.ConfigureResource(builder, "Reminders");
+            }
 
-        // Set silo-to-silo and client-to-gateway ports
-        // Note that we sets these ports even when adding a reference to a client.
-        builder.WithEndpoint(scheme: "tcp", name: "orleans-silo", env: "Orleans__Endpoints__SiloPort");
-        builder.WithEndpoint(scheme: "tcp", name: "orleans-gateway", env: "Orleans__Endpoints__GatewayPort");
+            foreach (var (name, provider) in res.GrainStorage)
+            {
+                provider.ConfigureResource(builder, $"GrainStorage__{name}");
+            }
 
-        // Enable distributed tracing by default
-        if (res.EnableDistributedTracing != false)
-        {
-            builder.WithEnvironment("Orleans__EnableDistributedTracing", "true");
+            foreach (var (name, provider) in res.GrainDirectory)
+            {
+                provider.ConfigureResource(builder, $"GrainDirectory__{name}");
+            }
+
+            // Set silo-to-silo and client-to-gateway ports
+            // NOTE: These endpoints are specified as proxied even though we never expect any connections via the proxy, and that would be invalid anyway.
+            // this is a workaround for current Aspire/DCP behavior.
+            builder.WithEndpoint(scheme: "tcp", name: "orleans-silo", env: "Orleans__Endpoints__SiloPort", isProxied: true, isExternal: false);
+            builder.WithEndpoint(scheme: "tcp", name: "orleans-gateway", env: "Orleans__Endpoints__GatewayPort", isProxied: true, isExternal: false);
         }
 
         return builder;
