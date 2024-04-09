@@ -20,7 +20,7 @@
                 <div class="token-entry">
                     <FluentTextField @ref="_tokenTextField" Id="token-text-field" @bind-Value="_formModel.Token"
                                      Placeholder="@Loc[nameof(Dashboard.Resources.Login.TextFieldPlaceholder)]"
-                                     TextFieldType="TextFieldType.Password" Class="token-entry-text" />
+                                     TextFieldType="TextFieldType.Password" AutoComplete="one-time-code" Class="token-entry-text" />
                 </div>
                 <div class="token-validation">
                     <FluentValidationMessage For="() => _formModel.Token" />
