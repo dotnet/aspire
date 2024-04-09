@@ -31,7 +31,7 @@ public class AddQdrantTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(QdrantContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(QdrantContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(QdrantContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
             .FirstOrDefault(e => e.Name == "grpc");
@@ -70,7 +70,7 @@ public class AddQdrantTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(QdrantContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(QdrantContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(QdrantContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
             .FirstOrDefault(e => e.Name == "http");
@@ -104,7 +104,7 @@ public class AddQdrantTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(QdrantContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(QdrantContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(QdrantContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = containerResource.Annotations.OfType<EndpointAnnotation>()
             .FirstOrDefault(e => e.Name == "grpc");
@@ -168,6 +168,18 @@ public class AddQdrantTests
 
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-qdrant" && kvp.Value == "Endpoint=http://localhost:6334;Key=pass");
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-qdrant_http" && kvp.Value == "Endpoint=http://localhost:6333;Key=pass");
+
+        var container1 = appBuilder.AddContainer("container1", "fake")
+            .WithReference(qdrant);
+
+        // Call environment variable callbacks.
+        var containerConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container1.Resource);
+
+        var containerServicesKeysCount = containerConfig.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
+        Assert.Equal(2, containerServicesKeysCount);
+
+        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-qdrant" && kvp.Value == "Endpoint=http://localhost:6334;Key=pass");
+        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-qdrant_http" && kvp.Value == "Endpoint=http://localhost:6333;Key=pass");
     }
 
     [Fact]
@@ -182,7 +194,7 @@ public class AddQdrantTests
             {
               "type": "container.v0",
               "connectionString": "Endpoint={qdrant.bindings.grpc.scheme}://{qdrant.bindings.grpc.host}:{qdrant.bindings.grpc.port};Key={qdrant-Key.value}",
-              "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
+              "image": "{{QdrantContainerImageTags.Registry}}/{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{qdrant-Key.value}",
                 "QDRANT__SERVICE__ENABLE_STATIC_CONTENT": "0"
@@ -220,7 +232,7 @@ public class AddQdrantTests
             {
               "type": "container.v0",
               "connectionString": "Endpoint={qdrant.bindings.grpc.scheme}://{qdrant.bindings.grpc.host}:{qdrant.bindings.grpc.port};Key={QdrantApiKey.value}",
-              "image": "{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
+              "image": "{{QdrantContainerImageTags.Registry}}/{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{QdrantApiKey.value}",
                 "QDRANT__SERVICE__ENABLE_STATIC_CONTENT": "0"

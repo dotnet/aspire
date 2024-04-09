@@ -21,10 +21,19 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
     public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly)
     {
-        if (type == ContainerMountType.BindMount && string.IsNullOrEmpty(source))
+        if (type == ContainerMountType.BindMount)
         {
-            throw new ArgumentNullException(nameof(source), Resources.ContainerMountBindMountsRequireSourceExceptionMessage);
+            if (string.IsNullOrEmpty(source))
+            {
+                throw new ArgumentNullException(nameof(source), Resources.ContainerMountBindMountsRequireSourceExceptionMessage);
+            }
+
+            if (!Path.IsPathRooted(source))
+            {
+                throw new ArgumentException(Resources.ContainerMountBindMountsRequireRootedPaths, nameof(source));
+            }
         }
+
         if (type == ContainerMountType.Volume && string.IsNullOrEmpty(source) && isReadOnly)
         {
             throw new ArgumentException(Resources.ContainerMountAnonymousVolumesReadOnlyExceptionMessage, nameof(isReadOnly));

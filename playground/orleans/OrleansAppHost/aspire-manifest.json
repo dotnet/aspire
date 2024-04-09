@@ -22,6 +22,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "Orleans__Clustering__ProviderType": "AzureTableStorage",
         "Orleans__Clustering__ServiceKey": "clustering",
@@ -29,7 +30,7 @@
         "Orleans__GrainStorage__Default__ProviderType": "AzureBlobStorage",
         "Orleans__GrainStorage__Default__ServiceKey": "grainstate",
         "ConnectionStrings__grainstate": "{grainstate.connectionString}",
-        "Orleans__ClusterId": "c7673f46dfc745c8b4492b957aa42408",
+        "Orleans__ClusterId": "23ffed7d60ca4f18a70fc8a8cecbf855",
         "Orleans__Endpoints__SiloPort": "{silo.bindings.orleans-silo.targetPort}",
         "Orleans__Endpoints__GatewayPort": "{silo.bindings.orleans-gateway.targetPort}",
         "Orleans__EnableDistributedTracing": "true"

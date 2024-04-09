@@ -388,6 +388,12 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
             _kubernetes = await pipeline.ExecuteAsync<DcpKubernetesClient>(async (cancellationToken) =>
             {
                 var fileInfo = new FileInfo(locations.DcpKubeconfigPath);
+                while (!fileInfo.Exists)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(dcpOptions.Value.KubernetesConfigReadRetryIntervalMilliseconds), cancellationToken).ConfigureAwait(false);
+                    fileInfo = new FileInfo(locations.DcpKubeconfigPath);
+                }
+
                 var config = await KubernetesClientConfiguration.BuildConfigFromConfigFileAsync(kubeconfig: fileInfo, useRelativePaths: false).ConfigureAwait(false);
                 readStopwatch.Stop();
 

@@ -28,8 +28,8 @@ public static class OracleDatabaseBuilderExtensions
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, passwordParameter);
         return builder.AddResource(oracleDatabaseServer)
                       .WithEndpoint(port: port, targetPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
-                      .WithImage("database/free", "23.3.0.0")
-                      .WithImageRegistry("container-registry.oracle.com")
+                      .WithImage(OracleContainerImageTags.Image, OracleContainerImageTags.Tag)
+                      .WithImageRegistry(OracleContainerImageTags.Registry)
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = oracleDatabaseServer.PasswordParameter;

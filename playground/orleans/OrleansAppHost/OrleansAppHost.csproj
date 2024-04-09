@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\OrleansServer\OrleansServer.csproj" />
+    <ProjectReference Include="..\OrleansClient\OrleansClient.csproj" />
   </ItemGroup>
 
 </Project>

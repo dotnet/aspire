@@ -77,7 +77,7 @@ stages:
 
       - job: Windows
         # timeout accounts for wait times for helix agents up to 30mins
-        timeoutInMinutes: 60
+        timeoutInMinutes: 90
 
         pool:
           name: $(DncEngPublicBuildPool)
@@ -106,7 +106,7 @@ stages:
 
       - job: Linux
         # timeout accounts for wait times for helix agents up to 30mins
-        timeoutInMinutes: 60
+        timeoutInMinutes: 90
 
         pool:
           name: $(DncEngPublicBuildPool)

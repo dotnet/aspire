@@ -15,10 +15,8 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityFrameworkCoreSqlServerSettings>, IClassFixture<SqlServerContainerFixture>
 {
-    private readonly SqlServerContainerFixture _containerFixture;
-    protected string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
-                                            ? _containerFixture.GetConnectionString()
-                                            : "Host=fake;Database=catalog";
+    private readonly SqlServerContainerFixture? _containerFixture;
+    protected string ConnectionString { get; private set; }
 
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
@@ -64,8 +62,13 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    public ConformanceTests(SqlServerContainerFixture fixture)
-        => _containerFixture = fixture;
+    public ConformanceTests(SqlServerContainerFixture? fixture)
+    {
+        _containerFixture = fixture;
+        ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
+    }
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
@@ -113,12 +116,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
+        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+                                 ConnectionString).Dispose();
 
-    private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
-    {
-        await using var fixture = new SqlServerContainerFixture();
-        await fixture.InitializeAsync();
-        test(new ConformanceTests(fixture));
-    }
+    private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
+        => test(new ConformanceTests(null) { ConnectionString = connectionString });
 }
