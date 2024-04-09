@@ -40,9 +40,9 @@
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>8.0.3</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
     <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.3</MicrosoftAspNetCoreOpenApiPackageVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.3</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
-    <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.2</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.2</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.2</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
+    <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.3</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.3</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.3</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <MicrosoftExtensionsFeaturesPackageVersion>8.0.3</MicrosoftExtensionsFeaturesPackageVersion>
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.3</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.3</MicrosoftEntityFrameworkCoreDesignPackageVersion>
