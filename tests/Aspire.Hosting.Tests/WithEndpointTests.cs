@@ -369,13 +369,13 @@ public class WithEndpointTests
     [Fact]
     public async Task VerifyManifestProjectWithHttpEndpointDoesNotAllocatePort()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var project = builder.AddProject<TestProject>("proj")
             .WithHttpEndpoint(name: "hp")
             .WithHttpsEndpoint(name: "hps");
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
-        var s = manifest.ToString();
+
         var expectedManifest =
             """
             {
@@ -384,7 +384,8 @@ public class WithEndpointTests
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
               },
               "bindings": {
                 "hp": {

@@ -35,9 +35,19 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             options.Frontend.AuthMode = FrontendAuthMode.Unsecured;
             options.Otlp.AuthMode = OtlpAuthMode.Unsecured;
         }
+        else
+        {
+            options.Frontend.AuthMode ??= FrontendAuthMode.BrowserToken;
+            options.Otlp.AuthMode ??= OtlpAuthMode.Unsecured;
+        }
         if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken && string.IsNullOrEmpty(options.Frontend.BrowserToken))
         {
-            options.Frontend.BrowserToken = TokenGenerator.GenerateToken();
+            var token = TokenGenerator.GenerateToken();
+
+            // Set the generated token in configuration. This is required because options could be created multiple times
+            // (at startup, after CI is created, after options change). Setting the token in configuration makes it consistent.
+            _configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = token;
+            options.Frontend.BrowserToken = token;
         }
     }
 }

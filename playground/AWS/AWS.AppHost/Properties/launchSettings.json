@@ -26,7 +26,7 @@
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
       }
     },
-    "manifest-publish": {
+    "generate-manifest": {
       "commandName": "Project",
       "commandLineArgs": "--publisher manifest --output-path ./aspire-manifest.json",
       "dotnetRunMessages": true,

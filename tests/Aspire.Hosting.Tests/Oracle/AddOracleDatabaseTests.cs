@@ -25,9 +25,9 @@ public class AddOracleTests
         Assert.Equal("orcl", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
-        Assert.Equal("database/free", containerAnnotation.Image);
-        Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
+        Assert.Equal(OracleContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(OracleContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(OracleContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(1521, endpoint.TargetPort);
@@ -65,9 +65,9 @@ public class AddOracleTests
         Assert.Equal("orcl", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
-        Assert.Equal("database/free", containerAnnotation.Image);
-        Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
+        Assert.Equal(OracleContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(OracleContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(OracleContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(1521, endpoint.TargetPort);
@@ -148,9 +148,9 @@ public class AddOracleTests
         Assert.Equal("oracle", containerResource.Name);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
-        Assert.Equal("database/free", containerAnnotation.Image);
-        Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
+        Assert.Equal(OracleContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(OracleContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(OracleContainerImageTags.Registry, containerAnnotation.Registry);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(1521, endpoint.TargetPort);
@@ -181,11 +181,11 @@ public class AddOracleTests
         var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "user id=system;password={oracle-password.value};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}",
-              "image": "container-registry.oracle.com/database/free:23.3.0.0",
+              "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
               "env": {
                 "ORACLE_PWD": "{oracle-password.value}"
               },
@@ -219,11 +219,11 @@ public class AddOracleTests
         var oracleServer = builder.AddOracle("oracle", pass);
         var serverManifest = await ManifestUtils.GetManifest(oracleServer.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "user id=system;password={pass.value};data source={oracle.bindings.tcp.host}:{oracle.bindings.tcp.port}",
-              "image": "container-registry.oracle.com/database/free:23.3.0.0",
+              "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
               "env": {
                 "ORACLE_PWD": "{pass.value}"
               },

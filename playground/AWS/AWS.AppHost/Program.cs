@@ -20,15 +20,15 @@ var awsResources = builder.AddAWSCloudFormationTemplate("AspireSampleDevResource
 //var awsExistingResource = builder.AddAWSCloudFormationStack("ExistingStackName")
 //                        .WithReference(awsConfig);
 
+// The AWS SDK Config reference is inferred from the CloudFormation resource associated to the project. If the
+// project doesn't have a CloudFormation resource the AWS SDK Config reference can be assigned using the
+// WithReference method.
 builder.AddProject<Projects.Frontend>("Frontend")
        .WithExternalHttpEndpoints()
         // Demonstrating binding all of the output variables to a section in IConfiguration. By default they are bound to the AWS::Resources prefix.
         // The prefix is configurable by the optional configSection parameter.
         .WithReference(awsResources)
         // Demonstrating binding a single output variable to environment variable in the project.
-        .WithEnvironment("ChatTopicArnEnv", awsResources.GetOutput("ChatTopicArn"))
-        // Assign the SDK config to the project. The service clients created in the project relying on environment config
-        // will pick up these configuration.
-        .WithReference(awsConfig);
+        .WithEnvironment("ChatTopicArnEnv", awsResources.GetOutput("ChatTopicArn"));
 
 builder.Build().Run();

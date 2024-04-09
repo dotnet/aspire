@@ -23,7 +23,7 @@ internal sealed class AzureResourceEnumerator<TResource>(
 
     async IAsyncEnumerable<ArmResource> IAzureResourceEnumerator.GetResources(ResourceGroupResource resourceGroup)
     {
-        await foreach (var resource in GetResources(resourceGroup))
+        await foreach (var resource in GetResources(resourceGroup).ConfigureAwait(false))
         {
             yield return resource;
         }

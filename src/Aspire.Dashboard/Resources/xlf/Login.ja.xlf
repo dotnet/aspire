@@ -4,57 +4,62 @@
     <body>
       <trans-unit id="Header">
         <source>{0} dashboard</source>
-        <target state="new">{0} dashboard</target>
+        <target state="translated">{0} ダッシュボード</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="HelpPopupText">
-        <source>Look for the token in the console output:</source>
-        <target state="new">Look for the token in the console output:</target>
-        <note />
-      </trans-unit>
       <trans-unit id="HelpScreenshotAltText">
-        <source>Screenshot of console output showing where to find the dashboard frontend token</source>
-        <target state="new">Screenshot of console output showing where to find the dashboard frontend token</target>
+        <source>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</source>
+        <target state="needs-review-translation">ダッシュボードのフロントエンド トークンを検索する場所を示すコンソール出力のスクリーンショット</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidTokenErrorMessage">
         <source>Invalid token. Please try again</source>
-        <target state="new">Invalid token. Please try again</target>
+        <target state="translated">トークンが無効です。もう一度お試しください</target>
         <note />
       </trans-unit>
       <trans-unit id="LogInButtonText">
         <source>Log in</source>
-        <target state="new">Log in</target>
+        <target state="translated">ログイン</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoLinkText">
-        <source>More info</source>
-        <target state="new">More info</target>
+        <source>More information</source>
+        <target state="needs-review-translation">詳細情報</target>
         <note />
       </trans-unit>
       <trans-unit id="PageTitle">
         <source>{0} login</source>
-        <target state="new">{0} login</target>
+        <target state="translated">{0} ログイン</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TextFieldPlaceholder">
         <source>Enter token to log in...</source>
-        <target state="new">Enter token to log in...</target>
+        <target state="translated">ログインするトークンを入力してください...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TokenHelpTextLine1">
+        <source>Copy the highlighted token from the console to the login page and log in.</source>
+        <target state="new">Copy the highlighted token from the console to the login page and log in.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TokenHelpTextLine2">
+        <source>Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</source>
+        <target state="new">Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenRequiredErrorMessage">
         <source>Token is required</source>
-        <target state="new">Token is required</target>
+        <target state="translated">トークンが必要です</target>
         <note />
       </trans-unit>
       <trans-unit id="UnexpectedValidationError">
         <source>Unexpected error when validating the token</source>
-        <target state="new">Unexpected error when validating the token</target>
+        <target state="translated">トークンの検証中に予期しないエラーが発生しました</target>
         <note />
       </trans-unit>
       <trans-unit id="WhereIsMyTokenLinkText">
         <source>Where do I find the token?</source>
-        <target state="new">Where do I find the token?</target>
+        <target state="translated">トークンはどこにありますか?</target>
         <note />
       </trans-unit>
     </body>

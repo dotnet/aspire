@@ -10,8 +10,8 @@ param principalId string
 param principalType string
 
 
-resource cognitiveServicesAccount_6g8jyEjX5 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
-  name: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
+resource cognitiveServicesAccount_wXAGTFUId 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+  name: toLower(take('openai${uniqueString(resourceGroup().id)}', 24))
   location: location
   kind: 'OpenAI'
   sku: {
@@ -23,9 +23,9 @@ resource cognitiveServicesAccount_6g8jyEjX5 'Microsoft.CognitiveServices/account
   }
 }
 
-resource roleAssignment_X7ie0XqR2 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: cognitiveServicesAccount_6g8jyEjX5
-  name: guid(cognitiveServicesAccount_6g8jyEjX5.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
+resource roleAssignment_Hsk8rxWY8 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: cognitiveServicesAccount_wXAGTFUId
+  name: guid(cognitiveServicesAccount_wXAGTFUId.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
     principalId: principalId
@@ -33,8 +33,8 @@ resource roleAssignment_X7ie0XqR2 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource cognitiveServicesAccountDeployment_f9rYX6SRK 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
-  parent: cognitiveServicesAccount_6g8jyEjX5
+resource cognitiveServicesAccountDeployment_hU1MaqMLH 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+  parent: cognitiveServicesAccount_wXAGTFUId
   name: 'gpt-35-turbo'
   sku: {
     name: 'Standard'
@@ -42,11 +42,11 @@ resource cognitiveServicesAccountDeployment_f9rYX6SRK 'Microsoft.CognitiveServic
   }
   properties: {
     model: {
-      name: 'gpt-35-turbo'
       format: 'OpenAI'
+      name: 'gpt-35-turbo'
       version: '0613'
     }
   }
 }
 
-output connectionString string = 'Endpoint=${cognitiveServicesAccount_6g8jyEjX5.properties.endpoint}'
+output connectionString string = 'Endpoint=${cognitiveServicesAccount_wXAGTFUId.properties.endpoint}'

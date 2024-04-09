@@ -1,0 +1,39 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Qdrant.Client": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Qdrant": {
+          "type": "object",
+          "properties": {
+            "Client": {
+              "type": "object",
+              "properties": {
+                "Endpoint": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "The endpoint URI string of the Qdrant server to connect to."
+                },
+                "Key": {
+                  "type": "string",
+                  "description": "The API Key of the Qdrant server to connect to."
+                }
+              },
+              "description": "Provides the client configuration settings for connecting to a Qdrant server using QdrantClient."
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object"
+}

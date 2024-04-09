@@ -15,7 +15,15 @@ public static class ServerRetryHelper
     /// <summary>
     /// Retry a func. Useful when a test needs an explicit port and you want to avoid port conflicts.
     /// </summary>
-    public static async Task BindPortsWithRetry(Func<int, Task> retryFunc, ILogger logger)
+    public static Task BindPortWithRetry(Func<int, Task> retryFunc, ILogger logger)
+    {
+        return BindPortsWithRetry(ports => retryFunc(ports.Single()), logger, portCount: 1);
+    }
+
+    /// <summary>
+    /// Retry a func. Useful when a test needs an explicit port and you want to avoid port conflicts.
+    /// </summary>
+    public static async Task BindPortsWithRetry(Func<List<int>, Task> retryFunc, ILogger logger, int portCount)
     {
         var retryCount = 0;
 
@@ -25,17 +33,23 @@ public static class ServerRetryHelper
         while (true)
         {
             // Find a port that's available for TCP and UDP. Start with the given port search upwards from there.
-            var port = GetAvailablePort(nextPortAttempt, logger);
+            var ports = new List<int>(portCount);
+            for (var i = 0; i < portCount; i++)
+            {
+                var port = GetAvailablePort(nextPortAttempt, logger);
+                ports.Add(port);
+
+                nextPortAttempt = port + Random.Shared.Next(100);
+            }
 
             try
             {
-                await retryFunc(port);
+                await retryFunc(ports);
                 break;
             }
             catch (Exception ex)
             {
                 retryCount++;
-                nextPortAttempt = port + Random.Shared.Next(100);
 
                 if (retryCount >= RetryCount)
                 {

@@ -493,7 +493,7 @@ internal sealed class CloudFormationStackExecutor(
 
     private async Task<Stack?> FindstackAsync()
     {
-        await foreach (var stack in cloudFormationClient.Paginators.DescribeStacks(new DescribeStacksRequest()).Stacks)
+        await foreach (var stack in cloudFormationClient.Paginators.DescribeStacks(new DescribeStacksRequest()).Stacks.ConfigureAwait(false))
         {
             if (string.Equals(cloudFormationResource.Name, stack.StackName, StringComparison.Ordinal))
             {

@@ -37,15 +37,16 @@ public class AddNatsTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(NatsContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
-
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(NatsContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
     public void AddNatsContainerAddsAnnotationMetadata()
     {
+        var path = OperatingSystem.IsWindows() ? @"C:\tmp\dev-data" : "/tmp/dev-data";
+
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddNats("nats", 1234).WithJetStream(srcMountPath: "/tmp/dev-data");
+        appBuilder.AddNats("nats", 1234).WithJetStream(srcMountPath: path);
 
         using var app = appBuilder.Build();
 
@@ -55,7 +56,7 @@ public class AddNatsTests
         Assert.Equal("nats", containerResource.Name);
 
         var mountAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerMountAnnotation>());
-        Assert.Equal("/tmp/dev-data", mountAnnotation.Source);
+        Assert.Equal(path, mountAnnotation.Source);
         Assert.Equal("/data", mountAnnotation.Target);
 
         var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>());
@@ -76,7 +77,7 @@ public class AddNatsTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(NatsContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(NatsContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -101,7 +102,7 @@ public class AddNatsTests
             {
               "type": "container.v0",
               "connectionString": "nats://{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
-              "image": "{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
+              "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
