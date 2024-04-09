@@ -57,7 +57,9 @@ internal sealed class ResourceServiceApiKeyAuthenticationHandler(
         return Task.FromResult(
             AuthenticateResult.Success(
                 new AuthenticationTicket(
-                    principal: new ClaimsPrincipal(new ClaimsIdentity()),
+                    principal: new ClaimsPrincipal(new ClaimsIdentity(
+                        claims: [],
+                        authenticationType: ResourceServiceAuthenticationDefaults.AuthenticationScheme)),
                     authenticationScheme: Scheme.Name)));
     }
 }

@@ -99,7 +99,7 @@ internal sealed class DashboardServiceHost : IHostedService
                     name: ResourceServiceAuthorization.PolicyName,
                     policy: new AuthorizationPolicyBuilder(
                         ResourceServiceAuthenticationDefaults.AuthenticationScheme)
-                        .RequireAssertion(_ => true)
+                        .RequireAuthenticatedUser()
                         .Build());
 
             // Logging
