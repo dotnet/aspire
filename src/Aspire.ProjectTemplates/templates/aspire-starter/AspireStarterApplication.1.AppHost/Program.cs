@@ -10,6 +10,7 @@ builder.AddProject<Projects.AspireStarterApplication__1_Web>("webfrontend")
 #if UseRedisCache
     .WithReference(cache)
 #endif
-    .WithReference(apiService);
+    .WithReference(apiService)
+    .WithExternalHttpEndpoints();
 
 builder.Build().Run();
