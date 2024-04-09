@@ -19,7 +19,7 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.1.0-beta.3" />
     <PackageVersion Include="OpenTelemetry.Extensions.AWS" Version="1.3.0-beta.1" />
     <!-- Azure SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.AI.OpenAI" Version="1.0.0-beta.14" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="1.0.0-beta.15" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.8.3" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.1" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="7.1.0" />
@@ -91,7 +91,7 @@
     <PackageVersion Include="Confluent.Kafka" Version="2.3.0" />
     <PackageVersion Include="Dapper" Version="2.1.28" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
-    <PackageVersion Include="Google.Protobuf" Version="3.24.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.26.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.60.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.60.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.62.0" />
@@ -132,7 +132,7 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="1.0.0-v3.14.0.5722" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24102.1" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24201.1" />
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.27.17" />
     <PackageVersion Include="JsonSchema.Net" Version="6.0.4" />
@@ -150,11 +150,11 @@
     <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.13.0" />
-    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0-nightly.20240126.1" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="8.1.0-nightly.20240126.1" />
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="8.1.0-nightly.20240126.1" />
-    <PackageVersion Include="Microsoft.Orleans.Server" Version="8.1.0-nightly.20240126.1" />
-    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.1.0-nightly.20240126.1" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0-nightly.20240307.1" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="8.1.0-nightly.20240307.1" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="8.1.0-nightly.20240307.1" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="8.1.0-nightly.20240307.1" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.1.0-nightly.20240307.1" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- Introduced by Microsoft.Azure.Cosmos, https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->
