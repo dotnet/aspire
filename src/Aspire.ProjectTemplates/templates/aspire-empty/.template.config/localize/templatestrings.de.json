@@ -3,7 +3,7 @@
   "name": ".NET Aspire-Anwendung",
   "description": "Eine Projektvorlage zum Erstellen einer leeren .NET Aspire-App.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
-  "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
+  "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/appHostHttpPort/description": "Portnummer, die für den HTTP-Endpunkt in launchSettings.json des AppHost-Projekts verwendet werden soll.",
   "symbols/appHostOtlpHttpPort/description": "Portnummer, die für den OTLP-HTTP-Endpunkt in launchSettings.json des AppHost-Projekts verwendet werden soll.",
   "symbols/appHostResourceHttpPort/description": "Portnummer, die für den HTTP-Endpunkt des Ressourcendiensts in launchSettings.json des AppHost-Projekts verwendet werden soll.",

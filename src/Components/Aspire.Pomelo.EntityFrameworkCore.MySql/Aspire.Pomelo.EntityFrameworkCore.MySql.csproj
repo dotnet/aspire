@@ -6,6 +6,13 @@
     <PackageTags>$(ComponentEfCorePackageTags) pomelo mysql sql</PackageTags>
     <Description>A MySQL provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)SQL_256x.png</PackageIconFullPath>
+    <!-- NU1608 - Temporarily suppress warning around detected package version outside of dependency constraint.
+    This is currently needed because Pomelo.EntityFrameworkCore.MySql 9.0-preview.1 version has a constraint
+    for package Microsoft.EntityFrameworkCore.Relational forcing the version to have to be within 9.0-preview1xxxx,
+    but our Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore reference is bringing in a 9.0-preview2 version.
+    We should remove the NoWarn once either Pomelo.EntityFrameworkCore.MySql removes the constraint or we upgrade to a version
+    that doesn't have the constraint. -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +29,9 @@
     <PackageReference Include="Polly.Extensions" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+
+    <!-- ToDo: Remove the bellow reference as it should come transitively from Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore once Pomelo.EntityFrameworkCore.MySql removes their version constraint -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
   </ItemGroup>
 
 </Project>

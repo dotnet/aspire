@@ -3,7 +3,7 @@
   "name": ".NET Aspire Uygulaması",
   "description": "Boş bir .NET Aspire uygulaması oluşturmak için proje şablonu.",
   "symbols/Framework/description": "Projenin hedef çerçevesi.",
-  "symbols/Framework/choices/net8.0/description": "Hedef net8.0",
+  "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/appHostHttpPort/description": "AppHost projesinin HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
   "symbols/appHostOtlpHttpPort/description": "AppHost projesinin OTLP HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
   "symbols/appHostResourceHttpPort/description": "AppHost projesinin kaynak hizmeti HTTP uç noktası launchSettings.json bağlantı noktası numarası.",

@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <UserSecretsId>f0611710-1eab-4ff6-a476-9610bb7a8416</UserSecretsId>
     <ContainerRegistry>localhost:5001</ContainerRegistry>
     <ContainerRepository>basket-service</ContainerRepository>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0</ContainerBaseImage>
   </PropertyGroup>
 
   <ItemGroup>

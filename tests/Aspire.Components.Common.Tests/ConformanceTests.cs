@@ -246,7 +246,7 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TService>);
     }
 
-    [ConditionalTheory]
+    [ConditionalTheory(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     [InlineData(true, true)]
     [InlineData(true, false)]
     [InlineData(false, true)]
@@ -295,7 +295,7 @@ public abstract class ConformanceTests<TService, TOptions>
         }
     }
 
-    [ConditionalTheory]
+    [ConditionalTheory(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     [InlineData(null)]
     [InlineData("key")]
     public async Task HealthCheckReportsExpectedStatus(string? key)

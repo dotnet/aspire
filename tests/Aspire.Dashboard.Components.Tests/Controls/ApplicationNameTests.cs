@@ -14,7 +14,7 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 
 public class ApplicationNameTests : TestContext
 {
-    [Fact]
+    [Fact(Skip = "Bunit depends on IJSUnmarshalledRuntime which has been removed. See issue https://github.com/dotnet/aspire/issues/2576")]
     public void Render_DashboardClientDisabled_Success()
     {
         // Arrange
