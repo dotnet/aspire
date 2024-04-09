@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Orleans;
 /// <summary>
 /// Describes an Orleans service.
 /// </summary>
-public class OrleansService
+public sealed class OrleansService
 {
     /// <summary>Initializes a new <see cref="OrleansService"/> instance.</summary>
     /// <param name="builder">The distributed application builder.</param>
