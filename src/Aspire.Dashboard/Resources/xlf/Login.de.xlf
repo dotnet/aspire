@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="HelpScreenshotAltText">
         <source>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</source>
-        <target state="needs-review-translation">Screenshot der Konsolenausgabe, die zeigt, wo das Dashboard-Front-End-Token zu finden ist</target>
+        <target state="new">Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidTokenErrorMessage">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="MoreInfoLinkText">
         <source>More information</source>
-        <target state="needs-review-translation">Weitere Informationen</target>
+        <target state="new">More information</target>
         <note />
       </trans-unit>
       <trans-unit id="PageTitle">
