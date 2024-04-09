@@ -57,6 +57,58 @@ public static class NodeAppHostingExtension
                       .WithArgs(allArgs);
     }
 
+    /// <summary>
+    /// Adds a node application to the application model. Executes the command with the specified script name.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
+    /// <param name="nodeExecutor">The executor to use. Can be a package manager like npm, pnpm, yarn or directly node.</param>
+    /// <param name="scriptName">The script to execute.</param>
+    /// <param name="args">The arguments to pass to the command.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<NodeAppResource> AddGenericNodeApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string nodeExecutor, string scriptName, string[]? args = null)
+    {
+        string[] allArgs = args is { Length: > 0 }
+            ? ["run", scriptName, "--", .. args]
+            : ["run", scriptName];
+
+        workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
+        var resource = new NodeAppResource(name, nodeExecutor, workingDirectory);
+
+        return builder.AddResource(resource)
+                      .WithNodeDefaults()
+                      .WithArgs(allArgs);
+    }
+
+    /// <summary>
+    /// Adds a node application to the application model. Executes the yarn command with the specified script name.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
+    /// <param name="scriptName">The script to execute.</param>
+    /// <param name="args">The arguments to pass to the command.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<NodeAppResource> AddYarnApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName, string[]? args = null)
+    {
+        return builder.AddGenericNodeApp(name, workingDirectory, "yarn", scriptName, args);
+    }
+
+    /// <summary>
+    /// Adds a node application to the application model. Executes the pnpm command with the specified script name.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
+    /// <param name="scriptName">The script to execute.</param>
+    /// <param name="args">The arguments to pass to the command.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<NodeAppResource> AddPnpmApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName, string[]? args = null)
+    {
+        return builder.AddGenericNodeApp(name, workingDirectory, "pnpm", scriptName, args);
+    }
+
     private static IResourceBuilder<NodeAppResource> WithNodeDefaults(this IResourceBuilder<NodeAppResource> builder) =>
         builder.WithOtlpExporter()
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production");
