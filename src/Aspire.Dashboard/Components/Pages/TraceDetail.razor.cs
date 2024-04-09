@@ -8,6 +8,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -20,6 +21,7 @@ public partial class TraceDetail : ComponentBase
     private int _maxDepth;
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
+    private string? _elementIdBeforeDetailsViewOpened;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -32,6 +34,9 @@ public partial class TraceDetail : ComponentBase
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
+
+    [Inject]
+    public required IJSRuntime JS { get; set; }
 
     protected override void OnInitialized()
     {
@@ -239,11 +244,13 @@ public partial class TraceDetail : ComponentBase
         }
     }
 
-    private void OnShowProperties(SpanWaterfallViewModel viewModel)
+    private async Task OnShowPropertiesAsync(SpanWaterfallViewModel viewModel, string? buttonId)
     {
+        _elementIdBeforeDetailsViewOpened = buttonId;
+
         if (SelectedSpan?.Span == viewModel.Span)
         {
-            ClearSelectedSpan();
+            await ClearSelectedSpanAsync();
         }
         else
         {
@@ -262,9 +269,16 @@ public partial class TraceDetail : ComponentBase
         }
     }
 
-    private void ClearSelectedSpan()
+    private async Task ClearSelectedSpanAsync(bool causedByUserAction = false)
     {
         SelectedSpan = null;
+
+        if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
+        {
+            await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
+        }
+
+        _elementIdBeforeDetailsViewOpened = null;
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
