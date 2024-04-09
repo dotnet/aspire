@@ -1,45 +1,16 @@
 <Project>
 
   <PropertyGroup>
-    <WorkItemArchiveWildCardWorkloadTests>$(TestArchiveTestsDirForWorkloadTests)**/*.zip</WorkItemArchiveWildCardWorkloadTests>
     <_E2ETestsArchivePath>$(TestArchiveTestsDirForEndToEndTests)Aspire.EndToEnd.Tests.zip</_E2ETestsArchivePath>
-
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForEnd2EndTests</BuildHelixWorkItemsDependsOn>
+    <NeedsWorkload>true</NeedsWorkload>
+
   </PropertyGroup>
 
-  <ItemGroup>
-    <_DefaultWorkItemsWorkloadTests Include="$(WorkItemArchiveWildCardWorkloadTests)" />
-  </ItemGroup>
+  <Target Name="BuildHelixWorkItemsForEnd2EndTests">
+    <Error Condition="'$(_E2ETestsArchivePath)' == '' or !Exists($(_E2ETestsArchivePath))"
+           Text="Could not find EndToEnd tests at %24(_E2ETestsArchivePath)=$(_E2ETestsArchivePath)" />
 
-  <ItemGroup>
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest;%PATH%" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />
-
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_DIR_NAME=dotnet-latest" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_DIR_NAME=dotnet-latest" />
-
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_WORKLOAD_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\%SDK_DIR_NAME%" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_WORKLOAD_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$SDK_DIR_NAME" />
-
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TestsRunningOutsideOfRepo=true" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TestsRunningOutsideOfRepo=true" />
-
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set BUILT_NUGETS_PATH=%HELIX_CORRELATION_PAYLOAD%\built-nugets" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export BUILT_NUGETS_PATH=$HELIX_CORRELATION_PAYLOAD/built-nugets" />
-
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TEST_LOG_PATH=%HELIX_WORKITEM_UPLOAD_ROOT%/logs" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TEST_LOG_PATH=$HELIX_WORKITEM_UPLOAD_ROOT/logs" />
-
-    <HelixPreCommand Include="docker info" />
-    <HelixPreCommand Include="docker ps" />
-    <HelixPreCommand Include="docker container ls --all" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
-
-    <HelixPostCommand Include="docker container ls --all" />
-    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
-  </ItemGroup>
-
-  <Target Name="BuildHelixWorkItemsForEnd2EndTests" Condition="'$(_E2ETestsArchivePath)' != '' and Exists($(_E2ETestsArchivePath))">
     <PropertyGroup>
       <_TestScenarioEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_SCENARIO%</_TestScenarioEnvVar>
       <_TestScenarioEnvVar Condition="'$(OS)' != 'Windows_NT'">${TEST_SCENARIO}</_TestScenarioEnvVar>
@@ -50,7 +21,6 @@
     </ItemGroup>
 
     <PropertyGroup>
-      <_WorkItemTimeoutForEndToEndTests>00:20:00</_WorkItemTimeoutForEndToEndTests>
       <_WorkItemName>$([System.IO.Path]::GetFileNameWithoutExtension($(_E2ETestsArchivePath)))</_WorkItemName>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
@@ -75,7 +45,7 @@
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=$(_WorkItemName)&quot; &amp; set TEST_SCENARIO=%(Identity) &amp; set &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=$(_WorkItemName)&quot; &amp;&amp; export TEST_SCENARIO=%(Identity) &amp;&amp; export &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
         <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_WorkItemTimeoutForEndToEndTests)</Timeout>
+        <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).cobertura.xml</DownloadFilesFromResults>
