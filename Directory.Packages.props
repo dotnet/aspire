@@ -44,18 +44,18 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Features" Version="$(MicrosoftExtensionsFeaturesPackageVersion)" />
     <!-- AspNetCore.HealthChecks dependencies (3rd party packages) -->
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
     <!-- efcore dependencies -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosPackageVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPackageVersion)" />
@@ -83,8 +83,8 @@
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="13.0.11" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.0" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.5.0" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.5.0" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.6.0" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.6.0" />
     <PackageVersion Include="MongoDB.Driver" Version="2.24.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.4.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.5" />
@@ -97,16 +97,17 @@
     <PackageVersion Include="Polly.Core" Version="8.3.0" />
     <PackageVersion Include="Polly.Extensions" Version="8.3.0" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.1" />
+    <PackageVersion Include="Qdrant.Client" Version="1.8.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="6.8.1" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.27" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.2" />
-    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.7.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.6.0-beta.3" />
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.8.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.8.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.8.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.7.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.7.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.7.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.7.0" />

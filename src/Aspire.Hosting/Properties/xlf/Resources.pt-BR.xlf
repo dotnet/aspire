@@ -15,7 +15,8 @@
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
 See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="needs-review-translation">O runtime do contêiner '{0}' não pôde ser encontrado. O erro da verificação de runtime do contêiner foi: {1}.</target>
+        <target state="translated">O runtime do contêiner "{0}" não pôde ser encontrado. O erro da verificação de runtime do contêiner foi : {1}.
+Consulte https://aka.ms/dotnet/aspire/containers para obter mais detalhes sobre runtimes de contêiner com suporte.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">

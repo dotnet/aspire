@@ -230,7 +230,7 @@ public class OtlpServiceTests
         await app.StartAsync();
 
         using var channel = IntegrationTestHelpers.CreateGrpcChannel(
-            $"https://{app.BrowserEndPointAccessor().EndPoint}",
+            $"https://{app.FrontendEndPointAccessor().EndPoint}",
             _testOutputHelper,
             validationCallback: cert =>
             {

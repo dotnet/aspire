@@ -35,7 +35,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
     /// <returns>A resource configured with the specified environment variable.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, in ExpressionInterpolatedStringHandler value)
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, in ReferenceExpression.ExpressionInterpolatedStringHandler value)
         where T : IResourceWithEnvironment
     {
         var expression = value.GetExpression();
@@ -456,8 +456,18 @@ public static class ResourceBuilderExtensions
             name: name,
             port: port,
             targetPort: targetPort,
-            env: env,
             isProxied: isProxied);
+
+        // Set the environment variable on the resource
+        if (env is not null && builder.Resource is IResourceWithEndpoints resourceWithEndpoints and IResourceWithEnvironment)
+        {
+            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation);
+
+            builder.WithAnnotation(new EnvironmentCallbackAnnotation(context =>
+            {
+                context.EnvironmentVariables[env] = endpointReference.Property(EndpointProperty.TargetPort);
+            }));
+        }
 
         return builder.WithAnnotation(annotation);
     }

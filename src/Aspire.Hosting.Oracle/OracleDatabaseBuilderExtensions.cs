@@ -14,21 +14,6 @@ public static class OracleDatabaseBuilderExtensions
     private const string PasswordEnvVarName = "ORACLE_PWD";
 
     /// <summary>
-    /// Adds a Oracle Database resource to the application model. A container is used for local development. This version the package defaults to the 23.3.0.0 tag of the container-registry.oracle.com/database/free container image
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="port">The host port for Oracle Database.</param>
-    /// <param name="password">The password for the Oracle Database container. Defaults to a random password.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("Use AddOracle instead", error: true)]
-    public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
-    {
-        // can't simulate the old behavior with taking a string password and converting it to a Parameter
-        throw new NotSupportedException();
-    }
-
-    /// <summary>
     /// Adds a Oracle Server resource to the application model. A container is used for local development. This version the package defaults to the 23.3.0.0 tag of the container-registry.oracle.com/database/free container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>

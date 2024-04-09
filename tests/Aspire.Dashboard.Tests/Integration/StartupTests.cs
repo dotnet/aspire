@@ -6,7 +6,6 @@ using Aspire.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
-using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
 using Xunit.Abstractions;
@@ -25,7 +24,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         // Assert
-        AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
+        AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
     }
 
@@ -33,18 +32,16 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task Configuration_NoExtraConfig_Error()
     {
         // Arrange & Act
-        var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
-        {
-            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
-                additionalConfiguration: data =>
-                {
-                    data.Clear();
-                });
-        });
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Clear();
+            });
 
         // Assert
-        Assert.Collection(ex.Failures,
+        Assert.Collection(app.ValidationFailures,
             s => s.Contains("Dashboard:Frontend:EndpointUrls"),
+            s => s.Contains("Dashboard:Frontend:AuthMode"),
             s => s.Contains("Dashboard:Otlp:EndpointUrl"),
             s => s.Contains("Dashboard:Otlp:AuthMode"));
     }
@@ -108,7 +105,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // Assert
             Assert.NotNull(app);
-            Assert.Equal(app.BrowserEndPointAccessor().EndPoint.Port, app.OtlpServiceEndPointAccessor().EndPoint.Port);
+            Assert.Equal(app.FrontendEndPointAccessor().EndPoint.Port, app.OtlpServiceEndPointAccessor().EndPoint.Port);
 
             // Check browser access
             using var httpClient = new HttpClient(new HttpClientHandler
@@ -119,14 +116,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 }
             })
             {
-                BaseAddress = new Uri($"https://{app.BrowserEndPointAccessor().EndPoint}")
+                BaseAddress = new Uri($"https://{app.FrontendEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
             var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             // Check OTLP service
-            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.BrowserEndPointAccessor().EndPoint}", testOutputHelper);
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendEndPointAccessor().EndPoint}", testOutputHelper);
             var client = new LogsService.LogsServiceClient(channel);
             var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest());
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
@@ -193,17 +190,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task Configuration_NoOtlpAuthMode_Error()
     {
         // Arrange & Act
-        var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
-        {
-            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
-                additionalConfiguration: data =>
-                {
-                    data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
-                });
-        });
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Remove(DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey);
+            });
 
         // Assert
-        Assert.Contains("Dashboard:Otlp:AuthMode", ex.Message);
+        Assert.Contains("Dashboard:Otlp:AuthMode", app.ValidationFailures.Single());
     }
 
     [Fact]
@@ -221,7 +215,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         // Assert
-        AssertDynamicIPEndpoint(app.BrowserEndPointAccessor);
+        AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceEndPointAccessor);
     }
 
@@ -273,7 +267,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Act
         await app.StartAsync();
 
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.BrowserEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
 
         // Act
         var response = await client.GetAsync("/");

@@ -34,11 +34,11 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
                   "Namespace": "YOUR_NAMESPACE",
                   "HealthChecks": true,
                   "ClientOptions": {
-                    "ConnectionIdleTimeout": "PT1S",
+                    "ConnectionIdleTimeout": "00:01",
                     "EnableCrossEntityTransactions": true,
                     "RetryOptions": {
                       "Mode": "Fixed",
-                      "MaxDelay": "PT3S"  
+                      "MaxDelay": "00:03"  
                     },
                     "TransportType": "AmqpWebSockets"
                   }
@@ -54,7 +54,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
             ("""{"Aspire": { "Azure": { "Messaging":{ "ServiceBus": {"ClientOptions": {"CustomEndpointAddress": "EndPoint"}}}}}}""", "Value does not match format \"uri\""),
             ("""{"Aspire": { "Azure": { "Messaging":{ "ServiceBus": {"ClientOptions": {"EnableCrossEntityTransactions": "false"}}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Azure": { "Messaging":{ "ServiceBus": {"ClientOptions": {"RetryOptions": {"Mode": "Fast"}}}}}}}""", "Value should match one of the values specified by the enum"),
-            ("""{"Aspire": { "Azure": { "Messaging":{ "ServiceBus": {"ClientOptions": {"RetryOptions": {"TryTimeout": "3S"}}}}}}}""", "Value does not match format \"duration\""),
+            ("""{"Aspire": { "Azure": { "Messaging":{ "ServiceBus": {"ClientOptions": {"RetryOptions": {"TryTimeout": "3S"}}}}}}}""", "The string value is not a match for the indicated regular expression"),
             ("""{"Aspire": { "Azure": { "Messaging":{ "ServiceBus": {"ClientOptions": {"TransportType": "HTTP"}}}}}}""", "Value should match one of the values specified by the enum")
         };
 
