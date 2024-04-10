@@ -3,7 +3,7 @@
   "name": ".NET Aspire Starter Application",
   "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "symbols/Framework/description": "The target framework for the project.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
+  "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires a supported container runtime)",
   "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported continer runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details.",
   "symbols/CreateTestsProject/displayName": "Create a _tests project",

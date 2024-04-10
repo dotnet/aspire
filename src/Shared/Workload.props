@@ -2,7 +2,7 @@
   <PropertyGroup>
     <VersionBand Condition=" '$(VersionBand)' == '' ">$([System.Text.RegularExpressions.Regex]::Match($(MicrosoftDotnetSdkInternalPackageVersion), `^\d+\.\d+\.\d`))00</VersionBand>
     <!-- When we are ready to produce Workloads targeting the stable SDK band, set UseStableSdkBand to true. Otherwise, it will match the SDK preview band. -->
-    <UseStableSdkBand>true</UseStableSdkBand>
+    <UseStableSdkBand>false</UseStableSdkBand>
     <DotNetVersionBand Condition=" '$(UseStableSdkBand)' != 'true' ">$(VersionBand)$([System.Text.RegularExpressions.Regex]::Match($(MicrosoftDotnetSdkInternalPackageVersion), `\-(preview|rc|alpha|rtm).\d+`))</DotNetVersionBand>
     <DotNetVersionBand Condition="'$(UseStableSdkBand)' == 'true'">$(VersionBand)</DotNetVersionBand>
     <DotNetAspireManifestVersionBand>$(DotNetVersionBand)</DotNetAspireManifestVersionBand>

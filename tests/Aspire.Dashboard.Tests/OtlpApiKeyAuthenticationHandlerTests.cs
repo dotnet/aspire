@@ -60,7 +60,7 @@ public class OtlpApiKeyAuthenticationHandlerTests
     [InlineData("abcd", null, "abc", false)]
     [InlineData("abc", null, "abcd", false)]
     [InlineData("abc", "abcd", "abcd", true)]
-    public async Task AuthenticateAsync_MatchHeader_Success(string primaryApiKey, string secondaryApiKey, string otlpApiKeyHeader, bool success)
+    public async Task AuthenticateAsync_MatchHeader_Success(string primaryApiKey, string? secondaryApiKey, string otlpApiKeyHeader, bool success)
     {
         // Arrange
         var handler = await CreateAuthHandlerAsync(primaryApiKey, secondaryApiKey, otlpApiKeyHeader);

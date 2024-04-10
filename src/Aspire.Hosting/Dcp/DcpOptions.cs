@@ -29,7 +29,7 @@ internal sealed class DcpOptions
     /// Optional path to a folder containing the Aspire Dashboard binaries.
     /// </summary>
     /// <example>
-    /// When running the playground applications in this repo: <c>..\..\..\artifacts\bin\Aspire.Dashboard\Debug\net8.0\Aspire.Dashboard.dll</c>
+    /// When running the playground applications in this repo: <c>..\..\..\artifacts\bin\Aspire.Dashboard\Debug\net9.0\Aspire.Dashboard.dll</c>
     /// </example>
     public string? DashboardPath { get; set; }
 

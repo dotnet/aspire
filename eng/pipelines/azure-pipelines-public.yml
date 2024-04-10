@@ -3,12 +3,14 @@ trigger:
   branches:
     include:
     - main
+    - vNext
     - release/*
 
 pr:
   branches:
     include:
     - main
+    - vNext
     - release/*
     - feature/*
 
