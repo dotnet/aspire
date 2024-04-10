@@ -62,7 +62,9 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <returns>An <see cref="EndpointReferenceExpression"/> representing the specified <see cref="EndpointProperty"/>.</returns>
     public EndpointReferenceExpression Property(EndpointProperty property)
     {
+#pragma warning disable CA2264 // Do not pass a non-nullable value to 'ArgumentNullException.ThrowIfNull'
         ArgumentNullException.ThrowIfNull(property);
+#pragma warning restore CA2264 // Do not pass a non-nullable value to 'ArgumentNullException.ThrowIfNull'
 
         return new(this, property);
     }
