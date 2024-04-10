@@ -41,21 +41,21 @@ internal static class StringExtensions
     [return: NotNullIfNotNull(nameof(defaultValue))]
     public static string? GetInitials(this string name, string? defaultValue = default)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        var s = name.AsSpan().Trim();
+
+        if (s.Length == 0)
         {
             return defaultValue;
         }
 
-        var initials = name.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                           .Select(s => s[0].ToString())
-                           .ToList();
+        var lastSpaceIndex = s.LastIndexOf(' ');
 
-        if (initials.Count > 1)
+        if (lastSpaceIndex == -1)
         {
-            // If the name contained two or more words, return the initials from the first and last
-            return initials[0].ToUpperInvariant() + initials[^1].ToUpperInvariant();
+            return s[0].ToString().ToUpperInvariant();
         }
 
-        return initials[0].ToUpperInvariant();
+        // The name contained two or more words. Return the initials from the first and last.
+        return $"{char.ToUpperInvariant(s[0])}{char.ToUpperInvariant(s[lastSpaceIndex + 1])}";
     }
 }
