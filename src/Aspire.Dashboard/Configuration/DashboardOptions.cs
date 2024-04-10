@@ -206,7 +206,7 @@ public sealed class OpenIdConnectOptions
         }
         else
         {
-            _usernameClaimTypes = UsernameClaimType.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.RemoveEmptyEntries);
+            _usernameClaimTypes = UsernameClaimType.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         }
 
         errorMessages = messages;
