@@ -12,6 +12,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using k8s;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
