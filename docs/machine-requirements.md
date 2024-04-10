@@ -24,17 +24,17 @@ When you install, ensure that both:
 * [MacOS X](https://docs.docker.com/desktop/install/mac-install/)
 * [Linux](https://docs.docker.com/desktop/install/linux-install/)
 
-## (Windows / Linux / Mac) DevContainer in VSCode
+## (Windows / Linux / Mac) DevContainer in VS Code
 
-On Windows you could also use VSCode with the DevContainers extension. This requieres that you have installed a container engine installed.
+On Windows you could also use VS Code with the DevContainers extension. This requieres that you have installed a container engine installed.
 Currently it's only tested with Docker Desktop.
 
 > Warning: This will use around 16GB of RAM, after you loaded the solution.
 
-### Install VSCode with DevContainers Extension
+### Install VS Code with DevContainers Extension
 
-* [VSCode](https://code.visualstudio.com/Download)
-* [DevContainers Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+* [VS Code](https://code.visualstudio.com/Download)
+* [DevContainers Extension](https://marketplace.visualstudio.com/items?itemName=ms-VS Code-remote.remote-containers)
 
 ### Install Docker Desktop
 
@@ -45,8 +45,8 @@ Currently it's only tested with Docker Desktop.
 ## (Browser) Codespaces
 
 Just start the Codespaces in your fork. The initialisation of the code space takes around 5 mins. After that you can open the solution.
-This will take on the free version of Codesapce around 10 mins.
+This will take on the free version of Codespace around 10 mins.
 
-> Warning: With the free version of Codespaces the development experience is not nice. We recommend using at least a Codespace with 16GB of RAM or use your local VSCode / DevContainers instance.
+> Warning: With the free version of Codespaces the development experience is not nice. We recommend using at least a Codespace with 16GB of RAM or use your local VS Code / DevContainers instance.
 
-> Information: Currently the codespaces can not be used to try / debug the aspire dashboard. This is a known issue. If you want to debug it, use Visual Studio or your local VSCode and the DevContainers.
+> Information: Currently the codespaces can not be used to try / debug the aspire dashboard. This is a known issue. If you want to debug it, use Visual Studio or your local VS Code and the DevContainers.
