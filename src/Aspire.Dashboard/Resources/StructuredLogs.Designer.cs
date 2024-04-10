@@ -132,6 +132,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Level:.
+        /// </summary>
+        public static string StructuredLogsLevels {
+            get {
+                return ResourceManager.GetString("StructuredLogsLevels", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Message.
         /// </summary>
         public static string StructuredLogsMessageColumnHeader {

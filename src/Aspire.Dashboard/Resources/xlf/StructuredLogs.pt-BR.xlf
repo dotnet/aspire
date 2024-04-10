@@ -42,6 +42,11 @@
         <target state="translated">Nível</target>
         <note />
       </trans-unit>
+      <trans-unit id="StructuredLogsLevels">
+        <source>Level:</source>
+        <target state="new">Level:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">
         <source>Message</source>
         <target state="translated">Mensagem</target>
