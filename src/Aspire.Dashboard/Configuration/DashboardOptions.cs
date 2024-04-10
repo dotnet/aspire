@@ -165,6 +165,7 @@ public sealed class TelemetryLimitOptions
     public int MaxSpanEventCount { get; set; } = int.MaxValue;
 }
 
+// Don't set values after validating/parsing options.
 public sealed class OpenIdConnectOptions
 {
     private string[]? _nameClaimTypes;
