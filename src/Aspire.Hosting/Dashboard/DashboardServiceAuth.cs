@@ -9,14 +9,14 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal static class ResourceServiceAuthorization
+internal static class ResourceServiceApiKeyAuthorization
 {
-    public const string PolicyName = "ResourceServicePolicy";
+    public const string PolicyName = "ResourceServiceApiKeyPolicy";
 }
 
-internal static class ResourceServiceAuthenticationDefaults
+internal static class ResourceServiceApiKeyAuthenticationDefaults
 {
-    public const string AuthenticationScheme = "ResourceService";
+    public const string AuthenticationScheme = "ResourceServiceApiKey";
 }
 
 internal sealed class ResourceServiceApiKeyAuthenticationOptions : AuthenticationSchemeOptions
@@ -59,7 +59,7 @@ internal sealed class ResourceServiceApiKeyAuthenticationHandler(
                 new AuthenticationTicket(
                     principal: new ClaimsPrincipal(new ClaimsIdentity(
                         claims: [],
-                        authenticationType: ResourceServiceAuthenticationDefaults.AuthenticationScheme)),
+                        authenticationType: ResourceServiceApiKeyAuthenticationDefaults.AuthenticationScheme)),
                     authenticationScheme: Scheme.Name)));
     }
 }

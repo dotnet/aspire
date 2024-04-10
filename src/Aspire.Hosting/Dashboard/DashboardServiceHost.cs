@@ -86,7 +86,7 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services
                 .AddAuthentication()
                 .AddScheme<ResourceServiceApiKeyAuthenticationOptions, ResourceServiceApiKeyAuthenticationHandler>(
-                    ResourceServiceAuthenticationDefaults.AuthenticationScheme,
+                    ResourceServiceApiKeyAuthenticationDefaults.AuthenticationScheme,
                     options => { });
 
             // Configure authorization policy for the dashboard service.
@@ -96,9 +96,9 @@ internal sealed class DashboardServiceHost : IHostedService
             builder.Services
                 .AddAuthorizationBuilder()
                 .AddPolicy(
-                    name: ResourceServiceAuthorization.PolicyName,
+                    name: ResourceServiceApiKeyAuthorization.PolicyName,
                     policy: new AuthorizationPolicyBuilder(
-                        ResourceServiceAuthenticationDefaults.AuthenticationScheme)
+                        ResourceServiceApiKeyAuthenticationDefaults.AuthenticationScheme)
                         .RequireAuthenticatedUser()
                         .Build());
 

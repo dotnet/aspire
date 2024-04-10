@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Dashboard;
 /// An instance of this type is created for every gRPC service call, so it may not hold onto any state
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
-[Authorize(Policy = ResourceServiceAuthorization.PolicyName)]
+[Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
 internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime)
     : V1.DashboardService.DashboardServiceBase
 {
