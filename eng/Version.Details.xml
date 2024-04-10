@@ -29,89 +29,89 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>67e0cb7547eb6b3c27fc12d94557b865640805ec</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.2.24157.4">
+    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.3.24209.3">
       <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8dcff4ab2e8242d8264a027385a30f79c1888627</Sha>
+      <Sha>e5e1c7c88f3232bb3a096990da52fe7bf8a76996</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="9.0.0-preview.2.24157.4">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="9.0.0-preview.3.24209.3">
       <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8dcff4ab2e8242d8264a027385a30f79c1888627</Sha>
+      <Sha>e5e1c7c88f3232bb3a096990da52fe7bf8a76996</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Configuration.Binder" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.Configuration.Binder" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Hosting" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.Hosting" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.Http" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Options" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.Options" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Primitives" Version="9.0.0-preview.2.24128.5">
+    <Dependency Name="Microsoft.Extensions.Primitives" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>8e5e748c5c06d3e40244c725bd2124f06998f6c1</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="9.0.0-preview.3.24158.8">
+    <Dependency Name="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="9.0.0-preview.3.24172.9">
       <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>54d318d6da76e409d4e865220d9923283d55a06d</Sha>
+      <Sha>9e6ba1f68c6a9c7206dacdf1e4cac67ea19931eb</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.OpenApi" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.AspNetCore.OpenApi" Version="9.0.0-preview.3.24172.13">
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
-      <Sha>e1ad9117a4dac3b0f5f2a7e2b10b43b7016379b9</Sha>
+      <Sha>d4eca39c3fc1944b2c6431bf6b22036bdb176c0d</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="9.0.0-preview.3.24172.13">
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
-      <Sha>e1ad9117a4dac3b0f5f2a7e2b10b43b7016379b9</Sha>
+      <Sha>d4eca39c3fc1944b2c6431bf6b22036bdb176c0d</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0-preview.3.24172.13">
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
-      <Sha>e1ad9117a4dac3b0f5f2a7e2b10b43b7016379b9</Sha>
+      <Sha>d4eca39c3fc1944b2c6431bf6b22036bdb176c0d</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.0-preview.3.24172.13">
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
-      <Sha>e1ad9117a4dac3b0f5f2a7e2b10b43b7016379b9</Sha>
+      <Sha>d4eca39c3fc1944b2c6431bf6b22036bdb176c0d</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.0-preview.3.24172.13">
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
-      <Sha>e1ad9117a4dac3b0f5f2a7e2b10b43b7016379b9</Sha>
+      <Sha>d4eca39c3fc1944b2c6431bf6b22036bdb176c0d</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Features" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.Extensions.Features" Version="9.0.0-preview.3.24172.13">
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
-      <Sha>e1ad9117a4dac3b0f5f2a7e2b10b43b7016379b9</Sha>
+      <Sha>d4eca39c3fc1944b2c6431bf6b22036bdb176c0d</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Cosmos" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Cosmos" Version="9.0.0-preview.3.24172.4">
       <Uri>https://github.com/dotnet/efcore</Uri>
-      <Sha>a5f4f63c8b1ec3199a41319057a76a57c44a5429</Sha>
+      <Sha>001a6e3b0ddcc11ddc419669b17be25bb7ada109</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0-preview.3.24172.4">
       <Uri>https://github.com/dotnet/efcore</Uri>
-      <Sha>a5f4f63c8b1ec3199a41319057a76a57c44a5429</Sha>
+      <Sha>001a6e3b0ddcc11ddc419669b17be25bb7ada109</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0-preview.2.24128.4">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0-preview.3.24172.4">
       <Uri>https://github.com/dotnet/efcore</Uri>
-      <Sha>a5f4f63c8b1ec3199a41319057a76a57c44a5429</Sha>
+      <Sha>001a6e3b0ddcc11ddc419669b17be25bb7ada109</Sha>
     </Dependency>
     <!-- Intermediate is necessary for source build. -->
     <Dependency Name="Microsoft.SourceBuild.Intermediate.source-build-reference-packages" Version="9.0.0-alpha.1.24101.2">
