@@ -155,6 +155,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         Writer.WriteString("path", relativePathToProjectFile);
 
+        await WriteCommandLineArgumentsAsync(project).ConfigureAwait(false);
+
         await WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
         WriteBindings(project);
     }
