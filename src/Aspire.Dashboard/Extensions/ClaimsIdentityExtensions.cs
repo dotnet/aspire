@@ -13,11 +13,6 @@ internal static class ClaimsIdentityExtensions
     /// </summary>
     public static string? FindFirst(this ClaimsIdentity identity, string[] claimTypes)
     {
-        if (identity is null)
-        {
-            return null;
-        }
-
         foreach (var claimType in claimTypes)
         {
             var claim = identity.FindFirst(claimType);

@@ -22,6 +22,10 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             case FrontendAuthMode.Unsecured:
                 break;
             case FrontendAuthMode.OpenIdConnect:
+                if (!options.Frontend.OpenIdConnect.TryParseOptions(out var messages))
+                {
+                    errorMessages.AddRange(messages);
+                }
                 break;
             case FrontendAuthMode.BrowserToken:
                 if (string.IsNullOrEmpty(options.Frontend.BrowserToken))
@@ -98,11 +102,6 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                     errorMessages.Add($"Unexpected resource service client authentication mode: {options.Otlp.AuthMode}");
                     break;
             }
-        }
-
-        if (!options.Frontend.OpenIdConnect.TryParseOptions(out var messages))
-        {
-            errorMessages.AddRange(messages);
         }
 
         return errorMessages.Count > 0
