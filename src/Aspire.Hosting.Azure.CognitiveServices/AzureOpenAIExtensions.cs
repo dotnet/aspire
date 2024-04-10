@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -75,7 +74,7 @@ public static class AzureOpenAIExtensions
 
                 if (dependency != null)
                 {
-                    AddDependency(cdkDeployment, dependency);
+                    cdkDeployment.AddDependency(dependency);
                 }
 
                 dependency = cdkDeployment;
@@ -90,20 +89,6 @@ public static class AzureOpenAIExtensions
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
-
-        static void AddDependency(global::Azure.Provisioning.Resource resource, global::Azure.Provisioning.Resource dependency)
-        {
-            // abstract class Resource
-            // { 
-            //     internal void AddDependency(Resource resource)
-            //     {
-            //         Dependencies.Add(resource);
-            //     }
-            // }
-
-            var addDependencyMethod = typeof(global::Azure.Provisioning.Resource).GetMethod("AddDependency", BindingFlags.NonPublic | BindingFlags.Instance);
-            addDependencyMethod?.Invoke(resource, [dependency]);
-        }
     }
 
     /// <summary>
