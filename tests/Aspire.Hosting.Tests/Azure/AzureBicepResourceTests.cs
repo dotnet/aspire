@@ -2249,14 +2249,17 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var openai = builder.AddAzureOpenAI("openai", (_, _, _, deployments) =>
         {
             aiDeployments = deployments;
-        }).AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4));
+        })
+            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
+            .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
 
         var manifest = await ManifestUtils.GetManifestWithBicep(openai.Resource);
 
         Assert.NotNull(aiDeployments);
         Assert.Collection(
             aiDeployments,
-            deployment => Assert.Equal("mymodel", deployment.Properties.Name));
+            deployment => Assert.Equal("mymodel", deployment.Properties.Name),
+            deployment => Assert.Equal("embedding-model", deployment.Properties.Name));
 
         var expectedManifest = """
             {
@@ -2323,8 +2326,27 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
             }
 
-            output connectionString string = 'Endpoint=${cognitiveServicesAccount_wXAGTFUId.properties.endpoint}'
+            resource cognitiveServicesAccountDeployment_mdCAJJRlf 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+              parent: cognitiveServicesAccount_wXAGTFUId
+              dependsOn: [
+                cognitiveServicesAccountDeployment_5K9aRgiZP
+              ]
+              name: 'embedding-model'
+              sku: {
+                name: 'Basic'
+                capacity: 4
+              }
+              properties: {
+                model: {
+                  format: 'OpenAI'
+                  name: 'text-embedding-ada-002'
+                  version: '2'
+                }
+              }
+            }
 
+            output connectionString string = 'Endpoint=${cognitiveServicesAccount_wXAGTFUId.properties.endpoint}'
+            
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
