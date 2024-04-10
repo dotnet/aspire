@@ -22,6 +22,10 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             case FrontendAuthMode.Unsecured:
                 break;
             case FrontendAuthMode.OpenIdConnect:
+                if (!options.Frontend.OpenIdConnect.TryParseOptions(out var messages))
+                {
+                    errorMessages.AddRange(messages);
+                }
                 break;
             case FrontendAuthMode.BrowserToken:
                 if (string.IsNullOrEmpty(options.Frontend.BrowserToken))
