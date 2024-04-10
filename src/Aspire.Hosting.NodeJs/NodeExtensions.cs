@@ -67,7 +67,7 @@ public static class NodeAppHostingExtension
     /// <param name="scriptName">The script to execute.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NodeAppResource> AddGenericNodeApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string nodeExecutor, string scriptName, string[]? args = null)
+    private static IResourceBuilder<NodeAppResource> AddGenericNodeApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string nodeExecutor, string scriptName, string[]? args = null)
     {
         string[] allArgs = args is { Length: > 0 }
             ? ["run", scriptName, "--", .. args]
