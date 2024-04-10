@@ -209,14 +209,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
         // Configure the HTTP request pipeline.
-        if (_app.Environment.IsDevelopment())
+        if (!_app.Environment.IsDevelopment())
         {
-            _app.UseDeveloperExceptionPage();
-            //_app.UseBrowserLink();
-        }
-        else
-        {
-            _app.UseExceptionHandler("/Error");
+            _app.UseExceptionHandler("/error");
             if (isAllHttps)
             {
                 _app.UseHsts();
