@@ -10,6 +10,8 @@ public class StringExtensionsTests
 {
     [Theory]
     [InlineData("", "DefaultValue", "DefaultValue")]
+    [InlineData("   ", "DefaultValue", "DefaultValue")]
+    [InlineData("\t", "DefaultValue", "DefaultValue")]
     [InlineData("SingleNameOnly", null, "S")]
     [InlineData("singleNameOnly", null, "S")]
     [InlineData("Two Names", null, "TN")]
