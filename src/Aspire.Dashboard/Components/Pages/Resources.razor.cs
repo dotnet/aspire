@@ -296,29 +296,31 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private static string? GetSourceTooltip(ResourceViewModel resource)
+    private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
     {
+        // NOTE projects are also executables, so we have to check for projects first
         if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
         {
-            return Path.GetFileName(projectPath);
+            return (Value: Path.GetFileName(projectPath), ContentAfterValue: null, ValueToCopy: projectPath, Tooltip: projectPath);
         }
 
         if (resource.TryGetExecutablePath(out var executablePath))
         {
             resource.TryGetExecutableArguments(out var arguments);
             var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
+            var fullCommandLine = $"{executablePath} {argumentsString}";
 
-            return $"{Path.GetFileName(executablePath)} {argumentsString}";
+            return (Value: Path.GetFileName(executablePath), ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine);
         }
 
         if (resource.TryGetContainerImage(out var containerImage))
         {
-            return containerImage;
+            return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
         }
 
         if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
         {
-            return value.StringValue;
+            return (Value: value.StringValue, ContentAfterValue: null, ValueToCopy: value.StringValue, Tooltip: value.StringValue);
         }
 
         return null;
