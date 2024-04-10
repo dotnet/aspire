@@ -19,13 +19,13 @@ public static class OracleDatabaseExtensions
         StringBuilder errorMessageBuilder = new();
         try
         {
-            ResiliencePipelineBuilder pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<OracleException>(args =>
+            ResiliencePipeline pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<OracleException>(args =>
             {
                 errorMessageBuilder.AppendLine($"{Environment.NewLine}Service retry #{args.AttemptNumber} due to {args.Outcome.Exception}");
                 return ValueTask.CompletedTask;
-            });
+            }).Build();
 
-            return pipeline.Build().Execute(() =>
+            return pipeline.Execute(() =>
             {
                 var results = context.Database.SqlQueryRaw<int>("SELECT 1 FROM DUAL");
                 return results.Any() ? Results.Ok("Success!") : Results.Problem("Failed");

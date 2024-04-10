@@ -18,13 +18,13 @@ public static class MySqlExtensions
         StringBuilder errorMessageBuilder = new();
         try
         {
-            ResiliencePipelineBuilder pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<MySqlException>(args =>
+            ResiliencePipeline pipeline = ResilienceUtils.GetDefaultResiliencePipelineBuilder<MySqlException>(args =>
             {
                 errorMessageBuilder.AppendLine($"{Environment.NewLine}Service retry #{args.AttemptNumber} due to {args.Outcome.Exception}");
                 return ValueTask.CompletedTask;
-            });
+            }).Build();
 
-            await pipeline.Build().ExecuteAsync(async token => await connection.OpenAsync(token));
+            await pipeline.ExecuteAsync(async token => await connection.OpenAsync(token));
 
             var command = connection.CreateCommand();
             command.CommandText = $"SELECT 1";
