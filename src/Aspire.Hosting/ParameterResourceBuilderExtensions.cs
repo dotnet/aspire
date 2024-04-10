@@ -82,7 +82,7 @@ public static class ParameterResourceBuilderExtensions
     /// </summary>
     private sealed class WriteParameterLogsHook(ResourceLoggerService loggerService, string resourceName, string message) : IDistributedApplicationLifecycleHook
     {
-        public Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
         {
             loggerService.GetLogger(resourceName).LogError(message);
 
@@ -91,7 +91,7 @@ public static class ParameterResourceBuilderExtensions
 
         public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     /// <summary>
