@@ -49,6 +49,14 @@ Aspire.Hosting.ApplicationModel.ContainerResource
 Aspire.Hosting.ApplicationModel.ContainerResource.ContainerResource(string! name, string? entrypoint = null) -> void
 Aspire.Hosting.ApplicationModel.ContainerResource.Entrypoint.get -> string?
 Aspire.Hosting.ApplicationModel.ContainerResource.Entrypoint.set -> void
+Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackAnnotation
+Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackAnnotation.Callback.get -> System.Func<Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext!, System.Threading.Tasks.Task!>!
+Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackAnnotation.ContainerRunArgsCallbackAnnotation(System.Action<System.Collections.Generic.IList<object!>!>! callback) -> void
+Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackAnnotation.ContainerRunArgsCallbackAnnotation(System.Func<Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext!, System.Threading.Tasks.Task!>! callback) -> void
+Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext
+Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext.Args.get -> System.Collections.Generic.IList<object!>!
+Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext.CancellationToken.get -> System.Threading.CancellationToken
+Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext.ContainerRunArgsCallbackContext(System.Collections.Generic.IList<object!>! args, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
 Aspire.Hosting.ApplicationModel.CustomResourceKnownProperties
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.CreationTimeStamp.get -> System.DateTime?
