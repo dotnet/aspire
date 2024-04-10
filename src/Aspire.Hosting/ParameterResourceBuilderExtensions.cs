@@ -88,10 +88,6 @@ public static class ParameterResourceBuilderExtensions
 
             return Task.CompletedTask;
         }
-
-        public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     /// <summary>
