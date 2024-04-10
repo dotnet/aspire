@@ -99,6 +99,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             var daprMetricsPortArg = (object port) => ModelNamedObjectArg("--metrics-port", port);
             var daprProfilePortArg = (object port) => ModelNamedObjectArg("--profile-port", port);
             var daprAppChannelAddressArg = (string? address) => ModelNamedArg("--app-channel-address", address);
+            var daprAppProtocol = (string? protocol) => ModelNamedArg("--app-protocol", protocol);
 
             var appId = sidecarOptions?.AppId ?? resource.Name;
 
@@ -170,16 +171,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     updatedArgs =>
                     {
                         updatedArgs.AddRange(daprCommandLine.Arguments);
-
-                        EndpointReference? httpEndPoint = null;
-                        if (resource is IResourceWithEndpoints resourceWithEndpoints)
-                        {
-                            var endpointName = sidecarOptions?.AppProtocol ?? "http";
-                            httpEndPoint = resourceWithEndpoints.GetEndpoint(endpointName.ToLower());
-
-                            if (httpEndPoint.IsAllocated && sidecarOptions?.AppPort is null)
+                        var endPoint = GetEndpointReference(sidecarOptions, resource);
+                        if(endPoint is not null){
+                            if (endPoint.Value.appEndpoint.IsAllocated && sidecarOptions?.AppPort is null)
                             {
-                                updatedArgs.AddRange(daprAppPortArg(httpEndPoint.Port)());
+                                updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
                             }
                         }
 
@@ -198,9 +194,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             updatedArgs.AddRange(daprProfilePortArg(profiling.Property(EndpointProperty.TargetPort))());
                         }
 
-                        if (sidecarOptions?.AppChannelAddress is null && httpEndPoint is not null)
+                        if (sidecarOptions?.AppChannelAddress is null && endPoint is not null)
                         {
-                            updatedArgs.AddRange(daprAppChannelAddressArg(httpEndPoint.Host)());
+                            updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
+                        }
+                        if(sidecarOptions?.AppProtocol == null && endPoint is not null){
+                            updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
                     }));
 
@@ -254,6 +253,33 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
 
         appModel.Resources.AddRange(sideCars);
+    }
+
+    static (EndpointReference appEndpoint, string protocol)? GetEndpointReference(DaprSidecarOptions? sidecarOptions, IResource resource)
+    {
+        if (resource is IResourceWithEndpoints resourceWithEndpoints)
+        {
+            if (sidecarOptions == null || (sidecarOptions.AppProtocol == null && sidecarOptions.AppEndpoint == null))
+            {
+                return (resourceWithEndpoints.GetEndpoint("http"), "http");
+            }
+            else if (sidecarOptions.AppProtocol == null && sidecarOptions.AppEndpoint != null)
+            {
+                var appEndpoint = resourceWithEndpoints.GetEndpoint(sidecarOptions.AppEndpoint);
+                return (appEndpoint, appEndpoint.Scheme);
+            }
+            else if (sidecarOptions.AppProtocol != null && sidecarOptions.AppEndpoint == null)
+            {
+                var appEndpoint = resourceWithEndpoints.GetEndpoint(sidecarOptions.AppProtocol);
+                return (appEndpoint, sidecarOptions.AppProtocol);
+            }
+            else if (sidecarOptions.AppProtocol != null && sidecarOptions.AppEndpoint != null)
+            {
+                var appEndpoint = resourceWithEndpoints.GetEndpoint(sidecarOptions.AppEndpoint);
+                return (appEndpoint, sidecarOptions.AppProtocol);
+            }
+        }
+        return null;
     }
 
     /// <summary>
