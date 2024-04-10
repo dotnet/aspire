@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Aspire.Dashboard.Extensions;
@@ -37,6 +38,7 @@ internal static class StringExtensions
     /// If only one word is present, a single initial is returned. If <paramref name="name"/> is null, empty or
     /// white space only, <paramref name="defaultValue"/> is returned.
     /// </summary>
+    [return: NotNullIfNotNull(nameof(defaultValue))]
     public static string? GetInitials(this string name, string? defaultValue = default)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -44,9 +46,9 @@ internal static class StringExtensions
             return defaultValue;
         }
 
-        var initials = name!.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                            .Select(s => s[0].ToString())
-                            .ToList();
+        var initials = name.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                           .Select(s => s[0].ToString())
+                           .ToList();
 
         if (initials.Count > 1)
         {

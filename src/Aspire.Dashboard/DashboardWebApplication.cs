@@ -261,7 +261,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
         else if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
         {
-            _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, "OpenIdConnect"]));
+            _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
     }
 
