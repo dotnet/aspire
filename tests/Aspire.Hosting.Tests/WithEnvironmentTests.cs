@@ -188,6 +188,35 @@ public class WithEnvironmentTests
         Assert.Equal("""{{- portForServing "container1_primary" -}}""", pair.Value);
     }
 
+    [Fact]
+    public async Task EnvironmentWithConnectionStringSetsProperEnvironmentVariable()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        const string sourceCon = "sourceConnectionString";
+
+        var sourceBuilder = builder.AddResource(new TestResource("sourceService", sourceCon));
+        var targetBuilder = builder.AddContainer("targetContainer", "targetImage");
+
+        string envVarName = "CUSTOM_CONNECTION_STRING";
+
+        // Act
+        targetBuilder.WithEnvironment(envVarName, sourceBuilder);
+
+        // Call environment variable callbacks for the Run operation.
+        var runConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(targetBuilder.Resource, DistributedApplicationOperation.Run);
+
+        // Assert
+        Assert.Single(runConfig, kvp => kvp.Key == envVarName && kvp.Value == sourceCon);
+
+        // Call environment variable callbacks for the Publish operation.
+        var publishConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(targetBuilder.Resource, DistributedApplicationOperation.Publish);
+
+        // Assert
+        Assert.Single(publishConfig, kvp => kvp.Key == envVarName && kvp.Value == "{sourceService.connectionString}");
+    }
+
     private sealed class TestResource(string name, string connectionString) : Resource(name), IResourceWithConnectionString
     {
         public ReferenceExpression ConnectionStringExpression =>
