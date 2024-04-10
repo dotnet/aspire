@@ -1,0 +1,8 @@
+#nullable enable
+Aspire.Hosting.ApplicationModel.NatsServerResource
+Aspire.Hosting.ApplicationModel.NatsServerResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.ApplicationModel.NatsServerResource.NatsServerResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.NatsServerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.NatsBuilderExtensions
+static Aspire.Hosting.NatsBuilderExtensions.AddNats(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.NatsServerResource!>!
+static Aspire.Hosting.NatsBuilderExtensions.WithJetStream(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.NatsServerResource!>! builder, string? srcMountPath = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.NatsServerResource!>!
