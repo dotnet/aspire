@@ -189,6 +189,7 @@
       <Link>Protos\resource_service.proto</Link>
     </Protobuf>
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
+    <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
