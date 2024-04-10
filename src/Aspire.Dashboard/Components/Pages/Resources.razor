@@ -18,7 +18,7 @@
                       @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
                       Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
                       aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
-        <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible">
+        <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
             <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
             <Body>
                 <FluentStack Orientation="Orientation.Vertical">
