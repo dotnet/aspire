@@ -8,50 +8,50 @@ namespace Aspire.Hosting.Tests.Dashboard;
 
 public class DashboardOptionsValidatorTests
 {
-    [Fact]
-    public void ValidateFailWhenDashboardUrlIsNullOrEmpty()
-    {        
-        foreach(string? url in new List<string?> { null, string.Empty })
-        {
-            var options = new DashboardOptions();
-            options.DashboardUrl = url;
-            options.OtlpEndpointUrl = "https://localhost";
-            
-            var validator = new ValidateDashboardOptions();
-            var result = validator.Validate(null, options);
-            Assert.True(result.Failed);
-            Assert.Equal(
-                "Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.",
-                result.FailureMessage
-            );
-        }
-    }
-
-    [Fact]
-    public void ValidateFailWhenOltpEndpointUrlIsNullOrEmpty()
-    {        
-        foreach(string? url in new List<string?> { null, string.Empty })
-        {
-            var options = new DashboardOptions();
-            options.DashboardUrl = "https://localhost";
-            options.OtlpEndpointUrl = url;
-            
-            var validator = new ValidateDashboardOptions();
-            var result = validator.Validate(null, options);
-            Assert.True(result.Failed);
-            Assert.Equal(
-                "Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.",
-                result.FailureMessage
-            );
-        }
-    }
-
-    [Fact]
-    public void ValidateFailWhenDashboardUrlAndOtlpEndpointUrlAreSame()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ValidateFailWhenDashboardUrlIsNullOrEmpty(string url)
     {        
         var options = new DashboardOptions();
-        options.DashboardUrl = "http://127.0.0.1:9050";
-        options.OtlpEndpointUrl = "http://127.0.0.1:9050";
+        options.DashboardUrl = url;
+        options.OtlpEndpointUrl = "https://localhost";
+        
+        var validator = new ValidateDashboardOptions();
+        var result = validator.Validate(null, options);
+        Assert.True(result.Failed);
+        Assert.Equal(
+            "Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.",
+            result.FailureMessage
+        );
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ValidateFailWhenOltpEndpointUrlIsNullOrEmpty(string url)
+    {        
+        var options = new DashboardOptions();
+        options.DashboardUrl = "https://localhost";
+        options.OtlpEndpointUrl = url;
+        
+        var validator = new ValidateDashboardOptions();
+        var result = validator.Validate(null, options);
+        Assert.True(result.Failed);
+        Assert.Equal(
+            "Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.",
+            result.FailureMessage
+        );
+    }
+
+    [Theory]
+    [InlineData("http://127.0.0.1:9050", "http://127.0.0.1:9050")]
+    [InlineData("http://localhost:1234", "http://LOCALHOST:1234")]
+    public void ValidateFailWhenDashboardUrlAndOtlpEndpointUrlAreSame(string dashboardUrl, string otlpUrl)
+    {        
+        var options = new DashboardOptions();
+        options.DashboardUrl = dashboardUrl;
+        options.OtlpEndpointUrl = otlpUrl;
         
         var validator = new ValidateDashboardOptions();
         var result = validator.Validate(null, options);

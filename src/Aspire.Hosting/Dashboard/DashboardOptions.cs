@@ -48,7 +48,7 @@ internal class ValidateDashboardOptions : IValidateOptions<DashboardOptions>
             builder.AddError("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
         }
 
-        if (options.DashboardUrl == options.OtlpEndpointUrl)
+        if (string.Equals(options.DashboardUrl, options.OtlpEndpointUrl, StringComparison.OrdinalIgnoreCase))
         {
             builder.AddError($"Failed to configure dashboard resource because ApplicationUrl and DOTNET_DASHBOARD_OTLP_ENDPOINT_URL are both set to {options.DashboardUrl}.");
         }
