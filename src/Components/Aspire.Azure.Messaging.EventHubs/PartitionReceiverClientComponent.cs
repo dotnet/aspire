@@ -29,7 +29,7 @@ internal sealed class PartitionReceiverClientComponent()
         AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingEventHubsPartitionReceiverSettings settings,
         string connectionName, string configurationSectionName)
     {
-        return azureFactoryBuilder.AddClient<PartitionReceiver, PartitionReceiverOptions>((options, cred, _) =>
+        return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<PartitionReceiver, PartitionReceiverOptions>((options, cred) =>
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
@@ -53,6 +53,6 @@ internal sealed class PartitionReceiverClientComponent()
 
             return receiver;
 
-        });
+        }, requiresCredential: false);
     }
 }

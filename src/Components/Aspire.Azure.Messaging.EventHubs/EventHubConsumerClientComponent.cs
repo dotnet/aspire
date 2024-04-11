@@ -28,7 +28,7 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
         AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingEventHubsConsumerSettings settings,
         string connectionName, string configurationSectionName)
     {
-        return azureFactoryBuilder.AddClient<EventHubConsumerClient, EventHubConsumerClientOptions>((options, cred, _) =>
+        return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<EventHubConsumerClient, EventHubConsumerClientOptions>((options, cred) =>
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
@@ -37,6 +37,6 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
                     settings.ConnectionString, options) :
                 new EventHubConsumerClient(settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
                     settings.Namespace, settings.EventHubName, cred, options);
-        });
+        }, requiresCredential: false);
     }
 }

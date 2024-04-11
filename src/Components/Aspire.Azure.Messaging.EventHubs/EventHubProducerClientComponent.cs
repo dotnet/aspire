@@ -28,13 +28,13 @@ internal sealed class EventHubProducerClientComponent : EventHubsComponent<Azure
         AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingEventHubsProducerSettings settings,
         string connectionName, string configurationSectionName)
     {
-        return azureFactoryBuilder.AddClient<EventHubProducerClient, EventHubProducerClientOptions>((options, cred, _) =>
+        return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<EventHubProducerClient, EventHubProducerClientOptions>((options, cred) =>
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
             return !string.IsNullOrEmpty(settings.ConnectionString) ?
                 new EventHubProducerClient(settings.ConnectionString, options) :
                 new EventHubProducerClient(settings.Namespace, settings.EventHubName, cred, options);
-        });
+        }, requiresCredential: false);
     }
 }

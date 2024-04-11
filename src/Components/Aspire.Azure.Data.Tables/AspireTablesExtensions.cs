@@ -105,7 +105,7 @@ public static class AspireTablesExtensions
             AzureClientFactoryBuilder azureFactoryBuilder, AzureDataTablesSettings settings, string connectionName,
             string configurationSectionName)
         {
-            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<TableServiceClient, TableClientOptions>((options, cred, _) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<TableServiceClient, TableClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)

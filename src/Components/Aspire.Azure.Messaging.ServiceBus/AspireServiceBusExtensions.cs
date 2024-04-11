@@ -102,7 +102,7 @@ public static class AspireServiceBusExtensions
             AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
             string connectionName, string configurationSectionName)
         {
-            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred, _) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))
