@@ -98,7 +98,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     private async Task RunTestAsync(Func<Task> test)
     {
-        _integrationServicesFixture.Project!.EnsureAppHostRunning();
+        _integrationServicesFixture.Project.EnsureAppHostRunning();
         try
         {
             await test();
