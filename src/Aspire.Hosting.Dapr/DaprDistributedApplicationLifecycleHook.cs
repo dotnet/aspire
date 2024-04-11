@@ -267,7 +267,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     {
         if (resource is IResourceWithEndpoints resourceWithEndpoints)
         {
-            return (sidecarOptions, resourceWithEndpoints) switch{
+            return (sidecarOptions, resourceWithEndpoints) switch
+            {
                 (var p0, var p1) when p0 == null || (p0.AppProtocol == null && p0.AppEndpoint == null) => (p1.GetEndpoint("http"), "http"),
                 (var p0, var p1) when p0!.AppProtocol == null && p0!.AppEndpoint != null => (p1.GetEndpoint(p0.AppEndpoint), p1.GetEndpoint(p0.AppEndpoint).Scheme),
                 (var p0, var p1) when p0!.AppProtocol != null && p0!.AppEndpoint == null => (p1.GetEndpoint(p0!.AppProtocol), p0!.AppProtocol),
