@@ -11,6 +11,7 @@
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalPackageVersion>
+    <!-- DCP -->
     <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.2.2</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
     <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.2.2</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
     <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.2.2</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
@@ -18,6 +19,7 @@
     <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.2.2</MicrosoftDeveloperControlPlanewindows386PackageVersion>
     <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.2.2</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
     <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.2.2</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <!-- Other -->
     <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24204.3</MicrosoftDotNetRemoteExecutorPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24204.3</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24204.3</MicrosoftDotNetBuildTasksInstallersPackageVersion>
@@ -41,6 +43,7 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.4</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.4</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <MicrosoftExtensionsFeaturesPackageVersion>8.0.4</MicrosoftExtensionsFeaturesPackageVersion>
+    <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.4</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.4</MicrosoftEntityFrameworkCoreDesignPackageVersion>
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.4</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
