@@ -419,8 +419,7 @@ public class ProjectResourceTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
-    }
-    
+    }    
 
     private static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {

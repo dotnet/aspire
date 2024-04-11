@@ -301,7 +301,7 @@ public class DistributedApplicationTests
         var browserToken = "ThisIsATestToken";
         var args = new string[] {
             "ASPNETCORE_URLS=http://localhost:0",
-            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
+            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:1",
             $"DOTNET_DASHBOARD_FRONTEND_BROWSERTOKEN={browserToken}"
         };
         using var testProgram = CreateTestProgram(args: args, disableDashboard: false);
@@ -341,7 +341,7 @@ public class DistributedApplicationTests
     {
         var args = new string[] {
             "ASPNETCORE_URLS=http://localhost:0",
-            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:0",
+            "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:1",
             "DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS=true"
         };
         using var testProgram = CreateTestProgram(args: args, disableDashboard: false);
