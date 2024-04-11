@@ -102,7 +102,7 @@ public static class AspireServiceBusExtensions
             AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
             string connectionName, string configurationSectionName)
         {
-            return azureFactoryBuilder.AddClient<ServiceBusClient, ServiceBusClientOptions>((options, cred, _) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred, _) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))
@@ -113,7 +113,7 @@ public static class AspireServiceBusExtensions
                 return !string.IsNullOrEmpty(connectionString) ?
                     new ServiceBusClient(connectionString, options) :
                     new ServiceBusClient(settings.Namespace, cred, options);
-            });
+            }, requiresCredential: false);
         }
 
         protected override IHealthCheck CreateHealthCheck(ServiceBusClient client, AzureMessagingServiceBusSettings settings)

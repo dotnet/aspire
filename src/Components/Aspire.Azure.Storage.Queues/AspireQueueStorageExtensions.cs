@@ -106,7 +106,7 @@ public static class AspireQueueStorageExtensions
             AzureClientFactoryBuilder azureFactoryBuilder, AzureStorageQueuesSettings settings, string connectionName,
             string configurationSectionName)
         {
-            return azureFactoryBuilder.AddClient<QueueServiceClient, QueueClientOptions>((options, cred, _) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<QueueServiceClient, QueueClientOptions>((options, cred, _) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)
@@ -119,7 +119,7 @@ public static class AspireQueueStorageExtensions
                     : cred is not null
                         ? new QueueServiceClient(settings.ServiceUri, cred, options)
                         : new QueueServiceClient(settings.ServiceUri, options);
-            });
+            }, requiresCredential: false);
         }
 
         protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<QueueServiceClient, QueueClientOptions> clientBuilder, IConfiguration configuration)

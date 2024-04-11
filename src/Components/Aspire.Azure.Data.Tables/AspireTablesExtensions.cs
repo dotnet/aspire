@@ -105,7 +105,7 @@ public static class AspireTablesExtensions
             AzureClientFactoryBuilder azureFactoryBuilder, AzureDataTablesSettings settings, string connectionName,
             string configurationSectionName)
         {
-            return azureFactoryBuilder.AddClient<TableServiceClient, TableClientOptions>((options, cred, _) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<TableServiceClient, TableClientOptions>((options, cred, _) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)
@@ -116,7 +116,7 @@ public static class AspireTablesExtensions
                 return !string.IsNullOrEmpty(connectionString) ? new TableServiceClient(connectionString, options) :
                     cred is not null ? new TableServiceClient(settings.ServiceUri, cred, options) :
                     new TableServiceClient(settings.ServiceUri, options);
-            });
+            }, requiresCredential: false);
         }
 
         protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<TableServiceClient, TableClientOptions> clientBuilder, IConfiguration configuration)
