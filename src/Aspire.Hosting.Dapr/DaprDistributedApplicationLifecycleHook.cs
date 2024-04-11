@@ -257,20 +257,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         appModel.Resources.AddRange(sideCars);
     }
 
-    /// <summary>
-    /// Get's the applications endpoint and the protocl for it.
-    /// It mainly depends on two sidecare options:
-    /// - <see cref="DaprSidecarOptions.AppProtocol"/>
-    /// - <see cref="DaprSidecarOptions.AppEndpoint"/>
-    /// The logic is like:
-    /// - if both are null try to use 'http' for both
-    /// - if <see cref="DaprSidecarOptions.AppProtocol"/> is not null try to get an endpoint with the name of the protocol
-    /// - if <see cref="DaprSidecarOptions.AppEndpoint"/> is not null try to use the schema as the protocol
-    /// - if bot are not null just use them.
-    /// </summary>
-    /// <param name="sidecarOptions">The current options that are the base of the logic.</param>
-    /// <param name="resource">The application resource the sidecar is connected to.</param>
-    /// <returns>The appendpoint that should be used and the protocol.</returns>
+    // This method resolves the application's endpoint and the protocol that the dapr side car will use.
+    // It depends on DaprSidecarOptions.AppProtocol and DaprSidecarOptions.AppEndpoint.
+    // - If both are null default to 'http' for both.
+    // - If AppProtocol is not null try to get an endpoint with the name of the protocol.
+    // - if AppEndpoint is not null try to use the scheme as the protocol.
+    // - if both are not null just use both options.
     static (EndpointReference appEndpoint, string protocol)? GetEndpointReference(DaprSidecarOptions? sidecarOptions, IResource resource)
     {
         if (resource is IResourceWithEndpoints resourceWithEndpoints)
