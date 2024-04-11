@@ -76,19 +76,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         }
     }
 
-    public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)
-    {
-        var testOutput = testOutputArg ?? _testOutput!;
-        testOutput.WriteLine("--------------------------- Docker info ---------------------------");
-
-        using var cmd = new ToolCommand("docker", testOutput!, "container-list");
-        (await cmd.ExecuteAsync(CancellationToken.None, $"container list --all"))
-            .EnsureSuccessful();
-
-        testOutput.WriteLine("--------------------------- Docker info (end) ---------------------------");
-    }
-
-    public async Task DumpComponentLogsAsync(TestResourceNames resource, ITestOutputHelper? testOutputArg = null)
+    public Task DumpComponentLogsAsync(TestResourceNames resource, ITestOutputHelper? testOutputArg = null)
     {
         string component = resource switch
         {
@@ -104,34 +92,14 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
-        var testOutput = testOutputArg ?? _testOutput!;
-        var cts = new CancellationTokenSource();
-
-        string containerName;
-        {
-            using var cmd = new ToolCommand("docker", testOutput);
-            var res = (await cmd.ExecuteAsync(cts.Token, $"container list --all --filter name={component} --format {{{{.Names}}}}"))
-                .EnsureSuccessful();
-            containerName = res.Output;
-        }
-
-        if (string.IsNullOrEmpty(containerName))
-        {
-            testOutput.WriteLine($"No container found for {component}");
-        }
-        else
-        {
-            using var cmd = new ToolCommand("docker", testOutput, label: component);
-            (await cmd.ExecuteAsync(cts.Token, $"container logs {containerName} -n 50"))
-                .EnsureSuccessful();
-        }
+        return Project.DumpComponentLogsAsync(component, testOutputArg);
     }
 
     public async Task DisposeAsync()
     {
         if (Project?.AppHostProcess is not null)
         {
-            await DumpDockerInfoAsync(new TestOutputWrapper(null));
+            await Project.DumpDockerInfoAsync(new TestOutputWrapper(null));
         }
         if (Project is not null)
         {

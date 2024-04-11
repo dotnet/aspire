@@ -105,7 +105,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         }
         catch
         {
-            await _integrationServicesFixture.DumpDockerInfoAsync();
+            await _integrationServicesFixture.Project.DumpDockerInfoAsync();
             throw;
         }
     }
