@@ -14,14 +14,13 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// Initializes a new instance of the <see cref="SqlServerServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="password">The SQL Sever password, or <see langword="null"/> to generate a random password.</param>
-    public SqlServerServerResource(string name, string? password = null) : base(name)
+    /// <param name="password">A parameter that contains the SQL Sever password.</param>
+    public SqlServerServerResource(string name, ParameterResource password) : base(name)
     {
-        PrimaryEndpoint = new(this, PrimaryEndpointName);
-        PasswordInput = new(this, "password");
+        ArgumentNullException.ThrowIfNull(password);
 
-        // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
-        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(password, minLower: 1, minUpper: 1, minNumeric: 1));
+        PrimaryEndpoint = new(this, PrimaryEndpointName);
+        PasswordParameter = password;
     }
 
     /// <summary>
@@ -29,16 +28,14 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
-    internal InputReference PasswordInput { get; }
-
     /// <summary>
-    /// Gets the password for the SQL Server container resource.
+    /// Gets the parameter that contains the PostgreSQL server password.
     /// </summary>
-    public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
+    public ParameterResource PasswordParameter { get; }
 
     private ReferenceExpression ConnectionString =>
         ReferenceExpression.Create(
-            $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordInput};TrustServerCertificate=true");
+            $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=sa;Password={PasswordParameter};TrustServerCertificate=true");
 
     /// <summary>
     /// Gets the connection string expression for the SQL Server.

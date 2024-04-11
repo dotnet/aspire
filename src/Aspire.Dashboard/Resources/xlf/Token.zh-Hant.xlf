@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../Token.resx">
+    <body>
+      <trans-unit id="Header">
+        <source>{0} dashboard</source>
+        <target state="translated">{0} 儀表板</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="HelpPopupText">
+        <source>Look for the token in the console output:</source>
+        <target state="translated">在主控台輸出中尋找權杖：</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpScreenshotAltText">
+        <source>Screenshot of console output showing where to find the dashboard frontend token</source>
+        <target state="translated">主控台輸出的螢幕擷取畫面，顯示儀表板前端權杖的位置</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidTokenErrorMessage">
+        <source>Invalid token. Please try again</source>
+        <target state="translated">無效的權杖。請再試一次</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogInButtonText">
+        <source>Log in</source>
+        <target state="translated">登入</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MoreInfoLinkText">
+        <source>More info</source>
+        <target state="translated">詳細資訊</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageTitle">
+        <source>{0} login</source>
+        <target state="translated">{0} 登入</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="TextFieldPlaceholder">
+        <source>Enter token to log in...</source>
+        <target state="translated">輸入權杖以登入...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TokenRequiredErrorMessage">
+        <source>Token is required</source>
+        <target state="translated">需要權杖</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedValidationError">
+        <source>Unexpected error when validating the token</source>
+        <target state="translated">驗證權杖時發生未預期的錯誤</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WhereIsMyTokenLinkText">
+        <source>Where do I find the token?</source>
+        <target state="translated">我可以在哪裡可以找到權杖？</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

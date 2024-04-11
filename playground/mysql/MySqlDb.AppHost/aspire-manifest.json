@@ -2,7 +2,7 @@
   "resources": {
     "mysql": {
       "type": "container.v0",
-      "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}",
+      "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
       "image": "mysql:8.3.0",
       "bindMounts": [
         {
@@ -12,7 +12,7 @@
         }
       ],
       "env": {
-        "MYSQL_ROOT_PASSWORD": "{mysql.inputs.password}",
+        "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
         "MYSQL_DATABASE": "catalog"
       },
       "bindings": {
@@ -20,18 +20,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 3306
-        }
-      },
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
+          "targetPort": 3306
         }
       }
     },
@@ -45,6 +34,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "ConnectionStrings__catalog": "{catalog.connectionString}"
       },
@@ -52,12 +42,29 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
+        }
+      }
+    },
+    "mysql-password": {
+      "type": "parameter.v0",
+      "value": "{mysql-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
         }
       }
     }

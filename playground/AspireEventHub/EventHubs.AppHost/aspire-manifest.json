@@ -1,0 +1,59 @@
+{
+  "resources": {
+    "ehstorage": {
+      "type": "azure.bicep.v0",
+      "path": "ehstorage.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "checkpoints": {
+      "type": "value.v0",
+      "connectionString": "{ehstorage.outputs.blobEndpoint}"
+    },
+    "eventhubns": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
+      "path": "eventhubns.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "consumer": {
+      "type": "project.v0",
+      "path": "../EventHubsConsumer/EventHubsConsumer.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
+        "ConnectionStrings__checkpoints": "{checkpoints.connectionString}"
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../EventHubsApi/EventHubsApi.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    }
+  }
+}

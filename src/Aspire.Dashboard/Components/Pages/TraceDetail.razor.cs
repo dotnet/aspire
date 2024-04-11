@@ -8,6 +8,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -20,6 +21,7 @@ public partial class TraceDetail : ComponentBase
     private int _maxDepth;
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
+    private string? _elementIdBeforeDetailsViewOpened;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -32,6 +34,9 @@ public partial class TraceDetail : ComponentBase
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
+
+    [Inject]
+    public required IJSRuntime JS { get; set; }
 
     protected override void OnInitialized()
     {
@@ -50,10 +55,21 @@ public partial class TraceDetail : ComponentBase
         Debug.Assert(_spanWaterfallViewModels != null);
 
         var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
+
+        var page = visibleSpanWaterfallViewModels.AsEnumerable();
+        if (request.StartIndex > 0)
+        {
+            page = page.Skip(request.StartIndex);
+        }
+        if (request.Count != null)
+        {
+            page = page.Take(request.Count.Value);
+        }
+
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
-            Items = visibleSpanWaterfallViewModels,
-            TotalItemCount = _spanWaterfallViewModels.Count
+            Items = page.ToList(),
+            TotalItemCount = visibleSpanWaterfallViewModels.Count
         });
     }
 
@@ -180,15 +196,15 @@ public partial class TraceDetail : ComponentBase
         if (TraceId is not null)
         {
             _trace = TelemetryRepository.GetTrace(TraceId);
-            if (_trace != null)
+            if (_trace is { } trace)
             {
-                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(_trace, new TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
+                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(trace, new TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
                 _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
-                if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
+                if (_tracesSubscription is null || _tracesSubscription.ApplicationId != trace.FirstSpan.Source.InstanceId)
                 {
                     _tracesSubscription?.Dispose();
-                    _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.InstanceId, SubscriptionType.Read, () => InvokeAsync(() =>
+                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.InstanceId, SubscriptionType.Read, () => InvokeAsync(() =>
                     {
                         UpdateDetailViewData();
                         StateHasChanged();
@@ -228,11 +244,13 @@ public partial class TraceDetail : ComponentBase
         }
     }
 
-    private void OnShowProperties(SpanWaterfallViewModel viewModel)
+    private async Task OnShowPropertiesAsync(SpanWaterfallViewModel viewModel, string? buttonId)
     {
+        _elementIdBeforeDetailsViewOpened = buttonId;
+
         if (SelectedSpan?.Span == viewModel.Span)
         {
-            ClearSelectedSpan();
+            await ClearSelectedSpanAsync();
         }
         else
         {
@@ -251,9 +269,16 @@ public partial class TraceDetail : ComponentBase
         }
     }
 
-    private void ClearSelectedSpan()
+    private async Task ClearSelectedSpanAsync(bool causedByUserAction = false)
     {
         SelectedSpan = null;
+
+        if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
+        {
+            await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
+        }
+
+        _elementIdBeforeDetailsViewOpened = null;
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);

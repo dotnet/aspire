@@ -6,26 +6,11 @@
 @{
     List<DisplayedEndpoint> displayedEndpoints;
     string? additionalMessage = null;
-    if (Resource.Endpoints.Length == 0 && (Resource.State == ResourceStates.FinishedState || Resource.ExpectedEndpointsCount == 0))
+    if (Resource.Urls.Length == 0)
     {
-        if (Resource.Services.Length == 0)
-        {
-            // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
-            additionalMessage = Loc[nameof(Columns.EndpointsColumnDisplayNone)];
-            displayedEndpoints = [];
-        }
-        else
-        {
-            displayedEndpoints = GetEndpoints(Resource);
-        }
-    }
-    else if (Resource.State != ResourceStates.FinishedState
-        && (Resource.ExpectedEndpointsCount is null || Resource.ExpectedEndpointsCount > Resource.Endpoints.Length))
-    {
-        // If we're expecting more endpoints, say Starting..., unless the app isn't running anymore.
-        // Don't include service only endpoints in the list until finished loading endpoints.
-        displayedEndpoints = GetEndpoints(Resource, excludeServices: true);
-        additionalMessage = Loc[nameof(Columns.EndpointsColumnDisplayPlaceholder)];
+        // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
+        additionalMessage = Loc[nameof(Columns.EndpointsColumnDisplayNone)];
+        displayedEndpoints = [];
     }
     else
     {
@@ -33,63 +18,81 @@
     }
 }
 
-<FluentOverflow Class="endpoint-overflow">
-    <ChildContent>
-        @for (var i = 0; i < displayedEndpoints.Count; i++)
-        {
-            var displayedEndpoint = displayedEndpoints[i];
-            var isLast = i == displayedEndpoints.Count - 1;
+@if (displayedEndpoints.Count == 1)
+{
+    var displayedEndpoint = displayedEndpoints[0];
+    if (displayedEndpoint.Url != null)
+    {
+        <a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>
+    }
+    else
+    {
+        @displayedEndpoint.Text
+    }
+}
+else
+{
+    // Make sure that endpoints have a consistent ordering. Show https first, then everything else.
+    displayedEndpoints = displayedEndpoints.OrderByDescending(e => e.Url?.StartsWith("https") == true).ThenBy(e=> e.Url ?? e.Text).ToList();
 
-            <FluentOverflowItem Data="displayedEndpoint">
-                @if (displayedEndpoint.Url != null)
-                {
-                    <a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>
-                }
-                else
-                {
-                    @displayedEndpoint.Text
-                }
-                @if (!isLast)
-                {
-                    <span>,</span>
-                }
-            </FluentOverflowItem>
-        }
-    </ChildContent>
-    <MoreButtonTemplate Context="overflow">
-        <FluentButton Appearance="Appearance.Accent" OnClick="() => _popoverVisible = !_popoverVisible" Class="endpoint-button">
-            @($"+{overflow.ItemsOverflow.Count()}")
-        </FluentButton>
-    </MoreButtonTemplate>
-    <OverflowTemplate Context="overflow">
-        @{
-            var items = overflow.ItemsOverflow.ToList();
-        }
-        <FluentPopover AnchorId="@overflow.IdMoreButton" @bind-Open="_popoverVisible" VerticalThreshold="200">
-            <Header>
-                Endpoints
-            </Header>
-            <Body>
-                <div style="max-height:400px; overflow-x:hidden; overflow-y: auto; padding:5px 10px;">
-                    @foreach (var item in items)
+    <FluentOverflow Class="endpoint-overflow">
+        <ChildContent>
+            @for (var i = 0; i < displayedEndpoints.Count; i++)
+            {
+                var displayedEndpoint = displayedEndpoints[i];
+                var isLast = i == displayedEndpoints.Count - 1;
+
+                <FluentOverflowItem Data="displayedEndpoint">
+                    @if (displayedEndpoint.Url != null)
                     {
-                        var d = (DisplayedEndpoint)item.Data!;
-                        <div style="margin-bottom: 4px;">
-                            @if (d.Url != null)
-                            {
-                                <a href="@d.Url" target="_blank">@d.Text</a>
-                            }
-                            else
-                            {
-                                @d.Text
-                            }
-                        </div>
+                        <a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>
                     }
-                </div>
-            </Body>
-        </FluentPopover>
-    </OverflowTemplate>
-</FluentOverflow>
+                    else
+                    {
+                        @displayedEndpoint.Text
+                    }
+                    @if (!isLast)
+                    {
+                        <span>,</span>
+                    }
+                </FluentOverflowItem>
+            }
+        </ChildContent>
+        <MoreButtonTemplate Context="overflow">
+            <FluentButton Appearance="Appearance.Accent" OnClick="() => _popoverVisible = !_popoverVisible" Class="endpoint-button">
+                @($"+{overflow.ItemsOverflow.Count()}")
+            </FluentButton>
+        </MoreButtonTemplate>
+        <OverflowTemplate Context="overflow">
+            @{
+                var items = overflow.ItemsOverflow.ToList();
+            }
+            <FluentPopover AnchorId="@overflow.IdMoreButton" @bind-Open="_popoverVisible" VerticalThreshold="200">
+                <Header>
+                    Endpoints
+                </Header>
+                <Body>
+                    <div class="endpoint-popup">
+                        @foreach (var item in items)
+                        {
+                            var d = (DisplayedEndpoint)item.Data!;
+                            <div class="endpoint-link">
+                                @if (d.Url != null)
+                                {
+                                    <a href="@d.Url" target="_blank" title="@d.Text">@d.Text</a>
+                                }
+                                else
+                                {
+                                    <span title="@d.Text">@d.Text</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </Body>
+            </FluentPopover>
+        </OverflowTemplate>
+    </FluentOverflow>
+}
 
 @if (!string.IsNullOrEmpty(additionalMessage))
 {

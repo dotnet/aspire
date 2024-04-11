@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -27,8 +28,9 @@ public static class MongoDBBuilderExtensions
 
         return builder
             .AddResource(mongoDBContainer)
-            .WithEndpoint(hostPort: port, containerPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
-            .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag);
+            .WithEndpoint(port: port, targetPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
+            .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag)
+            .WithImageRegistry(MongoDBContainerImageTags.Registry);
     }
 
     /// <summary>
@@ -47,8 +49,7 @@ public static class MongoDBBuilderExtensions
         var mongoDBDatabase = new MongoDBDatabaseResource(name, databaseName, builder.Resource);
 
         return builder.ApplicationBuilder
-            .AddResource(mongoDBDatabase)
-            .WithManifestPublishingCallback(mongoDBDatabase.WriteMongoDBDatabaseToManifest);
+            .AddResource(mongoDBDatabase);
     }
 
     /// <summary>
@@ -65,25 +66,26 @@ public static class MongoDBBuilderExtensions
         var mongoExpressContainer = new MongoExpressContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(mongoExpressContainer)
                                   .WithImage("mongo-express", "1.0.2-20")
+                                  .WithImageRegistry(MongoDBContainerImageTags.Registry)
                                   .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
-                                  .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
+                                  .WithHttpEndpoint(targetPort: 8081, port: hostPort, name: containerName)
                                   .ExcludeFromManifest();
 
         return builder;
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a MongoDb container resource.
+    /// Adds a named volume for the data folder to a MongoDB container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name. </param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> WithDataVolume(this IResourceBuilder<MongoDBServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? $"{builder.Resource.Name}-data", "/data/db", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data/db", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a MongoDb container resource.
+    /// Adds a bind mount for the data folder to a MongoDB container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
@@ -93,7 +95,7 @@ public static class MongoDBBuilderExtensions
         => builder.WithBindMount(source, "/data/db", isReadOnly);
 
     /// <summary>
-    /// Adds a bind mount for the init folder to a MongoDb container resource.
+    /// Adds a bind mount for the init folder to a MongoDB container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>

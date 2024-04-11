@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -24,6 +24,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private const string SettingsDialogId = "SettingsDialog";
     private const string HelpDialogId = "HelpDialog";
+    private const string MessageBarSection = "MessagesTop";
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -48,6 +49,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required ShortcutManager ShortcutManager { get; init; }
+
+    [Inject]
+    public required IMessageService MessageService { get; init; }
+
+    [Inject]
+    public required IOptionsMonitor<DashboardOptions> Options { get; init; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,6 +87,26 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         var result = await JS.InvokeAsync<string>("window.getBrowserTimeZone");
         TimeProvider.SetBrowserTimeZone(result);
+
+        if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
+        {
+            // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
+            // I think this order allows the message bar provider to be fully initialized.
+            await MessageService.ShowMessageBarAsync(options =>
+            {
+                options.Title = Loc[nameof(Resources.Layout.MessageTelemetryTitle)];
+                options.Body = Loc[nameof(Resources.Layout.MessageTelemetryBody)];
+                options.Link = new()
+                {
+                    Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
+                    Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
+                    Target = "_blank"
+                };
+                options.Intent = MessageIntent.Warning;
+                options.Section = MessageBarSection;
+                options.AllowDismiss = true;
+            });
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -158,35 +185,42 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         _openPageDialog = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
     }
 
-    public async Task OnPageKeyDownAsync(KeyboardEventArgs args)
+    public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
     {
-        if (args.OnlyShiftPressed())
-        {
-            if (args.Key is "?")
-            {
-                await LaunchHelpAsync();
-            }
-            else if (args.Key.ToLower() is "s")
-            {
-                await LaunchSettingsAsync();
-            }
-        }
-        else if (args.NoModifiersPressed())
-        {
-            var url = args.Key.ToLower() switch
-            {
-                "r" => DashboardUrls.ResourcesUrl(),
-                "c" => DashboardUrls.ConsoleLogsUrl(),
-                "s" => DashboardUrls.StructuredLogsUrl(),
-                "t" => DashboardUrls.TracesUrl(),
-                "m" => DashboardUrls.MetricsUrl(),
-                _ => null
-            };
+        AspireKeyboardShortcut.Help,
+        AspireKeyboardShortcut.Settings,
+        AspireKeyboardShortcut.GoToResources,
+        AspireKeyboardShortcut.GoToConsoleLogs,
+        AspireKeyboardShortcut.GoToStructuredLogs,
+        AspireKeyboardShortcut.GoToTraces,
+        AspireKeyboardShortcut.GoToMetrics
+    };
 
-            if (url is not null)
-            {
-                NavigationManager.NavigateTo(url);
-            }
+    public async Task OnPageKeyDownAsync(AspireKeyboardShortcut shortcut)
+    {
+        switch (shortcut)
+        {
+            case AspireKeyboardShortcut.Help:
+                await LaunchHelpAsync();
+                break;
+            case AspireKeyboardShortcut.Settings:
+                await LaunchSettingsAsync();
+                break;
+            case AspireKeyboardShortcut.GoToResources:
+                NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl());
+                break;
+            case AspireKeyboardShortcut.GoToConsoleLogs:
+                NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl());
+                break;
+            case AspireKeyboardShortcut.GoToStructuredLogs:
+                NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl());
+                break;
+            case AspireKeyboardShortcut.GoToTraces:
+                NavigationManager.NavigateTo(DashboardUrls.TracesUrl());
+                break;
+            case AspireKeyboardShortcut.GoToMetrics:
+                NavigationManager.NavigateTo(DashboardUrls.MetricsUrl());
+                break;
         }
     }
 

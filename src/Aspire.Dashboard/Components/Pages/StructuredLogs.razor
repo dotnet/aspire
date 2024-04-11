@@ -5,13 +5,14 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Utils
 @using Microsoft.Extensions.Logging
-@using System.Web
 @using Aspire.Dashboard.Resources
 @using System.Globalization
 @inject IJSRuntime JS
 @implements IDisposable
+
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@inject IStringLocalizer<Logs> LogsLoc
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
@@ -24,16 +25,17 @@
                         @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
         <FluentSearch @bind-Value="PageViewModel.Filter"
                       @oninput="HandleFilter"
-                      @bind-Value:after="HandleClear"
+                      @bind-Value:after="HandleClearAsync"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageFilter)]"
                       slot="end" />
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMinimumLogFilter)]" slot="end" style="display: flex;align-items: center;">
-            <span>Level:</span>
+            <span>@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]</span>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
+                          Position="SelectPosition.Below"
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="PageViewModel.SelectedLogLevel"
                           @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
@@ -51,7 +53,7 @@
         {
             foreach (var filter in ViewModel.Filters)
             {
-                <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.FilterText</FluentButton>
+                <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.GetDisplayText(LogsLoc)</FluentButton>
                 <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             }
         }
@@ -59,12 +61,12 @@
     </FluentToolbar>
     <SummaryDetailsView
         ShowDetails="SelectedLogEntry is not null"
-        OnDismiss="() => ClearSelectedLogEntry()"
+        OnDismiss="@(() => ClearSelectedLogEntryAsync(causedByUserAction: true))"
         ViewKey="StructuredLogsList"
         SelectedValue="@SelectedLogEntry">
         <DetailsTitleTemplate>
             @{
-                var eventName = OtlpHelpers.GetValue(SelectedLogEntry!.LogEntry.Attributes, "event.name") 
+                var eventName = OtlpHelpers.GetValue(SelectedLogEntry!.LogEntry.Attributes, "event.name")
                     ?? OtlpHelpers.GetValue(SelectedLogEntry.LogEntry.Attributes, "logrecord.event.name")
                     ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
             }
@@ -87,8 +89,8 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
                                 <LogLevelColumnDisplay LogEntry="@context" />
                             </TemplateColumn>
-                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, true, CultureInfo.CurrentCulture))" Tooltip="true">
-                                @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, includeMilliseconds: true)
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                                @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, MillisecondsDisplay.Truncated)
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
                                 <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
@@ -102,7 +104,10 @@
                                 }
                             </TemplateColumn>
                             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
-                                <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                @{
+                                    var id = $"details-button-{context.InternalId}";
+                                }
+                                <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                             </TemplateColumn>
                         </ChildContent>
                         <EmptyContent>

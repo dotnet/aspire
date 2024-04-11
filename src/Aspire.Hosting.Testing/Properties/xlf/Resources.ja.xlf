@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../Resources.resx">
+    <body>
+      <trans-unit id="ApplicationNotStartedExceptionMessage">
+        <source>The application must be started before resolving endpoints or connection strings.</source>
+        <target state="translated">エンドポイントまたは接続文字列を解決する前に、アプリケーションを起動する必要があります。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EndpointForResourceNotFoundExceptionMessage">
+        <source>Endpoint '{0}' for resource '{1}' not found.</source>
+        <target state="translated">リソース '{1}' のエンドポイント '{0}' が見つかりません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDoesNotExposeConnectionStringExceptionMessage">
+        <source>Resource '{0}' does not expose a connection string.</source>
+        <target state="translated">リソース '{0}' は接続文字列を公開しません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceHasNoAllocatedEndpointsExceptionMessage">
+        <source>Resource '{0}' has no allocated endpoints.</source>
+        <target state="translated">リソース '{0}' にはエンドポイントが割り当てされていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceNotFoundExceptionMessage">
+        <source>Resource '{0}' not found.</source>
+        <target state="translated">リソース '{0}' が見つかりません。</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

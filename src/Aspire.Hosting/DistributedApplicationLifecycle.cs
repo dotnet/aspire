@@ -8,7 +8,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplication> logger, IConfiguration configuration, DistributedApplicationExecutionContext executionContext) : IHostedLifecycleService
+internal sealed class DistributedApplicationLifecycle(
+    ILogger<DistributedApplication> logger,
+    IConfiguration configuration,
+    DistributedApplicationExecutionContext executionContext) : IHostedLifecycleService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {

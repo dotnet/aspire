@@ -4,6 +4,7 @@
 using System.Text.RegularExpressions;
 using Aspire.V1;
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Dashboard;
@@ -15,6 +16,7 @@ namespace Aspire.Hosting.Dashboard;
 /// An instance of this type is created for every gRPC service call, so it may not hold onto any state
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
+[Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
 internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime)
     : V1.DashboardService.DashboardServiceBase
 {
@@ -75,7 +77,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             await responseStream.WriteAsync(new() { InitialData = data }).ConfigureAwait(false);
 
-            await foreach (var batch in updates.WithCancellation(cts.Token))
+            await foreach (var batch in updates.WithCancellation(cts.Token).ConfigureAwait(false))
             {
                 WatchResourcesChanges changes = new();
 
@@ -129,13 +131,13 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                 return;
             }
 
-            await foreach (var group in subscription.WithCancellation(cts.Token))
+            await foreach (var group in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
             {
                 WatchResourceConsoleLogsUpdate update = new();
 
-                foreach (var (content, isErrorMessage) in group)
+                foreach (var (lineNumber, content, isErrorMessage) in group)
                 {
-                    update.LogLines.Add(new ConsoleLogLine() { Text = content, IsStdErr = isErrorMessage });
+                    update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = content, IsStdErr = isErrorMessage });
                 }
 
                 await responseStream.WriteAsync(update, cts.Token).ConfigureAwait(false);

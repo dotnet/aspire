@@ -103,6 +103,18 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Gets an endpoint reference for the specified endpoint name.
+    /// </summary>
+    /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
+    /// <param name="endpointName">The name of the endpoint.</param>
+    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference 
+    /// for the specified endpoint.</returns>
+    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
+    {
+        return new EndpointReference(resource, endpointName);
+    }
+
+    /// <summary>
     /// Attempts to get the container image name from the given resource.
     /// </summary>
     /// <param name="resource">The resource to get the container image name from.</param>

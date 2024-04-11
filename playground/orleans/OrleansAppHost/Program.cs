@@ -19,6 +19,11 @@ builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans)
        .WithReplicas(3);
 
+builder.AddProject<Projects.OrleansClient>("frontend")
+       .WithReference(orleans.AsClient())
+       .WithExternalHttpEndpoints()
+       .WithReplicas(3);
+
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
 // to test end developer dashboard launch experience. Refer to Directory.Build.props

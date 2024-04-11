@@ -31,7 +31,8 @@ public class BuildEnvironment
         DirectoryInfo? solutionRoot = new(AppContext.BaseDirectory);
         while (solutionRoot != null)
         {
-            if (Directory.Exists(Path.Combine(solutionRoot.FullName, ".git")))
+            // To support git worktrees, check for either a directory or a file named ".git"
+            if (Directory.Exists(Path.Combine(solutionRoot.FullName, ".git")) || File.Exists(Path.Combine(solutionRoot.FullName, ".git")))
             {
                 break;
             }

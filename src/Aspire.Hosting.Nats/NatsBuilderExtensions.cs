@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Nats;
 
 namespace Aspire.Hosting;
 
@@ -21,8 +22,9 @@ public static class NatsBuilderExtensions
     {
         var nats = new NatsServerResource(name);
         return builder.AddResource(nats)
-                      .WithEndpoint(containerPort: 4222, hostPort: port, name: NatsServerResource.PrimaryEndpointName)
-                      .WithImage("nats", "2");
+                      .WithEndpoint(targetPort: 4222, port: port, name: NatsServerResource.PrimaryEndpointName)
+                      .WithImage(NatsContainerImageTags.Image, NatsContainerImageTags.Tag)
+                      .WithImageRegistry(NatsContainerImageTags.Registry);
     }
 
     /// <summary>

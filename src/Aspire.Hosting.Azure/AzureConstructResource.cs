@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable AZPROVISION001
+
 using System.Linq.Expressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -92,6 +94,8 @@ public static class AzureConstructResourceExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct> configureConstruct)
     {
+        builder.AddAzureProvisioning();
+
         var resource = new AzureConstructResource(name, configureConstruct);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);

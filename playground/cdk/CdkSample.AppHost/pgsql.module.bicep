@@ -11,9 +11,6 @@ param administratorLogin string
 param administratorLoginPassword string
 
 @description('')
-param principalId string
-
-@description('')
 param keyVaultName string
 
 
@@ -21,8 +18,8 @@ resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
 
-resource postgreSqlFlexibleServer_UTKFzAL0U 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
-  name: toLower(take(concat('pgsql', uniqueString(resourceGroup().id)), 24))
+resource postgreSqlFlexibleServer_NCqzKcjXq 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
+  name: toLower(take('pgsql${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'pgsql'
@@ -49,8 +46,8 @@ resource postgreSqlFlexibleServer_UTKFzAL0U 'Microsoft.DBforPostgreSQL/flexibleS
   }
 }
 
-resource postgreSqlFirewallRule_TT2MuwakC 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
-  parent: postgreSqlFlexibleServer_UTKFzAL0U
+resource postgreSqlFirewallRule_dtlIpxH5J 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+  parent: postgreSqlFlexibleServer_NCqzKcjXq
   name: 'AllowAllAzureIps'
   properties: {
     startIpAddress: '0.0.0.0'
@@ -58,8 +55,8 @@ resource postgreSqlFirewallRule_TT2MuwakC 'Microsoft.DBforPostgreSQL/flexibleSer
   }
 }
 
-resource postgreSqlFlexibleServerDatabase_MVhrhEeMJ 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
-  parent: postgreSqlFlexibleServer_UTKFzAL0U
+resource postgreSqlFlexibleServerDatabase_cJDk3wYkh 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
+  parent: postgreSqlFlexibleServer_NCqzKcjXq
   name: 'pgsqldb'
   properties: {
   }
@@ -70,6 +67,6 @@ resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01'
   name: 'connectionString'
   location: location
   properties: {
-    value: 'Host=${postgreSqlFlexibleServer_UTKFzAL0U.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+    value: 'Host=${postgreSqlFlexibleServer_NCqzKcjXq.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
   }
 }

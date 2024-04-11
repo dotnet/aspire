@@ -5,7 +5,7 @@ namespace Aspire.Dashboard.Model;
 
 /// <summary>
 /// This time provider is used to provide the time zone information from the browser to the server.
-/// It is a different type because we want to log setting the timezone, and we want a distinct type
+/// It is a different type because we want to log setting the time zone, and we want a distinct type
 /// to register with DI:
 /// - BrowserTimeProvider must be scoped to the user's session.
 /// - The built-in TimeProvider registration must be singleton for the system time (used by auth).
@@ -29,11 +29,11 @@ public class BrowserTimeProvider : TimeProvider
     {
         if (!TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out var timeZoneInfo))
         {
-            _logger.LogWarning("Couldn't find a time zone '{TimeZone}'. Defaulting to UTC.", timeZone);
+            _logger.LogWarning("Couldn't find time zone '{TimeZone}'. Defaulting to UTC.", timeZone);
             timeZoneInfo = TimeZoneInfo.Utc;
         }
 
-        _logger.LogInformation("Browser time zone set to '{TimeZone}' with UTC offset {UtcOffset}.", timeZoneInfo.Id, timeZoneInfo.BaseUtcOffset);
+        _logger.LogDebug("Browser time zone set to '{TimeZone}' with UTC offset {UtcOffset}.", timeZoneInfo.Id, timeZoneInfo.BaseUtcOffset);
         _browserLocalTimeZone = timeZoneInfo;
     }
 }

@@ -70,6 +70,15 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Bind mounts must specify an absolute path..
+        /// </summary>
+        internal static string ContainerMountBindMountsRequireRootedPaths {
+            get {
+                return ResourceManager.GetString("ContainerMountBindMountsRequireRootedPaths", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Bind mounts must specify a source path..
         /// </summary>
         internal static string ContainerMountBindMountsRequireSourceExceptionMessage {
@@ -79,7 +88,8 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; could not be found. The error from the container runtime check was: {1}..
+        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; could not be found. The error from the container runtime check was: {1}.
+        ///See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes..
         /// </summary>
         internal static string ContainerRuntimePrerequisiteMissingExceptionMessage {
             get {

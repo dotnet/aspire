@@ -74,29 +74,29 @@ internal sealed class BicepProvisioner(
             resource.SecretOutputs[item.Key] = item.Value;
         }
 
-        var portalUrls = new List<(string, string)>();
+        var portalUrls = new List<UrlSnapshot>();
 
         if (section["Id"] is string deploymentId &&
             ResourceIdentifier.TryParse(deploymentId, out var id) &&
             id is not null)
         {
-            portalUrls.Add(("deployment", GetDeploymentUrl(id)));
+            portalUrls.Add(new(Name: "deployment", Url: GetDeploymentUrl(id), IsInternal: false));
         }
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
-            ImmutableArray<(string, object?)> props = [
+            ImmutableArray<ResourcePropertySnapshot> props = [
                 .. state.Properties,
-                    ("azure.subscription.id", configuration["Azure:SubscriptionId"]),
-                    // ("azure.resource.group", configuration["Azure:ResourceGroup"]!),
-                    ("azure.tenant.domain", configuration["Azure:Tenant"]),
-                    ("azure.location", configuration["Azure:Location"]),
-                    (CustomResourceKnownProperties.Source, section["Id"])
+                    new("azure.subscription.id", configuration["Azure:SubscriptionId"]),
+                    // new("azure.resource.group", configuration["Azure:ResourceGroup"]!),
+                    new("azure.tenant.domain", configuration["Azure:Tenant"]),
+                    new("azure.location", configuration["Azure:Location"]),
+                    new(CustomResourceKnownProperties.Source, section["Id"])
             ];
 
             return state with
             {
-                State = "Running",
+                State = new("Running", KnownResourceStateStyles.Success),
                 Urls = [.. portalUrls],
                 Properties = props
             };
@@ -110,12 +110,12 @@ internal sealed class BicepProvisioner(
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
             ResourceType = resource.GetType().Name,
-            State = "Starting",
+            State = new("Starting", KnownResourceStateStyles.Info),
             Properties = [
-                ("azure.subscription.id", context.Subscription.Id.Name),
-                ("azure.resource.group", context.ResourceGroup.Id.Name),
-                ("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
-                ("azure.location", context.Location.ToString()),
+                new("azure.subscription.id", context.Subscription.Id.Name),
+                new("azure.resource.group", context.ResourceGroup.Id.Name),
+                new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
+                new("azure.location", context.Location.ToString()),
             ]
         }).ConfigureAwait(false);
 
@@ -123,8 +123,10 @@ internal sealed class BicepProvisioner(
 
         PopulateWellKnownParameters(resource, context);
 
-        var azPath = FindFullPathFromPath("az") ??
-            throw new InvalidOperationException("Azure CLI not found in PATH");
+        if (FindFullPathFromPath("az") is not { } azPath)
+        {
+            throw new AzureCliNotOnPathException();
+        }
 
         var template = resource.GetBicepTemplateFile();
 
@@ -152,6 +154,12 @@ internal sealed class BicepProvisioner(
 
             if (keyVault is null)
             {
+                await notificationService.PublishUpdateAsync(resource, state => state with
+                {
+                    State = new("Provisioning Keyvault", KnownResourceStateStyles.Info)
+
+                }).ConfigureAwait(false);
+
                 // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
                 // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
                 var vaultName = $"v{Guid.NewGuid().ToString("N")[0..20]}";
@@ -190,6 +198,15 @@ internal sealed class BicepProvisioner(
             OnErrorData = data => resourceLogger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Compiling ARM template", KnownResourceStateStyles.Info)
+            };
+        })
+        .ConfigureAwait(false);
+
         if (!await ExecuteCommand(templateSpec).ConfigureAwait(false))
         {
             throw new InvalidOperationException();
@@ -204,6 +221,15 @@ internal sealed class BicepProvisioner(
         await SetParametersAsync(parameters, resource, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var sw = Stopwatch.StartNew();
+
+        await notificationService.PublishUpdateAsync(resource, state =>
+        {
+            return state with
+            {
+                State = new("Creating ARM Deployment", KnownResourceStateStyles.Info)
+            };
+        })
+        .ConfigureAwait(false);
 
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
@@ -222,7 +248,8 @@ internal sealed class BicepProvisioner(
         {
             return state with
             {
-                Urls = [.. state.Urls, ("deployment", url)],
+                State = new("Waiting for Deployment", KnownResourceStateStyles.Info),
+                Urls = [.. state.Urls, new(Name: "deployment", Url: url, IsInternal: false)],
             };
         })
         .ConfigureAwait(false);
@@ -308,14 +335,14 @@ internal sealed class BicepProvisioner(
 
         await notificationService.PublishUpdateAsync(resource, state =>
         {
-            ImmutableArray<(string, object?)> properties = [
+            ImmutableArray<ResourcePropertySnapshot> properties = [
                 .. state.Properties,
-                (CustomResourceKnownProperties.Source, deployment.Id.Name)
+                new(CustomResourceKnownProperties.Source, deployment.Id.Name)
             ];
 
             return state with
             {
-                State = "Running",
+                State = new("Running", KnownResourceStateStyles.Success),
                 CreationTimeStamp = DateTime.UtcNow,
                 Properties = properties
             };
@@ -456,7 +483,7 @@ internal sealed class BicepProvisioner(
         foreach (var parameter in resource.Parameters)
         {
             if (skipDynamicValues &&
-                (s_knownParameterNames.Contains(parameter.Key) || parameter.Value is InputReference))
+                (s_knownParameterNames.Contains(parameter.Key) || IsParameterWithGeneratedValue(parameter.Value)))
             {
                 continue;
             }
@@ -480,6 +507,11 @@ internal sealed class BicepProvisioner(
                 }
             };
         }
+    }
+
+    private static bool IsParameterWithGeneratedValue(object? value)
+    {
+        return value is ParameterResource { Default: not null };
     }
 
     private const string PortalDeploymentOverviewUrl = "https://portal.azure.com/#view/HubsExtension/DeploymentDetailsBlade/~/overview/id";

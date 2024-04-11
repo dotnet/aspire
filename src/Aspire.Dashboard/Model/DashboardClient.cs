@@ -3,13 +3,18 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Net.Security;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Model;
 
@@ -32,7 +37,7 @@ namespace Aspire.Dashboard.Model;
 /// </remarks>
 internal sealed class DashboardClient : IDashboardClient
 {
-    private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
+    private const string ApiKeyHeaderName = "x-resource-service-api-key";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
@@ -42,7 +47,7 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
-    private readonly IConfiguration _configuration;
+    private readonly DashboardOptions _dashboardOptions;
     private readonly ILogger<DashboardClient> _logger;
 
     private ImmutableHashSet<Channel<IReadOnlyList<ResourceViewModelChange>>> _outgoingChannels = [];
@@ -56,25 +61,26 @@ internal sealed class DashboardClient : IDashboardClient
 
     private readonly GrpcChannel? _channel;
     private readonly DashboardService.DashboardServiceClient? _client;
+    private readonly Metadata _headers = [];
 
     private Task? _connection;
 
-    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration)
+    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration, IOptions<DashboardOptions> dashboardOptions)
     {
         _loggerFactory = loggerFactory;
-        _configuration = configuration;
+        _dashboardOptions = dashboardOptions.Value;
 
         // Take a copy of the token and always use it to avoid race between disposal of CTS and usage of token.
         _clientCancellationToken = _cts.Token;
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = configuration.GetUri(ResourceServiceUrlVariableName);
+        var address = _dashboardOptions.ResourceServiceClient.GetUri();
 
         if (address is null)
         {
             _state = StateDisabled;
-            _logger.LogDebug($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
+            _logger.LogDebug($"{DashboardConfigNames.ResourceServiceUrlName.ConfigKey} is not specified. Dashboard client services are unavailable.");
             _cts.Cancel();
             _whenConnectedTcs.TrySetCanceled();
             return;
@@ -85,6 +91,12 @@ internal sealed class DashboardClient : IDashboardClient
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
         _channel = CreateChannel();
+
+        if (_dashboardOptions.ResourceServiceClient.AuthMode is ResourceClientAuthMode.ApiKey)
+        {
+            // We're using an API key for auth, so set it in the headers we pass on each call.
+            _headers.Add(ApiKeyHeaderName, _dashboardOptions.ResourceServiceClient.ApiKey!);
+        }
 
         _client = new DashboardService.DashboardServiceClient(_channel);
 
@@ -97,6 +109,26 @@ internal sealed class DashboardClient : IDashboardClient
                 KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
                 KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
             };
+
+            var authMode = _dashboardOptions.ResourceServiceClient.AuthMode;
+
+            if (authMode == ResourceClientAuthMode.Certificate)
+            {
+                // Auth hasn't been suppressed, so configure it.
+                var certificates = _dashboardOptions.ResourceServiceClient.ClientCertificates.Source switch
+                {
+                    DashboardClientCertificateSource.File => GetFileCertificate(),
+                    DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(),
+                    _ => throw new InvalidOperationException("Unable to load ResourceServiceClient client certificate.")
+                };
+
+                httpHandler.SslOptions = new SslClientAuthenticationOptions
+                {
+                    ClientCertificates = certificates
+                };
+
+                configuration.Bind("Dashboard:ResourceServiceClient:Ssl", httpHandler.SslOptions);
+            }
 
             // https://learn.microsoft.com/aspnet/core/grpc/retries
 
@@ -124,7 +156,49 @@ internal sealed class DashboardClient : IDashboardClient
                     LoggerFactory = _loggerFactory,
                     ThrowOperationCanceledOnCancellation = true
                 });
+
+            X509CertificateCollection GetFileCertificate()
+            {
+                Debug.Assert(
+                    _dashboardOptions.ResourceServiceClient.ClientCertificates.FilePath != null,
+                    "FilePath is validated as not null when configuration is loaded.");
+
+                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificates.FilePath;
+                var password = _dashboardOptions.ResourceServiceClient.ClientCertificates.Password;
+
+                return [new X509Certificate2(filePath, password)];
+            }
+
+            X509CertificateCollection GetKeyStoreCertificate()
+            {
+                Debug.Assert(
+                    _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject != null,
+                    "Subject is validated as not null when configuration is loaded.");
+
+                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject;
+                var storeName = _dashboardOptions.ResourceServiceClient.ClientCertificates.Store ?? "My";
+                var location = _dashboardOptions.ResourceServiceClient.ClientCertificates.Location ?? StoreLocation.CurrentUser;
+
+                using var store = new X509Store(storeName: storeName, storeLocation: location);
+
+                store.Open(OpenFlags.ReadOnly);
+
+                var certificates = store.Certificates.Find(X509FindType.FindBySubjectName, findValue: subject, validOnly: true);
+
+                if (certificates is [])
+                {
+                    throw new InvalidOperationException($"Unable to load client certificate with subject \"{subject}\" from key store.");
+                }
+
+                return certificates;
+            }
         }
+    }
+
+    internal sealed class KeyStoreProperties
+    {
+        public required string Name { get; set; }
+        public required StoreLocation Location { get; set; }
     }
 
     // For testing purposes
@@ -161,7 +235,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 try
                 {
-                    var response = await _client!.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
+                    var response = await _client!.GetApplicationInformationAsync(new(), headers: _headers, cancellationToken: cancellationToken);
 
                     _applicationName = response.ApplicationName;
 
@@ -214,9 +288,9 @@ internal sealed class DashboardClient : IDashboardClient
 
                 async Task WatchResourcesAsync()
                 {
-                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
+                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, headers: _headers, cancellationToken: cancellationToken);
 
-                    await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+                    await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                     {
                         List<ResourceViewModelChange>? changes = null;
 
@@ -312,7 +386,7 @@ internal sealed class DashboardClient : IDashboardClient
     string IDashboardClient.ApplicationName
     {
         get => _applicationName
-            ?? _configuration["DOTNET_DASHBOARD_APPLICATION_NAME"]
+            ?? _dashboardOptions.ApplicationName
             ?? "Aspire";
     }
 
@@ -364,7 +438,7 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    async IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
@@ -372,24 +446,25 @@ internal sealed class DashboardClient : IDashboardClient
 
         var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
+            headers: _headers,
             cancellationToken: combinedTokens.Token);
 
         // Write incoming logs to a channel, and then read from that channel to yield the logs.
         // We do this to batch logs together and enforce a minimum read interval.
-        var channel = Channel.CreateUnbounded<IReadOnlyList<(string Content, bool IsErrorMessage)>>(
+        var channel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
         var readTask = Task.Run(async () =>
         {
             try
             {
-                await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
+                await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(false))
                 {
-                    var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
+                    var logLines = new ResourceLogLine[response.LogLines.Count];
 
                     for (var i = 0; i < logLines.Length; i++)
                     {
-                        logLines[i] = (response.LogLines[i].Text, response.LogLines[i].IsStdErr);
+                        logLines[i] = new ResourceLogLine(response.LogLines[i].LineNumber, response.LogLines[i].Text, response.LogLines[i].IsStdErr);
                     }
 
                     // Channel is unbound so TryWrite always succeeds.
@@ -402,7 +477,7 @@ internal sealed class DashboardClient : IDashboardClient
             }
         }, combinedTokens.Token);
 
-        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token))
+        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token).ConfigureAwait(false))
         {
             if (batch.Count == 1)
             {
@@ -433,7 +508,7 @@ internal sealed class DashboardClient : IDashboardClient
         {
             using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_clientCancellationToken, cancellationToken);
 
-            var response = await _client!.ExecuteResourceCommandAsync(request, cancellationToken: combinedTokens.Token);
+            var response = await _client!.ExecuteResourceCommandAsync(request, headers: _headers, cancellationToken: combinedTokens.Token);
 
             return response.ToViewModel();
         }

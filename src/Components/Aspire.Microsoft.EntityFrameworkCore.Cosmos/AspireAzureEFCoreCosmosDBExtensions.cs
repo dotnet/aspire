@@ -8,11 +8,10 @@ using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Cosmos.Infrastructure.Internal;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -106,6 +105,11 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 builder.ConnectionMode(ConnectionMode.Gateway);
                 builder.LimitToEndpoint(true);
             }
+
+            if (settings.RequestTimeout.HasValue)
+            {
+                builder.RequestTimeout(settings.RequestTimeout.Value);
+            }
         }
     }
 
@@ -127,7 +131,28 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.PatchServiceDescriptor<TContext>();
+        if (settings.RequestTimeout.HasValue)
+        {
+            builder.PatchServiceDescriptor<TContext>(optionsBuilder =>
+            {
+#pragma warning disable EF1001 // Internal EF Core API usage.
+                var extension = optionsBuilder.Options.FindExtension<CosmosOptionsExtension>();
+
+                if (extension != null &&
+                    extension.RequestTimeout.HasValue &&
+                    extension.RequestTimeout != settings.RequestTimeout)
+                {
+                    throw new InvalidOperationException($"Conflicting values for 'RequestTimeout' were found in {nameof(EntityFrameworkCoreCosmosDBSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
+                }
+
+                extension?.WithRequestTimeout(settings.RequestTimeout);
+#pragma warning restore EF1001 // Internal EF Core API usage.
+            });
+        }
+        else
+        {
+            builder.PatchServiceDescriptor<TContext>();
+        }
 
         ConfigureInstrumentation<TContext>(builder, settings);
     }
@@ -138,22 +163,8 @@ public static class AspireAzureEFCoreCosmosDBExtensions
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
-                tracerProviderBuilder.AddEntityFrameworkCoreInstrumentation();
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
             });
         }
-
-        if (settings.Metrics)
-        {
-            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
-            {
-                meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                {
-                    // https://github.com/dotnet/efcore/blob/main/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
-                });
-            });
-        }
-
     }
 }

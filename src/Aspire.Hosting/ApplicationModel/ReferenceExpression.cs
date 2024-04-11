@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an expression that might be made up of multiple resource properties. For example,
 /// a connection string might be made up of a host, port, and password from different endpoints.
 /// </summary>
-public class ReferenceExpression : IValueProvider, IManifestExpressionProvider
+public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     private readonly string[] _manifestExpressions;
 
@@ -39,6 +39,8 @@ public class ReferenceExpression : IValueProvider, IManifestExpressionProvider
     /// The list of <see cref="IValueProvider"/> that will be used to resolve parameters for the format string.
     /// </summary>
     public IReadOnlyList<IValueProvider> ValueProviders { get; }
+
+    IEnumerable<object> IValueWithReferences.References => ValueProviders;
 
     /// <summary>
     /// The value expression for the format string.
@@ -81,26 +83,84 @@ public class ReferenceExpression : IValueProvider, IManifestExpressionProvider
     {
         return handler.GetExpression();
     }
+
+    /// <summary>
+    /// Represents a handler for interpolated strings that contain expressions. Those expressions will either be literal strings or
+    /// instances of types that implement both <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+    /// </summary>
+    /// <param name="literalLength">The length of the literal part of the interpolated string.</param>
+    /// <param name="formattedCount">The number of formatted parts in the interpolated string.</param>
+    [InterpolatedStringHandler]
+    public ref struct ExpressionInterpolatedStringHandler(int literalLength, int formattedCount)
+    {
+        private readonly StringBuilder _builder = new(literalLength * 2);
+        private readonly List<IValueProvider> _valueProviders = new(formattedCount);
+        private readonly List<string> _manifestExpressions = new(formattedCount);
+
+        /// <summary>
+        /// Appends a literal value to the expression.
+        /// </summary>
+        /// <param name="value">The literal string value to be appended to the interpolated string.</param>
+        public readonly void AppendLiteral(string value)
+        {
+            _builder.Append(value);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression.
+        /// </summary>
+        /// <param name="value">The formatted string to be appended to the interpolated string.</param>
+        public readonly void AppendFormatted(string? value)
+        {
+            _builder.Append(value);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
+        {
+            var index = _valueProviders.Count;
+            _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
+
+            _valueProviders.Add(valueProvider);
+            _manifestExpressions.Add(valueProvider.ValueExpression);
+        }
+
+        internal readonly ReferenceExpression GetExpression() =>
+            new(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions]);
+    }
 }
 
 /// <summary>
-/// Represents a handler for interpolated strings that contain expressions. Those expressions will either be literal strings or
-/// instances of types that implement both <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+/// A builder for creating <see cref="ReferenceExpression"/> instances.
 /// </summary>
-/// <param name="literalLength">The length of the literal part of the interpolated string.</param>
-/// <param name="formattedCount">The number of formatted parts in the interpolated string.</param>
-[InterpolatedStringHandler]
-public ref struct ExpressionInterpolatedStringHandler(int literalLength, int formattedCount)
+public class ReferenceExpressionBuilder
 {
-    private readonly StringBuilder _builder = new(literalLength * 2);
-    private readonly List<IValueProvider> _valueProviders = new(formattedCount);
-    private readonly List<string> _manifestExpressions = new(formattedCount);
+    private readonly StringBuilder _builder = new();
+    private readonly List<IValueProvider> _valueProviders = new();
+    private readonly List<string> _manifestExpressions = new();
+
+    /// <summary>
+    /// Indicates whether the expression is empty.
+    /// </summary>
+    public bool IsEmpty => _builder.Length == 0;
+
+    /// <summary>
+    /// Appends an interpolated string to the expression.
+    /// </summary>
+    /// <param name="handler"></param>
+    public void Append([InterpolatedStringHandlerArgument("")] in ReferenceExpressionBuilderInterpolatedStringHandler handler)
+    {
+    }
 
     /// <summary>
     /// Appends a literal value to the expression.
     /// </summary>
     /// <param name="value">The literal string value to be appended to the interpolated string.</param>
-    public readonly void AppendLiteral(string value)
+    public void AppendLiteral(string value)
     {
         _builder.Append(value);
     }
@@ -109,7 +169,7 @@ public ref struct ExpressionInterpolatedStringHandler(int literalLength, int for
     /// Appends a formatted value to the expression.
     /// </summary>
     /// <param name="value">The formatted string to be appended to the interpolated string.</param>
-    public readonly void AppendFormatted(string? value)
+    public void AppendFormatted(string? value)
     {
         _builder.Append(value);
     }
@@ -128,6 +188,50 @@ public ref struct ExpressionInterpolatedStringHandler(int literalLength, int for
         _manifestExpressions.Add(valueProvider.ValueExpression);
     }
 
-    internal readonly ReferenceExpression GetExpression() =>
+    /// <summary>
+    /// Builds the <see cref="ReferenceExpression"/>.
+    /// </summary>
+    public ReferenceExpression Build() =>
         ReferenceExpression.Create(_builder.ToString(), [.. _valueProviders], [.. _manifestExpressions]);
+
+    /// <summary>
+    /// Represents a handler for interpolated strings that contain expressions. Those expressions will either be literal strings or
+    /// instances of types that implement both <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+    /// </summary>
+    /// <param name="literalLength">The length of the literal part of the interpolated string.</param>
+    /// <param name="formattedCount">The number of formatted parts in the interpolated string.</param>
+    /// <param name="builder">The builder that will be used to create the <see cref="ReferenceExpression"/>.</param>
+    [InterpolatedStringHandler]
+#pragma warning disable CS9113 // Parameter is unread.
+    public ref struct ReferenceExpressionBuilderInterpolatedStringHandler(int literalLength, int formattedCount, ReferenceExpressionBuilder builder)
+#pragma warning restore CS9113 // Parameter is unread.
+    {
+        /// <summary>
+        /// Appends a literal value to the expression.
+        /// </summary>
+        /// <param name="value">The literal string value to be appended to the interpolated string.</param>
+        public readonly void AppendLiteral(string value)
+        {
+            builder.AppendLiteral(value);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression.
+        /// </summary>
+        /// <param name="value">The formatted string to be appended to the interpolated string.</param>
+        public readonly void AppendFormatted(string? value)
+        {
+            builder.AppendFormatted(value);
+        }
+
+        /// <summary>
+        /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
+        /// </summary>
+        /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
+        {
+            builder.AppendFormatted(valueProvider);
+        }
+    }
 }

@@ -12,16 +12,10 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class FilterDialog
 {
-    private static readonly List<SelectViewModel<FilterCondition>> s_filterConditions = new()
-    {
-        CreateFilterSelectViewModel(FilterCondition.Equals),
-        CreateFilterSelectViewModel(FilterCondition.Contains),
-        CreateFilterSelectViewModel(FilterCondition.NotEqual),
-        CreateFilterSelectViewModel(FilterCondition.NotContains),
-    };
+    private List<SelectViewModel<FilterCondition>> _filterConditions = null!;
 
-    private static SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
-        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(condition) };
+    private SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
+        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(condition, LogsLoc) };
 
     [CascadingParameter]
     public FluentDialog? Dialog { get; set; }
@@ -37,19 +31,27 @@ public partial class FilterDialog
 
     protected override void OnInitialized()
     {
+        _filterConditions =
+        [
+            CreateFilterSelectViewModel(FilterCondition.Equals),
+            CreateFilterSelectViewModel(FilterCondition.Contains),
+            CreateFilterSelectViewModel(FilterCondition.NotEqual),
+            CreateFilterSelectViewModel(FilterCondition.NotContains)
+        ];
+
         _formModel = new LogDialogFormModel();
         EditContext = new EditContext(_formModel);
 
         if (Content.Filter is { } logFilter)
         {
             _formModel.Parameter = logFilter.Field;
-            _formModel.Condition = s_filterConditions.Single(c => c.Id == logFilter.Condition);
+            _formModel.Condition = _filterConditions.Single(c => c.Id == logFilter.Condition);
             _formModel.Value = logFilter.Value;
         }
         else
         {
             _formModel.Parameter = "Message";
-            _formModel.Condition = s_filterConditions.Single(c => c.Id == FilterCondition.Contains);
+            _formModel.Condition = _filterConditions.Single(c => c.Id == FilterCondition.Contains);
             _formModel.Value = "";
         }
     }

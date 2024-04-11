@@ -28,8 +28,9 @@ public static class SeqBuilderExtensions
     {
         var seqResource = new SeqResource(name);
         var resourceBuilder = builder.AddResource(seqResource)
-            .WithHttpEndpoint(hostPort: port, containerPort: 80, name: SeqResource.PrimaryEndpointName)
-            .WithImage("datalust/seq", "2024.1")
+            .WithHttpEndpoint(port: port, targetPort: 80, name: SeqResource.PrimaryEndpointName)
+            .WithImage(SeqContainerImageTags.Image, SeqContainerImageTags.Tag)
+            .WithImageRegistry(SeqContainerImageTags.Registry)
             .WithEnvironment("ACCEPT_EULA", "Y");
 
         if (!string.IsNullOrEmpty(seqDataDirectory))

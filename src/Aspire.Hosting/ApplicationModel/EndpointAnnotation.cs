@@ -24,11 +24,10 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="transport">Transport that is being used (e.g. http, http2, http3 etc).</param>
     /// <param name="name">Name of the service.</param>
     /// <param name="port">Desired port for the service.</param>
-    /// <param name="containerPort">If the endpoint is used for the container, this is the port the container process is listening on.</param>
+    /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
-    /// <param name="env">The name of the environment variable that will be set to the port number of this endpoint.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null, bool isProxied = true)
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -45,9 +44,17 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _transport = transport;
         Name = name;
         Port = port;
-        ContainerPort = containerPort ?? port;
+
+        TargetPort = targetPort;
+
+        // If the target port was not explicitly set and the service is not being proxied,
+        // we can set the target port to the port.
+        if (TargetPort is null && !isProxied)
+        {
+            TargetPort = port;
+        }
+
         IsExternal = isExternal ?? false;
-        EnvironmentVariable = env;
         IsProxied = isProxied;
     }
 
@@ -67,12 +74,12 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public int? Port { get; set; }
 
     /// <summary>
-    /// If the endpoint is used for the container, this is the port the container process is listening on.
+    /// This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.
     /// </summary>
     /// <remarks>
     /// Defaults to <see cref="Port"/>.
     /// </remarks>
-    public int? ContainerPort { get; set; }
+    public int? TargetPort { get; set; }
 
     /// <summary>
     /// If a service is URI-addressable, this property will contain the URI scheme to use for constructing service URI.
@@ -94,11 +101,6 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public bool IsExternal { get; set; }
 
     /// <summary>
-    /// The name of the environment variable that will be set to the port number of this endpoint.
-    /// </summary>
-    public string? EnvironmentVariable { get; set; }
-
-    /// <summary>
     /// Indicates that this endpoint should be managed by DCP. This means it can be replicated and use a different port internally than the one publicly exposed.
     /// Setting to false means the endpoint will be handled and exposed by the resource.
     /// </summary>
@@ -109,6 +111,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// Gets or sets a value indicating whether the endpoint is from a launch profile.
     /// </summary>
     internal bool FromLaunchProfile { get; set; }
+
+    /// <summary>
+    /// The environment variable that contains the target port. Setting prevents a variable from flowing into ASPNETCORE_URLS for project resources.
+    /// </summary>
+    internal string? TargetPortEnvironmentVariable { get; set; }
 
     /// <summary>
     /// Gets or sets the allocated endpoint.

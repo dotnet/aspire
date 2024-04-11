@@ -5,19 +5,25 @@ var catalogDb = builder.AddPostgres("postgres")
                        .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
+                         .WithDataVolume()
                          .WithRedisCommander();
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
                             .WithReplicas(2);
 
-var messaging = builder.AddRabbitMQ("messaging").PublishAsContainer();
+var rabbitMqPassword = builder.AddParameter("rabbitmq-password", secret: true);
+var messaging = builder.AddRabbitMQ("messaging", password: rabbitMqPassword)
+                       .WithDataVolume()
+                       .WithManagementPlugin()
+                       .PublishAsContainer();
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                            .WithReference(basketCache)
                            .WithReference(messaging);
 
 builder.AddProject<Projects.MyFrontend>("frontend")
+       .WithExternalHttpEndpoints()
        .WithReference(basketService)
        .WithReference(catalogService);
 

@@ -9,19 +9,22 @@ namespace Aspire.Hosting.ApplicationModel;
 public class RabbitMQServerResource : ContainerResource, IResourceWithConnectionString, IResourceWithEnvironment
 {
     internal const string PrimaryEndpointName = "tcp";
+    internal const string ManagementEndpointName = "management";
+    private const string DefaultUserName = "guest";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RabbitMQServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="password">The RabbitMQ server password, or <see langword="null"/> to generate a random password.</param>
-    public RabbitMQServerResource(string name, string? password = null) : base(name)
+    /// <param name="userName">A parameter that contains the RabbitMQ server user name, or <see langword="null"/> to use a default value.</param>
+    /// <param name="password">A parameter that contains the RabbitMQ server password.</param>
+    public RabbitMQServerResource(string name, ParameterResource? userName, ParameterResource password) : base(name)
     {
-        PrimaryEndpoint = new(this, PrimaryEndpointName);
-        PasswordInput = new(this, "password");
+        ArgumentNullException.ThrowIfNull(password);
 
-        // don't use special characters in the password, since it goes into a URI
-        Annotations.Add(InputAnnotation.CreateDefaultPasswordInput(password, special: false));
+        PrimaryEndpoint = new(this, PrimaryEndpointName);
+        UserNameParameter = userName;
+        PasswordParameter = password;
     }
 
     /// <summary>
@@ -29,17 +32,25 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
-    internal InputReference PasswordInput { get; }
+    /// <summary>
+    /// Gets the parameter that contains the RabbitMQ server user name.
+    /// </summary>
+    public ParameterResource? UserNameParameter { get; }
+
+    internal ReferenceExpression UserNameReference =>
+        UserNameParameter is not null ?
+            ReferenceExpression.Create($"{UserNameParameter}") :
+            ReferenceExpression.Create($"{DefaultUserName}");
 
     /// <summary>
-    /// Gets the RabbitMQ server password.
+    /// Gets the parameter that contains the PostgreSQL server password.
     /// </summary>
-    public string Password => PasswordInput.Input.Value ?? throw new InvalidOperationException("Password cannot be null.");
+    public ParameterResource PasswordParameter { get; }
 
     /// <summary>
     /// Gets the connection string expression for the RabbitMQ server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(
-            $"amqp://guest:{PasswordInput}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+            $"amqp://{UserNameReference}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 }

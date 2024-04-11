@@ -73,4 +73,7 @@
   <data name="StructuredLogsAllApplications" xml:space="preserve">
     <value>(All)</value>
   </data>
+  <data name="StructuredLogsLevels" xml:space="preserve">
+    <value>Level:</value>
+  </data>
 </root>

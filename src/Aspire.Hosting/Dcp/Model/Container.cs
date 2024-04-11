@@ -44,6 +44,10 @@ internal sealed class ContainerSpec
     // Arguments to pass to the command that starts the container
     [JsonPropertyName("args")]
     public List<string>? Args { get; set; }
+
+    // Additional arguments to pass to the container run command
+    [JsonPropertyName("runArgs")]
+    public List<string>? RunArgs { get; set; }
 }
 
 internal static class VolumeMountType
@@ -220,9 +224,6 @@ internal static class ContainerState
 
 internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
 {
-    public const string ResourceNameAnnotation = "resource-name";
-    public const string OtelServiceNameAnnotation = "otel-service-name";
-
     [JsonConstructor]
     public Container(ContainerSpec spec) : base(spec) { }
 

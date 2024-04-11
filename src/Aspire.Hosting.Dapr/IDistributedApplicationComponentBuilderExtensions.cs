@@ -54,7 +54,13 @@ public static class IDistributedApplicationResourceBuilderExtensions
         // Add Dapr is idempoent, so we can call it multiple times.
         builder.ApplicationBuilder.AddDapr();
 
-        var sidecarBuilder = builder.ApplicationBuilder.AddResource(new DaprSidecarResource($"{builder.Resource.Name}-dapr"));
+        var sidecarBuilder = builder.ApplicationBuilder.AddResource(new DaprSidecarResource($"{builder.Resource.Name}-dapr"))
+                                                       .WithInitialState(new()
+                                                       {
+                                                           Properties = [],
+                                                           ResourceType = "DaprSidecar",
+                                                           State = KnownResourceStates.Hidden
+                                                       });
 
         configureSidecar(sidecarBuilder);
 

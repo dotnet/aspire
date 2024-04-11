@@ -17,8 +17,8 @@ static class TestResourceExtensions
                           ResourceType = "Test Resource",
                           State = "Starting",
                           Properties = [
-                              ("P1", "P2"),
-                              (CustomResourceKnownProperties.Source, "Custom")
+                              new("P1", "P2"),
+                              new(CustomResourceKnownProperties.Source, "Custom")
                           ]
                       })
                       .ExcludeFromManifest();
@@ -35,7 +35,8 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
     {
         foreach (var resource in appModel.Resources.OfType<TestResource>())
         {
-            var states = new[] { "Starting", "Running", "Finished" };
+            var states = new[] { "Starting", "Running", "Finished", "Uploading", "Downloading", "Processing", "Provisioning" };
+            var stateStyles = new[] { "info", "success", "warning", "error" };
 
             var logger = loggerService.GetLogger(resource);
 
@@ -47,7 +48,7 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
 
                 await notificationService.PublishUpdateAsync(resource, state => state with
                 {
-                    Properties = [.. state.Properties, ("Interval", seconds.ToString(CultureInfo.InvariantCulture))]
+                    Properties = [.. state.Properties, new("Interval", seconds.ToString(CultureInfo.InvariantCulture))]
                 });
 
                 using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds));
@@ -55,10 +56,10 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
                 while (await timer.WaitForNextTickAsync(_tokenSource.Token))
                 {
                     var randomState = states[Random.Shared.Next(0, states.Length)];
-
+                    var randomStyle = stateStyles[Random.Shared.Next(0, stateStyles.Length)];
                     await notificationService.PublishUpdateAsync(resource, state => state with
                     {
-                        State = randomState
+                        State = new(randomState, randomStyle)
                     });
 
                     logger.LogInformation("Test resource {ResourceName} is now in state {State}", resource.Name, randomState);

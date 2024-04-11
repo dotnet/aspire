@@ -6,16 +6,13 @@ param location string = resourceGroup().location
 @description('')
 param keyVaultName string
 
-@description('')
-param principalId string
-
 
 resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
 
-resource redisCache_N8pcNBLX8 'Microsoft.Cache/Redis@2020-06-01' = {
-  name: toLower(take(concat('redis', uniqueString(resourceGroup().id)), 24))
+resource redisCache_bsDXQBNdq 'Microsoft.Cache/Redis@2020-06-01' = {
+  name: toLower(take('redis${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'redis'
@@ -36,6 +33,6 @@ resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01'
   name: 'connectionString'
   location: location
   properties: {
-    value: '${redisCache_N8pcNBLX8.properties.hostName},ssl=true,password=${redisCache_N8pcNBLX8.listKeys(redisCache_N8pcNBLX8.apiVersion).primaryKey}'
+    value: '${redisCache_bsDXQBNdq.properties.hostName},ssl=true,password=${redisCache_bsDXQBNdq.listKeys(redisCache_bsDXQBNdq.apiVersion).primaryKey}'
   }
 }

@@ -8,6 +8,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <SharedDir>$(MSBuildThisFileDirectory)/src/Shared/</SharedDir>
     <TestsSharedDir>$(MSBuildThisFileDirectory)/tests/Shared/</TestsSharedDir>
+    <VendoringDir>$(MSBuildThisFileDirectory)/src/Vendoring/</VendoringDir>
     <!-- Capture PackageIconFullPath into DefaultDotnetIconFullPath before we overwrite PackageIconFullPath. -->
     <!-- DefaultDotnetIconFullPath is only needed for the ServiceDisovery packages. The property can be removed when these libraries move. See https://github.com/dotnet/aspire/issues/170 -->
     <DefaultDotnetIconFullPath>$(PackageIconFullPath)</DefaultDotnetIconFullPath>
@@ -44,8 +45,6 @@
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
     <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/</DcpDir>
 
-    <TestArchiveTestsDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'tests'))</TestArchiveTestsDir>
-    <TestArchiveTestsDirForWorkloadTests Condition="'$(TestArchiveTestsDirForWorkloadTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'workload-tests'))</TestArchiveTestsDirForWorkloadTests>
     <!-- TODO: Need to figure out we can automatically detect target framework here. This property
                is specified to support dashboard path metadata generation on the inner loop. -->
     <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net8.0/</AspireDashboardDir>

@@ -4,17 +4,24 @@
     <body>
       <trans-unit id="ContainerMountAnonymousVolumesReadOnlyExceptionMessage">
         <source>Anonymous volumes cannot be read-only.</source>
-        <target state="new">Anonymous volumes cannot be read-only.</target>
+        <target state="translated">匿名磁碟區不可為唯讀。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="new">Bind mounts must specify an absolute path.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
-        <target state="new">Bind mounts must specify a source path.</target>
+        <target state="translated">繫結裝載必須指定來源路徑。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
-        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.</source>
-        <target state="translated">找不到容器執行階段 '{0}'。容器執行階段檢查的錯誤為: {1}。</target>
+        <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
+See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="translated">找不到容器執行階段 '{0}'。來自容器執行階段檢查的錯誤為: {1}。
+如需支援的容器執行階段的詳細資訊，請參閱 https://aka.ms/dotnet/aspire/containers。</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">

@@ -563,7 +563,7 @@ public class LogTests
     public void AddLogs_AttributeLimits_LimitsApplied()
     {
         // Arrange
-        var repository = CreateRepository(attributeCountLimit: 5, attributeLengthLimit: 16);
+        var repository = CreateRepository(maxAttributeCount: 5, maxAttributeLength: 16);
 
         // Act
         var attributes = new List<KeyValuePair<string, string>>

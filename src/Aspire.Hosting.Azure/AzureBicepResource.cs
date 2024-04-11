@@ -74,8 +74,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             isTempFile = directory is null;
 
             path = TempDirectory is null
-                ? Path.GetTempFileName() + ".bicep"
-                : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.bicep");
+                ? Path.Combine(directory ?? Directory.CreateTempSubdirectory("aspire").FullName, $"{Name.ToLowerInvariant()}.module.bicep")
+                : Path.Combine(TempDirectory, $"{Name.ToLowerInvariant()}.module.bicep");
 
             if (TemplateResourceName is null)
             {
@@ -127,14 +127,6 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         return File.ReadAllText(TemplateFile);
     }
 
-    /// TODO: Remove this method once AppInsights CDK is removed.
-    /// <summary>
-    /// Create a Bicep identifier safe version of the resource name.
-    /// </summary>
-    /// <returns>A string which is safe to use as a Bicep identifier.</returns>
-    [Obsolete("This method is obsolete and will be removed before release.")]
-    public string CreateBicepResourceName() => Name.ToLower(); // Insufficient but we don't care because its going to be deleted.
-
     /// <summary>
     /// Writes the resource to the manifest.
     /// </summary>
@@ -176,11 +168,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                 };
 
                 context.Writer.WriteString(input.Key, value);
+
+                context.TryAddDependentResources(input.Value);
             }
             context.Writer.WriteEndObject();
         }
-
-        context.WriteInputs(this);
     }
 
     /// <summary>
@@ -249,7 +241,7 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 /// </summary>
 /// <param name="name">The name of the secret output.</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider
+public class BicepSecretOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the output.
@@ -294,6 +286,8 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
     /// The expression used in the manifest to reference the value of the secret output.
     /// </summary>
     public string ValueExpression => $"{{{Resource.Name}.secretOutputs.{Name}}}";
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 }
 
 /// <summary>
@@ -301,7 +295,7 @@ public class BicepSecretOutputReference(string name, AzureBicepResource resource
 /// </summary>
 /// <param name="name">The name of the output</param>
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
-public class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider
+public class BicepOutputReference(string name, AzureBicepResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the output.
@@ -312,6 +306,8 @@ public class BicepOutputReference(string name, AzureBicepResource resource) : IM
     /// The instance of the bicep resource.
     /// </summary>
     public AzureBicepResource Resource { get; } = resource;
+
+    IEnumerable<object> IValueWithReferences.References => [Resource];
 
     /// <summary>
     /// The value of the output.

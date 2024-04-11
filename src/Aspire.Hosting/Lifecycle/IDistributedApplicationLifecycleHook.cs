@@ -33,7 +33,7 @@ public interface IDistributedApplicationLifecycleHook
     }
 
     /// <summary>
-    /// Executes arfter the orchestrator has created the resources in the application model.
+    /// Executes after the orchestrator has created the resources in the application model.
     /// </summary>
     /// <remarks>
     /// There is no guarantee that the resources have fully started or are in a working state when this method is called.

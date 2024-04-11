@@ -2,7 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.MySql;
+using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.RabbitMQ;
+using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -111,7 +116,7 @@ public class ManifestGenerationTests
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithHttpsEndpoint(containerPort: 3000, env: "HTTPS_PORT")
+        program.NodeAppBuilder!.WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
             .PublishAsDockerFile();
 
         // Build AppHost so that publisher can be resolved.
@@ -135,9 +140,9 @@ public class ManifestGenerationTests
         Assert.True(nodeapp.TryGetProperty("env", out var env));
         Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
 
-        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("containerPort").GetInt32());
+        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("targetPort").GetInt32());
         Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
-        Assert.Equal("{nodeapp.bindings.https.port}", env.GetProperty("HTTPS_PORT").GetString());
+        Assert.Equal("{nodeapp.bindings.https.targetPort}", env.GetProperty("HTTPS_PORT").GetString());
     }
 
     [Fact]
@@ -150,7 +155,7 @@ public class ManifestGenerationTests
 
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
 
-        var program = appBuilder.Build();
+        using var program = appBuilder.Build();
         var publisher = program.Services.GetManifestPublisher();
 
         program.Run();
@@ -160,140 +165,6 @@ public class ManifestGenerationTests
         Assert.False(
             resources.GetProperty("servicea").TryGetProperty("bindings", out _),
             "Service has no bindings because they weren't populated from the launch profile.");
-    }
-
-    [Fact]
-    public void EnsureContainerWithEndpointsEmitsContainerPort()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithHttpEndpoint(3000);
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var grafana = resources.GetProperty("grafana");
-        var bindings = grafana.GetProperty("bindings");
-        var httpBinding = bindings.GetProperty("http");
-        Assert.Equal(3000, httpBinding.GetProperty("containerPort").GetInt32());
-    }
-
-    [Fact]
-    public void EnsureContainerWithArgsEmitsContainerArgs()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithArgs("test", "arg2", "more");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var grafana = resources.GetProperty("grafana");
-        var args = grafana.GetProperty("args");
-        Assert.Equal(3, args.GetArrayLength());
-        Assert.Collection(args.EnumerateArray(),
-            arg => Assert.Equal("test", arg.GetString()),
-            arg => Assert.Equal("arg2", arg.GetString()),
-            arg => Assert.Equal("more", arg.GetString()));
-    }
-
-    [Fact]
-    public async Task EnsureContainerWithVolumesEmitsVolumes()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        var container = program.AppBuilder.AddContainer("containerwithvolumes", "image/name")
-            .WithVolume("myvolume", "/mount/here")
-            .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
-            .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
-
-        program.Build();
-
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "container.v0",
-              "image": "image/name:latest",
-              "volumes": [
-                {
-                  "name": "myvolume",
-                  "target": "/mount/here",
-                  "readOnly": false
-                },
-                {
-                  "name": "myreadonlyvolume",
-                  "target": "/mount/there",
-                  "readOnly": true
-                },
-                {
-                  "target": "/mount/everywhere",
-                  "readOnly": false
-                }
-              ]
-            }
-            """;
-
-        Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Fact]
-    public async Task EnsureContainerWithBindMountsEmitsBindMounts()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        var container = program.AppBuilder.AddContainer("containerwithbindmounts", "image/name")
-            .WithBindMount("./some/source", "/bound")
-            .WithBindMount("not/relative/qualified", "/another/place")
-            .WithBindMount(".\\some\\other\\source", "\\mount\\here")
-            .WithBindMount("./some/file/path.txt", "/mount/there.txt", isReadOnly: true);
-
-        program.Build();
-
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "container.v0",
-              "image": "image/name:latest",
-              "bindMounts": [
-                {
-                  "source": "some/source",
-                  "target": "/bound",
-                  "readOnly": false
-                },
-                {
-                  "source": "not/relative/qualified",
-                  "target": "/another/place",
-                  "readOnly": false
-                },
-                {
-                  "source": "some/other/source",
-                  "target": "/mount/here",
-                  "readOnly": false
-                },
-                {
-                  "source": "some/file/path.txt",
-                  "target": "/mount/there.txt",
-                  "readOnly": true
-                }
-              ]
-            }
-            """;
-
-        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Theory]
@@ -353,27 +224,6 @@ public class ManifestGenerationTests
         var resource = resources.GetProperty("program");
         var exists = resource.TryGetProperty("args", out _);
         Assert.False(exists);
-    }
-
-    [Fact]
-    public void EnsureContainerWithCustomEntrypointEmitsEntrypoint()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        var container = program.AppBuilder.AddContainer("grafana", "grafana/grafana");
-        container.Resource.Entrypoint = "custom";
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var grafana = resources.GetProperty("grafana");
-        var entrypoint = grafana.GetProperty("entrypoint");
-        Assert.Equal("custom", entrypoint.GetString());
     }
 
     [Fact]
@@ -482,9 +332,9 @@ public class ManifestGenerationTests
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithHttpEndpoint(hostPort: 5031, env: "PORT");
+            .WithHttpEndpoint(port: 5031, env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithHttpEndpoint(hostPort: 5032, env: "PORT");
+            .WithHttpEndpoint(port: 5032, env: "PORT");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -497,7 +347,7 @@ public class ManifestGenerationTests
         var nodeApp = resources.GetProperty("nodeapp");
         var npmApp = resources.GetProperty("npmapp");
 
-        static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
+        static void AssertNodeResource(TestProgram program, string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
             var s = jsonElement.ToString();
             Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
@@ -508,16 +358,16 @@ public class ManifestGenerationTests
             Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
 
             var env = jsonElement.GetProperty("env");
-            Assert.Equal($$"""{{{resourceName}}.bindings.http.port}""", env.GetProperty("PORT").GetString());
-            Assert.Equal("production", env.GetProperty("NODE_ENV").GetString());
+            Assert.Equal($$"""{{{resourceName}}.bindings.http.targetPort}""", env.GetProperty("PORT").GetString());
+            Assert.Equal(program.AppBuilder.Environment.EnvironmentName.ToLowerInvariant(), env.GetProperty("NODE_ENV").GetString());
 
             var command = jsonElement.GetProperty("command");
             Assert.Equal(expectedCommand, command.GetString());
             Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
         }
 
-        AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
-        AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
+        AssertNodeResource(program, "nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
+        AssertNodeResource(program, "npmapp", npmApp, "npm", ["run", "start"]);
     }
 
     [Fact]
@@ -540,12 +390,15 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void MetadataPropertyEmittedWhenMetadataNotAdded()
+    public void VerifyTestProgramFullManifest()
     {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        using var program = CreateTestProgramJsonDocumentManifestPublisher(includeIntegrationServices: true);
 
-        program.AppBuilder.AddContainer("testresource", "testresource")
-                          .WithMetadata("data", "value");
+        program.AppBuilder.Services.Configure<PublishingOptions>(options =>
+        {
+            // set the output path so the paths are relative to the AppHostDirectory
+            options.OutputPath = program.AppBuilder.AppHostDirectory;
+        });
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -553,80 +406,382 @@ public class ManifestGenerationTests
 
         program.Run();
 
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var container = resources.GetProperty("testresource");
-        Assert.True(container.TryGetProperty("metadata", out var metadata));
-        Assert.True(metadata.TryGetProperty("data", out var data));
-        Assert.Equal("value", data.GetString());
+        var expectedManifest = $$"""
+            {
+              "resources": {
+                "servicea": {
+                  "type": "project.v0",
+                  "path": "testproject/TestProject.ServiceA/TestProject.ServiceA.csproj",
+                  "env": {
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                  },
+                  "bindings": {
+                    "http": {
+                      "scheme": "http",
+                      "protocol": "tcp",
+                      "transport": "http"
+                    },
+                    "https": {
+                      "scheme": "https",
+                      "protocol": "tcp",
+                      "transport": "http"
+                    }
+                  }
+                },
+                "serviceb": {
+                  "type": "project.v0",
+                  "path": "testproject/TestProject.ServiceB/TestProject.ServiceB.csproj",
+                  "env": {
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                  },
+                  "bindings": {
+                    "http": {
+                      "scheme": "http",
+                      "protocol": "tcp",
+                      "transport": "http"
+                    },
+                    "https": {
+                      "scheme": "https",
+                      "protocol": "tcp",
+                      "transport": "http"
+                    }
+                  }
+                },
+                "servicec": {
+                  "type": "project.v0",
+                  "path": "testproject/TestProject.ServiceC/TestProject.ServiceC.csproj",
+                  "env": {
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                  },
+                  "bindings": {
+                    "http": {
+                      "scheme": "http",
+                      "protocol": "tcp",
+                      "transport": "http"
+                    },
+                    "https": {
+                      "scheme": "https",
+                      "protocol": "tcp",
+                      "transport": "http"
+                    }
+                  }
+                },
+                "workera": {
+                  "type": "project.v0",
+                  "path": "testproject/TestProject.WorkerA/TestProject.WorkerA.csproj",
+                  "env": {
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"
+                  }
+                },
+                "integrationservicea": {
+                  "type": "project.v0",
+                  "path": "testproject/TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj",
+                  "env": {
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                    "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                    "SKIP_RESOURCES": "None",
+                    "ConnectionStrings__tempdb": "{tempdb.connectionString}",
+                    "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
+                    "ConnectionStrings__redis": "{redis.connectionString}",
+                    "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
+                    "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
+                    "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
+                    "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
+                    "ConnectionStrings__kafka": "{kafka.connectionString}",
+                    "ConnectionStrings__cosmos": "{cosmos.connectionString}"
+                  },
+                  "bindings": {
+                    "http": {
+                      "scheme": "http",
+                      "protocol": "tcp",
+                      "transport": "http"
+                    },
+                    "https": {
+                      "scheme": "https",
+                      "protocol": "tcp",
+                      "transport": "http"
+                    }
+                  }
+                },
+                "sqlserver": {
+                  "type": "container.v0",
+                  "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
+                  "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
+                  "env": {
+                    "ACCEPT_EULA": "Y",
+                    "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
+                  },
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 1433
+                    }
+                  }
+                },
+                "tempdb": {
+                  "type": "value.v0",
+                  "connectionString": "{sqlserver.connectionString};Database=tempdb"
+                },
+                "mysql": {
+                  "type": "container.v0",
+                  "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
+                  "image": "{{MySqlContainerImageTags.Registry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
+                  "env": {
+                    "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
+                    "MYSQL_DATABASE": "mysqldb"
+                  },
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 3306
+                    }
+                  }
+                },
+                "mysqldb": {
+                  "type": "value.v0",
+                  "connectionString": "{mysql.connectionString};Database=mysqldb"
+                },
+                "redis": {
+                  "type": "container.v0",
+                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+                  "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 6379
+                    }
+                  }
+                },
+                "postgres": {
+                  "type": "container.v0",
+                  "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
+                  "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
+                  "env": {
+                    "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+                    "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+                    "POSTGRES_USER": "postgres",
+                    "POSTGRES_PASSWORD": "{postgres-password.value}",
+                    "POSTGRES_DB": "postgresdb"
+                  },
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 5432
+                    }
+                  }
+                },
+                "postgresdb": {
+                  "type": "value.v0",
+                  "connectionString": "{postgres.connectionString};Database=postgresdb"
+                },
+                "rabbitmq": {
+                  "type": "container.v0",
+                  "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
+                  "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
+                  "env": {
+                    "RABBITMQ_DEFAULT_USER": "guest",
+                    "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
+                  },
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 5672
+                    }
+                  }
+                },
+                "mongodb": {
+                  "type": "container.v0",
+                  "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
+                  "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 27017
+                    }
+                  }
+                },
+                "mymongodb": {
+                  "type": "value.v0",
+                  "connectionString": "{mongodb.connectionString}/mymongodb"
+                },
+                "oracledatabase": {
+                  "type": "container.v0",
+                  "connectionString": "user id=system;password={oracledatabase-password.value};data source={oracledatabase.bindings.tcp.host}:{oracledatabase.bindings.tcp.port}",
+                  "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
+                  "env": {
+                    "ORACLE_PWD": "{oracledatabase-password.value}"
+                  },
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 1521
+                    }
+                  }
+                },
+                "freepdb1": {
+                  "type": "value.v0",
+                  "connectionString": "{oracledatabase.connectionString}/freepdb1"
+                },
+                "kafka": {
+                  "type": "container.v0",
+                  "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
+                  "image": "{{KafkaContainerImageTags.Registry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
+                  "env": {
+                    "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
+                  },
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 9092
+                    }
+                  }
+                },
+                "cosmos": {
+                  "type": "azure.bicep.v0",
+                  "connectionString": "{cosmos.secretOutputs.connectionString}",
+                  "path": "cosmos.module.bicep",
+                  "params": {
+                    "keyVaultName": ""
+                  }
+                },
+                "sqlserver-password": {
+                  "type": "parameter.v0",
+                  "value": "{sqlserver-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22,
+                          "minLower": 1,
+                          "minUpper": 1,
+                          "minNumeric": 1
+                        }
+                      }
+                    }
+                  }
+                },
+                "mysql-password": {
+                  "type": "parameter.v0",
+                  "value": "{mysql-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22
+                        }
+                      }
+                    }
+                  }
+                },
+                "postgres-password": {
+                  "type": "parameter.v0",
+                  "value": "{postgres-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22
+                        }
+                      }
+                    }
+                  }
+                },
+                "rabbitmq-password": {
+                  "type": "parameter.v0",
+                  "value": "{rabbitmq-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22,
+                          "special": false
+                        }
+                      }
+                    }
+                  }
+                },
+                "oracledatabase-password": {
+                  "type": "parameter.v0",
+                  "value": "{oracledatabase-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, publisher.ManifestDocument.RootElement.ToString());
     }
 
     [Fact]
-    public void MetadataPropertyCanEmitComplexObjects()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddContainer("testresource", "testresource")
-                          .WithMetadata("data", new
-                          {
-                              complexValue1 = 1,
-                              complexValue2 = "s",
-                              complexValue3 = true,
-                              complexValue4 = new
-                              {
-                                  nestedComplexValue = DateTime.MinValue
-                              }
-                          });
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var container = resources.GetProperty("testresource");
-        Assert.True(container.TryGetProperty("metadata", out var metadata));
-        Assert.True(metadata.TryGetProperty("data", out var data));
-        Assert.True(data.TryGetProperty("complexValue1", out var complexValue1));
-        Assert.Equal(1, complexValue1.GetInt32());
-        Assert.True(data.TryGetProperty("complexValue2", out var complexValue2));
-        Assert.Equal("s", complexValue2.GetString());
-        Assert.True(data.TryGetProperty("complexValue3", out var complexValue3));
-        Assert.True(complexValue3.GetBoolean());
-        Assert.True(data.TryGetProperty("complexValue4", out var complexValue4));
-        Assert.True(complexValue4.TryGetProperty("nestedComplexValue", out var nestedComplexValue));
-        Assert.Equal(DateTime.MinValue, nestedComplexValue.GetDateTime());
-    }
-
-    [Fact]
-    public async Task InputAnnotationDefaultValuesGenerateCorrectly()
+    public async Task ParameterInputDefaultValuesGenerateCorrectly()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var container = appBuilder.AddContainer("container", "image");
-        container.WithAnnotation(new InputAnnotation("fake")
+        var param = appBuilder.AddParameter("param");
+        param.Resource.Default = new GenerateParameterDefault()
         {
-            Default = new GenerateInputDefault()
-            {
-                MinLength = 16,
-                Lower = false,
-                Upper = false,
-                Numeric = false,
-                Special = false,
-                MinLower = 1,
-                MinUpper = 2,
-                MinNumeric = 3,
-                MinSpecial = 4,
-            }
-        });
+            MinLength = 16,
+            Lower = false,
+            Upper = false,
+            Numeric = false,
+            Special = false,
+            MinLower = 1,
+            MinUpper = 2,
+            MinNumeric = 3,
+            MinSpecial = 4,
+        };
 
         var expectedManifest = """
             {
-              "type": "container.v0",
-              "image": "image:latest",
+              "type": "parameter.v0",
+              "value": "{param.inputs.value}",
               "inputs": {
-                "fake": {
+                "value": {
                   "type": "string",
                   "default": {
                     "generate": {
@@ -646,12 +801,13 @@ public class ManifestGenerationTests
             }
             """;
 
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
+        var manifest = await ManifestUtils.GetManifest(param.Resource);
         Assert.Equal(expectedManifest, manifest.ToString());
     }
-    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
+
+    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeIntegrationServices = false, bool includeNodeApp = false)
     {
-        var program = TestProgram.Create<ManifestGenerationTests>(GetManifestArgs(), includeNodeApp: includeNodeApp);
+        var program = TestProgram.Create<ManifestGenerationTests>(GetManifestArgs(), includeIntegrationServices, includeNodeApp);
         program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         return program;
     }

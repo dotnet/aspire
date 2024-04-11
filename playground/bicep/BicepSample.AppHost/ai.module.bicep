@@ -12,15 +12,9 @@ param kind string = 'web'
 @description('')
 param logAnalyticsWorkspaceId string
 
-@description('')
-param principalId string
 
-@description('')
-param principalType string
-
-
-resource applicationInsightsComponent_qG5w9sTHc 'Microsoft.Insights/components@2020-02-02' = {
-  name: toLower(take(concat('ai', uniqueString(resourceGroup().id)), 24))
+resource applicationInsightsComponent_rCL0xfJOP 'Microsoft.Insights/components@2020-02-02' = {
+  name: toLower(take('ai${uniqueString(resourceGroup().id)}', 24))
   location: location
   tags: {
     'aspire-resource-name': 'ai'
@@ -32,4 +26,4 @@ resource applicationInsightsComponent_qG5w9sTHc 'Microsoft.Insights/components@2
   }
 }
 
-output appInsightsConnectionString string = applicationInsightsComponent_qG5w9sTHc.properties.ConnectionString
+output appInsightsConnectionString string = applicationInsightsComponent_rCL0xfJOP.properties.ConnectionString

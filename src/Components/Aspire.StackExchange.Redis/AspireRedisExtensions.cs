@@ -21,25 +21,6 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireRedisExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:StackExchange:Redis";
-    // Name taken from https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/219e41848a810479c2024c2e48b8cb7ae3a5d3e6/src/OpenTelemetry.Instrumentation.StackExchangeRedis/StackExchangeRedisConnectionInstrumentation.cs#L21
-    private const string ActivitySourceName = "OpenTelemetry.Instrumentation.StackExchangeRedis";
-
-    /// <summary>
-    /// Registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// Enables retries, corresponding health check, logging, and telemetry.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:StackExchange:Redis" section.</remarks>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddRedisClient)} instead.")]
-    public static void AddRedis(
-        this IHostApplicationBuilder builder,
-        string connectionName,
-        Action<StackExchangeRedisSettings>? configureSettings = null,
-        Action<ConfigurationOptions>? configureOptions = null)
-        => AddRedisClient(builder, connectionName, configureSettings, configureOptions);
 
     /// <summary>
     /// Registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -56,23 +37,6 @@ public static class AspireRedisExtensions
         Action<StackExchangeRedisSettings>? configureSettings = null,
         Action<ConfigurationOptions>? configureOptions = null)
         => AddRedisClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
-
-    /// <summary>
-    /// Registers <see cref="IConnectionMultiplexer"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// Enables retries, corresponding health check, logging, and telemetry.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:StackExchange:Redis:{name}" section.</remarks>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedRedisClient)} instead.")]
-    public static void AddKeyedRedis(
-        this IHostApplicationBuilder builder,
-        string name,
-        Action<StackExchangeRedisSettings>? configureSettings = null,
-        Action<ConfigurationOptions>? configureOptions = null)
-        => AddKeyedRedisClient(builder, name, configureSettings, configureOptions);
 
     /// <summary>
     /// Registers <see cref="IConnectionMultiplexer"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -153,7 +117,7 @@ public static class AspireRedisExtensions
             builder.Services.AddOpenTelemetry()
                 .WithTracing(t =>
                 {
-                    t.AddSource(ActivitySourceName);
+                    t.AddSource(StackExchangeRedisConnectionInstrumentation.ActivitySourceName);
                     // This ensures the core Redis instrumentation services from OpenTelemetry.Instrumentation.StackExchangeRedis are added
                     t.ConfigureRedisInstrumentation(_ => { });
                     // This ensures that any logic performed by the AddInstrumentation method is executed (this is usually called by AddRedisInstrumentation())

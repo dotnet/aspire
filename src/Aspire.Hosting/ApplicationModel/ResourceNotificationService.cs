@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 
@@ -22,8 +23,40 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// Watch for changes to the state for all resources.
     /// </summary>
     /// <returns></returns>
-    public IAsyncEnumerable<ResourceEvent> WatchAsync() =>
-        new AllResourceUpdatesAsyncEnumerable(this);
+    public async IAsyncEnumerable<ResourceEvent> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        // Return the last snapshot for each resource.
+        foreach (var state in _resourceNotificationStates)
+        {
+            var (resource, resourceId) = state.Key;
+
+            if (state.Value.LastSnapshot is not null)
+            {
+                yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
+            }
+        }
+
+        var channel = Channel.CreateUnbounded<ResourceEvent>();
+
+        void WriteToChannel(ResourceEvent resourceEvent) =>
+            channel.Writer.TryWrite(resourceEvent);
+
+        OnResourceUpdated += WriteToChannel;
+
+        try
+        {
+            await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                yield return item;
+            }
+        }
+        finally
+        {
+            OnResourceUpdated -= WriteToChannel;
+
+            channel.Writer.TryComplete();
+        }
+    }
 
     /// <summary>
     /// Updates the snapshot of the <see cref="CustomResourceSnapshot"/> for a resource.
@@ -37,9 +70,9 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 
         lock (notificationState)
         {
-            var previousState = GetInitialSnapshot(resource, notificationState);
+            var previousState = GetCurrentSnapshot(resource, notificationState);
 
-            var newState = stateFactory(previousState!);
+            var newState = stateFactory(previousState);
 
             notificationState.LastSnapshot = newState;
 
@@ -64,7 +97,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
         return PublishUpdateAsync(resource, resource.Name, stateFactory);
     }
 
-    private static CustomResourceSnapshot? GetInitialSnapshot(IResource resource, ResourceNotificationState notificationState)
+    private static CustomResourceSnapshot GetCurrentSnapshot(IResource resource, ResourceNotificationState notificationState)
     {
         var previousState = notificationState.LastSnapshot;
 
@@ -89,44 +122,6 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     private ResourceNotificationState GetResourceNotificationState(IResource resource, string resourceId) =>
         _resourceNotificationStates.GetOrAdd((resource, resourceId), _ => new ResourceNotificationState());
 
-    private sealed class AllResourceUpdatesAsyncEnumerable(ResourceNotificationService resourceNotificationService) : IAsyncEnumerable<ResourceEvent>
-    {
-        public async IAsyncEnumerator<ResourceEvent> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-        {
-            // Return the last snapshot for each resource.
-            foreach (var state in resourceNotificationService._resourceNotificationStates)
-            {
-                var (resource, resourceId) = state.Key;
-
-                if (state.Value.LastSnapshot is not null)
-                {
-                    yield return new ResourceEvent(resource, resourceId, state.Value.LastSnapshot);
-                }
-            }
-
-            var channel = Channel.CreateUnbounded<ResourceEvent>();
-
-            void WriteToChannel(ResourceEvent resourceEvent) =>
-                channel.Writer.TryWrite(resourceEvent);
-
-            resourceNotificationService.OnResourceUpdated += WriteToChannel;
-
-            try
-            {
-                await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
-                {
-                    yield return item;
-                }
-            }
-            finally
-            {
-                resourceNotificationService.OnResourceUpdated -= WriteToChannel;
-
-                channel.Writer.TryComplete();
-            }
-        }
-    }
-
     /// <summary>
     /// The annotation that allows publishing and subscribing to changes in the state of a resource.
     /// </summary>
@@ -139,7 +134,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 /// <summary>
 /// Represents a change in the state of a resource.
 /// </summary>
-/// <param name="resource">The resource associated with the event. </param>
+/// <param name="resource">The resource associated with the event.</param>
 /// <param name="resourceId">The unique id of the resource.</param>
 /// <param name="snapshot">The snapshot of the resource state.</param>
 public class ResourceEvent(IResource resource, string resourceId, CustomResourceSnapshot snapshot)

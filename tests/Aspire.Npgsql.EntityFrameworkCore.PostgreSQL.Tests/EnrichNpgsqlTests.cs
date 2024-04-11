@@ -12,11 +12,16 @@ using Microsoft.Extensions.Hosting;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Xunit;
+using Aspire.Npgsql.Tests;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class EnrichNpgsqlTests : ConformanceTests
 {
+    public EnrichNpgsqlTests(PostgreSQLContainerFixture containerFixture) : base(containerFixture)
+    {
+    }
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseNpgsql(ConnectionString));
@@ -66,7 +71,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -87,6 +92,27 @@ public class EnrichNpgsqlTests : ConformanceTests
     }
 
     [Fact]
+    public void EnrichWithConflictingCommandTimeoutThrows()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            optionsBuilder.UseNpgsql(ConnectionString, npgsqlBuilder =>
+            {
+                npgsqlBuilder.CommandTimeout(123);
+            });
+        });
+
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.CommandTimeout = 456);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("Conflicting values for 'CommandTimeout' were found in NpgsqlEntityFrameworkCorePostgreSQLSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
+    }
+
+    [Fact]
     public void EnrichEnablesRetryByDefault()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -102,7 +128,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -146,7 +172,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         Assert.NotNull(optionsDescriptor);
         Assert.Same(oldOptionsDescriptor, optionsDescriptor);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -164,7 +190,7 @@ public class EnrichNpgsqlTests : ConformanceTests
     }
 
     [Fact]
-    public void EnrichOverridesCustomRetryIfNotDisabled()
+    public void EnrichDoesntOverridesCustomRetry()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -185,7 +211,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
@@ -197,7 +223,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         Assert.NotNull(extension.ExecutionStrategyFactory);
         var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
         var retryStrategy = Assert.IsType<NpgsqlRetryingExecutionStrategy>(executionStrategy);
-        Assert.Equal(new WorkaroundToReadProtectedField(context).MaxRetryCount, retryStrategy.MaxRetryCount);
+        Assert.Equal(456, retryStrategy.MaxRetryCount);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
@@ -215,7 +241,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
         Assert.NotNull(context);
     }
@@ -237,8 +263,84 @@ public class EnrichNpgsqlTests : ConformanceTests
         Assert.NotNull(optionsDescriptor);
         Assert.Equal(ServiceLifetime.Singleton, optionsDescriptor.Lifetime);
 
-        var host = builder.Build();
+        using var host = builder.Build();
         var context = host.Services.GetRequiredService<ITestDbContext>() as TestDbContext;
         Assert.NotNull(context);
+    }
+
+    [Fact]
+    public void EnrichWithoutRetryPreservesCustomExecutionStrategy()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
+        });
+
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.Retry = false);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<NpgsqlOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the retry strategy is enabled and set to its default value
+        Assert.NotNull(extension.ExecutionStrategyFactory);
+        var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
+        Assert.IsType<CustomExecutionStrategy>(executionStrategy);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void EnrichWithRetryAndCustomExecutionStrategyThrows()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
+        });
+
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.Retry = true);
+        using var host = builder.Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
+        Assert.Equal("NpgsqlEntityFrameworkCorePostgreSQLSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
+    }
+
+    [Fact]
+    public void EnrichWithRetryAndCustomRetryExecutionStrategy()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomRetryExecutionStrategy(c)));
+        });
+
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.Retry = true);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<NpgsqlOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the retry strategy is enabled and set to its default value
+        Assert.NotNull(extension.ExecutionStrategyFactory);
+        var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
+        Assert.IsType<CustomRetryExecutionStrategy>(executionStrategy);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
     }
 }

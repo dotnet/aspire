@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Encodings.Web;
+using Aspire.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -11,22 +12,31 @@ public class OtlpApiKeyAuthenticationHandler : AuthenticationHandler<OtlpApiKeyA
 {
     public const string ApiKeyHeaderName = "x-otlp-api-key";
 
-    public OtlpApiKeyAuthenticationHandler(IOptionsMonitor<OtlpApiKeyAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
+    private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
+
+    public OtlpApiKeyAuthenticationHandler(IOptionsMonitor<DashboardOptions> dashboardOptions, IOptionsMonitor<OtlpApiKeyAuthenticationHandlerOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
     {
+        _dashboardOptions = dashboardOptions;
     }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (string.IsNullOrEmpty(Options.OtlpApiKey))
-        {
-            throw new InvalidOperationException("OTLP API key is not configured.");
-        }
+        var options = _dashboardOptions.CurrentValue.Otlp;
 
         if (Context.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKey))
         {
-            if (Options.OtlpApiKey != apiKey)
+            // There must be only one header with the API key.
+            if (apiKey.Count != 1)
             {
-                return Task.FromResult(AuthenticateResult.Fail("Incoming API key doesn't match required API key."));
+                return Task.FromResult(AuthenticateResult.Fail($"Multiple '{ApiKeyHeaderName}' headers in request."));
+            }
+
+            if (!CompareHelpers.CompareKey(options.GetPrimaryApiKeyBytes(), apiKey.ToString()))
+            {
+                if (options.GetSecondaryApiKeyBytes() is not { } secondaryBytes || !CompareHelpers.CompareKey(secondaryBytes, apiKey.ToString()))
+                {
+                    return Task.FromResult(AuthenticateResult.Fail($"Incoming API key from '{ApiKeyHeaderName}' header doesn't match configured API key."));
+                }
             }
         }
         else
@@ -45,5 +55,4 @@ public static class OtlpApiKeyAuthenticationDefaults
 
 public sealed class OtlpApiKeyAuthenticationHandlerOptions : AuthenticationSchemeOptions
 {
-    public string? OtlpApiKey { get; set; }
 }

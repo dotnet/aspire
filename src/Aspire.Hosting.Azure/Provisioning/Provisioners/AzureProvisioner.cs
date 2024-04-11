@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Lifecycle;
 using Azure;
 using Azure.Core;
@@ -81,21 +83,13 @@ internal sealed class AzureProvisioner(
                                                   .ToLookup(x => x.Root, x => x.Child);
 
         // Sets the state of the resource and all of its children
-        async Task SetStateAsync(IAzureResource resource, string state)
+        async Task UpdateStateAsync(IAzureResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
         {
-            await notificationService.PublishUpdateAsync(resource, s => s with
-            {
-                State = state
-            })
-            .ConfigureAwait(false);
+            await notificationService.PublishUpdateAsync(resource, stateFactory).ConfigureAwait(false);
 
             foreach (var child in parentChildLookup[resource])
             {
-                await notificationService.PublishUpdateAsync(child, s => s with
-                {
-                    State = state
-                })
-                .ConfigureAwait(false);
+                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
             }
         }
 
@@ -106,11 +100,27 @@ internal sealed class AzureProvisioner(
             {
                 await resource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
 
-                await SetStateAsync(resource, "Running").ConfigureAwait(false);
+                await UpdateStateAsync(resource, s => s with
+                {
+                    State = new("Running", KnownResourceStateStyles.Success)
+                })
+                .ConfigureAwait(false);
+            }
+            catch (MissingConfigurationException)
+            {
+                await UpdateStateAsync(resource, s => s with
+                {
+                    State = new("Missing subscription configuration", KnownResourceStateStyles.Error)
+                })
+                .ConfigureAwait(false);
             }
             catch (Exception)
             {
-                await SetStateAsync(resource, "FailedToStart").ConfigureAwait(false);
+                await UpdateStateAsync(resource, s => s with
+                {
+                    State = new("Failed to Provision", KnownResourceStateStyles.Error)
+                })
+                .ConfigureAwait(false);
             }
         }
 
@@ -119,7 +129,11 @@ internal sealed class AzureProvisioner(
         {
             r.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await SetStateAsync(r, "Starting").ConfigureAwait(false);
+            await UpdateStateAsync(r, s => s with
+            {
+                State = new("Starting", KnownResourceStateStyles.Info)
+            })
+            .ConfigureAwait(false);
 
             // After the resource is provisioned, set its state
             _ = AfterProvisionAsync(r);
@@ -259,6 +273,16 @@ internal sealed class AzureProvisioner(
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
+            catch (AzureCliNotOnPathException ex)
+            {
+                resourceLogger.LogCritical("Using Azure resources during local development requires the installation of the Azure CLI. See https://aka.ms/dotnet/aspire/azcli for instructions.");
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+            }
+            catch (MissingConfigurationException ex)
+            {
+                resourceLogger.LogCritical("Resource could not be provisioned because Azure subscription, location, and resource group information is missing. See https://aka.ms/dotnet/aspire/azure/provisioning for more details.");
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+            }
             catch (JsonException ex)
             {
                 resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.Name);
@@ -275,13 +299,36 @@ internal sealed class AzureProvisioner(
 
     private async Task<ProvisioningContext> GetProvisioningContextAsync(Lazy<Task<JsonObject>> userSecretsLazy, CancellationToken cancellationToken)
     {
-        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+        // Optionally configured in AppHost appSettings under "Azure" : { "CredentialSource": "AzureCli" }
+        var credentialSetting = _options.CredentialSource;
+
+        TokenCredential credential = credentialSetting switch
         {
-            ExcludeManagedIdentityCredential = true,
-            ExcludeWorkloadIdentityCredential = true,
-            ExcludeAzurePowerShellCredential = true,
-            CredentialProcessTimeout = TimeSpan.FromSeconds(15)
-        });
+            "AzureCli" => new AzureCliCredential(),
+            "AzurePowerShell" => new AzurePowerShellCredential(),
+            "VisualStudio" => new VisualStudioCredential(),
+            "VisualStudioCode" => new VisualStudioCodeCredential(),
+            "AzureDeveloperCli" => new AzureDeveloperCliCredential(),
+            "InteractiveBrowser" => new InteractiveBrowserCredential(),
+            _ => new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+            {
+                ExcludeManagedIdentityCredential = true,
+                ExcludeWorkloadIdentityCredential = true,
+                ExcludeAzurePowerShellCredential = true,
+                CredentialProcessTimeout = TimeSpan.FromSeconds(15)
+            })
+        };
+
+        if (credential.GetType() == typeof(DefaultAzureCredential))
+        {
+            logger.LogInformation(
+                "Using DefaultAzureCredential for provisioning. This may not work in all environments. " +
+                "See https://aka.ms/azsdk/net/identity/default-azure-credential for more information.");
+        }
+        else
+        {
+            logger.LogInformation("Using {credentialType} for provisioning.", credential.GetType().Name);
+        }
 
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
@@ -317,14 +364,44 @@ internal sealed class AzureProvisioner(
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
 
-        var unique = $"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}";
+        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
-        // Name of the resource group to create based on the machine name and application name
-        var (resourceGroupName, createIfAbsent) = _options.ResourceGroup switch
+        string resourceGroupName;
+        bool createIfAbsent;
+
+        if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
-            null or { Length: 0 } => ($"rg-aspire-{unique}", true),
-            string rg => (rg, _options.AllowResourceGroupCreation ?? false)
-        };
+            // Generate an resource group name since none was provided
+
+            var prefix = "rg-aspire";
+
+            if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
+            {
+                prefix = _options.ResourceGroupPrefix;
+            }
+
+            var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
+
+            var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
+
+            var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(environment.ApplicationName.ToLowerInvariant());
+            if (normalizedApplicationName.Length > maxApplicationNameSize)
+            {
+                normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
+            }
+
+            // Create a unique resource group name and save it in user secrets
+            resourceGroupName = $"{prefix}-{normalizedApplicationName}-{suffix}";
+
+            createIfAbsent = true;
+
+            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+        }
+        else
+        {
+            resourceGroupName = _options.ResourceGroup;
+            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
+        }
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
 
@@ -360,8 +437,6 @@ internal sealed class AzureProvisioner(
         var principal = await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false);
 
         var resourceMap = new Dictionary<string, ArmResource>();
-
-        var userSecrets = await userSecretsLazy.Value.ConfigureAwait(false);
 
         return new ProvisioningContext(
                     credential,

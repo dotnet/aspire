@@ -24,7 +24,7 @@ public class AddKafkaTests
         Assert.Equal("kafka", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(9092, endpoint.ContainerPort);
+        Assert.Equal(9092, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
@@ -33,9 +33,9 @@ public class AddKafkaTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("7.6.0", containerAnnotation.Tag);
-        Assert.Equal("confluentinc/confluent-local", containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(KafkaContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(KafkaContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(KafkaContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -60,16 +60,17 @@ public class AddKafkaTests
     [Fact]
     public async Task VerifyManifest()
     {
-        var appBuilder = DistributedApplication.CreateBuilder();
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
         var kafka = appBuilder.AddKafka("kafka");
 
         var manifest = await ManifestUtils.GetManifest(kafka.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-              "image": "confluentinc/confluent-local:7.6.0",
+              "image": "{{KafkaContainerImageTags.Registry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
               "env": {
                 "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
               },
@@ -78,7 +79,7 @@ public class AddKafkaTests
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 9092
+                  "targetPort": 9092
                 }
               }
             }
