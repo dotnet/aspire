@@ -10,6 +10,9 @@ public static class ResilienceUtils
 {
     public static ResiliencePipelineBuilder GetDefaultResiliencePipelineBuilder<TException>(Func<OnRetryArguments<object>, ValueTask> onRetry, int overallTimeoutSecs = 90) where TException : Exception
     {
+        // Retry for upto 20 times with delay of 1 sec between
+        // attempts, and also stop before an overall timeout of
+        // @overallTimeoutSecs
         var optionsOnRetry = new RetryStrategyOptions
         {
             MaxRetryAttempts = 20,
