@@ -61,6 +61,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Authorized User.
+        /// </summary>
+        public static string AuthorizedUser {
+            get {
+                return ResourceManager.GetString("AuthorizedUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} dashboard.
         /// </summary>
         public static string Header {
@@ -84,6 +93,15 @@ namespace Aspire.Dashboard.Resources {
         public static string InvalidTokenErrorMessage {
             get {
                 return ResourceManager.GetString("InvalidTokenErrorMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Logged in as:.
+        /// </summary>
+        public static string LoggedInAs {
+            get {
+                return ResourceManager.GetString("LoggedInAs", resourceCulture);
             }
         }
         

@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
-    <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting PackageReference?" />
+    <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting.AppHost PackageReference?" />
   </Target>
 
   <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.10.0'))">

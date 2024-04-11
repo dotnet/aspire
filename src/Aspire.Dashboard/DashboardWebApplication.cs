@@ -209,14 +209,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
         // Configure the HTTP request pipeline.
-        if (_app.Environment.IsDevelopment())
+        if (!_app.Environment.IsDevelopment())
         {
-            _app.UseDeveloperExceptionPage();
-            //_app.UseBrowserLink();
-        }
-        else
-        {
-            _app.UseExceptionHandler("/Error");
+            _app.UseExceptionHandler("/error");
             if (isAllHttps)
             {
                 _app.UseHsts();
@@ -274,6 +269,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 httpContext.Response.Redirect("/");
             });
 #endif
+        }
+        else if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.OpenIdConnect)
+        {
+            _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
     }
 

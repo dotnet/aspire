@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -58,11 +61,33 @@ public static class ParameterResourceBuilderExtensions
         }
         catch (DistributedApplicationException ex)
         {
-            state = state with { State = "FailedToStart", Properties = [.. state.Properties, new("Value", ex.Message)] };
+            state = state with
+            {
+                State = new ResourceStateSnapshot("Configuration missing", KnownResourceStateStyles.Error),
+                Properties = [.. state.Properties, new("Value", ex.Message)]
+            };
+
+            builder.Services.AddLifecycleHook((sp) => new WriteParameterLogsHook(
+                sp.GetRequiredService<ResourceLoggerService>(),
+                name,
+                ex.Message));
         }
 
         return builder.AddResource(resource)
                       .WithInitialState(state);
+    }
+
+    /// <summary>
+    /// Writes the message to the specified resource's logs.
+    /// </summary>
+    private sealed class WriteParameterLogsHook(ResourceLoggerService loggerService, string resourceName, string message) : IDistributedApplicationLifecycleHook
+    {
+        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        {
+            loggerService.GetLogger(resourceName).LogError(message);
+
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>

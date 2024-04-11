@@ -160,7 +160,7 @@ public static class ProjectResourceBuilderExtensions
                 }
             });
 
-            // TODO: Process command line arguments here
+            // NOTE: the launch profile command line arguments will be processed by ApplicationExecutor.PrepareProjectExecutables() (either by the IDE or manually passed to run)
         }
         else
         {
