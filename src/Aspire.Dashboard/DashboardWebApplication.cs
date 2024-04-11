@@ -6,6 +6,7 @@ using System.Net;
 using System.Reflection;
 using System.Security.Claims;
 using Aspire.Dashboard.Authentication;
+using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Authentication.OtlpConnection;
 using Aspire.Dashboard.Components;
@@ -509,11 +510,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             switch (dashboardOptions.Frontend.AuthMode)
             {
                 case FrontendAuthMode.OpenIdConnect:
-                    // Frontend is secured with OIDC, so delegate to that authentication scheme.
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
                         policy: new AuthorizationPolicyBuilder(FrontendAuthenticationDefaults.AuthenticationScheme)
-                            .RequireAuthenticatedUser()
+                            .RequireOpenIdClaims(options: dashboardOptions.Frontend.OpenIdConnect)
                             .Build());
                     break;
                 case FrontendAuthMode.BrowserToken:
