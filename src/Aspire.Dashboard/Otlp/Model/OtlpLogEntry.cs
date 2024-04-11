@@ -27,30 +27,35 @@ public class OtlpLogEntry
     {
         string? originalFormat = null;
         string? parentId = null;
-        Attributes = record.Attributes.ToKeyValuePairs(options, filter: attribute =>
-        {
-            switch (attribute.Key)
+        string? message = null;
+        Attributes = record.Attributes.ToKeyValuePairs(
+            options,
+            filter: attribute =>
             {
-                case "{OriginalFormat}":
-                    originalFormat = attribute.Value.GetString();
-                    return false;
-                case "ParentId":
-                    parentId = attribute.Value.GetString();
-                    return false;
-                case "SpanId":
-                case "TraceId":
-                    // Explicitly ignore these
-                    return false;
-                default:
-                    return true;
-            }
-        });
+                switch (attribute.Key)
+                {
+                    case "{OriginalFormat}":
+                        originalFormat = attribute.Value.GetString();
+                        return false;
+                    case "ParentId":
+                        parentId = attribute.Value.GetString();
+                        return false;
+                    case "SpanId":
+                    case "TraceId":
+                        // Explicitly ignore these
+                        return false;
+                    case "Message":
+                        message = OtlpHelpers.TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
+                        return false;
+                    default:
+                        return true;
+                }
+            });
 
         TimeStamp = OtlpHelpers.UnixNanoSecondsToDateTime(record.TimeUnixNano);
         Flags = record.Flags;
         Severity = MapSeverity(record.SeverityNumber);
-
-        Message = OtlpHelpers.TruncateString(record.Body.GetString(), options.MaxAttributeLength);
+        Message = message ?? OtlpHelpers.TruncateString(record.Body.GetString(), options.MaxAttributeLength);
         OriginalFormat = originalFormat;
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
