@@ -4,7 +4,8 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
 
     <!-- no docker support on helix/windows yet -->
-    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
+    <!-- Disabiling tests on helix due to https://github.com/dotnet/aspire/issues/3578 -->
+    <!-- <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix> -->
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <!-- no docker support on helix/windows yet -->

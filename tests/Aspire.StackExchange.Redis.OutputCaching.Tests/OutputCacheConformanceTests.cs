@@ -36,7 +36,7 @@ public class OutputCacheConformanceTests : ConformanceTests
     {
     }
 
-    [RequiresDockerFact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/3577")]
     public void WorksWithOpenTelemetryTracing()
     {
         RemoteExecutor.Invoke(async (connectionString) =>
