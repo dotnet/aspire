@@ -172,7 +172,7 @@ public class DaprTests
             "--app-channel-address",
             expectedChannelAddress
         };
-        // because the order of the parameters is changing, we are just checking of the important ones here.
+        // because the order of the parameters is changing, we are just checking if the important ones here.
         var commandline = string.Join(" ", sidecarArgs);
         Assert.Contains($"--app-port {expectedPort}", commandline);
         Assert.Contains($"--app-channel-address {expectedChannelAddress}", commandline);
