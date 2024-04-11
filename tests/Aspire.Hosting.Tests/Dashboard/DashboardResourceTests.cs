@@ -374,6 +374,38 @@ public class DashboardResourceTests
 
     }
 
+    [Fact]
+    public async Task DashboardIsExcludedFromManifestInPublishModeEvenIfAddedExplicitly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddProject<DashboardProject>(KnownResourceNames.AspireDashboard);
+
+        var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources.OfType<ProjectResource>());
+
+        Assert.NotNull(dashboard);
+        var annotation = Assert.Single(dashboard.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
+
+        var manifest = await ManifestUtils.GetManifestOrNull(dashboard);
+
+        Assert.Equal("aspire-dashboard", dashboard.Name);
+        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, annotation);
+        Assert.Null(manifest);
+    }
+
+    private sealed class DashboardProject : IProjectMetadata
+    {
+        public string ProjectPath => "dashboard.csproj";
+
+        public LaunchSettings LaunchSettings { get; } = new();
+    }
+
     private sealed class TestLogger : ILogger
     {
         private readonly TaskCompletionSource<LogMessage> _tcs = new();
