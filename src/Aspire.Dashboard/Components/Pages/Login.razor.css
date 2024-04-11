@@ -90,6 +90,11 @@
     width: fit-content;
 }
 
+.token-help-container img {
+    width: auto;
+    max-width: 100%;
+}
+
 .version-info {
     position: fixed;
     right: calc(var(--design-unit) * 4px);

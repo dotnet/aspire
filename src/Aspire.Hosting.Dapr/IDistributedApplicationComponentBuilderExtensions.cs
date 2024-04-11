@@ -59,7 +59,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
                                                        {
                                                            Properties = [],
                                                            ResourceType = "DaprSidecar",
-                                                           State = "Hidden"
+                                                           State = KnownResourceStates.Hidden
                                                        });
 
         configureSidecar(sidecarBuilder);

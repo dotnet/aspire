@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
@@ -25,16 +26,22 @@ public class DistributedApplicationBuilderTests
     public void BuilderAddsDefaultServices()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.Services.Configure<DcpOptions>(o =>
+        {
+            o.DashboardPath = "dashboard";
+            o.CliPath = "dcp";
+        });
+
         using var app = appBuilder.Build();
 
         Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest"));
-        Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("dcp"));
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         Assert.Empty(appModel.Resources);
 
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
-        Assert.Equal(2, lifecycles.Count());
+        Assert.Equal(3, lifecycles.Count());
 
         var options = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
         Assert.Null(options.Value.Publisher);

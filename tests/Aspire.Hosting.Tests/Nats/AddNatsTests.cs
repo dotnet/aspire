@@ -37,8 +37,7 @@ public class AddNatsTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(NatsContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
-
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(NatsContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -78,7 +77,7 @@ public class AddNatsTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(NatsContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(NatsContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(NatsContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -103,7 +102,7 @@ public class AddNatsTests
             {
               "type": "container.v0",
               "connectionString": "nats://{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
-              "image": "{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
+              "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",

@@ -25,6 +25,12 @@ public sealed class DistributedApplicationOptions
     }
 
     /// <summary>
+    /// When containers are used, use this value instead to override the container registry
+    /// that is specified.
+    /// </summary>
+    public string? ContainerRegistryOverride { get; set; }
+
+    /// <summary>
     /// The command line arguments.
     /// </summary>
     public string[]? Args { get; set; }

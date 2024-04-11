@@ -71,10 +71,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+        _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.None);
 
         // This is so that we can see certificate errors in the resource server in the console logs.
         // See: https://github.com/dotnet/aspire/issues/2914
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServer", LogLevel.Warning);
+
+        // Add the logging configuration again to allow the user to override the defaults
+        _innerBuilder.Logging.AddConfiguration(_innerBuilder.Configuration.GetSection("Logging"));
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
@@ -86,31 +90,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Directory"] = AppHostDirectory
         });
 
-        if (!options.DisableDashboard && !IsDashboardUnsecured(_innerBuilder.Configuration))
+        ExecutionContext = _innerBuilder.Configuration["Publishing:Publisher"] switch
         {
-            // Set a random API key for the OTLP exporter.
-            // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
-            _innerBuilder.Configuration.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["AppHost:OtlpApiKey"] = TokenGenerator.GenerateToken()
-                }
-            );
-
-            if (_innerBuilder.Configuration[KnownConfigNames.DashboardFrontendBrowserToken] is not { Length: > 0 } browserToken)
-            {
-                browserToken = TokenGenerator.GenerateToken();
-            }
-
-            // Set a random API key for the OTLP exporter.
-            // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
-            _innerBuilder.Configuration.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["AppHost:BrowserToken"] = browserToken
-                }
-            );
-        }
+            "manifest" => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
+            _ => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+        };
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -120,35 +104,86 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
 
-        // Dashboard
-        _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
-        _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
-        _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
-        _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
-        _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
+        if (ExecutionContext.IsRunMode)
+        {
+            // Dashboard
+            if (!options.DisableDashboard)
+            {
+                if (!IsDashboardUnsecured(_innerBuilder.Configuration))
+                {
+                    // Set a random API key for the OTLP exporter.
+                    // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
+                    _innerBuilder.Configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["AppHost:OtlpApiKey"] = TokenGenerator.GenerateToken()
+                        }
+                    );
 
-        // DCP stuff
-        _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
-        _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
-        _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
-        _innerBuilder.Services.AddHostedService<DcpHostService>();
+                    // Determine the frontend browser token.
+                    if (_innerBuilder.Configuration[KnownConfigNames.DashboardFrontendBrowserToken] is not { Length: > 0 } browserToken)
+                    {
+                        // No browser token was specified in configuration, so generate one.
+                        browserToken = TokenGenerator.GenerateToken();
+                    }
 
-        // We need a unique path per application instance
-        _innerBuilder.Services.AddSingleton(new Locations());
-        _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
+                    _innerBuilder.Configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["AppHost:BrowserToken"] = browserToken
+                        }
+                    );
+
+                    // Determine the resource service API key.
+                    if (_innerBuilder.Configuration[KnownConfigNames.DashboardResourceServiceClientApiKey] is not { Length: > 0 } apiKey)
+                    {
+                        // No API key was specified in configuration, so generate one.
+                        apiKey = TokenGenerator.GenerateToken();
+                    }
+
+                    _innerBuilder.Configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["AppHost:ResourceService:AuthMode"] = nameof(ResourceServiceAuthMode.ApiKey),
+                            ["AppHost:ResourceService:ApiKey"] = apiKey
+                        }
+                    );
+                }
+
+                _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
+                _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
+                _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
+                _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<DashboardServiceHost>());
+                _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
+                _innerBuilder.Services.AddLifecycleHook<DashboardLifecycleHook>();
+                _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
+                _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
+            }
+
+            // DCP stuff
+            _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
+            _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
+            _innerBuilder.Services.AddHostedService<DcpHostService>();
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DcpOptions>, ConfigureDefaultDcpOptions>());
+            _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DcpOptions>, ValidateDcpOptions>());
+
+            // We need a unique path per application instance
+            _innerBuilder.Services.AddSingleton(new Locations());
+            _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
+        }
 
         // Publishing support
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
+        _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
-        _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>("dcp");
 
-        ExecutionContext = _innerBuilder.Configuration["Publishing:Publisher"] switch
+        // Overwrite registry if override specified in options
+        if (!string.IsNullOrEmpty(options.ContainerRegistryOverride))
         {
-            "manifest" => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
-            _ => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
-        };
+            _innerBuilder.Services.AddLifecycleHook<ContainerRegistryHook>();
+        }
 
-        _innerBuilder.Services.AddSingleton<DistributedApplicationExecutionContext>(ExecutionContext);
+        _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
     }
 
@@ -177,14 +212,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
-        _innerBuilder.Services.Configure<DcpOptions>(
-            o => o.ApplyApplicationConfiguration(
-                options,
-                dcpPublisherConfiguration: _innerBuilder.Configuration.GetSection(DcpOptions.DcpPublisher),
-                publishingConfiguration: _innerBuilder.Configuration.GetSection(PublishingOptions.Publishing),
-                coreConfiguration: _innerBuilder.Configuration
-            )
-        );
     }
 
     /// <inheritdoc />

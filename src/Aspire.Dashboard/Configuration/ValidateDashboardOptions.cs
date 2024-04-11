@@ -22,6 +22,10 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             case FrontendAuthMode.Unsecured:
                 break;
             case FrontendAuthMode.OpenIdConnect:
+                if (!options.Frontend.OpenIdConnect.TryParseOptions(out var messages))
+                {
+                    errorMessages.AddRange(messages);
+                }
                 break;
             case FrontendAuthMode.BrowserToken:
                 if (string.IsNullOrEmpty(options.Frontend.BrowserToken))
@@ -67,14 +71,21 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             errorMessages.Add(resourceServiceClientParseErrorMessage);
         }
 
+        // Only validate resource service configuration if we have a URI to connect to.
+        // If we do not, then the dashboard will run without resources, but still show OTEL data.
         if (options.ResourceServiceClient.GetUri() != null)
         {
             switch (options.ResourceServiceClient.AuthMode)
             {
                 case ResourceClientAuthMode.Unsecured:
                     break;
+                case ResourceClientAuthMode.ApiKey:
+                    if (string.IsNullOrWhiteSpace(options.ResourceServiceClient.ApiKey))
+                    {
+                        errorMessages.Add($"{DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey} is \"{nameof(ResourceClientAuthMode.ApiKey)}\", but no {DashboardConfigNames.ResourceServiceClientApiKeyName.ConfigKey} is configured.");
+                    }
+                    break;
                 case ResourceClientAuthMode.Certificate:
-
                     switch (options.ResourceServiceClient.ClientCertificates.Source)
                     {
                         case DashboardClientCertificateSource.File:
@@ -89,13 +100,19 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                                 errorMessages.Add("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Dashboard:ResourceServiceClient:ClientCertificate:Subject is configured.");
                             }
                             break;
+                        case null:
+                            errorMessages.Add($"The resource service client is configured to use certificates, but no certificate source is specified. Specify Dashboard:ResourceServiceClient:ClientCertificate:Source. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}");
+                            break;
                         default:
-                            errorMessages.Add($"Unexpected resource service client certificate source: {options.Otlp.AuthMode}");
+                            errorMessages.Add($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificates.Source}");
                             break;
                     }
                     break;
+                case null:
+                    errorMessages.Add($"Resource service client authentication is not configured. Specify {DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(ResourceClientAuthMode).GetEnumNames())}");
+                    break;
                 default:
-                    errorMessages.Add($"Unexpected resource service client authentication mode: {options.Otlp.AuthMode}");
+                    errorMessages.Add($"Unexpected resource service client authentication mode: {options.ResourceServiceClient.AuthMode}");
                     break;
             }
         }

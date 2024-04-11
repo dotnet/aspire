@@ -23,10 +23,13 @@ internal enum DcpApiOperationType
     Delete = 3,
     Watch = 4,
     GetLogSubresource = 5,
+    Get = 6,
 }
 
 internal interface IKubernetesService
 {
+    Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
+        where T: CustomResource;
     Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource;
     Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
@@ -53,6 +56,36 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
     private DcpKubernetesClient? _kubernetes;
 
     public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(20);
+
+    public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
+        where T : CustomResource
+    {
+        var resourceType = GetResourceFor<T>();
+
+        return ExecuteWithRetry(
+            DcpApiOperationType.Get,
+            resourceType,
+            async (kubernetes) =>
+            {
+                var response = string.IsNullOrEmpty(namespaceParameter)
+                ? await kubernetes.CustomObjects.GetClusterCustomObjectWithHttpMessagesAsync(
+                    GroupVersion.Group,
+                    GroupVersion.Version,
+                    resourceType,
+                    name,
+                    cancellationToken: cancellationToken).ConfigureAwait(false)
+                : await kubernetes.CustomObjects.GetNamespacedCustomObjectWithHttpMessagesAsync(
+                    GroupVersion.Group,
+                    GroupVersion.Version,
+                    namespaceParameter,
+                    resourceType,
+                    name,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                return KubernetesJson.Deserialize<T>(response.Body.ToString());
+            },
+            cancellationToken);
+    }
 
     public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource

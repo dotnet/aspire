@@ -93,7 +93,12 @@ public static class AzureCosmosExtensions
         }
 
         builder.WithEndpoint(name: "emulator", targetPort: 8081)
-               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
+               .WithAnnotation(new ContainerImageAnnotation
+               {
+                   Registry = "mcr.microsoft.com",
+                   Image = "cosmosdb/linux/azure-cosmos-emulator",
+                   Tag = "latest"
+               });
 
         if (configureContainer != null)
         {
