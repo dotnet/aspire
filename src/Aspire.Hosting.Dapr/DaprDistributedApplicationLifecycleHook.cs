@@ -172,7 +172,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     {
                         updatedArgs.AddRange(daprCommandLine.Arguments);
                         var endPoint = GetEndpointReference(sidecarOptions, resource);
-                        if(endPoint is not null){
+                        if (endPoint is not null)
+                        {
                             if (endPoint.Value.appEndpoint.IsAllocated && sidecarOptions?.AppPort is null)
                             {
                                 updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
@@ -198,7 +199,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         {
                             updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
                         }
-                        if(sidecarOptions?.AppProtocol == null && endPoint is not null){
+                        if (sidecarOptions?.AppProtocol == null && endPoint is not null)
+                        {
                             updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
                     }));
