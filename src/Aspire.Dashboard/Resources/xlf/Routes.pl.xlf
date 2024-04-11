@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ErrorHandlerPageSubtitle">
         <source>An error occurred while processing your request</source>
-        <target state="new">An error occurred while processing your request</target>
+        <target state="translated">wystąpił błąd podczas przetwarzania tego żądania.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorHandlerPageTitle">
