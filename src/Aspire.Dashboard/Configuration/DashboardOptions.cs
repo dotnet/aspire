@@ -22,12 +22,16 @@ public sealed class DashboardOptions
 public sealed class ResourceServiceClientOptions
 {
     private Uri? _parsedUrl;
+    private byte[]? _apiKeyBytes;
 
     public string? Url { get; set; }
     public ResourceClientAuthMode? AuthMode { get; set; }
     public ResourceServiceClientCertificateOptions ClientCertificates { get; set; } = new ResourceServiceClientCertificateOptions();
+    public string? ApiKey { get; set; }
 
     public Uri? GetUri() => _parsedUrl;
+
+    internal byte[] GetApiKeyBytes() => _apiKeyBytes ?? throw new InvalidOperationException($"{nameof(ApiKey)} is not available.");
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
@@ -39,6 +43,8 @@ public sealed class ResourceServiceClientOptions
                 return false;
             }
         }
+
+        _apiKeyBytes = ApiKey != null ? Encoding.UTF8.GetBytes(ApiKey) : null;
 
         errorMessage = null;
         return true;
