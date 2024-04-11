@@ -109,7 +109,7 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                     }
                     break;
                 case null:
-                    errorMessages.Add($"Resource service client authentication is not configured. Specify {DashboardConfigNames.ResourceServiceAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(ResourceClientAuthMode).GetEnumNames())}");
+                    errorMessages.Add($"Resource service client authentication is not configured. Specify {DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(ResourceClientAuthMode).GetEnumNames())}");
                     break;
                 default:
                     errorMessages.Add($"Unexpected resource service client authentication mode: {options.ResourceServiceClient.AuthMode}");
