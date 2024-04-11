@@ -45,12 +45,12 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create(
-            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Scheme)}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
+            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
 
     /// <summary>
     /// Gets the connection string expression for the Qdrant HTTP endpoint.
     /// </summary>
     public ReferenceExpression HttpConnectionStringExpression =>
         ReferenceExpression.Create(
-            $"Endpoint={HttpEndpoint.Property(EndpointProperty.Scheme)}://{HttpEndpoint.Property(EndpointProperty.Host)}:{HttpEndpoint.Property(EndpointProperty.Port)};Key={ApiKeyParameter}");
+            $"Endpoint={HttpEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
 }
