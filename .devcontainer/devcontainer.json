@@ -9,7 +9,8 @@
     "ghcr.io/devcontainers/features/powershell:1": {},
     "ghcr.io/dapr/cli/dapr-cli": {
       "version": "1.12.0"
-    }
+    },
+    "ghcr.io/azure/azure-dev/azd": {}
   },
   "customizations": {
     "vscode": {
@@ -18,9 +19,6 @@
         "EditorConfig.EditorConfig"
       ]
     }
-  },
-  "remoteEnv": {
-    "PATH": "${containerEnv:PATH}:/home/vscode/.dapr/bin"
   },
   // Features to add to the dev container. More info: https://containers.dev/features.
   // "features": {},
