@@ -87,6 +87,37 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public async Task WithContainerRegistryUpdatesContainerImageAnnotationsDuringPublish()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = GetManifestArgs(),
+            ContainerRegistryOverride = "myprivateregistry.company.com"
+        });
+
+        var redis = builder.AddRedis("redis");
+        builder.Build().Run();
+
+        var redisManifest = await ManifestUtils.GetManifest(redis.Resource);
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+              "image": "myprivateregistry.company.com/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, redisManifest.ToString());
+    }
+
+    [Fact]
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);

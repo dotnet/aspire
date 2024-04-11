@@ -17,6 +17,12 @@ public class DashboardResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        // Ensure any ambient configuration doesn't impact this test.
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES"] = null
+        });
+
         var dashboardPath = Path.GetFullPath("dashboard");
 
         builder.Services.Configure<DcpOptions>(o =>
@@ -110,12 +116,12 @@ public class DashboardResourceTests
             },
             e =>
             {
-                Assert.Equal("DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE", e.Key);
+                Assert.Equal("DASHBOARD__FRONTEND__AUTHMODE", e.Key);
                 Assert.Equal("Unsecured", e.Value);
             },
             e =>
             {
-                Assert.Equal("DASHBOARD__FRONTEND__AUTHMODE", e.Key);
+                Assert.Equal("DASHBOARD__RESOURCESERVICECLIENT__AUTHMODE", e.Key);
                 Assert.Equal("Unsecured", e.Value);
             },
             e =>
