@@ -199,7 +199,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         {
                             updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
                         }
-                        if (sidecarOptions?.AppProtocol == null && endPoint is not null)
+                        if (sidecarOptions?.AppProtocol is null && endPoint is not null)
                         {
                             updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
@@ -269,10 +269,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         {
             return (sidecarOptions, resourceWithEndpoints) switch
             {
-                (var p0, var p1) when p0 == null || (p0.AppProtocol == null && p0.AppEndpoint == null) => (p1.GetEndpoint("http"), "http"),
-                (var p0, var p1) when p0!.AppProtocol == null && p0!.AppEndpoint != null => (p1.GetEndpoint(p0.AppEndpoint), p1.GetEndpoint(p0.AppEndpoint).Scheme),
-                (var p0, var p1) when p0!.AppProtocol != null && p0!.AppEndpoint == null => (p1.GetEndpoint(p0!.AppProtocol), p0!.AppProtocol),
-                (var p0, var p1) when p0!.AppProtocol != null && p0!.AppEndpoint != null => (p1.GetEndpoint(p0!.AppEndpoint), p0!.AppProtocol),
+                (var p0, var p1) when p0 is null || (p0.AppProtocol is null && p0.AppEndpoint is null) => (p1.GetEndpoint("http"), "http"),
+                (var p0, var p1) when p0!.AppProtocol is null && p0!.AppEndpoint is not null => (p1.GetEndpoint(p0.AppEndpoint), p1.GetEndpoint(p0.AppEndpoint).Scheme),
+                (var p0, var p1) when p0!.AppProtocol is not null && p0!.AppEndpoint is null => (p1.GetEndpoint(p0!.AppProtocol), p0!.AppProtocol),
+                (var p0, var p1) when p0!.AppProtocol is not null && p0!.AppEndpoint is not null => (p1.GetEndpoint(p0!.AppEndpoint), p0!.AppProtocol),
                 _ => throw new ArgumentException($"The combination of {nameof(DaprSidecarOptions.AppEndpoint)} and {nameof(DaprSidecarOptions.AppProtocol)}")
             };
         }

@@ -119,10 +119,14 @@ public class DaprTests
                 e.UriScheme = "https";
                 e.AllocatedEndpoint = new(e, "localhost", 8001);
             });
-        if(schema == null && endPoint == null && port == null){
+        if (schema is null && endPoint is null && port is null)
+        {
             containerResource.WithDaprSidecar();
-        }else{
-            containerResource.WithDaprSidecar(new DaprSidecarOptions(){
+        }
+        else
+        {
+            containerResource.WithDaprSidecar(new DaprSidecarOptions()
+            {
                 AppProtocol = schema,
                 AppEndpoint = endPoint,
                 AppPort = port
