@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../Login.resx">
     <body>
+      <trans-unit id="AuthorizedUser">
+        <source>Authorized User</source>
+        <target state="new">Authorized User</target>
+        <note>Placeholder text for the name of the authorized user when no name claim exists</note>
+      </trans-unit>
       <trans-unit id="Header">
         <source>{0} dashboard</source>
         <target state="translated">{0} 대시보드</target>
@@ -9,7 +14,7 @@
       </trans-unit>
       <trans-unit id="HelpScreenshotAltText">
         <source>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</source>
-        <target state="needs-review-translation">대시보드 프런트 엔드 토큰을 찾을 위치를 보여 주는 콘솔 출력의 스크린샷</target>
+        <target state="new">Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidTokenErrorMessage">
@@ -22,9 +27,14 @@
         <target state="translated">로그인</target>
         <note />
       </trans-unit>
+      <trans-unit id="LoggedInAs">
+        <source>Logged in as:</source>
+        <target state="new">Logged in as:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MoreInfoLinkText">
         <source>More information</source>
-        <target state="needs-review-translation">자세한 정보</target>
+        <target state="new">More information</target>
         <note />
       </trans-unit>
       <trans-unit id="PageTitle">

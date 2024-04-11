@@ -121,17 +121,32 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                         }
                     );
 
+                    // Determine the frontend browser token.
                     if (_innerBuilder.Configuration[KnownConfigNames.DashboardFrontendBrowserToken] is not { Length: > 0 } browserToken)
                     {
+                        // No browser token was specified in configuration, so generate one.
                         browserToken = TokenGenerator.GenerateToken();
                     }
 
-                    // Set a random API key for the OTLP exporter.
-                    // Passed to apps as a standard OTEL attribute to include in OTLP requests and the dashboard to validate.
                     _innerBuilder.Configuration.AddInMemoryCollection(
                         new Dictionary<string, string?>
                         {
                             ["AppHost:BrowserToken"] = browserToken
+                        }
+                    );
+
+                    // Determine the resource service API key.
+                    if (_innerBuilder.Configuration[KnownConfigNames.DashboardResourceServiceClientApiKey] is not { Length: > 0 } apiKey)
+                    {
+                        // No API key was specified in configuration, so generate one.
+                        apiKey = TokenGenerator.GenerateToken();
+                    }
+
+                    _innerBuilder.Configuration.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["AppHost:ResourceService:AuthMode"] = nameof(ResourceServiceAuthMode.ApiKey),
+                            ["AppHost:ResourceService:ApiKey"] = apiKey
                         }
                     );
                 }
@@ -161,6 +176,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Publishing support
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
+
+        // Overwrite registry if override specified in options
+        if (!string.IsNullOrEmpty(options.ContainerRegistryOverride))
+        {
+            _innerBuilder.Services.AddLifecycleHook<ContainerRegistryHook>();
+        }
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);

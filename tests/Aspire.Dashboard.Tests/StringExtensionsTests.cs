@@ -9,21 +9,29 @@ namespace Aspire.Dashboard.Tests;
 public class StringExtensionsTests
 {
     [Theory]
-    [InlineData("/usr", 5, "/usr")]
-    [InlineData("~/src/repos/AspireStarterProject/MyApp/MyApp.csproj", 5, "~/…oj")]
-    [InlineData("~/src/repos/AspireStarterProject/MyApp/MyApp.csproj", 25, "~/src/repos/…MyApp.csproj")]
-    [InlineData("~/src/repos/AspireStarterProject/MyApp/MyApp.csproj", 26, "~/src/repos/…/MyApp.csproj")]
-    [InlineData("/home/username/src/repos/AspireStarterProject/MyApp/MyApp.csproj", 5, "/h…oj")]
-    [InlineData("/home/username/src/repos/AspireStarterProject/MyApp/MyApp.csproj", 38, "/home/username/src…/MyApp/MyApp.csproj")]
-    [InlineData("/home/username/src/repos/AspireStarterProject/MyApp/MyApp.csproj", 39, "/home/username/src/…/MyApp/MyApp.csproj")]
-    [InlineData("c:\\", 5, "c:\\")]
-    [InlineData("c:\\src\\repos\\AspireStarterProject\\MyApp\\MyApp.csproj", 5, "c:…oj")]
-    [InlineData("c:\\src\\repos\\AspireStarterProject\\MyApp\\MyApp.csproj", 32, "c:\\src\\repos\\As…App\\MyApp.csproj")]
-    [InlineData("c:\\src\\repos\\AspireStarterProject\\MyApp\\MyApp.csproj", 33, "c:\\src\\repos\\Asp…App\\MyApp.csproj")]
-    [InlineData("c:\\src\\repos\\AspireStarterProject\\MyApp\\MyApp.csproj", 48, "c:\\src\\repos\\AspireStar…oject\\MyApp\\MyApp.csproj")]
-    public void TrimMiddle(string path, int targetLength, string expectedResult)
+    [InlineData("", "DefaultValue", "DefaultValue")]
+    [InlineData("   ", "DefaultValue", "DefaultValue")]
+    [InlineData("\t", "DefaultValue", "DefaultValue")]
+    [InlineData("SingleNameOnly", null, "S")]
+    [InlineData("singleNameOnly", null, "S")]
+    [InlineData("Two Names", null, "TN")]
+    [InlineData("two Names", null, "TN")]
+    [InlineData("Two names", null, "TN")]
+    [InlineData("two names", null, "TN")]
+    [InlineData("With Three Names", null, "WN")]
+    [InlineData("with Three Names", null, "WN")]
+    [InlineData("With Three names", null, "WN")]
+    [InlineData("with Three names", null, "WN")]
+    [InlineData("With Hyphenated-Name", null, "WH")]
+    [InlineData("with Hyphenated-Name", null, "WH")]
+    [InlineData("With hyphenated-Name", null, "WH")]
+    [InlineData("With Hyphenated-name", null, "WH")]
+    [InlineData("with hyphenated-Name", null, "WH")]
+    [InlineData("with Hyphenated-name", null, "WH")]
+    [InlineData("with hyphenated-name", null, "WH")]
+    public void GetInitials(string name, string? defaultValue, string expectedResult)
     {
-        var actual = StringExtensions.TrimMiddle(path, targetLength);
+        var actual = StringExtensions.GetInitials(name, defaultValue);
 
         Assert.Equal(expectedResult, actual);
     }

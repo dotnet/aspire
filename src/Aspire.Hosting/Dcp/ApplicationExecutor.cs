@@ -12,6 +12,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using k8s;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -1031,8 +1032,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 var launchProfile = project.GetEffectiveLaunchProfile();
                 if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
                 {
-                    var cmdArgs = launchProfile.CommandLineArgs.Split((string?)null, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                    if (cmdArgs is not null && cmdArgs.Length > 0)
+                    var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
+                    if (cmdArgs.Count > 0)
                     {
                         exeSpec.Args.Add("--");
                         exeSpec.Args.AddRange(cmdArgs);
