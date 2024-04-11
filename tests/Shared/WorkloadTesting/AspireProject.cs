@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 
@@ -12,10 +11,7 @@ namespace Aspire.Workload.Tests;
 public class AspireProject : IAsyncDisposable
 {
     public static Lazy<HttpClient> Client => new(CreateHttpClient);
-    public static string GetNuGetConfigPathFor(string targetFramework) =>
-        Path.Combine(BuildEnvironment.TestDataPath, "nuget8.config");
-
-    public Process? Process { get; private set; }
+    public Process? AppHostProcess { get; private set; }
     public string Id { get; init; }
     public string RootDir { get; init; }
     public string LogPath { get; init; }
@@ -45,11 +41,11 @@ public class AspireProject : IAsyncDisposable
         var appRunning = new TaskCompletionSource();
         var stdoutComplete = new TaskCompletionSource();
         var stderrComplete = new TaskCompletionSource();
-        Process = new Process();
+        AppHostProcess = new Process();
 
         var processArguments = $"run --no-build";
         processArguments += extraArgs is not null ? " " + string.Join(" ", extraArgs) : "";
-        Process.StartInfo = new ProcessStartInfo(_buildEnv.DotNet, processArguments)
+        AppHostProcess.StartInfo = new ProcessStartInfo(_buildEnv.DotNet, processArguments)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -61,12 +57,12 @@ public class AspireProject : IAsyncDisposable
 
         foreach (var item in _buildEnv.EnvVars)
         {
-            Process.StartInfo.Environment[item.Key] = item.Value;
+            AppHostProcess.StartInfo.Environment[item.Key] = item.Value;
             _testOutput.WriteLine($"\t[{item.Key}] = {item.Value}");
         }
 
-        _testOutput.WriteLine($"Starting the process: {_buildEnv.DotNet} {processArguments} in {Process.StartInfo.WorkingDirectory}");
-        Process.OutputDataReceived += (sender, e) =>
+        _testOutput.WriteLine($"Starting the process: {_buildEnv.DotNet} {processArguments} in {AppHostProcess.StartInfo.WorkingDirectory}");
+        AppHostProcess.OutputDataReceived += (sender, e) =>
         {
             if (e.Data is null)
             {
@@ -93,7 +89,7 @@ public class AspireProject : IAsyncDisposable
                 appRunning.SetResult();
             }
         };
-        Process.ErrorDataReceived += (sender, e) =>
+        AppHostProcess.ErrorDataReceived += (sender, e) =>
         {
             if (e.Data is null)
             {
@@ -116,16 +112,16 @@ public class AspireProject : IAsyncDisposable
             _testOutput.WriteLine("");
             AppExited.SetResult();
         };
-        Process.EnableRaisingEvents = true;
-        Process.Exited += appExitedCallback;
+        AppHostProcess.EnableRaisingEvents = true;
+        AppHostProcess.Exited += appExitedCallback;
 
-        Process.EnableRaisingEvents = true;
+        AppHostProcess.EnableRaisingEvents = true;
 
-        configureProcess?.Invoke(Process.StartInfo);
+        configureProcess?.Invoke(AppHostProcess.StartInfo);
 
-        Process.Start();
-        Process.BeginOutputReadLine();
-        Process.BeginErrorReadLine();
+        AppHostProcess.Start();
+        AppHostProcess.BeginOutputReadLine();
+        AppHostProcess.BeginErrorReadLine();
 
         var successfulTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
         var failedAppTask = AppExited.Task;
@@ -192,18 +188,18 @@ public class AspireProject : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         // TODO: check that everything shutdown
-        if (Process is null)
+        if (AppHostProcess is null)
         {
             return;
         }
 
         await DumpDockerInfoAsync(new TestOutputWrapper(null));
 
-        if (!Process.HasExited)
+        if (!AppHostProcess.HasExited)
         {
-            Process.StandardInput.WriteLine("Stop");
+            AppHostProcess.StandardInput.WriteLine("Stop");
         }
-        await Process.WaitForExitAsync();
+        await AppHostProcess.WaitForExitAsync();
     }
 
     public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)
@@ -245,7 +241,7 @@ public class AspireProject : IAsyncDisposable
 
     public void EnsureAppHostRunning()
     {
-        if (Process is null || Process.HasExited || AppExited.Task.IsCompleted)
+        if (AppHostProcess is null || AppHostProcess.HasExited || AppExited.Task.IsCompleted)
         {
             throw new InvalidOperationException("The app host process is not running.");
         }
