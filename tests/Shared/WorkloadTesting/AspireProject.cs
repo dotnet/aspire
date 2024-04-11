@@ -281,6 +281,7 @@ public class AspireProject : IAsyncDisposable
                         {
                             msg += $" Content:{Environment.NewLine}{contentStr}";
                         }
+                        Console.WriteLine(msg);
                     };
                     options.Retry.MaxRetryAttempts = 20;
                 });
