@@ -174,6 +174,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
+        _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
 
         // Overwrite registry if override specified in options
