@@ -6,7 +6,7 @@ using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting;
 
-internal class ContainerRegistryHook(string requiredRegistry) : IDistributedApplicationLifecycleHook
+internal class ContainerRegistryHook(DistributedApplicationOptions options) : IDistributedApplicationLifecycleHook
 {
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -17,29 +17,9 @@ internal class ContainerRegistryHook(string requiredRegistry) : IDistributedAppl
 
         foreach (var resourceWithContainerImage in resourcesWithContainerImages)
         {
-            resourceWithContainerImage.Annotation.Registry = requiredRegistry;
+            resourceWithContainerImage.Annotation.Registry = options.ContainerRegistryOverride;
         }
 
         return Task.CompletedTask;
-    }
-}
-
-/// <summary>
-/// Extension methods for <see cref="IDistributedApplicationBuilder"/>.
-/// </summary>
-public static class ContainerRegistryCheckExtensions
-{
-    /// <summary>
-    /// Ensures that all container images are using the specified container registry.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="requiredRegistry">The hostname of the container registry to use for all container images.</param>
-    /// <returns></returns>
-    public static IDistributedApplicationBuilder WithContainerRegistry(this IDistributedApplicationBuilder builder, string requiredRegistry)
-    {
-        builder.Services.TryAddLifecycleHook<ContainerRegistryHook>(
-            sp => new ContainerRegistryHook(requiredRegistry)
-            );
-        return builder;
     }
 }

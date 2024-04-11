@@ -89,22 +89,27 @@ public class ManifestGenerationTests
     [Fact]
     public async Task WithContainerRegistryUpdatesContainerImageAnnotationsDuringPublish()
     {
-        var builder = DistributedApplication.CreateBuilder(GetManifestArgs()).WithContainerRegistry("myprivateregistry.company.com");
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = GetManifestArgs(),
+            ContainerRegistryOverride = "myprivateregistry.company.com"
+        });
+
         var redis = builder.AddRedis("redis");
         builder.Build().Run();
 
         var redisManifest = await ManifestUtils.GetManifest(redis.Resource);
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-              "image": "myprivateregistry.company.com/redis:7.2.4",
+              "image": "myprivateregistry.company.com/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  "containerPort": 6379
+                  "targetPort": 6379
                 }
               }
             }
