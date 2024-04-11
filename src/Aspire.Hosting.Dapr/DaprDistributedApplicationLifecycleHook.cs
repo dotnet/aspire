@@ -267,13 +267,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     {
         if (resource is IResourceWithEndpoints resourceWithEndpoints)
         {
-            return (sidecarOptions, resourceWithEndpoints) switch
+            return (sidecarOptions?.AppProtocol, sidecarOptions?.AppEndpoint) switch
             {
-                (var p0, var p1) when p0 is null || (p0.AppProtocol is null && p0.AppEndpoint is null) => (p1.GetEndpoint("http"), "http"),
-                (var p0, var p1) when p0!.AppProtocol is null && p0!.AppEndpoint is not null => (p1.GetEndpoint(p0.AppEndpoint), p1.GetEndpoint(p0.AppEndpoint).Scheme),
-                (var p0, var p1) when p0!.AppProtocol is not null && p0!.AppEndpoint is null => (p1.GetEndpoint(p0!.AppProtocol), p0!.AppProtocol),
-                (var p0, var p1) when p0!.AppProtocol is not null && p0!.AppEndpoint is not null => (p1.GetEndpoint(p0!.AppEndpoint), p0!.AppProtocol),
-                _ => throw new ArgumentException($"The combination of {nameof(DaprSidecarOptions.AppEndpoint)} and {nameof(DaprSidecarOptions.AppProtocol)}")
+                (null, null) => (resourceWithEndpoints.GetEndpoint("http"), "http"),
+                (null, string appEndpoint) => (resourceWithEndpoints.GetEndpoint(appEndpoint), resourceWithEndpoints.GetEndpoint(appEndpoint).Scheme),
+                (string appProtocol, null) => (resourceWithEndpoints.GetEndpoint(appProtocol), appProtocol),
+                (string appProtocol, string appEndpoint) => (resourceWithEndpoints.GetEndpoint(appEndpoint), appProtocol)
             };
         }
         return null;
