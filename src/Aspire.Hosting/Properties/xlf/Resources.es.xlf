@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
         <source>Bind mounts must specify an absolute path.</source>
-        <target state="new">Bind mounts must specify an absolute path.</target>
+        <target state="translated">Los montajes de enlace deben especificar una ruta de acceso absoluta.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
