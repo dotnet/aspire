@@ -177,6 +177,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
 
+        // Overwrite registry if override specified in options
+        if (!string.IsNullOrEmpty(options.ContainerRegistryOverride))
+        {
+            _innerBuilder.Services.AddLifecycleHook<ContainerRegistryHook>();
+        }
+
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
     }
