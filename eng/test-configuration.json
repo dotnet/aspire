@@ -4,8 +4,6 @@
   "localRerunCount": 1,
   "retryOnRules": [
     { "testAssembly": { "regex": "Aspire.EndToEnd.*" }, "failureMessage": { "regex": "App run failed" } },
-    { "testAssembly": { "regex": "Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.*" } },
-    { "testAssembly": { "regex": "Aspire.Microsoft.EntityFrameworkCore.SqlServer.*" } },
     { "testName": "Aspire.Azure.Security.KeyVault.Tests.ConformanceTests.HealthCheckReportsExpectedStatus" }
   ]
 }
