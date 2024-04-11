@@ -86,7 +86,6 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                     }
                     break;
                 case ResourceClientAuthMode.Certificate:
-
                     switch (options.ResourceServiceClient.ClientCertificates.Source)
                     {
                         case DashboardClientCertificateSource.File:
@@ -101,13 +100,19 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                                 errorMessages.Add("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Dashboard:ResourceServiceClient:ClientCertificate:Subject is configured.");
                             }
                             break;
+                        case null:
+                            errorMessages.Add($"The resource service client is configured to use certificates, but no certificate source is specified. Specify Dashboard:ResourceServiceClient:ClientCertificate:Source. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}");
+                            break;
                         default:
-                            errorMessages.Add($"Unexpected resource service client certificate source: {options.Otlp.AuthMode}");
+                            errorMessages.Add($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificates.Source}");
                             break;
                     }
                     break;
+                case null:
+                    errorMessages.Add($"Resource service client authentication is not configured. Specify {DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(ResourceClientAuthMode).GetEnumNames())}");
+                    break;
                 default:
-                    errorMessages.Add($"Unexpected resource service client authentication mode: {options.Otlp.AuthMode}");
+                    errorMessages.Add($"Unexpected resource service client authentication mode: {options.ResourceServiceClient.AuthMode}");
                     break;
             }
         }
