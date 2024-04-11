@@ -41,7 +41,7 @@ public class AddQdrantTests
         Assert.Equal("grpc", endpoint.Name);
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
-        Assert.Equal("http", endpoint.Transport);
+        Assert.Equal("http2", endpoint.Transport);
         Assert.Equal("http", endpoint.UriScheme);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
@@ -114,7 +114,7 @@ public class AddQdrantTests
         Assert.Equal("grpc", endpoint.Name);
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
-        Assert.Equal("http", endpoint.Transport);
+        Assert.Equal("http2", endpoint.Transport);
         Assert.Equal("http", endpoint.UriScheme);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
@@ -193,7 +193,7 @@ public class AddQdrantTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Endpoint={qdrant.bindings.grpc.scheme}://{qdrant.bindings.grpc.host}:{qdrant.bindings.grpc.port};Key={qdrant-Key.value}",
+              "connectionString": "Endpoint={qdrant.bindings.grpc.url};Key={qdrant-Key.value}",
               "image": "{{QdrantContainerImageTags.Registry}}/{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{qdrant-Key.value}",
@@ -203,7 +203,7 @@ public class AddQdrantTests
                 "grpc": {
                   "scheme": "http",
                   "protocol": "tcp",
-                  "transport": "http",
+                  "transport": "http2",
                   "targetPort": 6334
                 },
                 "http": {
@@ -231,7 +231,7 @@ public class AddQdrantTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Endpoint={qdrant.bindings.grpc.scheme}://{qdrant.bindings.grpc.host}:{qdrant.bindings.grpc.port};Key={QdrantApiKey.value}",
+              "connectionString": "Endpoint={qdrant.bindings.grpc.url};Key={QdrantApiKey.value}",
               "image": "{{QdrantContainerImageTags.Registry}}/{{QdrantContainerImageTags.Image}}:{{QdrantContainerImageTags.Tag}}",
               "env": {
                 "QDRANT__SERVICE__API_KEY": "{QdrantApiKey.value}",
@@ -241,7 +241,7 @@ public class AddQdrantTests
                 "grpc": {
                   "scheme": "http",
                   "protocol": "tcp",
-                  "transport": "http",
+                  "transport": "http2",
                   "targetPort": 6334
                 },
                 "http": {
@@ -277,7 +277,7 @@ public class AddQdrantTests
         Assert.False(grpcEndpoint.IsExternal);
         Assert.Equal(5503, grpcEndpoint.Port);
         Assert.Equal(ProtocolType.Tcp, grpcEndpoint.Protocol);
-        Assert.Equal("http", grpcEndpoint.Transport);
+        Assert.Equal("http2", grpcEndpoint.Transport);
         Assert.Equal("http", grpcEndpoint.UriScheme);
 
         var httpEndpoint = qdrantResource.Annotations.OfType<EndpointAnnotation>().Single(e => e.Name == "http");

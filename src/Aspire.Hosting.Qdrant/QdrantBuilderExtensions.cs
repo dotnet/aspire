@@ -43,6 +43,10 @@ public static class QdrantBuilderExtensions
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithImageRegistry(QdrantContainerImageTags.Registry)
             .WithHttpEndpoint(port: grpcPort, targetPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
+            .WithEndpoint(QdrantServerResource.PrimaryEndpointName, endpoint =>
+            {
+                endpoint.Transport = "http2";
+            })
             .WithHttpEndpoint(port: httpPort, targetPort: QdrantPortHttp, name: QdrantServerResource.HttpEndpointName)
             .WithEnvironment(context =>
             {
