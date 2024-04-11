@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="HelpScreenshotAltText">
         <source>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</source>
-        <target state="new">Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</target>
+        <target state="translated">Captura de tela da saída do console de exemplo mostrando onde encontrar o token de front-end do painel. Uma caixa vermelha destaca o token no final de uma URL. O token é o valor de um parâmetro de consulta chamado 't'.</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidTokenErrorMessage">
@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="MoreInfoLinkText">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">Mais informações</target>
         <note />
       </trans-unit>
       <trans-unit id="PageTitle">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="TokenHelpTextLine1">
         <source>Copy the highlighted token from the console to the login page and log in.</source>
-        <target state="new">Copy the highlighted token from the console to the login page and log in.</target>
+        <target state="translated">Copie o token realçado do console para a página de logon e faça o logon.</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenHelpTextLine2">
         <source>Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</source>
-        <target state="new">Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</target>
+        <target state="translated">Como alternativa, clique no link do console para fazer logon automaticamente. O endereço pode não estar correto quando o painel estiver sendo executado em um contêiner e a porta externa estiver mapeada para um valor diferente.</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenRequiredErrorMessage">
