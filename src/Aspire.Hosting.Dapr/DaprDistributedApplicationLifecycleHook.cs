@@ -275,25 +275,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     {
         if (resource is IResourceWithEndpoints resourceWithEndpoints)
         {
-            if (sidecarOptions == null || (sidecarOptions.AppProtocol == null && sidecarOptions.AppEndpoint == null))
-            {
-                return (resourceWithEndpoints.GetEndpoint("http"), "http");
-            }
-            else if (sidecarOptions.AppProtocol == null && sidecarOptions.AppEndpoint != null)
-            {
-                var appEndpoint = resourceWithEndpoints.GetEndpoint(sidecarOptions.AppEndpoint);
-                return (appEndpoint, appEndpoint.Scheme);
-            }
-            else if (sidecarOptions.AppProtocol != null && sidecarOptions.AppEndpoint == null)
-            {
-                var appEndpoint = resourceWithEndpoints.GetEndpoint(sidecarOptions.AppProtocol);
-                return (appEndpoint, sidecarOptions.AppProtocol);
-            }
-            else if (sidecarOptions.AppProtocol != null && sidecarOptions.AppEndpoint != null)
-            {
-                var appEndpoint = resourceWithEndpoints.GetEndpoint(sidecarOptions.AppEndpoint);
-                return (appEndpoint, sidecarOptions.AppProtocol);
-            }
+            return (sidecarOptions, resourceWithEndpoints) switch{
+                (var p0, var p1) when p0 == null || (p0.AppProtocol == null && p0.AppEndpoint == null) => (p1.GetEndpoint("http"), "http"),
+                (var p0, var p1) when p0!.AppProtocol == null && p0!.AppEndpoint != null => (p1.GetEndpoint(p0.AppEndpoint), p1.GetEndpoint(p0.AppEndpoint).Scheme),
+                (var p0, var p1) when p0!.AppProtocol != null && p0!.AppEndpoint == null => (p1.GetEndpoint(p0!.AppProtocol), p0!.AppProtocol),
+                (var p0, var p1) when p0!.AppProtocol != null && p0!.AppEndpoint != null => (p1.GetEndpoint(p0!.AppEndpoint), p0!.AppProtocol),
+                _ => throw new ArgumentException($"The combination of {nameof(DaprSidecarOptions.AppEndpoint)} and {nameof(DaprSidecarOptions.AppProtocol)}")
+            };
         }
         return null;
     }

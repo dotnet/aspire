@@ -77,7 +77,9 @@ public class DaprTests
             "--metrics-port",
             "{{- portForServing \"metrics\" -}}",
             "--app-channel-address",
-            "localhost"
+            "localhost",
+            "--app-protocol",
+            "http"
         };
 
         Assert.Equal(expectedArgs, sidecarArgs);
@@ -156,22 +158,6 @@ public class DaprTests
         Assert.Equal("http://localhost:3500", config["DAPR_HTTP_ENDPOINT"]);
         Assert.Equal("http://localhost:50001", config["DAPR_GRPC_ENDPOINT"]);
 
-        var expectedArgs = new[]
-        {
-            "run",
-            "--app-id",
-            "name",
-            "--app-port",
-            $"{expectedPort}",
-            "--dapr-grpc-port",
-            "{{- portForServing \"grpc\" -}}",
-            "--dapr-http-port",
-            "{{- portForServing \"http\" -}}",
-            "--metrics-port",
-            "{{- portForServing \"metrics\" -}}",
-            "--app-channel-address",
-            expectedChannelAddress
-        };
         // because the order of the parameters is changing, we are just checking if the important ones here.
         var commandline = string.Join(" ", sidecarArgs);
         Assert.Contains($"--app-port {expectedPort}", commandline);
