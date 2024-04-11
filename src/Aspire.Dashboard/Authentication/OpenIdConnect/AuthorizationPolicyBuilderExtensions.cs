@@ -35,6 +35,11 @@ internal static class AuthorizationPolicyBuilderExtensions
                 builder.RequireClaim(claimType);
             }
         }
+        else
+        {
+            // AuthorizationPolicy must have at least one requirement.
+            builder.RequireAuthenticatedUser();
+        }
 
         return builder;
     }
