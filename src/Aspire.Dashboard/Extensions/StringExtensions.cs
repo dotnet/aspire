@@ -1,30 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Aspire.Dashboard.Extensions;
 
 internal static class StringExtensions
 {
-    /// <summary>
-    /// Shortens a string by replacing the middle with an ellipsis.
-    /// </summary>
-    /// <param name="text">The string to shorten</param>
-    /// <param name="maxLength">The max length of the result</param>
-    public static string TrimMiddle(this string text, int maxLength)
-    {
-        if (text.Length <= maxLength)
-        {
-            return text;
-        }
-
-        var firstPart = (maxLength - 1) / 2;
-        var lastPart = firstPart + ((maxLength - 1) % 2);
-
-        return $"{text[..firstPart]}…{text[^lastPart..]}";
-    }
-
     public static string SanitizeHtmlId(this string input)
     {
         var sanitizedBuilder = new StringBuilder(capacity: input.Length);
@@ -48,5 +31,31 @@ internal static class StringExtensions
             // Check if the character is a letter, digit, underscore, or hyphen
             return char.IsLetterOrDigit(c) || c == '_' || c == '-';
         }
+    }
+
+    /// <summary>
+    /// Returns the two initial letters of the first and last words in the specified <paramref name="name"/>.
+    /// If only one word is present, a single initial is returned. If <paramref name="name"/> is null, empty or
+    /// white space only, <paramref name="defaultValue"/> is returned.
+    /// </summary>
+    [return: NotNullIfNotNull(nameof(defaultValue))]
+    public static string? GetInitials(this string name, string? defaultValue = default)
+    {
+        var s = name.AsSpan().Trim();
+
+        if (s.Length == 0)
+        {
+            return defaultValue;
+        }
+
+        var lastSpaceIndex = s.LastIndexOf(' ');
+
+        if (lastSpaceIndex == -1)
+        {
+            return s[0].ToString().ToUpperInvariant();
+        }
+
+        // The name contained two or more words. Return the initials from the first and last.
+        return $"{char.ToUpperInvariant(s[0])}{char.ToUpperInvariant(s[lastSpaceIndex + 1])}";
     }
 }

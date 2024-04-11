@@ -63,23 +63,7 @@ public static class SDKResourceExtensions
                 return;
             }
 
-            if (!string.IsNullOrEmpty(awsSdkConfig.Profile))
-            {
-                // The environment variable that AWSSDK.Extensions.NETCore.Setup will look for via IConfiguration.
-                context.EnvironmentVariables["AWS__Profile"] = awsSdkConfig.Profile;
-
-                // The environment variable the service clients look for service clients created without AWSSDK.Extensions.NETCore.Setup.
-                context.EnvironmentVariables["AWS_PROFILE"] = awsSdkConfig.Profile;
-            }
-
-            if (awsSdkConfig.Region != null)
-            {
-                // The environment variable that AWSSDK.Extensions.NETCore.Setup will look for via IConfiguration.
-                context.EnvironmentVariables["AWS__Region"] = awsSdkConfig.Region.SystemName;
-
-                // The environment variable the service clients look for service clients created without AWSSDK.Extensions.NETCore.Setup.
-                context.EnvironmentVariables["AWS_REGION"] = awsSdkConfig.Region.SystemName;
-            }
+            SdkUtilities.ApplySDKConfig(context, awsSdkConfig, true);
         });
 
         return builder;

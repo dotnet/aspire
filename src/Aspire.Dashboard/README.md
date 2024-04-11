@@ -53,10 +53,12 @@ Set `Dashboard:Frontend:AuthMode` to `BrowserToken`. Browser token authenticatio
 
 Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following configuration:
 
-- `Authentication:Schemes:OpenIdConnect:Authority` &mdash; URL to the identity provider (IdP)
-- `Authentication:Schemes:OpenIdConnect:ClientId` &mdash; Identity of the relying party (RP)
-- `Authentication:Schemes:OpenIdConnect:ClientSecret`&mdash; A secret that only the real RP would know
+- `Authentication:Schemes:OpenIdConnect:Authority` URL to the identity provider (IdP)
+- `Authentication:Schemes:OpenIdConnect:ClientId` Identity of the relying party (RP)
+- `Authentication:Schemes:OpenIdConnect:ClientSecret` A secret that only the real RP would know
 - Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
+- `Dashboard:Frontend:OpenIdConnect:NameClaimType` specifies the claim type(s) that should be used to display the authenticated user's full name. Can be a single claim type or a comma-delimited list of claim types. Defaults to `name`.
+- `Dashboard:Frontend:OpenIdConnect:UsernameClaimType` specifies the claim type(s) that should be used to display the authenticated user's username. Can be a single claim type or a comma-delimited list of claim types. Defaults to `preferred_username`.
 
 ### OTLP authentication
 
@@ -89,6 +91,8 @@ The resource service client supports certificates. Set `Dashboard:ResourceServic
     - `Dashboard:ResourceServiceClient:ClientCertificate:Subject` (required, string)
     - `Dashboard:ResourceServiceClient:ClientCertificate:Store` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
     - `Dashboard:ResourceServiceClient:ClientCertificate:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
+
+The resource service client supports API keys. Set `Dashboard:ResourceServiceClient:AuthMode` to `ApiKey` and set `Dashboard:ResourceServiceClient:ApiKey` to the required key. This is used when the resource service is configured to require API keys. It causes gRPC calls to include the configured API key in a request header, for the server to validate.
 
 To opt-out of authentication, set `Dashboard:ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 

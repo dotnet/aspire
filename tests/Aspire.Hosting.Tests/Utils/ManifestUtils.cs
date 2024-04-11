@@ -12,6 +12,13 @@ internal sealed class ManifestUtils
 {
     public static async Task<JsonNode> GetManifest(IResource resource, string? manifestDirectory = null)
     {
+        var node = await GetManifestOrNull(resource, manifestDirectory);
+        Assert.NotNull(node);
+        return node;
+    }
+
+    public static async Task<JsonNode?> GetManifestOrNull(IResource resource, string? manifestDirectory = null)
+    {
         manifestDirectory ??= Environment.CurrentDirectory;
 
         using var ms = new MemoryStream();
@@ -26,7 +33,6 @@ internal sealed class ManifestUtils
         var obj = JsonNode.Parse(ms);
         Assert.NotNull(obj);
         var resourceNode = obj[resource.Name];
-        Assert.NotNull(resourceNode);
         return resourceNode;
     }
 

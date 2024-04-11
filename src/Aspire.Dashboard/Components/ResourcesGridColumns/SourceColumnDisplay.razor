@@ -3,48 +3,27 @@
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Columns> Loc
 
-@if (Resource.IsProject() && Resource.TryGetProjectPath(out var projectPath))
+@if (ContentAfterValue is not null)
 {
-    // NOTE projects are also executables, so we have to check for projects first
-    <GridValue Value="@Path.GetFileName(projectPath)"
-               ValueToCopy="@projectPath"
-               EnableHighlighting="true"
-               HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
-               ToolTip="@projectPath" />
-}
-else if (Resource.TryGetExecutablePath(out var executablePath))
-{
-    Resource.TryGetExecutableArguments(out var arguments);
-    var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
-    var fullCommandLine = $"{executablePath} {argumentsString}";
-
-    <GridValue Value="@Path.GetFileName(executablePath)"
-               ValueToCopy="@fullCommandLine"
+    <GridValue Value="@Value"
+               ValueToCopy="@ValueToCopy"
                EnableHighlighting="true"
                HighlightText="@FilterText"
                PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
-               ToolTip="@fullCommandLine">
+               ToolTip="@Tooltip">
         <ContentAfterValue>
-            <span class="subtext">@argumentsString</span>
+            <span class="subtext">@ContentAfterValue</span>
         </ContentAfterValue>
     </GridValue>
 }
-else if (Resource.TryGetContainerImage(out var containerImage))
+else
 {
-    <GridValue Value="@containerImage"
+    <GridValue Value="@Value"
+               ValueToCopy="@ValueToCopy"
                EnableHighlighting="true"
                HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
-               ToolTip="@containerImage" />
-}
-else if (Resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
-{
-    <GridValue Value="@value.StringValue"
-               EnableHighlighting="true"
-               HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
-               ToolTip="@value.StringValue" />
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
+               ToolTip="@Tooltip" />
 }
 
 @code {
@@ -53,4 +32,17 @@ else if (Resource.Properties.TryGetValue(KnownProperties.Resource.Source, out va
 
     [Parameter, EditorRequired]
     public required string FilterText { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string Value { get; set; }
+
+    [Parameter]
+    public required string? ContentAfterValue { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string ValueToCopy { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string Tooltip { get; set; }
+
 }
