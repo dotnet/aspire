@@ -129,7 +129,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (Project?.Process is not null)
+        if (Project?.AppHostProcess is not null)
         {
             await DumpDockerInfoAsync(new TestOutputWrapper(null));
         }
