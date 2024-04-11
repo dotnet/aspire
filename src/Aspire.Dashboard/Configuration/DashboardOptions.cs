@@ -22,12 +22,16 @@ public sealed class DashboardOptions
 public sealed class ResourceServiceClientOptions
 {
     private Uri? _parsedUrl;
+    private byte[]? _apiKeyBytes;
 
     public string? Url { get; set; }
     public ResourceClientAuthMode? AuthMode { get; set; }
     public ResourceServiceClientCertificateOptions ClientCertificates { get; set; } = new ResourceServiceClientCertificateOptions();
+    public string? ApiKey { get; set; }
 
     public Uri? GetUri() => _parsedUrl;
+
+    internal byte[] GetApiKeyBytes() => _apiKeyBytes ?? throw new InvalidOperationException($"{nameof(ApiKey)} is not available.");
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
@@ -39,6 +43,8 @@ public sealed class ResourceServiceClientOptions
                 return false;
             }
         }
+
+        _apiKeyBytes = ApiKey != null ? Encoding.UTF8.GetBytes(ApiKey) : null;
 
         errorMessage = null;
         return true;
@@ -114,6 +120,7 @@ public sealed class FrontendOptions
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
     public string? BrowserToken { get; set; }
+    public OpenIdConnectOptions OpenIdConnect { get; set; } = new OpenIdConnectOptions();
 
     public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;
 
@@ -162,4 +169,54 @@ public sealed class TelemetryLimitOptions
     public int MaxAttributeCount { get; set; } = 128;
     public int MaxAttributeLength { get; set; } = int.MaxValue;
     public int MaxSpanEventCount { get; set; } = int.MaxValue;
+}
+
+// Don't set values after validating/parsing options.
+public sealed class OpenIdConnectOptions
+{
+    private string[]? _nameClaimTypes;
+    private string[]? _usernameClaimTypes;
+
+    public string NameClaimType { get; set; } = "name";
+    public string UsernameClaimType { get; set; } = "preferred_username";
+
+    public string[] GetNameClaimTypes()
+    {
+        Debug.Assert(_nameClaimTypes is not null, "Should have been parsed during validation.");
+        return _nameClaimTypes;
+    }
+
+    public string[] GetUsernameClaimTypes()
+    {
+        Debug.Assert(_usernameClaimTypes is not null, "Should have been parsed during validation.");
+        return _usernameClaimTypes;
+    }
+
+    internal bool TryParseOptions([NotNullWhen(false)] out IEnumerable<string>? errorMessages)
+    {
+        List<string>? messages = null;
+        if (string.IsNullOrWhiteSpace(NameClaimType))
+        {
+            messages ??= [];
+            messages.Add("OpenID Connect claim type for name not configured. Specify a Dashboard:OpenIdConnect:NameClaimType value.");
+        }
+        else
+        {
+            _nameClaimTypes = NameClaimType.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+
+        if (string.IsNullOrWhiteSpace(UsernameClaimType))
+        {
+            messages ??= [];
+            messages.Add("OpenID Connect claim type for username not configured. Specify a Dashboard:OpenIdConnect:UsernameClaimType value.");
+        }
+        else
+        {
+            _usernameClaimTypes = UsernameClaimType.Split(",", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+
+        errorMessages = messages;
+
+        return messages is null;
+    }
 }

@@ -7,6 +7,11 @@
         <target state="translated">Anonim birimler salt okunur olamaz.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="translated">Bağlama işlemlerinde mutlak bir yol belirtilmelidir.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
         <target state="translated">Bağlama işlemlerinde bir kaynak yolu belirtilmelidir.</target>

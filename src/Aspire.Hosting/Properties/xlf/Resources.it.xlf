@@ -7,6 +7,11 @@
         <target state="translated">I volumi anonimi non possono essere di sola lettura.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="translated">I montaggi di associazione devono specificare un percorso assoluto.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
         <target state="translated">I montaggi di associazione devono specificare un percorso di origine.</target>

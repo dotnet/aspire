@@ -15,10 +15,8 @@ namespace Aspire.MySqlConnector.Tests;
 
 public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnectorSettings>, IClassFixture<MySqlContainerFixture>
 {
-    private readonly MySqlContainerFixture _containerFixture;
-    private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
-                                        ? _containerFixture.GetConnectionString()
-                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
+    private readonly MySqlContainerFixture? _containerFixture;
+    private string ConnectionString { get; set; }
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // https://github.com/mysql-net/MySqlConnector/blob/d895afc013a5849d33a123a7061442e2cbb9ce76/src/MySqlConnector/Utilities/ActivitySourceHelper.cs#L61
@@ -55,8 +53,13 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
             ("""{"Aspire": { "MySqlConnector":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
-    public ConformanceTests(MySqlContainerFixture containerFixture)
-        => _containerFixture = containerFixture;
+    public ConformanceTests(MySqlContainerFixture? containerFixture)
+    {
+        _containerFixture = containerFixture;
+        ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
+    }
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
@@ -120,16 +123,14 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: null))).Dispose();
+        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+                                 ConnectionString).Dispose();
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => RunWithFixtureAsync(obj => obj.ActivitySourceTest(key: "key"))).Dispose();
+        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: "key")),
+                                 ConnectionString).Dispose();
 
-    private static async Task RunWithFixtureAsync(Action<ConformanceTests> test)
-    {
-        await using var fixture = new MySqlContainerFixture();
-        await fixture.InitializeAsync();
-        test(new ConformanceTests(fixture));
-    }
+    private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
+        => test(new ConformanceTests(null) { ConnectionString = connectionString });
 }

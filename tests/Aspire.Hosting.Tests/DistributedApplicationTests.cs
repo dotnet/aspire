@@ -222,7 +222,8 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR");
+            .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
+            .WithContainerRunArgs("--add-host", "testlocalhost:127.0.0.1");
 
         await using var app = testProgram.Build();
 
@@ -236,6 +237,7 @@ public class DistributedApplicationTests
             {
                 Assert.Equal("redis:latest", item.Spec.Image);
                 Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
+                Assert.Equal(["--add-host", "testlocalhost:127.0.0.1"], item.Spec.RunArgs);
             });
 
         await app.StopAsync();
@@ -407,8 +409,9 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
+        var sourcePath = Path.GetFullPath("/etc/path-here");
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithBindMount("/etc/path-here", $"path-here");
+            .WithBindMount(sourcePath, "path-here");
 
         await using var app = testProgram.Build();
 
@@ -426,7 +429,7 @@ public class DistributedApplicationTests
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
-        Assert.Equal("/etc/path-here", redisContainer.Spec.VolumeMounts[0].Source);
+        Assert.Equal(sourcePath, redisContainer.Spec.VolumeMounts[0].Source);
 
         await app.StopAsync();
     }
@@ -438,7 +441,7 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithBindMount("etc/path-here", $"path-here");
+            .WithBindMount("etc/path-here", "path-here");
 
         await using var app = testProgram.Build();
 
@@ -469,7 +472,7 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithVolume("test-volume-name", $"/path-here");
+            .WithVolume("test-volume-name", "/path-here");
 
         await using var app = testProgram.Build();
 

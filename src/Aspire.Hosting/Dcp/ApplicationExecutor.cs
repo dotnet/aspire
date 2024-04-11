@@ -12,6 +12,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using k8s;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -1031,8 +1032,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 var launchProfile = project.GetEffectiveLaunchProfile();
                 if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
                 {
-                    var cmdArgs = launchProfile.CommandLineArgs.Split((string?)null, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                    if (cmdArgs is not null && cmdArgs.Length > 0)
+                    var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
+                    if (cmdArgs.Count > 0)
                     {
                         exeSpec.Args.Add("--");
                         exeSpec.Args.AddRange(cmdArgs);
@@ -1288,29 +1289,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 foreach (var mount in containerMounts)
                 {
-                    var isBindMount = mount.Type == ContainerMountType.BindMount;
-                    var resolvedSource = mount.Source;
-                    if (isBindMount)
-                    {
-                        // Source is only optional for creating anonymous volume mounts.
-                        if (mount.Source == null)
-                        {
-                            throw new InvalidDataException($"Bind mount for container '{container.Name}' is missing required source.");
-                        }
-
-                        if (!Path.IsPathRooted(mount.Source))
-                        {
-                            resolvedSource = Path.GetFullPath(mount.Source);
-                        }
-                    }
-
                     var volumeSpec = new VolumeMount
                     {
-                        Source = resolvedSource,
+                        Source = mount.Source,
                         Target = mount.Target,
-                        Type = isBindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
+                        Type = mount.Type == ContainerMountType.BindMount ? VolumeMountType.Bind : VolumeMountType.Volume,
                         IsReadOnly = mount.IsReadOnly
                     };
+
                     ctr.Spec.VolumeMounts.Add(volumeSpec);
                 }
             }
@@ -1454,6 +1440,37 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 resourceLogger.LogCritical("Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
                 _logger.LogDebug(ex, "Failed to apply configuration value '{ConfigKey}'. A dependency may have failed to start.", kvp.Key);
                 failedToApplyConfiguration = true;
+            }
+        }
+
+        // Apply optional extra arguments to the container run command.
+        if (modelContainerResource.TryGetAnnotationsOfType<ContainerRunArgsCallbackAnnotation>(out var runArgsCallback))
+        {
+            dcpContainerResource.Spec.RunArgs ??= [];
+
+            var args = new List<object>();
+
+            var containerRunArgsContext = new ContainerRunArgsCallbackContext(args, cancellationToken);
+
+            foreach (var callback in runArgsCallback)
+            {
+                await callback.Callback(containerRunArgsContext).ConfigureAwait(false);
+            }
+
+            foreach (var arg in args)
+            {
+                var value = arg switch
+                {
+                    string s => s,
+                    IValueProvider valueProvider => await GetValue(key: null, valueProvider, resourceLogger, isContainer: true, cancellationToken).ConfigureAwait(false),
+                    null => null,
+                    _ => throw new InvalidOperationException($"Unexpected value for {arg}")
+                };
+
+                if (value is not null)
+                {
+                    dcpContainerResource.Spec.RunArgs.Add(value);
+                }
             }
         }
 

@@ -7,6 +7,11 @@
         <target state="translated">Anonyme Volumes können nicht schreibgeschützt sein.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="translated">Bindungsbereitstellungen müssen einen absoluten Pfad angeben.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
         <target state="translated">Für "Bereitstellungen einbinden" muss ein Quellpfad angegeben werden.</target>

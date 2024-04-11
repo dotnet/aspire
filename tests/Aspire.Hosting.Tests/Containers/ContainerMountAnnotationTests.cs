@@ -18,6 +18,12 @@ public class ContainerMountAnnotationTests
     }
 
     [Fact]
+    public void CtorThrowsArgumentExceptionIfBindMountSourceIsNotRooted()
+    {
+        Assert.Throws<ArgumentException>("source", () => new ContainerMountAnnotation("usr/foo", "/usr/foo", ContainerMountType.BindMount, false));
+    }
+
+    [Fact]
     public void CtorThrowsArgumentExceptionIfAnonymousVolumeIsReadOnly()
     {
         Assert.Throws<ArgumentException>("isReadOnly", () => new ContainerMountAnnotation(null, "/usr/foo", ContainerMountType.Volume, true));

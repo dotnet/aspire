@@ -7,6 +7,11 @@
         <target state="translated">匿名ボリュームを読み取り専用にすることはできません。</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="translated">バインド マウントでは絶対パスを指定する必要があります。</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
         <target state="translated">バインド マウントでは、ソース パスを指定する必要があります。</target>

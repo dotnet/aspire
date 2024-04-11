@@ -7,6 +7,11 @@
         <target state="translated">Анонимные тома не могут быть доступны только для чтения.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="translated">Привязка подключений должна указывать абсолютный путь.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
         <target state="translated">Привязка подключений должна указывать исходный путь.</target>

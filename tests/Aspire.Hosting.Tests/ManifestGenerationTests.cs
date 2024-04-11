@@ -2,7 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.MySql;
+using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.RabbitMQ;
+using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -82,6 +87,37 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public async Task WithContainerRegistryUpdatesContainerImageAnnotationsDuringPublish()
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = GetManifestArgs(),
+            ContainerRegistryOverride = "myprivateregistry.company.com"
+        });
+
+        var redis = builder.AddRedis("redis");
+        builder.Build().Run();
+
+        var redisManifest = await ManifestUtils.GetManifest(redis.Resource);
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+              "image": "myprivateregistry.company.com/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, redisManifest.ToString());
+    }
+
+    [Fact]
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
@@ -134,140 +170,6 @@ public class ManifestGenerationTests
         Assert.False(
             resources.GetProperty("servicea").TryGetProperty("bindings", out _),
             "Service has no bindings because they weren't populated from the launch profile.");
-    }
-
-    [Fact]
-    public void EnsureContainerWithEndpointsEmitsContainerPort()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithHttpEndpoint(3000);
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var grafana = resources.GetProperty("grafana");
-        var bindings = grafana.GetProperty("bindings");
-        var httpBinding = bindings.GetProperty("http");
-        Assert.Equal(3000, httpBinding.GetProperty("targetPort").GetInt32());
-    }
-
-    [Fact]
-    public void EnsureContainerWithArgsEmitsContainerArgs()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithArgs("test", "arg2", "more");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var grafana = resources.GetProperty("grafana");
-        var args = grafana.GetProperty("args");
-        Assert.Equal(3, args.GetArrayLength());
-        Assert.Collection(args.EnumerateArray(),
-            arg => Assert.Equal("test", arg.GetString()),
-            arg => Assert.Equal("arg2", arg.GetString()),
-            arg => Assert.Equal("more", arg.GetString()));
-    }
-
-    [Fact]
-    public async Task EnsureContainerWithVolumesEmitsVolumes()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        var container = program.AppBuilder.AddContainer("containerwithvolumes", "image/name")
-            .WithVolume("myvolume", "/mount/here")
-            .WithVolume("myreadonlyvolume", "/mount/there", isReadOnly: true)
-            .WithVolume(null! /* anonymous volume */, "/mount/everywhere");
-
-        program.Build();
-
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "container.v0",
-              "image": "image/name:latest",
-              "volumes": [
-                {
-                  "name": "myvolume",
-                  "target": "/mount/here",
-                  "readOnly": false
-                },
-                {
-                  "name": "myreadonlyvolume",
-                  "target": "/mount/there",
-                  "readOnly": true
-                },
-                {
-                  "target": "/mount/everywhere",
-                  "readOnly": false
-                }
-              ]
-            }
-            """;
-
-        Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Fact]
-    public async Task EnsureContainerWithBindMountsEmitsBindMounts()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        var container = program.AppBuilder.AddContainer("containerwithbindmounts", "image/name")
-            .WithBindMount("./some/source", "/bound")
-            .WithBindMount("not/relative/qualified", "/another/place")
-            .WithBindMount(".\\some\\other\\source", "\\mount\\here")
-            .WithBindMount("./some/file/path.txt", "/mount/there.txt", isReadOnly: true);
-
-        program.Build();
-
-        var manifest = await ManifestUtils.GetManifest(container.Resource);
-
-        var expectedManifest = """
-            {
-              "type": "container.v0",
-              "image": "image/name:latest",
-              "bindMounts": [
-                {
-                  "source": "some/source",
-                  "target": "/bound",
-                  "readOnly": false
-                },
-                {
-                  "source": "not/relative/qualified",
-                  "target": "/another/place",
-                  "readOnly": false
-                },
-                {
-                  "source": "some/other/source",
-                  "target": "/mount/here",
-                  "readOnly": false
-                },
-                {
-                  "source": "some/file/path.txt",
-                  "target": "/mount/there.txt",
-                  "readOnly": true
-                }
-              ]
-            }
-            """;
-
-        Assert.Equal(expectedManifest, manifest.ToString());
     }
 
     [Theory]
@@ -327,27 +229,6 @@ public class ManifestGenerationTests
         var resource = resources.GetProperty("program");
         var exists = resource.TryGetProperty("args", out _);
         Assert.False(exists);
-    }
-
-    [Fact]
-    public void EnsureContainerWithCustomEntrypointEmitsEntrypoint()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        var container = program.AppBuilder.AddContainer("grafana", "grafana/grafana");
-        container.Resource.Entrypoint = "custom";
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var grafana = resources.GetProperty("grafana");
-        var entrypoint = grafana.GetProperty("entrypoint");
-        Assert.Equal("custom", entrypoint.GetString());
     }
 
     [Fact]
@@ -530,7 +411,7 @@ public class ManifestGenerationTests
 
         program.Run();
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "resources": {
                 "servicea": {
@@ -643,7 +524,7 @@ public class ManifestGenerationTests
                 "sqlserver": {
                   "type": "container.v0",
                   "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-                  "image": "mcr.microsoft.com/mssql/server:2022-latest",
+                  "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
                   "env": {
                     "ACCEPT_EULA": "Y",
                     "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
@@ -664,7 +545,7 @@ public class ManifestGenerationTests
                 "mysql": {
                   "type": "container.v0",
                   "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-                  "image": "mysql:8.3.0",
+                  "image": "{{MySqlContainerImageTags.Registry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
                   "env": {
                     "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
                     "MYSQL_DATABASE": "mysqldb"
@@ -685,7 +566,7 @@ public class ManifestGenerationTests
                 "redis": {
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-                  "image": "redis:7.2.4",
+                  "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -698,7 +579,7 @@ public class ManifestGenerationTests
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-                  "image": "postgres:16.2",
+                  "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                     "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -722,7 +603,7 @@ public class ManifestGenerationTests
                 "rabbitmq": {
                   "type": "container.v0",
                   "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
-                  "image": "rabbitmq:3",
+                  "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
                   "env": {
                     "RABBITMQ_DEFAULT_USER": "guest",
                     "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
@@ -739,7 +620,7 @@ public class ManifestGenerationTests
                 "mongodb": {
                   "type": "container.v0",
                   "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-                  "image": "mongo:7.0.5",
+                  "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -756,7 +637,7 @@ public class ManifestGenerationTests
                 "oracledatabase": {
                   "type": "container.v0",
                   "connectionString": "user id=system;password={oracledatabase-password.value};data source={oracledatabase.bindings.tcp.host}:{oracledatabase.bindings.tcp.port}",
-                  "image": "container-registry.oracle.com/database/free:23.3.0.0",
+                  "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
                   "env": {
                     "ORACLE_PWD": "{oracledatabase-password.value}"
                   },
@@ -776,7 +657,7 @@ public class ManifestGenerationTests
                 "kafka": {
                   "type": "container.v0",
                   "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-                  "image": "confluentinc/confluent-local:7.6.0",
+                  "image": "{{KafkaContainerImageTags.Registry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
                   "env": {
                     "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
                   },

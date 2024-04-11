@@ -37,7 +37,7 @@ public class AddRedisTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(RedisContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(RedisContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(RedisContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class AddRedisTests
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(RedisContainerImageTags.Tag, containerAnnotation.Tag);
         Assert.Equal(RedisContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(RedisContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class AddRedisTests
             {
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-              "image": "{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
@@ -213,7 +213,7 @@ public class AddRedisTests
 
         var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal("mydata", volumeAnnotation.Source);
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
