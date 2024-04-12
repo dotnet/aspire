@@ -14,23 +14,39 @@ namespace Aspire.Dashboard.Model;
 internal sealed class BrowserSecurityHeadersMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly string _cspContent;
+    private readonly string _cspContentHttp;
+    private readonly string _cspContentHttps;
 
     public BrowserSecurityHeadersMiddleware(RequestDelegate next, IHostEnvironment environment)
     {
         _next = next;
 
+        _cspContentHttp = GenerateCspContent(environment, isHttps: false);
+        _cspContentHttps = GenerateCspContent(environment, isHttps: true);
+    }
+
+    private static string GenerateCspContent(IHostEnvironment environment, bool isHttps)
+    {
         // Based on Blazor documentation recommendations:
         // https://learn.microsoft.com/aspnet/core/blazor/security/content-security-policy#server-side-blazor-apps
         // Changes:
         // - style-src adds inline styles as they're used extensively by Blazor FluentUI.
         // - frame-src none added to prevent nesting in iframe.
         var content = "base-uri 'self'; " +
-            "img-src data: https:; " +
             "object-src 'none'; " +
             "script-src 'self'; " +
             "style-src 'self' 'unsafe-inline'; " +
             "frame-src 'none';";
+
+        if (isHttps)
+        {
+            // Only allow https images when the site is served over https.
+            content += " img-src data: https:;";
+        }
+        else
+        {
+            content += " img-src data: http: https:;";
+        }
 
         // default-src limits where content can fetched from.
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src
@@ -41,7 +57,7 @@ internal sealed class BrowserSecurityHeadersMiddleware
             content += " default-src 'self';";
         }
 
-        _cspContent = content;
+        return content;
     }
 
     public Task InvokeAsync(HttpContext context)
@@ -49,7 +65,9 @@ internal sealed class BrowserSecurityHeadersMiddleware
         // Don't set browser security headers on OTLP requests.
         if (context.Features.Get<IOtlpConnectionFeature>() == null)
         {
-            context.Response.Headers.ContentSecurityPolicy = _cspContent;
+            context.Response.Headers.ContentSecurityPolicy = context.Request.IsHttps
+                ? _cspContentHttps
+                : _cspContentHttp;
 
             // Recommended best practice value: https://web.dev/articles/referrer-best-practices
             context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
