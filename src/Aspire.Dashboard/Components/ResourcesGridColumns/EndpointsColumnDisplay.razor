@@ -47,7 +47,7 @@ else
             @{
                 var items = overflow.ItemsOverflow.ToList();
             }
-            <FluentPopover AnchorId="@overflow.IdMoreButton" @bind-Open="_popoverVisible" VerticalThreshold="200">
+            <FluentPopover AnchorId="@overflow.IdMoreButton" @bind-Open="_popoverVisible" VerticalThreshold="200" AutoFocus="false">
                 <Header>
                     Endpoints
                 </Header>
