@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -16,7 +15,6 @@ internal class DashboardOptions
     public string? OtlpEndpointUrl { get; set; }
     public string? OtlpApiKey { get; set; }
     public string AspNetCoreEnvironment { get; set; } = "Production";
-    public TimeSpan DashboardStartupTimeout { get; set; } = TimeSpan.FromSeconds(30);
 }
 
 internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IOptions<DcpOptions> dcpOptions) : IConfigureOptions<DashboardOptions>
@@ -31,12 +29,6 @@ internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IO
         options.OtlpApiKey = configuration["AppHost:OtlpApiKey"];
 
         options.AspNetCoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
-
-        if (configuration["AppHost:DashboardStartupTimeout"] is { Length: > 0 } dashboardStartupTimeoutValue &&
-            !string.IsNullOrEmpty(dashboardStartupTimeoutValue))
-        {
-            options.DashboardStartupTimeout = TimeSpan.FromSeconds(int.Parse(dashboardStartupTimeoutValue, CultureInfo.InvariantCulture));
-        }
     }
 }
 
