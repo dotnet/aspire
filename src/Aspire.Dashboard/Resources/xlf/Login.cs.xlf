@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AuthorizedUser">
         <source>Authorized User</source>
-        <target state="new">Authorized User</target>
+        <target state="translated">Autorizovaný uživatel</target>
         <note>Placeholder text for the name of the authorized user when no name claim exists</note>
       </trans-unit>
       <trans-unit id="Header">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="LoggedInAs">
         <source>Logged in as:</source>
-        <target state="new">Logged in as:</target>
+        <target state="translated">Přihlášen(a) jako:</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoLinkText">
