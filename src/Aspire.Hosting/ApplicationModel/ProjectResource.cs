@@ -7,6 +7,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a specified .NET project.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class ProjectResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithServiceDiscovery
+public class ProjectResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery
 {
 }

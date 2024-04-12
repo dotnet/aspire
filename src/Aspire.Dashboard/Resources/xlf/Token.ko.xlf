@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../Token.resx">
+    <body>
+      <trans-unit id="Header">
+        <source>{0} dashboard</source>
+        <target state="translated">{0} 대시보드</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="HelpPopupText">
+        <source>Look for the token in the console output:</source>
+        <target state="translated">콘솔 출력에서 토큰을 찾습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="HelpScreenshotAltText">
+        <source>Screenshot of console output showing where to find the dashboard frontend token</source>
+        <target state="translated">대시보드 프런트 엔드 토큰을 찾을 위치를 보여 주는 콘솔 출력의 스크린샷</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidTokenErrorMessage">
+        <source>Invalid token. Please try again</source>
+        <target state="translated">토큰이 잘못되었습니다. 다시 시도하세요.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogInButtonText">
+        <source>Log in</source>
+        <target state="translated">로그인</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MoreInfoLinkText">
+        <source>More info</source>
+        <target state="translated">자세한 정보</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageTitle">
+        <source>{0} login</source>
+        <target state="translated">{0} 로그인</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="TextFieldPlaceholder">
+        <source>Enter token to log in...</source>
+        <target state="translated">로그인할 토큰 입력...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TokenRequiredErrorMessage">
+        <source>Token is required</source>
+        <target state="translated">토큰이 필요합니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedValidationError">
+        <source>Unexpected error when validating the token</source>
+        <target state="translated">토큰의 유효성을 검사하는 동안 예기치 않은 오류가 발생했습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WhereIsMyTokenLinkText">
+        <source>Where do I find the token?</source>
+        <target state="translated">토큰은 어디에서 찾을 수 있나요?</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

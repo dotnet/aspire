@@ -4,7 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Azure.Provisioning.Authorization;
+using Azure.Provisioning;
 using Azure.Provisioning.Search;
 using Azure.ResourceManager.Search.Models;
 
@@ -23,9 +23,9 @@ public static class AzureSearchExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
     {
-#pragma warning disable ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureSearch(name, null);
-#pragma warning restore ASPIRE0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
     /// <summary>
     /// Adds an Azure AI Search service resource to the application model.
@@ -34,7 +34,7 @@ public static class AzureSearchExtensions
     /// <param name="name">The name of the Azure AI Search resource.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Search.SearchService"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
-    [Experimental("ASPIRE0001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<AzureSearchResource> AddAzureSearch(
         this IDistributedApplicationBuilder builder,
         string name,

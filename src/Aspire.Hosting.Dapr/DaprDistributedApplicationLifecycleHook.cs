@@ -94,11 +94,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             }
 
             var daprAppPortArg = (int? port) => ModelNamedArg("--app-port", port);
-            var daprGrpcPortArg = (string? port) => ModelNamedArg("--dapr-grpc-port", port);
-            var daprHttpPortArg = (string? port) => ModelNamedArg("--dapr-http-port", port);
-            var daprMetricsPortArg = (string? port) => ModelNamedArg("--metrics-port", port);
-            var daprProfilePortArg = (string? port) => ModelNamedArg("--profile-port", port);
+            var daprGrpcPortArg = (object port) => ModelNamedObjectArg("--dapr-grpc-port", port);
+            var daprHttpPortArg = (object port) => ModelNamedObjectArg("--dapr-http-port", port);
+            var daprMetricsPortArg = (object port) => ModelNamedObjectArg("--metrics-port", port);
+            var daprProfilePortArg = (object port) => ModelNamedObjectArg("--profile-port", port);
             var daprAppChannelAddressArg = (string? address) => ModelNamedArg("--app-channel-address", address);
+            var daprAppProtocol = (string? protocol) => ModelNamedArg("--app-protocol", protocol);
 
             var appId = sidecarOptions?.AppId ?? resource.Name;
 
@@ -151,12 +152,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", http);
                     }));
 
-            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
-            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
-            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "grpc", port: sidecarOptions?.DaprGrpcPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http", port: sidecarOptions?.DaprHttpPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "metrics", port: sidecarOptions?.MetricsPort));
             if (sidecarOptions?.EnableProfiling == true)
             {
-                daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
+                daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort, uriScheme: "http"));
             }
 
             // NOTE: Telemetry is enabled by default.
@@ -170,28 +171,37 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     updatedArgs =>
                     {
                         updatedArgs.AddRange(daprCommandLine.Arguments);
-
-                        EndpointReference? httpEndPoint = null;
-                        if (resource is IResourceWithEndpoints resourceWithEndpoints)
+                        var endPoint = GetEndpointReference(sidecarOptions, resource);
+                        if (endPoint is not null)
                         {
-                            httpEndPoint = resourceWithEndpoints.GetEndpoint("http");
-
-                            if (httpEndPoint.IsAllocated && sidecarOptions?.AppPort is null)
+                            if (endPoint.Value.appEndpoint.IsAllocated && sidecarOptions?.AppPort is null)
                             {
-                                updatedArgs.AddRange(daprAppPortArg(httpEndPoint.Port)());
+                                updatedArgs.AddRange(daprAppPortArg(endPoint.Value.appEndpoint.Port)());
                             }
                         }
 
-                        updatedArgs.AddRange(daprGrpcPortArg($"{{{{- portForServing \"{daprCliResourceName}_grpc\" -}}}}")());
-                        updatedArgs.AddRange(daprHttpPortArg($"{{{{- portForServing \"{daprCliResourceName}_http\" -}}}}")());
-                        updatedArgs.AddRange(daprMetricsPortArg($"{{{{- portForServing \"{daprCliResourceName}_metrics\" -}}}}")());
+                        var grpc = daprCli.GetEndpoint("grpc");
+                        var http = daprCli.GetEndpoint("http");
+                        var metrics = daprCli.GetEndpoint("metrics");
+
+                        updatedArgs.AddRange(daprGrpcPortArg(grpc.Property(EndpointProperty.TargetPort))());
+                        updatedArgs.AddRange(daprHttpPortArg(http.Property(EndpointProperty.TargetPort))());
+                        updatedArgs.AddRange(daprMetricsPortArg(metrics.Property(EndpointProperty.TargetPort))());
+
                         if (sidecarOptions?.EnableProfiling == true)
                         {
-                            updatedArgs.AddRange(daprProfilePortArg($"{{{{- portForServing \"{daprCliResourceName}_profile\" -}}}}")());
+                            var profiling = daprCli.GetEndpoint("profiling");
+
+                            updatedArgs.AddRange(daprProfilePortArg(profiling.Property(EndpointProperty.TargetPort))());
                         }
-                        if (sidecarOptions?.AppChannelAddress is null && httpEndPoint is not null)
+
+                        if (sidecarOptions?.AppChannelAddress is null && endPoint is not null)
                         {
-                            updatedArgs.AddRange(daprAppChannelAddressArg(httpEndPoint.Host)());
+                            updatedArgs.AddRange(daprAppChannelAddressArg(endPoint.Value.appEndpoint.Host)());
+                        }
+                        if (sidecarOptions?.AppProtocol is null && endPoint is not null)
+                        {
+                            updatedArgs.AddRange(daprAppProtocol(endPoint.Value.protocol)());
                         }
                     }));
 
@@ -245,6 +255,27 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
 
         appModel.Resources.AddRange(sideCars);
+    }
+
+    // This method resolves the application's endpoint and the protocol that the dapr side car will use.
+    // It depends on DaprSidecarOptions.AppProtocol and DaprSidecarOptions.AppEndpoint.
+    // - If both are null default to 'http' for both.
+    // - If AppProtocol is not null try to get an endpoint with the name of the protocol.
+    // - if AppEndpoint is not null try to use the scheme as the protocol.
+    // - if both are not null just use both options.
+    static (EndpointReference appEndpoint, string protocol)? GetEndpointReference(DaprSidecarOptions? sidecarOptions, IResource resource)
+    {
+        if (resource is IResourceWithEndpoints resourceWithEndpoints)
+        {
+            return (sidecarOptions?.AppProtocol, sidecarOptions?.AppEndpoint) switch
+            {
+                (null, null) => (resourceWithEndpoints.GetEndpoint("http"), "http"),
+                (null, string appEndpoint) => (resourceWithEndpoints.GetEndpoint(appEndpoint), resourceWithEndpoints.GetEndpoint(appEndpoint).Scheme),
+                (string appProtocol, null) => (resourceWithEndpoints.GetEndpoint(appProtocol), appProtocol),
+                (string appProtocol, string appEndpoint) => (resourceWithEndpoints.GetEndpoint(appEndpoint), appProtocol)
+            };
+        }
+        return null;
     }
 
     /// <summary>

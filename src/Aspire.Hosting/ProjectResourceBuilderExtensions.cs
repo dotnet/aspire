@@ -91,8 +91,14 @@ public static class ProjectResourceBuilderExtensions
         // implements IDistributedApplicationResourceWithEnvironment.
         builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true");
         builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
+        // .NET SDK has experimental support for retries. Enable with env var.
+        // https://github.com/open-telemetry/opentelemetry-dotnet/pull/5495
+        // Remove once retry feature in opentelemetry-dotnet is enabled by default.
+        builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", "in_memory");
+
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
+        builder.SetAspNetCoreUrls();
 
         var projectResource = builder.Resource;
 
@@ -121,7 +127,7 @@ public static class ProjectResourceBuilderExtensions
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            // Automatically add EndpointAnnotation to project resources based on ApplicationUrl set in the launch profile.
+            // Process the launch profile and turn it into environment variables and endpoints.
             var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
             if (launchProfile is null)
             {
@@ -141,6 +147,20 @@ public static class ProjectResourceBuilderExtensions
                 },
                 createIfNotExists: true);
             }
+
+            builder.WithEnvironment(context =>
+            {
+                // Populate DOTNET_LAUNCH_PROFILE environment variable for consistency with "dotnet run" and "dotnet watch".
+                context.EnvironmentVariables.TryAdd("DOTNET_LAUNCH_PROFILE", launchProfileName!);
+
+                foreach (var envVar in launchProfile.EnvironmentVariables)
+                {
+                    var value = Environment.ExpandEnvironmentVariables(envVar.Value);
+                    context.EnvironmentVariables.TryAdd(envVar.Key, value);
+                }
+            });
+
+            // NOTE: the launch profile command line arguments will be processed by ApplicationExecutor.PrepareProjectExecutables() (either by the IDE or manually passed to run)
         }
         else
         {
@@ -201,29 +221,6 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Configures which launch profile should be used when running the project.
-    /// </summary>
-    /// <param name="builder">The project resource builder.</param>
-    /// <param name="launchProfileName">The name of the launch profile to use for execution.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName. Method will be removed by GA.")]
-    public static IResourceBuilder<ProjectResource> WithLaunchProfile(this IResourceBuilder<ProjectResource> builder, string launchProfileName)
-    {
-        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Method will be removed by GA.");
-    }
-
-    /// <summary>
-    /// Configures the project to exclude launch profile settings when running.
-    /// </summary>
-    /// <param name="builder">The project resource builder.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    [Obsolete("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile. Method will be removed by GA.")]
-    public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
-    {
-        throw new InvalidOperationException("This API is replaced by the AddProject overload that accepts a launchProfileName. Null means exclude launch profile. Method will be removed by GA.");
-    }
-
-    /// <summary>
     /// Configures the project to disable forwarded headers when being published.
     /// </summary>
     /// <param name="builder">The project resource builder.</param>
@@ -255,5 +252,57 @@ public static class ProjectResourceBuilderExtensions
     {
         var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
         return launchProfile?.ApplicationUrl != null;
+    }
+
+    private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
+    {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return;
+        }
+
+        builder.WithEnvironment(context =>
+        {
+            if (context.EnvironmentVariables.ContainsKey("ASPNETCORE_URLS"))
+            {
+                // If the user has already set ASPNETCORE_URLS, we don't want to override it.
+                return;
+            }
+
+            var aspnetCoreUrls = new ReferenceExpressionBuilder();
+
+            var processedHttpsPort = false;
+            var first = true;
+
+            static bool IsValidAspNetCoreUrl(EndpointAnnotation e) =>
+                e.UriScheme is "http" or "https" && e.TargetPortEnvironmentVariable is null;
+
+            // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
+            foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+            {
+                if (!first)
+                {
+                    aspnetCoreUrls.AppendLiteral(";");
+                }
+
+                if (!processedHttpsPort && e.EndpointAnnotation.UriScheme == "https")
+                {
+                    // Add the environment variable for the HTTPS port if we have an HTTPS service. This will make sure the
+                    // HTTPS redirection middleware avoids redirecting to the internal port.
+                    context.EnvironmentVariables["ASPNETCORE_HTTPS_PORT"] = e.Property(EndpointProperty.Port);
+
+                    processedHttpsPort = true;
+                }
+
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://localhost:{e.Property(EndpointProperty.TargetPort)}");
+                first = false;
+            }
+
+            if (!aspnetCoreUrls.IsEmpty)
+            {
+                // Combine into a single expression
+                context.EnvironmentVariables["ASPNETCORE_URLS"] = aspnetCoreUrls.Build();
+            }
+        });
     }
 }

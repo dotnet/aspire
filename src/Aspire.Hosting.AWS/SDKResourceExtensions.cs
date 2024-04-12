@@ -48,12 +48,13 @@ public static class SDKResourceExtensions
     }
 
     /// <summary>
-    /// Add a reference to an AWS SDK configuration a project.
+    /// Add a reference to an AWS SDK configuration to the resource.
     /// </summary>
     /// <param name="builder">An <see cref="IResourceBuilder{T}"/> for <see cref="ProjectResource"/></param>
     /// <param name="awsSdkConfig">The AWS SDK configuration</param>
     /// <returns></returns>
-    public static IResourceBuilder<ProjectResource> WithReference(this IResourceBuilder<ProjectResource> builder, IAWSSDKConfig awsSdkConfig)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IAWSSDKConfig awsSdkConfig)
+        where TDestination : IResourceWithEnvironment
     {
         builder.WithEnvironment(context =>
         {
@@ -62,23 +63,7 @@ public static class SDKResourceExtensions
                 return;
             }
 
-            if (!string.IsNullOrEmpty(awsSdkConfig.Profile))
-            {
-                // The environment variable that AWSSDK.Extensions.NETCore.Setup will look for via IConfiguration.
-                context.EnvironmentVariables["AWS__Profile"] = awsSdkConfig.Profile;
-
-                // The environment variable the service clients look for service clients created without AWSSDK.Extensions.NETCore.Setup.
-                context.EnvironmentVariables["AWS_PROFILE"] = awsSdkConfig.Profile;
-            }
-
-            if (awsSdkConfig.Region != null)
-            {
-                // The environment variable that AWSSDK.Extensions.NETCore.Setup will look for via IConfiguration.
-                context.EnvironmentVariables["AWS__Region"] = awsSdkConfig.Region.SystemName;
-
-                // The environment variable the service clients look for service clients created without AWSSDK.Extensions.NETCore.Setup.
-                context.EnvironmentVariables["AWS_REGION"] = awsSdkConfig.Region.SystemName;
-            }
+            SdkUtilities.ApplySDKConfig(context, awsSdkConfig, true);
         });
 
         return builder;

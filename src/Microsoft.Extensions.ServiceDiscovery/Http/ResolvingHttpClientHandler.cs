@@ -8,9 +8,9 @@ namespace Microsoft.Extensions.ServiceDiscovery.Http;
 /// <summary>
 /// <see cref="HttpClientHandler"/> which resolves endpoints using service discovery.
 /// </summary>
-internal sealed class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver, IOptions<ServiceDiscoveryOptions> options) : HttpClientHandler
+internal sealed class ResolvingHttpClientHandler(HttpServiceEndpointResolver resolver, IOptions<ServiceDiscoveryOptions> options) : HttpClientHandler
 {
-    private readonly HttpServiceEndPointResolver _resolver = resolver;
+    private readonly HttpServiceEndpointResolver _resolver = resolver;
     private readonly ServiceDiscoveryOptions _options = options.Value;
 
     /// <inheritdoc/>
@@ -23,7 +23,7 @@ internal sealed class ResolvingHttpClientHandler(HttpServiceEndPointResolver res
             if (originalUri?.Host is not null)
             {
                 var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
-                request.RequestUri = ResolvingHttpDelegatingHandler.GetUriWithEndPoint(originalUri, result, _options);
+                request.RequestUri = ResolvingHttpDelegatingHandler.GetUriWithEndpoint(originalUri, result, _options);
                 request.Headers.Host ??= result.Features.Get<IHostNameFeature>()?.HostName;
             }
 

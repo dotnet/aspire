@@ -39,27 +39,45 @@ Example JSON configuration file:
 
 ### Frontend authentication
 
-The dashboard's frontend supports OpenID Connect (OIDC). Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following configuration:
+The dashboard frontend endpoint can be secured with OpenID Connect (OIDC) or browser token authentication.
 
-- `Authentication:Schemes:OpenIdConnect:Authority` &mdash; URL to the identity provider (IdP)
-- `Authentication:Schemes:OpenIdConnect:ClientId` &mdash; Identity of the relying party (RP)
-- `Authentication:Schemes:OpenIdConnect:ClientSecret`&mdash; A secret that only the real RP would know
+It may also be run unsecured. Set `Dashboard:Frontend:AuthMode` to `Unsecured`. The frontend endpoint will allow anonymous access. This setting should only be used during local development. It's not recommended when hosting the dashboard publically or in other settings.
+
+#### Frontend browser token authentication
+
+Set `Dashboard:Frontend:AuthMode` to `BrowserToken`. Browser token authentication works by the frontend asking for a token. The token can either be entered in the UI or provided as a query string value to the login page. For example, `https://localhost:1234/login?t=TheToken`. When the token is successfully authenticated an auth cookie is persisted to the browser and the browser is redirected to the app.
+
+- `Dashboard:Frontend:BrowserToken` specifies the browser token. If the browser token isn't specified then the dashboard will generate one. Tooling that wants to automate logging in with browser token authentication can specify a token and open a browser with the token in the query string. A new token should be generated each time the dashboard is launched. (optional, string)
+
+#### Frontend OIDC authentication
+
+Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following configuration:
+
+- `Authentication:Schemes:OpenIdConnect:Authority` URL to the identity provider (IdP)
+- `Authentication:Schemes:OpenIdConnect:ClientId` Identity of the relying party (RP)
+- `Authentication:Schemes:OpenIdConnect:ClientSecret` A secret that only the real RP would know
 - Other properties of [`OpenIdConnectOptions`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.openidconnectoptions) specified in configuration container `Authentication:Schemes:OpenIdConnect:*`
-
-It may also be run unsecured. Set `Dashboard:Frontend:AuthMode` to `Unsecured`. The frontend endpoint will allow anonymous access. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
+- `Dashboard:Frontend:OpenIdConnect:NameClaimType` specifies the claim type(s) that should be used to display the authenticated user's full name. Can be a single claim type or a comma-delimited list of claim types. Defaults to `name`.
+- `Dashboard:Frontend:OpenIdConnect:UsernameClaimType` specifies the claim type(s) that should be used to display the authenticated user's username. Can be a single claim type or a comma-delimited list of claim types. Defaults to `preferred_username`.
+- `Dashboard:Frontend:OpenIdConnect:RequireClaimType` specifies the (optional) claim that be present for authorized users. Defaults to empty.
+- `Dashboard:Frontend:OpenIdConnect:RequireClaimValue` specifies the (optional) value of the required claim. Only used if `Dashboard:Frontend:OpenIdConnect:RequireClaimType` is also specified. Defaults to empty.
 
 ### OTLP authentication
 
 The OTLP endpoint can be secured with [client certificate](https://learn.microsoft.com/aspnet/core/security/authentication/certauth) or API key authentication.
 
+It may also be run unsecured. Set `Dashboard:Otlp:AuthMode` to `Unsecured`. The OTLP endpoint will allow anonymous access. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
+
+#### OTLP client certification authentication
+
 For client certification authentication, set `Dashboard:Otlp:AuthMode` to `Certificate`.
+
+#### OTLP API key authentication
 
 For API key authentication, set `Dashboard:Otlp:AuthMode` to `ApiKey`, then add the following configuration:
 
 - `Dashboard:Otlp:PrimaryApiKey` specifies the primary API key. (required, string)
 - `Dashboard:Otlp:SecondaryApiKey` specifies the secondary API key. (optional, string)
-
-It may also be run unsecured. Set `Dashboard:Otlp:AuthMode` to `Unsecured`. The OTLP endpoint will allow anonymous access. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 
 ### Resources
 
@@ -75,6 +93,8 @@ The resource service client supports certificates. Set `Dashboard:ResourceServic
     - `Dashboard:ResourceServiceClient:ClientCertificate:Subject` (required, string)
     - `Dashboard:ResourceServiceClient:ClientCertificate:Store` (optional, [`StoreName`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storename), defaults to `My`)
     - `Dashboard:ResourceServiceClient:ClientCertificate:Location` (optional, [`StoreLocation`](https://learn.microsoft.com/dotnet/api/system.security.cryptography.x509certificates.storelocation), defaults to `CurrentUser`)
+
+The resource service client supports API keys. Set `Dashboard:ResourceServiceClient:AuthMode` to `ApiKey` and set `Dashboard:ResourceServiceClient:ApiKey` to the required key. This is used when the resource service is configured to require API keys. It causes gRPC calls to include the configured API key in a request header, for the server to validate.
 
 To opt-out of authentication, set `Dashboard:ResourceServiceClient:AuthMode` to `Unsecured`. This completely disables all security for the resource service client. This setting is used during local development, but is not recommended if you attempt to host the dashboard in other settings.
 

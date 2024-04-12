@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" />
     <PackageReference Include="Azure.Provisioning" />
+    <PackageReference Include="Azure.Provisioning.Redis" />
   </ItemGroup>
 
   <ItemGroup>

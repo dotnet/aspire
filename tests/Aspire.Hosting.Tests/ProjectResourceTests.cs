@@ -5,7 +5,6 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -16,7 +15,9 @@ public class ProjectResourceTests
     [Fact]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
-        var appBuilder = CreateBuilder();
+        // Explicitly specify development environment and other config so it is constant.
+        var appBuilder = CreateBuilder(args: ["--environment", "Development", "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:18889"],
+            DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
@@ -26,7 +27,6 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
-        Assert.Equal(7, resource.Annotations.Count);
 
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
@@ -46,8 +46,18 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", env.Key);
+                Assert.Equal("in_memory", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("OTEL_EXPORTER_OTLP_ENDPOINT", env.Key);
                 Assert.Equal("http://localhost:18889", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_EXPORTER_OTLP_PROTOCOL", env.Key);
+                Assert.Equal("grpc", env.Value);
             },
             env =>
             {
@@ -65,6 +75,26 @@ public class ProjectResourceTests
                 var parts = env.Value.Split('=');
                 Assert.Equal("x-otlp-api-key", parts[0]);
                 Assert.True(Guid.TryParse(parts[1], out _));
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_BLRP_SCHEDULE_DELAY", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_BSP_SCHEDULE_DELAY", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_METRIC_EXPORT_INTERVAL", env.Key);
+                Assert.Equal("1000", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_TRACES_SAMPLER", env.Key);
+                Assert.Equal("always_on", env.Value);
             },
             env =>
             {
@@ -91,11 +121,7 @@ public class ProjectResourceTests
     [InlineData(null, true)]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata_OtlpAuthDisabledSetting(string? value, bool hasHeader)
     {
-        var appBuilder = CreateBuilder();
-        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            ["DOTNET_DISABLE_OTLP_API_KEY_AUTH"] = value
-        });
+        var appBuilder = CreateBuilder(args: [$"DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS={value}"], DistributedApplicationOperation.Run);
 
         appBuilder.AddProject<TestProject>("projectName", launchProfileName: null);
         using var app = appBuilder.Build();
@@ -108,7 +134,14 @@ public class ProjectResourceTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
-        Assert.Equal(hasHeader, config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"));
+        if (hasHeader)
+        {
+            Assert.True(config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"), "Config should have 'OTEL_EXPORTER_OTLP_HEADERS' header and doesn't.");
+        }
+        else
+        {
+            Assert.False(config.ContainsKey("OTEL_EXPORTER_OTLP_HEADERS"), "Config shouldn't have 'OTEL_EXPORTER_OTLP_HEADERS' header and does.");
+        }
     }
 
     [Fact]
@@ -143,8 +176,7 @@ public class ProjectResourceTests
         var projectResources = appModel.GetProjectResources();
 
         var resource = Assert.Single(projectResources);
-        // LaunchProfileAnnotation isn't public, so we just check the type name
-        Assert.Contains(resource.Annotations, a => a.GetType().Name == "LaunchProfileAnnotation");
+        Assert.Contains(resource.Annotations, a => a is LaunchProfileAnnotation);
     }
 
     [Fact]
@@ -208,8 +240,114 @@ public class ProjectResourceTests
         var projectResources = appModel.GetProjectResources();
 
         var resource = Assert.Single(projectResources);
-        
+
         Assert.Contains(resource.Annotations, a => a is ExcludeLaunchProfileAnnotation);
+    }
+
+    [Fact]
+    public async Task AspNetCoreUrlsNotInjectedInPublishMode()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Publish);
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: null)
+                  .WithHttpEndpoint(port: 5000, name: "http")
+                  .WithHttpsEndpoint(port: 5001, name: "https");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
+        Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
+    }
+
+    [Fact]
+    public async Task ExcludeLaunchProfileAddsHttpOrHttpsEndpointAddsToEnv()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: null)
+                  .WithHttpEndpoint(port: 5000, name: "http")
+                  .WithHttpsEndpoint(port: 5001, name: "https")
+                  .WithHttpEndpoint(port: 5002, name: "http2", env: "SOME_ENV")
+                  .WithEndpoint("http", e =>
+                  {
+                      e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
+                  })
+                  .WithEndpoint("https", e =>
+                  {
+                      e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
+                  })
+                  .WithEndpoint("http2", e =>
+                   {
+                       e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p2");
+                   });
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        Assert.Equal("http://localhost:p0;https://localhost:p1", config["ASPNETCORE_URLS"]);
+        Assert.Equal("5001", config["ASPNETCORE_HTTPS_PORT"]);
+        Assert.Equal("p2", config["SOME_ENV"]);
+    }
+
+    [Fact]
+    public async Task NoEndpointsDoesNotAddAspNetCoreUrls()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName", launchProfileName: null);
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
+        Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
+    }
+
+    [Fact]
+    public async Task ProjectWithLaunchProfileAddsHttpOrHttpsEndpointAddsToEnv()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName")
+                  .WithEndpoint("http", e =>
+                  {
+                      e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
+                  });
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        Assert.Equal("http://localhost:p0", config["ASPNETCORE_URLS"]);
+        Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
     }
 
     [Fact]
@@ -262,7 +400,8 @@ public class ProjectResourceTests
               "path": "another-path",
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"{{fordwardedHeadersEnvVar}}
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"{{fordwardedHeadersEnvVar}}
               },
               "bindings": {
                 "http": {
@@ -282,10 +421,96 @@ public class ProjectResourceTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    private static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
+    [Fact]
+    public async Task VerifyManifestWithArgs()
     {
-        var args = operation == DistributedApplicationOperation.Publish ? new[] { "--publisher", "manifest" } : Array.Empty<string>();
-        var appBuilder = DistributedApplication.CreateBuilder(args);
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName")
+            .WithArgs("one", "two");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var manifest = await ManifestUtils.GetManifest(resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "project.v0",
+              "path": "another-path",
+              "args": [
+                "one",
+                "two"
+              ],
+              "env": {
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+              },
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http"
+                },
+                "https": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http"
+                }
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task AddProjectWithArgs()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var c1 = appBuilder.AddContainer("c1", "image2")
+            .WithEndpoint("ep", e =>
+            {
+                e.UriScheme = "http";
+                e.AllocatedEndpoint = new(e, "localhost", 1234);
+            });
+
+        var project = appBuilder.AddProject<TestProjectWithLaunchSettings>("projectName")
+             .WithArgs(context =>
+             {
+                 context.Args.Add("arg1");
+                 context.Args.Add(c1.GetEndpoint("ep"));
+             });
+
+        using var app = appBuilder.Build();
+
+        var args = await ArgumentEvaluator.GetArgumentListAsync(project.Resource);
+
+        Assert.Collection(args,
+            arg => Assert.Equal("arg1", arg),
+            arg => Assert.Equal("http://localhost:1234", arg));
+    }
+
+    private static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
+    {
+        var resolvedArgs = new List<string>();
+        if (args != null)
+        {
+            resolvedArgs.AddRange(args);
+        }
+        if (operation == DistributedApplicationOperation.Publish)
+        {
+            resolvedArgs.AddRange(["--publisher", "manifest"]);
+        }
+        var appBuilder = DistributedApplication.CreateBuilder(resolvedArgs.ToArray());
         // Block DCP from actually starting anything up as we don't need it for this test.
         appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
 
@@ -311,6 +536,7 @@ public class ProjectResourceTests
                     ["http"] = new()
                     {
                         CommandName = "Project",
+                        CommandLineArgs = "arg1 arg2",
                         LaunchBrowser = true,
                         ApplicationUrl = "http://localhost:5031",
                         EnvironmentVariables = new()

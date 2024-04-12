@@ -39,13 +39,16 @@ internal sealed class ResourceLogSource<TResource>(
         var stderrStreamTask = Task.Run(() => StreamLogsAsync(stderrStream, isError: true), cancellationToken);
 
         // End the enumeration when both streams have been read to completion.
-        _ = Task.WhenAll(stdoutStreamTask, stderrStreamTask).ContinueWith
-            (_ => { channel.Writer.TryComplete(); },
-            cancellationToken,
-            TaskContinuationOptions.None,
-            TaskScheduler.Default).ConfigureAwait(false);
 
-        await foreach (var batch in channel.GetBatchesAsync(cancellationToken: cancellationToken))
+        async Task WaitForStreamsToCompleteAsync()
+        {
+            await Task.WhenAll(stdoutStreamTask, stderrStreamTask).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            channel.Writer.TryComplete();
+        }
+
+        _ = WaitForStreamsToCompleteAsync();
+        
+        await foreach (var batch in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             yield return batch;
         }

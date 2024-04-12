@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../Login.resx">
+    <body>
+      <trans-unit id="AuthorizedUser">
+        <source>Authorized User</source>
+        <target state="new">Authorized User</target>
+        <note>Placeholder text for the name of the authorized user when no name claim exists</note>
+      </trans-unit>
+      <trans-unit id="Header">
+        <source>{0} dashboard</source>
+        <target state="translated">Painel {0}</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="HelpScreenshotAltText">
+        <source>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</source>
+        <target state="new">Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidTokenErrorMessage">
+        <source>Invalid token. Please try again</source>
+        <target state="translated">Token inválido. Tente novamente</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogInButtonText">
+        <source>Log in</source>
+        <target state="translated">Fazer logon</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoggedInAs">
+        <source>Logged in as:</source>
+        <target state="new">Logged in as:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MoreInfoLinkText">
+        <source>More information</source>
+        <target state="new">More information</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageTitle">
+        <source>{0} login</source>
+        <target state="translated">Login {0}</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="TextFieldPlaceholder">
+        <source>Enter token to log in...</source>
+        <target state="translated">Insira o token para fazer logon...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TokenHelpTextLine1">
+        <source>Copy the highlighted token from the console to the login page and log in.</source>
+        <target state="new">Copy the highlighted token from the console to the login page and log in.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TokenHelpTextLine2">
+        <source>Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</source>
+        <target state="new">Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TokenRequiredErrorMessage">
+        <source>Token is required</source>
+        <target state="translated">O token é necessário</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UnexpectedValidationError">
+        <source>Unexpected error when validating the token</source>
+        <target state="translated">Erro inesperado ao validar o token</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="WhereIsMyTokenLinkText">
+        <source>Where do I find the token?</source>
+        <target state="translated">Onde posso encontrar o token?</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

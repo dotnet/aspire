@@ -14,6 +14,15 @@ if (firstUndefinedElement) {
     document.body.classList.remove("before-upgrade");
 }
 
+// Register a global click event listener to handle copy button clicks.
+// Required because an "onclick" attribute is denied by CSP.
+document.addEventListener("click", function (e) {
+    if (e.target.type === "button" && e.target.getAttribute("data-copybutton")) {
+        buttonCopyTextToClipboard(e.target);
+        e.stopPropagation();
+    }
+});
+
 let isScrolledToContent = false;
 let lastScrollHeight = null;
 
@@ -418,4 +427,11 @@ window.getBrowserTimeZone = function () {
     const options = Intl.DateTimeFormat().resolvedOptions();
 
     return options.timeZone;
+}
+
+window.focusElement = function(selector) {
+    const element = document.getElementById(selector);
+    if (element) {
+        element.focus();
+    }
 }

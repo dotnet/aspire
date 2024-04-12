@@ -7,6 +7,11 @@
         <target state="translated">Volumes anônimos não podem ser somente leitura.</target>
         <note />
       </trans-unit>
+      <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
+        <source>Bind mounts must specify an absolute path.</source>
+        <target state="translated">As montagens associadas devem especificar um caminho absoluto.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
         <target state="translated">As montagens de associação devem especificar um caminho de origem.</target>
@@ -15,7 +20,8 @@
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
 See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="needs-review-translation">O runtime do contêiner '{0}' não pôde ser encontrado. O erro da verificação de runtime do contêiner foi: {1}.</target>
+        <target state="translated">O runtime do contêiner "{0}" não pôde ser encontrado. O erro da verificação de runtime do contêiner foi : {1}.
+Consulte https://aka.ms/dotnet/aspire/containers para obter mais detalhes sobre runtimes de contêiner com suporte.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">

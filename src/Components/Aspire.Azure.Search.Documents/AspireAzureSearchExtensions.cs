@@ -31,22 +31,6 @@ public static class AspireAzureSearchExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SearchIndexClient, SearchClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Search:Documents" section.</remarks>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureSearchClient)} instead.")]
-    public static void AddAzureSearch(
-        this IHostApplicationBuilder builder,
-        string connectionName,
-        Action<AzureSearchSettings>? configureSettings = null,
-        Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>>? configureClientBuilder = null)
-        => AddAzureSearchClient(builder, connectionName, configureSettings, configureClientBuilder);
-
-    /// <summary>
-    /// Registers <see cref="SearchIndexClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SearchIndexClient, SearchClientOptions}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:Search:Documents" section.</remarks>
     public static void AddAzureSearchClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -55,22 +39,6 @@ public static class AspireAzureSearchExtensions
     {
         new AzureSearchComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
-
-    /// <summary>
-    /// Registers <see cref="SearchIndexClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SearchIndexClient, SearchClientOptions}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Azure:Search:Documents:{name}" section.</remarks>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddKeyedAzureSearchClient)} instead.")]
-    public static void AddKeyedAzureSearch(
-        this IHostApplicationBuilder builder,
-        string name,
-        Action<AzureSearchSettings>? configureSettings = null,
-        Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>>? configureClientBuilder = null)
-        => AddKeyedAzureSearchClient(builder, name, configureSettings, configureClientBuilder);
 
     /// <summary>
     /// Registers <see cref="SearchIndexClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.

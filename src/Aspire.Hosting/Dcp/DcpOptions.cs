@@ -2,20 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
 internal sealed class DcpOptions
 {
-    private const string DcpCliPathMetadataKey = "DcpCliPath";
-    private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
-    private const string DcpBinPathMetadataKey = "DcpBinPath";
-    private const string DashboardPathMetadataKey = "aspiredashboardpath";
-
-    public static string DcpPublisher = nameof(DcpPublisher);
-
     /// <summary>
     /// The path to the DCP executable used for Aspire orchestration
     /// </summary>
@@ -81,69 +74,94 @@ internal sealed class DcpOptions
 
     public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
 
-    public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
+    public TimeSpan ServiceStartupWatchTimeout { get; set; } = TimeSpan.FromSeconds(10);
+}
+
+internal class ValidateDcpOptions : IValidateOptions<DcpOptions>
+{
+    public ValidateOptionsResult Validate(string? name, DcpOptions options)
     {
-        string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
-        if (publisher is not null && publisher != "dcp")
+        var builder = new ValidateOptionsResultBuilder();
+
+        if (string.IsNullOrEmpty(options.CliPath))
         {
-            // If DCP is not set as the publisher, don't calculate the DCP config
-            return;
+            builder.AddError("The path to the DCP executable used for Aspire orchestration is required.", "CliPath");
         }
 
-        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(CliPath)]))
+        if (string.IsNullOrEmpty(options.DashboardPath))
+        {
+            builder.AddError("The path to the Aspire Dashboard binaries is missing.", "DashboardPath");
+        }
+
+        return builder.Build();
+    }
+}
+
+internal class ConfigureDefaultDcpOptions(
+    DistributedApplicationOptions appOptions,
+    IConfiguration configuration) : IConfigureOptions<DcpOptions>
+{
+    private const string DcpCliPathMetadataKey = "DcpCliPath";
+    private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
+    private const string DcpBinPathMetadataKey = "DcpBinPath";
+    private const string DashboardPathMetadataKey = "aspiredashboardpath";
+
+    public static string DcpPublisher = nameof(DcpPublisher);
+
+    public void Configure(DcpOptions options)
+    {
+        var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
-            CliPath = dcpPublisherConfiguration[nameof(CliPath)];
+            options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
         }
         else
         {
             var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-            CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
-            ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
-            BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
-            DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
+            options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
+            options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
+            options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+            options.DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
         }
 
-        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(ContainerRuntime)]))
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.ContainerRuntime)]))
         {
-            ContainerRuntime = dcpPublisherConfiguration[nameof(ContainerRuntime)];
+            options.ContainerRuntime = dcpPublisherConfiguration[nameof(options.ContainerRuntime)];
         }
         else
         {
-            ContainerRuntime = coreConfiguration.GetValue<string>("DOTNET_ASPIRE_CONTAINER_RUNTIME");
+            options.ContainerRuntime = configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
         }
 
-        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(DependencyCheckTimeout)]))
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]))
         {
-            if (int.TryParse(dcpPublisherConfiguration[nameof(DependencyCheckTimeout)], out var timeout))
+            if (int.TryParse(dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)], out var timeout))
             {
-                DependencyCheckTimeout = timeout;
+                options.DependencyCheckTimeout = timeout;
             }
             else
             {
-                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(DependencyCheckTimeout)]}\" for \"--dependency-check-timeout\". Exepcted an integer value.");
+                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]}\" for \"--dependency-check-timeout\". Exepcted an integer value.");
             }
         }
         else
         {
-            DependencyCheckTimeout = coreConfiguration.GetValue<int>("DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT", DependencyCheckTimeout);
+            options.DependencyCheckTimeout = configuration.GetValue("DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT", options.DependencyCheckTimeout);
         }
 
-        KubernetesConfigReadRetryCount = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryCount), KubernetesConfigReadRetryCount);
-        KubernetesConfigReadRetryIntervalMilliseconds = dcpPublisherConfiguration.GetValue<int>(nameof(KubernetesConfigReadRetryIntervalMilliseconds), KubernetesConfigReadRetryIntervalMilliseconds);
+        options.KubernetesConfigReadRetryCount = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesConfigReadRetryCount), options.KubernetesConfigReadRetryCount);
+        options.KubernetesConfigReadRetryIntervalMilliseconds = dcpPublisherConfiguration.GetValue(nameof(options.KubernetesConfigReadRetryIntervalMilliseconds), options.KubernetesConfigReadRetryIntervalMilliseconds);
 
-        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(ResourceNameSuffix)]))
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.ResourceNameSuffix)]))
         {
-            ResourceNameSuffix = dcpPublisherConfiguration[nameof(ResourceNameSuffix)];
+            options.ResourceNameSuffix = dcpPublisherConfiguration[nameof(options.ResourceNameSuffix)];
         }
 
-        DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue<bool>(nameof(DeleteResourcesOnShutdown), DeleteResourcesOnShutdown);
-        RandomizePorts = dcpPublisherConfiguration.GetValue<bool>(nameof(RandomizePorts), RandomizePorts);
-
-        if (string.IsNullOrEmpty(CliPath))
-        {
-            throw new InvalidOperationException($"Could not resolve the path to the Aspire application host. The application cannot be run without it.");
-        }
+        options.DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue(nameof(options.DeleteResourcesOnShutdown), options.DeleteResourcesOnShutdown);
+        options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
+        options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

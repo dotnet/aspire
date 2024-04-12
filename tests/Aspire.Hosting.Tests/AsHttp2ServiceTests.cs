@@ -71,5 +71,5 @@ public class AsHttp2ServiceTests
         Assert.Equal("http2", httpsBinding.Transport);
     }
 
-    private static TestProgram CreateTestProgram(string[] args) => TestProgram.Create<AsHttp2ServiceTests>(args);
+    private static TestProgram CreateTestProgram(string[] args) => TestProgram.Create<AsHttp2ServiceTests>(args, disableDashboard: true);
 }

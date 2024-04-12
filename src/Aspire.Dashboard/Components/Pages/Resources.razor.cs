@@ -4,12 +4,15 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -30,6 +33,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required IToastService ToastService { get; init; }
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
@@ -41,6 +46,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
+    private string? _elementIdBeforeDetailsViewOpened;
 
     public Resources()
     {
@@ -49,7 +55,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && resource.State != ResourceStates.HiddenState;
 
-    protected void OnResourceTypeVisibilityChanged(string resourceType, bool isVisible)
+    protected Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         if (isVisible)
         {
@@ -60,12 +66,12 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             _visibleResourceTypes.TryRemove(resourceType, out _);
         }
 
-        ClearSelectedResource();
+        return ClearSelectedResourceAsync();
     }
 
-    private void HandleSearchFilterChanged()
+    private Task HandleSearchFilterChangedAsync()
     {
-        ClearSelectedResource();
+        return ClearSelectedResourceAsync();
     }
 
     private bool? AreAllTypesVisible
@@ -160,7 +166,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             // Listen for updates and apply.
             _resourceSubscriptionTask = Task.Run(async () =>
             {
-                await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
+                await foreach (var changes in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token).ConfigureAwait(false))
                 {
                     foreach (var (changeType, resource) in changes)
                     {
@@ -202,11 +208,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private void ShowResourceDetails(ResourceViewModel resource)
+    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string buttonId)
     {
+        _elementIdBeforeDetailsViewOpened = buttonId;
+
         if (SelectedResource == resource)
         {
-            ClearSelectedResource();
+            await ClearSelectedResourceAsync();
         }
         else
         {
@@ -214,9 +222,16 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private void ClearSelectedResource()
+    private async Task ClearSelectedResourceAsync(bool causedByUserAction = false)
     {
         SelectedResource = null;
+
+        if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
+        {
+            await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
+        }
+
+        _elementIdBeforeDetailsViewOpened = null;
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName);
@@ -279,6 +294,86 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 }
             });
         }
+    }
+
+    private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
+    {
+        // NOTE projects are also executables, so we have to check for projects first
+        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
+        {
+            return (Value: Path.GetFileName(projectPath), ContentAfterValue: null, ValueToCopy: projectPath, Tooltip: projectPath);
+        }
+
+        if (resource.TryGetExecutablePath(out var executablePath))
+        {
+            resource.TryGetExecutableArguments(out var arguments);
+            var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
+            var fullCommandLine = $"{executablePath} {argumentsString}";
+
+            return (Value: Path.GetFileName(executablePath), ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine);
+        }
+
+        if (resource.TryGetContainerImage(out var containerImage))
+        {
+            return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
+        }
+
+        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
+        {
+            return (Value: value.StringValue, ContentAfterValue: null, ValueToCopy: value.StringValue, Tooltip: value.StringValue);
+        }
+
+        return null;
+    }
+
+    private string GetEndpointsTooltip(ResourceViewModel resource)
+    {
+        var displayedEndpoints = GetDisplayedEndpoints(resource, out var additionalMessage);
+
+        if (additionalMessage is not null)
+        {
+            return additionalMessage;
+        }
+
+        if (displayedEndpoints.Count == 1)
+        {
+            return displayedEndpoints.First().Text;
+        }
+
+        var maxShownEndpoints = 3;
+        var tooltipBuilder = new StringBuilder(string.Join(", ", displayedEndpoints.Take(maxShownEndpoints).Select(endpoint => endpoint.Text)));
+
+        if (displayedEndpoints.Count > maxShownEndpoints)
+        {
+            tooltipBuilder.Append(CultureInfo.CurrentCulture, $" + {displayedEndpoints.Count - maxShownEndpoints}");
+        }
+
+        return tooltipBuilder.ToString();
+    }
+
+    private List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource, out string? additionalMessage)
+    {
+        if (resource.Urls.Length == 0)
+        {
+            // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
+            additionalMessage = ColumnsLoc[nameof(Columns.EndpointsColumnDisplayNone)];
+            return [];
+        }
+
+        additionalMessage = null;
+
+        // Make sure that endpoints have a consistent ordering. Show https first, then everything else.
+        return [.. GetEndpoints(resource)
+            .OrderByDescending(e => e.Url?.StartsWith("https") == true)
+            .ThenBy(e=> e.Url ?? e.Text)];
+    }
+
+    /// <summary>
+    /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
+    /// </summary>
+    private static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource)
+    {
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
     }
 
     public async ValueTask DisposeAsync()

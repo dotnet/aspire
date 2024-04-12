@@ -17,6 +17,10 @@ var orleans = builder.AddOrleans("my-app")
 
 builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans)
+       .WithReplicas(3);
+
+builder.AddProject<Projects.OrleansClient>("frontend")
+       .WithReference(orleans.AsClient())
        .WithExternalHttpEndpoints()
        .WithReplicas(3);
 

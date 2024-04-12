@@ -1,0 +1,56 @@
+﻿@page "/login"
+@using Aspire.Dashboard.Utils
+@layout EmptyLayout
+@attribute [AllowAnonymous]
+@inject IStringLocalizer<Dashboard.Resources.Login> Loc
+
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Login.PageTitle)" Loc="@Loc" /></PageTitle>
+
+<div class="token-backdrop">
+    <EditForm EditContext="@EditContext" OnValidSubmit="@SubmitAsync" FormName="token_validation">
+        <DataAnnotationsValidator />
+        <div class="token-form-container">
+            <div class="token-logo">
+                <AspireLogo Height="128" Width="128" />
+            </div>
+            <div class="token-entry-container">
+                <div class="token-entry-header">
+                    <h1><ApplicationName ResourceName="@nameof(Dashboard.Resources.Login.Header)" Loc="@Loc" /></h1>
+                </div>
+                <div class="token-entry">
+                    <FluentTextField @ref="_tokenTextField" Id="token-text-field" @bind-Value="_formModel.Token"
+                                     Placeholder="@Loc[nameof(Dashboard.Resources.Login.TextFieldPlaceholder)]"
+                                     TextFieldType="TextFieldType.Password" AutoComplete="one-time-code" Class="token-entry-text" />
+                </div>
+                <div class="token-validation">
+                    <FluentValidationMessage For="() => _formModel.Token" />
+                </div>
+                <div class="token-entry-footer">
+                    <a href="@NavigationManager.Uri" id="helpLink">@Loc[nameof(Dashboard.Resources.Login.WhereIsMyTokenLinkText)]</a>
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">@Loc[nameof(Dashboard.Resources.Login.LogInButtonText)]</FluentButton>
+                    <FluentTooltip Anchor="helpLink" Position="TooltipPosition.Bottom" MaxWidth="650px">
+                        <div class="token-help-container">
+                            <div>
+                                <a href="/img/TokenExample.png" target="_blank">
+                                    <img class="token-help-image" src="/img/TokenExample.png"
+                                         alt="@Loc[nameof(Dashboard.Resources.Login.HelpScreenshotAltText)]" />
+                                </a>
+                            </div>
+                            <div>
+                                <p>@Loc[nameof(Dashboard.Resources.Login.TokenHelpTextLine1)]</p>
+                                <p>@Loc[nameof(Dashboard.Resources.Login.TokenHelpTextLine2)]</p>
+                            </div>
+                            <FluentAnchor Href="https://go.microsoft.com/fwlink/?linkid=2265718" Target="_blank"
+                                          Appearance="Appearance.Hypertext">
+                                @Loc[nameof(Dashboard.Resources.Login.MoreInfoLinkText)]
+                            </FluentAnchor>
+                        </div>
+                    </FluentTooltip>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+    <div class="version-info">
+        @VersionHelpers.DashboardDisplayVersion
+    </div>
+</div>

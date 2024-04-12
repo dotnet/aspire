@@ -26,12 +26,13 @@ public class BuildEnvironment
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
 
-    public BuildEnvironment(bool expectSdkWithWorkload = true, Action<string, string>? sdkWithWorkloadNotFound = null)
+    public BuildEnvironment(bool expectSdkWithWorkload = true, Func<string, string, string>? sdkWithWorkloadNotFound = null)
     {
         DirectoryInfo? solutionRoot = new(AppContext.BaseDirectory);
         while (solutionRoot != null)
         {
-            if (Directory.Exists(Path.Combine(solutionRoot.FullName, ".git")))
+            // To support git worktrees, check for either a directory or a file named ".git"
+            if (Directory.Exists(Path.Combine(solutionRoot.FullName, ".git")) || File.Exists(Path.Combine(solutionRoot.FullName, ".git")))
             {
                 break;
             }
@@ -54,8 +55,12 @@ public class BuildEnvironment
                 }
                 else
                 {
-                    sdkWithWorkloadNotFound?.Invoke(probePath, solutionRoot.FullName);
-                    throw new InvalidOperationException($"Could not find find a sdk with the workload installed at {probePath} computed from solutionRoot={solutionRoot}.");
+                    string? prefix = sdkWithWorkloadNotFound?.Invoke(probePath, solutionRoot.FullName) ?? "";
+                    throw new InvalidOperationException(
+                        (prefix is not null ? $"{prefix}{Environment.NewLine}" : "") +
+                        $"Could not find find a sdk with the workload installed at {probePath} computed from solutionRoot={solutionRoot}.{Environment.NewLine}" +
+                        $"Build all the packages with '.\\build.cmd -pack'.{Environment.NewLine}" +
+                        $"Then install the sdk+worklaod with 'dotnet build tests\\workloads.proj'");
                 }
             }
             else

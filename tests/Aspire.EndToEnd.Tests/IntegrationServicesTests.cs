@@ -22,17 +22,19 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Theory]
+    [Trait("scenario", "basicservices")]
     [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.mysql)]
-    [InlineData(TestResourceNames.pomelo)]
+    [InlineData(TestResourceNames.efmysql)]
     [InlineData(TestResourceNames.postgres)]
+    [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
     [InlineData(TestResourceNames.sqlserver)]
-    [InlineData(TestResourceNames.efnpgsql)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
+            _integrationServicesFixture.EnsureAppHasResources(resourceName);
             try
             {
                 var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
@@ -42,30 +44,35 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             }
             catch
             {
-                await _integrationServicesFixture.DumpComponentLogsAsync(resourceName.ToString().ToLowerInvariant(), _testOutput);
+                await _integrationServicesFixture.DumpComponentLogsAsync(resourceName, _testOutput);
                 throw;
             }
         });
 
-    // FIXME: open issue
-    [ConditionalTheory]
-    [SkipOnCI("not working on CI yet")]
-    [InlineData(TestResourceNames.cosmos)]
-    [InlineData(TestResourceNames.oracledatabase)]
-    public Task VerifyComponentWorksDisabledOnCI(TestResourceNames resourceName)
+    [ConditionalFact]
+    [SkipOnCI("https://github.com/dotnet/aspire/issues/3161")]
+    [Trait("scenario", "oracle")]
+    public Task VerifyOracleComponentWorks()
+        => VerifyComponentWorks(TestResourceNames.oracledatabase);
+
+    [ConditionalFact]
+    [Trait("scenario", "cosmos")]
+    public Task VerifyCosmosComponentWorks()
     {
-        if (resourceName == TestResourceNames.cosmos && RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            throw new SkipException($"Skipping '{resourceName}' test because the emulator isn't supported on macOS ARM64.");
+            throw new SkipException($"Skipping 'cosmos' test because the emulator isn't supported on macOS ARM64.");
         }
 
-        return VerifyComponentWorks(resourceName);
+        return VerifyComponentWorks(TestResourceNames.cosmos);
     }
 
     [Fact]
+    [Trait("scenario", "basicservices")]
     public Task KafkaComponentCanProduceAndConsume()
         => RunTestAsync(async() =>
         {
+            _integrationServicesFixture.EnsureAppHasResources(TestResourceNames.kafka);
             string topic = $"topic-{Guid.NewGuid()}";
 
             var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
@@ -78,6 +85,10 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         });
 
     [Fact]
+    // Include all the scenarios here so this test gets run for all of them.
+    [Trait("scenario", "cosmos")]
+    [Trait("scenario", "oracle")]
+    [Trait("scenario", "basicservices")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>
         {
@@ -88,14 +99,14 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     private async Task RunTestAsync(Func<Task> test)
     {
-        _integrationServicesFixture.EnsureAppHostRunning();
+        _integrationServicesFixture.Project.EnsureAppHostRunning();
         try
         {
             await test();
         }
         catch
         {
-            await _integrationServicesFixture.DumpDockerInfoAsync();
+            await _integrationServicesFixture.Project.DumpDockerInfoAsync();
             throw;
         }
     }

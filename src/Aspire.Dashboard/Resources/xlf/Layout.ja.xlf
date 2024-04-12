@@ -42,6 +42,21 @@
         <target state="translated">再読み込み</target>
         <note />
       </trans-unit>
+      <trans-unit id="MessageTelemetryBody">
+        <source>Untrusted apps can send telemetry to the dashboard.</source>
+        <target state="translated">信頼されていないアプリは、テレメトリをダッシュボードに送信できます。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageTelemetryLink">
+        <source>More information</source>
+        <target state="translated">その他の情報</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageTelemetryTitle">
+        <source>Telemetry endpoint is unsecured</source>
+        <target state="translated">テレメトリ エンドポイントはセキュリティで保護されていません</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
         <source>Console</source>
         <target state="translated">コンソール</target>

@@ -39,7 +39,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                 await RaisePeerChangesAsync().ConfigureAwait(false);
             }
 
-            await foreach (var changes in subscription.WithCancellation(_watchContainersTokenSource.Token))
+            await foreach (var changes in subscription.WithCancellation(_watchContainersTokenSource.Token).ConfigureAwait(false))
             {
                 foreach (var (changeType, resource) in changes)
                 {

@@ -42,6 +42,21 @@
         <target state="translated">Yeniden yükle</target>
         <note />
       </trans-unit>
+      <trans-unit id="MessageTelemetryBody">
+        <source>Untrusted apps can send telemetry to the dashboard.</source>
+        <target state="translated">Güvenilmeyen uygulamalar panoya telemetri verileri gönderebilir.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageTelemetryLink">
+        <source>More information</source>
+        <target state="translated">Daha fazla bilgi</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageTelemetryTitle">
+        <source>Telemetry endpoint is unsecured</source>
+        <target state="translated">Telemetri uç noktası güvenli değil</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
         <source>Console</source>
         <target state="translated">Konsol</target>

@@ -13,6 +13,7 @@
   <ItemGroup>
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="CircularBuffer.cs" />
+    <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
@@ -24,13 +25,16 @@
     <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
     <Compile Include="$(SharedDir)DashboardConfigNames.cs" Link="Utils\DashboardConfigNames.cs" />
+    <Compile Include="$(SharedDir)TokenGenerator.cs" Link="Utils\TokenGenerator.cs" />
+    <Compile Include="$(SharedDir)LoggingHelpers.cs" Link="Utils\LoggingHelpers.cs" />
+    <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="Polly" />
+    <PackageReference Include="Polly.Core" />
   </ItemGroup>
 
   <ItemGroup>

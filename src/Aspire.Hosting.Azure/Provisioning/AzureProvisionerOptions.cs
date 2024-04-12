@@ -11,6 +11,11 @@ internal sealed class AzureProvisionerOptions
 
     public string? ResourceGroup { get; set; }
 
+    /// <summary>
+    /// Gets or sets a prefix used in resource groups names created.
+    /// </summary>
+    public string? ResourceGroupPrefix { get; set; }
+
     public bool? AllowResourceGroupCreation { get; set; }
 
     public string? Location { get; set; }

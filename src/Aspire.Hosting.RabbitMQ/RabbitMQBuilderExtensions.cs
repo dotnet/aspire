@@ -36,6 +36,7 @@ public static class RabbitMQBuilderExtensions
         var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, passwordParameter);
         var rabbitmq = builder.AddResource(rabbitMq)
                               .WithImage(RabbitMQContainerImageTags.Image, RabbitMQContainerImageTags.Tag)
+                              .WithImageRegistry(RabbitMQContainerImageTags.Registry)
                               .WithEndpoint(port: port, targetPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
                               .WithEnvironment(context =>
                               {
@@ -85,7 +86,7 @@ public static class RabbitMQBuilderExtensions
         var containerAnnotations = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().ToList();
 
         if (containerAnnotations.Count == 1
-            && containerAnnotations[0].Registry is null
+            && containerAnnotations[0].Registry is RabbitMQContainerImageTags.Registry
             && string.Equals(containerAnnotations[0].Image, RabbitMQContainerImageTags.Image, StringComparison.OrdinalIgnoreCase))
         {
             // Existing annotation is in a state we can update to enable the management plugin

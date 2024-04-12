@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Sockets;
@@ -53,9 +54,9 @@ public class AddRabbitMQTests
         }
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("rabbitmq", containerAnnotation.Image);
-        Assert.Equal(withManagementPlugin ? "3-management" : "3", containerAnnotation.Tag);
-        Assert.Null(containerAnnotation.Registry);
+        Assert.Equal(RabbitMQContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(withManagementPlugin ? RabbitMQContainerImageTags.TagManagement : RabbitMQContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(RabbitMQContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -174,7 +175,7 @@ public class AddRabbitMQTests
         }
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
-        var expectedTag = withManagementPlugin ? "3-management" : "3";
+        var expectedTag = withManagementPlugin ? RabbitMQContainerImageTags.TagManagement : RabbitMQContainerImageTags.Tag;
         var managementBinding = withManagementPlugin
             ? """
             ,
@@ -190,7 +191,7 @@ public class AddRabbitMQTests
             {
               "type": "container.v0",
               "connectionString": "amqp://guest:{rabbit-password.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
-              "image": "rabbitmq:{{expectedTag}}",
+              "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{expectedTag}}",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "guest",
                 "RABBITMQ_DEFAULT_PASS": "{rabbit-password.value}"
@@ -220,11 +221,11 @@ public class AddRabbitMQTests
         var rabbit = builder.AddRabbitMQ("rabbit", userNameParameter, passwordParameter);
         var manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
-        var expectedManifest = """
+        var expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "amqp://{user.value}:{pass.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}",
-              "image": "rabbitmq:3",
+              "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "{user.value}",
                 "RABBITMQ_DEFAULT_PASS": "{pass.value}"
@@ -244,11 +245,11 @@ public class AddRabbitMQTests
         rabbit = builder.AddRabbitMQ("rabbit2", userNameParameter);
         manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
-        expectedManifest = """
+        expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "amqp://{user.value}:{rabbit2-password.value}@{rabbit2.bindings.tcp.host}:{rabbit2.bindings.tcp.port}",
-              "image": "rabbitmq:3",
+              "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "{user.value}",
                 "RABBITMQ_DEFAULT_PASS": "{rabbit2-password.value}"
@@ -268,11 +269,11 @@ public class AddRabbitMQTests
         rabbit = builder.AddRabbitMQ("rabbit3", password: passwordParameter);
         manifest = await ManifestUtils.GetManifest(rabbit.Resource);
 
-        expectedManifest = """
+        expectedManifest = $$"""
             {
               "type": "container.v0",
               "connectionString": "amqp://guest:{pass.value}@{rabbit3.bindings.tcp.host}:{rabbit3.bindings.tcp.port}",
-              "image": "rabbitmq:3",
+              "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
               "env": {
                 "RABBITMQ_DEFAULT_USER": "guest",
                 "RABBITMQ_DEFAULT_PASS": "{pass.value}"
