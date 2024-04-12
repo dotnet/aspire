@@ -35,6 +35,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Resources\Columns.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Columns.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\ControlsStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -55,10 +60,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Layout.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\Columns.Designer.cs">
+    <Compile Update="Resources\Logs.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Columns.resx</DependentUpon>
+      <DependentUpon>Logs.resx</DependentUpon>
     </Compile>
     <Compile Update="Resources\Metrics.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -94,11 +99,6 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Routes.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Resources\Logs.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Logs.resx</DependentUpon>
     </Compile>
   </ItemGroup>
 
