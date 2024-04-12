@@ -26,7 +26,7 @@
                     <FluentValidationMessage For="() => _formModel.Token" />
                 </div>
                 <div class="token-entry-footer">
-                    <a href="javascript:;" id="helpLink">@Loc[nameof(Dashboard.Resources.Login.WhereIsMyTokenLinkText)]</a>
+                    <a href="@NavigationManager.Uri" id="helpLink">@Loc[nameof(Dashboard.Resources.Login.WhereIsMyTokenLinkText)]</a>
                     <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">@Loc[nameof(Dashboard.Resources.Login.LogInButtonText)]</FluentButton>
                     <FluentTooltip Anchor="helpLink" Position="TooltipPosition.Bottom" MaxWidth="650px">
                         <div class="token-help-container">
