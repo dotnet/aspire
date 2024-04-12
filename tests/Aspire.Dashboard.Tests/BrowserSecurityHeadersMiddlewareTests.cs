@@ -43,6 +43,24 @@ public class BrowserSecurityHeadersMiddlewareTests
         Assert.Contains("default-src", httpContext.Response.Headers.ContentSecurityPolicy.ToString());
     }
 
+    [Theory]
+    [InlineData(true, "img-src data: https:;")]
+    [InlineData(false, "img-src data: http: https:;")]
+    public async Task InvokeAsync_Scheme_ImageSourceChangesOnScheme(bool isHttps, string expectedContent)
+    {
+        // Arrange
+        var middleware = CreateMiddleware(environmentName: "Production");
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Scheme = isHttps ? "https" : "http";
+
+        // Act
+        await middleware.InvokeAsync(httpContext);
+
+        // Assert
+        Assert.NotEqual(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
+        Assert.Contains(expectedContent, httpContext.Response.Headers.ContentSecurityPolicy.ToString());
+    }
+
     [Fact]
     public async Task InvokeAsync_Otlp_NotAdded()
     {
