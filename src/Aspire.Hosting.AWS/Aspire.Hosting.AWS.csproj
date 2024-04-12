@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <PackageReference Include="Amazon.CDK.Lib" />
     <PackageReference Include="AWSSDK.Core" />
     <PackageReference Include="AWSSDK.CloudFormation" />
   </ItemGroup>

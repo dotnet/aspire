@@ -7,7 +7,7 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting.AWS.CloudFormation;
 
 /// <inheritdoc/>
-internal sealed class CloudFormationTemplateResource(string name, string templatePath) : CloudFormationResource(name), ICloudFormationTemplateResource
+internal sealed class CloudFormationTemplateResource(string name, string templatePath) : CloudFormationResource(name), ICloudFormationTemplateResource, ICloudFormationTemplateProvider
 {
     public IDictionary<string, string> CloudFormationParameters { get; } = new Dictionary<string, string>();
 
@@ -24,7 +24,7 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
     public bool DisableDiffCheck { get; set; }
 
     /// <inheritdoc/>
-    public IList<string> DisabledCapabilities { get; } = new List<string>();
+    public IList<string> DisabledCapabilities { get; } = [];
 
     /// <inheritdoc/>
     public ICloudFormationTemplateResource AddParameter(string parameterName, string parameterValue)
@@ -49,4 +49,9 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
         }
         context.Writer.WriteEndArray();
     }
+
+    string ICloudFormationTemplateProvider.StackName => Name;
+
+    Task<string> ICloudFormationTemplateProvider.GetCloudFormationTemplate(CancellationToken cancellationToken)
+        => File.ReadAllTextAsync(TemplatePath, cancellationToken);
 }

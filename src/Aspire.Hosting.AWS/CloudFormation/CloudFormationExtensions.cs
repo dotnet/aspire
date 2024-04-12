@@ -156,7 +156,7 @@ public static class CloudFormationExtensions
     /// <param name="cloudFormationResourceBuilder">The CloudFormation resource.</param>
     /// <param name="configSection">The config section in IConfiguration to add the output parameters.</param>
     /// <returns></returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = "AWS::Resources")
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = Constants.DefaultConfigSection)
         where TDestination : IResourceWithEnvironment
     {
         cloudFormationResourceBuilder.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
