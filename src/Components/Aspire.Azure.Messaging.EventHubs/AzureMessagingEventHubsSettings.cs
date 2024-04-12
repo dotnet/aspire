@@ -120,17 +120,20 @@ public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEven
 public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEventHubsConsumerBaseSettings
 {
     /// <summary>
-    /// Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used.
+    /// Gets or sets the IServiceProvider service key used to obtain an Azure BlobServiceClient.
     /// </summary>
-    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
-    public string? BlobClientConnectionName { get; set; }
+    /// <remarks>
+    /// A BlobServiceClient is required when using the Event Processor. If a BlobClientServiceKey is not configured,
+    /// an un-keyed BlobServiceClient will be retrieved from the IServiceProvider. If a BlobServiceClient is not available in
+    /// the IServiceProvider, an exception is thrown.
+    /// </remarks>
+    public string? BlobClientServiceKey { get; set; }
 
     /// <summary>
     /// Get or sets the name of the blob container used to store the checkpoint data. If this container does not exist, Aspire will attempt to create it.
     /// If this is not provided, Aspire will attempt to automatically create a container with a name based on the Namespace, Event Hub name and Consumer Group.
     /// If a container is provided in the connection string, it will override this value and the container will be assumed to exist.
     /// </summary>
-    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
     public string? BlobContainerName { get; set; }
 }
 
@@ -142,13 +145,11 @@ public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMess
     /// <summary>
     /// Gets or sets the partition identifier.
     /// </summary>
-    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
     public string? PartitionId { get; set; }
 
     /// <summary>
     /// Gets or sets the event position to start from in the bound partition. Defaults to <see cref="EventPosition.Earliest" />.
     /// </summary>
-    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
     public EventPosition EventPosition { get; set; } = EventPosition.Earliest;
 }
 
