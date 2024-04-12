@@ -25,8 +25,8 @@ Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSetting
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings.PartitionId.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.AzureMessagingEventHubsProcessorSettings() -> void
-Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobClientConnectionName.get -> string?
-Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobClientConnectionName.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobClientServiceKey.get -> string?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobClientServiceKey.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobContainerName.get -> string?
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobContainerName.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProducerSettings
