@@ -39,6 +39,8 @@ Aspire.Hosting.Dapr.DaprSidecarOptions.AppPort.get -> int?
 Aspire.Hosting.Dapr.DaprSidecarOptions.AppPort.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptions.AppProtocol.get -> string?
 Aspire.Hosting.Dapr.DaprSidecarOptions.AppProtocol.init -> void
+Aspire.Hosting.Dapr.DaprSidecarOptions.AppEndpoint.get -> string?
+Aspire.Hosting.Dapr.DaprSidecarOptions.AppEndpoint.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptions.Command.get -> System.Collections.Immutable.IImmutableList<string!>!
 Aspire.Hosting.Dapr.DaprSidecarOptions.Command.init -> void
 Aspire.Hosting.Dapr.DaprSidecarOptions.Config.get -> string?
