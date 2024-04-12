@@ -127,7 +127,7 @@ public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEve
     /// an un-keyed BlobServiceClient will be retrieved from the IServiceProvider. If a BlobServiceClient is not available in
     /// the IServiceProvider, an exception is thrown.
     /// </remarks>
-    public string? BlobClientServiceKey{ get; set; }
+    public string? BlobClientServiceKey { get; set; }
 
     /// <summary>
     /// Get or sets the name of the blob container used to store the checkpoint data. If this container does not exist, Aspire will attempt to create it.
