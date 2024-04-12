@@ -78,7 +78,7 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientServiceKey"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
@@ -123,7 +123,7 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientServiceKey"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
@@ -167,7 +167,7 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientServiceKey"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed? "blobs" : null),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
@@ -222,7 +222,7 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientServiceKey"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
@@ -298,7 +298,7 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientServiceKey"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
