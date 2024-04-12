@@ -88,7 +88,10 @@ internal sealed class ValidateTokenMiddleware
             authenticationType: CookieAuthenticationDefaults.AuthenticationScheme);
         var claims = new ClaimsPrincipal(claimsIdentity);
 
-        await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claims).ConfigureAwait(false);
+        await httpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            claims,
+            new AuthenticationProperties { IsPersistent = true, AllowRefresh = true }).ConfigureAwait(false);
         return true;
     }
 }
