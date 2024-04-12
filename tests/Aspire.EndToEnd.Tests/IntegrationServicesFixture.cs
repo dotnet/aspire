@@ -80,7 +80,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         if (resource == TestResourceNames.None)
         {
-            return;
+            return Task.CompletedTask;
         }
         if (resource == TestResourceNames.All || !Enum.IsDefined<TestResourceNames>(resource))
         {
