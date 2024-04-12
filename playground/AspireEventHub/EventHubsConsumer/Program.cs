@@ -28,7 +28,6 @@ else
         settings =>
         {
             settings.EventHubName = "hub";
-            settings.BlobClientConnectionName = "checkpoints";
         });
     builder.Services.AddHostedService<Processor>();
     Console.WriteLine("Starting EventProcessorClient...");
