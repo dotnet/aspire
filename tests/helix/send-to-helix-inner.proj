@@ -1,10 +1,10 @@
-<Project Sdk="Microsoft.DotNet.Helix.Sdk" InitialTargets="BuildHelixWorkItems" DefaultTargets="Test">
+<Project Sdk="Microsoft.DotNet.Helix.Sdk" InitialTargets="BuildHelixWorkItems">
+  <!-- this project is built multiple times, once per test-category. For example: basictests, endtoendtests. -->
 
   <PropertyGroup>
     <Language>msbuild</Language>
 
     <_workItemTimeout>00:20:00</_workItemTimeout>
-    <WorkItemArchiveWildCard>$(TestArchiveTestsDir)**/*.zip</WorkItemArchiveWildCard>
 
     <IncludeDotNetCli>true</IncludeDotNetCli>
     <DotNetCliPackageType>sdk</DotNetCliPackageType>
@@ -12,11 +12,11 @@
     <GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</GlobalJsonContent>
     <DotNetCliVersion>$([System.Text.RegularExpressions.Regex]::Match($(GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</DotNetCliVersion>
 
-    <BuildHelixWorkItemsDependsOn>BuildHelixWorkItemsForDefaultTests</BuildHelixWorkItemsDependsOn>
+    <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
+    <BuildHelixWorkItemsDependsOn>_StageDependenciesForHelix</BuildHelixWorkItemsDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
-    <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
     <_HelixLogsPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT/logs</_HelixLogsPath>
     <_HelixLogsPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%/logs</_HelixLogsPath>
 
@@ -49,35 +49,36 @@
     <_TestRunCommandArguments Include="full" />
   </ItemGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)send-to-helix-workload-tests.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)send-to-helix-basic-tests.targets" Condition="'$(TestCategory)' == 'basictests'" />
+  <Import Project="$(MSBuildThisFileDirectory)send-to-helix-workload-tests.targets" Condition="'$(TestCategory)' == 'EndToEndTests'" />
 
-  <Target Name="BuildHelixWorkItemsForDefaultTests" DependsOnTargets="_StageDependenciesForHelix">
-    <PropertyGroup>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
-    </PropertyGroup>
+  <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest;%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />
 
-    <Error Condition="'$(_DotNetCoverageToolPath)' == '' or !Exists($(_DotNetCoverageToolPath))"
-           Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolPath)=$(_DotNetCoverageToolPath)" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_DIR_NAME=dotnet-latest" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_DIR_NAME=dotnet-latest" />
 
-    <ItemGroup>
-      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_WORKLOAD_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\%SDK_DIR_NAME%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_WORKLOAD_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$SDK_DIR_NAME" />
 
-      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
-        <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TestsRunningOutsideOfRepo=true" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TestsRunningOutsideOfRepo=true" />
 
-        <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
-      </HelixWorkItem>
-    </ItemGroup>
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set BUILT_NUGETS_PATH=%HELIX_CORRELATION_PAYLOAD%\built-nugets" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export BUILT_NUGETS_PATH=$HELIX_CORRELATION_PAYLOAD/built-nugets" />
 
-    <Message Text="HelixCorrelationPayload: %(HelixCorrelationPayload.Identity)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
-    <Message Text="HelixWorkItem: %(HelixWorkItem.Identity), Command: %(HelixWorkItem.Command), PreCommands: %(HelixWorkItem.PreCommands) with PayloadArchive: %(HelixWorkItem.PayloadArchive)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
-  </Target>
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TEST_LOG_PATH=%HELIX_WORKITEM_UPLOAD_ROOT%/logs" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TEST_LOG_PATH=$HELIX_WORKITEM_UPLOAD_ROOT/logs" />
+
+    <HelixPreCommand Include="docker info" />
+    <HelixPreCommand Include="docker ps" />
+    <HelixPreCommand Include="docker container ls --all" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
+
+    <HelixPostCommand Include="docker container ls --all" />
+    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
+  </ItemGroup>
 
   <Target Name="_StageDependenciesForHelix">
     <PropertyGroup>
@@ -109,6 +110,7 @@
   </Target>
 
   <Target Name="BuildHelixWorkItems" DependsOnTargets="$(BuildHelixWorkItemsDependsOn)">
+    <Message Text="Building for TestCategory=$(TestCategory)" Importance="High" />
     <Message Text="HelixCorrelationPayload: %(HelixCorrelationPayload.Identity)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
     <Message Text="HelixWorkItem: %(HelixWorkItem.Identity), Command: %(HelixWorkItem.Command), PreCommands: %(HelixWorkItem.PreCommands) with PayloadArchive: %(HelixWorkItem.PayloadArchive)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
     <Error Text="Stopping the build for dry run" Condition="'$(HelixDryRun)' == 'true'" />
