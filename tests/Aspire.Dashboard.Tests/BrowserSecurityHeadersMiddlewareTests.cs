@@ -44,14 +44,14 @@ public class BrowserSecurityHeadersMiddlewareTests
     }
 
     [Theory]
-    [InlineData(true, "img-src data: https:;")]
-    [InlineData(false, "img-src data: http: https:;")]
-    public async Task InvokeAsync_Scheme_ImageSourceChangesOnScheme(bool isHttps, string expectedContent)
+    [InlineData("https", "img-src data: https:;")]
+    [InlineData("http", "img-src data: http: https:;")]
+    public async Task InvokeAsync_Scheme_ImageSourceChangesOnScheme(string scheme, string expectedContent)
     {
         // Arrange
         var middleware = CreateMiddleware(environmentName: "Production");
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Scheme = isHttps ? "https" : "http";
+        httpContext.Request.Scheme = scheme;
 
         // Act
         await middleware.InvokeAsync(httpContext);
