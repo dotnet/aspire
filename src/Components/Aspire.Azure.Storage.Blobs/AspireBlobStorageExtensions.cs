@@ -65,9 +65,11 @@ public static class AspireBlobStorageExtensions
 
     private sealed class BlobStorageComponent : AzureComponent<AzureStorageBlobsSettings, BlobServiceClient, BlobClientOptions>
     {
-        protected override IAzureClientBuilder<BlobServiceClient, BlobClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureStorageBlobsSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<BlobServiceClient, BlobClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureStorageBlobsSettings settings, string connectionName,
+            string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<BlobServiceClient, BlobClientOptions>((options, cred) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<BlobServiceClient, BlobClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)

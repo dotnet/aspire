@@ -11,7 +11,7 @@ namespace Microsoft.Extensions.Hosting;
 
 internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     AzureComponent<TSettings, TClient, TClientOptions>
-    where TClientOptions: class
+    where TClientOptions : class
     where TClient : class
     where TSettings : AzureMessagingEventHubsSettings, new()
 {

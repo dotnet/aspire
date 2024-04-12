@@ -107,6 +107,7 @@ The .NET Aspire Azure Event Hubs library supports [Microsoft.Extensions.Configur
         "EventHubs": {
           "EventProcessorClient": {
             "EventHubName": "MyHub",
+            "BlobContainerName": "checkpoints",
             "ClientOptions": {
               "Identifier": "PROCESSOR_ID"
             }
@@ -121,7 +122,9 @@ The .NET Aspire Azure Event Hubs library supports [Microsoft.Extensions.Configur
 You can also setup the Options type using the optional `Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>> configureClientBuilder` parameter of the `AddAzureEventProcessorClient` method. For example, to set the processor's client ID for this client:
 
 ```csharp
-builder.AddAzureEventProcessorClient("eventHubsConnectionName", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "PROCESSOR_ID"));
+builder.AddAzureEventProcessorClient("eventHubsConnectionName",
+    configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(
+        options => options.Identifier = "PROCESSOR_ID"));
 ```
 
 ## AppHost extensions
