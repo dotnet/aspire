@@ -46,10 +46,10 @@
                                       Appearance="@(context.AreAllValuesSelected is true ? Appearance.Stealth : Appearance.Accent)"
                                       @onclick="() => context.PopupVisible = !context.PopupVisible"
                                       aria-label="@(context.AreAllValuesSelected is true ? Loc[nameof(ControlsStrings.ChartContainerAllTags)] : Loc[nameof(ControlsStrings.ChartContainerFilteredTags)])"/>
-                        <FluentPopover AnchorId="@id" @bind-Open="context.PopupVisible" VerticalThreshold="200">
+                        <FluentPopover AnchorId="@id" @bind-Open="context.PopupVisible" VerticalThreshold="200" AutoFocus="false">
                             <Header>@context.Name</Header>
                             <Body>
-                            <FluentStack Orientation="Orientation.Vertical" Class="dimension-popup">
+                            <FluentStack Orientation="Orientation.Vertical" Class="dimension-popup" role="group">
                                 <FluentCheckbox Label="@Loc[nameof(ControlsStrings.All)]"
                                                 ThreeState="true"
                                                 ShowIndeterminate="false"
