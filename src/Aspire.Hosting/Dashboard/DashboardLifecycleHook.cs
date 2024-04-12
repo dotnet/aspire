@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -45,7 +46,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             AddDashboardResource(model);
         }
 
-        _dashboardLogsTask = WatchDashboardLogsAsync();
+        _dashboardLogsTask = WatchDashboardLogsAsync(_shutdownCts.Token);
 
         return Task.CompletedTask;
     }
@@ -205,58 +206,49 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         }));
     }
 
-    private async Task WatchDashboardLogsAsync()
+    private async Task WatchDashboardLogsAsync(CancellationToken cancellationToken)
     {
-        async Task<string?> GetDashboardResourceIdentifier()
-        {
-            string? dashboardResourceId = null;
-
-            try
-            {
-                var timeout = Debugger.IsAttached ? Timeout.InfiniteTimeSpan : dashboardOptions.Value.DashboardStartupTimeout;
-
-                // The dashboard resource isn't immediately available so watch for it.
-                // Wait for dashboard to startup and be reported before giving up.
-                using var cts =  new CancellationTokenSource(timeout);
-                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, _shutdownCts.Token);
-
-                await foreach (var notification in resourceNotificationService.WatchAsync(linkedCts.Token))
-                {
-                    // We want to capture the replica of the dashboard resource. This will allow us to get the logs for the dashboard.
-                    // When the resource id is not the same as the resource name, it's the replica.
-                    if (StringComparers.ResourceName.Equals(notification.Resource.Name, KnownResourceNames.AspireDashboard) &&
-                        notification.ResourceId != notification.Resource.Name)
-                    {
-                        dashboardResourceId = notification.ResourceId;
-                        break;
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                if (distributedApplicationLogger.IsEnabled(LogLevel.Debug))
-                {
-                    distributedApplicationLogger.LogDebug("Timed out waiting for dashboard resource to start.");
-                }
-            }
-
-            return dashboardResourceId;
-        }
-
-        if (await GetDashboardResourceIdentifier().ConfigureAwait(false) is not string dashboardResourceId)
-        {
-            // The only way this can happen is if DCP is unhealthy, so log a warning.
-            distributedApplicationLogger.LogWarning("Failed to get the dashboard logs.");
-            return;
-        }
-
-        var loggerCache = new Dictionary<string, ILogger>(StringComparer.Ordinal);
+        var loggerCache = new ConcurrentDictionary<string, ILogger>(StringComparer.Ordinal);
         var defaultDashboardLogger = loggerFactory.CreateLogger("Aspire.Hosting.Dashboard");
+
+        var dashboardResourceTasks = new Dictionary<string, Task>();
 
         try
         {
+            await foreach (var notification in resourceNotificationService.WatchAsync(cancellationToken))
+            {
+                // Track all dashboard resources and start watching their logs.
+                // TODO: In the future when resources can restart, we should handle purging the taskCache.
+                if (StringComparers.ResourceName.Equals(notification.Resource.Name, KnownResourceNames.AspireDashboard) && !dashboardResourceTasks.ContainsKey(notification.ResourceId))
+                {
+                    dashboardResourceTasks[notification.ResourceId] = WatchResourceLogsAsync(notification.ResourceId, loggerCache, defaultDashboardLogger, resourceLoggerService, loggerFactory, cancellationToken);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the application is shutting down.
+        }
+        catch (Exception ex)
+        {
+            defaultDashboardLogger.LogError(ex, "Error reading dashboard logs.");
+        }
+
+        // The watch task should already be logging exceptions, so we don't need to log them here.
+        await Task.WhenAll(dashboardResourceTasks.Values).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+    }
+
+    private static async Task WatchResourceLogsAsync(string dashboardResourceId,
+                                                     ConcurrentDictionary<string, ILogger> loggerCache,
+                                                     ILogger defaultDashboardLogger,
+                                                     ResourceLoggerService resourceLoggerService,
+                                                     ILoggerFactory loggerFactory,
+                                                     CancellationToken cancellationToken)
+    {
+        try
+        {
             // We turned on the JSON formatter for the logger, so we can log the log lines as JSON.
-            await foreach (var batch in resourceLoggerService.WatchAsync(dashboardResourceId).WithCancellation(_shutdownCts.Token).ConfigureAwait(false))
+            await foreach (var batch in resourceLoggerService.WatchAsync(dashboardResourceId).WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 foreach (var logLine in batch)
                 {
@@ -302,21 +294,21 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         }
     }
 
-    private static void LogMessage(ILoggerFactory loggerFactory, Dictionary<string, ILogger> loggerCache, DashboardLogMessage logMessage)
+    private static void LogMessage(ILoggerFactory loggerFactory, ConcurrentDictionary<string, ILogger> loggerCache, DashboardLogMessage logMessage)
     {
-        if (!loggerCache.TryGetValue(logMessage.Category, out var logger))
+        var logger = loggerCache.GetOrAdd(logMessage.Category, static (string category, ILoggerFactory loggerFactory) =>
         {
             // Looks strange to see Aspire.Hosting.Dashboard.Aspire.Dashboard.Category,
             // so trim the prefix and append Aspire.Hosting.Why is this important?
             // Well there are logs emitting from categories that don't start with Aspire.Dashboard so we want to prefix all logs so that they can be controlled by config.
-            var categoryTrimmed = logMessage.Category.StartsWith("Aspire.Dashboard.") ?
-                logMessage.Category["Aspire.Dashboard.".Length..] : logMessage.Category;
+            var categoryTrimmed = category.StartsWith("Aspire.Dashboard.") ?
+                category["Aspire.Dashboard.".Length..] : category;
 
-            loggerCache[logMessage.Category] = logger = loggerFactory.CreateLogger($"Aspire.Hosting.Dashboard.{categoryTrimmed}");
-        }
+            return loggerFactory.CreateLogger($"Aspire.Hosting.Dashboard.{categoryTrimmed}");
+        },
+        loggerFactory);
 
         // TODO: We should log the state as well.
-
         logger.Log(logMessage.LogLevel, logMessage.EventId, logMessage.Message, null, (s, _) => s);
     }
 }
