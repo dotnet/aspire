@@ -98,6 +98,11 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION", env.Key);
+                Assert.Equal("true", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION", env.Key);
                 Assert.Equal("true", env.Value);
             },
