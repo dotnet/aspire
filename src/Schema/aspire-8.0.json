@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [ "resources" ],
+  "properties": {
+    "resources": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [ "type" ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "parameter.v0",
+              "container.v0",
+              "project.v0",
+              "value.v0",
+              "executable.v0"
+            ]
+          }
+        },
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [ "type", "image" ],
+            "properties": {
+              "type": { "const": "container.v0" },
+              "image": { "type": "string" },
+              "connectionString": { "$ref": "#/definitions/connectionString" },
+              "env": { "$ref": "#/definitions/env" },
+              "bindings": { "$ref": "#/definitions/bindings" }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "type", "path" ],
+            "properties": {
+              "type": { "const": "project.v0" },
+              "path": { "type": "string" },
+              "env": { "$ref": "#/definitions/env" },
+              "bindings": { "$ref": "#/definitions/bindings" }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "type", "command", "workingDirectory" ],
+            "properties": {
+              "type": { "const": "executable.v0" },
+              "workingDirectory": { "type": "string" },
+              "command": { "type": "string" },
+              "args": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "env": { "$ref": "#/definitions/env" },
+              "bindings": { "$ref": "#/definitions/bindings" }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "type" ],
+            "properties": {
+              "type": { "const": "value.v0" },
+              "connectionString": { "$ref": "#/definitions/connectionString" }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "value", "inputs" ],
+            "properties": {
+              "type": { "const": "parameter.v0" },
+              "value": { "type": "string" },
+              "inputs": {
+                "type": "object",
+                "required": [ "value" ],
+                "properties": {
+                  "value": {
+                    "type": "object",
+                    "required": [ "type" ],
+                    "properties": {
+                      "type": { "type": "string" },
+                      "secret": { "type": "boolean" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "connectionString": { "type": "string" },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [ "scheme", "protocol", "transport" ],
+        "properties": {
+          "scheme": {
+            "type": "string",
+            "enum": [ "http", "https", "tcp", "udp" ]
+          },
+          "protocol": {
+            "type": "string",
+            "enum": [ "tcp", "udp" ]
+          },
+          "transport": {
+            "type": "string",
+            "enum": [ "http", "http2", "tcp" ]
+          },
+          "external": { "type": "boolean" },
+          "targetPort": { "type": "number" },
+          "port": { "type": "number" }
+        }
+      }
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}
