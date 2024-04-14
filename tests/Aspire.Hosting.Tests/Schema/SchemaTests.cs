@@ -8,6 +8,7 @@ using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Schema;
 using Newtonsoft.Json.Linq;
+using Amazon;
 
 namespace Aspire.Hosting.Tests.Schema;
 
@@ -31,6 +32,12 @@ public class SchemaTests
 
             yield return new[] { (IDistributedApplicationBuilder builder) =>
                 {
+                    builder.AddConnectionString("foo");
+                }
+            };
+
+            yield return new[] { (IDistributedApplicationBuilder builder) =>
+                {
                     builder.AddRedis("redis");
                 }
             };
@@ -44,6 +51,41 @@ public class SchemaTests
             yield return new[] { (IDistributedApplicationBuilder builder) =>
                 {
                     builder.AddExecutable("executable", "hellworld", "foo", "arg1", "arg2");
+                }
+            };
+
+            yield return new[] { (IDistributedApplicationBuilder builder) =>
+                {
+                    var awsSdkConfig = builder.AddAWSSDKConfig()
+                                              .WithRegion(RegionEndpoint.USWest2)
+                                              .WithProfile("test-profile");
+
+                    builder.AddAWSCloudFormationStack("ExistingStack")
+                           .WithReference(awsSdkConfig);
+                }
+            };
+
+            yield return new[] { (IDistributedApplicationBuilder builder) =>
+                {
+                    var awsSdkConfig = builder.AddAWSSDKConfig()
+                                              .WithRegion(RegionEndpoint.USWest2)
+                                              .WithProfile("test-profile");
+
+                    builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
+                           .WithReference(awsSdkConfig);
+                }
+            };
+
+            yield return new[] { (IDistributedApplicationBuilder builder) =>
+                {
+                    var dapr = builder.AddDapr();
+                    var state = dapr.AddDaprStateStore("daprstate");
+                    var pubsub = dapr.AddDaprPubSub("daprpubsub");
+
+                    builder.AddProject<Projects.ServiceA>("project")
+                           .WithDaprSidecar()
+                           .WithReference(state)
+                           .WithReference(pubsub);
                 }
             };
         }

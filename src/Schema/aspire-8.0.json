@@ -1,10 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
+  "description": "Defines the .NET Aspire 8.0 deployment manifest JSON schema.",
   "required": [ "resources" ],
   "properties": {
     "resources": {
       "type": "object",
+      "description": "Contains the set of resources deployable as part of this manifest. Each property is a distinct resource.",
       "additionalProperties": {
         "type": "object",
         "required": [ "type" ],
@@ -16,17 +18,25 @@
               "container.v0",
               "project.v0",
               "value.v0",
-              "executable.v0"
+              "executable.v0",
+              "aws.cloudformation.template.v0",
+              "aws.cloudformation.stack.v0",
+              "dapr.component.v0",
+              "dapr.v0"
             ]
           }
         },
         "oneOf": [
           {
             "type": "object",
+            "description": "A generic container resource.",
             "required": [ "type", "image" ],
             "properties": {
               "type": { "const": "container.v0" },
-              "image": { "type": "string" },
+              "image": {
+                "type": "string",
+                "description": "A string representing the container image to be used."
+              },
               "connectionString": { "$ref": "#/definitions/connectionString" },
               "env": { "$ref": "#/definitions/env" },
               "bindings": { "$ref": "#/definitions/bindings" }
@@ -34,23 +44,35 @@
           },
           {
             "type": "object",
+            "description": "Represents a .NET project resource.",
             "required": [ "type", "path" ],
             "properties": {
               "type": { "const": "project.v0" },
-              "path": { "type": "string" },
+              "path": {
+                "type": "string",
+                "description": "The path to the project file. Relative paths are interpretted as being relative to the location of the manifest file."
+              },
               "env": { "$ref": "#/definitions/env" },
               "bindings": { "$ref": "#/definitions/bindings" }
             }
           },
           {
             "type": "object",
+            "description": "Represents an executable resource.",
             "required": [ "type", "command", "workingDirectory" ],
             "properties": {
               "type": { "const": "executable.v0" },
-              "workingDirectory": { "type": "string" },
-              "command": { "type": "string" },
+              "workingDirectory": {
+                "type": "string",
+                "description": "The path to the working directory. Should be intepretted as being relative to the AppHost directory."
+              },
+              "command": {
+                "type": "string",
+                "description": "The path to the command. Should be interpretted as being relative to the AppHost directory."
+              },
               "args": {
                 "type": "array",
+                "description": "List of arguments to the supplied to the executable.",
                 "items": { "type": "string" }
               },
               "env": { "$ref": "#/definitions/env" },
@@ -60,17 +82,26 @@
           {
             "type": "object",
             "required": [ "type" ],
+            "description": "Represents a value resource. Typically used to perform string concatenation (e.g. for connection strings).",
             "properties": {
               "type": { "const": "value.v0" },
-              "connectionString": { "$ref": "#/definitions/connectionString" }
+              "connectionString": { "$ref": "#/definitions/connectionString" },
+              "value": {
+                "type": "string",
+                "description": "The value resource type can use either a 'value' property or a 'connectionString' property."
+              }
             }
           },
           {
             "type": "object",
+            "description": "Represents a parameter resource. Parameter resources are used to represent external configuration values that should be provided at deployment time.",
             "required": [ "value", "inputs" ],
             "properties": {
               "type": { "const": "parameter.v0" },
-              "value": { "type": "string" },
+              "value": {
+                "type": "string",
+                "description": "Contains the value. Typically this will be a string that needs to be interpolated which references values from the 'inputs' field."
+              },
               "inputs": {
                 "type": "object",
                 "required": [ "value" ],
@@ -82,6 +113,74 @@
                       "type": { "type": "string" },
                       "secret": { "type": "boolean" }
                     }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "dapr" ],
+            "properties": {
+              "dapr": {
+                "type": "object",
+                "required": [ "application", "appId", "components" ],
+                "properties": {
+                  "application": { "type": "string" },
+                  "appId": { "type": "string" },
+                  "components": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "daprComponent" ],
+            "properties": {
+              "type": { "const": "dapr.component.v0" },
+              "daprComponent": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string" }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "type", "stack-name" ],
+            "properties": {
+              "type": { "const": "aws.cloudformation.stack.v0" },
+              "stack-name": { "type": "string" },
+              "references": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "target-resource": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "type", "stack-name", "template-path" ],
+            "properties": {
+              "type": { "const": "aws.cloudformation.template.v0" },
+              "stack-name": { "type": "string" },
+              "template-path": { "type": "string" },
+              "references": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "target-resource": { "type": "string" }
                   }
                 }
               }
