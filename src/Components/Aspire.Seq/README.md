@@ -54,20 +54,8 @@ Also you can pass the `Action<SeqSettings> configureSettings` delegate to set up
 ```csharp
 builder.AddSeqEndpoint("seq", settings => {
     settings.HealthChecks = false;
-    settings.ServerUrl = "http://localhost:5341"
-});
-```
-
-Delegates are also available to configure the OpenTelemetry exporters for logs and traces respectively:
-
-```csharp
-builder.AddSeqEndpoint("seq", settings => {
-    settings.HealthChecks = false;
-    settings.ServerUrl = "http://localhost:5341"
-}, logExporterOptions => {
-    logExporterOptions.TimeoutMilliseconds = 10000;
-}, traceExporterOptions => {
-    traceExporterOptions.TimeoutMilliseconds = 20000;
+    settings.ServerUrl = "http://localhost:5341";
+    settings.LogExporterOptions.TimeoutMilliseconds = 10000;
 });
 ```
 
