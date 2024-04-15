@@ -21,7 +21,7 @@ public sealed class SeqSettings
     public string? ApiKey { get; set; }
 
     /// <summary>
-    /// Gets or sets the base URL of the Seq server (including protocol and port). E.g. "https://example.seq.com:6789"
+    /// Gets or sets the base URL of the Seq server (including protocol and port). E.g. "https://example.seq.com:6789. Overrides endpoints set on <c>Logs</c> and <c>Traces</c>."
     /// </summary>
     public string? ServerUrl { get; set; }
 
