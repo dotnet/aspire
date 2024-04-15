@@ -23,7 +23,7 @@
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whetherthe Seq server health check is enabled or not."
             },
-            "LogExporterOptions": {
+            "Logs": {
               "type": "object",
               "properties": {
                 "BatchExportProcessorOptions": {
@@ -74,7 +74,7 @@
               "type": "string",
               "description": "Gets or sets the base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789\""
             },
-            "TraceExporterOptions": {
+            "Traces": {
               "type": "object",
               "properties": {
                 "BatchExportProcessorOptions": {

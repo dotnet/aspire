@@ -16,8 +16,8 @@ public class SeqTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.AddSeqEndpoint("seq", s =>
         {
-            s.LogExporterOptions.TimeoutMilliseconds = 1000;
-            s.TraceExporterOptions.Protocol = OtlpExportProtocol.Grpc;
+            s.Logs.TimeoutMilliseconds = 1000;
+            s.Traces.Protocol = OtlpExportProtocol.Grpc;
         });
 
         using var host = builder.Build();

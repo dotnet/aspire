@@ -55,7 +55,7 @@ Also you can pass the `Action<SeqSettings> configureSettings` delegate to set up
 builder.AddSeqEndpoint("seq", settings => {
     settings.HealthChecks = false;
     settings.ServerUrl = "http://localhost:5341";
-    settings.LogExporterOptions.TimeoutMilliseconds = 10000;
+    settings.Logs.TimeoutMilliseconds = 10000;
 });
 ```
 

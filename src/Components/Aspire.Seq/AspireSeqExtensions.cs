@@ -32,33 +32,33 @@ public static class AspireSeqExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = new SeqSettings();
+        settings.ServerUrl = builder.Configuration.GetConnectionString(connectionName);
+
+        settings.Logs.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/logs");
+        settings.Logs.Protocol = OtlpExportProtocol.HttpProtobuf;
+        if (!string.IsNullOrEmpty(settings.ApiKey))
+        {
+            settings.Logs.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
+        }
+        settings.Traces.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/traces");
+        settings.Traces.Protocol = OtlpExportProtocol.HttpProtobuf;
+        if (!string.IsNullOrEmpty(settings.ApiKey))
+        {
+            settings.Traces.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
+        }
+
         builder.Configuration.GetSection("Aspire:Seq").Bind(settings);
-        settings.ServerUrl = builder.Configuration.GetConnectionString(connectionName) ?? "http://localhost:5341";
-
-        settings.LogExporterOptions.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/logs");
-        settings.LogExporterOptions.Protocol = OtlpExportProtocol.HttpProtobuf;
-        if (!string.IsNullOrEmpty(settings.ApiKey))
-        {
-            settings.LogExporterOptions.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-        }
-        settings.TraceExporterOptions.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/traces");
-        settings.TraceExporterOptions.Protocol = OtlpExportProtocol.HttpProtobuf;
-        if (!string.IsNullOrEmpty(settings.ApiKey))
-        {
-            settings.TraceExporterOptions.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-        }
-
         configureSettings?.Invoke(settings);
 
         builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddProcessor(
-            sp => new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.LogExporterOptions))
+            sp => new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
             ));
 
         builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddProcessor(
-            sp => new BatchActivityExportProcessor(new OtlpTraceExporter(settings.TraceExporterOptions))
+            sp => new BatchActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
             ));
 
-        if (settings.HealthChecks)
+        if (settings is { HealthChecks: true, ServerUrl: not null })
         {
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 "Seq",

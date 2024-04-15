@@ -28,7 +28,7 @@ public sealed class SeqSettings
     /// <summary>
     /// Gets OTLP exporter options for logs.
     /// </summary>
-    public OtlpExporterOptions LogExporterOptions
+    public OtlpExporterOptions Logs
     {
         get;
         private set;
@@ -37,7 +37,7 @@ public sealed class SeqSettings
     /// <summary>
     /// Gets OTLP exporter options for traces.
     /// </summary>
-    public OtlpExporterOptions TraceExporterOptions
+    public OtlpExporterOptions Traces
     {
         get;
         private set;
