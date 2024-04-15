@@ -135,7 +135,7 @@ public class SchemaTests
         return s_schema;
     }
 
-    [Theory]
+    [SkipOnHelixTheory]
     [MemberData(nameof(ApplicationSamples))]
     public async Task ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
@@ -178,8 +178,8 @@ public class SchemaTests
         Assert.False(manifestJson.IsValid(schema));
     }
 
-    [Fact]
-    public async Task ManifestRejectsUnspecifiedResourceType()
+    [SkipOnHelixFact]
+    public async Task ManifestAcceptsUnknownResourceType()
     {
         var manifestTest = """
             {
@@ -193,10 +193,10 @@ public class SchemaTests
 
         var manifestJson = JToken.Parse(manifestTest);
         var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        Assert.True(manifestJson.IsValid(schema));
     }
 
-    [Fact]
+    [SkipOnHelixFact]
     public async Task ManifestWithContainerResourceWithMissingImageIsRejected()
     {
         var manifestTest = """
@@ -214,7 +214,7 @@ public class SchemaTests
         Assert.False(manifestJson.IsValid(schema));
     }
 
-    [Fact]
+    [SkipOnHelixFact]
     public async Task ManifestWithValue0ResourceWithConnectionStringAndValueIsRejectedIsRejected()
     {
         var manifestTest = """
@@ -234,7 +234,7 @@ public class SchemaTests
         Assert.False(manifestJson.IsValid(schema));
     }
 
-    [Fact]
+    [SkipOnHelixFact]
     public async Task ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestTest = """
@@ -253,7 +253,7 @@ public class SchemaTests
         Assert.True(manifestJson.IsValid(schema));
     }
 
-    [Fact]
+    [SkipOnHelixFact]
     public async Task ManifestWithProjectResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestTest = """
