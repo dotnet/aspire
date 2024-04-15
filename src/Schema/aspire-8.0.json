@@ -52,7 +52,9 @@
               "args": { "$ref": "#/definitions/args" },
               "connectionString": { "$ref": "#/definitions/connectionString" },
               "env": { "$ref": "#/definitions/env" },
-              "bindings": { "$ref": "#/definitions/bindings" }
+              "bindings": { "$ref": "#/definitions/bindings" },
+              "bindMounts": { "$ref": "#/definitions/bindMounts" },
+              "volumes": { "$ref": "#/definitions/volumes" }
             },
             "additionalProperties": false
           },
@@ -172,8 +174,7 @@
                             }
                           },
                           "additionalProperties": false
-                        },
-                        "additionalProperties": false
+                        }
                       },
                       "additionalProperties": false
                     }
@@ -203,9 +204,11 @@
                       "type": "string"
                     }
                   }
-                }
+                },
+                "additionalProperties": false
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -216,9 +219,11 @@
                 "type": "object",
                 "properties": {
                   "type": { "type": "string" }
-                }
+                },
+                "additionalProperties": false
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -238,7 +243,8 @@
                   "type": "string"
                 }
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -252,10 +258,12 @@
                   "type": "object",
                   "properties": {
                     "target-resource": { "type": "string" }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -270,10 +278,12 @@
                   "type": "object",
                   "properties": {
                     "target-resource": { "type": "string" }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -355,7 +365,8 @@
             "type": "number",
             "description": "The port that the workload (e.g. container) is exposed as to other resources and externally."
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "env": {
@@ -367,47 +378,48 @@
     },
     "volumes": {
       "type": "array",
-      "description": "A list of bind mounts of volume mounts associated with this resource when deployed.",
+      "description": "A list of volumes associated with this resource when deployed.",
       "items": {
         "type": "object",
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [ "name", "target", "readOnly" ],
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "The name of the volume."
-              },
-              "target": {
-                "type": "string",
-                "description": "The target within the container where the volume is mounted."
-              },
-              "readOnly": {
-                "type": "boolean",
-                "description": "Flag indicating whether the mount is read-only."
-              }
-            }
+        "required": [ "name", "target", "readOnly" ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the volume."
           },
-          {
-            "type": "object",
-            "required": [ "source", "target", "readOnly" ],
-            "properties": {
-              "source": {
-                "type": "string",
-                "description": "The source path on the host which is mounted into the container."
-              },
-              "target": {
-                "type": "string",
-                "description": "The target within the container where the volume is mounted."
-              },
-              "readOnly": {
-                "type": "boolean",
-                "description": "Flag indicating whether the mount is read-only."
-              }
-            }
+          "target": {
+            "type": "string",
+            "description": "The target within the container where the volume is mounted."
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Flag indicating whether the mount is read-only."
           }
-        ]
+        },
+        "additionalProperties": false
+      }
+    },
+    "bindMounts": {
+      "type": "array",
+      "description": "A list of bind mounts associated with this resource when deployed.",
+      "items": {
+        "type": "object",
+        "required": [ "source", "target", "readOnly" ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "The source path on the host which is mounted into the container."
+          },
+          "target": {
+            "type": "string",
+            "description": "The target within the container where the volume is mounted."
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Flag indicating whether the mount is read-only."
+          }
+        },
+        "additionalProperties": false
       }
     }
   }
