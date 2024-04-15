@@ -131,7 +131,6 @@ Used to stop an in-progress run session
 `Microsoft-Developer-DCP-Instance-ID <unique ID>` <br/>
 `Authorization: Bearer <security token>`
 
-
 **Response** <br/>
 If the session exists and can be stopped, the IDE should reply with 200 OK status code.
 
@@ -153,7 +152,6 @@ Used by DCP to subscribe to run session change notification.
 
 **Response** <br/>
 If successful, the connection should be upgraded to a WebSocket connection, which will be then used by the IDE to stream run session change notifications to DCP. See next paragraph for description of possible change notifications.
-
 
 ### IDE endpoint information request
 
