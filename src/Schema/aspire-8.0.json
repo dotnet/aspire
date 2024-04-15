@@ -16,9 +16,11 @@
             "enum": [
               "parameter.v0",
               "container.v0",
+              "dockerfile.v0",
               "project.v0",
               "value.v0",
               "executable.v0",
+              "azure.bicep.v0",
               "aws.cloudformation.template.v0",
               "aws.cloudformation.stack.v0",
               "dapr.component.v0",
@@ -29,6 +31,25 @@
         "oneOf": [
           {
             "type": "object",
+            "description": "A resource that represents a Dockerfile that will be built into a container duing deployment.",
+            "required": [ "type", "path", "context" ],
+            "properties": {
+              "type": { "const": "dockerfile.v0" },
+              "path": {
+                "type": "string",
+                "description": "The file path to the Dockerfile to be built into a container image."
+              },
+              "context": {
+                "type": "string",
+                "description": "A directory path used as the context for building the Dockerfile into a container image."
+              },
+              "env": { "$ref": "#/definitions/env" },
+              "bindings": { "$ref": "#/definitions/bindings" }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
             "description": "A generic container resource.",
             "required": [ "type", "image" ],
             "properties": {
@@ -37,10 +58,16 @@
                 "type": "string",
                 "description": "A string representing the container image to be used."
               },
+              "entrypoint": {
+                "type": "string",
+                "description": "The entrypoint to use for the container image when executed."
+              },
+              "args": { "$ref": "#/definitions/args" },
               "connectionString": { "$ref": "#/definitions/connectionString" },
               "env": { "$ref": "#/definitions/env" },
               "bindings": { "$ref": "#/definitions/bindings" }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -52,9 +79,11 @@
                 "type": "string",
                 "description": "The path to the project file. Relative paths are interpretted as being relative to the location of the manifest file."
               },
+              "args": { "$ref": "#/definitions/args" },
               "env": { "$ref": "#/definitions/env" },
               "bindings": { "$ref": "#/definitions/bindings" }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -70,27 +99,21 @@
                 "type": "string",
                 "description": "The path to the command. Should be interpretted as being relative to the AppHost directory."
               },
-              "args": {
-                "type": "array",
-                "description": "List of arguments to the supplied to the executable.",
-                "items": { "type": "string" }
-              },
+              "args": { "$ref": "#/definitions/args" },
               "env": { "$ref": "#/definitions/env" },
               "bindings": { "$ref": "#/definitions/bindings" }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
-            "required": [ "type" ],
+            "required": [ "connectionString" ],
             "description": "Represents a value resource. Typically used to perform string concatenation (e.g. for connection strings).",
             "properties": {
               "type": { "const": "value.v0" },
-              "connectionString": { "$ref": "#/definitions/connectionString" },
-              "value": {
-                "type": "string",
-                "description": "The value resource type can use either a 'value' property or a 'connectionString' property."
-              }
-            }
+              "connectionString": { "$ref": "#/definitions/connectionString" }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
@@ -98,32 +121,91 @@
             "required": [ "value", "inputs" ],
             "properties": {
               "type": { "const": "parameter.v0" },
-              "value": {
-                "type": "string",
-                "description": "Contains the value. Typically this will be a string that needs to be interpolated which references values from the 'inputs' field."
-              },
+              "value": { "$ref": "#/definitions/value" },
+              "connectionString": { "$ref": "#/definitions/connectionString" },
               "inputs": {
                 "type": "object",
-                "required": [ "value" ],
-                "properties": {
-                  "value": {
-                    "type": "object",
-                    "required": [ "type" ],
-                    "properties": {
-                      "type": { "type": "string" },
-                      "secret": { "type": "boolean" }
+                "description": "Defines a set of input values which need to be either generated or prompted by the deployment tool. This is typically used for environment specific configuration values or secrets.",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": [ "type" ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "description": "The type of the value to be prompted or generated. Currently only 'string'' is supported.",
+                      "enum": [ "string" ]
+                    },
+                    "secret": {
+                      "type": "boolean",
+                      "description": "Flag indicating whether the value should be treated as a secret. Deployment tools should note this value to take appropriate precautions when prompting, storing, and transmitting this value."
+                    },
+                    "default": {
+                      "type": "object",
+                      "required": [ "generate" ],
+                      "properties": {
+                        "generate": {
+                          "type": "object",
+                          "required": [ "minLength" ],
+                          "properties": {
+                            "minLength": {
+                              "type": "number",
+                              "description": "The minimum length of the generated value."
+                            },
+                            "lower": {
+                              "type": "boolean",
+                              "description": "Indicates whether lower case characters are allowed in the generated value."
+                            },
+                            "upper": {
+                              "type": "boolean",
+                              "description": "Indicates whether upper case characters are allowed in the generated value."
+                            },
+                            "numeric": {
+                              "type": "boolean",
+                              "description": "Indicates whether numeric characters are allowed in the generated value."
+                            },
+                            "special": {
+                              "type": "boolean",
+                              "description": "Indicates whether special characters are allowed in the generated value."
+                            },
+                            "minLower": {
+                              "type": "number",
+                              "description": "Specifies the minimum number of lower case characters that must appear in the generated value."
+                            },
+                            "minUpper": {
+                              "type": "number",
+                              "description": "Specifies the minimum number of upper case characters that must appear in the generated value."
+                            },
+                            "minNumeric": {
+                              "type": "number",
+                              "description": "Specifies the minimum number of numeric characters that must appear in the generated value."
+                            },
+                            "minSpecial": {
+                              "type": "number",
+                              "description": "Specifies the minimum number of special characters that must appear in the generated value."
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "additionalProperties": false
+                      },
+                      "additionalProperties": false
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               }
-            }
+            },
+            "additionalProperties": false
           },
           {
             "type": "object",
+            "description": "Represents a Dapr resource in the manifest.",
             "required": [ "dapr" ],
             "properties": {
+              "type": { "const": "dapr.v0" },
               "dapr": {
                 "type": "object",
+                "description": "Dapr specific configuration.",
                 "required": [ "application", "appId", "components" ],
                 "properties": {
                   "application": { "type": "string" },
@@ -147,6 +229,26 @@
                 "type": "object",
                 "properties": {
                   "type": { "type": "string" }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "default": "Represents a resource that is deployed using Azure Bicep.",
+            "required": [ "path" ],
+            "properties": {
+              "type": { "const": "azure.bicep.v0" },
+              "path": {
+                "type": "string",
+                "description": "Path to the Bicep file to be used for deployment."
+              },
+              "connectionString": { "$ref": "#/definitions/connectionString" },
+              "params": {
+                "type": "object",
+                "description": "A list of parameters which are passed to Azure deployment.",
+                "additionalProperties": {
+                  "type": "string"
                 }
               }
             }
@@ -191,35 +293,106 @@
     }
   },
   "definitions": {
-    "connectionString": { "type": "string" },
+    "connectionString": {
+      "type": "string",
+      "description": "A connection string that can be used to connect to this resource."
+    },
+    "value": {
+      "type": "string",
+      "description": "A value that can be referenced via an expression in the manifest"
+    },
+    "args": {
+      "type": "array",
+      "description": "List of arguments to used when launched.",
+      "items": { "type": "string" }
+    },
     "bindings": {
       "type": "object",
+      "description": "A list of port bindings for the resource when it is deployed.",
       "additionalProperties": {
         "type": "object",
         "required": [ "scheme", "protocol", "transport" ],
         "properties": {
           "scheme": {
             "type": "string",
+            "description": "The scheme used in URIs for this binding.",
             "enum": [ "http", "https", "tcp", "udp" ]
           },
           "protocol": {
             "type": "string",
+            "description": "The protocol used for this binding (only 'tcp' or 'udp' are valid).",
             "enum": [ "tcp", "udp" ]
           },
           "transport": {
             "type": "string",
+            "description": "Additional information describing the transport (e.g. HTTP/2).",
             "enum": [ "http", "http2", "tcp" ]
           },
-          "external": { "type": "boolean" },
-          "targetPort": { "type": "number" },
-          "port": { "type": "number" }
+          "external": {
+            "type": "boolean",
+            "description": "A flag indicating whether this binding is exposed externally when deployed."
+          },
+          "targetPort": {
+            "type": "number",
+            "description": "The port that the workload (e.g. container) is listening on."
+          },
+          "port": {
+            "type": "number",
+            "description": "The port that the workload (e.g. container) is exposed as to other resources and externally."
+          }
         }
       }
     },
     "env": {
       "type": "object",
+      "description": "A list of environment variables which are inserted into the resource at runtime.",
       "additionalProperties": {
         "type": "string"
+      }
+    },
+    "volumes": {
+      "type": "array",
+      "description": "A list of bind mounts of volume mounts associated with this resource when deployed.",
+      "items": {
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [ "name", "target", "readOnly" ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the volume."
+              },
+              "target": {
+                "type": "string",
+                "description": "The target within the container where the volume is mounted."
+              },
+              "readOnly": {
+                "type": "boolean",
+                "description": "Flag indicating whether the mount is read-only."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [ "source", "target", "readOnly" ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "description": "The source path on the host which is mounted into the container."
+              },
+              "target": {
+                "type": "string",
+                "description": "The target within the container where the volume is mounted."
+              },
+              "readOnly": {
+                "type": "boolean",
+                "description": "Flag indicating whether the mount is read-only."
+              }
+            }
+          }
+        ]
       }
     }
   }

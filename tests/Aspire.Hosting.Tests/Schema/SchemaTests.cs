@@ -14,80 +14,109 @@ namespace Aspire.Hosting.Tests.Schema;
 
 public class SchemaTests
 {
-    public static IEnumerable<object[]> ApplicationSamples
+    public static TheoryData<string, Action<IDistributedApplicationBuilder>> ApplicationSamples
     {
         get
         {
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    builder.AddParameter("foo");
+            var data = new TheoryData<string, Action<IDistributedApplicationBuilder>>
+            {
+                { "BasicParameter", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddParameter("foo");
+                    }
+                },
+
+                { "BasicSecretParameter", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddParameter("foo", secret: true);
+                    }
+                },
+
+                { "ConnectionStringParameter", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddConnectionString("foo");
+                    }
+                },
+
+                { "BasicContainer", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddRedis("redis");
+                    }
+                },
+
+                { "BasicContainerWithConnectionString", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddPostgres("postgres");
+                    }
+                },
+
+                { "CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
+                    }
+                },
+
+                { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();
+                    }
+                },
+
+                { "ContainerWithContainerRunArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddContainer("foo", "bar").WithContainerRunArgs("one", "two", "three");
+                    }
+                },
+
+                { "BasicProject", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddProject<Projects.ServiceA>("project");
+                    }
+                },
+
+                { "BasicExecutable", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddExecutable("executable", "hellworld", "foo", "arg1", "arg2");
+                    }
+                },
+
+                { "AwsStack", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var awsSdkConfig = builder.AddAWSSDKConfig()
+                                                  .WithRegion(RegionEndpoint.USWest2)
+                                                  .WithProfile("test-profile");
+
+                        builder.AddAWSCloudFormationStack("ExistingStack")
+                               .WithReference(awsSdkConfig);
+                    }
+                },
+
+                { "AwsTemplate", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var awsSdkConfig = builder.AddAWSSDKConfig()
+                                                  .WithRegion(RegionEndpoint.USWest2)
+                                                  .WithProfile("test-profile");
+
+                        builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
+                               .WithReference(awsSdkConfig);
+                    }
+                },
+
+                { "DaprWithComponents", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var dapr = builder.AddDapr();
+                        var state = dapr.AddDaprStateStore("daprstate");
+                        var pubsub = dapr.AddDaprPubSub("daprpubsub");
+
+                        builder.AddProject<Projects.ServiceA>("project")
+                               .WithDaprSidecar()
+                               .WithReference(state)
+                               .WithReference(pubsub);
+                    }
                 }
             };
 
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    builder.AddParameter("foo", secret: true);
-                }
-            };
-
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    builder.AddConnectionString("foo");
-                }
-            };
-
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    builder.AddRedis("redis");
-                }
-            };
-
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    builder.AddProject<Projects.ServiceA>("project");
-                }
-            };
-
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    builder.AddExecutable("executable", "hellworld", "foo", "arg1", "arg2");
-                }
-            };
-
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    var awsSdkConfig = builder.AddAWSSDKConfig()
-                                              .WithRegion(RegionEndpoint.USWest2)
-                                              .WithProfile("test-profile");
-
-                    builder.AddAWSCloudFormationStack("ExistingStack")
-                           .WithReference(awsSdkConfig);
-                }
-            };
-
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    var awsSdkConfig = builder.AddAWSSDKConfig()
-                                              .WithRegion(RegionEndpoint.USWest2)
-                                              .WithProfile("test-profile");
-
-                    builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
-                           .WithReference(awsSdkConfig);
-                }
-            };
-
-            yield return new[] { (IDistributedApplicationBuilder builder) =>
-                {
-                    var dapr = builder.AddDapr();
-                    var state = dapr.AddDaprStateStore("daprstate");
-                    var pubsub = dapr.AddDaprPubSub("daprpubsub");
-
-                    builder.AddProject<Projects.ServiceA>("project")
-                           .WithDaprSidecar()
-                           .WithReference(state)
-                           .WithReference(pubsub);
-                }
-            };
+            return data;
         }
     }
 
@@ -108,8 +137,10 @@ public class SchemaTests
 
     [Theory]
     [MemberData(nameof(ApplicationSamples))]
-    public async Task ValidateApplicationSamples(Action<IDistributedApplicationBuilder> configurator)
+    public async Task ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
+        _ = testCaseName;
+
         var builder = TestDistributedApplicationBuilder.Create(new DistributedApplicationOptions
         {
             Args = ["--publisher", "manifest", "--output-path", "not-used.json"]
@@ -148,7 +179,7 @@ public class SchemaTests
     }
 
     [Fact]
-    public async Task SchemaRejectsUnspecifiedResourceType()
+    public async Task ManifestRejectsUnspecifiedResourceType()
     {
         var manifestTest = """
             {
@@ -166,7 +197,7 @@ public class SchemaTests
     }
 
     [Fact]
-    public async Task SchemaWithContainerResourceWithMissingImageIsRejected()
+    public async Task ManifestWithContainerResourceWithMissingImageIsRejected()
     {
         var manifestTest = """
             {
@@ -184,7 +215,27 @@ public class SchemaTests
     }
 
     [Fact]
-    public async Task SchemaWithContainerResourceAndNoEnvOrBindingsIsAccepted()
+    public async Task ManifestWithValue0ResourceWithConnectionStringAndValueIsRejectedIsRejected()
+    {
+        var manifestTest = """
+            {
+              "resources": {
+                "valueresource": {
+                  "type": "value.v0",
+                  "connectionString": "{valueresource.value}",
+                  "value": "this.should.not.be.here"
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JToken.Parse(manifestTest);
+        var schema = await GetSchemaAsync();
+        Assert.False(manifestJson.IsValid(schema));
+    }
+
+    [Fact]
+    public async Task ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestTest = """
             {
@@ -203,7 +254,7 @@ public class SchemaTests
     }
 
     [Fact]
-    public async Task SchemaWithProjectResourceAndNoEnvOrBindingsIsAccepted()
+    public async Task ManifestWithProjectResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestTest = """
             {
