@@ -24,69 +24,39 @@ public static class AspireSeqExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="logExporterOptions">An optional delegate that can be used for customizing log exporter options.</param>
-    /// <param name="traceExporterOptions">An optional delegate that can be used for customizing trace exporter options.</param>
     public static void AddSeqEndpoint(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<SeqSettings>? configureSettings = null,
-        Action<OtlpExporterOptions>? logExporterOptions = null,
-        Action<OtlpExporterOptions>? traceExporterOptions = null)
+        Action<SeqSettings>? configureSettings = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = new SeqSettings();
         builder.Configuration.GetSection("Aspire:Seq").Bind(settings);
+        settings.ServerUrl = builder.Configuration.GetConnectionString(connectionName) ?? "http://localhost:5341";
 
-        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        settings.LogExporterOptions.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/logs");
+        settings.LogExporterOptions.Protocol = OtlpExportProtocol.HttpProtobuf;
+        if (!string.IsNullOrEmpty(settings.ApiKey))
         {
-            settings.ServerUrl = connectionString;
+            settings.LogExporterOptions.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
+        }
+        settings.TraceExporterOptions.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/traces");
+        settings.TraceExporterOptions.Protocol = OtlpExportProtocol.HttpProtobuf;
+        if (!string.IsNullOrEmpty(settings.ApiKey))
+        {
+            settings.TraceExporterOptions.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
         }
 
         configureSettings?.Invoke(settings);
 
-        if (string.IsNullOrEmpty(settings.ServerUrl))
-        {
-            settings.ServerUrl = "http://localhost:5341";
-        }
-
         builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddProcessor(
-            sp =>
-            {
-                var options = new OtlpExporterOptions()
-                {
-                    Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/logs"),
-                    Protocol = OtlpExportProtocol.HttpProtobuf
-                };
-
-                if (!string.IsNullOrEmpty(settings.ApiKey))
-                {
-                    options.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-                }
-
-                logExporterOptions?.Invoke(options);
-
-                return new BatchLogRecordExportProcessor(new OtlpLogExporter(options));
-            }));
+            sp => new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.LogExporterOptions))
+            ));
 
         builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddProcessor(
-            sp =>
-            {
-                var options = new OtlpExporterOptions()
-                {
-                    Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/traces"),
-                    Protocol = OtlpExportProtocol.HttpProtobuf
-                };
-
-                if (!string.IsNullOrEmpty(settings.ApiKey))
-                {
-                    options.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-                }
-
-                traceExporterOptions?.Invoke(options);
-
-                return new BatchActivityExportProcessor(new OtlpTraceExporter(options));
-            }));
+            sp => new BatchActivityExportProcessor(new OtlpTraceExporter(settings.TraceExporterOptions))
+            ));
 
         if (settings.HealthChecks)
         {

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using OpenTelemetry.Exporter;
+
 namespace Aspire.Seq;
 
 /// <summary>
@@ -22,4 +24,23 @@ public sealed class SeqSettings
     /// Gets or sets the base URL of the Seq server (including protocol and port). E.g. "https://example.seq.com:6789"
     /// </summary>
     public string? ServerUrl { get; set; }
+
+    /// <summary>
+    /// Gets OTLP exporter options for logs.
+    /// </summary>
+    public OtlpExporterOptions LogExporterOptions
+    {
+        get;
+        private set;
+    } = new ();
+
+    /// <summary>
+    /// Gets OTLP exporter options for traces.
+    /// </summary>
+    public OtlpExporterOptions TraceExporterOptions
+    {
+        get;
+        private set;
+    } = new ();
+
 }
