@@ -94,11 +94,16 @@ public partial class ResourceDetails
         ];
     }
 
-    protected override void OnParametersSet()
+    protected override void OnAfterRender(bool firstRender)
     {
-        foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
+        if (firstRender)
         {
-            vm.IsValueMasked = _areEnvironmentVariablesMasked;
+            // Initially set environment variable mask state to the default value of _areEnvironmentVariablesMasked
+            // Subsequent changes are handled by updating model.IsValueMasked in ToggleMaskState
+            foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
+            {
+                vm.IsValueMasked = _areEnvironmentVariablesMasked;
+            }
         }
     }
 
