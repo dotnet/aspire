@@ -12,20 +12,7 @@
         "required": [ "type" ],
         "properties": {
           "type": {
-            "type": "string",
-            "enum": [
-              "parameter.v0",
-              "container.v0",
-              "dockerfile.v0",
-              "project.v0",
-              "value.v0",
-              "executable.v0",
-              "azure.bicep.v0",
-              "aws.cloudformation.template.v0",
-              "aws.cloudformation.stack.v0",
-              "dapr.component.v0",
-              "dapr.v0"
-            ]
+            "type": "string"
           }
         },
         "oneOf": [
@@ -286,6 +273,34 @@
                   }
                 }
               }
+            }
+          },
+          {
+            "type": "object",
+            "description": "Represents extensions. Any object with a 'type' field that is not captured above will pass.",
+            "required": [ "type" ],
+            "not": {
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "parameter.v0",
+                    "container.v0",
+                    "dockerfile.v0",
+                    "project.v0",
+                    "value.v0",
+                    "executable.v0",
+                    "azure.bicep.v0",
+                    "aws.cloudformation.template.v0",
+                    "aws.cloudformation.stack.v0",
+                    "dapr.component.v0",
+                    "dapr.v0"
+                  ]
+                }
+              }
+            },
+            "properties": {
+              "type": { "type": "string" },
             }
           }
         ]
