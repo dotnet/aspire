@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="StructuredLogsLevels">
         <source>Level:</source>
-        <target state="new">Level:</target>
+        <target state="translated">Poziom:</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">
