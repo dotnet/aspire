@@ -72,7 +72,7 @@
             },
             "ServerUrl": {
               "type": "string",
-              "description": "Gets or sets the base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789\""
+              "description": "Gets or sets the base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789. Overrides endpoints set on Logs and Traces .\""
             },
             "Traces": {
               "type": "object",
