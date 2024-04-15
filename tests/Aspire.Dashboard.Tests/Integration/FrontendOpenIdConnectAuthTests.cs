@@ -27,12 +27,12 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         // Create a fake identity provider that will return well-known configuration for OIDC to use,
         // so that we don't have to make HTTP requests across the internet from unit tests.
         var idProvider = new WebHostBuilder()
-            .UseKestrel(options =>
-            {
-                // Bind to loopback on a random available port
-                options.Listen(IPAddress.Loopback, 0, listenOptions => listenOptions.UseHttps());
-            })
+            // Bind to loopback on a random available port
+            .UseKestrel(options => options.Listen(IPAddress.Loopback, 0, listenOptions => listenOptions.UseHttps()))
+            // Respond with our configuration, for any request
             .Configure(app => app.Run(async context => await context.Response.WriteAsync(wellKnownConfiguration)))
+            // Configure logging to the console
+            .ConfigureLogging(logging => logging.AddConsole())
             .Build();
 
         await idProvider.StartAsync();
