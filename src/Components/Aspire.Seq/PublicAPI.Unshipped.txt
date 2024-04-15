@@ -8,4 +8,4 @@ Aspire.Seq.SeqSettings.SeqSettings() -> void
 Aspire.Seq.SeqSettings.ServerUrl.get -> string?
 Aspire.Seq.SeqSettings.ServerUrl.set -> void
 Microsoft.Extensions.Hosting.AspireSeqExtensions
-static Microsoft.Extensions.Hosting.AspireSeqExtensions.AddSeqEndpoint(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Seq.SeqSettings!>? configureSettings = null) -> void
+static Microsoft.Extensions.Hosting.AspireSeqExtensions.AddSeqEndpoint(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Seq.SeqSettings!>? configureSettings = null, System.Action<OpenTelemetry.Exporter.OtlpExporterOptions!>? logExporterOptions = null, System.Action<OpenTelemetry.Exporter.OtlpExporterOptions!>? traceExporterOptions = null) -> void
