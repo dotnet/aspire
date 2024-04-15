@@ -22,4 +22,44 @@ public class SeqTests
 
         using var host = builder.Build();
     }
+
+    [Fact]
+    public void ServerUrlSettingOverridesExporterEndpoints()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var serverUrl = "http://localhost:9876";
+
+        SeqSettings settings = new SeqSettings();
+
+        builder.AddSeqEndpoint("seq", s =>
+        {
+            settings = s;
+            s.ServerUrl = serverUrl;
+            s.ApiKey = "ABCDE12345";
+            s.Logs.Endpoint = new Uri("http://localhost:1234/ingest/otlp/v1/logs");
+            s.Traces.Endpoint = new Uri("http://localhost:1234/ingest/otlp/v1/traces");
+        });
+
+        Assert.Equal(settings.Logs.Endpoint, new Uri("http://localhost:9876/ingest/otlp/v1/logs"));
+        Assert.Equal(settings.Traces.Endpoint, new Uri("http://localhost:9876/ingest/otlp/v1/traces"));
+    }
+
+    [Fact]
+    public void ApiKeySettingIsMergedWithConfiguredHeaders()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        SeqSettings settings = new SeqSettings();
+
+        builder.AddSeqEndpoint("seq", s =>
+        {
+            settings = s;
+            s.ApiKey = "ABCDE12345";
+            s.Logs.Headers = "speed=fast,quality=good";
+            s.Traces.Headers = "quality=good,speed=fast";
+        });
+
+        Assert.Equal("speed=fast,quality=good,X-Seq-ApiKey=ABCDE12345", settings.Logs.Headers);
+        Assert.Equal("quality=good,speed=fast,X-Seq-ApiKey=ABCDE12345", settings.Traces.Headers);
+    }
 }

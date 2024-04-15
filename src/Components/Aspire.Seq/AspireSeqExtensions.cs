@@ -33,22 +33,22 @@ public static class AspireSeqExtensions
 
         var settings = new SeqSettings();
         settings.ServerUrl = builder.Configuration.GetConnectionString(connectionName);
-
-        settings.Logs.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/logs");
         settings.Logs.Protocol = OtlpExportProtocol.HttpProtobuf;
-        if (!string.IsNullOrEmpty(settings.ApiKey))
-        {
-            settings.Logs.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-        }
-        settings.Traces.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/traces");
         settings.Traces.Protocol = OtlpExportProtocol.HttpProtobuf;
-        if (!string.IsNullOrEmpty(settings.ApiKey))
-        {
-            settings.Traces.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-        }
 
         builder.Configuration.GetSection("Aspire:Seq").Bind(settings);
         configureSettings?.Invoke(settings);
+
+        if (!string.IsNullOrEmpty(settings.ServerUrl))
+        {
+            settings.Logs.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/logs");
+            settings.Traces.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/traces");
+        }
+        if (!string.IsNullOrEmpty(settings.ApiKey))
+        {
+            settings.Logs.Headers = string.IsNullOrEmpty(settings.Logs.Headers) ? $"X-Seq-ApiKey={settings.ApiKey}" : $"{settings.Logs.Headers},X-Seq-ApiKey={settings.ApiKey}";
+            settings.Traces.Headers = string.IsNullOrEmpty(settings.Traces.Headers) ? $"X-Seq-ApiKey={settings.ApiKey}" : $"{settings.Traces.Headers},X-Seq-ApiKey={settings.ApiKey}";
+        }
 
         builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddProcessor(
             sp => new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
