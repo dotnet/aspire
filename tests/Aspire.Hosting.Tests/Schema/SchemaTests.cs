@@ -44,6 +44,18 @@ public class SchemaTests
                     }
                 },
 
+                { "ContainerWithVolume", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddRedis("redis").WithDataVolume();
+                    }
+                },
+
+                { "ContainerWithBindMount", (IDistributedApplicationBuilder builder) =>
+                    {
+                        builder.AddRedis("redis").WithBindMount("source", "target");
+                    }
+                },
+
                 { "BasicContainerWithConnectionString", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddPostgres("postgres");
