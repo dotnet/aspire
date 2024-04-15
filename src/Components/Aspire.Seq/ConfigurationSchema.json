@@ -67,7 +67,8 @@
                 "TimeoutMilliseconds": {
                   "type": "integer"
                 }
-              }
+              },
+              "description": "Gets OTLP exporter options for logs."
             },
             "ServerUrl": {
               "type": "string",
@@ -117,7 +118,8 @@
                 "TimeoutMilliseconds": {
                   "type": "integer"
                 }
-              }
+              },
+              "description": "Gets OTLP exporter options for traces."
             }
           },
           "description": "Provides the client configuration settings for connecting telemetry to a Seq server."
