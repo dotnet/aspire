@@ -58,6 +58,19 @@ builder.AddSeqEndpoint("seq", settings => {
 });
 ```
 
+Delegates are also available to configure the OpenTelemetry exporters for logs and traces respectively:
+
+```csharp
+builder.AddSeqEndpoint("seq", settings => {
+    settings.HealthChecks = false;
+    settings.ServerUrl = "http://localhost:5341"
+}, logExporterOptions => {
+    logExporterOptions.TimeoutMilliseconds = 10000;
+}, traceExporterOptions => {
+    traceExporterOptions.TimeoutMilliseconds = 20000;
+});
+```
+
 ## AppHost extensions
 
 In your AppHost project, install the `Aspire.Hosting.Seq` library with [NuGet](https://www.nuget.org):

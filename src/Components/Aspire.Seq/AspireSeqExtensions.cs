@@ -6,6 +6,7 @@ using Aspire.Seq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Trace;
@@ -23,7 +24,14 @@ public static class AspireSeqExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    public static void AddSeqEndpoint(this IHostApplicationBuilder builder, string connectionName, Action<SeqSettings>? configureSettings = null)
+    /// <param name="logExporterOptions">An optional delegate that can be used for customizing log exporter options.</param>
+    /// <param name="traceExporterOptions">An optional delegate that can be used for customizing trace exporter options.</param>
+    public static void AddSeqEndpoint(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<SeqSettings>? configureSettings = null,
+        Action<OtlpExporterOptions>? logExporterOptions = null,
+        Action<OtlpExporterOptions>? traceExporterOptions = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -42,26 +50,43 @@ public static class AspireSeqExtensions
             settings.ServerUrl = "http://localhost:5341";
         }
 
-        builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddOtlpExporter(opt =>
-        {
-            opt.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/logs");
-            opt.Protocol = OtlpExportProtocol.HttpProtobuf;
-            if (!string.IsNullOrEmpty(settings.ApiKey))
+        builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddProcessor(
+            sp =>
             {
-                opt.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-            }
-        }));
-        builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing
-            .AddOtlpExporter(opt =>
+                var options = new OtlpExporterOptions()
                 {
-                    opt.Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/traces");
-                    opt.Protocol = OtlpExportProtocol.HttpProtobuf;
-                    if (!string.IsNullOrEmpty(settings.ApiKey))
-                    {
-                        opt.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
-                    }
+                    Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/logs"),
+                    Protocol = OtlpExportProtocol.HttpProtobuf
+                };
+
+                if (!string.IsNullOrEmpty(settings.ApiKey))
+                {
+                    options.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
                 }
-            ));
+
+                logExporterOptions?.Invoke(options);
+
+                return new BatchLogRecordExportProcessor(new OtlpLogExporter(options));
+            }));
+
+        builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddProcessor(
+            sp =>
+            {
+                var options = new OtlpExporterOptions()
+                {
+                    Endpoint = new Uri($"{settings.ServerUrl}/ingest/otlp/v1/traces"),
+                    Protocol = OtlpExportProtocol.HttpProtobuf
+                };
+
+                if (!string.IsNullOrEmpty(settings.ApiKey))
+                {
+                    options.Headers = $"X-Seq-ApiKey={settings.ApiKey}";
+                }
+
+                traceExporterOptions?.Invoke(options);
+
+                return new BatchActivityExportProcessor(new OtlpTraceExporter(options));
+            }));
 
         if (settings.HealthChecks)
         {
