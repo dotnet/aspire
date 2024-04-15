@@ -116,7 +116,11 @@ public class SchemaTests
 
                 { "DaprWithComponents", (IDistributedApplicationBuilder builder) =>
                     {
-                        var dapr = builder.AddDapr();
+                        var dapr = builder.AddDapr(dopts =>
+                        {
+                            // Just to avoid dynamic discovery which will throw.
+                            dopts.DaprPath = "notrealpath";
+                        });
                         var state = dapr.AddDaprStateStore("daprstate");
                         var pubsub = dapr.AddDaprPubSub("daprpubsub");
 
