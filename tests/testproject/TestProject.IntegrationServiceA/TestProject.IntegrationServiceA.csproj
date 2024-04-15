@@ -37,7 +37,7 @@
   <ItemGroup>
     <ProjectReference Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
     <PackageReference Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" Include="@(ComponentReferenceForTests)" />
-    <PackageReference Include="Polly" />
+    <PackageReference Include="Polly.Core" />
   </ItemGroup>
 
 </Project>

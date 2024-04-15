@@ -64,9 +64,11 @@ public static class AspireServiceBusExtensions
 
     private sealed class MessageBusComponent : AzureComponent<AzureMessagingServiceBusSettings, ServiceBusClient, ServiceBusClientOptions>
     {
-        protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
+            string connectionName, string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))

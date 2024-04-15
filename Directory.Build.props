@@ -50,4 +50,8 @@
     <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net9.0/</AspireDashboardDir>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <AddPublicApiAnalyzers>true</AddPublicApiAnalyzers>
+  </PropertyGroup>
+
 </Project>

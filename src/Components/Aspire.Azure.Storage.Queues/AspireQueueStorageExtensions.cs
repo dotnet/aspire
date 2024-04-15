@@ -66,9 +66,11 @@ public static class AspireQueueStorageExtensions
 
     private sealed class StorageQueueComponent : AzureComponent<AzureStorageQueuesSettings, QueueServiceClient, QueueClientOptions>
     {
-        protected override IAzureClientBuilder<QueueServiceClient, QueueClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureStorageQueuesSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<QueueServiceClient, QueueClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureStorageQueuesSettings settings, string connectionName,
+            string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<QueueServiceClient, QueueClientOptions>((options, cred) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<QueueServiceClient, QueueClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)

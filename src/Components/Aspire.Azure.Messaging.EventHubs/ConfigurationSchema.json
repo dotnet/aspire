@@ -227,9 +227,9 @@
                     "EventProcessorClient": {
                       "type": "object",
                       "properties": {
-                        "BlobClientConnectionName": {
+                        "BlobClientServiceKey": {
                           "type": "string",
-                          "description": "Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used."
+                          "description": "Gets or sets the IServiceProvider service key used to obtain an Azure BlobServiceClient."
                         },
                         "BlobContainerName": {
                           "type": "string",

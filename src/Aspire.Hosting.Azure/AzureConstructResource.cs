@@ -109,6 +109,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
     {
         parameterName ??= parameterResourceBuilder.Resource.Name;
@@ -140,6 +141,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <param name="outputReference">Aspire parameter resource builder.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
     {
         parameterName ??= outputReference.Resource.Name;

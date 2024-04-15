@@ -265,7 +265,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
                 new KeyValuePair<string, string?>("ConnectionStrings:redis", connectionString)
             ]);
 
-            var notifier = new ActivityNotifier();
+            using var notifier = new ActivityNotifier();
             builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
             // set the FlushInterval to to zero so the Activity gets created immediately
             builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
@@ -281,11 +281,11 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
             var database = connectionMultiplexer.GetDatabase();
             database.StringGet("key");
 
-            await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
+            // read the first activity
+            var activityList = await notifier.TakeAsync(1, TimeSpan.FromSeconds(10));
+            Assert.Single(activityList);
 
-            Assert.Single(notifier.ExportedActivities);
-
-            var activity = notifier.ExportedActivities[0];
+            var activity = activityList[0];
             Assert.Equal("GET", activity.OperationName);
             Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
         }, ConnectionString).Dispose();

@@ -65,9 +65,11 @@ public static class AspireTablesExtensions
 
     private sealed class TableServiceComponent : AzureComponent<AzureDataTablesSettings, TableServiceClient, TableClientOptions>
     {
-        protected override IAzureClientBuilder<TableServiceClient, TableClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureDataTablesSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<TableServiceClient, TableClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureDataTablesSettings settings, string connectionName,
+            string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<TableServiceClient, TableClientOptions>((options, cred) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<TableServiceClient, TableClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)

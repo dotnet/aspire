@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AuthorizedUser">
         <source>Authorized User</source>
-        <target state="new">Authorized User</target>
+        <target state="translated">授权用户</target>
         <note>Placeholder text for the name of the authorized user when no name claim exists</note>
       </trans-unit>
       <trans-unit id="Header">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="HelpScreenshotAltText">
         <source>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</source>
-        <target state="new">Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</target>
+        <target state="translated">示例控制台输出的屏幕截图，其中显示在哪里查找仪表板前端令牌一个红色框突出显示了 URL 末尾的令牌。令牌是名为 "t" 的查询参数的值。</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidTokenErrorMessage">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="LoggedInAs">
         <source>Logged in as:</source>
-        <target state="new">Logged in as:</target>
+        <target state="translated">登录身份:</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoLinkText">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">更多信息</target>
         <note />
       </trans-unit>
       <trans-unit id="PageTitle">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="TokenHelpTextLine1">
         <source>Copy the highlighted token from the console to the login page and log in.</source>
-        <target state="new">Copy the highlighted token from the console to the login page and log in.</target>
+        <target state="translated">将突出显示的令牌从控制台复制到登录页并登录。</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenHelpTextLine2">
         <source>Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</source>
-        <target state="new">Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</target>
+        <target state="translated">或者，单击控制台链接以自动登录。当仪表板在容器中运行，并且外部端口映射到其他值时，地址可能不正确。</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenRequiredErrorMessage">

@@ -76,10 +76,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+        _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.None);
 
         // This is so that we can see certificate errors in the resource server in the console logs.
         // See: https://github.com/dotnet/aspire/issues/2914
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServer", LogLevel.Warning);
+
+        // Add the logging configuration again to allow the user to override the defaults
+        _innerBuilder.Logging.AddConfiguration(_innerBuilder.Configuration.GetSection("Logging"));
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
@@ -175,6 +179,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
+        _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
 
         // Overwrite registry if override specified in options

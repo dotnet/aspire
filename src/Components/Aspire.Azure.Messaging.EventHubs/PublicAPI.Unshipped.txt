@@ -1,0 +1,42 @@
+#nullable enable
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.AzureMessagingEventHubsBaseSettings() -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.ConnectionString.get -> string?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.ConnectionString.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.Credential.get -> Azure.Core.TokenCredential?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.Credential.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.EventHubName.get -> string?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.EventHubName.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.Namespace.get -> string?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.Namespace.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.Tracing.get -> bool
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsBaseSettings.Tracing.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerBaseSettings
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerBaseSettings.AzureMessagingEventHubsConsumerBaseSettings() -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerBaseSettings.ConsumerGroup.get -> string?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerBaseSettings.ConsumerGroup.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerSettings
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerSettings.AzureMessagingEventHubsConsumerSettings() -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings.AzureMessagingEventHubsPartitionReceiverSettings() -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings.EventPosition.get -> Azure.Messaging.EventHubs.Consumer.EventPosition
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings.EventPosition.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings.PartitionId.get -> string?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings.PartitionId.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.AzureMessagingEventHubsProcessorSettings() -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobClientServiceKey.get -> string?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobClientServiceKey.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobContainerName.get -> string?
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings.BlobContainerName.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProducerSettings
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProducerSettings.AzureMessagingEventHubsProducerSettings() -> void
+Microsoft.Extensions.Hosting.AspireEventHubsExtensions
+static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddAzureEventHubConsumerClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient!, Azure.Messaging.EventHubs.Consumer.EventHubConsumerClientOptions!>!>? configureClientBuilder = null) -> void
+static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddAzureEventHubProducerClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProducerSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.Producer.EventHubProducerClient!, Azure.Messaging.EventHubs.Producer.EventHubProducerClientOptions!>!>? configureClientBuilder = null) -> void
+static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddAzureEventProcessorClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.EventProcessorClient!, Azure.Messaging.EventHubs.EventProcessorClientOptions!>!>? configureClientBuilder = null) -> void
+static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddAzurePartitionReceiverClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.Primitives.PartitionReceiver!, Azure.Messaging.EventHubs.Primitives.PartitionReceiverOptions!>!>? configureClientBuilder = null) -> void
+static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddKeyedAzureEventHubConsumerClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient!, Azure.Messaging.EventHubs.Consumer.EventHubConsumerClientOptions!>!>? configureClientBuilder = null) -> void
+static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddKeyedAzureEventHubProducerClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProducerSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.Producer.EventHubProducerClient!, Azure.Messaging.EventHubs.Producer.EventHubProducerClientOptions!>!>? configureClientBuilder = null) -> void
+static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddKeyedAzureEventProcessorClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProcessorSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.EventProcessorClient!, Azure.Messaging.EventHubs.EventProcessorClientOptions!>!>? configureClientBuilder = null) -> void
+static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddKeyedAzurePartitionReceiverClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsPartitionReceiverSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.Primitives.PartitionReceiver!, Azure.Messaging.EventHubs.Primitives.PartitionReceiverOptions!>!>? configureClientBuilder = null) -> void

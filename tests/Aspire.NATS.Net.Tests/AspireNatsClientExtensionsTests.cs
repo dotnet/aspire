@@ -184,7 +184,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
 
             builder.AddNatsClient(DefaultConnectionName);
 
-            var notifier = new ActivityNotifier();
+            using var notifier = new ActivityNotifier();
             builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
 
             using var host = builder.Build();
@@ -193,10 +193,10 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             var nats = host.Services.GetRequiredService<INatsConnection>();
             await nats.PublishAsync("test");
 
-            await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
-            Assert.Single(notifier.ExportedActivities);
+            var activityList = await notifier.TakeAsync(1, TimeSpan.FromSeconds(10));
+            Assert.Single(activityList);
 
-            var activity = notifier.ExportedActivities[0];
+            var activity = activityList[0];
             Assert.Equal("test publish", activity.OperationName);
             Assert.Contains(activity.Tags, kvp => kvp.Key == "messaging.system" && kvp.Value == "nats");
         }, _connectionString).Dispose();
