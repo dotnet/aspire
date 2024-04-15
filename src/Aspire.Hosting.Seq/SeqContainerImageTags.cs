@@ -7,5 +7,5 @@ internal static class SeqContainerImageTags
 {
     public const string Registry = "docker.io";
     public const string Image = "datalust/seq";
-    public const string Tag = "2024.1";
+    public const string Tag = "2024.2";
 }
