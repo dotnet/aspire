@@ -31,6 +31,7 @@ public partial class ResourceDetails
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
 
     private bool _showAll;
+    private ResourceViewModel? _resource;
 
     private IQueryable<EnvironmentVariableViewModel> FilteredItems =>
         Resource.Environment.Where(vm =>
@@ -92,6 +93,18 @@ public partial class ResourceDetails
             new KnownProperty(KnownProperties.Container.Args, Loc[Resources.Resources.ResourcesDetailsContainerArgumentsProperty]),
             new KnownProperty(KnownProperties.Container.Ports, Loc[Resources.Resources.ResourcesDetailsContainerPortsProperty]),
         ];
+
+        _resource = Resource;
+        ResetResourceEnvironmentVariableMasks();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(Resource, _resource))
+        {
+            _resource = Resource;
+            ResetResourceEnvironmentVariableMasks();
+        }
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -104,6 +117,15 @@ public partial class ResourceDetails
             {
                 vm.IsValueMasked = _areEnvironmentVariablesMasked;
             }
+        }
+    }
+
+    private void ResetResourceEnvironmentVariableMasks()
+    {
+        _areEnvironmentVariablesMasked = true; // By default, mask environment variables
+        foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
+        {
+            vm.IsValueMasked = _areEnvironmentVariablesMasked;
         }
     }
 
