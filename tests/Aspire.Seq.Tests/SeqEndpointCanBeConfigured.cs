@@ -36,7 +36,7 @@ public class SeqTests
         {
             settings = s;
             s.ServerUrl = serverUrl;
-            s.ApiKey = "ABCDE12345";
+            s.ApiKey = "TestKey123!";
             s.Logs.Endpoint = new Uri("http://localhost:1234/ingest/otlp/v1/logs");
             s.Traces.Endpoint = new Uri("http://localhost:1234/ingest/otlp/v1/traces");
         });
@@ -56,12 +56,12 @@ public class SeqTests
         {
             settings = s;
             s.HealthChecks = false;
-            s.ApiKey = "ABCDE12345";
+            s.ApiKey = "TestKey123!";
             s.Logs.Headers = "speed=fast,quality=good";
             s.Traces.Headers = "quality=good,speed=fast";
         });
 
-        Assert.Equal("speed=fast,quality=good,X-Seq-ApiKey=ABCDE12345", settings.Logs.Headers);
-        Assert.Equal("quality=good,speed=fast,X-Seq-ApiKey=ABCDE12345", settings.Traces.Headers);
+        Assert.Equal("speed=fast,quality=good,X-Seq-ApiKey=TestKey123!", settings.Logs.Headers);
+        Assert.Equal("quality=good,speed=fast,X-Seq-ApiKey=TestKey123!", settings.Traces.Headers);
     }
 }
