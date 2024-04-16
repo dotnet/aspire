@@ -62,7 +62,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
     /// <param name="configureBuilder">Configuration the internal app builder. This is for unit testing.</param>
-    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
+    /// <param name="requireHttpsMetadataForOpenIdConnect">Allows the OpenIdConnect infrastructure to work without HTTPS, for unit testing purposes only.</param>
+    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null, bool requireHttpsMetadataForOpenIdConnect = true)
     {
         var builder = WebApplication.CreateBuilder();
 
@@ -116,7 +117,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             builder.Services.Configure<HttpsRedirectionOptions>(options => options.HttpsPort = browserHttpsPort);
         }
 
-        ConfigureAuthentication(builder, dashboardOptions);
+        ConfigureAuthentication(builder, dashboardOptions, requireHttpsMetadataForOpenIdConnect);
 
         // Add services to the container.
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
@@ -443,7 +444,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
     }
 
-    private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
+    private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions, bool requireHttpsMetadataForOpenIdConnect)
     {
         var authentication = builder.Services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -514,8 +515,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     // Avoid "message.State is null or empty" due to use of CallbackPath above.
                     options.SkipUnrecognizedRequests = true;
 
-                    // TEMPORARY: Just adding this to validate if it unblocks tests in CI
-                    options.RequireHttpsMetadata = false;
+                    // Allow the requirement of HTTPS communication with the OpenIdConnect authority to be
+                    // relaxed, for unit testing purposes only.
+                    options.RequireHttpsMetadata = requireHttpsMetadataForOpenIdConnect;
                 });
                 break;
             case FrontendAuthMode.BrowserToken:

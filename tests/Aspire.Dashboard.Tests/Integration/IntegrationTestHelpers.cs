@@ -71,7 +71,8 @@ public static class IntegrationTestHelpers
                     options.ServerCertificate = s_testCertificate;
                 });
             });
-        });
+        },
+        requireHttpsMetadataForOpenIdConnect: false);
 
         return dashboardWebApplication;
     }
