@@ -32,7 +32,7 @@ public partial class MetricTable : ChartBase
 
     protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
-        // Only update table every second
+        // Only update table every second to batch updates. New data coming every 200ms may be disorienting for screen-reader users.
         if (inProgressDataTime - _lastUpdate < TimeSpan.FromSeconds(1))
         {
             return;
@@ -88,11 +88,6 @@ public partial class MetricTable : ChartBase
         for (var i = 0; i < xValues.Count; i++)
         {
             var xValue = xValues[i];
-            if (_metrics.TryGetValue(xValue, out var oldMetric))
-            {
-                newMetrics.Add(xValue, oldMetric);
-                continue;
-            }
 
             KeyValuePair<DateTimeOffset, MetricViewBase>? previousMetric = newMetrics.LastOrDefault(dt => dt.Key < xValue);
 
