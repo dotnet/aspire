@@ -32,11 +32,17 @@ public static class AspireSeqExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = new SeqSettings();
-        settings.ServerUrl = builder.Configuration.GetConnectionString(connectionName);
         settings.Logs.Protocol = OtlpExportProtocol.HttpProtobuf;
         settings.Traces.Protocol = OtlpExportProtocol.HttpProtobuf;
-
+        settings.Logs.ExportProcessorType = ExportProcessorType.Batch;
+        settings.Traces.ExportProcessorType = ExportProcessorType.Batch;
         builder.Configuration.GetSection("Aspire:Seq").Bind(settings);
+
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        {
+            settings.ServerUrl = connectionString;
+        }
+
         configureSettings?.Invoke(settings);
 
         if (!string.IsNullOrEmpty(settings.ServerUrl))
@@ -51,20 +57,33 @@ public static class AspireSeqExtensions
         }
 
         builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddProcessor(
-            sp => new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
+            _ => settings.Logs.ExportProcessorType == ExportProcessorType.Batch
+                ? new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
+                : new SimpleLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
             ));
 
         builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddProcessor(
-            sp => new BatchActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
+            _ => settings.Traces.ExportProcessorType == ExportProcessorType.Batch
+                ? new BatchActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
+                : new SimpleActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
             ));
 
-        if (settings is { HealthChecks: true, ServerUrl: not null })
+        if (settings.HealthChecks)
         {
-            builder.TryAddHealthCheck(new HealthCheckRegistration(
-                "Seq",
-                _ => new SeqHealthCheck(settings.ServerUrl),
-                failureStatus: default,
-                tags: default));
+            if (settings.ServerUrl is not null)
+            {
+                builder.TryAddHealthCheck(new HealthCheckRegistration(
+                    "Seq",
+                    _ => new SeqHealthCheck(settings.ServerUrl),
+                    failureStatus: default,
+                    tags: default));
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "Unable to add a Seq health check because the 'ServerUrl' setting is missing.");
+            }
         }
+
     }
 }

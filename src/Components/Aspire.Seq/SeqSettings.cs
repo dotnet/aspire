@@ -31,7 +31,6 @@ public sealed class SeqSettings
     public OtlpExporterOptions Logs
     {
         get;
-        private set;
     } = new ();
 
     /// <summary>
@@ -40,7 +39,6 @@ public sealed class SeqSettings
     public OtlpExporterOptions Traces
     {
         get;
-        private set;
     } = new ();
 
 }
