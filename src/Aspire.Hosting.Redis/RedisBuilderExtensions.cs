@@ -258,6 +258,8 @@ public static class RedisBuilderExtensions
                 await ImportRedisDatabases(resourceLogger, redisInstances, client, ct).ConfigureAwait(false);
             });
 
+            resourceBuilder.WithRelationship(builder.Resource, "RedisInsight");
+
             configureContainer?.Invoke(resourceBuilder);
 
             return builder;
