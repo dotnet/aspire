@@ -140,7 +140,7 @@ Then, in the _Program.cs_ file of `AppHost`, add an Event Hubs connection and an
 ```csharp
 var eventHubs = builder.ExecutionContext.IsPublishMode
     ? builder.AddAzureEventHubs("eventHubsConnectionName").AddEventHub("MyHub")
-    : builder.AddConnectionString("eventHubsConnectionName").AddEventHub("MyHub");
+    : builder.AddConnectionString("eventHubsConnectionName");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(eventHubs);
