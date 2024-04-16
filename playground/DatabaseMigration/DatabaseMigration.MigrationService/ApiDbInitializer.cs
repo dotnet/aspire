@@ -17,7 +17,7 @@ public class ApiDbInitializer(
     public const string ActivitySourceName = "Migrations";
     private static readonly ActivitySource s_activitySource = new(ActivitySourceName);
 
-    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var activity = s_activitySource.StartActivity("Migrating database", ActivityKind.Client);
 
@@ -26,8 +26,8 @@ public class ApiDbInitializer(
             using var scope = serviceProvider.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MyDb1Context>();
 
-            await EnsureDatabaseAsync(dbContext, cancellationToken);
-            await RunMigrationAsync(dbContext, cancellationToken);
+            await EnsureDatabaseAsync(dbContext, stoppingToken);
+            await RunMigrationAsync(dbContext, stoppingToken);
         }
         catch (Exception ex)
         {

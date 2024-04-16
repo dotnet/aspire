@@ -62,17 +62,17 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the MySQL database to connect to."
                     },
-                    "HealthChecks": {
+                    "HealthChecksEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
                       "default": true
                     },
-                    "Metrics": {
+                    "MetricsEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
                       "default": true
                     },
-                    "Retry": {
+                    "RetryEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets whether retries should be enabled.",
                       "default": true
@@ -81,7 +81,7 @@
                       "type": "string",
                       "description": "Gets or sets the server version of the MySQL database to connect to."
                     },
-                    "Tracing": {
+                    "TracingEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                       "default": true

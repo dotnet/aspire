@@ -19,7 +19,7 @@ public sealed class MongoDBSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool HealthChecks { get; set; } = true;
+    public bool HealthChecksEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a integer value that indicates the MongoDB health check timeout in milliseconds.
@@ -32,6 +32,6 @@ public sealed class MongoDBSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool TracingEnabled { get; set; } = true;
 
 }

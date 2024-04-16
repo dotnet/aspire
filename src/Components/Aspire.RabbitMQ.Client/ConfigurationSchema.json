@@ -332,7 +332,7 @@
                   "type": "string",
                   "description": "Gets or sets the connection string of the RabbitMQ server to connect to."
                 },
-                "HealthChecks": {
+                "HealthChecksEnabled": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.",
                   "default": true
@@ -341,7 +341,7 @@
                   "type": "integer",
                   "description": "Gets or sets the maximum number of connection retry attempts. Default value is 5, set it to 0 to disable the retry mechanism."
                 },
-                "Tracing": {
+                "TracingEnabled": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                   "default": true

@@ -27,7 +27,7 @@ public sealed class KafkaProducerSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Metrics { get; set; } = true;
+    public bool MetricsEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.
@@ -35,7 +35,7 @@ public sealed class KafkaProducerSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool HealthChecks { get; set; } = true;
+    public bool HealthChecksEnabled { get; set; } = true;
 
     internal void Consolidate()
     {
@@ -46,7 +46,7 @@ public sealed class KafkaProducerSettings
             Config.BootstrapServers = ConnectionString;
         }
 
-        if (Metrics)
+        if (MetricsEnabled)
         {
             Config.StatisticsIntervalMs ??= 1000;
         }

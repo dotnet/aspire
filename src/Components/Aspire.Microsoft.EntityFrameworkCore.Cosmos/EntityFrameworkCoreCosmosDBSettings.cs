@@ -36,7 +36,7 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool TracingEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a string value that indicates what Azure region this client will run in.

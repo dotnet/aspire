@@ -17,6 +17,6 @@ public class AzureMessagingServiceBusSettingsTests
 
     private static void EnsureTracingIsEnabledWhenAzureSwitchIsSet(bool expectedValue)
     {
-        Assert.Equal(expectedValue, new AzureMessagingServiceBusSettings().Tracing);
+        Assert.Equal(expectedValue, new AzureMessagingServiceBusSettings().TracingEnabled);
     }
 }

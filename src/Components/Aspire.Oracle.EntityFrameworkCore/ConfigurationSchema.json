@@ -59,11 +59,11 @@
                   "type": "string",
                   "description": "The connection string of the Oracle database to connect to."
                 },
-                "HealthChecks": {
+                "HealthChecksEnabled": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not. The default value is true."
                 },
-                "Retry": {
+                "RetryEnabled": {
                   "type": "boolean",
                   "description": "Gets or sets whether retries should be enabled.",
                   "default": true

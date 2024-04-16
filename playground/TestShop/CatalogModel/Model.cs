@@ -30,13 +30,13 @@ public class CatalogDbContext(DbContextOptions<CatalogDbContext> options) : DbCo
     public DbSet<CatalogBrand> CatalogBrands => Set<CatalogBrand>();
     public DbSet<CatalogType> CatalogTypes => Set<CatalogType>();
 
-    protected override void OnModelCreating(ModelBuilder builder)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        DefineCatalogBrand(builder.Entity<CatalogBrand>());
+        DefineCatalogBrand(modelBuilder.Entity<CatalogBrand>());
 
-        DefineCatalogItem(builder.Entity<CatalogItem>());
+        DefineCatalogItem(modelBuilder.Entity<CatalogItem>());
 
-        DefineCatalogType(builder.Entity<CatalogType>());
+        DefineCatalogType(modelBuilder.Entity<CatalogType>());
     }
 
     private static void DefineCatalogType(EntityTypeBuilder<CatalogType> builder)

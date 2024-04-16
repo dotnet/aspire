@@ -107,7 +107,7 @@
                       "type": "string",
                       "description": "Gets or sets the connection string used to connect to the table service account."
                     },
-                    "HealthChecks": {
+                    "HealthChecksEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the health check is enabled or not.",
                       "default": true
@@ -117,7 +117,7 @@
                       "format": "uri",
                       "description": "A 'System.Uri' referencing the table service account.\nThis is likely to be similar to \"https://{account_name}.table.core.windows.net/\" or \"https://{account_name}.table.cosmos.azure.com/\"."
                     },
-                    "Tracing": {
+                    "TracingEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                       "default": true

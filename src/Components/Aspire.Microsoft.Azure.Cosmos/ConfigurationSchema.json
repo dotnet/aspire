@@ -30,7 +30,7 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Azure Cosmos database to connect to."
                     },
-                    "Tracing": {
+                    "TracingEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                       "default": true

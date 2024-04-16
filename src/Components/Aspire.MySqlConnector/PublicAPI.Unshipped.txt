@@ -2,13 +2,13 @@
 Aspire.MySqlConnector.MySqlConnectorSettings
 Aspire.MySqlConnector.MySqlConnectorSettings.ConnectionString.get -> string?
 Aspire.MySqlConnector.MySqlConnectorSettings.ConnectionString.set -> void
-Aspire.MySqlConnector.MySqlConnectorSettings.HealthChecks.get -> bool
-Aspire.MySqlConnector.MySqlConnectorSettings.HealthChecks.set -> void
-Aspire.MySqlConnector.MySqlConnectorSettings.Metrics.get -> bool
-Aspire.MySqlConnector.MySqlConnectorSettings.Metrics.set -> void
+Aspire.MySqlConnector.MySqlConnectorSettings.HealthChecksEnabled.get -> bool
+Aspire.MySqlConnector.MySqlConnectorSettings.HealthChecksEnabled.set -> void
+Aspire.MySqlConnector.MySqlConnectorSettings.MetricsEnabled.get -> bool
+Aspire.MySqlConnector.MySqlConnectorSettings.MetricsEnabled.set -> void
 Aspire.MySqlConnector.MySqlConnectorSettings.MySqlConnectorSettings() -> void
-Aspire.MySqlConnector.MySqlConnectorSettings.Tracing.get -> bool
-Aspire.MySqlConnector.MySqlConnectorSettings.Tracing.set -> void
+Aspire.MySqlConnector.MySqlConnectorSettings.TracingEnabled.get -> bool
+Aspire.MySqlConnector.MySqlConnectorSettings.TracingEnabled.set -> void
 Microsoft.Extensions.Hosting.AspireMySqlConnectorExtensions
 static Microsoft.Extensions.Hosting.AspireMySqlConnectorExtensions.AddKeyedMySqlDataSource(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.MySqlConnector.MySqlConnectorSettings!>? configureSettings = null) -> void
 static Microsoft.Extensions.Hosting.AspireMySqlConnectorExtensions.AddMySqlDataSource(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.MySqlConnector.MySqlConnectorSettings!>? configureSettings = null) -> void

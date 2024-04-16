@@ -81,8 +81,8 @@ Example `appsettings.json` that configures some of the options:
     "Pomelo": {
       "EntityFrameworkCore": {
         "MySql": {
-          "HealthChecks": false,
-          "Tracing": false
+          "HealthChecksEnabled": false,
+          "TracingEnabled": false
         }
       }
     }
@@ -95,13 +95,13 @@ Example `appsettings.json` that configures some of the options:
 Also you can pass the `Action<PomeloEntityFrameworkCoreMySqlSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddMySqlDbContext<MyDbContext>("mysqldb", settings => settings.HealthChecks = false);
+    builder.AddMySqlDbContext<MyDbContext>("mysqldb", settings => settings.HealthChecksEnabled = false);
 ```
 
 or
 
 ```csharp
-    builder.EnrichMySqlDbContext<MyDbContext>(settings => settings.HealthChecks = false);
+    builder.EnrichMySqlDbContext<MyDbContext>(settings => settings.HealthChecksEnabled = false);
 ```
 
 ## AppHost extensions

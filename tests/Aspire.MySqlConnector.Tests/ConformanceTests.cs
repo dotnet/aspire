@@ -39,9 +39,9 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
           "Aspire": {
             "MySqlConnector": {
               "ConnectionString": "YOUR_CONNECTION_STRING",
-              "HealthChecks": false,
-              "Tracing": true,
-              "Metrics": true
+              "HealthChecksEnabled": false,
+              "TracingEnabled": true,
+              "MetricsEnabled": true
             }
           }
         }
@@ -49,8 +49,8 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "MySqlConnector":{ "Metrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "MySqlConnector":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "MySqlConnector":{ "MetricsEnabled": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "MySqlConnector":{ "ConnectionString": "Con", "HealthChecksEnabled": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     public ConformanceTests(MySqlContainerFixture? containerFixture)
@@ -79,14 +79,14 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
         }
     }
 
-    protected override void SetHealthCheck(MySqlConnectorSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(MySqlConnectorSettings settings, bool enabled)
+        => settings.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(MySqlConnectorSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(MySqlConnectorSettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
-    protected override void SetMetrics(MySqlConnectorSettings options, bool enabled)
-        => options.Metrics = enabled;
+    protected override void SetMetrics(MySqlConnectorSettings settings, bool enabled)
+        => settings.MetricsEnabled = enabled;
 
     protected override void TriggerActivity(MySqlDataSource service)
     {

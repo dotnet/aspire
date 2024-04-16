@@ -31,7 +31,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
               "AI": {
                 "OpenAI": {
                   "Endpoint": "http://YOUR_URI",
-                  "Tracing": true,
+                  "TracingEnabled": true,
                   "ClientOptions": {
                     "ConnectionIdleTimeout": "00:10",
                     "EnableCrossEntityTransactions": true,
@@ -51,7 +51,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
             ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "http://YOUR_URI", "TracingEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override string ActivitySourceName => "Azure.AI.OpenAI.OpenAIClient";
@@ -92,14 +92,14 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
-    protected override void SetHealthCheck(AzureOpenAISettings options, bool enabled)
+    protected override void SetHealthCheck(AzureOpenAISettings settings, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetMetrics(AzureOpenAISettings options, bool enabled)
+    protected override void SetMetrics(AzureOpenAISettings settings, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureOpenAISettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(AzureOpenAISettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
     protected override void TriggerActivity(OpenAIClient service)
         => service.GetCompletions(new CompletionsOptions { DeploymentName = "dummy-gpt" });

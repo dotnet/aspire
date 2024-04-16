@@ -34,17 +34,17 @@
               "type": "string",
               "description": "The connection string of the MySQL database to connect to."
             },
-            "HealthChecks": {
+            "HealthChecksEnabled": {
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
               "default": true
             },
-            "Metrics": {
+            "MetricsEnabled": {
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
               "default": true
             },
-            "Tracing": {
+            "TracingEnabled": {
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
               "default": true

@@ -474,11 +474,11 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Kafka server to connect to."
                     },
-                    "HealthChecks": {
+                    "HealthChecksEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not."
                     },
-                    "Metrics": {
+                    "MetricsEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether collecting metrics is enabled or not."
                     }
@@ -937,12 +937,12 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Kafka server to connect to."
                     },
-                    "HealthChecks": {
+                    "HealthChecksEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.",
                       "default": true
                     },
-                    "Metrics": {
+                    "MetricsEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.",
                       "default": true

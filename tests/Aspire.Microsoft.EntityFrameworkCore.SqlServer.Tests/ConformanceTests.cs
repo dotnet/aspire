@@ -46,8 +46,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
               "EntityFrameworkCore": {
                 "SqlServer": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "HealthChecks": false,
-                  "Tracing": true
+                  "HealthChecksEnabled": false,
+                  "TracingEnabled": true
                 }
               }
             }
@@ -57,9 +57,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Retry": "5"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "RetryEnabled": "5"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "HealthChecksEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "TracingEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     public ConformanceTests(SqlServerContainerFixture? fixture)
@@ -79,13 +79,13 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
         => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configure);
 
-    protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings settings, bool enabled)
+        => settings.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(MicrosoftEntityFrameworkCoreSqlServerSettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
-    protected override void SetMetrics(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
+    protected override void SetMetrics(MicrosoftEntityFrameworkCoreSqlServerSettings settings, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(TestDbContext service)

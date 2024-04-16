@@ -41,11 +41,11 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
         }
     }
 
-    protected override void SetHealthCheck(KafkaConsumerSettings options, bool enabled) => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(KafkaConsumerSettings settings, bool enabled) => settings.HealthChecksEnabled = enabled;
 
-    protected override void SetMetrics(KafkaConsumerSettings options, bool enabled) => options.Metrics = enabled;
+    protected override void SetMetrics(KafkaConsumerSettings settings, bool enabled) => settings.MetricsEnabled = enabled;
 
-    protected override void SetTracing(KafkaConsumerSettings options, bool enabled)
+    protected override void SetTracing(KafkaConsumerSettings settings, bool enabled)
     {
         throw new NotImplementedException();
     }
@@ -64,8 +64,8 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
                             "Kafka": {
                                 "Consumer": {
                                     "ConnectionString": "localhost:9092",
-                                    "HealthChecks": true,
-                                    "Metrics": true,
+                                    "HealthChecksEnabled": true,
+                                    "MetricsEnabled": true,
                                     "Config": {
                                         "GroupId": "test"
                                     }
@@ -78,7 +78,7 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Confluent":{ "Kafka": { "Consumer": { "Metrics": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Confluent":{ "Kafka": { "Consumer": { "HealthChecks": 0}}}}}""", "Value is \"integer\" but should be \"boolean\"")
+            ("""{"Aspire": { "Confluent":{ "Kafka": { "Consumer": { "MetricsEnabled": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Confluent":{ "Kafka": { "Consumer": { "HealthChecksEnabled": 0}}}}}""", "Value is \"integer\" but should be \"boolean\"")
         };
 }

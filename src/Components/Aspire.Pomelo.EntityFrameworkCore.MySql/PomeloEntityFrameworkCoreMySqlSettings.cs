@@ -24,7 +24,7 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Retry { get; set; } = true;
+    public bool RetryEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the database health check is enabled or not.
@@ -32,7 +32,7 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool HealthChecks { get; set; } = true;
+    public bool HealthChecksEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
@@ -40,7 +40,7 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool TracingEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
@@ -48,7 +48,7 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Metrics { get; set; } = true;
+    public bool MetricsEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the time in seconds to wait for the command to execute.

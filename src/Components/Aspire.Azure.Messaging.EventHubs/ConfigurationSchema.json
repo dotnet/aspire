@@ -122,7 +122,7 @@
                           "type": "string",
                           "description": "Gets or sets the fully qualified Event Hubs namespace."
                         },
-                        "Tracing": {
+                        "TracingEnabled": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
@@ -217,7 +217,7 @@
                           "type": "string",
                           "description": "Gets or sets the fully qualified Event Hubs namespace."
                         },
-                        "Tracing": {
+                        "TracingEnabled": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
@@ -362,7 +362,7 @@
                           "type": "string",
                           "description": "Gets or sets the fully qualified Event Hubs namespace."
                         },
-                        "Tracing": {
+                        "TracingEnabled": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
@@ -486,7 +486,7 @@
                           "type": "string",
                           "description": "Gets or sets the partition identifier."
                         },
-                        "Tracing": {
+                        "TracingEnabled": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }

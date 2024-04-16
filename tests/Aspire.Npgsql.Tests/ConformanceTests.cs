@@ -41,9 +41,9 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
           "Aspire": {
             "Npgsql": {
               "ConnectionString": "YOUR_CONNECTION_STRING",
-              "HealthChecks": false,
-              "Tracing": true,
-              "Metrics": true
+              "HealthChecksEnabled": false,
+              "TracingEnabled": true,
+              "MetricsEnabled": true
             }
           }
         }
@@ -51,8 +51,8 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Npgsql":{ "Metrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Npgsql":{ "MetricsEnabled": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "HealthChecksEnabled": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
@@ -81,14 +81,14 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         }
     }
 
-    protected override void SetHealthCheck(NpgsqlSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(NpgsqlSettings settings, bool enabled)
+        => settings.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(NpgsqlSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(NpgsqlSettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
-    protected override void SetMetrics(NpgsqlSettings options, bool enabled)
-        => options.Metrics = enabled;
+    protected override void SetMetrics(NpgsqlSettings settings, bool enabled)
+        => settings.MetricsEnabled = enabled;
 
     protected override void TriggerActivity(NpgsqlDataSource service)
     {

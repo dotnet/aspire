@@ -14,15 +14,17 @@ namespace Aspire.Azure.Messaging.EventHubs;
 /// <summary>
 /// Represents additional shared settings for configuring an Event Hubs client.
 /// </summary>
-public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSettings
+public abstract class AzureMessagingEventHubsSettings : IConnectionStringSettings
 {
-    private bool? _tracing;
+    private bool? _tracingEnabled;
+
+    internal AzureMessagingEventHubsSettings() { }
 
     /// <summary>
     /// Gets or sets the connection string used to connect to the Event Hubs namespace. 
     /// </summary>
     /// <remarks>
-    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Namespace"/> and <see cref="Credential"/>.
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="FullyQualifiedNamespace"/> and <see cref="Credential"/>.
     /// </remarks>
     public string? ConnectionString { get; set; }
 
@@ -32,7 +34,7 @@ public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSet
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
     /// </remarks>
-    public string? Namespace { get; set; }
+    public string? FullyQualifiedNamespace { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the Event Hub.
@@ -52,10 +54,10 @@ public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSet
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
-    public bool Tracing
+    public bool TracingEnabled
     {
-        get { return _tracing ??= GetTracingDefaultValue(); }
-        set { _tracing = value; }
+        get { return _tracingEnabled ??= GetTracingDefaultValue(); }
+        set { _tracingEnabled = value; }
     }
 
     // default Tracing to true if the experimental switch is set
@@ -83,7 +85,7 @@ public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSet
             // a event hubs namespace can't contain ';'. if it is found assume it is a connection string
             if (!connectionString.Contains(';'))
             {
-                Namespace = connectionString;
+                FullyQualifiedNamespace = connectionString;
             }
             else
             {
@@ -96,13 +98,15 @@ public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSet
 /// <summary>
 /// Represents additional settings for configuring a <see cref="EventHubProducerClient"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsProducerSettings : AzureMessagingEventHubsBaseSettings { }
+public sealed class AzureMessagingEventHubsProducerSettings : AzureMessagingEventHubsSettings { }
 
 /// <summary>
 /// Represents additional settings for configuring an Event Hubs client that may accept a ConsumerGroup
 /// </summary>
-public abstract class AzureMessagingEventHubsConsumerBaseSettings : AzureMessagingEventHubsBaseSettings
+public abstract class AzureMessagingEventHubsConsumerGroupSettings : AzureMessagingEventHubsSettings
 {
+    internal AzureMessagingEventHubsConsumerGroupSettings() { }
+
     /// <summary>
     /// Gets or sets the name of the consumer group.
     /// </summary>
@@ -112,12 +116,12 @@ public abstract class AzureMessagingEventHubsConsumerBaseSettings : AzureMessagi
 /// <summary>
 /// Represents additional settings for configuring a <see cref="EventHubConsumerClient"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEventHubsConsumerBaseSettings { }
+public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEventHubsConsumerGroupSettings { }
 
 /// <summary>
 /// Represents additional settings for configuring a <see cref="EventProcessorClient"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEventHubsConsumerBaseSettings
+public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEventHubsConsumerGroupSettings
 {
     /// <summary>
     /// Gets or sets the IServiceProvider service key used to obtain an Azure BlobServiceClient.
@@ -140,7 +144,7 @@ public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEve
 /// <summary>
 /// Represents additional settings for configuring a <see cref="PartitionReceiver"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMessagingEventHubsConsumerBaseSettings
+public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMessagingEventHubsConsumerGroupSettings
 {
     /// <summary>
     /// Gets or sets the partition identifier.

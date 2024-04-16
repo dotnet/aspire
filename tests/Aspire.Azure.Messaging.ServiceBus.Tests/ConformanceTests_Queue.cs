@@ -26,8 +26,8 @@ public class ConformanceTests_Queue : ConformanceTests
             new(CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, "ClientOptions:RetryOptions:MaxRetries"), "0")
         });
 
-    protected override void SetHealthCheck(AzureMessagingServiceBusSettings options, bool enabled)
-        => options.HealthCheckQueueName = enabled ? HealthCheckQueueName : default;
+    protected override void SetHealthCheck(AzureMessagingServiceBusSettings settings, bool enabled)
+        => settings.HealthCheckQueueName = enabled ? HealthCheckQueueName : default;
 
     protected override void TriggerActivity(ServiceBusClient service)
         => _ = service.CreateReceiver(queueName: HealthCheckQueueName).PeekMessageAsync().GetAwaiter().GetResult();

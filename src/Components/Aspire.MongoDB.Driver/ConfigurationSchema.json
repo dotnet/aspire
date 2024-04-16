@@ -41,12 +41,12 @@
                   "type": "integer",
                   "description": "Gets or sets a integer value that indicates the MongoDB health check timeout in milliseconds."
                 },
-                "HealthChecks": {
+                "HealthChecksEnabled": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the MongoDB health check is enabled or not.",
                   "default": true
                 },
-                "Tracing": {
+                "TracingEnabled": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                   "default": true

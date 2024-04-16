@@ -283,7 +283,7 @@ public class EnrichMySqlTests : ConformanceTests
             optionsBuilder.UseMySql(ConnectionString, DefaultVersion, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.Retry = false);
+        builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.RetryEnabled = false);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -311,7 +311,7 @@ public class EnrichMySqlTests : ConformanceTests
             optionsBuilder.UseMySql(ConnectionString, DefaultVersion, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.Retry = true);
+        builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.RetryEnabled = true);
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
@@ -328,7 +328,7 @@ public class EnrichMySqlTests : ConformanceTests
             optionsBuilder.UseMySql(ConnectionString, DefaultVersion, builder => builder.ExecutionStrategy(c => new CustomRetryExecutionStrategy(c)));
         });
 
-        builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.Retry = true);
+        builder.EnrichMySqlDbContext<TestDbContext>(settings => settings.RetryEnabled = true);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

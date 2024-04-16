@@ -16,12 +16,12 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the SQL Server database to connect to."
                     },
-                    "HealthChecks": {
+                    "HealthChecksEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
                       "default": true
                     },
-                    "Tracing": {
+                    "TracingEnabled": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                       "default": true

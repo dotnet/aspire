@@ -50,7 +50,7 @@ internal sealed class EventProcessorClientComponent()
                         settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
                         settings.ConnectionString)
                     : new EventProcessorClient(containerClient,
-                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.Namespace,
+                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.FullyQualifiedNamespace,
                         settings.EventHubName, cred, options);
 
                 return processor;

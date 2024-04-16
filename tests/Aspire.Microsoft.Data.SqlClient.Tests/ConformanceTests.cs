@@ -33,8 +33,8 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
             "SqlServer": {
               "SqlClient": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecks": true,
-                "Tracing": true
+                "HealthChecksEnabled": true,
+                "TracingEnabled": true
               }
             }
           }
@@ -43,8 +43,8 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "Tracing": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "ConnectionString": "Con", "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "TracingEnabled": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "ConnectionString": "Con", "HealthChecksEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     public ConformanceTests(SqlServerContainerFixture? containerFixture)
@@ -74,13 +74,13 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
         }
     }
 
-    protected override void SetHealthCheck(MicrosoftDataSqlClientSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(MicrosoftDataSqlClientSettings settings, bool enabled)
+        => settings.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(MicrosoftDataSqlClientSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(MicrosoftDataSqlClientSettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
-    protected override void SetMetrics(MicrosoftDataSqlClientSettings options, bool enabled)
+    protected override void SetMetrics(MicrosoftDataSqlClientSettings settings, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(SqlConnection service)

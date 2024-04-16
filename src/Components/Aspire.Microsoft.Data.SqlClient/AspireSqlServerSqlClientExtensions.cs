@@ -81,7 +81,7 @@ public static class AspireSqlServerSqlClientExtensions
 
         // SqlClient Data Provider (Microsoft.Data.SqlClient) handles connection pooling automatically and it's on by default
         // https://learn.microsoft.com/sql/connect/ado-net/sql-server-connection-pooling
-        if (settings.Tracing)
+        if (settings.TracingEnabled)
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
@@ -89,7 +89,7 @@ public static class AspireSqlServerSqlClientExtensions
             });
         }
 
-        if (settings.HealthChecks)
+        if (settings.HealthChecksEnabled)
         {
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 serviceKey is null ? "SqlServer" : $"SqlServer_{connectionName}",

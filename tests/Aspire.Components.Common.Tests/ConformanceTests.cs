@@ -16,9 +16,9 @@ using Xunit;
 
 namespace Aspire.Components.ConformanceTests;
 
-public abstract class ConformanceTests<TService, TOptions>
+public abstract class ConformanceTests<TService, TSettings>
     where TService : class
-    where TOptions : class, new()
+    where TSettings : class, new()
 {
     protected static readonly EvaluationOptions DefaultEvaluationOptions = new() { RequireFormatValidation = true, OutputFormat = OutputFormat.List };
 
@@ -47,14 +47,14 @@ public abstract class ConformanceTests<TService, TOptions>
     // every Component has to support health checks, this property is a temporary workaround
     protected bool HealthChecksAreSupported => CheckIfImplemented(SetHealthCheck);
 
-    protected virtual void DisableRetries(TOptions options) { }
+    protected virtual void DisableRetries(TSettings settings) { }
 
     protected bool TracingIsSupported => CheckIfImplemented(SetTracing);
 
     /// <summary>
     /// Calls the actual Component
     /// </summary>
-    protected abstract void RegisterComponent(HostApplicationBuilder builder, Action<TOptions>? configure = null, string? key = null);
+    protected abstract void RegisterComponent(HostApplicationBuilder builder, Action<TSettings>? configure = null, string? key = null);
 
     /// <summary>
     /// Populates the Configuration with everything that is required by the Component
@@ -70,27 +70,27 @@ public abstract class ConformanceTests<TService, TOptions>
     /// <summary>
     /// Sets the health checks to given value
     /// </summary>
-    protected abstract void SetHealthCheck(TOptions options, bool enabled);
+    protected abstract void SetHealthCheck(TSettings settings, bool enabled);
 
     /// <summary>
     /// Sets the tracing to given value
     /// </summary>
-    protected abstract void SetTracing(TOptions options, bool enabled);
+    protected abstract void SetTracing(TSettings settings, bool enabled);
 
     /// <summary>
     /// Sets the metrics to given value
     /// </summary>
-    protected abstract void SetMetrics(TOptions options, bool enabled);
+    protected abstract void SetMetrics(TSettings settings, bool enabled);
 
     [ConditionalFact]
     public void OptionsTypeIsSealed()
     {
-        if (typeof(TOptions) == typeof(object))
+        if (typeof(TSettings) == typeof(object))
         {
             throw new SkipTestException("Not implemented yet");
         }
 
-        Assert.True(typeof(TOptions).IsSealed);
+        Assert.True(typeof(TSettings).IsSealed);
     }
 
     [ConditionalTheory]
@@ -100,7 +100,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         SkipIfHealthChecksAreNotSupported();
 
-        using IHost host = CreateHostWithComponent(options => SetHealthCheck(options, enabled));
+        using IHost host = CreateHostWithComponent(settings => SetHealthCheck(settings, enabled));
 
         HealthCheckService? healthCheckService = host.Services.GetService<HealthCheckService>();
 
@@ -138,7 +138,7 @@ public abstract class ConformanceTests<TService, TOptions>
         SkipIfTracingIsNotSupported();
         SkipIfRequiredServerConnectionCanNotBeEstablished();
 
-        using IHost host = CreateHostWithComponent(options => SetTracing(options, enabled));
+        using IHost host = CreateHostWithComponent(settings => SetTracing(settings, enabled));
 
         TracerProvider? tracer = host.Services.GetService<TracerProvider>();
 
@@ -152,7 +152,7 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         SkipIfMetricsAreNotSupported();
 
-        using IHost host = CreateHostWithComponent(options => SetMetrics(options, enabled));
+        using IHost host = CreateHostWithComponent(settings => SetMetrics(settings, enabled));
 
         MeterProvider? meter = host.Services.GetService<MeterProvider>();
 
@@ -377,7 +377,7 @@ public abstract class ConformanceTests<TService, TOptions>
     protected void ActivitySourceTest(string? key)
     {
         HostApplicationBuilder builder = CreateHostBuilder(key: key);
-        RegisterComponent(builder, options => SetTracing(options, true), key);
+        RegisterComponent(builder, settings => SetTracing(settings, true), key);
 
         List<Activity> exportedActivities = new();
         builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddInMemoryExporter(exportedActivities));
@@ -407,7 +407,7 @@ public abstract class ConformanceTests<TService, TOptions>
         }
     }
 
-    protected IHost CreateHostWithComponent(Action<TOptions>? configureComponent = null, HostApplicationBuilderSettings? hostSettings = null, string? key = null)
+    protected IHost CreateHostWithComponent(Action<TSettings>? configureComponent = null, HostApplicationBuilderSettings? hostSettings = null, string? key = null)
     {
         HostApplicationBuilder builder = CreateHostBuilder(hostSettings, key);
 
@@ -489,11 +489,11 @@ public abstract class ConformanceTests<TService, TOptions>
         return builder;
     }
 
-    private static bool CheckIfImplemented(Action<TOptions, bool> action)
+    private static bool CheckIfImplemented(Action<TSettings, bool> action)
     {
         try
         {
-            action(new TOptions(), true);
+            action(new TSettings(), true);
 
             return true;
         }

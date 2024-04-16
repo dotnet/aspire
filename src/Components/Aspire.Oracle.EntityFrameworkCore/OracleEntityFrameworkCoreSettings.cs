@@ -19,13 +19,13 @@ public sealed class OracleEntityFrameworkCoreSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Retry { get; set; } = true;
+    public bool RetryEnabled { get; set; } = true;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the database health check is enabled or not.</para>
     /// <para>The default value is <see langword="true"/>.</para>
     /// </summary>
-    public bool HealthChecks { get; set; } = true;
+    public bool HealthChecksEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the time in seconds to wait for the command to execute.

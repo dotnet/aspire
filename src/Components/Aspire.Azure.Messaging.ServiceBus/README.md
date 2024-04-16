@@ -87,7 +87,7 @@ The .NET Aspire Azure Service Bus library supports [Microsoft.Extensions.Configu
       "Messaging": {
         "ServiceBus": {
           "HealthCheckQueueName": "myQueue",
-          "Tracing": true,
+          "TracingEnabled": true,
           "ClientOptions": {
             "Identifier": "CLIENT_ID"
           }

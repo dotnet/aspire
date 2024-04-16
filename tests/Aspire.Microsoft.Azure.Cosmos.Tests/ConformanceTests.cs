@@ -36,13 +36,13 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
         }
     }
 
-    protected override void SetHealthCheck(AzureCosmosDBSettings options, bool enabled)
+    protected override void SetHealthCheck(AzureCosmosDBSettings settings, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureCosmosDBSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(AzureCosmosDBSettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
-    protected override void SetMetrics(AzureCosmosDBSettings options, bool enabled)
+    protected override void SetMetrics(AzureCosmosDBSettings settings, bool enabled)
         => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """
@@ -52,7 +52,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
               "Azure": {
                 "Cosmos": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "Tracing": true
+                  "TracingEnabled": true
                 }
               }
             }

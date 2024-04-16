@@ -32,7 +32,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
               "Messaging": {
                 "ServiceBus": {
                   "Namespace": "YOUR_NAMESPACE",
-                  "HealthChecks": true,
+                  "HealthChecksEnabled": true,
                   "ClientOptions": {
                     "ConnectionIdleTimeout": "00:01",
                     "EnableCrossEntityTransactions": true,
@@ -61,7 +61,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
     // When credentials are not available, we switch to using raw connection string (otherwise we get CredentialUnavailableException)
     protected KeyValuePair<string, string?> GetMainConfigEntry(string? key)
         => CanConnectToServer
-                ? new(CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, nameof(AzureMessagingServiceBusSettings.Namespace)), FullyQualifiedNamespace)
+                ? new(CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, nameof(AzureMessagingServiceBusSettings.FullyQualifiedNamespace)), FullyQualifiedNamespace)
                 : new(CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, nameof(AzureMessagingServiceBusSettings.ConnectionString)), ConnectionString);
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingServiceBusSettings>? configure = null, string? key = null)
@@ -85,11 +85,11 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
         }
     }
 
-    protected override void SetMetrics(AzureMessagingServiceBusSettings options, bool enabled)
+    protected override void SetMetrics(AzureMessagingServiceBusSettings settings, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureMessagingServiceBusSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(AzureMessagingServiceBusSettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
     public static RemoteInvokeOptions EnableTracingForAzureSdk()
         => new()

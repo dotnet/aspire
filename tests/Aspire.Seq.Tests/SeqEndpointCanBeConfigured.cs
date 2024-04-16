@@ -16,7 +16,7 @@ public class SeqTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.AddSeqEndpoint("seq", s =>
         {
-            s.HealthChecks = false;
+            s.HealthChecksEnabled = false;
             s.Logs.TimeoutMilliseconds = 1000;
             s.Traces.Protocol = OtlpExportProtocol.Grpc;
         });
@@ -55,7 +55,7 @@ public class SeqTests
         builder.AddSeqEndpoint("seq", s =>
         {
             settings = s;
-            s.HealthChecks = false;
+            s.HealthChecksEnabled = false;
             s.ApiKey = "ABCDE12345";
             s.Logs.Headers = "speed=fast,quality=good";
             s.Traces.Headers = "quality=good,speed=fast";

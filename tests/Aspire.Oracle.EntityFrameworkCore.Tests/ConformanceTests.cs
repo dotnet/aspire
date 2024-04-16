@@ -40,7 +40,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
             "Oracle": {
               "EntityFrameworkCore": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecks": false
+                "HealthChecksEnabled": false
               }
             }
           }
@@ -49,8 +49,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Retry": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "HealthChecks": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "RetryEnabled": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "HealthChecksEnabled": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -62,13 +62,13 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<OracleEntityFrameworkCoreSettings>? configure = null, string? key = null)
         => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configure);
 
-    protected override void SetHealthCheck(OracleEntityFrameworkCoreSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(OracleEntityFrameworkCoreSettings settings, bool enabled)
+        => settings.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(OracleEntityFrameworkCoreSettings options, bool enabled)
+    protected override void SetTracing(OracleEntityFrameworkCoreSettings settings, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetMetrics(OracleEntityFrameworkCoreSettings options, bool enabled)
+    protected override void SetMetrics(OracleEntityFrameworkCoreSettings settings, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(TestDbContext service)

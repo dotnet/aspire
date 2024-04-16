@@ -45,7 +45,7 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool TracingEnabled { get; set; } = true;
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {

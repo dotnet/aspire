@@ -24,12 +24,12 @@ public sealed class KafkaConsumerSettings
     /// <summary>
     /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
     /// </summary>
-    public bool Metrics { get; set; } = true;
+    public bool MetricsEnabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.
     /// </summary>
-    public bool HealthChecks { get; set; } = true;
+    public bool HealthChecksEnabled { get; set; } = true;
 
     internal void Consolidate()
     {
@@ -40,7 +40,7 @@ public sealed class KafkaConsumerSettings
             Config.BootstrapServers = ConnectionString;
         }
 
-        if (Metrics)
+        if (MetricsEnabled)
         {
             Config.StatisticsIntervalMs ??= 1000;
         }

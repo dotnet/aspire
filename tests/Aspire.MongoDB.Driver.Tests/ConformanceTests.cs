@@ -29,9 +29,9 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
             "MongoDB": {
               "Driver": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecks": true,
+                "HealthChecksEnabled": true,
                 "HealthCheckTimeout": 100,
-                "Tracing": true
+                "TracingEnabled": true
               }
             }
           }
@@ -45,9 +45,9 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
     {
-        ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthChecksEnabled": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
         ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthCheckTimeout": "10000"}}}}""", "Value is \"string\" but should be \"integer\""),
-        ("""{"Aspire": { "MongoDB":{ "Driver": { "Tracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "TracingEnabled": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
     };
 
     protected override string[] RequiredLogCategories => [
@@ -82,17 +82,17 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
         }
     }
 
-    protected override void SetHealthCheck(MongoDBSettings options, bool enabled)
+    protected override void SetHealthCheck(MongoDBSettings settings, bool enabled)
     {
-        options.HealthChecks = enabled;
-        options.HealthCheckTimeout = 10;
+        settings.HealthChecksEnabled = enabled;
+        settings.HealthCheckTimeout = 10;
     }
 
-    protected override void SetMetrics(MongoDBSettings options, bool enabled) => throw new NotImplementedException();
+    protected override void SetMetrics(MongoDBSettings settings, bool enabled) => throw new NotImplementedException();
 
-    protected override void SetTracing(MongoDBSettings options, bool enabled)
+    protected override void SetTracing(MongoDBSettings settings, bool enabled)
     {
-        options.Tracing = enabled;
+        settings.TracingEnabled = enabled;
     }
 
     protected override void TriggerActivity(IMongoClient service)

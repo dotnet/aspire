@@ -11,13 +11,13 @@ namespace Aspire.Azure.Messaging.ServiceBus;
 /// </summary>
 public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
 {
-    private bool? _tracing;
+    private bool? _tracingEnabled;
 
     /// <summary>
     /// Gets or sets the connection string used to connect to the Service Bus namespace. 
     /// </summary>
     /// <remarks>
-    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Namespace"/> and <see cref="Credential"/>.
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="FullyQualifiedNamespace"/> and <see cref="Credential"/>.
     /// </remarks>
     public string? ConnectionString { get; set; }
 
@@ -27,7 +27,7 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
     /// </remarks>
-    public string? Namespace { get; set; }
+    public string? FullyQualifiedNamespace { get; set; }
 
     /// <summary>
     /// Gets or sets the credential used to authenticate to the Service Bus namespace.
@@ -52,10 +52,10 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
-    public bool Tracing
+    public bool TracingEnabled
     {
-        get { return _tracing ??= GetTracingDefaultValue(); }
-        set { _tracing = value; }
+        get { return _tracingEnabled ??= GetTracingDefaultValue(); }
+        set { _tracingEnabled = value; }
     }
 
     // default Tracing to true if the experimental switch is set
@@ -83,7 +83,7 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
             // a service bus namespace can't contain ';'. if it is found assume it is a connection string
             if (!connectionString.Contains(';'))
             {
-                Namespace = connectionString;
+                FullyQualifiedNamespace = connectionString;
             }
             else
             {

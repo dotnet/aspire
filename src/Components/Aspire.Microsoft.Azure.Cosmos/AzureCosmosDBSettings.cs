@@ -21,7 +21,7 @@ public sealed class AzureCosmosDBSettings
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool TracingEnabled { get; set; } = true;
 
     /// <summary>
     /// A <see cref="Uri"/> referencing the Azure Cosmos DB Endpoint.

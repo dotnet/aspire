@@ -54,9 +54,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
               "EntityFrameworkCore": {
                 "MySql": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "HealthChecks": false,
-                  "Tracing": true,
-                  "Metrics": true
+                  "HealthChecksEnabled": false,
+                  "TracingEnabled": true,
+                  "MetricsEnabled": true
                 }
               }
             }
@@ -66,10 +66,10 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "Retry": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "RetryEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "HealthChecksEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "TracingEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "MetricsEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     public ConformanceTests(MySqlContainerFixture? containerFixture)
@@ -90,14 +90,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<PomeloEntityFrameworkCoreMySqlSettings>? configure = null, string? key = null)
         => builder.AddMySqlDbContext<TestDbContext>("mysql", configure);
 
-    protected override void SetHealthCheck(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(PomeloEntityFrameworkCoreMySqlSettings settings, bool enabled)
+        => settings.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(PomeloEntityFrameworkCoreMySqlSettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
-    protected override void SetMetrics(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
-        => options.Metrics = enabled;
+    protected override void SetMetrics(PomeloEntityFrameworkCoreMySqlSettings settings, bool enabled)
+        => settings.MetricsEnabled = enabled;
 
     protected override void TriggerActivity(TestDbContext service)
     {

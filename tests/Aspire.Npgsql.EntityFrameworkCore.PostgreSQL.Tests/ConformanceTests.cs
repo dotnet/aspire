@@ -58,9 +58,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
               "EntityFrameworkCore": {
                 "PostgreSQL": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "HealthChecks": false,
-                  "Tracing": true,
-                  "Metrics": true
+                  "HealthChecksEnabled": false,
+                  "TracingEnabled": true,
+                  "MetricsEnabled": true
                 }
               }
             }
@@ -70,10 +70,10 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Retry": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "RetryEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "HealthChecksEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "TracingEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "MetricsEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
@@ -93,14 +93,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
         => builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
 
-    protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, bool enabled)
+        => settings.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, bool enabled)
+        => settings.TracingEnabled = enabled;
 
-    protected override void SetMetrics(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
-        => options.Metrics = enabled;
+    protected override void SetMetrics(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, bool enabled)
+        => settings.MetricsEnabled = enabled;
 
     protected override void TriggerActivity(TestDbContext service)
     {

@@ -45,11 +45,11 @@ public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSetti
     {
     }
 
-    protected override void SetHealthCheck(QdrantClientSettings options, bool enabled) => throw new NotImplementedException();
+    protected override void SetHealthCheck(QdrantClientSettings settings, bool enabled) => throw new NotImplementedException();
 
-    protected override void SetTracing(QdrantClientSettings options, bool enabled) => throw new NotImplementedException();
+    protected override void SetTracing(QdrantClientSettings settings, bool enabled) => throw new NotImplementedException();
 
-    protected override void SetMetrics(QdrantClientSettings options, bool enabled) => throw new NotImplementedException();
+    protected override void SetMetrics(QdrantClientSettings settings, bool enabled) => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """
                                                  {

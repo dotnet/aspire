@@ -49,7 +49,7 @@ internal sealed class PartitionReceiverClientComponent()
                 : new PartitionReceiver(
                     settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.PartitionId,
                     settings.EventPosition,
-                    settings.Namespace, settings.EventHubName, cred, options);
+                    settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
 
             return receiver;
 
