@@ -108,7 +108,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
-            new SelectViewModel<LogLevel?> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.AllSelected)]})" },
+            new SelectViewModel<LogLevel?> { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.AllSelected)] },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
