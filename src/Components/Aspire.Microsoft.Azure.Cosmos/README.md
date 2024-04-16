@@ -119,13 +119,15 @@ dotnet add package Aspire.Hosting.Azure.CosmosDB
 Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
 
 ```csharp
-var cosmosdb = builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb");
+var cosmosdb = builder.ExecutionContext.IsPublishMode
+    ? builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb")
+    : builder.AddConnectionString("cosmosdb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(cosmosdb);
 ```
 
-The `AddAzureCosmosDB` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:cosmosdb` config key. The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureCosmosDB` method will add an Azure Cosmos DB resource to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:cosmosdb` config key. The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureCosmosDBClient("cosmosdb");

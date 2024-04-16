@@ -128,13 +128,17 @@ dotnet add package Aspire.Hosting.Azure.KeyVault
 Then, in the _Program.cs_ file of `AppHost`, add a Key Vault connection and consume the connection using the following methods:
 
 ```csharp
-var keyVault = builder.AddAzureKeyVault("secrets");
+// Service registration
+var keyVault = builder.ExecutionContext.IsPublishMode
+    ? builder.AddAzureKeyVault("secrets")
+    : builder.AddConnectionString("secrets");
 
+// Service consumption
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(keyVault);
 ```
 
-The `AddAzureKeyVault` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:secrets` config key. The `WithReference` method passes that connection information into a connection string named `secrets` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureKeyVault` method adds an Azure Key Vault resource to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:secrets` config key. The `WithReference` method passes that connection information into a connection string named `secrets` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureKeyVaultClient("secrets");
