@@ -54,15 +54,20 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
 
     public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list)
     {
+        return TryGetAnnotationAsObjectList<TValue>(Metadata.Annotations, annotationName, out list);
+    }
+
+    internal static bool TryGetAnnotationAsObjectList<TValue>(IDictionary<string, string>? annotations, string annotationName, [NotNullWhen(true)] out List<TValue>? list)
+    {
         list = null;
 
-        if (Metadata.Annotations is null)
+        if (annotations is null)
         {
             return false;
         }
 
         string? annotationValue;
-        bool found = Metadata.Annotations.TryGetValue(annotationName, out annotationValue);
+        bool found = annotations.TryGetValue(annotationName, out annotationValue);
         if (!found || string.IsNullOrWhiteSpace(annotationValue))
         {
             return false;
