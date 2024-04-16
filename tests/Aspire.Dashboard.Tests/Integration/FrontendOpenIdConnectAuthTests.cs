@@ -122,8 +122,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
                 config[DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey] = "Unsecured";
                 config[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] = "https://localhost:1234"; // won't actually exist
 
-                // Configure OIDC. We must use an actual IdP because the provider will query "/.well-known/openid-configuration"
-                // at the authority.
+                // Configure OIDC. It (the RP) will communicate with the mock authority (IdP) spun up for this test.
                 config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = "OpenIdConnect";
                 config["Authentication:Schemes:OpenIdConnect:Authority"] = authorityUrl;
                 config["Authentication:Schemes:OpenIdConnect:ClientId"] = "MyClientId";
