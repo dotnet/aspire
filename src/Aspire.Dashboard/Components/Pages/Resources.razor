@@ -11,67 +11,70 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Resources.ResourcesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="content-layout-with-toolbar">
-    <FluentToolbar Orientation="Orientation.Horizontal">
-        <h1 slot="label">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
-        <FluentButton id="typeFilterButton" slot="end"
-                      Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
-                      IconEnd="@(new Icons.Regular.Size24.Filter())"
-                      @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
-                      Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
-                      aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
-        <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
-            <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
-            <Body>
-                <FluentStack Orientation="Orientation.Vertical">
-                    <FluentCheckbox
-                        Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
-                        ThreeState="true"
-                        ShowIndeterminate="false"
-                        ThreeStateOrderUncheckToIntermediate="true"
-                        @bind-CheckState="AreAllTypesVisible" />
-                    @foreach (var (resourceType, _) in _allResourceTypes)
-                    {
-                        var isChecked = _visibleResourceTypes.ContainsKey(resourceType);
-                        <FluentCheckbox
-                            Label="@resourceType"
-                            @bind-Value:get="isChecked"
-                            @bind-Value:set="c => OnResourceTypeVisibilityChangedAsync(resourceType, c)"
-                            />
-                    }
-                </FluentStack>
-            </Body>
-        </FluentPopover>
-        <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                      Immediate="true"
-                      @bind-Value="_filter"
-                      slot="end"
-                      @bind-Value:after="HandleSearchFilterChangedAsync" />
-    </FluentToolbar>
+
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"
                         OnDismiss="@(() => ClearSelectedResourceAsync(causedByUserAction: true))"
                         SelectedValue="@SelectedResource"
                         ViewKey="ResourcesList">
         <Summary>
+
+            <FluentToolbar Orientation="Orientation.Horizontal">
+                <h1 slot="label">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
+                <FluentButton id="typeFilterButton" slot="end"
+                              Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
+                              IconEnd="@(new Icons.Regular.Size24.Filter())"
+                              @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
+                              Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
+                              aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
+                <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
+                    <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
+                    <Body>
+                    <FluentStack Orientation="Orientation.Vertical">
+                        <FluentCheckbox
+                            Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
+                            ThreeState="true"
+                            ShowIndeterminate="false"
+                            ThreeStateOrderUncheckToIntermediate="true"
+                            @bind-CheckState="AreAllTypesVisible" />
+                        @foreach (var (resourceType, _) in _allResourceTypes)
+                        {
+                            var isChecked = _visibleResourceTypes.ContainsKey(resourceType);
+                            <FluentCheckbox
+                                Label="@resourceType"
+                                @bind-Value:get="isChecked"
+                                @bind-Value:set="c => OnResourceTypeVisibilityChangedAsync(resourceType, c)"
+                            />
+                        }
+                    </FluentStack>
+                    </Body>
+                </FluentPopover>
+                <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                              Immediate="true"
+                              @bind-Value="_filter"
+                              slot="end"
+                              @bind-Value:after="HandleSearchFilterChangedAsync" />
+            </FluentToolbar>
+
             @{
                 var gridTemplateColumns = HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
             }
             <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="@gridTemplateColumns" RowClass="GetRowClass" Loading="_isLoading">
                 <ChildContent>
                     <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)"/>
-                    <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))" >
-                        <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
+                    <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
+                        <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName"/>
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => c.State.Humanize())">
-                        <StateColumnDisplay Resource="@context" UnviewedErrorCounts ="@_applicationUnviewedErrorCounts" />
+                        <StateColumnDisplay Resource="@context" UnviewedErrorCounts="@_applicationUnviewedErrorCounts"/>
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
-                        <StartTimeColumnDisplay Resource="@context" />
+                        <StartTimeColumnDisplay Resource="@context"/>
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)">
                         @if (GetSourceColumnValueAndTooltip(context) is { } columnDisplay)
                         {
-                            <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
+                            <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip"/>
                         }
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
@@ -79,7 +82,7 @@
                             Resource="context"
                             HasMultipleReplicas="HasMultipleReplicas(context)"
                             DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
-                            AdditionalMessage="@additionalMessage" />
+                            AdditionalMessage="@additionalMessage"/>
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
                         <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
@@ -97,12 +100,12 @@
                     {
                         <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
                             <ResourceCommands Commands="@context.Commands"
-                                              CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)" />
+                                              CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)"/>
                         </TemplateColumn>
                     }
                 </ChildContent>
                 <EmptyContent>
-                    <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;@Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)]
+                    <FluentIcon Icon="Icons.Regular.Size24.AppGeneric"/>&nbsp;@Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)]
                 </EmptyContent>
             </FluentDataGrid>
         </Summary>
