@@ -57,16 +57,16 @@ public static class AspireSeqExtensions
         }
 
         builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddProcessor(
-            _ => settings.Logs.ExportProcessorType == ExportProcessorType.Batch
-                ? new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
-                : new SimpleLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
-            ));
+            _ => settings.Logs.ExportProcessorType switch {
+                ExportProcessorType.Batch => new BatchLogRecordExportProcessor(new OtlpLogExporter(settings.Logs)),
+                _ => new SimpleLogRecordExportProcessor(new OtlpLogExporter(settings.Logs))
+            }));
 
         builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddProcessor(
-            _ => settings.Traces.ExportProcessorType == ExportProcessorType.Batch
-                ? new BatchActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
-                : new SimpleActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
-            ));
+            _ => settings.Traces.ExportProcessorType switch {
+                ExportProcessorType.Batch => new BatchActivityExportProcessor(new OtlpTraceExporter(settings.Traces)),
+                _ => new SimpleActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
+            }));
 
         if (settings.HealthChecks)
         {
