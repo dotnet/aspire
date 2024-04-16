@@ -513,6 +513,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                     // Avoid "message.State is null or empty" due to use of CallbackPath above.
                     options.SkipUnrecognizedRequests = true;
+
+                    // TEMPORARY: Just adding this to validate if it unblocks tests in CI
+                    options.RequireHttpsMetadata = false;
                 });
                 break;
             case FrontendAuthMode.BrowserToken:

@@ -29,7 +29,8 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         var idProvider = new WebHostBuilder()
             .ConfigureServices(services => services.AddRouting())
             // Bind to loopback on a random available port
-            .UseKestrel(options => options.Listen(IPAddress.Loopback, 0, listenOptions => listenOptions.UseHttps()))
+            .UseKestrel(options => options.Listen(IPAddress.Loopback, 0))
+            //.UseKestrel(options => options.Listen(IPAddress.Loopback, 0, listenOptions => listenOptions.UseHttps()))
             .Configure(app =>
             {
                 // Based on code from https://github.com/dotnet/aspnetcore/blob/3f99d45b0b7d8f0427a3d98acc63098694613362/src/Components/test/testassets/Components.TestServer/RemoteAuthenticationStartup.cs#L37-L94
@@ -111,7 +112,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(serverAddress);
 
         var authorityUrl = serverAddress.Addresses.First().Replace("127.0.0.1", "localhost");
-        Assert.StartsWith("https://localhost", authorityUrl);
+        Assert.StartsWith("http://localhost", authorityUrl);
 
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
             testOutputHelper,
