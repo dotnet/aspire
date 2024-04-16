@@ -1,6 +1,4 @@
-﻿@using Aspire.Dashboard.Resources
-
-<FluentSelect @ref="_resourceSelectComponent"
+﻿<FluentSelect @ref="_resourceSelectComponent"
               Items="Resources"
               OptionValue="@(c => c!.Id?.InstanceId)"
               OptionDisabled="@(c => c!.Id?.Type is Otlp.Model.OtlpApplicationType.ReplicaSet)"
