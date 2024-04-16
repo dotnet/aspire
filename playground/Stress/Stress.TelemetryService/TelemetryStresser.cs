@@ -14,7 +14,7 @@ namespace Stress.ApiService;
 /// </summary>
 public class TelemetryStresser(ILogger<TelemetryStresser> logger, IConfiguration config) : BackgroundService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         var address = config["OTEL_EXPORTER_OTLP_ENDPOINT"]!;
         var channel = GrpcChannel.ForAddress(address);
@@ -22,13 +22,13 @@ public class TelemetryStresser(ILogger<TelemetryStresser> logger, IConfiguration
         var client = new MetricsService.MetricsServiceClient(channel);
 
         var value = 0;
-        while (!stoppingToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             value += Random.Shared.Next(0, 10);
 
-            await ExportMetrics(logger, client, value, stoppingToken);
+            await ExportMetrics(logger, client, value, cancellationToken);
 
-            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
         }
     }
 
