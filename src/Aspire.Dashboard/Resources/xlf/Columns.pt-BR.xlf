@@ -4,8 +4,8 @@
     <body>
       <trans-unit id="EndpointsColumnDisplayNone">
         <source>None</source>
-        <target state="translated">Nenhum</target>
-        <note />
+        <target state="needs-review-translation">Nenhum</target>
+        <note>Shown when there are no values available</note>
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
         <source>Starting...</source>

@@ -69,24 +69,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to (All).
-        /// </summary>
-        public static string StructuredLogsAllApplications {
-            get {
-                return ResourceManager.GetString("StructuredLogsAllApplications", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to All.
-        /// </summary>
-        public static string StructuredLogsAllTypes {
-            get {
-                return ResourceManager.GetString("StructuredLogsAllTypes", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Edit filter.
         /// </summary>
         public static string StructuredLogsEditFilter {

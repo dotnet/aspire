@@ -1,4 +1,8 @@
-﻿<FluentSelect @ref="_resourceSelectComponent"
+﻿@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<ControlsStrings> Loc
+
+<FluentSelect @ref="_resourceSelectComponent"
+              Label="@Loc[nameof(ControlsStrings.SelectAResource)]"
               Items="Resources"
               OptionValue="@(c => c!.Id?.InstanceId)"
               OptionDisabled="@(c => c!.Id?.Type is Otlp.Model.OtlpApplicationType.ReplicaSet)"

@@ -82,7 +82,7 @@ public partial class Traces
 
     protected override Task OnInitializedAsync()
     {
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.AllSelected)] };
         _selectedApplication = _allApplication;
 
         UpdateApplications();

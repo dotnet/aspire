@@ -16,7 +16,10 @@
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"
                         @bind-SelectedResource="PageViewModel.SelectedOption"
                         @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
-        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
+        @if (PageViewModel.Status is { } status)
+        {
+            <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@status</FluentLabel>
+        }
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />
 </div>
