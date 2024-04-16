@@ -109,3 +109,11 @@
     vertical-align: text-bottom;
     margin-left: 3px;
 }
+
+/* in small viewports, make the metric page content (chart display)
+   the viewport height so that it is easier to read */
+@media only screen and (max-width: 600px) {
+    .page-content-area {
+        height: 100vh;
+    }
+}
