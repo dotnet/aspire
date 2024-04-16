@@ -137,13 +137,15 @@ dotnet add package Aspire.Hosting.Azure.Search
 Then, in the _Program.cs_ file of `AppHost`, add an Azure Search service and consume the connection using the following methods:
 
 ```csharp
-var search = builder.AddAzureSearch("search");
+var search = builder.ExecutionContext.IsPublishMode
+    ? builder.AddAzureSearch("search")
+    : builder.AddConnectionString("search");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(search);
 ```
 
-The `AddAzureSearch` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:search` config key. The `WithReference` method passes that connection information into a connection string named `search` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureSearch` method adds an Azure AI Search resource to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:search` config key. The `WithReference` method passes that connection information into a connection string named `search` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureSearchClient("search");
