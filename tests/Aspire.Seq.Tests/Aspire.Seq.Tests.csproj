@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(NetCurrent)</TargetFramework>
+        <RunTestsOnHelix>true</RunTestsOnHelix>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Aspire.Seq</RootNamespace>
+    </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Components\Aspire.Seq\Aspire.Seq.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+
+  </ItemGroup>
+
+</Project>
