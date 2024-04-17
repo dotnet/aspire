@@ -1,7 +1,7 @@
 ::deep.resource-logs-layout {
     display: grid;
     grid-template-rows: auto auto 1fr;
-    height: 100%;
+    min-height: 100%;
     width: 100%;
     grid-template-areas:
         "head"
