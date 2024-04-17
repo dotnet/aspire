@@ -14,12 +14,13 @@
 }
 
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px; max-width:1200px;">
+    @* ItemKey is to preserve row focus by associating rows with their associated time *@
     <FluentDataGrid
         Items="@_metricsView"
         ItemSize="35"
         Virtualize="true"
         GridTemplateColumns="@string.Join(" ", Enumerable.Repeat("1fr", columnCount))"
-        @* preserve row focus by associating rows with their associated time *@ ItemKey="@(item => item.DateTime)">
+        ItemKey="@(item => item.DateTime)">
         <ChildContent>
             <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, TimeProvider.ToLocal(context.DateTime), MillisecondsDisplay.None, CultureInfo.CurrentCulture))" Tooltip="true">
                 @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, TimeProvider.ToLocal(context.DateTime))
