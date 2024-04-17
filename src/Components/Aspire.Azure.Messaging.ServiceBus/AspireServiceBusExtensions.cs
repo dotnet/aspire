@@ -116,6 +116,6 @@ public static class AspireServiceBusExtensions
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
-            => settings.TracingEnabled;
+            => !settings.DisableTracing;
     }
 }

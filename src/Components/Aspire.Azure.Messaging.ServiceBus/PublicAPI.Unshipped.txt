@@ -11,8 +11,8 @@ Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings.HealthCheckQu
 Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings.HealthCheckQueueName.set -> void
 Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings.HealthCheckTopicName.get -> string?
 Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings.HealthCheckTopicName.set -> void
-Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings.TracingEnabled.get -> bool
-Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings.TracingEnabled.set -> void
+Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings.DisableTracing.get -> bool
+Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings.DisableTracing.set -> void
 Microsoft.Extensions.Hosting.AspireServiceBusExtensions
 static Microsoft.Extensions.Hosting.AspireServiceBusExtensions.AddAzureServiceBusClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.ServiceBus.ServiceBusClient!, Azure.Messaging.ServiceBus.ServiceBusClientOptions!>!>? configureClientBuilder = null) -> void
 static Microsoft.Extensions.Hosting.AspireServiceBusExtensions.AddKeyedAzureServiceBusClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.Messaging.ServiceBus.AzureMessagingServiceBusSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.ServiceBus.ServiceBusClient!, Azure.Messaging.ServiceBus.ServiceBusClientOptions!>!>? configureClientBuilder = null) -> void

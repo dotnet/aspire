@@ -279,7 +279,7 @@ public class EnrichNpgsqlTests : ConformanceTests
             optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.RetryEnabled = false);
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = true);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -308,7 +308,7 @@ public class EnrichNpgsqlTests : ConformanceTests
             optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.RetryEnabled = true);
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = !true);
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
@@ -326,7 +326,7 @@ public class EnrichNpgsqlTests : ConformanceTests
             optionsBuilder.UseNpgsql(ConnectionString, npgsql => npgsql.ExecutionStrategy(c => new CustomRetryExecutionStrategy(c)));
         });
 
-        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.RetryEnabled = true);
+        builder.EnrichNpgsqlDbContext<TestDbContext>(settings => settings.DisableRetry = !true);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

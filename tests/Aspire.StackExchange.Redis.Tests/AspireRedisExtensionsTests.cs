@@ -242,7 +242,7 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         builder.AddKeyedRedisClient("redis", settings =>
         {
             settings.ConnectionString = "localhost";
-            settings.TracingEnabled = true;
+            settings.DisableTracing = ! true;
         });
         using var host = builder.Build();
 

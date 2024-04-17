@@ -13,13 +13,13 @@ public class ConfigurationTests
 
     [Fact]
     public void HealthCheckIsEnabledByDefault()
-        => Assert.True(new NpgsqlSettings().HealthChecksEnabled);
+        => Assert.False(new NpgsqlSettings().DisableHealthChecks);
 
     [Fact]
     public void TracingIsEnabledByDefault()
-        => Assert.True(new NpgsqlSettings().TracingEnabled);
+        => Assert.False(new NpgsqlSettings().DisableTracing);
 
     [Fact]
     public void MetricsAreEnabledByDefault()
-        => Assert.True(new NpgsqlSettings().MetricsEnabled);
+        => Assert.False(new NpgsqlSettings().DisableMetrics);
 }

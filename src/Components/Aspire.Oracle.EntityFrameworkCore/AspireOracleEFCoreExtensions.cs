@@ -68,7 +68,7 @@ public static class AspireOracleEFCoreExtensions
             {
                 // Resiliency:
                 // Connection resiliency automatically retries failed database commands
-                if (settings.RetryEnabled)
+                if (!settings.DisableRetry)
                 {
                     builder.ExecutionStrategy(context => new OracleRetryingExecutionStrategy(context));
                 }
@@ -109,13 +109,13 @@ public static class AspireOracleEFCoreExtensions
         void ConfigureRetry()
         {
 #pragma warning disable EF1001 // Internal EF Core API usage.
-            if (settings.RetryEnabled || settings.CommandTimeout.HasValue)
+            if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
                 builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseOracle(options =>
                 {
                     var extension = optionsBuilder.Options.FindExtension<OracleOptionsExtension>();
 
-                    if (settings.RetryEnabled)
+                    if (!settings.DisableRetry)
                     {
                         var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
 
@@ -131,7 +131,7 @@ public static class AspireOracleEFCoreExtensions
                             {
                                 // Check OracleExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
 
-                                throw new InvalidOperationException($"{nameof(OracleEntityFrameworkCoreSettings)}.{nameof(OracleEntityFrameworkCoreSettings.RetryEnabled)} can't be set when a custom Execution Strategy is configured.");
+                                throw new InvalidOperationException($"{nameof(OracleEntityFrameworkCoreSettings)}.{nameof(OracleEntityFrameworkCoreSettings.DisableRetry)} needs to be set when a custom Execution Strategy is configured.");
                             }
                             else
                             {
@@ -163,7 +163,7 @@ public static class AspireOracleEFCoreExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, OracleEntityFrameworkCoreSettings settings) where TContext : DbContext
     {
-        if (settings.HealthChecksEnabled)
+        if (!settings.DisableHealthChecks)
         {
             builder.TryAddHealthCheck(
                 name: typeof(TContext).Name,

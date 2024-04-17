@@ -25,17 +25,17 @@ public sealed class KafkaProducerSettings
     /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool MetricsEnabled { get; set; } = true;
+    public bool DisableMetrics { get; set; }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool HealthChecksEnabled { get; set; } = true;
+    public bool DisableHealthChecks { get; set; }
 
     internal void Consolidate()
     {
@@ -46,7 +46,7 @@ public sealed class KafkaProducerSettings
             Config.BootstrapServers = ConnectionString;
         }
 
-        if (MetricsEnabled)
+        if (!DisableMetrics)
         {
             Config.StatisticsIntervalMs ??= 1000;
         }

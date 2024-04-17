@@ -106,12 +106,12 @@ public static class AspireAzureSearchExtensions
             => new AzureSearchIndexHealthCheck(client);
 
         protected override bool GetHealthCheckEnabled(AzureSearchSettings settings)
-            => settings.HealthChecksEnabled;
+            => !settings.DisableHealthChecks;
 
         protected override TokenCredential? GetTokenCredential(AzureSearchSettings settings)
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureSearchSettings settings)
-            => settings.TracingEnabled;
+            => !settings.DisableTracing;
     }
 }

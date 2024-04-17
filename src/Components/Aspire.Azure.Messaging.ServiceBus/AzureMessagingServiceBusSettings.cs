@@ -11,7 +11,7 @@ namespace Aspire.Azure.Messaging.ServiceBus;
 /// </summary>
 public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
 {
-    private bool? _tracingEnabled;
+    private bool? _disableTracing;
 
     /// <summary>
     /// Gets or sets the connection string used to connect to the Service Bus namespace. 
@@ -45,17 +45,17 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     public string? HealthCheckTopicName { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
     /// ServiceBus ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
-    public bool TracingEnabled
+    public bool DisableTracing
     {
-        get { return _tracingEnabled ??= GetTracingDefaultValue(); }
-        set { _tracingEnabled = value; }
+        get { return _disableTracing ??= !GetTracingDefaultValue(); }
+        set { _disableTracing = value; }
     }
 
     // default Tracing to true if the experimental switch is set

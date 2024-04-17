@@ -13,5 +13,5 @@ public class ConfigurationTests
 
     [Fact]
     public void TracingIsEnabledByDefault()
-        => Assert.True(new AzureCosmosDBSettings().TracingEnabled);
+        => Assert.False(new AzureCosmosDBSettings().DisableTracing);
 }

@@ -40,7 +40,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
             "Oracle": {
               "EntityFrameworkCore": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecksEnabled": false
+                "DisableHealthChecks": true
               }
             }
           }
@@ -50,7 +50,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "RetryEnabled": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "HealthChecksEnabled": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableHealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -63,7 +63,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configure);
 
     protected override void SetHealthCheck(OracleEntityFrameworkCoreSettings options, bool enabled)
-        => options.HealthChecksEnabled = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(OracleEntityFrameworkCoreSettings options, bool enabled)
         => throw new NotImplementedException();

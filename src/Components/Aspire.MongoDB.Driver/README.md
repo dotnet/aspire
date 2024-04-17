@@ -69,9 +69,9 @@ The .NET Aspire MongoDB component supports [Microsoft.Extensions.Configuration](
     "MongoDB": {
       "Driver": {
         "ConnectionString": "mongodb://server:port/test",
-        "HealthChecksEnabled": true,
+        "DisableHealthChecks": false,
         "HealthCheckTimeout": 10000,
-        "TracingEnabled": true
+        "DisableTracing": false
       },
     }
   }

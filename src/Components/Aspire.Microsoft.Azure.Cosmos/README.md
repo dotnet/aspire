@@ -86,7 +86,7 @@ The .NET Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions
     "Microsoft": {
       "Azure": {
         "Cosmos": {
-          "TracingEnabled": true,
+          "DisableTracing": false,
         }
       }
     }
@@ -99,7 +99,7 @@ The .NET Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions
 You can also pass the `Action<AzureCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-builder.AddAzureCosmosDbClient("cosmosConnectionName", settings => settings.TracingEnabled = false);
+builder.AddAzureCosmosDbClient("cosmosConnectionName", settings => settings.DisableTracing = true);
 ```
 
 You can also setup the [CosmosClientOptions](https://learn.microsoft.com/dotnet/api/microsoft.azure.cosmos.cosmosclientoptions) using the optional `Action<CosmosClientOptions> configureClientOptions` parameter of the `AddAzureCosmosDbClient` method. For example, to set the `ApplicationName` "User-Agent" header suffix for all requests issues by this client:

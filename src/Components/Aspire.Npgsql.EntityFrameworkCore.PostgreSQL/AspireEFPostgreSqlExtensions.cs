@@ -78,7 +78,7 @@ public static partial class AspireEFPostgreSqlExtensions
             {
                 // Resiliency:
                 // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
-                if (settings.RetryEnabled)
+                if (!settings.DisableRetry)
                 {
                     builder.EnableRetryOnFailure();
                 }
@@ -122,13 +122,13 @@ public static partial class AspireEFPostgreSqlExtensions
         void ConfigureRetry()
         {
 #pragma warning disable EF1001 // Internal EF Core API usage.
-            if (settings.RetryEnabled || settings.CommandTimeout.HasValue)
+            if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
                 builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseNpgsql(options =>
                 {
                     var extension = optionsBuilder.Options.FindExtension<NpgsqlOptionsExtension>();
 
-                    if (settings.RetryEnabled)
+                    if (!settings.DisableRetry)
                     {
                         var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
 
@@ -144,7 +144,7 @@ public static partial class AspireEFPostgreSqlExtensions
                             {
                                 // Check NpgsqlExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
 
-                                throw new InvalidOperationException($"{nameof(NpgsqlEntityFrameworkCorePostgreSQLSettings)}.{nameof(NpgsqlEntityFrameworkCorePostgreSQLSettings.RetryEnabled)} can't be set when a custom Execution Strategy is configured.");
+                                throw new InvalidOperationException($"{nameof(NpgsqlEntityFrameworkCorePostgreSQLSettings)}.{nameof(NpgsqlEntityFrameworkCorePostgreSQLSettings.DisableRetry)} needs to be set when a custom Execution Strategy is configured.");
                             }
                             else
                             {
@@ -176,7 +176,7 @@ public static partial class AspireEFPostgreSqlExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, NpgsqlEntityFrameworkCorePostgreSQLSettings settings) where TContext : DbContext
     {
-        if (settings.HealthChecksEnabled)
+        if (!settings.DisableHealthChecks)
         {
             // calling MapHealthChecks is the responsibility of the app, not Component
             builder.TryAddHealthCheck(
@@ -184,7 +184,7 @@ public static partial class AspireEFPostgreSqlExtensions
                 static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
         }
 
-        if (settings.TracingEnabled)
+        if (!settings.DisableTracing)
         {
             builder.Services.AddOpenTelemetry()
                 .WithTracing(tracerProviderBuilder =>
@@ -193,7 +193,7 @@ public static partial class AspireEFPostgreSqlExtensions
                 });
         }
 
-        if (settings.MetricsEnabled)
+        if (!settings.DisableMetrics)
         {
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(NpgsqlCommon.AddNpgsqlMetrics);

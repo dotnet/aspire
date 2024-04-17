@@ -23,15 +23,15 @@ public sealed class RabbitMQClientSettings
     /// Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool HealthChecksEnabled { get; set; } = true;
+    public bool DisableHealthChecks { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool TracingEnabled { get; set; } = true;
+    public bool DisableTracing { get; set; }
 }

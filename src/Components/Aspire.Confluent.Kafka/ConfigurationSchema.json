@@ -474,11 +474,11 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Kafka server to connect to."
                     },
-                    "HealthChecksEnabled": {
+                    "DisableHealthChecks": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not."
                     },
-                    "MetricsEnabled": {
+                    "DisableMetrics": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether collecting metrics is enabled or not."
                     }
@@ -937,15 +937,15 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Kafka server to connect to."
                     },
-                    "HealthChecksEnabled": {
+                    "DisableHealthChecks": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.",
-                      "default": true
+                      "default": false
                     },
-                    "MetricsEnabled": {
+                    "DisableMetrics": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.",
-                      "default": true
+                      "default": false
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to a Kafka message broker to produce messages."

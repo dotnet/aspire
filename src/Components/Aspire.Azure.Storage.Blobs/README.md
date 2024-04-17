@@ -86,8 +86,8 @@ The .NET Aspire Azure Storage Blobs library supports [Microsoft.Extensions.Confi
     "Azure": {
       "Storage": {
         "Blobs": {
-          "HealthChecksEnabled": false,
-          "TracingEnabled": true,
+          "DisableHealthChecks": true,
+          "DisableTracing": false,
           "ClientOptions": {
             "Diagnostics": {
               "ApplicationId": "myapp"

@@ -46,8 +46,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
               "EntityFrameworkCore": {
                 "SqlServer": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "HealthChecksEnabled": false,
-                  "TracingEnabled": true
+                  "DisableHealthChecks": true,
+                  "DisableTracing": false
                 }
               }
             }
@@ -58,8 +58,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "RetryEnabled": "5"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "HealthChecksEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "TracingEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "DisableHealthChecks": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "DisableTracing": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     public ConformanceTests(SqlServerContainerFixture? fixture)
@@ -80,10 +80,10 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
         => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configure);
 
     protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
-        => options.HealthChecksEnabled = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
-        => options.TracingEnabled = enabled;
+        => options.DisableTracing = ! enabled;
 
     protected override void SetMetrics(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
         => throw new NotImplementedException();

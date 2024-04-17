@@ -28,7 +28,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         => settings.Credential;
 
     protected override bool GetTracingEnabled(TSettings settings)
-        => settings.TracingEnabled;
+        => !settings.DisableTracing;
 
     protected static string GenerateClientIdentifier(string? eventHubName, string? consumerGroup)
     {

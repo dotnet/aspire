@@ -13,7 +13,7 @@ public sealed class SeqSettings
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the Seq server health check is enabled or not.
     /// </summary>
-    public bool HealthChecksEnabled { get; set; } = true;
+    public bool DisableHealthChecks { get; set; }
 
     /// <summary>
     /// Gets or sets a Seq <i>API key</i> that authenticates the client to the Seq server.

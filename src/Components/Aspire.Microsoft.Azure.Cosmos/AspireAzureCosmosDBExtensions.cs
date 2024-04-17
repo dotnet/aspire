@@ -85,7 +85,7 @@ public static class AspireAzureCosmosDBExtensions
         var clientOptions = new CosmosClientOptions();
         // Needs to be enabled for either logging or tracing to work.
         clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
-        if (settings.TracingEnabled)
+        if (!settings.DisableTracing)
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {

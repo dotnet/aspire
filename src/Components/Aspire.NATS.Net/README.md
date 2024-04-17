@@ -68,7 +68,7 @@ The .NET Aspire NATS component supports [Microsoft.Extensions.Configuration](htt
   "Aspire": {
     "Nats": {
       "Client": {
-        "HealthChecksEnabled": false
+        "DisableHealthChecks": true
       }
     }
   }
@@ -80,7 +80,7 @@ The .NET Aspire NATS component supports [Microsoft.Extensions.Configuration](htt
 Also you can pass the `Action<NatsClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddNatsClient("nats", settings => settings.HealthChecksEnabled = false);
+builder.AddNatsClient("nats", settings => settings.DisableHealthChecks = true);
 ```
 
 ## AppHost extensions

@@ -19,7 +19,7 @@
               "type": "string",
               "description": "Gets or sets a Seq API key that authenticates the client to the Seq server."
             },
-            "HealthChecksEnabled": {
+            "DisableHealthChecks": {
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whether the Seq server health check is enabled or not."
             },

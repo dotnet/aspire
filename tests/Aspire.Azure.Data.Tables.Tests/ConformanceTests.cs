@@ -31,8 +31,8 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
               "Data": {
                 "Tables": {
                   "ServiceUri": "http://YOUR_URI",
-                  "HealthChecksEnabled": false,
-                  "TracingEnabled": true,
+                  "DisableHealthChecks": true,
+                  "DisableTracing": false,
                   "ClientOptions": {
                     "EnableTenantDiscovery": true,
                     "Retry": {
@@ -50,7 +50,7 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
             ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "http://YOUR_URI", "HealthChecksEnabled": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "http://YOUR_URI", "DisableHealthChecks": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"Mode": "Fast"}}}}}}}""", "Value should match one of the values specified by the enum"),
             ("""{"Aspire": { "Azure": { "Data":{ "Tables": { "ServiceUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"NetworkTimeout": "3S"}}}}}}}""", "The string value is not a match for the indicated regular expression")
         };
@@ -94,13 +94,13 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
     }
 
     protected override void SetHealthCheck(AzureDataTablesSettings options, bool enabled)
-        => options.HealthChecksEnabled = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetMetrics(AzureDataTablesSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureDataTablesSettings options, bool enabled)
-        => options.TracingEnabled = enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(TableServiceClient service)
     {

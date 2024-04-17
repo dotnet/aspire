@@ -32,7 +32,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
               "Messaging": {
                 "ServiceBus": {
                   "Namespace": "YOUR_NAMESPACE",
-                  "HealthChecksEnabled": true,
+                  "DisableHealthChecks": false,
                   "ClientOptions": {
                     "ConnectionIdleTimeout": "00:01",
                     "EnableCrossEntityTransactions": true,
@@ -89,7 +89,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureMessagingServiceBusSettings options, bool enabled)
-        => options.TracingEnabled = enabled;
+        => options.DisableTracing = ! enabled;
 
     public static RemoteInvokeOptions EnableTracingForAzureSdk()
         => new()

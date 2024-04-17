@@ -79,8 +79,8 @@ The .NET Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Micros
     "Npgsql": {
       "EntityFrameworkCore": {
         "PostgreSQL": {
-          "HealthChecksEnabled": false,
-          "TracingEnabled": false
+          "DisableHealthChecks": true,
+          "DisableTracing": true
         }
       }
     }
@@ -93,13 +93,13 @@ The .NET Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Micros
 Also you can pass the `Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddNpgsqlDbContext<MyDbContext>("postgresdb", settings => settings.HealthChecksEnabled = false);
+    builder.AddNpgsqlDbContext<MyDbContext>("postgresdb", settings => settings.DisableHealthChecks = true);
 ```
 
 or
 
 ```csharp
-    builder.EnrichNpgsqlDbContext<MyDbContext>(settings => settings.HealthChecksEnabled = false);
+    builder.EnrichNpgsqlDbContext<MyDbContext>(settings => settings.DisableHealthChecks = true);
 ```
 
 ## AppHost extensions

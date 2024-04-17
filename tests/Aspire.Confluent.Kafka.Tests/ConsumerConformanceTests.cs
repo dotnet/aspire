@@ -41,9 +41,9 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
         }
     }
 
-    protected override void SetHealthCheck(KafkaConsumerSettings options, bool enabled) => options.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(KafkaConsumerSettings options, bool enabled) => options.DisableHealthChecks = !enabled;
 
-    protected override void SetMetrics(KafkaConsumerSettings options, bool enabled) => options.MetricsEnabled = enabled;
+    protected override void SetMetrics(KafkaConsumerSettings options, bool enabled) => options.DisableMetrics = !enabled;
 
     protected override void SetTracing(KafkaConsumerSettings options, bool enabled)
     {
@@ -64,8 +64,8 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
                             "Kafka": {
                                 "Consumer": {
                                     "ConnectionString": "localhost:9092",
-                                    "HealthChecksEnabled": true,
-                                    "MetricsEnabled": true,
+                                    "DisableHealthChecks": false,
+                                    "DisableMetrics": false,
                                     "Config": {
                                         "GroupId": "test"
                                     }

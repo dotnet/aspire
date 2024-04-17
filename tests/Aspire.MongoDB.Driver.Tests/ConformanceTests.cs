@@ -29,9 +29,9 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
             "MongoDB": {
               "Driver": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecksEnabled": true,
+                "DisableHealthChecks": false,
                 "HealthCheckTimeout": 100,
-                "TracingEnabled": true
+                "DisableTracing": false
               }
             }
           }
@@ -84,7 +84,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override void SetHealthCheck(MongoDBSettings options, bool enabled)
     {
-        options.HealthChecksEnabled = enabled;
+        options.DisableHealthChecks = !enabled;
         options.HealthCheckTimeout = 10;
     }
 
@@ -92,7 +92,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override void SetTracing(MongoDBSettings options, bool enabled)
     {
-        options.TracingEnabled = enabled;
+        options.DisableTracing = ! enabled;
     }
 
     protected override void TriggerActivity(IMongoClient service)

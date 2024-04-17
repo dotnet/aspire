@@ -22,33 +22,33 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     /// Gets or sets whether retries should be enabled.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool RetryEnabled { get; set; } = true;
+    public bool DisableRetry { get; set; }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the database health check is enabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool HealthChecksEnabled { get; set; } = true;
+    public bool DisableHealthChecks { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool TracingEnabled { get; set; } = true;
+    public bool DisableTracing { get; set; }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool MetricsEnabled { get; set; } = true;
+    public bool DisableMetrics { get; set; }
 
     /// <summary>
     /// Gets or sets the time in seconds to wait for the command to execute.

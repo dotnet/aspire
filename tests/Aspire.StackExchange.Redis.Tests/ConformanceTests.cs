@@ -34,8 +34,8 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
             "StackExchange": {
               "Redis": {
                 "ConnectionString": "YOUR_ENDPOINT",
-                "HealthChecksEnabled": true,
-                "TracingEnabled": false,
+                "DisableHealthChecks": false,
+                "DisableTracing": true,
                 "ConfigurationOptions": {
                   "CheckCertificateRevocation": true,
                   "ConnectTimeout": 5,
@@ -85,10 +85,10 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
     }
 
     protected override void SetHealthCheck(StackExchangeRedisSettings options, bool enabled)
-        => options.HealthChecksEnabled = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(StackExchangeRedisSettings options, bool enabled)
-        => options.TracingEnabled = enabled;
+        => options.DisableTracing = ! enabled;
 
     protected override void SetMetrics(StackExchangeRedisSettings options, bool enabled)
         => throw new NotImplementedException();

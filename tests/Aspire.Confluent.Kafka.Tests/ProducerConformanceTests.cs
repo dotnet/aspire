@@ -40,9 +40,9 @@ public class ProducerConformanceTests : ConformanceTests<IProducer<string, strin
         }
     }
 
-    protected override void SetHealthCheck(KafkaProducerSettings options, bool enabled) => options.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(KafkaProducerSettings options, bool enabled) => options.DisableHealthChecks = !enabled;
 
-    protected override void SetMetrics(KafkaProducerSettings options, bool enabled) => options.MetricsEnabled = enabled;
+    protected override void SetMetrics(KafkaProducerSettings options, bool enabled) => options.DisableMetrics = !enabled;
 
     protected override void SetTracing(KafkaProducerSettings options, bool enabled)
     {
@@ -64,8 +64,8 @@ public class ProducerConformanceTests : ConformanceTests<IProducer<string, strin
                             "Kafka": {
                                 "Producer": {
                                     "ConnectionString": "localhost:9092",
-                                    "HealthChecksEnabled": true,
-                                    "MetricsEnabled": true
+                                    "DisableHealthChecks": false,
+                                    "DisableMetrics": false
                                 }
                             }
                         }

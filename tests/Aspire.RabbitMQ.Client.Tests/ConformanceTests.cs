@@ -50,8 +50,8 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
                 },
                 "ConnectionString": "amqp://localhost:5672",
                 "MaxConnectRetryCount": 10,
-                "HealthChecksEnabled": true,
-                "TracingEnabled": false
+                "DisableHealthChecks": false,
+                "DisableTracing": true
               }
             }
           }
@@ -91,7 +91,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     }
 
     protected override void SetHealthCheck(RabbitMQClientSettings options, bool enabled)
-        => options.HealthChecksEnabled = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void DisableRetries(RabbitMQClientSettings options)
     {
@@ -99,7 +99,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     }
 
     protected override void SetTracing(RabbitMQClientSettings options, bool enabled)
-        => options.TracingEnabled = enabled;
+        => options.DisableTracing = ! enabled;
 
     protected override void SetMetrics(RabbitMQClientSettings options, bool enabled)
         => throw new NotImplementedException();

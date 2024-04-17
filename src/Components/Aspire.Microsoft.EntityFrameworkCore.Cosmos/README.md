@@ -79,7 +79,7 @@ The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microso
     "Microsoft": {
       "EntityFrameworkCore": {
         "Cosmos": {
-          "TracingEnabled": false
+          "DisableTracing": true
         }
       }
     }
@@ -92,13 +92,13 @@ The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microso
 Also you can pass the `Action<EntityFrameworkCoreCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-    builder.AddCosmosDbContext<MyDbContext>("cosmosdb", "mydb", settings => settings.TracingEnabled = false);
+    builder.AddCosmosDbContext<MyDbContext>("cosmosdb", "mydb", settings => settings.DisableTracing = true);
 ```
 
 or
 
 ```csharp
-    builder.EnrichCosmosDbContext<MyDbContext>(settings => settings.TracingEnabled = false);
+    builder.EnrichCosmosDbContext<MyDbContext>(settings => settings.DisableTracing = true);
 ```
 
 ## AppHost extensions

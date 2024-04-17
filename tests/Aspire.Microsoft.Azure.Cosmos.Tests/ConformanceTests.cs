@@ -40,7 +40,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureCosmosDBSettings options, bool enabled)
-        => options.TracingEnabled = enabled;
+        => options.DisableTracing = ! enabled;
 
     protected override void SetMetrics(AzureCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
@@ -52,7 +52,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
               "Azure": {
                 "Cosmos": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "TracingEnabled": true
+                  "DisableTracing": false
                 }
               }
             }

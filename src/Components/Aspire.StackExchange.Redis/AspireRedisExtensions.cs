@@ -107,7 +107,7 @@ public static class AspireRedisExtensions
             builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(serviceKey, (sp, _) => CreateConnection(sp, connectionName, configurationSectionName, optionsName));
         }
 
-        if (settings.TracingEnabled)
+        if (!settings.DisableTracing)
         {
             // Supports distributed tracing
             // We don't call AddRedisInstrumentation() here as it results in the TelemetryHostedService trying to resolve & connect to IConnectionMultiplexer
@@ -125,7 +125,7 @@ public static class AspireRedisExtensions
                 });
         }
 
-        if (settings.HealthChecksEnabled)
+        if (!settings.DisableHealthChecks)
         {
             var healthCheckName = serviceKey is null ? "StackExchange.Redis" : $"StackExchange.Redis_{connectionName}";
 

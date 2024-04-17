@@ -270,7 +270,7 @@ public class EnrichSqlServerTests : ConformanceTests
             optionsBuilder.UseSqlServer(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.RetryEnabled = false);
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.DisableRetry = true);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -298,7 +298,7 @@ public class EnrichSqlServerTests : ConformanceTests
             optionsBuilder.UseSqlServer(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.RetryEnabled = true);
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.DisableRetry = !true);
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
@@ -315,7 +315,7 @@ public class EnrichSqlServerTests : ConformanceTests
             optionsBuilder.UseSqlServer(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomRetryExecutionStrategy(c)));
         });
 
-        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.RetryEnabled = true);
+        builder.EnrichSqlServerDbContext<TestDbContext>(settings => settings.DisableRetry = !true);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

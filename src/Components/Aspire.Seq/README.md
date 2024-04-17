@@ -40,7 +40,7 @@ The .NET Aspire Seq component supports [Microsoft.Extensions.Configuration](http
 {
   "Aspire": {
     "Seq": {
-      "HealthChecksEnabled": false,
+      "DisableHealthChecks": true,
       "ServerUrl": "http://localhost:5341"
     }
   }
@@ -53,7 +53,7 @@ Also you can pass the `Action<SeqSettings> configureSettings` delegate to set up
 
 ```csharp
 builder.AddSeqEndpoint("seq", settings => {
-    settings.HealthChecksEnabled = false;
+    settings.DisableHealthChecks = !false;
     settings.ServerUrl = "http://localhost:5341";
     settings.Logs.TimeoutMilliseconds = 10000;
 });

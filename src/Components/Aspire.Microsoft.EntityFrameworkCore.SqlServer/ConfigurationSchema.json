@@ -62,20 +62,20 @@
                       "type": "string",
                       "description": "The connection string of the SQL server database to connect to."
                     },
-                    "HealthChecksEnabled": {
+                    "DisableHealthChecks": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
-                      "default": true
+                      "default": false
                     },
-                    "RetryEnabled": {
+                    "DisableRetry": {
                       "type": "boolean",
                       "description": "Gets or sets whether retries should be enabled.",
-                      "default": true
+                      "default": false
                     },
-                    "TracingEnabled": {
+                    "DisableTracing": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                      "default": true
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                      "default": false
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to a SQL Server database using EntityFrameworkCore."

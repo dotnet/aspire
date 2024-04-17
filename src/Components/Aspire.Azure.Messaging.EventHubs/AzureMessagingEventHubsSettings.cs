@@ -16,7 +16,7 @@ namespace Aspire.Azure.Messaging.EventHubs;
 /// </summary>
 public abstract class AzureMessagingEventHubsSettings : IConnectionStringSettings
 {
-    private bool? _tracingEnabled;
+    private bool? _disableTracing;
 
     internal AzureMessagingEventHubsSettings() { }
 
@@ -47,17 +47,17 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
     /// Event Hubs ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
-    public bool TracingEnabled
+    public bool DisableTracing
     {
-        get { return _tracingEnabled ??= GetTracingDefaultValue(); }
-        set { _tracingEnabled = value; }
+        get { return _disableTracing ??= !GetTracingDefaultValue(); }
+        set { _disableTracing = value; }
     }
 
     // default Tracing to true if the experimental switch is set

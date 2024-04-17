@@ -16,12 +16,12 @@ public sealed class AzureCosmosDBSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool TracingEnabled { get; set; } = true;
+    public bool DisableTracing { get; set; }
 
     /// <summary>
     /// A <see cref="Uri"/> referencing the Azure Cosmos DB Endpoint.

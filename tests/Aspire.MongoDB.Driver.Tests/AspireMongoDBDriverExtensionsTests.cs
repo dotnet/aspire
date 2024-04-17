@@ -95,7 +95,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddMongoDBClient(DefaultConnectionName, settings =>
         {
-            settings.HealthChecksEnabled = true;
+            settings.DisableHealthChecks = !true;
             settings.HealthCheckTimeout = 1;
         });
 
@@ -117,7 +117,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddKeyedMongoDBClient(DefaultConnectionName, settings =>
         {
-            settings.HealthChecksEnabled = false;
+            settings.DisableHealthChecks = !false;
         });
 
         using var host = builder.Build();
@@ -137,7 +137,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddKeyedMongoDBClient(key, settings =>
         {
-            settings.HealthChecksEnabled = true;
+            settings.DisableHealthChecks = !true;
             settings.HealthCheckTimeout = 1;
         });
 
@@ -159,7 +159,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddMongoDBClient(DefaultConnectionName, settings =>
         {
-            settings.HealthChecksEnabled = false;
+            settings.DisableHealthChecks = !false;
         });
 
         using var host = builder.Build();
