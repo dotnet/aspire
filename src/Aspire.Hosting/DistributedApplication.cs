@@ -64,6 +64,25 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// Creates a new instance of the <see cref="IDistributedApplicationBuilder"/> interface.
     /// </summary>
     /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
+    /// <remarks>
+    /// This overload of the <see cref="CreateBuilder()"/> method should only be
+    /// used when the AppHost is not intended to be used wtih a deployment tool. Because no arguemnts are
+    /// passed to the <see cref="CreateBuilder()"/> method the AppHost has no
+    /// way to be put into publish mode. Refer to <see cref="CreateBuilder(string[])"/> or  <see cref="CreateBuilder(DistributedApplicationOptions)"/>
+    /// when more control is needed over the behavior of the distributed application at runtime.
+    /// </remarks>
+    /// <example>
+    /// The following example shows creating a Postgres server resource with a database and referencing that
+    /// database in a .NET project.
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder();
+    /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
+    /// builder.AddProject&lt;Projects.InventoryService&gt;()
+    ///        .WithReference(inventoryDatabase);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IDistributedApplicationBuilder CreateBuilder() => CreateBuilder([]);
 
     /// <summary>
