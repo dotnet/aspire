@@ -43,7 +43,7 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     public bool DisableTracing { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.
