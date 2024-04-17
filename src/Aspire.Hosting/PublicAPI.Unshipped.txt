@@ -189,8 +189,7 @@ Aspire.Hosting.ApplicationModel.IResourceAnnotation
 Aspire.Hosting.ApplicationModel.IResourceBuilder<T>
 Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.ApplicationBuilder.get -> Aspire.Hosting.IDistributedApplicationBuilder!
 Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.Resource.get -> T
-Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.WithAnnotation<TAnnotation>(Aspire.Hosting.ApplicationModel.ResourceAnnotationMutationBehavior behavior = Aspire.Hosting.ApplicationModel.ResourceAnnotationMutationBehavior.Append) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
-Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.WithAnnotation<TAnnotation>(TAnnotation annotation, Aspire.Hosting.ApplicationModel.ResourceAnnotationMutationBehavior behavior = Aspire.Hosting.ApplicationModel.ResourceAnnotationMutationBehavior.Append) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.WithAnnotation(Aspire.Hosting.ApplicationModel.IResourceAnnotation! annotation, Aspire.Hosting.ApplicationModel.ResourceAnnotationMutationBehavior behavior = Aspire.Hosting.ApplicationModel.ResourceAnnotationMutationBehavior.Append) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 Aspire.Hosting.ApplicationModel.IResourceCollection
 Aspire.Hosting.ApplicationModel.IResourceWithArgs
 Aspire.Hosting.ApplicationModel.IResourceWithConnectionString

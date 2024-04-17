@@ -8,12 +8,12 @@ namespace Aspire.Hosting.Tests.Utils;
 public class WithAnnotationTests
 {
     [Fact]
-    public void WithAnnotationWithTypeParameterAndNoExplicitBehaviorAppends()
+    public void WithAnnotationNoExplicitBehaviorAppends()
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("redis")
-                           .WithAnnotation<DummyAnnotation>()
-                           .WithAnnotation<DummyAnnotation>();
+                           .WithAnnotation(new DummyAnnotation())
+                           .WithAnnotation(new DummyAnnotation());
 
         var dummyAnnotations = redis.Resource.Annotations.OfType<DummyAnnotation>();
 
@@ -22,28 +22,14 @@ public class WithAnnotationTests
     }
 
     [Fact]
-    public void WithAnnotationWithTypeParameterAndArgumentAndNoExplicitBehaviorAppends()
+    public void WithAnnotationAddReplaceBehaviorReplaces()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("redis")
-                           .WithAnnotation<DummyAnnotation>(new DummyAnnotation())
-                           .WithAnnotation<DummyAnnotation>(new DummyAnnotation());
-
-        var dummyAnnotations = redis.Resource.Annotations.OfType<DummyAnnotation>();
-
-        Assert.Equal(2, dummyAnnotations.Count());
-        Assert.NotEqual(dummyAnnotations.First(), dummyAnnotations.Last());
-    }
-
-    [Fact]
-    public void WithAnnotationWithTypeParameterAndArgumentAndAddReplaceBehaviorReplaces()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("redis").WithAnnotation<DummyAnnotation>();
+        var redis = builder.AddRedis("redis").WithAnnotation(new DummyAnnotation());
 
         var firstAnnotation = redis.Resource.Annotations.OfType<DummyAnnotation>().Single();
 
-        redis.WithAnnotation<DummyAnnotation>(ResourceAnnotationMutationBehavior.Replace);
+        redis.WithAnnotation(new DummyAnnotation(), ResourceAnnotationMutationBehavior.Replace);
 
         var secondAnnotation = redis.Resource.Annotations.OfType<DummyAnnotation>().Single();
 

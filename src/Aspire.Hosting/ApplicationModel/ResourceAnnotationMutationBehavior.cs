@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Specifies behavior of the <see cref="IResourceBuilder{T}.WithAnnotation{TAnnotation}(Aspire.Hosting.ApplicationModel.ResourceAnnotationMutationBehavior)" />
+/// Specifies behavior of the <see cref="IResourceBuilder{T}.WithAnnotation(IResourceAnnotation, ResourceAnnotationMutationBehavior)" />
 /// method when adding an annotation to the <see cref="IResource.Annotations"/> collection of a resource.
 /// </summary>
 public enum ResourceAnnotationMutationBehavior

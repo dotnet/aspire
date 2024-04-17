@@ -109,7 +109,7 @@ internal static class ParameterExtensions
 
         public T Resource { get; } = resource;
 
-        public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation
+        public IResourceBuilder<T> WithAnnotation(IResourceAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append)
         {
             throw new NotImplementedException();
         }
