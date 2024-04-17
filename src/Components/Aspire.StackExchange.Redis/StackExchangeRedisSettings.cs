@@ -14,7 +14,7 @@ public sealed class StackExchangeRedisSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Redis health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Redis health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.

@@ -14,7 +14,7 @@ public sealed class OracleEntityFrameworkCoreSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets whether retries should be enabled.
+    /// Gets or sets whether retries should be disabled.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.
@@ -22,7 +22,7 @@ public sealed class OracleEntityFrameworkCoreSettings
     public bool DisableRetry { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the database health check is enabled or not.</para>
+    /// <para>Gets or sets a boolean value that indicates whether the database health check is disabled or not.</para>
     /// <para>The default value is <see langword="true"/>.</para>
     /// </summary>
     public bool DisableHealthChecks { get; set; }

@@ -22,7 +22,7 @@ public sealed class KafkaProducerSettings
     public ProducerConfig Config { get; } = new ProducerConfig();
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
+    /// Gets or sets a boolean value that indicates whether collecting metrics is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.
@@ -30,7 +30,7 @@ public sealed class KafkaProducerSettings
     public bool DisableMetrics { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.

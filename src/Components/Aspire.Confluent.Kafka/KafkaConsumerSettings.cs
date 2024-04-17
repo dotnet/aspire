@@ -22,12 +22,12 @@ public sealed class KafkaConsumerSettings
     public ConsumerConfig Config { get; } = new ConsumerConfig();
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
+    /// Gets or sets a boolean value that indicates whether collecting metrics is disabled or not.
     /// </summary>
     public bool DisableMetrics { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not.
     /// </summary>
     public bool DisableHealthChecks { get; set; }
 

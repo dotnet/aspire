@@ -61,11 +61,11 @@
                 },
                 "DisableHealthChecks": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not. The default value is true."
+                  "description": "Gets or sets a boolean value that indicates whether the database health check is disabled or not. The default value is true."
                 },
                 "DisableRetry": {
                   "type": "boolean",
-                  "description": "Gets or sets whether retries should be enabled.",
+                  "description": "Gets or sets whether retries should be disabled.",
                   "default": false
                 }
               },

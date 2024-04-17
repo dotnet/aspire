@@ -476,11 +476,11 @@
                     },
                     "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not."
                     },
                     "DisableMetrics": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether collecting metrics is enabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether collecting metrics is disabled or not."
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to a Kafka message broker to consume messages."
@@ -939,12 +939,12 @@
                     },
                     "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.",
+                      "description": "Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not.",
                       "default": false
                     },
                     "DisableMetrics": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.",
+                      "description": "Gets or sets a boolean value that indicates whether collecting metrics is disabled or not.",
                       "default": false
                     }
                   },

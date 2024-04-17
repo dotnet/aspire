@@ -11,7 +11,7 @@ namespace Aspire.Seq;
 public sealed class SeqSettings
 {
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Seq server health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Seq server health check is disabled or not.
     /// </summary>
     public bool DisableHealthChecks { get; set; }
 

@@ -162,7 +162,7 @@
                     },
                     "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the Blob Storage health check is enabled or not.",
+                      "description": "Gets or sets a boolean value that indicates whether the Blob Storage health check is disabled or not.",
                       "default": false
                     },
                     "DisableTracing": {

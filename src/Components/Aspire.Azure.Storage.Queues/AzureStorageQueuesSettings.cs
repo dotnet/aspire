@@ -35,7 +35,7 @@ public sealed class AzureStorageQueuesSettings : IConnectionStringSettings
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Queues Storage health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Queues Storage health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.

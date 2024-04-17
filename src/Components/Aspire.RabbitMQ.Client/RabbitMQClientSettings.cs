@@ -20,7 +20,7 @@ public sealed class RabbitMQClientSettings
     public int MaxConnectRetryCount { get; set; } = 5;
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the RabbitMQ health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.

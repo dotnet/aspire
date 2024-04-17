@@ -64,12 +64,12 @@
                     },
                     "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
+                      "description": "Gets or sets a boolean value that indicates whether the database health check is disabled or not.",
                       "default": false
                     },
                     "DisableRetry": {
                       "type": "boolean",
-                      "description": "Gets or sets whether retries should be enabled.",
+                      "description": "Gets or sets whether retries should be disabled.",
                       "default": false
                     },
                     "DisableTracing": {
