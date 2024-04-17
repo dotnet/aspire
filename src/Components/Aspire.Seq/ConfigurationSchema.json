@@ -23,9 +23,103 @@
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whetherthe Seq server health check is enabled or not."
             },
+            "Logs": {
+              "type": "object",
+              "properties": {
+                "BatchExportProcessorOptions": {
+                  "type": "object",
+                  "properties": {
+                    "ExporterTimeoutMilliseconds": {
+                      "type": "integer"
+                    },
+                    "MaxExportBatchSize": {
+                      "type": "integer"
+                    },
+                    "MaxQueueSize": {
+                      "type": "integer"
+                    },
+                    "ScheduledDelayMilliseconds": {
+                      "type": "integer"
+                    }
+                  },
+                  "description": "Gets or sets the BatchExportProcessor options. Ignored unless ExportProcessorType is Batch."
+                },
+                "Endpoint": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "ExportProcessorType": {
+                  "enum": [
+                    "Simple",
+                    "Batch"
+                  ],
+                  "description": "Gets or sets the export processor type to be used with the OpenTelemetry Protocol Exporter. The default value is 'OpenTelemetry.ExportProcessorType.Batch'."
+                },
+                "Headers": {
+                  "type": "string"
+                },
+                "Protocol": {
+                  "enum": [
+                    "Grpc",
+                    "HttpProtobuf"
+                  ]
+                },
+                "TimeoutMilliseconds": {
+                  "type": "integer"
+                }
+              },
+              "description": "Gets OTLP exporter options for logs."
+            },
             "ServerUrl": {
               "type": "string",
-              "description": "Gets or sets the base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789\""
+              "description": "Gets or sets the base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789. Overrides endpoints set on Logs and Traces .\""
+            },
+            "Traces": {
+              "type": "object",
+              "properties": {
+                "BatchExportProcessorOptions": {
+                  "type": "object",
+                  "properties": {
+                    "ExporterTimeoutMilliseconds": {
+                      "type": "integer"
+                    },
+                    "MaxExportBatchSize": {
+                      "type": "integer"
+                    },
+                    "MaxQueueSize": {
+                      "type": "integer"
+                    },
+                    "ScheduledDelayMilliseconds": {
+                      "type": "integer"
+                    }
+                  },
+                  "description": "Gets or sets the BatchExportProcessor options. Ignored unless ExportProcessorType is Batch."
+                },
+                "Endpoint": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "ExportProcessorType": {
+                  "enum": [
+                    "Simple",
+                    "Batch"
+                  ],
+                  "description": "Gets or sets the export processor type to be used with the OpenTelemetry Protocol Exporter. The default value is 'OpenTelemetry.ExportProcessorType.Batch'."
+                },
+                "Headers": {
+                  "type": "string"
+                },
+                "Protocol": {
+                  "enum": [
+                    "Grpc",
+                    "HttpProtobuf"
+                  ]
+                },
+                "TimeoutMilliseconds": {
+                  "type": "integer"
+                }
+              },
+              "description": "Gets OTLP exporter options for traces."
             }
           },
           "description": "Provides the client configuration settings for connecting telemetry to a Seq server."

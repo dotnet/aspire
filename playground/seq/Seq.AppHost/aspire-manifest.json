@@ -3,7 +3,7 @@
     "seq": {
       "type": "container.v0",
       "connectionString": "{seq.bindings.http.url}",
-      "image": "datalust/seq:2024.1",
+      "image": "docker.io/datalust/seq:2024.2",
       "env": {
         "ACCEPT_EULA": "Y"
       },
