@@ -11,6 +11,42 @@ namespace Aspire.Hosting;
 /// <summary>
 /// A builder for creating instances of <see cref="DistributedApplication"/>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The <see cref="IDistributedApplicationBuilder"/> is the central interface for defining
+/// the resources which are orchestrated by the <see cref="DistributedApplication"/> when
+/// the AppHost is launched.
+/// </para>
+/// <para>
+/// To create an instance of the <see cref="IDistributedApplicationBuilder"/> interface
+/// developers should use the <see cref="DistributedApplication.CreateBuilder(string[])"/>
+/// method. Once the builder is created extension methods which target the <see cref="IDistributedApplicationBuilder"/>
+/// interface can be used to add resources to the distributed application.
+/// </para>
+/// </remarks>
+/// <example>
+/// <para>
+/// This example shows a distributed application that contains a .NET project (InventoryService) that uses
+/// a Redis cache and a PostgreSQL database. The builder is created using the <see cref="DistributedApplication.CreateBuilder(string[])"/>
+/// method.
+/// </para>
+/// <para>
+/// The <see href="https://learn.microsoft.com/dotnet/api/aspire.hosting.redisbuilderextensions.addredis">AddRedis</see>
+/// and <see href="https://learn.microsoft.com/dotnet/api/aspire.hosting.postgresbuilderextensions.addpostgres">AddPostgres</see>
+/// methods are used to add Redis and PostgreSQL container resources. The results of the methods are stored in variables for
+/// later use.
+/// </para>
+/// 
+/// <code>
+/// var builder = DistributedApplication.CreateBuilder(args);
+/// var cache = builder.AddRedis("cache");
+/// var inventoryDatabase = builder.AddPostgres("postgres").AddDatabase("inventory");
+/// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice")
+///        .WithReference(cache)
+///        .WithReference(inventory);
+/// builder.Build().Run();
+/// </code>
+/// </example>
 public interface IDistributedApplicationBuilder
 {
     /// <inheritdoc cref="HostApplicationBuilder.Configuration" />
