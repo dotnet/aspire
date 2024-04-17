@@ -24,7 +24,7 @@
   "precedence": "8000",
   "identity": "Aspire.Tests.MSTest.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.Tests",
+  "groupIdentity": "Aspire.Tests.MSTest",
   "constraints": {
     "aspire": {
       "type": "workload",
