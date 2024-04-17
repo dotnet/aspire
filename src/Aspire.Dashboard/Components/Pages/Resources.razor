@@ -22,23 +22,23 @@
         <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
             <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
             <Body>
-            <FluentStack Orientation="Orientation.Vertical">
-                <FluentCheckbox
-                    Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
-                    ThreeState="true"
-                    ShowIndeterminate="false"
-                    ThreeStateOrderUncheckToIntermediate="true"
-                    @bind-CheckState="AreAllTypesVisible" />
-                @foreach (var (resourceType, _) in _allResourceTypes)
-                {
-                    var isChecked = _visibleResourceTypes.ContainsKey(resourceType);
+                <FluentStack Orientation="Orientation.Vertical">
                     <FluentCheckbox
-                        Label="@resourceType"
-                        @bind-Value:get="isChecked"
-                        @bind-Value:set="c => OnResourceTypeVisibilityChangedAsync(resourceType, c)"
-                    />
-                }
-            </FluentStack>
+                        Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
+                        ThreeState="true"
+                        ShowIndeterminate="false"
+                        ThreeStateOrderUncheckToIntermediate="true"
+                        @bind-CheckState="AreAllTypesVisible" />
+                    @foreach (var (resourceType, _) in _allResourceTypes)
+                    {
+                        var isChecked = _visibleResourceTypes.ContainsKey(resourceType);
+                        <FluentCheckbox
+                            Label="@resourceType"
+                            @bind-Value:get="isChecked"
+                            @bind-Value:set="c => OnResourceTypeVisibilityChangedAsync(resourceType, c)"
+                        />
+                    }
+                </FluentStack>
             </Body>
         </FluentPopover>
         <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
