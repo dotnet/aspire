@@ -65,13 +65,14 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version the package defaults to the 8.3 tag of the dpage/pgadmin4 container image
+    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version the package defaults to the 8.5 tag of the dpage/pgadmin4 container image
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="hostPort">The host port for the application ui.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
+    /// <param name="pgAdminTagVersion">Override the version tag for the image PostGres admin</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : PostgresServerResource
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null, string? pgAdminTagVersion = "8.5") where T : PostgresServerResource
     {
         if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().Any())
         {
@@ -84,7 +85,7 @@ public static class PostgresBuilderExtensions
 
         var pgAdminContainer = new PgAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
-                                  .WithImage("dpage/pgadmin4", "8.3")
+                                  .WithImage("dpage/pgadmin4", pgAdminTagVersion)
                                   .WithImageRegistry(PostgresContainerImageTags.Registry)
                                   .WithHttpEndpoint(targetPort: 80, port: hostPort, name: containerName)
                                   .WithEnvironment(SetPgAdminEnvironmentVariables)
