@@ -46,7 +46,7 @@ public class AddNatsTests
         var path = OperatingSystem.IsWindows() ? @"C:\tmp\dev-data" : "/tmp/dev-data";
 
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddNats("nats", 1234).WithJetStream(srcMountPath: path);
+        appBuilder.AddNats("nats", 1234).WithJetStream().WithDataBindMount(path);
 
         using var app = appBuilder.Build();
 
@@ -59,10 +59,16 @@ public class AddNatsTests
         Assert.Equal(path, mountAnnotation.Source);
         Assert.Equal("/data", mountAnnotation.Target);
 
-        var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>());
-        Assert.NotNull(argsAnnotation.Callback);
+        var argsAnnotations = containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>();
+
         var args = new List<object>();
-        argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        foreach (var argsAnnotation in argsAnnotations)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+
+        }
+
         Assert.Equal("-js -sd /data".Split(' '), args);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());

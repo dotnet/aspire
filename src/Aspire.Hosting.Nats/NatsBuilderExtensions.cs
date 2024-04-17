@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Nats;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -31,18 +32,37 @@ public static class NatsBuilderExtensions
     /// Adds JetStream support to the NATS server resource.
     /// </summary>
     /// <param name="builder">NATS resource builder.</param>
-    /// <param name="srcMountPath">Optional mount path providing persistence between restarts.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NatsServerResource> WithJetStream(this IResourceBuilder<NatsServerResource> builder, string? srcMountPath = null)
+    public static IResourceBuilder<NatsServerResource> WithJetStream(this IResourceBuilder<NatsServerResource> builder)
     {
-        var args = new List<string> { "-js" };
-        if (srcMountPath != null)
-        {
-            args.Add("-sd");
-            args.Add("/data");
-            builder.WithBindMount(srcMountPath, "/data");
-        }
+        return builder.WithArgs(["-js"]);
+    }
 
-        return builder.WithArgs(args.ToArray());
+    private const string DataPath = "/data";
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a NATS resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<NatsServerResource> WithDataVolume(this IResourceBuilder<NatsServerResource> builder, string? name = null, bool isReadOnly = false)
+    {
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), DataPath, isReadOnly)
+                      .WithArgs(["-sd", DataPath]);
+    }
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a NATS resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<NatsServerResource> WithDataBindMount(this IResourceBuilder<NatsServerResource> builder, string source, bool isReadOnly = false)
+    {
+        return builder.WithBindMount(source, "/data", isReadOnly)
+                      .WithArgs(["-sd", DataPath]);
     }
 }

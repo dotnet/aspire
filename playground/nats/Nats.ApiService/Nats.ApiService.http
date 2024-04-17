@@ -1,6 +1,6 @@
-@HostAddress = http://localhost:5156
+@HostAddress = https://localhost:7060
 
-POST {{HostAddress}}/ping/
+GET {{HostAddress}}/ping/
 
 ###
 
