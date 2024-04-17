@@ -97,11 +97,11 @@
         },
         {
           "choice": "MSTest",
-          "description": "Create a MSTest test project using the AppHost project."
+          "description": "Creates a MSTest test project using the AppHost project."
         },
         {
           "choice": "xUnit",
-          "description": "Create a xUnit test project using the AppHost project."
+          "description": "Creates a xUnit test project using the AppHost project."
         }
       ]
     },
@@ -361,11 +361,7 @@
     },
     {
       "path": "AspireStarterApplication.1.Tests\\AspireStarterApplication.1.Tests.csproj",
-      "condition": "(TestProjectFrameworkKind == MSTest)"
-    },
-    {
-      "path": "AspireStarterApplication.1.Tests\\AspireStarterApplication.1.Tests.csproj",
-      "condition": "(TestProjectFrameworkKind == xUnit)"
+      "condition": "(TestProjectFrameworkKind != None)"
     }
   ],
   "postActions": [
