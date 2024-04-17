@@ -21,7 +21,7 @@ internal static class ParameterExtensions
     {
         ParameterDefault generatedPassword = new GenerateParameterDefault
         {
-            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
+            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in GenerateParameterDefault
             Lower = lower,
             Upper = upper,
             Numeric = numeric,
