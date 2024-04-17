@@ -106,7 +106,6 @@ public partial class ResourceDetails
 
     private void ResetResourceEnvironmentVariableMasks()
     {
-        _areEnvironmentVariablesMasked = true; // By default, mask environment variables
         foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
         {
             vm.IsValueMasked = _areEnvironmentVariablesMasked;
