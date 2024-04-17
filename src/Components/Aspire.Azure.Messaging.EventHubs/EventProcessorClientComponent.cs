@@ -41,7 +41,7 @@ internal sealed class EventProcessorClientComponent()
             {
                 EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
-                options.Identifier ??= GenerateClientIdentifier(settings);
+                options.Identifier ??= GenerateClientIdentifier(settings.EventHubName, settings.ConsumerGroup);
 
                 var containerClient = GetBlobContainerClient(settings, provider, configurationSectionName);
 

@@ -101,12 +101,10 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
 public sealed class AzureMessagingEventHubsProducerSettings : AzureMessagingEventHubsSettings { }
 
 /// <summary>
-/// Represents additional settings for configuring an Event Hubs client that may accept a ConsumerGroup
+/// Represents additional settings for configuring a <see cref="EventHubConsumerClient"/>.
 /// </summary>
-public abstract class AzureMessagingEventHubsConsumerGroupSettings : AzureMessagingEventHubsSettings
+public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEventHubsSettings
 {
-    internal AzureMessagingEventHubsConsumerGroupSettings() { }
-
     /// <summary>
     /// Gets or sets the name of the consumer group.
     /// </summary>
@@ -114,15 +112,15 @@ public abstract class AzureMessagingEventHubsConsumerGroupSettings : AzureMessag
 }
 
 /// <summary>
-/// Represents additional settings for configuring a <see cref="EventHubConsumerClient"/>.
-/// </summary>
-public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEventHubsConsumerGroupSettings { }
-
-/// <summary>
 /// Represents additional settings for configuring a <see cref="EventProcessorClient"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEventHubsConsumerGroupSettings
+public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEventHubsSettings
 {
+    /// <summary>
+    /// Gets or sets the name of the consumer group.
+    /// </summary>
+    public string? ConsumerGroup { get; set; }
+
     /// <summary>
     /// Gets or sets the IServiceProvider service key used to obtain an Azure BlobServiceClient.
     /// </summary>
@@ -144,8 +142,13 @@ public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEve
 /// <summary>
 /// Represents additional settings for configuring a <see cref="PartitionReceiver"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMessagingEventHubsConsumerGroupSettings
+public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMessagingEventHubsSettings
 {
+    /// <summary>
+    /// Gets or sets the name of the consumer group.
+    /// </summary>
+    public string? ConsumerGroup { get; set; }
+
     /// <summary>
     /// Gets or sets the partition identifier.
     /// </summary>

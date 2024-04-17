@@ -30,12 +30,12 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     protected override bool GetTracingEnabled(TSettings settings)
         => settings.TracingEnabled;
 
-    protected static string GenerateClientIdentifier(AzureMessagingEventHubsProcessorSettings settings)
+    protected static string GenerateClientIdentifier(string? eventHubName, string? consumerGroup)
     {
         // configure processor identifier
         var slug = Guid.NewGuid().ToString().Substring(24);
-        var identifier = $"{Environment.MachineName}-{settings.EventHubName}-" +
-                         $"{settings.ConsumerGroup ?? "default"}-{slug}";
+        var identifier = $"{Environment.MachineName}-{eventHubName}-" +
+                         $"{consumerGroup ?? "default"}-{slug}";
 
         return identifier;
     }
