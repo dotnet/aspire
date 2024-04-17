@@ -12,6 +12,38 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Represents a distributed application that implements the <see cref="IHost"/> and <see cref="IAsyncDisposable"/> interfaces.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The <see cref="DistributedApplication"/> is an implementation of the <see cref="IHost"/> interface that orchestrates
+/// a .NET Aspire application. To build an instance of the <see cref="DistributedApplication"/> class, use the
+/// <see cref="DistributedApplication.CreateBuilder()"/> method to create an instance of the <see cref="IDistributedApplicationBuilder"/>
+/// interface. Using the <see cref="IDistributedApplicationBuilder"/> interface you can configure the resources
+/// that comprise the distributed application and describe the dependencies between them.
+/// </para>
+/// <para>
+/// Once the distributed application has been defined use the <see cref="IDistributedApplicationBuilder.Build()"/> method
+/// to create an instance of the <see cref="DistributedApplication"/> class. The <see cref="DistributedApplication"/> class
+/// exposes a <see cref="DistributedApplication.Run"/> method which then starts the distributed application and its
+/// resources.
+/// </para>
+/// <para>
+/// The <see cref="CreateBuilder(Aspire.Hosting.DistributedApplicationOptions)"/> method provides additional options for
+/// constructing the <see cref="IDistributedApplicationBuilder"/> including disabling the .NET Aspire dashboard (see <see cref="DistributedApplicationOptions.DisableDashboard"/>) or
+/// allowing unsecured communication between the browser and dashboard, and dashboard and AppHost (see <see cref="DistributedApplicationOptions.AllowUnsecuredTransport"/>.
+/// </para>
+/// </remarks>
+/// <example>
+/// The following example shows creating a Postgres server resource with a database and referencing that
+/// database in a .NET project.
+/// <code>
+/// var builder = DistributedApplication.CreateBuilder(args);
+/// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
+/// builder.AddProject&lt;Projects.InventoryService&gt;()
+///        .WithReference(inventoryDatabase);
+///
+/// builder.Build().Run();
+/// </code>
+/// </example>
 [DebuggerDisplay("{_host}")]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
