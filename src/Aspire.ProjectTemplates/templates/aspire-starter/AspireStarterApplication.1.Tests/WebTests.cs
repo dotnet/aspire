@@ -4,7 +4,11 @@ namespace AspireStarterApplication.1.Tests;
 
 public class WebTests
 {
+#if (TestProjectFrameworkKind == "MSTest")
+    [TestMethod]
+#elif (TestProjectFrameworkKind == "xUnit")
     [Fact]
+#endif
     public async Task GetWebResourceRootReturnsOkStatusCode()
     {
         // Arrange
