@@ -83,7 +83,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
         => throw new NotImplementedException();

@@ -95,7 +95,7 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureSecurityKeyVaultSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(SecretClient service)
         => service.GetSecret("IsAlive");

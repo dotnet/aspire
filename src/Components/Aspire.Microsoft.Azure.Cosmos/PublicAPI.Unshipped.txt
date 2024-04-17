@@ -11,6 +11,18 @@ Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.DisableTracing.get -> bool
 Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.DisableTracing.set -> void
 Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.Tracing.get -> bool
 Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.Tracing.set -> void
-Microsoft.Extensions.Hosting.AspireAzureCosmosDBExtensions
-static Microsoft.Extensions.Hosting.AspireAzureCosmosDBExtensions.AddAzureCosmosDBClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings!>? configureSettings = null, System.Action<Microsoft.Azure.Cosmos.CosmosClientOptions!>? configureClientOptions = null) -> void
-static Microsoft.Extensions.Hosting.AspireAzureCosmosDBExtensions.AddKeyedAzureCosmosDbClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings!>? configureSettings = null, System.Action<Microsoft.Azure.Cosmos.CosmosClientOptions!>? configureClientOptions = null) -> void
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.AccountEndpoint.get -> System.Uri?
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.AccountEndpoint.set -> void
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.ConnectionString.get -> string?
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.ConnectionString.set -> void
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.Credential.get -> Azure.Core.TokenCredential?
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.Credential.set -> void
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.DisableTracing.get -> bool
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.DisableTracing.set -> void
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.MicrosoftAzureCosmosDBSettings() -> void
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.Tracing.get -> bool
+Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.Tracing.set -> void
+Microsoft.Extensions.Hosting.AspireMicrosoftAzureCosmosDBExtensions
+static Microsoft.Extensions.Hosting.AspireMicrosoftAzureCosmosDBExtensions.AddAzureCosmosDBClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings!>? configureSettings = null, System.Action<Microsoft.Azure.Cosmos.CosmosClientOptions!>? configureClientOptions = null) -> void
+static Microsoft.Extensions.Hosting.AspireMicrosoftAzureCosmosDBExtensions.AddKeyedAzureCosmosDbClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings!>? configureSettings = null, System.Action<Microsoft.Azure.Cosmos.CosmosClientOptions!>? configureClientOptions = null) -> void

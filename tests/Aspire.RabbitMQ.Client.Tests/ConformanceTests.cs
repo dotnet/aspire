@@ -99,7 +99,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     }
 
     protected override void SetTracing(RabbitMQClientSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(RabbitMQClientSettings options, bool enabled)
         => throw new NotImplementedException();

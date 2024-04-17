@@ -92,7 +92,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override void SetTracing(MongoDBSettings options, bool enabled)
     {
-        options.DisableTracing = ! enabled;
+        options.DisableTracing = !enabled;
     }
 
     protected override void TriggerActivity(IMongoClient service)

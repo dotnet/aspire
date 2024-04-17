@@ -94,7 +94,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
         => options.DisableMetrics = !enabled;

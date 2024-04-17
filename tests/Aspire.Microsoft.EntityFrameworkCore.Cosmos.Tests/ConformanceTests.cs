@@ -40,7 +40,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
         => throw new NotImplementedException();
 
     protected override void SetTracing(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();

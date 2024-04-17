@@ -100,7 +100,7 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureStorageBlobsSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(BlobServiceClient service)
     {

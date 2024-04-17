@@ -88,7 +88,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(StackExchangeRedisSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(StackExchangeRedisSettings options, bool enabled)
         => throw new NotImplementedException();

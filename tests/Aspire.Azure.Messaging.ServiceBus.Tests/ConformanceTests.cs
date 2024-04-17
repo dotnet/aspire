@@ -89,7 +89,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureMessagingServiceBusSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     public static RemoteInvokeOptions EnableTracingForAzureSdk()
         => new()

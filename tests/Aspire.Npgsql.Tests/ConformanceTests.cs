@@ -85,7 +85,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(NpgsqlSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(NpgsqlSettings options, bool enabled)
         => options.DisableMetrics = !enabled;

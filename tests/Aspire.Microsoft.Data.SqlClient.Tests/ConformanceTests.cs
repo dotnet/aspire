@@ -78,7 +78,7 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(MicrosoftDataSqlClientSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(MicrosoftDataSqlClientSettings options, bool enabled)
         => throw new NotImplementedException();

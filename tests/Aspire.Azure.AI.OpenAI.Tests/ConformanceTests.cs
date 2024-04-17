@@ -99,7 +99,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureOpenAISettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(OpenAIClient service)
         => service.GetCompletions(new CompletionsOptions { DeploymentName = "dummy-gpt" });

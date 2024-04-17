@@ -102,7 +102,7 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureStorageQueuesSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(QueueServiceClient service)
     {

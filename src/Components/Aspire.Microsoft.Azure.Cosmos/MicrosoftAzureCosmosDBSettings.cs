@@ -8,8 +8,7 @@ namespace Aspire.Microsoft.Azure.Cosmos;
 /// <summary>
 /// The settings relevant to accessing Azure Cosmos DB.
 /// </summary>
-[Obsolete($"This class is obsolete and will be removed in a future version. Use {nameof(MicrosoftAzureCosmosDBSettings)} instead.")]
-public sealed class AzureCosmosDBSettings
+public sealed class MicrosoftAzureCosmosDBSettings
 {
     /// <summary>
     /// Gets or sets the connection string of the Azure Cosmos database to connect to.

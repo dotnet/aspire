@@ -97,7 +97,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.DisableMetrics = !enabled;

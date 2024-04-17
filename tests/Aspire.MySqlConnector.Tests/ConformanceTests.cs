@@ -83,7 +83,7 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(MySqlConnectorSettings options, bool enabled)
-        => options.DisableTracing = ! enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(MySqlConnectorSettings options, bool enabled)
         => options.DisableMetrics = !enabled;
