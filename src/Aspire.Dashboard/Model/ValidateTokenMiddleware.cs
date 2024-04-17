@@ -91,7 +91,7 @@ internal sealed class ValidateTokenMiddleware
         await httpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             claims,
-            new AuthenticationProperties { IsPersistent = true, AllowRefresh = true }).ConfigureAwait(false);
+            new AuthenticationProperties { IsPersistent = true }).ConfigureAwait(false);
         return true;
     }
 }
