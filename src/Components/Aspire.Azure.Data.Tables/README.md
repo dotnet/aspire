@@ -133,7 +133,7 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(tables);
 ```
 
-The `AddTables` method will add a Azure Storage table resource to the builder. Or `AddConnectionString` can be used to read the connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:tables` config key. The `WithReference` method passes that connection information into a connection string named `tables` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddTables` method will add an Azure Storage table resource to the builder. Or `AddConnectionString` can be used to read the connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:tables` config key. The `WithReference` method passes that connection information into a connection string named `tables` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureTableClient("tables");
