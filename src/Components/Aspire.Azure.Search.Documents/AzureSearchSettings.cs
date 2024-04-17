@@ -40,12 +40,30 @@ public sealed class AzureSearchSettings : IConnectionStringSettings
     public string? Key { get; set; }
 
     /// <summary>
+    /// Gets or sets a boolean value that indicates whether the Azure Search health check is enabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
+    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableHealthChecks)} instead.")]
+    public bool HealthChecks { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether the Azure Search health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableHealthChecks { get; set; }
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="true" />.
+    /// </value>
+    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableTracing)} instead.")]
+    public bool Tracing { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.

@@ -22,12 +22,30 @@ public sealed class KafkaProducerSettings
     public ProducerConfig Config { get; } = new ProducerConfig();
 
     /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="true" />.
+    /// </value>
+    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableMetrics)} instead.")]
+    public bool Metrics { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether collecting metrics is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableMetrics { get; set; }
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
+    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableHealthChecks)} instead.")]
+    public bool HealthChecks { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not.

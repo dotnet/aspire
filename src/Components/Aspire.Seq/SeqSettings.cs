@@ -11,8 +11,20 @@ namespace Aspire.Seq;
 public sealed class SeqSettings
 {
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Seq server health check is disabled or not.
+    /// Gets or sets a boolean value that indicates whether the Seq server health check is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
+    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableHealthChecks)} instead.")]
+    public bool HealthChecks { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the Seq server health check is enabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
     public bool DisableHealthChecks { get; set; }
 
     /// <summary>
