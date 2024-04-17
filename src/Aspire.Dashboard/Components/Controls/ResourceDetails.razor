@@ -45,7 +45,7 @@
                 </div>
                 <FluentDataGrid Items="@FilteredResourceValues"
                                 ResizableColumns="true"
-                                Style="width:100%"
+                                Style="min-width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
@@ -64,7 +64,7 @@
                 </div>
                 <FluentDataGrid Items="@FilteredEndpoints"
                                 ResizableColumns="true"
-                                Style="width:100%"
+                                Style="min-width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">

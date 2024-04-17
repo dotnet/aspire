@@ -14,7 +14,7 @@
 }
 
 ::deep .details-container {
-    height: 100%;
+    min-height: 100%;
     overflow: auto;
     display: grid;
     grid-template-rows: auto 1fr;

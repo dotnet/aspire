@@ -331,8 +331,8 @@ fluent-switch.table-switch::part(label) {
 .property-grid-container {
     grid-area: main;
     overflow: auto;
-    width: 100%;
-    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
     padding: calc(var(--design-unit) * 1px);
     padding-top: 0;
 }
