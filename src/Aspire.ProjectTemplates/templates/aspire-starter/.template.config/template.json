@@ -45,7 +45,7 @@
           ]
         },
         {
-          "condition": "(!CreateTestsProject)",
+          "condition": "(TestProjectFrameworkKind == None)",
           "exclude": [
             "AspireStarterApplication.1.Tests/**/*.*"
           ]
@@ -84,12 +84,26 @@
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
       "description": "Configures whether to setup the application to use Redis for caching. Requires a supported continer runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
     },
-    "CreateTestsProject": {
+    "TestProjectFrameworkKind": {
       "type": "parameter",
-      "datatype": "bool",
-      "defaultValue": "false",
+      "datatype": "choice",
+      "defaultValue": "None",
       "displayName": "Create a _tests project",
-      "description": "Configures whether to create a project for integration tests using the AppHost project."
+      "description": "Configures whether to create a project for integration tests using the AppHost project.",
+      "choices": [
+        {
+          "choice": "None",
+          "description": "Do not create a test project."
+        },
+        {
+          "choice": "MSTest",
+          "description": "Create a MSTest test project using the AppHost project."
+        },
+        {
+          "choice": "xUnit",
+          "description": "Create a xUnit test project using the AppHost project."
+        }
+      ]
     },
     "appHostHttpPort": {
       "type": "parameter",
@@ -347,7 +361,11 @@
     },
     {
       "path": "AspireStarterApplication.1.Tests\\AspireStarterApplication.1.Tests.csproj",
-      "condition": "(CreateTestsProject)"
+      "condition": "(TestProjectFrameworkKind == MSTest)"
+    },
+    {
+      "path": "AspireStarterApplication.1.Tests\\AspireStarterApplication.1.Tests.csproj",
+      "condition": "(TestProjectFrameworkKind == xUnit)"
     }
   ],
   "postActions": [

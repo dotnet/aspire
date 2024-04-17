@@ -1,3 +1,28 @@
+<!--#if (TestProjectFrameworkKind == "MSTest") -->
+<Project Sdk="MSTest.Sdk/3.3.1">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Testing" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AspireStarterApplication.1.AppHost\AspireStarterApplication.1.AppHost.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Aspire.Hosting.Testing" />
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+</Project>
+<!--#endif -->
+<!--#if (TestProjectFrameworkKind == "xUnit") -->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -26,3 +51,4 @@
   </ItemGroup>
 
 </Project>
+<!--#endif -->
