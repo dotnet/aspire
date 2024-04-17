@@ -35,8 +35,37 @@ public class WithAnnotationTests
 
         Assert.NotEqual(firstAnnotation, secondAnnotation);
     }
+
+    [Fact]
+    public void WithAnnotationAlsoReplacesDerivedTypes()
+    {
+        // Add two annotations...
+        var builder = DistributedApplication.CreateBuilder();
+        var redis = builder.AddRedis("redis").WithAnnotation(new DerivedDummyAnnotation())
+                                             .WithAnnotation(new DummyAnnotation(), ResourceAnnotationMutationBehavior.Replace);
+
+        // ... but we should only have one because DerivedDummyAnnotation is a subclass of DummyAnnotation.
+        redis.Resource.Annotations.OfType<DummyAnnotation>().Single();
+    }
+
+    [Fact]
+    public void WithAnnotationDoesNotReplaceBaseTypes()
+    {
+        // Add two annotations...
+        var builder = DistributedApplication.CreateBuilder();
+        var redis = builder.AddRedis("redis").WithAnnotation(new DummyAnnotation(), ResourceAnnotationMutationBehavior.Replace)
+                                             .WithAnnotation(new DerivedDummyAnnotation());
+
+        // ... now there should be two because the second one we added was more drived.
+        Assert.Equal(2, redis.Resource.Annotations.OfType<DummyAnnotation>().Count());
+    }
+
 }
 
 public class DummyAnnotation : IResourceAnnotation
+{
+}
+
+public class DerivedDummyAnnotation : DummyAnnotation
 {
 }
