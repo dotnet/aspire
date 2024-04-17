@@ -93,9 +93,6 @@ public partial class ResourceDetails
             new KnownProperty(KnownProperties.Container.Args, Loc[Resources.Resources.ResourcesDetailsContainerArgumentsProperty]),
             new KnownProperty(KnownProperties.Container.Ports, Loc[Resources.Resources.ResourcesDetailsContainerPortsProperty]),
         ];
-
-        _resource = Resource;
-        ResetResourceEnvironmentVariableMasks();
     }
 
     protected override void OnParametersSet()
@@ -104,19 +101,6 @@ public partial class ResourceDetails
         {
             _resource = Resource;
             ResetResourceEnvironmentVariableMasks();
-        }
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Initially set environment variable mask state to the default value of _areEnvironmentVariablesMasked
-            // Subsequent changes are handled by updating model.IsValueMasked in ToggleMaskState
-            foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
-            {
-                vm.IsValueMasked = _areEnvironmentVariablesMasked;
-            }
         }
     }
 
