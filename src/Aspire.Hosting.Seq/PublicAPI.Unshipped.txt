@@ -1,0 +1,7 @@
+#nullable enable
+Aspire.Hosting.ApplicationModel.SeqResource
+Aspire.Hosting.ApplicationModel.SeqResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.ApplicationModel.SeqResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.ApplicationModel.SeqResource.SeqResource(string! name) -> void
+Aspire.Hosting.SeqBuilderExtensions
+static Aspire.Hosting.SeqBuilderExtensions.AddSeq(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, string? seqDataDirectory = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>!

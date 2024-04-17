@@ -36,7 +36,7 @@ public class DistributedCacheConformanceTests : ConformanceTests
     {
     }
 
-    [RequiresDockerFact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/3577")]
     public void WorksWithOpenTelemetryTracing()
     {
         RemoteExecutor.Invoke(async (connectionString) =>
@@ -48,7 +48,7 @@ public class DistributedCacheConformanceTests : ConformanceTests
 
             builder.AddRedisDistributedCache("redis");
 
-            var notifier = new ActivityNotifier();
+            using var notifier = new ActivityNotifier();
             builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
             // set the FlushInterval to to zero so the Activity gets created immediately
             builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
@@ -61,14 +61,26 @@ public class DistributedCacheConformanceTests : ConformanceTests
             var cache = host.Services.GetRequiredService<IDistributedCache>();
             await cache.GetAsync("myFakeKey", CancellationToken.None);
 
-            // wait for the Activity to be processed
-            await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
-
-            Assert.Single(notifier.ExportedActivities);
-
-            var activity = notifier.ExportedActivities[0];
-            Assert.Equal("HMGET", activity.OperationName);
-            Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
+            // read the first 3 activities
+            var activityList = await notifier.TakeAsync(3, TimeSpan.FromSeconds(10));
+            Assert.Equal(3, activityList.Count);
+            Assert.Collection(activityList,
+                // https://github.com/dotnet/aspnetcore/pull/54239 added 2 CLIENT activities on the first call
+                activity =>
+                {
+                    Assert.Equal("CLIENT", activity.OperationName);
+                    Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
+                },
+                activity =>
+                {
+                    Assert.Equal("CLIENT", activity.OperationName);
+                    Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
+                },
+                activity =>
+                {
+                    Assert.Equal("HMGET", activity.OperationName);
+                    Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
+                });
         }, ConnectionString).Dispose();
     }
 }

@@ -14,16 +14,14 @@ public partial class EndpointsColumnDisplay
     [Parameter, EditorRequired]
     public required bool HasMultipleReplicas { get; set; }
 
+    [Parameter, EditorRequired]
+    public required IList<DisplayedEndpoint> DisplayedEndpoints { get; set; }
+
+    [Parameter]
+    public string? AdditionalMessage { get; set; }
+
     [Inject]
     public required ILogger<EndpointsColumnDisplay> Logger { get; init; }
 
     private bool _popoverVisible;
-
-    /// <summary>
-    /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
-    /// </summary>
-    private static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource)
-    {
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
-    }
 }

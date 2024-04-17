@@ -24,10 +24,11 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
         config.Bind(settings);
     }
 
-    protected override IAzureClientBuilder<EventHubConsumerClient, EventHubConsumerClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingEventHubsConsumerSettings settings,
+    protected override IAzureClientBuilder<EventHubConsumerClient, EventHubConsumerClientOptions> AddClient(
+        AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingEventHubsConsumerSettings settings,
         string connectionName, string configurationSectionName)
     {
-        return azureFactoryBuilder.RegisterClientFactory<EventHubConsumerClient, EventHubConsumerClientOptions>((options, cred) =>
+        return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<EventHubConsumerClient, EventHubConsumerClientOptions>((options, cred) =>
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 

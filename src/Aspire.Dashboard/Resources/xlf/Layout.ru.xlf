@@ -44,17 +44,17 @@
       </trans-unit>
       <trans-unit id="MessageTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">Недоверенные приложения могут отправлять телеметрию на панель мониторинга.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageTelemetryLink">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">Дополнительные сведения</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageTelemetryTitle">
         <source>Telemetry endpoint is unsecured</source>
-        <target state="new">Telemetry endpoint is unsecured</target>
+        <target state="translated">Конечная точка телеметрии не защищена</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">

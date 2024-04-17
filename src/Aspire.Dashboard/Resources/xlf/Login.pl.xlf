@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AuthorizedUser">
         <source>Authorized User</source>
-        <target state="new">Authorized User</target>
+        <target state="translated">Autoryzowany użytkownik</target>
         <note>Placeholder text for the name of the authorized user when no name claim exists</note>
       </trans-unit>
       <trans-unit id="Header">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="HelpScreenshotAltText">
         <source>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</source>
-        <target state="new">Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</target>
+        <target state="translated">Zrzut ekranu przedstawiający przykładowe dane wyjściowe konsoli pokazujące, gdzie można znaleźć token frontonu pulpitu nawigacyjnego. Czerwona ramka wyróżnia token na końcu adresu URL. Token jest wartością parametru zapytania o nazwie „t”.</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidTokenErrorMessage">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="LoggedInAs">
         <source>Logged in as:</source>
-        <target state="new">Logged in as:</target>
+        <target state="translated">Zalogowano się jako:</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoLinkText">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">Więcej informacji</target>
         <note />
       </trans-unit>
       <trans-unit id="PageTitle">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="TokenHelpTextLine1">
         <source>Copy the highlighted token from the console to the login page and log in.</source>
-        <target state="new">Copy the highlighted token from the console to the login page and log in.</target>
+        <target state="translated">Skopiuj wyróżniony token z konsoli na stronę logowania i zaloguj się.</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenHelpTextLine2">
         <source>Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</source>
-        <target state="new">Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</target>
+        <target state="translated">Możesz też kliknąć link konsoli, aby automatycznie się zalogować. Adres może nie być poprawny, gdy pulpit nawigacyjny jest uruchomiony w kontenerze, a port zewnętrzny jest mapowany na inną wartość.</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenRequiredErrorMessage">

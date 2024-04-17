@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Primitives;
 using Azure.Messaging.EventHubs.Producer;
+using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,8 +20,7 @@ public class AspireEventHubsExtensionsTests
     private const string EhConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
                                               "SharedAccessKeyName=fake;SharedAccessKey=fake;EntityPath=MyHub";
     public const string FullyQualifiedNamespace = "aspireeventhubstests.servicebus.windows.net";
-    private const string BlobsConnectionStringWithContainer = "https://fake.blob.core.windows.net/fakecontainer";
-    //private const string BlobsConnectionString = "https://fake.blob.core.windows.net";
+    private const string BlobsConnectionString = "https://fake.blob.core.windows.net";
 
     private const int EventHubProducerClientIndex = 0;
     private const int EventHubConsumerClientIndex = 1;
@@ -50,26 +51,42 @@ public class AspireEventHubsExtensionsTests
         typeof(PartitionReceiver)
     ];
 
+    private static void ConfigureBlobServiceClient(bool useKeyed, IServiceCollection services)
+    {
+        var blobClient = new BlobServiceClient(new Uri(BlobsConnectionString), new DefaultAzureCredential());
+        if (useKeyed)
+        {
+            services.AddKeyedSingleton("blobs", blobClient);
+        }
+        else
+        {
+            services.AddSingleton(blobClient);
+        }
+    }
+
     [Theory]
     [InlineData(false, EventProcessorClientIndex)]
     [InlineData(true, EventProcessorClientIndex)]
-    public void ProcessorClientShouldNotTryCreateContainerWithBlobContainerUri(bool useKeyed, int clientIndex)
+    public void ProcessorClientShouldNotTryCreateContainerWithBlobContainerSpecified(bool useKeyed, int clientIndex)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
 
         var key = useKeyed ? "eh" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientConnectionName"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
-
-            // container NOT included in connection string
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer)
         ]);
 
         if (useKeyed)
@@ -99,17 +116,22 @@ public class AspireEventHubsExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
         var key = useKeyed ? "eh" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientConnectionName"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
-            new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer)
+            new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString)
         ]);
 
         if (useKeyed)
@@ -138,18 +160,23 @@ public class AspireEventHubsExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
         var key = useKeyed ? "eh" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientConnectionName"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed? "blobs" : null),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo")
         ]);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer),
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString)
         ]);
 
@@ -179,6 +206,8 @@ public class AspireEventHubsExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
         var key = useKeyed ? "eh" : null;
         builder.Configuration.AddInMemoryCollection([
             // component settings
@@ -189,7 +218,11 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientConnectionName"), "blobs"),
+                    key, "BlobContainerName"), "checkpoints"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
@@ -197,7 +230,6 @@ public class AspireEventHubsExtensionsTests
 
             // ambient connection strings
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer)
         ]);
 
         if (useKeyed)
@@ -254,6 +286,8 @@ public class AspireEventHubsExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
         var key = useKeyed ? "eh" : null;
 
         builder.Configuration.AddInMemoryCollection([
@@ -264,14 +298,17 @@ public class AspireEventHubsExtensionsTests
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
-                    key, "BlobClientConnectionName"), "blobs"),
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
                     key, "PartitionId"), "foo"),
 
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
-            new KeyValuePair<string, string?>("ConnectionStrings:blobs", BlobsConnectionStringWithContainer)
         ]);
 
         if (useKeyed)
