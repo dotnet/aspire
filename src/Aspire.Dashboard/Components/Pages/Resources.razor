@@ -11,6 +11,42 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Resources.ResourcesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="content-layout-with-toolbar">
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <h1 slot="label">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
+        <FluentButton id="typeFilterButton" slot="end"
+                      Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
+                      IconEnd="@(new Icons.Regular.Size24.Filter())"
+                      @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
+                      Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
+                      aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
+        <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
+            <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
+            <Body>
+            <FluentStack Orientation="Orientation.Vertical">
+                <FluentCheckbox
+                    Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
+                    ThreeState="true"
+                    ShowIndeterminate="false"
+                    ThreeStateOrderUncheckToIntermediate="true"
+                    @bind-CheckState="AreAllTypesVisible" />
+                @foreach (var (resourceType, _) in _allResourceTypes)
+                {
+                    var isChecked = _visibleResourceTypes.ContainsKey(resourceType);
+                    <FluentCheckbox
+                        Label="@resourceType"
+                        @bind-Value:get="isChecked"
+                        @bind-Value:set="c => OnResourceTypeVisibilityChangedAsync(resourceType, c)"
+                    />
+                }
+            </FluentStack>
+            </Body>
+        </FluentPopover>
+        <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                      Immediate="true"
+                      @bind-Value="_filter"
+                      slot="end"
+                      @bind-Value:after="HandleSearchFilterChangedAsync" />
+    </FluentToolbar>
 
     <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                         ShowDetails="@(SelectedResource is not null)"
@@ -18,44 +54,6 @@
                         SelectedValue="@SelectedResource"
                         ViewKey="ResourcesList">
         <Summary>
-
-            <FluentToolbar Orientation="Orientation.Horizontal">
-                <h1 slot="label">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
-                <FluentButton id="typeFilterButton" slot="end"
-                              Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
-                              IconEnd="@(new Icons.Regular.Size24.Filter())"
-                              @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
-                              Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
-                              aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
-                <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
-                    <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
-                    <Body>
-                    <FluentStack Orientation="Orientation.Vertical">
-                        <FluentCheckbox
-                            Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
-                            ThreeState="true"
-                            ShowIndeterminate="false"
-                            ThreeStateOrderUncheckToIntermediate="true"
-                            @bind-CheckState="AreAllTypesVisible" />
-                        @foreach (var (resourceType, _) in _allResourceTypes)
-                        {
-                            var isChecked = _visibleResourceTypes.ContainsKey(resourceType);
-                            <FluentCheckbox
-                                Label="@resourceType"
-                                @bind-Value:get="isChecked"
-                                @bind-Value:set="c => OnResourceTypeVisibilityChangedAsync(resourceType, c)"
-                            />
-                        }
-                    </FluentStack>
-                    </Body>
-                </FluentPopover>
-                <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
-                              Immediate="true"
-                              @bind-Value="_filter"
-                              slot="end"
-                              @bind-Value:after="HandleSearchFilterChangedAsync" />
-            </FluentToolbar>
-
             @{
                 var gridTemplateColumns = HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
             }
