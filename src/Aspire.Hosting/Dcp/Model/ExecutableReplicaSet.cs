@@ -3,6 +3,7 @@
 
 namespace Aspire.Hosting.Dcp.Model;
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using k8s.Models;
 
@@ -38,6 +39,11 @@ internal sealed class ExecutableTemplate : IAnnotationHolder
         }
 
         CustomResource.AnnotateAsObjectList(Annotations, annotationName, value);
+    }
+
+    public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list)
+    {
+        return CustomResource.TryGetAnnotationAsObjectList(Annotations, annotationName, out list);
     }
 }
 
