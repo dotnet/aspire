@@ -285,7 +285,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information as environment variables from the uri into the destination resource, using the name as the service name.
-    /// The uri will be injected using the format "services__{name}={uri}."
+    /// The uri will be injected using the format "services__{name}__default__0={uri}."
     /// </summary>
     /// <typeparam name="TDestination"></typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -305,7 +305,7 @@ public static class ResourceBuilderExtensions
             throw new InvalidOperationException("The uri absolute path must be \"/\".");
         }
 
-        return builder.WithEnvironment($"services__{name}", uri.ToString());
+        return builder.WithEnvironment($"services__{name}__default__0", uri.ToString());
     }
 
     /// <summary>
