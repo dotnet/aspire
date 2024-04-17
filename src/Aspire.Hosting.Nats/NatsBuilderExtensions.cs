@@ -32,6 +32,26 @@ public static class NatsBuilderExtensions
     /// Adds JetStream support to the NATS server resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
+    /// <param name="srcMountPath">Optional mount path providing persistence between restarts.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("This method is obsolete and will be removed in a future version. Use the overload without the srcMountPath parameter and WithDataBindMount extension instead if you want to keep data locally.")]
+    public static IResourceBuilder<NatsServerResource> WithJetStream(this IResourceBuilder<NatsServerResource> builder, string? srcMountPath = null)
+    {
+        var args = new List<string> { "-js" };
+        if (srcMountPath != null)
+        {
+            args.Add("-sd");
+            args.Add("/data");
+            builder.WithBindMount(srcMountPath, "/data");
+        }
+
+        return builder.WithArgs(args.ToArray());
+    }
+
+    /// <summary>
+    /// Adds JetStream support to the NATS server resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> WithJetStream(this IResourceBuilder<NatsServerResource> builder)
         => builder.WithArgs("-js", "-sd", "/var/lib/nats");
