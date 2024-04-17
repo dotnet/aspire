@@ -32,7 +32,7 @@ public partial class MetricTable : ChartBase
 
     protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
-        // Only update table every second to batch updates. New data coming every 200ms may be disorienting for screen-reader users.
+        // Only update the data grid once per second to avoid additional DOM re-renders.
         if (inProgressDataTime - _lastUpdate < TimeSpan.FromSeconds(1))
         {
             return;
