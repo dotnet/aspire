@@ -41,7 +41,6 @@ internal sealed class ServiceAppResource : AppResource
 {
     public Service Service => (Service)DcpResource;
     public EndpointAnnotation EndpointAnnotation { get; }
-    public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; }
 
     public override List<ServiceAppResource> ServicesProduced
     {
@@ -55,7 +54,6 @@ internal sealed class ServiceAppResource : AppResource
     public ServiceAppResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
     {
         EndpointAnnotation = sba;
-        DcpServiceProducerAnnotation = new(service.Metadata.Name);
     }
 }
 
@@ -1423,20 +1421,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             foreach (var sp in cr.ServicesProduced)
             {
+                var ea = sp.EndpointAnnotation;
+
                 var portSpec = new ContainerPortSpec()
                 {
-                    ContainerPort = sp.DcpServiceProducerAnnotation.Port,
+                    ContainerPort = ea.TargetPort,
                 };
 
-                if (!sp.EndpointAnnotation.IsProxied)
+                if (!ea.IsProxied && ea.Port is int)
                 {
-                    // When DCP isn't proxying the container we need to set the host port that the containers internal port will be mapped to
-                    portSpec.HostPort = sp.EndpointAnnotation.Port;
-                }
-
-                if (!string.IsNullOrEmpty(sp.DcpServiceProducerAnnotation.Address))
-                {
-                    portSpec.HostIP = sp.DcpServiceProducerAnnotation.Address;
+                    portSpec.HostPort = ea.Port;
                 }
 
                 switch (sp.EndpointAnnotation.Protocol)
@@ -1583,43 +1577,48 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
-            // Projects/Executables have their ports auto-allocated; the port specified by the EndpointAnnotation
-            // is applied to the Service objects and used by clients.
-            // Containers use the port from the EndpointAnnotation directly.
+            var ea = sp.EndpointAnnotation;
 
             if (modelResource.IsContainer())
             {
-                if (sp.EndpointAnnotation.TargetPort is null)
+                if (ea.TargetPort is null)
                 {
-                    throw new InvalidOperationException($"The endpoint for container resource '{modelResourceName}' must specify the TargetPort");
+                    throw new InvalidOperationException($"The endpoint '{ea.Name}' for container resource '{modelResourceName}' must specify the {nameof(EndpointAnnotation.TargetPort)} value");
                 }
-
-                sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.TargetPort;
             }
-            else if (!sp.EndpointAnnotation.IsProxied)
+            else if (!ea.IsProxied)
             {
                 if (appResource.DcpResource is ExecutableReplicaSet ers && ers.Spec.Replicas > 1)
                 {
-                    throw new InvalidOperationException($"'{modelResourceName}' specifies multiple replicas and at least one proxyless endpoint. These features do not work together.");
+                    throw new InvalidOperationException($"Resource '{modelResourceName}' uses multiple replicas and a proxy-less endpoint '{ea.Name}'. These features do not work together.");
                 }
 
-                // DCP will not allocate a port for this proxyless service
-                // so we need to specify what the port is so DCP is aware of it.
-                sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.Port;
+                if (ea.Port is int && ea.Port != ea.TargetPort)
+                {
+                    throw new InvalidOperationException($"The endpoint '{ea.Name}' for resource '{modelResourceName}' is not using a proxy, and it has a value of {nameof(EndpointAnnotation.Port)} property that is different from the value of {nameof(EndpointAnnotation.TargetPort)} property. For proxy-less endpoints they must match.");
+                }
             }
             else
             {
-                Debug.Assert(sp.EndpointAnnotation.IsProxied);
+                
+                Debug.Assert(ea.IsProxied);
 
-                var ep = sp.EndpointAnnotation;
-                if (ep.TargetPort is int && ep.Port is int && ep.TargetPort == ep.Port)
+                if (ea.TargetPort is int && ea.Port is int && ea.TargetPort == ea.Port)
                 {
                     throw new InvalidOperationException(
-                        $"The endpoint for non-container resource '{modelResourceName}' requested a proxy ({nameof(ep.IsProxied)} is true). Non-container resources cannot be proxied when both {nameof(ep.TargetPort)} and {nameof(ep.Port)} are specified with the same value.");
+                        $"The endpoint '{ea.Name}' for resource '{modelResourceName}' requested a proxy ({nameof(ea.IsProxied)} is true). Non-container resources cannot be proxied when both {nameof(ea.TargetPort)} and {nameof(ea.Port)} are specified with the same value.");
                 }
+
+                if (appResource.DcpResource is ExecutableReplicaSet && ea.TargetPort is int)
+                {
+                    throw new InvalidOperationException(
+                        $"Resource '{modelResourceName}' can have multiple replicas, and it uses endpoint '{ea.Name}' that has {nameof(ea.TargetPort)} property set. Each replica must have a unique port; setting {nameof(ea.TargetPort)} is not allowed.");
+                } 
             }
 
-            dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, sp.DcpServiceProducerAnnotation);
+            var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);
+            spAnn.Port = ea.TargetPort;
+            dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
         }
     }

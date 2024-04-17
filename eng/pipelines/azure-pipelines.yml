@@ -177,7 +177,7 @@ extends:
 
               pool:
                 name: NetCore1ESPool-Internal
-                image: 1es-mariner-2-pt
+                image: 1es-mariner-2
                 os: linux
 
               variables:

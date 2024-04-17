@@ -21,6 +21,7 @@ public partial class MetricTable : ChartBase
     private OtlpInstrument? _instrument;
     private bool _showCount;
     private bool _onlyShowValueChanges = true;
+    private DateTimeOffset? _lastUpdate;
 
     private readonly CancellationTokenSource _waitTaskCancellationTokenSource = new();
 
@@ -31,6 +32,14 @@ public partial class MetricTable : ChartBase
 
     protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
+        // Only update table every second to batch updates. New data coming every 200ms may be disorienting for screen-reader users.
+        if (inProgressDataTime - _lastUpdate < TimeSpan.FromSeconds(1))
+        {
+            return;
+        }
+
+        _lastUpdate = inProgressDataTime;
+
         if (!Equals(_instrument?.Name, InstrumentViewModel.Instrument?.Name) || _showCount != InstrumentViewModel.ShowCount)
         {
             _metrics.Clear();
@@ -42,8 +51,6 @@ public partial class MetricTable : ChartBase
         _showCount = InstrumentViewModel.ShowCount;
 
         _metrics = UpdateMetrics(out var xValuesToAnnounce, traces, xValues);
-
-        await InvokeAsync(StateHasChanged);
 
         if (xValuesToAnnounce.Count == 0)
         {
