@@ -59,13 +59,13 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
     {
     }
 
-    protected override void SetHealthCheck(NatsClientSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(NatsClientSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(NatsClientSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(NatsClientSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(NatsClientSettings settings, bool enabled)
+    protected override void SetMetrics(NatsClientSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """

@@ -95,14 +95,14 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
         }
     }
 
-    protected override void SetHealthCheck(AzureStorageQueuesSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(AzureStorageQueuesSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetMetrics(AzureStorageQueuesSettings settings, bool enabled)
+    protected override void SetMetrics(AzureStorageQueuesSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureStorageQueuesSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(AzureStorageQueuesSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
     protected override void TriggerActivity(QueueServiceClient service)
     {

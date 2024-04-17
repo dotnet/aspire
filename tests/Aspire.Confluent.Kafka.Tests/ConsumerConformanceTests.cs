@@ -41,11 +41,11 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
         }
     }
 
-    protected override void SetHealthCheck(KafkaConsumerSettings settings, bool enabled) => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(KafkaConsumerSettings options, bool enabled) => options.HealthChecksEnabled = enabled;
 
-    protected override void SetMetrics(KafkaConsumerSettings settings, bool enabled) => settings.MetricsEnabled = enabled;
+    protected override void SetMetrics(KafkaConsumerSettings options, bool enabled) => options.MetricsEnabled = enabled;
 
-    protected override void SetTracing(KafkaConsumerSettings settings, bool enabled)
+    protected override void SetTracing(KafkaConsumerSettings options, bool enabled)
     {
         throw new NotImplementedException();
     }

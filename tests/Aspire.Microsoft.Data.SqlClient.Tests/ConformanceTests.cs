@@ -74,13 +74,13 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
         }
     }
 
-    protected override void SetHealthCheck(MicrosoftDataSqlClientSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(MicrosoftDataSqlClientSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(MicrosoftDataSqlClientSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(MicrosoftDataSqlClientSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(MicrosoftDataSqlClientSettings settings, bool enabled)
+    protected override void SetMetrics(MicrosoftDataSqlClientSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(SqlConnection service)

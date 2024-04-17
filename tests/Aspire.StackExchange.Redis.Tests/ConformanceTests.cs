@@ -84,13 +84,13 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
         }
     }
 
-    protected override void SetHealthCheck(StackExchangeRedisSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(StackExchangeRedisSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(StackExchangeRedisSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(StackExchangeRedisSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(StackExchangeRedisSettings settings, bool enabled)
+    protected override void SetMetrics(StackExchangeRedisSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(IConnectionMultiplexer service)

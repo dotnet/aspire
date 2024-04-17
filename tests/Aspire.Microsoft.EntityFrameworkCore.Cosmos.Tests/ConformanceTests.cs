@@ -36,13 +36,13 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
         => builder.AddCosmosDbContext<TestDbContext>("cosmosdb", "TestDatabase", configure);
 
-    protected override void SetHealthCheck(EntityFrameworkCoreCosmosDBSettings settings, bool enabled)
+    protected override void SetHealthCheck(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(EntityFrameworkCoreCosmosDBSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(EntityFrameworkCoreCosmosDBSettings settings, bool enabled)
+    protected override void SetMetrics(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """

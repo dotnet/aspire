@@ -90,18 +90,18 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
         }
     }
 
-    protected override void SetHealthCheck(RabbitMQClientSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(RabbitMQClientSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void DisableRetries(RabbitMQClientSettings settings)
+    protected override void DisableRetries(RabbitMQClientSettings options)
     {
-        settings.MaxConnectRetryCount = 0;
+        options.MaxConnectRetryCount = 0;
     }
 
-    protected override void SetTracing(RabbitMQClientSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(RabbitMQClientSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(RabbitMQClientSettings settings, bool enabled)
+    protected override void SetMetrics(RabbitMQClientSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(IConnection service)

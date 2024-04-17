@@ -40,11 +40,11 @@ public class ProducerConformanceTests : ConformanceTests<IProducer<string, strin
         }
     }
 
-    protected override void SetHealthCheck(KafkaProducerSettings settings, bool enabled) => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(KafkaProducerSettings options, bool enabled) => options.HealthChecksEnabled = enabled;
 
-    protected override void SetMetrics(KafkaProducerSettings settings, bool enabled) => settings.MetricsEnabled = enabled;
+    protected override void SetMetrics(KafkaProducerSettings options, bool enabled) => options.MetricsEnabled = enabled;
 
-    protected override void SetTracing(KafkaProducerSettings settings, bool enabled)
+    protected override void SetTracing(KafkaProducerSettings options, bool enabled)
     {
         throw new NotImplementedException();
     }

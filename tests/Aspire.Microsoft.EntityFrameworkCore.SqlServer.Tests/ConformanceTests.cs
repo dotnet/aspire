@@ -79,13 +79,13 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
         => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configure);
 
-    protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(MicrosoftEntityFrameworkCoreSqlServerSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(MicrosoftEntityFrameworkCoreSqlServerSettings settings, bool enabled)
+    protected override void SetMetrics(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(TestDbContext service)

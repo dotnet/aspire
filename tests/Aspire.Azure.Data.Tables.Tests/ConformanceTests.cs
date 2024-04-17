@@ -93,14 +93,14 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
         }
     }
 
-    protected override void SetHealthCheck(AzureDataTablesSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(AzureDataTablesSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetMetrics(AzureDataTablesSettings settings, bool enabled)
+    protected override void SetMetrics(AzureDataTablesSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureDataTablesSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(AzureDataTablesSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
     protected override void TriggerActivity(TableServiceClient service)
     {

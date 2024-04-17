@@ -82,17 +82,17 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
         }
     }
 
-    protected override void SetHealthCheck(MongoDBSettings settings, bool enabled)
+    protected override void SetHealthCheck(MongoDBSettings options, bool enabled)
     {
-        settings.HealthChecksEnabled = enabled;
-        settings.HealthCheckTimeout = 10;
+        options.HealthChecksEnabled = enabled;
+        options.HealthCheckTimeout = 10;
     }
 
-    protected override void SetMetrics(MongoDBSettings settings, bool enabled) => throw new NotImplementedException();
+    protected override void SetMetrics(MongoDBSettings options, bool enabled) => throw new NotImplementedException();
 
-    protected override void SetTracing(MongoDBSettings settings, bool enabled)
+    protected override void SetTracing(MongoDBSettings options, bool enabled)
     {
-        settings.TracingEnabled = enabled;
+        options.TracingEnabled = enabled;
     }
 
     protected override void TriggerActivity(IMongoClient service)

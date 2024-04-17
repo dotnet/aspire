@@ -62,13 +62,13 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<OracleEntityFrameworkCoreSettings>? configure = null, string? key = null)
         => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configure);
 
-    protected override void SetHealthCheck(OracleEntityFrameworkCoreSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(OracleEntityFrameworkCoreSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(OracleEntityFrameworkCoreSettings settings, bool enabled)
+    protected override void SetTracing(OracleEntityFrameworkCoreSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetMetrics(OracleEntityFrameworkCoreSettings settings, bool enabled)
+    protected override void SetMetrics(OracleEntityFrameworkCoreSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(TestDbContext service)

@@ -93,14 +93,14 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
         }
     }
 
-    protected override void SetHealthCheck(AzureStorageBlobsSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(AzureStorageBlobsSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetMetrics(AzureStorageBlobsSettings settings, bool enabled)
+    protected override void SetMetrics(AzureStorageBlobsSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureStorageBlobsSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(AzureStorageBlobsSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
     protected override void TriggerActivity(BlobServiceClient service)
     {

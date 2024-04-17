@@ -90,14 +90,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<PomeloEntityFrameworkCoreMySqlSettings>? configure = null, string? key = null)
         => builder.AddMySqlDbContext<TestDbContext>("mysql", configure);
 
-    protected override void SetHealthCheck(PomeloEntityFrameworkCoreMySqlSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(PomeloEntityFrameworkCoreMySqlSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(PomeloEntityFrameworkCoreMySqlSettings settings, bool enabled)
-        => settings.MetricsEnabled = enabled;
+    protected override void SetMetrics(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
+        => options.MetricsEnabled = enabled;
 
     protected override void TriggerActivity(TestDbContext service)
     {

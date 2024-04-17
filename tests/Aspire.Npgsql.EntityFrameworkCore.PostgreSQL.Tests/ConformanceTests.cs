@@ -93,14 +93,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
         => builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
 
-    protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, bool enabled)
-        => settings.MetricsEnabled = enabled;
+    protected override void SetMetrics(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
+        => options.MetricsEnabled = enabled;
 
     protected override void TriggerActivity(TestDbContext service)
     {

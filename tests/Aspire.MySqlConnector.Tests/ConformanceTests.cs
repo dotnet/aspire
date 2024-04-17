@@ -79,14 +79,14 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
         }
     }
 
-    protected override void SetHealthCheck(MySqlConnectorSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(MySqlConnectorSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(MySqlConnectorSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(MySqlConnectorSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(MySqlConnectorSettings settings, bool enabled)
-        => settings.MetricsEnabled = enabled;
+    protected override void SetMetrics(MySqlConnectorSettings options, bool enabled)
+        => options.MetricsEnabled = enabled;
 
     protected override void TriggerActivity(MySqlDataSource service)
     {

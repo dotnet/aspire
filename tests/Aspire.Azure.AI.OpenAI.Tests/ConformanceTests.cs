@@ -92,14 +92,14 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
-    protected override void SetHealthCheck(AzureOpenAISettings settings, bool enabled)
+    protected override void SetHealthCheck(AzureOpenAISettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetMetrics(AzureOpenAISettings settings, bool enabled)
+    protected override void SetMetrics(AzureOpenAISettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureOpenAISettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(AzureOpenAISettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
     protected override void TriggerActivity(OpenAIClient service)
         => service.GetCompletions(new CompletionsOptions { DeploymentName = "dummy-gpt" });

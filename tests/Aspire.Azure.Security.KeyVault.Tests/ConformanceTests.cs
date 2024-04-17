@@ -88,14 +88,14 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
         }
     }
 
-    protected override void SetHealthCheck(AzureSecurityKeyVaultSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(AzureSecurityKeyVaultSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetMetrics(AzureSecurityKeyVaultSettings settings, bool enabled)
+    protected override void SetMetrics(AzureSecurityKeyVaultSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureSecurityKeyVaultSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(AzureSecurityKeyVaultSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
     protected override void TriggerActivity(SecretClient service)
         => service.GetSecret("IsAlive");

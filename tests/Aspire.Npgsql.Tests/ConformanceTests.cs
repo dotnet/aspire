@@ -81,14 +81,14 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
         }
     }
 
-    protected override void SetHealthCheck(NpgsqlSettings settings, bool enabled)
-        => settings.HealthChecksEnabled = enabled;
+    protected override void SetHealthCheck(NpgsqlSettings options, bool enabled)
+        => options.HealthChecksEnabled = enabled;
 
-    protected override void SetTracing(NpgsqlSettings settings, bool enabled)
-        => settings.TracingEnabled = enabled;
+    protected override void SetTracing(NpgsqlSettings options, bool enabled)
+        => options.TracingEnabled = enabled;
 
-    protected override void SetMetrics(NpgsqlSettings settings, bool enabled)
-        => settings.MetricsEnabled = enabled;
+    protected override void SetMetrics(NpgsqlSettings options, bool enabled)
+        => options.MetricsEnabled = enabled;
 
     protected override void TriggerActivity(NpgsqlDataSource service)
     {
