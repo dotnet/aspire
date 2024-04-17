@@ -51,7 +51,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Npgsql":{ "MetricsEnabled": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql":{ "DisableMetrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
             ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 

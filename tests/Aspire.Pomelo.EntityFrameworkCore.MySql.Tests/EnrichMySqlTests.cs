@@ -70,7 +70,7 @@ public class EnrichMySqlTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:DisableRetry", "false")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
@@ -160,7 +160,7 @@ public class EnrichMySqlTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "false")
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:DisableRetry", "true")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
@@ -203,7 +203,7 @@ public class EnrichMySqlTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:DisableRetry", "false")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
@@ -315,7 +315,7 @@ public class EnrichMySqlTests : ConformanceTests
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
-        Assert.Equal("PomeloEntityFrameworkCoreMySqlSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
+        Assert.Equal("PomeloEntityFrameworkCoreMySqlSettings.DisableRetry needs to be set when a custom Execution Strategy is configured.", exception.Message);
     }
 
     [Fact]

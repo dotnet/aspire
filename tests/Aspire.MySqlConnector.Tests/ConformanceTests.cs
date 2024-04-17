@@ -49,7 +49,7 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "MySqlConnector":{ "MetricsEnabled": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "MySqlConnector":{ "DisableMetrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
             ("""{"Aspire": { "MySqlConnector":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 

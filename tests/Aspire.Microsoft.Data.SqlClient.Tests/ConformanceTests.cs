@@ -43,7 +43,7 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "TracingEnabled": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "DisableTracing": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
             ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 

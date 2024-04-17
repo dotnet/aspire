@@ -125,7 +125,7 @@ public static class AspireOracleEFCoreExtensions
                             {
                                 // Keep custom Retry strategy.
                                 // Any sub-class of OracleRetryingExecutionStrategy is a valid retry strategy
-                                // which shouldn't be replaced even with Retry == true
+                                // which shouldn't be replaced even with DisableRetry == false
                             }
                             else if (executionStrategy.GetType() != typeof(OracleExecutionStrategy))
                             {

@@ -127,7 +127,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                             {
                                 // Keep custom Retry strategy.
                                 // Any sub-class of SqlServerRetryingExecutionStrategy is a valid retry strategy
-                                // which shouldn't be replaced even with RetryEnabled == true
+                                // which shouldn't be replaced even with DisableRetry == false
                             }
                             else if (executionStrategy.GetType() != typeof(SqlServerExecutionStrategy))
                             {

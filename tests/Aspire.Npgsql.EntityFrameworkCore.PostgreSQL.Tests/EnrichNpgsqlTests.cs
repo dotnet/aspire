@@ -150,7 +150,7 @@ public class EnrichNpgsqlTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Retry", "false")
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableRetry", "true")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
@@ -194,7 +194,7 @@ public class EnrichNpgsqlTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableRetry", "false")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
@@ -312,7 +312,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
-        Assert.Equal("NpgsqlEntityFrameworkCorePostgreSQLSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
+        Assert.Equal("NpgsqlEntityFrameworkCorePostgreSQLSettings.DisableRetry needs to be set when a custom Execution Strategy is configured.", exception.Message);
     }
 
     [Fact]

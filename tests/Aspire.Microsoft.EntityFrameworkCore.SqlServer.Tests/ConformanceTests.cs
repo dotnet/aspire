@@ -57,7 +57,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "RetryEnabled": "5"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "DisableRetry": "5"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "DisableHealthChecks": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "DisableTracing": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };

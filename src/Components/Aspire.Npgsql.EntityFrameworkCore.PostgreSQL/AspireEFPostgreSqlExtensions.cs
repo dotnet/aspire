@@ -138,7 +138,7 @@ public static partial class AspireEFPostgreSqlExtensions
                             {
                                 // Keep custom Retry strategy.
                                 // Any sub-class of NpgsqlRetryingExecutionStrategy is a valid retry strategy
-                                // which shouldn't be replaced even with Retry == true
+                                // which shouldn't be replaced even with DisableRetry == false
                             }
                             else if (executionStrategy.GetType() != typeof(NpgsqlExecutionStrategy))
                             {

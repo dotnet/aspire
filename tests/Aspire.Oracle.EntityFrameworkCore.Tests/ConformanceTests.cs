@@ -49,7 +49,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "RetryEnabled": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableRetry": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableHealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 

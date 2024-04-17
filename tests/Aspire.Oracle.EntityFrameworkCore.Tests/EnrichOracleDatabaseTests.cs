@@ -52,7 +52,7 @@ public class EnrichOracleDatabaseTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:DisableRetry", "false")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
@@ -142,7 +142,7 @@ public class EnrichOracleDatabaseTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "false")
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:DisableRetry", "true")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
@@ -185,7 +185,7 @@ public class EnrichOracleDatabaseTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:DisableRetry", "false")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
@@ -297,7 +297,7 @@ public class EnrichOracleDatabaseTests : ConformanceTests
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
-        Assert.Equal("OracleEntityFrameworkCoreSettings.Retry can't be set when a custom Execution Strategy is configured.", exception.Message);
+        Assert.Equal("OracleEntityFrameworkCoreSettings.DisableRetry needs to be set when a custom Execution Strategy is configured.", exception.Message);
     }
 
     [Fact]

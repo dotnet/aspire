@@ -182,7 +182,7 @@ public static partial class AspireEFMySqlExtensions
                                 {
                                     // Keep custom Retry strategy.
                                     // Any sub-class of MySqlRetryingExecutionStrategy is a valid retry strategy
-                                    // which shouldn't be replaced even with Retry == true
+                                    // which shouldn't be replaced even with DisableRetry == false
                                 }
                                 else if (executionStrategy.GetType() != typeof(MySqlExecutionStrategy))
                                 {

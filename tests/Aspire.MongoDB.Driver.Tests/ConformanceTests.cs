@@ -45,9 +45,9 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
     {
-        ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthChecksEnabled": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "DisableHealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
         ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthCheckTimeout": "10000"}}}}""", "Value is \"string\" but should be \"integer\""),
-        ("""{"Aspire": { "MongoDB":{ "Driver": { "TracingEnabled": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "DisableTracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
     };
 
     protected override string[] RequiredLogCategories => [
