@@ -14,9 +14,9 @@ public class TestLoggerFactory : ILoggerFactory
         _enabled = enabled;
     }
 
-    public ILogger CreateLogger(string categoryName)
+    public ILogger CreateLogger(string name)
     {
-        return new TestLogger(categoryName, _sink, _enabled);
+        return new TestLogger(name, _sink, _enabled);
     }
 
     public void AddProvider(ILoggerProvider provider)

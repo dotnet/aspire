@@ -1,16 +1,4 @@
 #nullable enable
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.AccountEndpoint.get -> System.Uri?
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.AccountEndpoint.set -> void
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.AzureCosmosDBSettings() -> void
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.ConnectionString.get -> string?
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.ConnectionString.set -> void
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.Credential.get -> Azure.Core.TokenCredential?
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.Credential.set -> void
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.DisableTracing.get -> bool
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.DisableTracing.set -> void
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.Tracing.get -> bool
-Aspire.Microsoft.Azure.Cosmos.AzureCosmosDBSettings.Tracing.set -> void
 Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings
 Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.AccountEndpoint.get -> System.Uri?
 Aspire.Microsoft.Azure.Cosmos.MicrosoftAzureCosmosDBSettings.AccountEndpoint.set -> void

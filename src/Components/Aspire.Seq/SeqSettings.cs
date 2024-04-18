@@ -20,7 +20,7 @@ public sealed class SeqSettings
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Seq server health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Seq server health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.

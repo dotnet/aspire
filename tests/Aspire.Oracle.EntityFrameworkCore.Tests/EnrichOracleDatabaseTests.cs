@@ -293,7 +293,7 @@ public class EnrichOracleDatabaseTests : ConformanceTests
             optionsBuilder.UseOracle(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomExecutionStrategy(c)));
         });
 
-        builder.EnrichOracleDatabaseDbContext<TestDbContext>(settings => settings.DisableRetry = !true);
+        builder.EnrichOracleDatabaseDbContext<TestDbContext>(settings => settings.DisableRetry = false);
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
@@ -310,7 +310,7 @@ public class EnrichOracleDatabaseTests : ConformanceTests
             optionsBuilder.UseOracle(ConnectionString, builder => builder.ExecutionStrategy(c => new CustomRetryExecutionStrategy(c)));
         });
 
-        builder.EnrichOracleDatabaseDbContext<TestDbContext>(settings => settings.DisableRetry = !true);
+        builder.EnrichOracleDatabaseDbContext<TestDbContext>(settings => settings.DisableRetry = false);
 
         using var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

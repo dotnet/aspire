@@ -53,7 +53,7 @@ Also you can pass the `Action<SeqSettings> configureSettings` delegate to set up
 
 ```csharp
 builder.AddSeqEndpoint("seq", settings => {
-    settings.DisableHealthChecks = !false;
+    settings.DisableHealthChecks = true;
     settings.ServerUrl = "http://localhost:5341";
     settings.Logs.TimeoutMilliseconds = 10000;
 });

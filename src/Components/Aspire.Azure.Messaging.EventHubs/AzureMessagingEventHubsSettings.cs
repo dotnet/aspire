@@ -34,6 +34,15 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
     /// </remarks>
+    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(FullyQualifiedNamespace)} instead.")]
+    public string? Namespace { get; set; }
+
+    /// <summary>
+    /// Gets or sets the fully qualified Event Hubs namespace. 
+    /// </summary>
+    /// <remarks>
+    /// Used along with <see cref="Credential"/> to establish the connection.
+    /// </remarks>
     public string? FullyQualifiedNamespace { get; set; }
 
     /// <summary>
@@ -47,6 +56,15 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="true" />.
+    /// </value>
+    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableTracing)} instead.")]
+    public bool Tracing { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
@@ -54,13 +72,16 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
+    /// <value>  
+    /// The default value is <see langword="false"/>.  
+    /// </value>
     public bool DisableTracing
     {
         get { return _disableTracing ??= !GetTracingDefaultValue(); }
         set { _disableTracing = value; }
     }
 
-    // default Tracing to true if the experimental switch is set
+    // Defaults DisableTracing to false if the experimental switch is set
     // TODO: remove this when ActivitySource support is no longer experimental
     private static bool GetTracingDefaultValue()
     {

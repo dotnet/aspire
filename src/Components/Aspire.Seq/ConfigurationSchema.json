@@ -21,7 +21,7 @@
             },
             "DisableHealthChecks": {
               "type": "boolean",
-              "description": "Gets or sets a boolean value that indicates whether the Seq server health check is enabled or not.",
+              "description": "Gets or sets a boolean value that indicates whether the Seq server health check is disabled or not.",
               "default": false
             },
             "Logs": {
