@@ -117,7 +117,11 @@ public class WithEndpointTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddExecutable("foo", "foo", ".")
-               .WithHttpEndpoint(targetPort: 3001, name: "mybinding", env: "PORT");
+               .WithHttpEndpoint(targetPort: 3001, name: "mybinding", env: "PORT")
+               .WithEndpoint("mybinding", e =>
+               {
+                   e.AllocatedEndpoint = new(e, "localhost", 8031, targetPortExpression: "3001");
+               });
 
         using var app = builder.Build();
 
