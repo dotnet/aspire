@@ -321,7 +321,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </para>
     /// <list type="number">
     /// <item>Run mode; in run mode the AppHost runs until a shutdown of the app is triggered
-    /// either by the users pressing CTRL-C, the debugger detaching or the browser associated
+    /// either by the users pressing <c>Ctrl-C</c>, the debugger detaching, or the browser associated
     /// with the dashboard being closed.</item>
     /// <item>Publish mode; in publish mode the AppHost runs just long enough to generate a
     /// manifest file that is used by deployment tool.</item>
