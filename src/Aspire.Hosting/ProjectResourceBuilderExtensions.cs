@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
@@ -95,6 +96,14 @@ public static class ProjectResourceBuilderExtensions
         // https://github.com/open-telemetry/opentelemetry-dotnet/pull/5495
         // Remove once retry feature in opentelemetry-dotnet is enabled by default.
         builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", "in_memory");
+
+        // OTEL settings that are used to improve local development experience.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode && builder.ApplicationBuilder.Environment.IsDevelopment())
+        {
+            // Disable URL query redaction, e.g. ?myvalue=Redacted
+            builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION", "true");
+            builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION", "true");
+        }
 
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
