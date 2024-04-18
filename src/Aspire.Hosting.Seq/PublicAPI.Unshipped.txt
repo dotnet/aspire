@@ -5,5 +5,6 @@ Aspire.Hosting.ApplicationModel.SeqResource.PrimaryEndpoint.get -> Aspire.Hostin
 Aspire.Hosting.ApplicationModel.SeqResource.SeqResource(string! name) -> void
 Aspire.Hosting.SeqBuilderExtensions
 static Aspire.Hosting.SeqBuilderExtensions.AddSeq(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>!
+static Aspire.Hosting.SeqBuilderExtensions.AddSeq(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, string? seqDataDirectory = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>!
 static Aspire.Hosting.SeqBuilderExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>! builder, string! source, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>!
 static Aspire.Hosting.SeqBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>! builder, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SeqResource!>!

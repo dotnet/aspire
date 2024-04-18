@@ -20,7 +20,40 @@ public static class SeqBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name to give the resource.</param>
     /// <param name="port">The host port for the Seq server.</param>
+    /// <param name="seqDataDirectory">Host directory to bind to Seq's data directory. This must already exist.</param>
+    [Obsolete("Use the overload that does not require a seqDataDirectory parameter. If persistence is required use WithDataBindMount or WithDataVolume extension methods.")]
+#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
     public static IResourceBuilder<SeqResource> AddSeq(
+#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
+        this IDistributedApplicationBuilder builder,
+        string name,
+        int? port = null,
+        string? seqDataDirectory = null)
+    {
+        var seqResource = new SeqResource(name);
+        var resourceBuilder = builder.AddResource(seqResource)
+            .WithHttpEndpoint(port: port, targetPort: 80, name: SeqResource.PrimaryEndpointName)
+            .WithImage(SeqContainerImageTags.Image, SeqContainerImageTags.Tag)
+            .WithImageRegistry(SeqContainerImageTags.Registry)
+            .WithEnvironment("ACCEPT_EULA", "Y");
+
+        if (!string.IsNullOrEmpty(seqDataDirectory))
+        {
+            resourceBuilder.WithBindMount(seqDataDirectory, SeqContainerDataDirectory);
+        }
+
+        return resourceBuilder;
+    }
+
+    /// <summary>
+    /// Adds a Seq server resource to the application model. A container is used for local development.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name to give the resource.</param>
+    /// <param name="port">The host port for the Seq server.</param>
+#pragma warning disable RS0016 // Add public types and members to the declared API
+    public static IResourceBuilder<SeqResource> AddSeq(
+#pragma warning restore RS0016 // Add public types and members to the declared API
         this IDistributedApplicationBuilder builder,
         string name,
         int? port = null)
