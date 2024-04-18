@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text.Json;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.MySql;
@@ -17,6 +19,39 @@ namespace Aspire.Hosting.Tests;
 
 public class ManifestGenerationTests
 {
+    [Fact]
+    public async Task CorrectlyEncodesMultilineBicepParametersInManifest()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var kvBuilder = builder.AddAzureKeyVault("mykeyvault");
+        kvBuilder.WithParameter("multiline", """
+            this
+            is
+            a
+            multiline
+            value
+            """);
+
+        using var app = builder.Build();
+
+        var manifestAndBicep = await ManifestUtils.GetManifestWithBicep(kvBuilder.Resource);
+
+        var expectedManifest = $$$"""
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{mykeyvault.outputs.vaultUri}",
+              "path": "mykeyvault.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": "",
+                "multiline": "this\r\nis\r\na\r\nmultiline\r\nvalue"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifestAndBicep.ManifestNode.ToString());
+    }
+
     [Fact]
     public void EnsureAddParameterWithSecretFalseDoesntEmitSecretField()
     {
