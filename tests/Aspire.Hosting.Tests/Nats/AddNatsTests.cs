@@ -59,10 +59,15 @@ public class AddNatsTests
         Assert.Equal(path, mountAnnotation.Source);
         Assert.Equal("/var/lib/nats", mountAnnotation.Target);
 
-        var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>());
-        Assert.NotNull(argsAnnotation.Callback);
+        var argsAnnotations = containerResource.Annotations.OfType<CommandLineArgsCallbackAnnotation>();
+
         var args = new List<object>();
-        argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        foreach (var argsAnnotation in argsAnnotations)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+
+        }
         Assert.Equal("-js -sd /var/lib/nats".Split(' '), args);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
