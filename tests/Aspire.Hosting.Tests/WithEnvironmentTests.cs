@@ -10,6 +10,22 @@ namespace Aspire.Hosting.Tests;
 public class WithEnvironmentTests
 {
     [Fact]
+    public void WithEnvironmentThrowsOnInvalidEnvironmentVariableName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        Assert.Throws<ArgumentException>(() =>
+        {
+            builder.AddContainer("foo", "bar")
+                   .WithEnvironment("""
+                                    multi
+                                    line
+                                    env
+                                    var
+                                    """, "ok value");
+        });
+    }
+
+    [Fact]
     public async Task EnvironmentReferencingEndpointPopulatesWithBindingUrl()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
