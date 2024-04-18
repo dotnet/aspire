@@ -97,11 +97,11 @@
         },
         {
           "choice": "MSTest",
-          "description": "Creates a MSTest test project using the AppHost project."
+          "description": "Creates an MSTest test project using the AppHost project."
         },
         {
-          "choice": "xUnit",
-          "description": "Creates a xUnit test project using the AppHost project."
+          "choice": "xUnit.net",
+          "description": "Creates an xUnit.net test project using the AppHost project."
         }
       ]
     },
