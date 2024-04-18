@@ -97,7 +97,8 @@ public static class ProjectResourceBuilderExtensions
         // Remove once retry feature in opentelemetry-dotnet is enabled by default.
         builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", "in_memory");
 
-        if (builder.ApplicationBuilder.Environment.IsDevelopment())
+        // OTEL settings that are used to improve local development experience.
+        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode && builder.ApplicationBuilder.Environment.IsDevelopment())
         {
             // Disable URL query redaction, e.g. ?myvalue=Redacted
             builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION", "true");
