@@ -24,7 +24,7 @@ internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedAppli
 
         // If the behavior is AddReplace then there should never be more than one annotation present. The following call will result in an exception which
         // allows us to easily spot these bugs.
-        if (behavior == ResourceAnnotationMutationBehavior.Replace&& Resource.Annotations.SingleOrDefault(a => IsSameOrSubclassOf(a, annotation)) is { } existingAnnotation)
+        if (behavior == ResourceAnnotationMutationBehavior.Replace&& Resource.Annotations.SingleOrDefault(a => IsAssignableFrom(a, annotation)) is { } existingAnnotation)
         {
             Resource.Annotations.Remove(existingAnnotation);
         }
@@ -32,11 +32,11 @@ internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedAppli
         Resource.Annotations.Add(annotation);
         return this;
 
-        static bool IsSameOrSubclassOf(IResourceAnnotation existingAnnotation, IResourceAnnotation newAnnotation)
+        static bool IsAssignableFrom(IResourceAnnotation existingAnnotation, IResourceAnnotation newAnnotation)
         {
             var existingAnnotationType = existingAnnotation.GetType();
             var newAnnotationType = newAnnotation.GetType();
-            return existingAnnotationType == newAnnotationType || existingAnnotationType.IsSubclassOf(newAnnotationType);
+            return newAnnotationType.IsAssignableFrom(existingAnnotationType);
         }
     }
 }
