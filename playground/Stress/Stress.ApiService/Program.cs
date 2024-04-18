@@ -27,14 +27,6 @@ app.MapGet("/big-trace", async () =>
     return "Big trace created";
 });
 
-app.MapGet("/send-request", async () =>
-{
-    // Send a request to an API with query string parameters to test they're not redacted in local development.
-    var httpClient = new HttpClient();
-    var response = await httpClient.GetStringAsync("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0");
-    return response;
-});
-
 app.MapGet("/many-logs", (ILoggerFactory loggerFactory, CancellationToken cancellationToken) =>
 {
     var channel = Channel.CreateUnbounded<string>();
