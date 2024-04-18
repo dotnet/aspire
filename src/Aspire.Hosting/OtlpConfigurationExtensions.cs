@@ -63,10 +63,6 @@ public static class OtlpConfigurationExtensions
 
                 // Configure trace sampler to send all traces to the dashboard.
                 context.EnvironmentVariables["OTEL_TRACES_SAMPLER"] = "always_on";
-
-                // Disable URL query redaction, e.g. ?myvalue=Redacted
-                context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION"] = "true";
-                context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION"] = "true";
             }
         }));
     }
