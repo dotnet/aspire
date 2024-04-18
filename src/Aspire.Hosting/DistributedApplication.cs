@@ -117,7 +117,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </example>
     /// <example>
     /// The following example is equivalent to the previous example except that it does not use top-level statements.
-    /// <code>
+    /// <code lang="C#">
     /// public class Program
     /// {
     ///   public static void Main(string[] args)
