@@ -160,6 +160,7 @@
     <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.1.0-nightly.20240307.1" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Newtonsoft.Json.Schema" Version="3.0.15" />
     <!-- Introduced by Microsoft.Azure.Cosmos, https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->
   </ItemGroup>
 </Project>

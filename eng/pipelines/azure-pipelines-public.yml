@@ -5,6 +5,20 @@ trigger:
     - main
     - vNext
     - release/*
+  paths:
+    include:
+      - '*'
+    exclude:
+      - eng/Version.Details.xml
+      - .github/*
+      - docs/*
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - README.md
+      - SECURITY.md
+      - LICENSE.TXT
+      - PATENTS.TXT
+      - THIRD-PARTY-NOTICES.TXT
 
 pr:
   branches:
@@ -13,6 +27,20 @@ pr:
     - vNext
     - release/*
     - feature/*
+  paths:
+    include:
+      - '*'
+    exclude:
+      - eng/Version.Details.xml
+      - .github/*
+      - docs/*
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - README.md
+      - SECURITY.md
+      - LICENSE.TXT
+      - PATENTS.TXT
+      - THIRD-PARTY-NOTICES.TXT
 
 variables:
   - template: /eng/common/templates/variables/pool-providers.yml
