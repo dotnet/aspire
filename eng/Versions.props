@@ -46,6 +46,7 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.4</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.4</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <MicrosoftExtensionsFeaturesPackageVersion>8.0.4</MicrosoftExtensionsFeaturesPackageVersion>
+    <MicrosoftExtensionsTimeProviderTestingVersion>8.4.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.4</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.4</MicrosoftEntityFrameworkCoreDesignPackageVersion>
