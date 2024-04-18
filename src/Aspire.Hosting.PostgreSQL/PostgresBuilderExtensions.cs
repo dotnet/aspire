@@ -87,8 +87,8 @@ public static class PostgresBuilderExtensions
 
             var pgAdminContainer = new PgAdminContainerResource(containerName);
             var pgAdminContainerBuilder = builder.ApplicationBuilder.AddResource(pgAdminContainer)
-                                                 .WithImage(PostgresContainerImageTags.PGAdminImage, PostgresContainerImageTags.PGAdminTag)
-                                                 .WithImageRegistry(PostgresContainerImageTags.PGAdminRegistry)
+                                                 .WithImage(PostgresContainerImageTags.PgAdminImage, PostgresContainerImageTags.PgAdminTag)
+                                                 .WithImageRegistry(PostgresContainerImageTags.PgAdminRegistry)
                                                  .WithHttpEndpoint(targetPort: 80, name: "http")
                                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
                                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
