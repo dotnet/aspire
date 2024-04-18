@@ -164,7 +164,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </remarks>
     /// <example>
     /// Override the container registry used by the distributed application.
-    /// <code>
+    /// <code lang="C#">
     /// var options = new DistributedApplicationOptions
     /// {
     ///   Args = args; // Important for deployment tools
