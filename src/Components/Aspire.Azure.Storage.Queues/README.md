@@ -125,13 +125,15 @@ dotnet add package Aspire.Hosting.Azure.Storage
 Then, in the _Program.cs_ file of `AppHost`, add a Storage Queue connection and consume the connection using the following methods:
 
 ```csharp
-var queue = builder.AddAzureStorage("storage").AddQueues("queue");
+var queue = builder.ExecutionContext.IsPublishMode
+    ? builder.AddAzureStorage("storage").AddQueues("queue")
+    ? builder.AddConnectionString("queue");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(queue);
 ```
 
-The `AddQueues` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:queue` config key. The `WithReference` method passes that connection information into a connection string named `queue` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddQueues` method adds an Azure Storage queue to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:queue` config key. The `WithReference` method passes that connection information into a connection string named `queue` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureQueueClient("queue");

@@ -123,13 +123,15 @@ dotnet add package Aspire.Hosting.Azure.ServiceBus
 Then, in the _Program.cs_ file of `AppHost`, add a Service Bus connection and consume the connection using the following methods:
 
 ```csharp
-var serviceBus = builder.AddAzureServiceBus("sb");
+var serviceBus = builder.ExecutionContext.IsPublishMode
+    ? builder.AddAzureServiceBus("sb")
+    ? builder.AddConnectionString("sb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(serviceBus);
 ```
 
-The `AddAzureServiceBus` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:sb` config key. The `WithReference` method passes that connection information into a connection string named `sb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureServiceBus` method adds an Azure Service Bus Namespace to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:sb` config key. The `WithReference` method passes that connection information into a connection string named `sb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureServiceBusClient("sb");
