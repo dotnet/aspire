@@ -33,9 +33,9 @@ namespace Aspire.Hosting;
 /// </para>
 /// </remarks>
 /// <example>
-/// The following example shows creating a Postgres server resource with a database and referencing that
+/// The following example shows creating a PostgreSQL server resource with a database and referencing that
 /// database in a .NET project.
-/// <code>
+/// <code lang="C#">
 /// var builder = DistributedApplication.CreateBuilder(args);
 /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
 /// builder.AddProject&lt;Projects.InventoryService&gt;()
@@ -66,13 +66,13 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
     /// <remarks>
     /// This overload of the <see cref="CreateBuilder()"/> method should only be
-    /// used when the AppHost is not intended to be used wtih a deployment tool. Because no arguemnts are
+    /// used when the AppHost is not intended to be used with a deployment tool. Because no arguments are
     /// passed to the <see cref="CreateBuilder()"/> method the AppHost has no
     /// way to be put into publish mode. Refer to <see cref="CreateBuilder(string[])"/> or  <see cref="CreateBuilder(DistributedApplicationOptions)"/>
     /// when more control is needed over the behavior of the distributed application at runtime.
     /// </remarks>
     /// <example>
-    /// The following example shows creating a Postgres server resource with a database and referencing that
+    /// The following example is creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder();
@@ -106,7 +106,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <example>
     /// The following example shows creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
-    /// <code>
+    /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
     /// builder.AddProject&lt;Projects.InventoryService&gt;()
@@ -117,7 +117,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </example>
     /// <example>
     /// The following example is equivalent to the previous example except that it does not use top-level statements.
-    /// <code>
+    /// <code lang="C#">
     /// public class Program
     /// {
     ///   public static void Main(string[] args)
@@ -164,7 +164,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </remarks>
     /// <example>
     /// Override the container registry used by the distributed application.
-    /// <code>
+    /// <code lang="C#">
     /// var options = new DistributedApplicationOptions
     /// {
     ///   Args = args; // Important for deployment tools
@@ -292,7 +292,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </para>
     /// <list type="number">
     /// <item>Run mode; in run mode the AppHost runs until a shutdown of the app is triggered
-    /// either by the users pressing CTRL-C, the debugger detaching or the browser associated
+    /// either by the users pressing <c>Ctrl-C</c>, the debugger detaching, or the browser associated
     /// with the dashboard being closed.</item>
     /// <item>Publish mode; in publish mode the AppHost runs just long enough to generate a
     /// manifest file that is used by deployment tool.</item>
@@ -321,7 +321,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </para>
     /// <list type="number">
     /// <item>Run mode; in run mode the AppHost runs until a shutdown of the app is triggered
-    /// either by the users pressing CTRL-C, the debugger detaching or the browser associated
+    /// either by the users pressing <c>Ctrl-C</c>, the debugger detaching, or the browser associated
     /// with the dashboard being closed.</item>
     /// <item>Publish mode; in publish mode the AppHost runs just long enough to generate a
     /// manifest file that is used by deployment tool.</item>
