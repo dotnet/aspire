@@ -72,7 +72,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// when more control is needed over the behavior of the distributed application at runtime.
     /// </remarks>
     /// <example>
-    /// The following example shows creating a Postgres server resource with a database and referencing that
+    /// The following example is creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder();
