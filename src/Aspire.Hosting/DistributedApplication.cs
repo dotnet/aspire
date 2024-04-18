@@ -35,7 +35,7 @@ namespace Aspire.Hosting;
 /// <example>
 /// The following example shows creating a Postgres server resource with a database and referencing that
 /// database in a .NET project.
-/// <code>
+/// <code lang="C#">
 /// var builder = DistributedApplication.CreateBuilder(args);
 /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
 /// builder.AddProject&lt;Projects.InventoryService&gt;()
