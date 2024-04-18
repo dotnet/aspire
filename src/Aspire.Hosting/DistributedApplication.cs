@@ -29,7 +29,7 @@ namespace Aspire.Hosting;
 /// <para>
 /// The <see cref="CreateBuilder(Aspire.Hosting.DistributedApplicationOptions)"/> method provides additional options for
 /// constructing the <see cref="IDistributedApplicationBuilder"/> including disabling the .NET Aspire dashboard (see <see cref="DistributedApplicationOptions.DisableDashboard"/>) or
-/// allowing unsecured communication between the browser and dashboard, and dashboard and AppHost (see <see cref="DistributedApplicationOptions.AllowUnsecuredTransport"/>.
+/// allowing unsecured communication between the browser and dashboard, and dashboard and app host (see <see cref="DistributedApplicationOptions.AllowUnsecuredTransport"/>.
 /// </para>
 /// </remarks>
 /// <example>
@@ -66,8 +66,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
     /// <remarks>
     /// This overload of the <see cref="CreateBuilder()"/> method should only be
-    /// used when the AppHost is not intended to be used with a deployment tool. Because no arguments are
-    /// passed to the <see cref="CreateBuilder()"/> method the AppHost has no
+    /// used when the app host is not intended to be used with a deployment tool. Because no arguments are
+    /// passed to the <see cref="CreateBuilder()"/> method the app host has no
     /// way to be put into publish mode. Refer to <see cref="CreateBuilder(string[])"/> or <see cref="CreateBuilder(DistributedApplicationOptions)"/>
     /// when more control is needed over the behavior of the distributed application at runtime.
     /// </remarks>
@@ -97,7 +97,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// method will be called as a top-level statement in the application's entry-point.
     /// </para>
     /// <para>
-    /// Note that the <paramref name="args"/> parameter is a string is essential in allowing the application
+    /// Note that the <paramref name="args"/> parameter is a <see langword="string"/> is essential in allowing the application
     /// host to work with deployment tools because arguments are used to tell the application host that it
     /// is in publish mode. If <paramref name="args"/> is not provided the application will not work with
     /// deployment tools. It is also possible to provide arguments using the <see cref="CreateBuilder(Aspire.Hosting.DistributedApplicationOptions)"/>
@@ -120,15 +120,15 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <code lang="C#">
     /// public class Program
     /// {
-    ///   public static void Main(string[] args)
-    ///   {
-    ///     var builder = DistributedApplication.CreateBuilder(args);
-    ///     var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
-    ///     builder.AddProject&lt;Projects.InventoryService&gt;()
-    ///            .WithReference(inventoryDatabase);
+    ///     public static void Main(string[] args)
+    ///     {
+    ///         var builder = DistributedApplication.CreateBuilder(args);
+    ///         var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
+    ///         builder.AddProject&lt;Projects.InventoryService&gt;()
+    ///                .WithReference(inventoryDatabase);
     ///
-    ///     builder.Build().Run();
-    ///   }
+    ///         builder.Build().Run();
+    ///     }
     /// }
     /// </code>
     /// </example>
@@ -158,7 +158,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </para>
     /// <para>
     /// When supplying a custom <see cref="DistributedApplicationOptions"/> it is commended to populate the
-    /// <see cref="DistributedApplicationOptions.Args"/> property to ensure that the AppHost continues to function
+    /// <see cref="DistributedApplicationOptions.Args"/> property to ensure that the app host continues to function
     /// correctly when used with deployment tools that need to enable publish mode.
     /// </para>
     /// </remarks>
@@ -167,8 +167,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <code lang="C#">
     /// var options = new DistributedApplicationOptions
     /// {
-    ///   Args = args; // Important for deployment tools
-    ///   ContainerRegistryOverride = "registry.example.com"
+    ///     Args = args; // Important for deployment tools
+    ///     ContainerRegistryOverride = "registry.example.com"
     /// };
     /// var builder = DistributedApplication.CreateBuilder(options);
     /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
@@ -287,20 +287,20 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
     /// <remarks>
     /// <para>
-    /// When the .NET Aspire AppHost is launched via <see cref="DistributedApplication.RunAsync"/> there are
+    /// When the .NET Aspire app host is launched via <see cref="DistributedApplication.RunAsync"/> there are
     /// two possible modes that it is running in:
     /// </para>
     /// <list type="number">
-    /// <item>Run mode; in run mode the AppHost runs until a shutdown of the app is triggered
+    /// <item>Run mode; in run mode the app host runs until a shutdown of the app is triggered
     /// either by the users pressing <c>Ctrl-C</c>, the debugger detaching, or the browser associated
     /// with the dashboard being closed.</item>
-    /// <item>Publish mode; in publish mode the AppHost runs just long enough to generate a
+    /// <item>Publish mode; in publish mode the app host runs just long enough to generate a
     /// manifest file that is used by deployment tool.</item>
     /// </list>
     /// <para>
     /// Developers extending the .NET Aspire application model should consider the lifetime
     /// of <see cref="IHostedService"/> instances which are added to the dependency injection
-    /// container. For more information on determining the mode that the AppHost is running
+    /// container. For more information on determining the mode that the app host is running
     /// in refer to <see cref="DistributedApplicationExecutionContext" />.
     /// </para>
     /// </remarks>
@@ -316,20 +316,20 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// When the .NET Aspire AppHost is launched via <see cref="DistributedApplication.RunAsync"/> there are
+    /// When the .NET Aspire app host is launched via <see cref="DistributedApplication.RunAsync"/> there are
     /// two possible modes that it is running in:
     /// </para>
     /// <list type="number">
-    /// <item>Run mode; in run mode the AppHost runs until a shutdown of the app is triggered
+    /// <item>Run mode; in run mode the app host runs until a shutdown of the app is triggered
     /// either by the users pressing <c>Ctrl-C</c>, the debugger detaching, or the browser associated
     /// with the dashboard being closed.</item>
-    /// <item>Publish mode; in publish mode the AppHost runs just long enough to generate a
+    /// <item>Publish mode; in publish mode the app host runs just long enough to generate a
     /// manifest file that is used by deployment tool.</item>
     /// </list>
     /// <para>
     /// Developers extending the .NET Aspire application model should consider the lifetime
     /// of <see cref="IHostedService"/> instances which are added to the dependency injection
-    /// container. For more information on determining the mode that the AppHost is running
+    /// container. For more information on determining the mode that the app host is running
     /// in refer to <see cref="DistributedApplicationExecutionContext" />.
     /// </para>
     /// </remarks>
