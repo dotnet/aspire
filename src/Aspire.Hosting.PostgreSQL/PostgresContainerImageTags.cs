@@ -8,4 +8,7 @@ internal static class PostgresContainerImageTags
     public const string Registry = "docker.io";
     public const string Image = "library/postgres";
     public const string Tag = "16.2";
+    public const string PGAdminRegistry = "docker.io";
+    public const string PGAdminImage = "dpage/pgadmin4";
+    public const string PGAdminTag = "8.5";
 }
