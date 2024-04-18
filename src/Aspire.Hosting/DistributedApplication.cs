@@ -33,7 +33,7 @@ namespace Aspire.Hosting;
 /// </para>
 /// </remarks>
 /// <example>
-/// The following example shows creating a Postgres server resource with a database and referencing that
+/// The following example shows creating a PostgreSQL server resource with a database and referencing that
 /// database in a .NET project.
 /// <code lang="C#">
 /// var builder = DistributedApplication.CreateBuilder(args);
