@@ -137,7 +137,7 @@ public class WithEnvironmentTests
                                .WithHttpEndpoint(name: "primary", targetPort: 10005)
                                .WithEndpoint("primary", ep =>
                                {
-                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90);
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90, targetPortExpression: "10005");
                                });
 
         var endpoint = container.GetEndpoint("primary");

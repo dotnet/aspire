@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
-using System.Globalization;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -129,8 +128,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredPort, spAnnList.Single(ann => ann.ServiceName == "CoolProgram").Port);
         var envVarVal = dcpExe.Spec.Env?.Single(v => v.Name == "NO_PORT_TARGET_PORT_SET").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "CoolProgram" -}}""", envVarVal);
     }
 
     [Fact]
@@ -162,8 +160,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredTargetPort, spAnnList.Single(ann => ann.ServiceName == "CoolProgram").Port);
         var envVarVal = dcpExe.Spec.Env?.Single(v => v.Name == "PORT_AND_TARGET_PORT_SET").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredTargetPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "CoolProgram" -}}""", envVarVal);
     }
 
     /// <summary>
@@ -218,8 +215,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredPort, spAnnList.Single(ann => ann.ServiceName == "CoolProgram").Port);
         var envVarVal = dcpExe.Spec.Env?.Single(v => v.Name == "PORT_SET_NO_TARGET_PORT").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "CoolProgram" -}}""", envVarVal);
     }
 
     [Fact]
@@ -252,8 +248,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredPort, spAnnList.Single(ann => ann.ServiceName == "CoolProgram").Port);
         var envVarVal = dcpExe.Spec.Env?.Single(v => v.Name == "NO_PORT_TARGET_PORT_SET").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "CoolProgram" -}}""", envVarVal);
     }
 
     [Fact]
@@ -286,8 +281,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredPort, spAnnList.Single(ann => ann.ServiceName == "CoolProgram").Port);
         var envVarVal = dcpExe.Spec.Env?.Single(v => v.Name == "PORT_AND_TARGET_PORT_SET").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "CoolProgram" -}}""", envVarVal);
     }
 
     /// <summary>
@@ -498,8 +492,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredTargetPort, spAnnList.Single(ann => ann.ServiceName == "database").Port);
         var envVarVal = dcpCtr.Spec.Env?.Single(v => v.Name == "NO_PORT_TARGET_PORT_SET").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredTargetPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "database" -}}""", envVarVal);
     }
 
     [Fact]
@@ -533,8 +526,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredTargetPort, spAnnList.Single(ann => ann.ServiceName == "database").Port);
         var envVarVal = dcpCtr.Spec.Env?.Single(v => v.Name == "PORT_AND_TARGET_PORT_SET").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredTargetPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "database" -}}""", envVarVal);
     }
 
     /// <summary>
@@ -613,8 +605,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredPort, spAnnList.Single(ann => ann.ServiceName == "database").Port);
         var envVarVal = dcpCtr.Spec.Env?.Single(v => v.Name == "PORT_SET_NO_TARGET_PORT").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "database" -}}""", envVarVal);
     }
 
     [Fact]
@@ -649,8 +640,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredTargetPort, spAnnList.Single(ann => ann.ServiceName == "database").Port);
         var envVarVal = dcpCtr.Spec.Env?.Single(v => v.Name == "NO_PORT_TARGET_PORT_SET").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredTargetPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "database" -}}""", envVarVal);
     }
 
     [Fact]
@@ -686,8 +676,7 @@ public class ApplicationExecutorTests
         // Desired port should be part of the service producer annotation.
         Assert.Equal(desiredTargetPort, spAnnList.Single(ann => ann.ServiceName == "database").Port);
         var envVarVal = dcpCtr.Spec.Env?.Single(v => v.Name == "PORT_AND_TARGET_PORT_SET").Value;
-        Assert.False(string.IsNullOrWhiteSpace(envVarVal));
-        Assert.Equal(desiredTargetPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
+        Assert.Equal("""{{- portForServing "database" -}}""", envVarVal);
     }
 
     private static ApplicationExecutor CreateAppExecutor(
