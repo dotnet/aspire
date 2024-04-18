@@ -42,7 +42,7 @@
         "longName": "use-redis-cache",
         "shortName": ""
       },
-      "TestProjectFrameworkKind": {
+      "TestFramework": {
         "longName": "test-framework",
         "shortName": "t"
       }

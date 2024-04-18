@@ -1,4 +1,4 @@
-<!--#if (TestProjectFrameworkKind == "MSTest") -->
+<!--#if (TestFramework == "MSTest") -->
 <Project Sdk="MSTest.Sdk/3.3.1">
 
   <PropertyGroup>
@@ -22,7 +22,7 @@
 
 </Project>
 <!--#endif -->
-<!--#if (TestProjectFrameworkKind == "xUnit") -->
+<!--#if (TestFramework == "xUnit") -->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>

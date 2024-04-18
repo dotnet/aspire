@@ -45,7 +45,7 @@
           ]
         },
         {
-          "condition": "(TestProjectFrameworkKind == None)",
+          "condition": "(TestFramework == None)",
           "exclude": [
             "AspireStarterApplication.1.Tests/**/*.*"
           ]
@@ -84,7 +84,7 @@
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
       "description": "Configures whether to setup the application to use Redis for caching. Requires a supported continer runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
     },
-    "TestProjectFrameworkKind": {
+    "TestFramework": {
       "type": "parameter",
       "datatype": "choice",
       "defaultValue": "None",
@@ -361,7 +361,7 @@
     },
     {
       "path": "AspireStarterApplication.1.Tests\\AspireStarterApplication.1.Tests.csproj",
-      "condition": "(TestProjectFrameworkKind != None)"
+      "condition": "(TestFramework != None)"
     }
   ],
   "postActions": [

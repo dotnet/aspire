@@ -4,9 +4,9 @@ namespace AspireStarterApplication.1.Tests;
 
 public class WebTests
 {
-#if (TestProjectFrameworkKind == "MSTest")
+#if (TestFramework == "MSTest")
     [TestMethod]
-#elif (TestProjectFrameworkKind == "xUnit")
+#elif (TestFramework == "xUnit")
     [Fact]
 #endif
     public async Task GetWebResourceRootReturnsOkStatusCode()
