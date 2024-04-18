@@ -31,7 +31,7 @@ public sealed class KafkaProducerSettings
     public bool Metrics { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether collecting metrics is disabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.
