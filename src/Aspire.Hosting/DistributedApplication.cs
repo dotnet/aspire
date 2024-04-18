@@ -66,7 +66,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
     /// <remarks>
     /// This overload of the <see cref="CreateBuilder()"/> method should only be
-    /// used when the AppHost is not intended to be used wtih a deployment tool. Because no arguemnts are
+    /// used when the AppHost is not intended to be used with a deployment tool. Because no arguments are
     /// passed to the <see cref="CreateBuilder()"/> method the AppHost has no
     /// way to be put into publish mode. Refer to <see cref="CreateBuilder(string[])"/> or  <see cref="CreateBuilder(DistributedApplicationOptions)"/>
     /// when more control is needed over the behavior of the distributed application at runtime.
