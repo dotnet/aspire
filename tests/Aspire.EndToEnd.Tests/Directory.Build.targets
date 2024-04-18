@@ -1,0 +1,16 @@
+<Project>
+    <Import Project="..\Directory.Build.targets" />
+
+    <!-- Overriding this target which is originally defined in the Microsoft.Net.Runtime.WorkloadTesting.Internal package, given
+    it makes assumptions of which package version should be set when packages are being stabalized which is specific to the dotnet/runtime repo. -->
+    <Target Name="_SetPackageVersionForWorkloadsTesting">
+        <PropertyGroup>
+          <!-- Used for workload testing -->
+          <PackageVersionForWorkloadManifests>$(VersionPrefix)</PackageVersionForWorkloadManifests>
+        </PropertyGroup>
+    
+        <Error Condition="'$(PackageVersionForWorkloadManifests)' == ''"
+               Text="%24(PackageVersionForWorkloadManifests) is not set. PackageVersion=$(PackageVersion)." />
+      </Target>
+  </Project>
+  
