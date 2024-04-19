@@ -95,9 +95,9 @@ public static class PostgresBuilderExtensions
                                                  .ExcludeFromManifest();
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
-        }
 
-        return builder;
+            return builder;
+        }
     }
 
     /// <summary>
