@@ -72,8 +72,8 @@ The Redis Distributed Cache component supports [Microsoft.Extensions.Configurati
           "ConnectTimeout": 3000,
           "ConnectRetry": 2
         },
-        "HealthChecks": false,
-        "Tracing": true
+        "DisableHealthChecks": true,
+        "DisableTracing": false
       }
     }
   }
@@ -85,7 +85,7 @@ The Redis Distributed Cache component supports [Microsoft.Extensions.Configurati
 You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddRedisDistributedCache("cache", settings => settings.HealthChecks = false);
+builder.AddRedisDistributedCache("cache", settings => settings.DisableHealthChecks = true);
 ```
 
 You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedisDistributedCache` method. For example to set the connection timeout:

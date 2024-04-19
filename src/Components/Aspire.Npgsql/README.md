@@ -67,8 +67,8 @@ The .NET Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Confi
 {
   "Aspire": {
     "Npgsql": {
-      "HealthChecks": false,
-      "Tracing": false
+      "DisableHealthChecks": true,
+      "DisableTracing": true
     }
   }
 }
@@ -79,7 +79,7 @@ The .NET Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Confi
 Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddNpgsqlDataSource("postgresdb", settings => settings.HealthChecks = false);
+    builder.AddNpgsqlDataSource("postgresdb", settings => settings.DisableHealthChecks = true);
 ```
 
 ## AppHost extensions

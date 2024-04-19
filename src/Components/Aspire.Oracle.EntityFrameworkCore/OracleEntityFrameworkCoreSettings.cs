@@ -14,18 +14,20 @@ public sealed class OracleEntityFrameworkCoreSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets whether retries should be enabled.
+    /// Gets or sets whether retries should be disabled.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool Retry { get; set; } = true;
+    public bool DisableRetry { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the database health check is enabled or not.</para>
-    /// <para>The default value is <see langword="true"/>.</para>
+    /// Gets or sets a boolean value that indicates whether the database health check is disabled or not.
     /// </summary>
-    public bool HealthChecks { get; set; } = true;
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableHealthChecks { get; set; }
 
     /// <summary>
     /// Gets or sets the time in seconds to wait for the command to execute.

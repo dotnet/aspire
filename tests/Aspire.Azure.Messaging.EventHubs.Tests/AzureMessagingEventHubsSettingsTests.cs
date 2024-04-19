@@ -11,14 +11,14 @@ public class AzureMessagingEventHubsSettingsTests
     [Fact]
     public void TracingIsEnabledWhenAzureSwitchIsSet()
     {
-        RemoteExecutor.Invoke(() => EnsureTracingIsEnabledWhenAzureSwitchIsSet(false)).Dispose();
-        RemoteExecutor.Invoke(() => EnsureTracingIsEnabledWhenAzureSwitchIsSet(true), EnableTracingForAzureSdk()).Dispose();
+        RemoteExecutor.Invoke(() => EnsureTracingIsEnabledWhenAzureSwitchIsSet(true)).Dispose();
+        RemoteExecutor.Invoke(() => EnsureTracingIsEnabledWhenAzureSwitchIsSet(false), EnableTracingForAzureSdk()).Dispose();
     }
 
     private static void EnsureTracingIsEnabledWhenAzureSwitchIsSet(bool expectedValue)
     {
         // doesn't matter which concrete class we use, as the property is defined in the base class
-        Assert.Equal(expectedValue, new AzureMessagingEventHubsConsumerSettings().Tracing);
+        Assert.Equal(expectedValue, new AzureMessagingEventHubsConsumerSettings().DisableTracing);
     }
 
     private static RemoteInvokeOptions EnableTracingForAzureSdk()

@@ -13,9 +13,9 @@ public class ConfigurationTests
 
     [Fact]
     public void HealthCheckIsEnabledByDefault()
-        => Assert.True(new NatsClientSettings().HealthChecks);
+        => Assert.False(new NatsClientSettings().DisableHealthChecks);
 
     [Fact]
     public void TracingIsEnabledByDefault()
-        => Assert.True(new NatsClientSettings().Tracing);
+        => Assert.False(new NatsClientSettings().DisableTracing);
 }

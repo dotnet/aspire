@@ -119,20 +119,20 @@
                       "type": "string",
                       "description": "Gets or sets the connection string used to connect to the blob service."
                     },
-                    "HealthChecks": {
+                    "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the Queues Storage health check is enabled or not.",
-                      "default": true
+                      "description": "Gets or sets a boolean value that indicates whether the Queues Storage health check is disabled or not.",
+                      "default": false
+                    },
+                    "DisableTracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                      "default": false
                     },
                     "ServiceUri": {
                       "type": "string",
                       "format": "uri",
                       "description": "A 'System.Uri' referencing the queue service.\nThis is likely to be similar to \"https://{account_name}.queue.core.windows.net\"."
-                    },
-                    "Tracing": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                      "default": true
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to Azure Storage Queues."

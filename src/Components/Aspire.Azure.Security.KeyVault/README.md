@@ -89,8 +89,8 @@ The .NET Aspire Azure Key Vault library supports [Microsoft.Extensions.Configura
     "Azure": {
       "Security": {
         "KeyVault": {
-          "HealthChecks": false,
-          "Tracing": true,
+          "DisableHealthChecks": true,
+          "DisableTracing": false,
           "ClientOptions": {
             "Diagnostics": {
               "ApplicationId": "myapp"
@@ -108,7 +108,7 @@ The .NET Aspire Azure Key Vault library supports [Microsoft.Extensions.Configura
 You can also pass the `Action<AzureSecurityKeyVaultSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddAzureKeyVaultClient("secrets", settings => settings.HealthChecks = false);
+builder.AddAzureKeyVaultClient("secrets", settings => settings.DisableHealthChecks = true);
 ```
 
 You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using the optional `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>> configureClientBuilder` parameter of the `AddAzureKeyVaultClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
