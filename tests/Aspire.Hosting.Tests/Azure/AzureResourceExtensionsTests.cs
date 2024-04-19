@@ -118,7 +118,7 @@ public class AzureResourceExtensionsTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
-            builder.UseBlobPort(9001);
+            builder.WithBlobPort(9001);
             builder.WithQueuePort(9002);
             builder.WithTablePort(9003);
         });
