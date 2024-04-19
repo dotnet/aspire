@@ -99,12 +99,12 @@ public static class AspireTablesExtensions
             => new AzureTableServiceHealthCheck(client, new AzureTableServiceHealthCheckOptions());
 
         protected override bool GetHealthCheckEnabled(AzureDataTablesSettings settings)
-            => settings.HealthChecks;
+            => !settings.DisableHealthChecks;
 
         protected override TokenCredential? GetTokenCredential(AzureDataTablesSettings settings)
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureDataTablesSettings settings)
-            => settings.Tracing;
+            => !settings.DisableTracing;
     }
 }

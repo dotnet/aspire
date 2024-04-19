@@ -68,7 +68,7 @@ public static class AspireOracleEFCoreExtensions
             {
                 // Resiliency:
                 // Connection resiliency automatically retries failed database commands
-                if (settings.Retry)
+                if (!settings.DisableRetry)
                 {
                     builder.ExecutionStrategy(context => new OracleRetryingExecutionStrategy(context));
                 }
@@ -109,13 +109,13 @@ public static class AspireOracleEFCoreExtensions
         void ConfigureRetry()
         {
 #pragma warning disable EF1001 // Internal EF Core API usage.
-            if (settings.Retry || settings.CommandTimeout.HasValue)
+            if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
                 builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseOracle(options =>
                 {
                     var extension = optionsBuilder.Options.FindExtension<OracleOptionsExtension>();
 
-                    if (settings.Retry)
+                    if (!settings.DisableRetry)
                     {
                         var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
 
@@ -125,13 +125,13 @@ public static class AspireOracleEFCoreExtensions
                             {
                                 // Keep custom Retry strategy.
                                 // Any sub-class of OracleRetryingExecutionStrategy is a valid retry strategy
-                                // which shouldn't be replaced even with Retry == true
+                                // which shouldn't be replaced even with DisableRetry == false
                             }
                             else if (executionStrategy.GetType() != typeof(OracleExecutionStrategy))
                             {
                                 // Check OracleExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
 
-                                throw new InvalidOperationException($"{nameof(OracleEntityFrameworkCoreSettings)}.Retry can't be set when a custom Execution Strategy is configured.");
+                                throw new InvalidOperationException($"{nameof(OracleEntityFrameworkCoreSettings)}.{nameof(OracleEntityFrameworkCoreSettings.DisableRetry)} needs to be set when a custom Execution Strategy is configured.");
                             }
                             else
                             {
@@ -163,7 +163,7 @@ public static class AspireOracleEFCoreExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, OracleEntityFrameworkCoreSettings settings) where TContext : DbContext
     {
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             builder.TryAddHealthCheck(
                 name: typeof(TContext).Name,

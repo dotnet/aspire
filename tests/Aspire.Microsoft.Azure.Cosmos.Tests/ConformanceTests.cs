@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Microsoft.Azure.Cosmos.Tests;
 
-public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSettings>
+public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCosmosDBSettings>
 {
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -24,7 +24,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
                 "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;")
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureCosmosDBSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftAzureCosmosDBSettings>? configure = null, string? key = null)
     {
         if (key is null)
         {
@@ -36,13 +36,13 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
         }
     }
 
-    protected override void SetHealthCheck(AzureCosmosDBSettings options, bool enabled)
+    protected override void SetHealthCheck(MicrosoftAzureCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureCosmosDBSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(MicrosoftAzureCosmosDBSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
 
-    protected override void SetMetrics(AzureCosmosDBSettings options, bool enabled)
+    protected override void SetMetrics(MicrosoftAzureCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """
@@ -52,7 +52,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
               "Azure": {
                 "Cosmos": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "Tracing": true
+                  "DisableTracing": false
                 }
               }
             }

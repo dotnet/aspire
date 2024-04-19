@@ -86,8 +86,8 @@ The Azure Table storage library supports [Microsoft.Extensions.Configuration](ht
     "Azure": {
       "Data": {
         "Tables": {
-          "HealthChecks": false,
-          "Tracing": true,
+          "DisableHealthChecks": true,
+          "DisableTracing": false,
           "ClientOptions": {
             "Diagnostics": {
               "ApplicationId": "myapp"
@@ -105,7 +105,7 @@ The Azure Table storage library supports [Microsoft.Extensions.Configuration](ht
 You can also pass the `Action<AzureDataTablesSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddAzureTableClient("tables", settings => settings.HealthChecks = false);
+builder.AddAzureTableClient("tables", settings => settings.DisableHealthChecks = true);
 ```
 
 You can also setup the [TableClientOptions](https://learn.microsoft.com/dotnet/api/azure.data.tables.tableclientoptions) using the optional `Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>> configureClientBuilder` parameter of the `AddAzureTableClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:

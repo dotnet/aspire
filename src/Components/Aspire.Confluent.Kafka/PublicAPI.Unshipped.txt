@@ -3,20 +3,20 @@ Aspire.Confluent.Kafka.KafkaConsumerSettings
 Aspire.Confluent.Kafka.KafkaConsumerSettings.Config.get -> Confluent.Kafka.ConsumerConfig!
 Aspire.Confluent.Kafka.KafkaConsumerSettings.ConnectionString.get -> string?
 Aspire.Confluent.Kafka.KafkaConsumerSettings.ConnectionString.set -> void
-Aspire.Confluent.Kafka.KafkaConsumerSettings.HealthChecks.get -> bool
-Aspire.Confluent.Kafka.KafkaConsumerSettings.HealthChecks.set -> void
+Aspire.Confluent.Kafka.KafkaConsumerSettings.DisableHealthChecks.get -> bool
+Aspire.Confluent.Kafka.KafkaConsumerSettings.DisableHealthChecks.set -> void
 Aspire.Confluent.Kafka.KafkaConsumerSettings.KafkaConsumerSettings() -> void
-Aspire.Confluent.Kafka.KafkaConsumerSettings.Metrics.get -> bool
-Aspire.Confluent.Kafka.KafkaConsumerSettings.Metrics.set -> void
+Aspire.Confluent.Kafka.KafkaConsumerSettings.DisableMetrics.get -> bool
+Aspire.Confluent.Kafka.KafkaConsumerSettings.DisableMetrics.set -> void
 Aspire.Confluent.Kafka.KafkaProducerSettings
 Aspire.Confluent.Kafka.KafkaProducerSettings.Config.get -> Confluent.Kafka.ProducerConfig!
 Aspire.Confluent.Kafka.KafkaProducerSettings.ConnectionString.get -> string?
 Aspire.Confluent.Kafka.KafkaProducerSettings.ConnectionString.set -> void
-Aspire.Confluent.Kafka.KafkaProducerSettings.HealthChecks.get -> bool
-Aspire.Confluent.Kafka.KafkaProducerSettings.HealthChecks.set -> void
+Aspire.Confluent.Kafka.KafkaProducerSettings.DisableHealthChecks.get -> bool
+Aspire.Confluent.Kafka.KafkaProducerSettings.DisableHealthChecks.set -> void
 Aspire.Confluent.Kafka.KafkaProducerSettings.KafkaProducerSettings() -> void
-Aspire.Confluent.Kafka.KafkaProducerSettings.Metrics.get -> bool
-Aspire.Confluent.Kafka.KafkaProducerSettings.Metrics.set -> void
+Aspire.Confluent.Kafka.KafkaProducerSettings.DisableMetrics.get -> bool
+Aspire.Confluent.Kafka.KafkaProducerSettings.DisableMetrics.set -> void
 Microsoft.Extensions.Hosting.AspireKafkaConsumerExtensions
 Microsoft.Extensions.Hosting.AspireKafkaProducerExtensions
 static Microsoft.Extensions.Hosting.AspireKafkaConsumerExtensions.AddKafkaConsumer<TKey, TValue>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Confluent.Kafka.KafkaConsumerSettings!>? configureSettings = null, System.Action<Confluent.Kafka.ConsumerBuilder<TKey, TValue>!>? configureBuilder = null) -> void

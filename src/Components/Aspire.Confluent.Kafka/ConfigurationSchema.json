@@ -474,13 +474,13 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Kafka server to connect to."
                     },
-                    "HealthChecks": {
+                    "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not."
                     },
-                    "Metrics": {
+                    "DisableMetrics": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether collecting metrics is enabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to a Kafka message broker to consume messages."
@@ -937,15 +937,15 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Kafka server to connect to."
                     },
-                    "HealthChecks": {
+                    "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.",
-                      "default": true
+                      "description": "Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not.",
+                      "default": false
                     },
-                    "Metrics": {
+                    "DisableMetrics": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.",
-                      "default": true
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+                      "default": false
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to a Kafka message broker to produce messages."

@@ -159,7 +159,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, EntityFrameworkCoreCosmosDBSettings settings) where TContext : DbContext
     {
-        if (settings.Tracing)
+        if (!settings.DisableTracing)
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {

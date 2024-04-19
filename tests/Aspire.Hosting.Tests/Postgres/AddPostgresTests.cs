@@ -346,7 +346,7 @@ public class AddPostgresTests
     {
 
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddPostgres("mypostgres").WithPgAdmin(pga => pga.UseHostPort(8081));
+        builder.AddPostgres("mypostgres").WithPgAdmin(pga => pga.WithHostPort(8081));
 
         var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
         var volume = container.Annotations.OfType<ContainerMountAnnotation>().Single();
@@ -371,8 +371,8 @@ public class AddPostgresTests
     public void WithPostgresTwiceEndsUpWithOneContainer()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.UseHostPort(8081));
-        builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.UseHostPort(8081));
+        builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
+        builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
         builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
     }
@@ -383,8 +383,8 @@ public class AddPostgresTests
     public void WithPostgresProducesValidServersJsonFile(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
-        var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.UseHostPort(8081));
-        var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.UseHostPort(8081));
+        var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
+        var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
         // Add fake allocated endpoints.
         pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
