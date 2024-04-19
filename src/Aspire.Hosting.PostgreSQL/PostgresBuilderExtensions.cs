@@ -68,30 +68,50 @@ public static class PostgresBuilderExtensions
     /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version the package defaults to the 8.3 tag of the dpage/pgadmin4 container image
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
-    /// <param name="hostPort">The host port for the application ui.</param>
+    /// <param name="configureContainer">Resource builder for the </param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : PostgresServerResource
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = null) where T : PostgresServerResource
     {
-        if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().Any())
+        if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().SingleOrDefault() is { } existingPgAdminResource)
         {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgAdminResource);
+            configureContainer?.Invoke(builderForExistingResource);
             return builder;
         }
+        else
+        {
+            builder.ApplicationBuilder.Services.TryAddLifecycleHook<PgAdminConfigWriterHook>();
 
-        builder.ApplicationBuilder.Services.TryAddLifecycleHook<PgAdminConfigWriterHook>();
+            containerName ??= $"{builder.Resource.Name}-pgadmin";
 
-        containerName ??= $"{builder.Resource.Name}-pgadmin";
+            var pgAdminContainer = new PgAdminContainerResource(containerName);
+            var pgAdminContainerBuilder = builder.ApplicationBuilder.AddResource(pgAdminContainer)
+                                                 .WithImage(PostgresContainerImageTags.PgAdminImage, PostgresContainerImageTags.PgAdminTag)
+                                                 .WithImageRegistry(PostgresContainerImageTags.PgAdminRegistry)
+                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
+                                                 .WithEnvironment(SetPgAdminEnvironmentVariables)
+                                                 .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
+                                                 .ExcludeFromManifest();
 
-        var pgAdminContainer = new PgAdminContainerResource(containerName);
-        builder.ApplicationBuilder.AddResource(pgAdminContainer)
-                                  .WithImage("dpage/pgadmin4", "8.3")
-                                  .WithImageRegistry(PostgresContainerImageTags.Registry)
-                                  .WithHttpEndpoint(targetPort: 80, port: hostPort, name: containerName)
-                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
-                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
-                                  .ExcludeFromManifest();
+            configureContainer?.Invoke(pgAdminContainerBuilder);
+        }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the PGAdmin resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for PGAdmin.</param>
+    /// <param name="port">The port to bind on the host. If null is used random port will be assigned.</param>
+    /// <returns>The resource builder for PGAdmin.</returns>
+    public static IResourceBuilder<PgAdminContainerResource> UseHostPort(this IResourceBuilder<PgAdminContainerResource> builder, int? port)
+    {
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     private static void SetPgAdminEnvironmentVariables(EnvironmentCallbackContext context)
