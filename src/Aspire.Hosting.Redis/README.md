@@ -36,7 +36,6 @@ add a reference to the `Aspire.StackExchange.Redis` NuGet package and add the fo
 builder.AddRedisClient("cache");
 ```
 
-
 ## Other resources
 
 For more information see the following resources:
