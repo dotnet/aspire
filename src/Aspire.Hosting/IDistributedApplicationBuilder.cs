@@ -67,6 +67,39 @@ public interface IDistributedApplicationBuilder
     /// <summary>
     /// Execution context for this invocation of the AppHost.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="ExecutionContext"/> property provides access key information about the context
+    /// in which the distributed application is running. The most important properties that
+    /// the <see cref="DistributedApplicationExecutionContext" /> provides is the
+    /// <see cref="DistributedApplicationExecutionContext.IsPublishMode"/> and <see cref="DistributedApplicationExecutionContext.IsRunMode"/>
+    /// properties. Developers building .NET Aspire based applications may whish to change the application
+    /// model depending on whether they are running locally, or whether they are publishing to the cloud.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <para>
+    /// An example of using the <see cref="DistributedApplicationExecutionContext.IsRunMode"/> property on the <see cref="IDistributedApplicationBuilder"/> via
+    /// the <see cref="IResourceBuilder{T}.ApplicationBuilder"/>. In this case an extension method is used to generate a stable node name for RabbitMQ for local
+    /// development runs.
+    /// </para>
+    /// <code>
+    /// private static IResourceBuilder&lt;RabbitMQServerResource&gt; RunWithStableNodeName(this IResourceBuilder&lt;RabbitMQServerResource&gt; builder)
+    /// {
+    ///     if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+    ///     {
+    ///         builder.WithEnvironment(context =>
+    ///         {
+    ///             // Set a stable node name so queue storage is consistent between sessions
+    ///             var nodeName = $"{builder.Resource.Name}@localhost";
+    ///             context.EnvironmentVariables["RABBITMQ_NODENAME"] = nodeName;
+    ///         });
+    ///     }
+    /// 
+    ///     return builder;
+    /// }
+    /// </code>
+    /// </example>
     public DistributedApplicationExecutionContext ExecutionContext { get; }
 
     /// <summary>
