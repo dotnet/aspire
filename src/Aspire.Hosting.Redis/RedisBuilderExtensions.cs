@@ -38,9 +38,8 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
-    /// <param name="hostPort">The host port to expose the Redis Commander container image on.</param>
     /// <returns></returns>
-    public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null, int? hostPort = null)
+    public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
         if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is { } existingRedisCommanderResource)
         {
@@ -57,7 +56,7 @@ public static class RedisBuilderExtensions
             var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
                                       .WithImage(RedisContainerImageTags.RedisCommanderImage, RedisContainerImageTags.RedisCommanderTag)
                                       .WithImageRegistry(RedisContainerImageTags.RedisCommanderRegistry)
-                                      .WithHttpEndpoint(targetPort: 8081, port: hostPort, name: "http")
+                                      .WithHttpEndpoint(targetPort: 8081, name: "http")
                                       .ExcludeFromManifest();
 
             configureContainer?.Invoke(resourceBuilder);
