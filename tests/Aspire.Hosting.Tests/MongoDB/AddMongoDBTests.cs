@@ -104,6 +104,36 @@ public class AddMongoDBTests
         Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
     }
 
+    [Fact]
+    public void WithMongoExpressSupportsChangingContainerImageValues()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo").WithMongoExpress(c => {
+            c.WithImageRegistry("example.mycompany.com");
+            c.WithImage("customongoexpresscontainer");
+            c.WithImageTag("someothertag");
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+        var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
+        Assert.Equal("customongoexpresscontainer", containerAnnotation.Image);
+        Assert.Equal("someothertag", containerAnnotation.Tag);
+    }
+
+    [Fact]
+    public void WithMongoExpressSupportsChangingHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo").WithMongoExpress(c => {
+            c.WithHostPort(1000);
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
     [Theory]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
