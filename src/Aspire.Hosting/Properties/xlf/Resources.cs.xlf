@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
         <source>Bind mounts must specify an absolute path.</source>
-        <target state="new">Bind mounts must specify an absolute path.</target>
+        <target state="translated">Připojení vazby musí určovat absolutní cestu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
@@ -20,7 +20,8 @@
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
 See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="needs-review-translation">Nepovedlo se najít modul runtime {0} kontejneru. Chyba z kontroly modulu runtime kontejneru byla: {1}.</target>
+        <target state="translated">Nepovedlo se najít modul runtime {0} kontejneru. Chyba z kontroly modulu runtime kontejneru byla: {1}.
+Další podrobnosti o podporovaných modulech runtime kontejnerů najdete na https://aka.ms/dotnet/aspire/containers.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
