@@ -69,7 +69,7 @@ public static class RedisBuilderExtensions
     /// Configures the host port that the Redis Commander resource is exposed on instead of using randomly assigned port.
     /// </summary>
     /// <param name="builder">The resource builder for Redis Commander.</param>
-    /// <param name="port">The port to bind on the host. If null is used random port will be assigned.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for PGAdmin.</returns>
     public static IResourceBuilder<RedisCommanderResource> UseHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
     {

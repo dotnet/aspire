@@ -104,7 +104,7 @@ public static class PostgresBuilderExtensions
     /// Configures the host port that the PGAdmin resource is exposed on instead of using randomly assigned port.
     /// </summary>
     /// <param name="builder">The resource builder for PGAdmin.</param>
-    /// <param name="port">The port to bind on the host. If null is used random port will be assigned.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for PGAdmin.</returns>
     public static IResourceBuilder<PgAdminContainerResource> UseHostPort(this IResourceBuilder<PgAdminContainerResource> builder, int? port)
     {

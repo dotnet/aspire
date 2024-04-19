@@ -80,7 +80,7 @@ public static class MongoDBBuilderExtensions
     /// Configures the host port that the Mongo Express resource is exposed on instead of using randomly assigned port.
     /// </summary>
     /// <param name="builder">The resource builder for Mongo Express.</param>
-    /// <param name="port">The port to bind on the host. If null is used random port will be assigned.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for PGAdmin.</returns>
     public static IResourceBuilder<MongoExpressContainerResource> UseHostPort(this IResourceBuilder<MongoExpressContainerResource> builder, int? port)
     {
