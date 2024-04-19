@@ -121,6 +121,36 @@ public class AddRedisTests
         Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
     }
 
+    [Fact]
+    public void WithRedisCommanderSupportsChangingContainerImageValues()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddRedis("myredis").WithRedisCommander(c => {
+            c.WithImageRegistry("example.mycompany.com");
+            c.WithImage("customrediscommander");
+            c.WithImageTag("someothertag");
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
+        var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
+        Assert.Equal("customrediscommander", containerAnnotation.Image);
+        Assert.Equal("someothertag", containerAnnotation.Tag);
+    }
+
+    [Fact]
+    public void WithRedisCommanderSupportsChangingHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddRedis("myredis").WithRedisCommander(c => {
+            c.WithHostPort(1000);
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
     [Theory]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
