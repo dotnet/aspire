@@ -118,9 +118,9 @@ public class AzureResourceExtensionsTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
-            builder.UseBlobPort(9001);
-            builder.UseQueuePort(9002);
-            builder.UseTablePort(9003);
+            builder.WithBlobPort(9001);
+            builder.WithQueuePort(9002);
+            builder.WithTablePort(9003);
         });
 
         Assert.Collection(
@@ -142,7 +142,7 @@ public class AzureResourceExtensionsTests
 
         cosmos.RunAsEmulator(container =>
         {
-            container.UseGatewayPort(port);
+            container.WithGatewayPort(port);
         });
 
         var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
