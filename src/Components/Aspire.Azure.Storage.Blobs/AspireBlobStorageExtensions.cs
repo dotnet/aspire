@@ -99,12 +99,12 @@ public static class AspireBlobStorageExtensions
             => new AzureBlobStorageHealthCheck(client);
 
         protected override bool GetHealthCheckEnabled(AzureStorageBlobsSettings settings)
-            => settings.HealthChecks;
+            => !settings.DisableHealthChecks;
 
         protected override TokenCredential? GetTokenCredential(AzureStorageBlobsSettings settings)
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureStorageBlobsSettings settings)
-            => settings.Tracing;
+            => !settings.DisableTracing;
     }
 }

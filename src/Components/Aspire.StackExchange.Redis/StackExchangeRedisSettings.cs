@@ -14,18 +14,18 @@ public sealed class StackExchangeRedisSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Redis health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Redis health check is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool HealthChecks { get; set; } = true;
+    public bool DisableHealthChecks { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool DisableTracing { get; set; }
 }

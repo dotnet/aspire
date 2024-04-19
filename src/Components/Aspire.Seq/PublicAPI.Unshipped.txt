@@ -2,8 +2,8 @@
 Aspire.Seq.SeqSettings
 Aspire.Seq.SeqSettings.ApiKey.get -> string?
 Aspire.Seq.SeqSettings.ApiKey.set -> void
-Aspire.Seq.SeqSettings.HealthChecks.get -> bool
-Aspire.Seq.SeqSettings.HealthChecks.set -> void
+Aspire.Seq.SeqSettings.DisableHealthChecks.get -> bool
+Aspire.Seq.SeqSettings.DisableHealthChecks.set -> void
 Aspire.Seq.SeqSettings.Logs.get -> OpenTelemetry.Exporter.OtlpExporterOptions!
 Aspire.Seq.SeqSettings.SeqSettings() -> void
 Aspire.Seq.SeqSettings.ServerUrl.get -> string?

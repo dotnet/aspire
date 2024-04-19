@@ -79,7 +79,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "true"),
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:DisableRetry", "false"),
             new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:CommandTimeout", "608")
         ]);
 
@@ -124,7 +124,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "false"),
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:DisableRetry", "true"),
         ]);
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configureDbContextOptions: optionsBuilder =>

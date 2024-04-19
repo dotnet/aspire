@@ -31,12 +31,12 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool DisableTracing { get; set; }
 
     /// <summary>
     /// Gets or sets a string value that indicates what Azure region this client will run in.

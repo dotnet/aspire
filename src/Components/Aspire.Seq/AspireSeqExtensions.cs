@@ -68,7 +68,7 @@ public static class AspireSeqExtensions
                 _ => new SimpleActivityExportProcessor(new OtlpTraceExporter(settings.Traces))
             }));
 
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             if (settings.ServerUrl is not null)
             {

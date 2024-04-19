@@ -40,7 +40,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
         => throw new NotImplementedException();
 
     protected override void SetTracing(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
@@ -52,7 +52,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
               "EntityFrameworkCore": {
                 "Cosmos": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "Tracing": true
+                  "DisableTracing": false
                 }
               }
             }

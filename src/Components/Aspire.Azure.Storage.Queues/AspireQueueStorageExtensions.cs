@@ -102,12 +102,12 @@ public static class AspireQueueStorageExtensions
             => new AzureQueueStorageHealthCheck(client, new AzureQueueStorageHealthCheckOptions());
 
         protected override bool GetHealthCheckEnabled(AzureStorageQueuesSettings settings)
-            => settings.HealthChecks;
+            => !settings.DisableHealthChecks;
 
         protected override TokenCredential? GetTokenCredential(AzureStorageQueuesSettings settings)
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureStorageQueuesSettings settings)
-            => settings.Tracing;
+            => !settings.DisableTracing;
     }
 }

@@ -78,7 +78,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "true"),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:DisableRetry", "false"),
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:CommandTimeout", "608")
         ]);
 
@@ -123,7 +123,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "false"),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:DisableRetry", "true"),
         ]);
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configureDbContextOptions: optionsBuilder =>

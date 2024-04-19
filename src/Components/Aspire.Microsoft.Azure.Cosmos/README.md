@@ -54,7 +54,7 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 
 #### Account Endpoint
 
-The recommended approach is to use an AccountEndpoint, which works with the `AzureCosmosDBSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+The recommended approach is to use an AccountEndpoint, which works with the `MicrosoftAzureCosmosDBSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
 ```json
 {
@@ -78,7 +78,7 @@ Alternatively, an [Azure Cosmos DB connection string](https://learn.microsoft.co
 
 ### Use configuration providers
 
-The .NET Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureCosmosDBSettings` and `QueueClientOptions` from configuration by using the `Aspire:Microsoft:Azure:Cosmos` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftAzureCosmosDBSettings` and `QueueClientOptions` from configuration by using the `Aspire:Microsoft:Azure:Cosmos` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -86,7 +86,7 @@ The .NET Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions
     "Microsoft": {
       "Azure": {
         "Cosmos": {
-          "Tracing": true,
+          "DisableTracing": false,
         }
       }
     }
@@ -96,10 +96,10 @@ The .NET Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions
 
 ### Use inline delegates
 
-You can also pass the `Action<AzureCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
+You can also pass the `Action<MicrosoftAzureCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-builder.AddAzureCosmosDbClient("cosmosConnectionName", settings => settings.Tracing = false);
+builder.AddAzureCosmosDbClient("cosmosConnectionName", settings => settings.DisableTracing = true);
 ```
 
 You can also setup the [CosmosClientOptions](https://learn.microsoft.com/dotnet/api/microsoft.azure.cosmos.cosmosclientoptions) using the optional `Action<CosmosClientOptions> configureClientOptions` parameter of the `AddAzureCosmosDbClient` method. For example, to set the `ApplicationName` "User-Agent" header suffix for all requests issues by this client:
