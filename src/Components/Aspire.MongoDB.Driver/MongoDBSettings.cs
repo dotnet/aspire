@@ -14,15 +14,6 @@ public sealed class MongoDBSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the MongoDB health check is enabled or not.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableHealthChecks)} instead.")]
-    public bool HealthChecks { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets a boolean value that indicates whether the MongoDB health check is disabled or not.
     /// </summary>
     /// <value>
@@ -34,15 +25,6 @@ public sealed class MongoDBSettings
     /// Gets or sets a integer value that indicates the MongoDB health check timeout in milliseconds.
     /// </summary>
     public int? HealthCheckTimeout { get; set; }
-
-    /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true" />.
-    /// </value>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableTracing)} instead.")]
-    public bool Tracing { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.

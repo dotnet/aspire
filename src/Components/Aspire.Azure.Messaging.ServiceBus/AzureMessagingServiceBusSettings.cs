@@ -22,15 +22,6 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the fully qualified Event Hubs namespace. 
-    /// </summary>
-    /// <remarks>
-    /// Used along with <see cref="Credential"/> to establish the connection.
-    /// </remarks>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(FullyQualifiedNamespace)} instead.")]
-    public string? Namespace { get; set; }
-
-    /// <summary>
     /// Gets or sets the fully qualified Service Bus namespace. 
     /// </summary>
     /// <remarks>
@@ -52,15 +43,6 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     /// Name of the topic used by the health check. Mandatory to get health checks enabled.
     /// </summary>
     public string? HealthCheckTopicName { get; set; }
-
-    /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true" />.
-    /// </value>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableTracing)} instead.")]
-    public bool Tracing { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.

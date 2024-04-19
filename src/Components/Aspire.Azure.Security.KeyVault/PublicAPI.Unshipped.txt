@@ -7,10 +7,6 @@ Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.DisableHealthChecks
 Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.DisableHealthChecks.set -> void
 Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.DisableTracing.get -> bool
 Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.DisableTracing.set -> void
-Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.HealthChecks.get -> bool
-Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.HealthChecks.set -> void
-Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.Tracing.get -> bool
-Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.Tracing.set -> void
 Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.VaultUri.get -> System.Uri?
 Aspire.Azure.Security.KeyVault.AzureSecurityKeyVaultSettings.VaultUri.set -> void
 Microsoft.Extensions.Hosting.AspireKeyVaultExtensions

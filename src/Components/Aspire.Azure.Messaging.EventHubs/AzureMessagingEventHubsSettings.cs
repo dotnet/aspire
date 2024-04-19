@@ -34,15 +34,6 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
     /// </remarks>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(FullyQualifiedNamespace)} instead.")]
-    public string? Namespace { get; set; }
-
-    /// <summary>
-    /// Gets or sets the fully qualified Event Hubs namespace. 
-    /// </summary>
-    /// <remarks>
-    /// Used along with <see cref="Credential"/> to establish the connection.
-    /// </remarks>
     public string? FullyQualifiedNamespace { get; set; }
 
     /// <summary>
@@ -54,15 +45,6 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     /// Gets or sets the credential used to authenticate to the Event Hubs namespace.
     /// </summary>
     public TokenCredential? Credential { get; set; }
-
-    /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true" />.
-    /// </value>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableTracing)} instead.")]
-    public bool Tracing { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.

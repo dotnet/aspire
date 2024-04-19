@@ -14,15 +14,6 @@ public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets whether retries should be enabled.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableRetry)} instead.")]
-    public bool Retry { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets whether retries should be disabled.
     /// </summary>
     /// <value>
@@ -31,30 +22,12 @@ public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
     public bool DisableRetry { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the database health check is enabled or not.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableHealthChecks)} instead.")]
-    public bool HealthChecks { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets a boolean value that indicates whether the database health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableHealthChecks { get; set; }
-
-    /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    /// </summary>
-    /// <value>
-    /// The default value is <see langword="true" />.
-    /// </value>
-    [Obsolete($"This property is obsolete and will be removed in a future version. Use {nameof(DisableTracing)} instead.")]
-    public bool Tracing { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
