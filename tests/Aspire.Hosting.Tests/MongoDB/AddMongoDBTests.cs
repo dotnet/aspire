@@ -126,7 +126,7 @@ public class AddMongoDBTests
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddMongoDB("mongo").WithMongoExpress(c => {
-            c.UseHostPort(1000);
+            c.WithHostPort(1000);
         });
 
         var resource = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());

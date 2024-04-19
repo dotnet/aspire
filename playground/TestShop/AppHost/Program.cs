@@ -8,7 +8,7 @@ var basketCache = builder.AddRedis("basketcache")
                          .WithDataVolume()
                          .WithRedisCommander(c =>
                          {
-                             c.UseHostPort(33801);
+                             c.WithHostPort(33801);
                          });
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")

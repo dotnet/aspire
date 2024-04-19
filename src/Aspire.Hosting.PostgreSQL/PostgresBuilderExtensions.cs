@@ -106,7 +106,7 @@ public static class PostgresBuilderExtensions
     /// <param name="builder">The resource builder for PGAdmin.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for PGAdmin.</returns>
-    public static IResourceBuilder<PgAdminContainerResource> UseHostPort(this IResourceBuilder<PgAdminContainerResource> builder, int? port)
+    public static IResourceBuilder<PgAdminContainerResource> WithHostPort(this IResourceBuilder<PgAdminContainerResource> builder, int? port)
     {
         return builder.WithEndpoint("http", endpoint =>
         {

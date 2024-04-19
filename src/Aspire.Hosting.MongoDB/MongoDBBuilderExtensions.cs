@@ -82,7 +82,7 @@ public static class MongoDBBuilderExtensions
     /// <param name="builder">The resource builder for Mongo Express.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for PGAdmin.</returns>
-    public static IResourceBuilder<MongoExpressContainerResource> UseHostPort(this IResourceBuilder<MongoExpressContainerResource> builder, int? port)
+    public static IResourceBuilder<MongoExpressContainerResource> WithHostPort(this IResourceBuilder<MongoExpressContainerResource> builder, int? port)
     {
         return builder.WithEndpoint("http", endpoint =>
         {

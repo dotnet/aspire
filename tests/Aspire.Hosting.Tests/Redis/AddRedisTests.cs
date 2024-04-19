@@ -143,7 +143,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddRedis("myredis").WithRedisCommander(c => {
-            c.UseHostPort(1000);
+            c.WithHostPort(1000);
         });
 
         var resource = Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
