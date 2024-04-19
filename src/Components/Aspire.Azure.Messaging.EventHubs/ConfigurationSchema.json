@@ -114,17 +114,18 @@
                           "type": "string",
                           "description": "Gets or sets the name of the consumer group."
                         },
+                        "DisableTracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                          "default": false
+                        },
                         "EventHubName": {
                           "type": "string",
                           "description": "Gets or sets the name of the Event Hub."
                         },
-                        "Namespace": {
+                        "FullyQualifiedNamespace": {
                           "type": "string",
                           "description": "Gets or sets the fully qualified Event Hubs namespace."
-                        },
-                        "Tracing": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
                       },
                       "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient'."
@@ -209,17 +210,18 @@
                           "type": "string",
                           "description": "Gets or sets the connection string used to connect to the Event Hubs namespace."
                         },
+                        "DisableTracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                          "default": false
+                        },
                         "EventHubName": {
                           "type": "string",
                           "description": "Gets or sets the name of the Event Hub."
                         },
-                        "Namespace": {
+                        "FullyQualifiedNamespace": {
                           "type": "string",
                           "description": "Gets or sets the fully qualified Event Hubs namespace."
-                        },
-                        "Tracing": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
                       },
                       "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.Producer.EventHubProducerClient'."
@@ -354,17 +356,18 @@
                           "type": "string",
                           "description": "Gets or sets the name of the consumer group."
                         },
+                        "DisableTracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                          "default": false
+                        },
                         "EventHubName": {
                           "type": "string",
                           "description": "Gets or sets the name of the Event Hub."
                         },
-                        "Namespace": {
+                        "FullyQualifiedNamespace": {
                           "type": "string",
                           "description": "Gets or sets the fully qualified Event Hubs namespace."
-                        },
-                        "Tracing": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
                       },
                       "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.EventProcessorClient'."
@@ -474,21 +477,22 @@
                           "type": "string",
                           "description": "Gets or sets the name of the consumer group."
                         },
+                        "DisableTracing": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                          "default": false
+                        },
                         "EventHubName": {
                           "type": "string",
                           "description": "Gets or sets the name of the Event Hub."
                         },
-                        "Namespace": {
+                        "FullyQualifiedNamespace": {
                           "type": "string",
                           "description": "Gets or sets the fully qualified Event Hubs namespace."
                         },
                         "PartitionId": {
                           "type": "string",
                           "description": "Gets or sets the partition identifier."
-                        },
-                        "Tracing": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                         }
                       },
                       "description": "Represents additional settings for configuring a 'Azure.Messaging.EventHubs.Primitives.PartitionReceiver'."

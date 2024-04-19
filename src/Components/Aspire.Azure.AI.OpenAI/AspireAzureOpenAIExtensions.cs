@@ -120,6 +120,6 @@ public static class AspireAzureOpenAIExtensions
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureOpenAISettings settings)
-            => settings.Tracing;
+            => !settings.DisableTracing;
     }
 }

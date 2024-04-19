@@ -40,9 +40,9 @@ public class ProducerConformanceTests : ConformanceTests<IProducer<string, strin
         }
     }
 
-    protected override void SetHealthCheck(KafkaProducerSettings options, bool enabled) => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(KafkaProducerSettings options, bool enabled) => options.DisableHealthChecks = !enabled;
 
-    protected override void SetMetrics(KafkaProducerSettings options, bool enabled) => options.Metrics = enabled;
+    protected override void SetMetrics(KafkaProducerSettings options, bool enabled) => options.DisableMetrics = !enabled;
 
     protected override void SetTracing(KafkaProducerSettings options, bool enabled)
     {
@@ -64,8 +64,8 @@ public class ProducerConformanceTests : ConformanceTests<IProducer<string, strin
                             "Kafka": {
                                 "Producer": {
                                     "ConnectionString": "localhost:9092",
-                                    "HealthChecks": true,
-                                    "Metrics": true
+                                    "DisableHealthChecks": false,
+                                    "DisableMetrics": false
                                 }
                             }
                         }
@@ -74,7 +74,7 @@ public class ProducerConformanceTests : ConformanceTests<IProducer<string, strin
                 """;
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Confluent":{ "Kafka": { "Producer": { "Metrics": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Confluent":{ "Kafka": { "Producer": { "HealthChecks": 0}}}}}""", "Value is \"integer\" but should be \"boolean\"")
+            ("""{"Aspire": { "Confluent":{ "Kafka": { "Producer": { "DisableMetrics": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Confluent":{ "Kafka": { "Producer": { "DisableHealthChecks": 0}}}}}""", "Value is \"integer\" but should be \"boolean\"")
         };
 }

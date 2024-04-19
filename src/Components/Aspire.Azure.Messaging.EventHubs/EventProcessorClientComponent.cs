@@ -37,7 +37,7 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
             {
                 EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
-                options.Identifier ??= GenerateClientIdentifier(settings);
+                options.Identifier ??= GenerateClientIdentifier(settings.EventHubName, settings.ConsumerGroup);
 
                 var blobClient = GetBlobContainerClient(settings, cred, configurationSectionName);
 
@@ -45,7 +45,7 @@ internal sealed class EventProcessorClientComponent(IConfiguration builderConfig
                     ? new EventProcessorClient(blobClient,
                         settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.ConnectionString)
                     : new EventProcessorClient(blobClient,
-                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.Namespace,
+                        settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.FullyQualifiedNamespace,
                         settings.EventHubName, cred, options);
 
                 return processor;

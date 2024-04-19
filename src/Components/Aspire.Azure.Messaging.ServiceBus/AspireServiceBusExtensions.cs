@@ -30,7 +30,7 @@ public static class AspireServiceBusExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus" section.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddAzureServiceBusClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -48,7 +48,7 @@ public static class AspireServiceBusExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus:{name}" section.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddKeyedAzureServiceBusClient(
         this IHostApplicationBuilder builder,
         string name,
@@ -69,14 +69,14 @@ public static class AspireServiceBusExtensions
             return azureFactoryBuilder.RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
-                if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))
+                if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.FullyQualifiedNamespace))
                 {
                     throw new InvalidOperationException($"A ServiceBusClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
                 }
 
                 return !string.IsNullOrEmpty(connectionString) ?
                     new ServiceBusClient(connectionString, options) :
-                    new ServiceBusClient(settings.Namespace, cred, options);
+                    new ServiceBusClient(settings.FullyQualifiedNamespace, cred, options);
             }, requiresCredential: false);
         }
 
@@ -84,13 +84,13 @@ public static class AspireServiceBusExtensions
             => !string.IsNullOrEmpty(settings.HealthCheckQueueName)
                     ? new AzureServiceBusQueueHealthCheck(new AzureServiceBusQueueHealthCheckOptions(settings.HealthCheckQueueName)
                     {
-                        FullyQualifiedNamespace = settings.Namespace,
+                        FullyQualifiedNamespace = settings.FullyQualifiedNamespace,
                         ConnectionString = settings.ConnectionString,
                         Credential = settings.Credential
                     })
                     : new AzureServiceBusTopicHealthCheck(new AzureServiceBusTopicHealthCheckOptions(settings.HealthCheckTopicName!)
                     {
-                        FullyQualifiedNamespace = settings.Namespace,
+                        FullyQualifiedNamespace = settings.FullyQualifiedNamespace,
                         ConnectionString = settings.ConnectionString,
                         Credential = settings.Credential
                     });
@@ -114,6 +114,6 @@ public static class AspireServiceBusExtensions
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
-            => settings.Tracing;
+            => !settings.DisableTracing;
     }
 }

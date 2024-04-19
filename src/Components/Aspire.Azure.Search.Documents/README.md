@@ -104,7 +104,7 @@ The .NET Aspire Azure Search library supports [Microsoft.Extensions.Configuratio
     "Azure": {
       "Search": {
         "Documents": {
-          "Tracing": true,
+          "DisableTracing": false,
         }
       }
     }
@@ -117,7 +117,7 @@ The .NET Aspire Azure Search library supports [Microsoft.Extensions.Configuratio
 You can also pass the `Action<AzureSearchSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-builder.AddAzureSearchClient("searchConnectionName", settings => settings.Tracing = false);
+builder.AddAzureSearchClient("searchConnectionName", settings => settings.DisableTracing = true);
 ```
 
 You can also setup the [SearchClientOptions](https://learn.microsoft.com/dotnet/api/azure.search.documents.searchclientoptions) using the optional `Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>> configureClientBuilder` parameter of the `AddAzureSearchClient` method. For example, to set the client ID for this client:
