@@ -135,15 +135,17 @@ Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.Callback.get -> System.Func<Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext!, System.Threading.Tasks.Task!>!
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.EnvironmentCallbackAnnotation(string! name, System.Func<string!>! callback) -> void
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.EnvironmentCallbackAnnotation(System.Action<Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext!>! callback) -> void
-Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.EnvironmentCallbackAnnotation(System.Action<System.Collections.Generic.Dictionary<string!, object!>!>! callback) -> void
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.EnvironmentCallbackAnnotation(System.Action<Aspire.Hosting.ApplicationModel.EnvironmentVariableDictionary!>! callback) -> void
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.EnvironmentCallbackAnnotation(System.Func<Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext!, System.Threading.Tasks.Task!>! callback) -> void
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.CancellationToken.get -> System.Threading.CancellationToken
-Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.EnvironmentCallbackContext(Aspire.Hosting.DistributedApplicationExecutionContext! executionContext, System.Collections.Generic.Dictionary<string!, object!>? environmentVariables = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
-Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.EnvironmentVariables.get -> System.Collections.Generic.Dictionary<string!, object!>!
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.EnvironmentCallbackContext(Aspire.Hosting.DistributedApplicationExecutionContext! executionContext, Aspire.Hosting.ApplicationModel.EnvironmentVariableDictionary? environmentVariables = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.EnvironmentVariables.get -> Aspire.Hosting.ApplicationModel.EnvironmentVariableDictionary!
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.ExecutionContext.get -> Aspire.Hosting.DistributedApplicationExecutionContext!
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.Logger.get -> Microsoft.Extensions.Logging.ILogger?
 Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.Logger.set -> void
+Aspire.Hosting.ApplicationModel.EnvironmentVariableDictionary
+Aspire.Hosting.ApplicationModel.EnvironmentVariableDictionary.EnvironmentVariableDictionary() -> void
 Aspire.Hosting.ApplicationModel.EnvironmentVariableSnapshot
 Aspire.Hosting.ApplicationModel.EnvironmentVariableSnapshot.EnvironmentVariableSnapshot(string! Name, string? Value, bool IsFromSpec) -> void
 Aspire.Hosting.ApplicationModel.EnvironmentVariableSnapshot.IsFromSpec.get -> bool
@@ -323,6 +325,24 @@ Aspire.Hosting.ApplicationModel.UrlSnapshot.Name.init -> void
 Aspire.Hosting.ApplicationModel.UrlSnapshot.Url.get -> string!
 Aspire.Hosting.ApplicationModel.UrlSnapshot.Url.init -> void
 Aspire.Hosting.ApplicationModel.UrlSnapshot.UrlSnapshot(string! Name, string! Url, bool IsInternal) -> void
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Add(System.Collections.Generic.KeyValuePair<TKey, TValue> item) -> void
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Add(TKey key, TValue value) -> void
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Clear() -> void
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Contains(System.Collections.Generic.KeyValuePair<TKey, TValue> item) -> bool
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.ContainsKey(TKey key) -> bool
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.CopyTo(System.Collections.Generic.KeyValuePair<TKey, TValue>[]! array, int arrayIndex) -> void
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Count.get -> int
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<TKey, TValue>>!
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.IsReadOnly.get -> bool
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Keys.get -> System.Collections.Generic.ICollection<TKey>!
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Remove(System.Collections.Generic.KeyValuePair<TKey, TValue> item) -> bool
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Remove(TKey key) -> bool
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.this[TKey key].get -> TValue
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.this[TKey key].set -> void
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.ValidatingDictionary(System.Func<TKey, bool>? keyValidator = null, System.Func<TValue, bool>? valueValidator = null) -> void
+Aspire.Hosting.ApplicationModel.ValidatingDictionary<TKey, TValue>.Values.get -> System.Collections.Generic.ICollection<TValue>!
 Aspire.Hosting.ContainerResourceBuilderExtensions
 Aspire.Hosting.ContainerResourceExtensions
 Aspire.Hosting.CustomResourceExtensions

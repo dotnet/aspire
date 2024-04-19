@@ -1211,7 +1211,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        var config = new Dictionary<string, object>();
+        var config = new EnvironmentVariableDictionary();
         var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken)
         {
             Logger = resourceLogger
@@ -1411,7 +1411,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 
-        var config = new Dictionary<string, object>();
+        var config = new EnvironmentVariableDictionary();
 
         dcpContainerResource.Spec.Env = [];
 

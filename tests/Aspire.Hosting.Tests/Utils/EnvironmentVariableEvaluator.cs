@@ -12,7 +12,7 @@ public static class EnvironmentVariableEvaluator
 
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
-            var config = new Dictionary<string, object>();
+            var config = new EnvironmentVariableDictionary();
             var executionContext = new DistributedApplicationExecutionContext(applicationOperation);
             var context = new EnvironmentCallbackContext(executionContext, config);
 

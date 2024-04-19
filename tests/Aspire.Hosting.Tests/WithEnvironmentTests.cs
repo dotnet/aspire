@@ -10,19 +10,22 @@ namespace Aspire.Hosting.Tests;
 public class WithEnvironmentTests
 {
     [Fact]
-    public void WithEnvironmentThrowsOnInvalidEnvironmentVariableName()
+    public async Task WithEnvironmentThrowsOnInvalidEnvironmentVariableName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        Assert.Throws<ArgumentException>(() =>
+        var container = builder.AddContainer("foo", "bar")
+                .WithEnvironment("""
+                                multi
+                                line
+                                env
+                                var
+                                """, "ok value");
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            builder.AddContainer("foo", "bar")
-                   .WithEnvironment("""
-                                    multi
-                                    line
-                                    env
-                                    var
-                                    """, "ok value");
+            await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container.Resource);
         });
+
+        Assert.Equal("Key is invalid", ex.Message);
     }
 
     [Fact]

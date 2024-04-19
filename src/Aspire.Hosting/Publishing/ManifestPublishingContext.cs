@@ -345,7 +345,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <param name="resource">The <see cref="IResource"/> which contains <see cref="EnvironmentCallbackAnnotation"/> annotations.</param>
     public async Task WriteEnvironmentVariablesAsync(IResource resource)
     {
-        var config = new Dictionary<string, object>();
+        var config = new EnvironmentVariableDictionary();
 
         var envContext = new EnvironmentCallbackContext(ExecutionContext, config, CancellationToken);
 
