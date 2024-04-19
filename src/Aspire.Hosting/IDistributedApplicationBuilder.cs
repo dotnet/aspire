@@ -16,7 +16,7 @@ namespace Aspire.Hosting;
 /// <para>
 /// The <see cref="IDistributedApplicationBuilder"/> is the central interface for defining
 /// the resources which are orchestrated by the <see cref="DistributedApplication"/> when
-/// the AppHost is launched.
+/// the app host is launched.
 /// </para>
 /// <para>
 /// To create an instance of the <see cref="IDistributedApplicationBuilder"/> interface
