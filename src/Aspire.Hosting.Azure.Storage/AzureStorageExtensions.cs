@@ -146,18 +146,6 @@ public static class AzureStorageExtensions
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
     /// <returns></returns>
-    [Obsolete("Use WithBlobPort instead.")]
-    public static IResourceBuilder<AzureStorageEmulatorResource> UseBlobPort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
-    {
-        return builder.WithBlobPort(port);
-    }
-
-    /// <summary>
-    /// Modifies the host port that the storage emulator listens on for blob requests.
-    /// </summary>
-    /// <param name="builder">Storage emulator resource builder.</param>
-    /// <param name="port">Host port to use.</param>
-    /// <returns></returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithBlobPort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
         return builder.WithEndpoint("blob", endpoint =>
@@ -172,36 +160,12 @@ public static class AzureStorageExtensions
     /// <param name="builder">Storage emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
     /// <returns></returns>
-    [Obsolete("Use WithQueuePort instead.")]
-    public static IResourceBuilder<AzureStorageEmulatorResource> UseQueuePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
-    {
-        return builder.WithQueuePort(port);
-    }
-
-    /// <summary>
-    /// Modifies the host port that the storage emulator listens on for queue requests.
-    /// </summary>
-    /// <param name="builder">Storage emulator resource builder.</param>
-    /// <param name="port">Host port to use.</param>
-    /// <returns></returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> WithQueuePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
         return builder.WithEndpoint("queue", endpoint =>
         {
             endpoint.Port = port;
         });
-    }
-
-    /// <summary>
-    /// Modifies the host port that the storage emulator listens on for table requests.
-    /// </summary>
-    /// <param name="builder">Storage emulator resource builder.</param>
-    /// <param name="port">Host port to use.</param>
-    /// <returns></returns>
-    [Obsolete("Use WithTablePort instead.")]
-    public static IResourceBuilder<AzureStorageEmulatorResource> UseTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
-    {
-        return builder.WithTablePort(port);
     }
 
     /// <summary>

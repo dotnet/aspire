@@ -116,18 +116,6 @@ public static class AzureCosmosExtensions
     /// <param name="builder">Builder for the Cosmos emulator container</param>
     /// <param name="port">Host port to bind to the emulator gateway port.</param>
     /// <returns>Cosmos emulator resource builder.</returns>
-    [Obsolete("Use WithGatewayPort instead.")]
-    public static IResourceBuilder<AzureCosmosDBEmulatorResource> UseGatewayPort(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int? port)
-    {
-        return builder.WithGatewayPort(port);
-    }
-
-    /// <summary>
-    /// Configures the gateway port for the Azure Cosmos DB emulator.
-    /// </summary>
-    /// <param name="builder">Builder for the Cosmos emulator container</param>
-    /// <param name="port">Host port to bind to the emulator gateway port.</param>
-    /// <returns>Cosmos emulator resource builder.</returns>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithGatewayPort(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int? port)
     {
         return builder.WithEndpoint("emulator", endpoint =>
