@@ -44,17 +44,17 @@
       </trans-unit>
       <trans-unit id="MessageTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">不受信任的应用可以将遥测数据发送到仪表板。</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageTelemetryLink">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">更多信息</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageTelemetryTitle">
         <source>Telemetry endpoint is unsecured</source>
-        <target state="new">Telemetry endpoint is unsecured</target>
+        <target state="translated">遥测终结点处于不安全状态</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">

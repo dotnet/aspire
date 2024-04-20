@@ -4,23 +4,24 @@
     <body>
       <trans-unit id="ContainerMountAnonymousVolumesReadOnlyExceptionMessage">
         <source>Anonymous volumes cannot be read-only.</source>
-        <target state="new">Anonymous volumes cannot be read-only.</target>
+        <target state="translated">Anonyme Volumes können nicht schreibgeschützt sein.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireRootedPaths">
         <source>Bind mounts must specify an absolute path.</source>
-        <target state="new">Bind mounts must specify an absolute path.</target>
+        <target state="translated">Bindungsbereitstellungen müssen einen absoluten Pfad angeben.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerMountBindMountsRequireSourceExceptionMessage">
         <source>Bind mounts must specify a source path.</source>
-        <target state="new">Bind mounts must specify a source path.</target>
+        <target state="translated">Für "Bereitstellungen einbinden" muss ein Quellpfad angegeben werden.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePrerequisiteMissingExceptionMessage">
         <source>Container runtime '{0}' could not be found. The error from the container runtime check was: {1}.
 See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
-        <target state="needs-review-translation">Die Containerruntime "{0}" wurde nicht gefunden. Fehler bei der Überprüfung der Containerruntime: {1}.</target>
+        <target state="translated">Die Containerruntime „{0}“ wurde nicht gefunden. Fehler bei der Überprüfung der Containerruntime: {1}.
+Weitere Informationen zu unterstützten Containerruntimes finden Sie unter „https://aka.ms/dotnet/aspire/containers“.</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyExceptionMessage">
