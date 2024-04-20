@@ -157,14 +157,14 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         {
             builder.AddKeyedNatsClient(DefaultConnectionName, settings =>
             {
-                settings.HealthChecks = false;
+                settings.DisableHealthChecks = true;
             });
         }
         else
         {
             builder.AddNatsClient(DefaultConnectionName, settings =>
             {
-                settings.HealthChecks = false;
+                settings.DisableHealthChecks = true;
             });
         }
 

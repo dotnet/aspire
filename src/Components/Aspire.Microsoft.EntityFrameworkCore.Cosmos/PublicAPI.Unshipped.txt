@@ -11,8 +11,8 @@ Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings.
 Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings.Region.set -> void
 Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings.RequestTimeout.get -> System.TimeSpan?
 Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings.RequestTimeout.set -> void
-Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings.Tracing.get -> bool
-Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings.Tracing.set -> void
+Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings.DisableTracing.get -> bool
+Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings.DisableTracing.set -> void
 Microsoft.Extensions.Hosting.AspireAzureEFCoreCosmosDBExtensions
 static Microsoft.Extensions.Hosting.AspireAzureEFCoreCosmosDBExtensions.AddCosmosDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, string! databaseName, System.Action<Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings!>? configureSettings = null, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>? configureDbContextOptions = null) -> void
 static Microsoft.Extensions.Hosting.AspireAzureEFCoreCosmosDBExtensions.EnrichCosmosDbContext<TContext>(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, System.Action<Aspire.Microsoft.EntityFrameworkCore.Cosmos.EntityFrameworkCoreCosmosDBSettings!>? configureSettings = null) -> void

@@ -41,9 +41,9 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
         }
     }
 
-    protected override void SetHealthCheck(KafkaConsumerSettings options, bool enabled) => options.HealthChecks = enabled;
+    protected override void SetHealthCheck(KafkaConsumerSettings options, bool enabled) => options.DisableHealthChecks = !enabled;
 
-    protected override void SetMetrics(KafkaConsumerSettings options, bool enabled) => options.Metrics = enabled;
+    protected override void SetMetrics(KafkaConsumerSettings options, bool enabled) => options.DisableMetrics = !enabled;
 
     protected override void SetTracing(KafkaConsumerSettings options, bool enabled)
     {
@@ -64,8 +64,8 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
                             "Kafka": {
                                 "Consumer": {
                                     "ConnectionString": "localhost:9092",
-                                    "HealthChecks": true,
-                                    "Metrics": true,
+                                    "DisableHealthChecks": false,
+                                    "DisableMetrics": false,
                                     "Config": {
                                         "GroupId": "test"
                                     }
@@ -78,7 +78,7 @@ public class ConsumerConformanceTests : ConformanceTests<IConsumer<string, strin
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Confluent":{ "Kafka": { "Consumer": { "Metrics": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Confluent":{ "Kafka": { "Consumer": { "HealthChecks": 0}}}}}""", "Value is \"integer\" but should be \"boolean\"")
+            ("""{"Aspire": { "Confluent":{ "Kafka": { "Consumer": { "DisableMetrics": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Confluent":{ "Kafka": { "Consumer": { "DisableHealthChecks": 0}}}}}""", "Value is \"integer\" but should be \"boolean\"")
         };
 }

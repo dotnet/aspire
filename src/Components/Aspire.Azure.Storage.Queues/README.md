@@ -86,8 +86,8 @@ The .NET Aspire Azure Storage Queues library supports [Microsoft.Extensions.Conf
     "Azure": {
       "Storage": {
         "Queues": {
-          "HealthChecks": false,
-          "Tracing": true,
+          "DisableHealthChecks": true,
+          "DisableTracing": false,
           "ClientOptions": {
             "Diagnostics": {
               "ApplicationId": "myapp"
@@ -105,7 +105,7 @@ The .NET Aspire Azure Storage Queues library supports [Microsoft.Extensions.Conf
 You can also pass the `Action<AzureStorageQueuesSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddAzureQueueClient("queue", settings => settings.HealthChecks = false);
+builder.AddAzureQueueClient("queue", settings => settings.DisableHealthChecks = true);
 ```
 
 You can also setup the [QueueClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueclientoptions) using the optional `Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>> configureClientBuilder` parameter of the `AddAzureQueueClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:

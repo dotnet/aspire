@@ -148,11 +148,8 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
 
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
-        // Patch DcpOptions configuration
         var services = applicationBuilder.Services;
-
         services.AddHttpClient();
-        services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());
 
         InterceptHostCreation(applicationBuilder);
 

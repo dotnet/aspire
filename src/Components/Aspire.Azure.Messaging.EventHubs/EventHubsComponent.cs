@@ -13,7 +13,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     AzureComponent<TSettings, TClient, TClientOptions>
     where TClientOptions: class
     where TClient : class
-    where TSettings : AzureMessagingEventHubsBaseSettings, new()
+    where TSettings : AzureMessagingEventHubsSettings, new()
 {
     // each EventHub client class is in a different namespace, so the base AzureComponent.ActivitySourceNames logic doesn't work
     protected override string[] ActivitySourceNames => ["Azure.Messaging.EventHubs.*"];
@@ -28,28 +28,28 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         => settings.Credential;
 
     protected override bool GetTracingEnabled(TSettings settings)
-        => settings.Tracing;
+        => !settings.DisableTracing;
 
-    protected static string GenerateClientIdentifier(AzureMessagingEventHubsConsumerBaseSettings settings)
+    protected static string GenerateClientIdentifier(string? eventHubName, string? consumerGroup)
     {
         // configure processor identifier
         var slug = Guid.NewGuid().ToString().Substring(24);
-        var identifier = $"{Environment.MachineName}-{settings.EventHubName}-" +
-                         $"{settings.ConsumerGroup ?? "default"}-{slug}";
+        var identifier = $"{Environment.MachineName}-{eventHubName}-" +
+                         $"{consumerGroup ?? "default"}-{slug}";
 
         return identifier;
     }
 
-    protected static string GetNamespaceFromSettings(AzureMessagingEventHubsBaseSettings settings)
+    protected static string GetNamespaceFromSettings(AzureMessagingEventHubsSettings settings)
     {
         string ns;
 
         try
         {
             // extract the namespace from the connection string or qualified namespace
-            var fullyQualifiedNs = string.IsNullOrWhiteSpace(settings.Namespace) ?
+            var fullyQualifiedNs = string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace) ?
                 EventHubsConnectionStringProperties.Parse(settings.ConnectionString).FullyQualifiedNamespace :
-                new Uri(settings.Namespace).Host;
+                new Uri(settings.FullyQualifiedNamespace).Host;
 
             ns = fullyQualifiedNs[..fullyQualifiedNs.IndexOf('.')];
         }
@@ -62,13 +62,13 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         return ns;
     }
 
-    protected static void EnsureConnectionStringOrNamespaceProvided(AzureMessagingEventHubsBaseSettings settings,
+    protected static void EnsureConnectionStringOrNamespaceProvided(AzureMessagingEventHubsSettings settings,
         string connectionName, string configurationSectionName)
     {
         var connectionString = settings.ConnectionString;
 
         // Are we missing both connection string and namespace? throw.
-        if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))
+        if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.FullyQualifiedNamespace))
         {
             throw new InvalidOperationException(
                 $"A {typeof(TClient).Name} could not be configured. Ensure valid connection information was provided in " +
@@ -94,7 +94,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
             }
         }
         // If we have a namespace and no connection string, ensure there's an EventHubName
-        else if (!string.IsNullOrWhiteSpace(settings.Namespace) && string.IsNullOrWhiteSpace(settings.EventHubName))
+        else if (!string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace) && string.IsNullOrWhiteSpace(settings.EventHubName))
         {
             throw new InvalidOperationException(
                 $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +

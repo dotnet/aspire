@@ -27,7 +27,7 @@ public class AspireEventHubsExtensionsTests
     private const int EventProcessorClientIndex = 2;
     private const int PartitionReceiverIndex = 3;
 
-    private static readonly Action<HostApplicationBuilder, string, Action<AzureMessagingEventHubsBaseSettings>?>[] s_keyedClientAdders =
+    private static readonly Action<HostApplicationBuilder, string, Action<AzureMessagingEventHubsSettings>?>[] s_keyedClientAdders =
     [
         (builder, key, settings) => builder.AddKeyedAzureEventHubProducerClient(key, settings),
         (builder, key, settings) => builder.AddKeyedAzureEventHubConsumerClient(key, settings),
@@ -35,7 +35,7 @@ public class AspireEventHubsExtensionsTests
         (builder, key, settings) => builder.AddKeyedAzurePartitionReceiverClient(key, settings)
     ];
 
-    private static readonly Action<HostApplicationBuilder, string, Action<AzureMessagingEventHubsBaseSettings>?>[] s_clientAdders =
+    private static readonly Action<HostApplicationBuilder, string, Action<AzureMessagingEventHubsSettings>?>[] s_clientAdders =
     [
         (builder, name, settings) => builder.AddAzureEventHubProducerClient(name, settings),
         (builder, name, settings) => builder.AddAzureEventHubConsumerClient(name, settings),
