@@ -25,31 +25,5 @@ public class GarnetResource(string name) : ContainerResource(name), IResourceWit
     /// <summary>
     /// Gets the connection string expression for the Garnet server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression
-    {
-        get
-        {
-            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-            {
-                return connectionStringAnnotation.Resource.ConnectionStringExpression;
-            }
-
-            return ConnectionString;
-        }
-    }
-
-    /// <summary>
-    /// Gets the connection string for the Garnet server.
-    /// </summary>
-    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
-    /// <returns>A connection string for the garnet server in the form "host:port".</returns>
-    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
-    {
-        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-        {
-            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
-        }
-
-        return ConnectionString.GetValueAsync(cancellationToken);
-    }
+    public ReferenceExpression ConnectionStringExpression => ConnectionString;
 }

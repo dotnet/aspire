@@ -1,7 +1,6 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.GarnetResource
 Aspire.Hosting.ApplicationModel.GarnetResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.ApplicationModel.GarnetResource.GetConnectionStringAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
 Aspire.Hosting.ApplicationModel.GarnetResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
 Aspire.Hosting.ApplicationModel.GarnetResource.GarnetResource(string! name) -> void
 Aspire.Hosting.GarnetBuilderExtensions
