@@ -34,6 +34,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     builder.AddRedisClient("redis");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+{
+    builder.AddRedisClient("valkey");
+}
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDataSource("postgresdb");
@@ -84,6 +88,11 @@ app.MapGet("/pid", () => Environment.ProcessId);
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     app.MapRedisApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+{
+    app.MapValkeyApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))

@@ -80,6 +80,11 @@ public class TestProgram : IDisposable
                 var redis = AppBuilder.AddRedis("redis");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
+            if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+            {
+                var valkey = AppBuilder.AddRedis("valkey");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(valkey);
+            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
