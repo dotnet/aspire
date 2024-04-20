@@ -18,12 +18,10 @@ public class GarnetResource(string name) : ContainerResource(name), IResourceWit
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
-    private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
-            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
-
     /// <summary>
     /// Gets the connection string expression for the Garnet server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => ConnectionString;
+    public ReferenceExpression ConnectionStringExpression => 
+        ReferenceExpression.Create(
+            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 }
