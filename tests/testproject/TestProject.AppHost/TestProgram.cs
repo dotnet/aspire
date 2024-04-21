@@ -82,7 +82,7 @@ public class TestProgram : IDisposable
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
             {
-                var garnet = AppBuilder.AddRedis("garnet");
+                var garnet = AppBuilder.AddGarnet("garnet");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
