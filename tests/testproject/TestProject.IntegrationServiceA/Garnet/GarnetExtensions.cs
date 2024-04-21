@@ -3,8 +3,6 @@
 
 using StackExchange.Redis;
 
-namespace Aspire.TestProject.Garnet;
-
 public static class GarnetExtensions
 {
     public static void MapGarnetApi(this WebApplication app)

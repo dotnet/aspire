@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestProject;
-using Aspire.TestProject.Garnet;
 
 var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
