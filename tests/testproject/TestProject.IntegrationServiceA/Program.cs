@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.TestProject;
+using Aspire.TestProject.Garnet;
 
 var builder = WebApplication.CreateBuilder(args);
 string? skipResourcesValue = Environment.GetEnvironmentVariable("SKIP_RESOURCES");
@@ -33,6 +34,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     builder.AddRedisClient("redis");
+}
+if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
+{
+    builder.AddRedisClient("garnet");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
@@ -84,6 +89,11 @@ app.MapGet("/pid", () => Environment.ProcessId);
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     app.MapRedisApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
+{
+    app.MapGarnetApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
