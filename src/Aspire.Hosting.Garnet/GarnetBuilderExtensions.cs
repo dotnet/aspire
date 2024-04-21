@@ -21,24 +21,22 @@ public static class GarnetBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api") 
-    /// var garnet = builder.AddGarnet("MyGarnet"); 
+    /// var garnet = builder.AddGarnet("garnet"); 
     /// api.WithReference(garnet);
     ///  
     /// builder.Build().Run(); 
     /// </code>
-    /// <remarks>Use in Api</remarks>
+    /// <remarks>Use in Api with Aspire.StackExchange.Redis</remarks>
     /// <code>
     /// var builder = WebApplication.CreateBuilder(args);
-    /// 
-    /// var configuration = builder.Configuration; 
-    /// var garnetConnectionString = configuration.GetConnectionString("garnet").Split(':');
+    /// builder.AddRedisClient("garnet");
     ///
-    /// using var db = new GarnetClient(garnetConnectionString[0], int.Parse(garnetConnectionString[1]));
-    /// await db.ConnectAsync();
-    /// var pong = await db.PingAsync();
-    /// if (pong != "PONG")
-    ///     throw new Exception("PingAsync: Error");
-    /// Console.WriteLine("Ping: Success");
+    /// var multiplexer = builder.Services.BuildServiceProvider()
+    ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
+    /// 
+    /// var db = multiplexer.GetDatabase();
+    /// db.HashSet("key", [new HashEntry("hash", "value")]);
+    /// var value = db.HashGet("key", "hash");
     /// </code>
     /// </example>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
