@@ -30,8 +30,8 @@ public static class GarnetBuilderExtensions
     /// <code>
     /// var builder = WebApplication.CreateBuilder(args);
     /// 
-    /// var Configuration = builder.Configuration; 
-    /// var garnetConnectionString = configure.GetConnectionString("garnet").Split(':');
+    /// var configuration = builder.Configuration; 
+    /// var garnetConnectionString = configuration.GetConnectionString("garnet").Split(':');
     ///
     /// using var db = new GarnetClient(garnetConnectionString[0], int.Parse(garnetConnectionString[1]));
     /// await db.ConnectAsync();
