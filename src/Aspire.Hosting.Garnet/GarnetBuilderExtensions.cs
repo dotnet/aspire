@@ -28,11 +28,12 @@ public static class GarnetBuilderExtensions
     /// </code>
     /// <remarks>Use in Api</remarks>
     /// <code>
-    /// var garnetConnect = Environment.GetEnvironmentVariable("services__garnet__0", EnvironmentVariableTarget.Process);
-    /// var host = garnetConnect[(garnetConnect.LastIndexOf('/') + 1)..garnetConnect.LastIndexOf(':')];
-    /// var port = int.Parse(garnetConnect[(garnetConnect.LastIndexOf(':') + 1)..]);
+    /// var builder = WebApplication.CreateBuilder(args);
     /// 
-    /// using var db = new GarnetClient(host, port);
+    /// var Configuration = builder.Configuration; 
+    /// var garnetConnectionString = configure.GetConnectionString("garnet").Split(':');
+    ///
+    /// using var db = new GarnetClient(garnetConnectionString[0], int.Parse(garnetConnectionString[1]));
     /// await db.ConnectAsync();
     /// var pong = await db.PingAsync();
     /// if (pong != "PONG")
