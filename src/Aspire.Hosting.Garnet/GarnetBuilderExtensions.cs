@@ -15,6 +15,31 @@ public static class GarnetBuilderExtensions
     /// <summary>
     /// Adds a Garnet container to the application model.
     /// </summary>
+    /// <example>
+    /// <remarks>Use in AspireHost</remarks>
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api") 
+    /// var garnet = builder.AddGarnet("MyGarnet"); 
+    /// api.WithReference(garnet);
+    ///  
+    /// builder.Build().Run(); 
+    /// </code>
+    /// <remarks>Use in Api</remarks>
+    /// <code>
+    /// var garnetConnect = Environment.GetEnvironmentVariable("services__garnet__0", EnvironmentVariableTarget.Process);
+    /// var host = garnetConnect[(garnetConnect.LastIndexOf('/') + 1)..garnetConnect.LastIndexOf(':')];
+    /// var port = int.Parse(garnetConnect[(garnetConnect.LastIndexOf(':') + 1)..]);
+    /// 
+    /// using var db = new GarnetClient(host, port);
+    /// await db.ConnectAsync();
+    /// var pong = await db.PingAsync();
+    /// if (pong != "PONG")
+    ///     throw new Exception("PingAsync: Error");
+    /// Console.WriteLine("Ping: Success");
+    /// </code>
+    /// </example>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
