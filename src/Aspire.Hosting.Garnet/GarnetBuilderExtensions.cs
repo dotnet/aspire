@@ -59,14 +59,16 @@ public static class GarnetBuilderExtensions
     /// <summary>
     /// Adds a bind mount for the data folder to a Garnet container resource and enables Garnet persistence.
     /// </summary>
+    /// <example>
     /// <remarks>
     /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?, long)"/> to adjust Garnet persistence configuration, e.g.:
     /// <code>
-    /// var cache = builder.AddGarnet("cache")
+    /// var garnet = builder.AddGarnet("garnet")
     ///                    .WithDataBindMount()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </remarks>
+    /// </example>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">
