@@ -20,6 +20,19 @@ namespace Aspire.Hosting;
 /// <summary>
 /// A builder for creating instances of <see cref="DistributedApplication"/>.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The <see cref="DistributedApplicationBuilder"/> is the primary implementation of
+/// <see cref="IDistributedApplicationBuilder"/> within .NET Aspire. Typically a developer
+/// would interact with instances of this class via the <see cref="IDistributedApplicationBuilder"/>
+/// interface which was created using one of the <see cref="DistributedApplication.CreateBuilder(string[])"/>
+/// overloads.
+/// </para>
+/// <para>
+/// For more information on how to configure the <see cref="DistributedApplication" /> using the
+/// the builder pattern see <see cref="IDistributedApplicationBuilder" />.
+/// </para>
+/// </remarks>
 public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 {
     private const string HostingDiagnosticListenerName = "Aspire.Hosting";
@@ -52,6 +65,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
     /// </summary>
     /// <param name="args">The arguments provided to the builder.</param>
+    /// <remarks>
+    /// <para>
+    /// Developers will not typically construct an instance of the <see cref="DistributedApplicationBuilder"/>
+    /// class themselves and will instead use the <see cref="DistributedApplication.CreateBuilder(string[])"/>.
+    /// This constructor is public to allow for some testing around extensibility scenarios.
+    /// </para>
+    /// </remarks>
     public DistributedApplicationBuilder(string[] args) : this(new DistributedApplicationOptions { Args = args })
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -61,6 +81,20 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
     /// </summary>
     /// <param name="options">The options for the distributed application.</param>
+    /// <remarks>
+    /// <para>
+    /// Developers will not typically construct an instance of the <see cref="DistributedApplicationBuilder"/>
+    /// class themselves and will instead use the <see cref="DistributedApplication.CreateBuilder(string[])"/>.
+    /// This constructor is public to allow for some testing around extensibility scenarios.
+    /// </para>
+    /// <para>
+    /// This constructor generates an instance of the <see cref="IDistributedApplicationBuilder"/> interface
+    /// which is very similar to the instance that is returned from <see cref="DistributedApplication.CreateBuilder(string[])"/>
+    /// however it is not guaranteed to be 100% consistent. For typical usage it is recommended that the
+    /// <see cref="DistributedApplication.CreateBuilder(string[])"/> method is to create instances of
+    /// the <see cref="IDistributedApplicationBuilder"/> interface.
+    /// </para>
+    /// </remarks>
     public DistributedApplicationBuilder(DistributedApplicationOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
