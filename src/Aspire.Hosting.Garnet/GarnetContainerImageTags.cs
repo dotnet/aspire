@@ -7,5 +7,5 @@ internal static class GarnetContainerImageTags
 {
     public const string Registry = "ghcr.io";
     public const string Image = "microsoft/garnet";
-    public const string Tag = "1.0.2";
+    public const string Tag = "latest";
 }
