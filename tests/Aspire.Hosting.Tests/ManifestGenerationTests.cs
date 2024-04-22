@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Hosting.Garnet;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Postgres;
@@ -580,7 +581,7 @@ public class ManifestGenerationTests
                 "garnet": {
                   "type": "container.v0",
                   "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
-                  "image": "{{GarnetContainerImageTags.Registry}}/{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
+                  "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
