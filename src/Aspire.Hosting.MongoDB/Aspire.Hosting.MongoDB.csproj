@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting MongoDB</PackageTags>
     <Description>MongoDB support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)MongoDBIcon.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

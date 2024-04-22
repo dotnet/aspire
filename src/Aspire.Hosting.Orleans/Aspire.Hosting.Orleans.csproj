@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting orleans</PackageTags>
     <Description>Orleans support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

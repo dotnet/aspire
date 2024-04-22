@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting dapr</PackageTags>
     <Description>Dapr support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)DaprIcon.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

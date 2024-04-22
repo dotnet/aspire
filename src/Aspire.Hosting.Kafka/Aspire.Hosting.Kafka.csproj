@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting kafka</PackageTags>
     <Description>Kafka support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Kafka_256.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +14,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <PackagePath>\</PackagePath>
+      <Pack>true</Pack>
+    </None>
   </ItemGroup>
 
 </Project>

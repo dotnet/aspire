@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting MySQL</PackageTags>
     <Description>MySQL support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)powered-by-mysql-167x86.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

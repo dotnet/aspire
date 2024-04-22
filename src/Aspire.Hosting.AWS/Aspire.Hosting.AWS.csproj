@@ -7,6 +7,7 @@
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire hosting aws</PackageTags>
     <Description>Add support for provisioning AWS application resources and configuring the AWS SDK for .NET.</Description>
+    <PackageIconFullPath>$(SharedDir)AWS.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

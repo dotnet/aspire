@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting Node Nodejs</PackageTags>
     <Description>Node.js support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)nodejsicon.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

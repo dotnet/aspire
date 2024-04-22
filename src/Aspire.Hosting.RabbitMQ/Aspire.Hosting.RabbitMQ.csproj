@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting rabbitmq</PackageTags>
     <Description>RabbitMQ support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)rabbitmq.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

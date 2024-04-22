@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting oracle sql</PackageTags>
     <Description>Oracle Database support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)OracleIcon.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
