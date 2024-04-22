@@ -38,7 +38,7 @@ automatically.
 ```
 
 > NOTE: Note that developers must have Owner access to the target subscription so that role assignments
->       can be configured for the provisioned resources.
+> can be configured for the provisioned resources.
 
 ## Usage examples
 
