@@ -4,7 +4,7 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting garnet</PackageTags>
-    <Description>Garbet® support for .NET Aspire.</Description>
+    <Description>Garnet® support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)garnet-cube-red_white-rgb.png</PackageIconFullPath>
   </PropertyGroup>
 
