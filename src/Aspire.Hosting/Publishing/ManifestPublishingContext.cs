@@ -68,6 +68,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     internal async Task WriteModel(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         Writer.WriteStartObject();
+        Writer.WriteString("$schema", "https://json.schemastore.org/aspire-8.0.json");
         Writer.WriteStartObject("resources");
 
         foreach (var resource in model.Resources)
