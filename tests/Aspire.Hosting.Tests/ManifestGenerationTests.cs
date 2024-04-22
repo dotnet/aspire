@@ -269,7 +269,26 @@ public class ManifestGenerationTests
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
         Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
+    }
 
+    [Fact]
+    public void PublishingGarnetResourceAsContainerResultsInConnectionStringProperty()
+    {
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddGarnet("garnetcontainer");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var container = resources.GetProperty("garnetcontainer");
+        Assert.Equal("container.v0", container.GetProperty("type").GetString());
+        Assert.Equal("{garnetcontainer.bindings.tcp.host}:{garnetcontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
     }
 
     [Fact]
