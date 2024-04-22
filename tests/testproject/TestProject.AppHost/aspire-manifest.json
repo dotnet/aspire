@@ -130,13 +130,13 @@
         "ConnectionStrings__tempdb": "{tempdb.connectionString}",
         "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
         "ConnectionStrings__redis": "{redis.connectionString}",
-        "ConnectionStrings__garnet": "{garnet.connectionString}",
         "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
         "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
         "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
         "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
         "ConnectionStrings__kafka": "{kafka.connectionString}",
-        "ConnectionStrings__cosmos": "{cosmos.connectionString}"
+        "ConnectionStrings__cosmos": "{cosmos.connectionString}",
+        "ConnectionStrings__garnet": "{garnet.connectionString}"
       },
       "bindings": {
         "http": {
