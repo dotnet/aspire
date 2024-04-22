@@ -53,7 +53,7 @@
       <!-- Overrides for Visual Studio setup generation. If the workload definition IDs change,
            these must be updated. -->
       <_ComponentResources Include="aspire" Title=".NET Aspire SDK"
-                           Description=".NET SDK workload for building Aspire cloud-native web applications"
+                           Description=".NET SDK Workload for building observable and scalable cloud-native applications"
                            AdvertisePackage="true"/>
       <_ComponentResources Include="aspire-host-runtime" Title=".NET Aspire SDK Hosts"
                            Description=".NET Aspire SDK Hosts"/>
