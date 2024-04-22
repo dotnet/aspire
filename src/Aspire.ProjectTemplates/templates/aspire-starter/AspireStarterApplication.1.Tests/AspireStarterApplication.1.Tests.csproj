@@ -1,28 +1,3 @@
-<!--#if (TestFramework == "MSTest") -->
-<Project Sdk="MSTest.Sdk/3.3.1">
-
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Testing" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\AspireStarterApplication.1.AppHost\AspireStarterApplication.1.AppHost.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="Aspire.Hosting.Testing" />
-    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
-  </ItemGroup>
-
-</Project>
-<!--#endif -->
-<!--#if (TestFramework == "xUnit") -->
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -33,12 +8,18 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" $(TestFramework) == 'MSTest' ">
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Testing" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-    <PackageReference Include="coverlet.collector" Version="6.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
-    <PackageReference Include="xunit" Version="2.5.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" Condition=" $(TestFramework) == 'xUnit' " />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" Condition=" $(TestFramework) == 'xUnit' " />
+    <PackageReference Include="xunit" Version="2.5.3" Condition=" $(TestFramework) == 'xUnit' " />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" Condition=" $(TestFramework) == 'xUnit' " />
+    <PackageReference Include="MSTest" Version="3.1.1" Condition=" $(TestFramework) == 'MSTest' " />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,8 +28,8 @@
 
   <ItemGroup>
     <Using Include="Aspire.Hosting.Testing" />
-    <Using Include="Xunit" />
+    <Using Include="Xunit" Condition=" $(TestFramework) == 'xUnit' " />
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" Condition=" $(TestFramework) == 'MSTest' " />
   </ItemGroup>
 
 </Project>
-<!--#endif -->

@@ -2,6 +2,9 @@ using System.Net;
 
 namespace AspireStarterApplication.1.Tests;
 
+#if (TestFramework == "MSTest")
+[TestClass]
+#endif
 public class WebTests
 {
 #if (TestFramework == "MSTest")
@@ -21,6 +24,10 @@ public class WebTests
         var response = await httpClient.GetAsync("/");
 
         // Assert
+#if (TestFramework == "MSTest")
+        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+#elif (TestFramework == "xUnit")
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+#endif
     }
 }
