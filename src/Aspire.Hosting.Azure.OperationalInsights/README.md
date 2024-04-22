@@ -49,8 +49,8 @@ var myService = builder.AddProject<Projects.MyService>()
 ```
 
 > NOTE: By default a log analytics workspace will be created automatically when deploying an Aspire application
->       via the Azure Developer CLI. Use this resource only if your application code directly integrates with
->       Azure Log Analytics.
+> via the Azure Developer CLI. Use this resource only if your application code directly integrates with
+> Azure Log Analytics.
 
 ## Additional documentation
 
