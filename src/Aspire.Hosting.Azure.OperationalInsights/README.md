@@ -1,6 +1,6 @@
-# Aspire.Hosting.Azure.Redis library
+# Aspire.Hosting.Azure.OperationalInsights library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Cache for Redis.
+Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Log Analytics.
 
 ## Getting started
 
@@ -10,10 +10,10 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the `Aspire.Hosting.Azure.Redis` library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Azure Operational Insights Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure.Redis
+dotnet add package Aspire.Hosting.Azure.OperationalInsights
 ```
 
 ## Configure Azure Provisioning for local development
@@ -39,29 +39,23 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, register a Redis server and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, add an Azure Log Analytics workspace and pass the workspace ID via an environment variable:
 
 ```csharp
-var redis = builder.AddRedis("cache")
-                   .AsAzureRedis();
+var laws = builder.AddAzureLogAnalyticsWorkspace("laws");
 
 var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(redis);
+                       .WithEnvionment("LOG_ANALYTICS_WORKSPACE_ID", $"{laws.WorkspaceId}");
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `cache`. In the _Program.cs_ file of `MyService`, the redis connection can be consumed using the client library [Aspire.StackExchange.Redis](https://www.nuget.org/packages/Aspire.StackExchange.Redis):
-
-```csharp
-builder.AddRedisClient("cache");
-```
+> NOTE: By default a log analytics workspace will be created automatically when deploying an Aspire application
+>       via the Azure Developer CLI. Use this resource only if your application code directly integrates with
+>       Azure Log Analytics.
 
 ## Additional documentation
 
-* https://stackexchange.github.io/StackExchange.Redis/Basics
-* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
+* https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-workspace-overview
 
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
-
-_*Redis is a registered trademark of Redis Ltd. Any rights therein are reserved to Redis Ltd._

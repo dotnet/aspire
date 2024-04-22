@@ -1,6 +1,6 @@
-# Aspire.Hosting.Azure.ApplicationInsights library
+# Aspire.Hosting.Azure library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Application Insights.
+Provides core extensions to the .NET Aspire hosting model for Azure services.
 
 ## Getting started
 
@@ -10,10 +10,10 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Azure Application Insights Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the .NET Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure.ApplicationInsights
+dotnet add package Aspire.Hosting.Azure
 ```
 
 ## Configure Azure Provisioning for local development
@@ -39,18 +39,18 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add an Application Insights connection and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, add a resource based on a Bicep template:
 
 ```csharp
-var appInsights = builder.AddAzureApplicationInsights("appInsights");
+var bicepResource = builder.AddBicepTemplate("bicep", "template.bicep")
+                           .WithParameter("parametername", "parametervalue");
+});
 
-var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(appInsights);
 ```
 
 ## Additional documentation
 
-* https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview
+* https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview
 
 ## Feedback & contributing
 

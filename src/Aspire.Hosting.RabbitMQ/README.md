@@ -1,43 +1,31 @@
-# Aspire Hosting library for RabbitMQ
+# Aspire.Hosting.RabbitMQ library
 
-Provides extension methods and resources to add RabbitMQ to the Aspire AppHost.
+Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a RabbitMQ resource.
 
-## Install the package
+## Getting started
 
-In your AppHost project, install the `Aspire.Hosting.RabbitMQ` library with [NuGet](https://www.nuget.org):
+### Install the package
+
+In your AppHost project, install the .NET Aspire RabbitMQ Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.RabbitMQ
 ```
 
-## Adding RabbitMQ to the AppHost
+## Usage example
 
-To add RabbitMQ to the AppHost use the `AddRabbitMQ` method. The first parameter is the Aspire resource name. The second optional parameter
-is the port that the RabbitMQ container will listen on. If the port is not provided the port will be randomly assigned.
-
-```csharp
-var messaging = builder.AddRabbitMQ("messaging");
-```
-
-To use the RabbitMQ resource in a project use the `WithReference` method. The `WithReference` method will inject an environment variable
-called `ConnectionStrings__messaging` (where `messaging` matches the name of the Redis resource).
+Then, in the _Program.cs_ file of `AppHost`, add a RabbitMQ resource and consume the connection using the following methods:
 
 ```csharp
-builder.AddProject<Projects.InventoryService>("inventoryservice")
-        .WithReference(messaging)
+var rmq = builder.AddRabbitMQ("rmq");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(rmq);
 ```
 
-## Using RabbitMQ with a .NET project
+## Additional documentation
+https://learn.microsoft.com/dotnet/aspire/messaging/rabbitmq-client-component
 
-Once the RabbitMQ resource is configured in the AppHost it can be accessed in a .NET project. To use the RabbitMQ resource in a .NET project
-add a reference to the `Aspire.RabbitMQ.Client` NuGet package and add the following code to configure client.
+## Feedback & contributing
 
-```csharp
-builder.AddRabbitMQClient("messaging");
-```
-
-## Other resources
-
-For more information see the following resources:
-
-- [Aspire RabbitMQ component tutorial](https://learn.microsoft.com/dotnet/aspire/messaging/rabbitmq-client-component)
+https://github.com/dotnet/aspire

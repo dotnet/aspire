@@ -16,6 +16,27 @@ Install the .NET Aspire Azure SQL Server Hosting library with [NuGet](https://ww
 dotnet add package Aspire.Hosting.Azure.SqlServer
 ```
 
+## Configure Azure Provisioning for local development
+
+Adding Azure resources to the .NET Aspire application model will automatically enable automated provisioning
+for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
+to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
+automatically.
+
+```json
+{
+    "Azure": {
+      "SubscriptionId": "<your subscription id>",
+      "ResourceGroup": "<your resource group name>",
+      "AllowResourceGroupCreation": true,
+      "Location": "<azure location>"
+    }
+}
+```
+
+> NOTE: Note that developers must have Owner access to the target subscription so that role assignments
+>       can be configured for the provisioned resources.
+
 ## Usage example
 
 In the _Program.cs_ file of `AppHost`, register a SqlServer database and consume the connection using the following methods:
@@ -27,12 +48,6 @@ var sql = builder.AddSqlServer("sql")
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(sql);
-```
-
-The `WithReference` method configures a connection in the `MyService` project named `sqldata`. In the _Program.cs_ file of `MyService`, the sql connection can be consumed using the client library [Aspire.Microsoft.Data.SqlClient](https://www.nuget.org/packages/Aspire.Microsoft.Data.SqlClient):
-
-```csharp
-builder.AddSqlServerClient("sqldata");
 ```
 
 ## Additional documentation
