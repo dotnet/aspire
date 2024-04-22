@@ -82,7 +82,7 @@ public class TestProgram : IDisposable
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
             {
-                var garnet = AppBuilder.AddGarnet("garnet");
+                var garnet = AppBuilder.AddGarnet("garnet", port: 6399);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
