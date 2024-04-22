@@ -137,7 +137,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private void UpdateApplications()
     {
         _applications = TelemetryRepository.GetApplications();
-        _applicationViewModels = SelectViewModelFactory.CreateApplicationsSelectViewModel(_applications);
+        _applicationViewModels = SelectViewModelHelpers.CreateApplicationsSelectViewModel(_applications);
         _applicationViewModels.Insert(0, _allApplication);
     }
 
@@ -332,7 +332,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        PageViewModel.SelectedApplication = _applicationViewModels.SingleOrDefault(e => string.Equals(ApplicationName, e.Name, StringComparisons.ResourceName)) ?? _allApplication;
+        PageViewModel.SelectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
         ViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))

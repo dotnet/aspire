@@ -97,7 +97,7 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.SingleOrDefault(e => string.Equals(ApplicationName, e.Name, StringComparisons.ResourceName)) ?? _allApplication;
+        _selectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
         TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
         UpdateSubscription();
     }
@@ -105,7 +105,7 @@ public partial class Traces
     private void UpdateApplications()
     {
         _applications = TelemetryRepository.GetApplications();
-        _applicationViewModels = SelectViewModelFactory.CreateApplicationsSelectViewModel(_applications);
+        _applicationViewModels = SelectViewModelHelpers.CreateApplicationsSelectViewModel(_applications);
         _applicationViewModels.Insert(0, _allApplication);
         UpdateSubscription();
     }
