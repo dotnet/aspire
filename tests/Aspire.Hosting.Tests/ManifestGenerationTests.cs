@@ -413,6 +413,7 @@ public class ManifestGenerationTests
 
         var expectedManifest = $$"""
             {
+              "$schema": "{{SchemaUtils.SchemaVersion}}",
               "resources": {
                 "servicea": {
                   "type": "project.v0",
