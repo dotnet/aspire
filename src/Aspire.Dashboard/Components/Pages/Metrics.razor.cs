@@ -141,7 +141,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private void UpdateApplications()
     {
-        _applications = SelectViewModelHelpers.CreateApplicationsSelectViewModel(TelemetryRepository.GetApplications());
+        _applications = ApplicationsSelectHelpers.CreateApplications(TelemetryRepository.GetApplications());
         _applications.Insert(0, _selectApplication);
         UpdateSubscription();
     }

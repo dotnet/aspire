@@ -137,7 +137,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private void UpdateApplications()
     {
         _applications = TelemetryRepository.GetApplications();
-        _applicationViewModels = SelectViewModelHelpers.CreateApplicationsSelectViewModel(_applications);
+        _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _allApplication);
     }
 

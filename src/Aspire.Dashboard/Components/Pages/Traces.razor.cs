@@ -105,7 +105,7 @@ public partial class Traces
     private void UpdateApplications()
     {
         _applications = TelemetryRepository.GetApplications();
-        _applicationViewModels = SelectViewModelHelpers.CreateApplicationsSelectViewModel(_applications);
+        _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _allApplication);
         UpdateSubscription();
     }
