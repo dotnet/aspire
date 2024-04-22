@@ -32,29 +32,35 @@ public sealed class ServiceDiscoveryOptions
 
     internal static string[] ApplyAllowedSchemes(IReadOnlyList<string> schemes, IList<string> allowedSchemes, bool allowAllSchemes)
     {
-        if (allowAllSchemes)
+        if (schemes.Count > 0)
         {
-            if (schemes is string[] array)
+            if (allowAllSchemes)
             {
-                return array;
+                if (schemes is string[] array && array.Length > 0)
+                {
+                    return array;
+                }
+
+                return schemes.ToArray();
             }
 
-            return schemes.ToArray();
-        }
-
-        List<string> result = [];
-        foreach (var s in schemes)
-        {
-            foreach (var allowed in allowedSchemes)
+            List<string> result = [];
+            foreach (var s in schemes)
             {
-                if (string.Equals(s, allowed, StringComparison.OrdinalIgnoreCase))
+                foreach (var allowed in allowedSchemes)
                 {
-                    result.Add(s);
-                    break;
+                    if (string.Equals(s, allowed, StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.Add(s);
+                        break;
+                    }
                 }
             }
+
+            return result.ToArray();
         }
 
-        return result.ToArray();
+        // If no schemes were specified, but a set of allowed schemes were specified, allow those.
+        return allowedSchemes.ToArray();
     }
 }
