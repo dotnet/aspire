@@ -46,7 +46,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <para>
     /// When this method is applied to a project resource it wil configure the app host to start multiple instances
     /// of the application based on the specified number of replicas. By default the app host automatically starts a
-    /// reverse proxy for each process. When <see cref="WithReplicas(IResourceBuilder{ProjectResource}, int)"/> is
+    /// reverse proxy for each process. When <see cref="WithReplicas(IResourceBuilder{ExecutableResource}, int)"/> is
     /// used the reverse proxy will load balance traffic between the replicas.
     /// </para>
     /// <para>
