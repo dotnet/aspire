@@ -577,10 +577,10 @@ public class ManifestGenerationTests
                     }
                   }
                 },
-                  "garnet": {
+                "garnet": {
                   "type": "container.v0",
                   "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
-                  "image": "{{garnetContainerImageTags.Registry}}/{garnetContainerImageTags.Image}}:{{garnetContainerImageTags.Tag}}",
+                  "image": "{{GarnetContainerImageTags.Registry}}/{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
