@@ -501,6 +501,7 @@ public class ManifestGenerationTests
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
+                    "ConnectionStrings__garnet": "{garnet.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
@@ -572,6 +573,20 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
+                      "targetPort": 6379
+                    }
+                  }
+                },
+                  "garnet": {
+                  "type": "container.v0",
+                  "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
+                  "image": "{{garnetContainerImageTags.Registry}}/{garnetContainerImageTags.Image}}:{{garnetContainerImageTags.Tag}}",
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "Port": 6399,
                       "targetPort": 6379
                     }
                   }
