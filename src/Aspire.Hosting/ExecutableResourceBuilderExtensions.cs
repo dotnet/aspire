@@ -37,6 +37,39 @@ public static class ExecutableResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Configures how many replicas of the project should be created for the project.
+    /// </summary>
+    /// <param name="builder">The executable resource builder.</param>
+    /// <param name="replicas">The number of replicas.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// When this method is applied to a project resource it wil configure the app host to start multiple instances
+    /// of the application based on the specified number of replicas. By default the app host automatically starts a
+    /// reverse proxy for each process. When <see cref="WithReplicas(IResourceBuilder{ProjectResource}, int)"/> is
+    /// used the reverse proxy will load balance traffic between the replicas.
+    /// </para>
+    /// <para>
+    /// This capability can be useful when debugging scale out scenarios to ensure state is appropriately managed
+    /// within a cluster of instances.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Start multiple instances of the same service.
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice")
+    ///                               .WithReplicas(3);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ExecutableResource> WithReplicas(this IResourceBuilder<ExecutableResource> builder, int replicas)
+    {
+        builder.WithAnnotation(new ReplicaAnnotation(replicas));
+        return builder;
+    }
+
+    /// <summary>
     /// Adds annotation to <see cref="ExecutableResource" /> to support containerization during deployment.
     /// The resulting container image is built, and when the optional <paramref name="buildArgs"/> are provided
     /// they're used with <c>docker build --build-arg</c>.
