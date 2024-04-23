@@ -291,6 +291,38 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         }, ConnectionString).Dispose();
     }
 
+    [RequiresDockerFact]
+    public async Task CanAddMultipleKeyedServices()
+    {
+        await using var container2 = await RedisContainerFixture.CreateContainerAsync();
+        await using var container3 = await RedisContainerFixture.CreateContainerAsync();
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:redis1", ConnectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:redis2", container2.GetConnectionString()),
+            new KeyValuePair<string, string?>("ConnectionStrings:redis3", container3.GetConnectionString())
+        ]);
+
+        builder.AddRedisClient("redis1");
+        builder.AddKeyedRedisClient("redis2");
+        builder.AddKeyedRedisClient("redis3");
+
+        using var host = builder.Build();
+
+        var connection1 = host.Services.GetRequiredService<IConnectionMultiplexer>();
+        var connection2 = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis2");
+        var connection3 = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis3");
+
+        Assert.NotSame(connection1, connection2);
+        Assert.NotSame(connection1, connection3);
+        Assert.NotSame(connection2, connection3);
+
+        Assert.Equal(connection1.Configuration, ConnectionString);
+        Assert.Equal(connection2.Configuration, container2.GetConnectionString());
+        Assert.Equal(connection3.Configuration, container3.GetConnectionString());
+    }
+
     private void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
         configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", key, "ConnectionString"), ConnectionString)
