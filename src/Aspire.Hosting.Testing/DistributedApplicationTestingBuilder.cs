@@ -21,14 +21,49 @@ public static class DistributedApplicationTestingBuilder
     /// <returns>
     /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
     /// </returns>
-    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync<TEntryPoint>(CancellationToken cancellationToken = default) where TEntryPoint : class
+    public static Task<IDistributedApplicationTestingBuilder> CreateAsync<TEntryPoint>() where TEntryPoint : class
+        => CreateAsync<TEntryPoint>(default);
+
+    /// <summary>
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </summary>
+    /// <typeparam name="TEntryPoint">
+    /// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
+    /// </typeparam>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync<TEntryPoint>(CancellationToken cancellationToken) where TEntryPoint : class
     {
-        var factory = new SuspendingDistributedApplicationFactory<TEntryPoint>((_, __) => { });
+        var factory = new SuspendingDistributedApplicationFactory(typeof(TEntryPoint), (_, __) => { });
         return await factory.CreateBuilderAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private sealed class SuspendingDistributedApplicationFactory<TEntryPoint>(Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
-        : DistributedApplicationFactory<TEntryPoint> where TEntryPoint : class
+    /// <summary>
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </summary>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    public static Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint) => CreateAsync(entryPoint, default);
+
+    /// <summary>
+    /// Creates a new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </summary>
+    /// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>
+    /// A new instance of <see cref="DistributedApplicationTestingBuilder"/>.
+    /// </returns>
+    public static async Task<IDistributedApplicationTestingBuilder> CreateAsync(Type entryPoint, CancellationToken cancellationToken)
+    {
+        var factory = new SuspendingDistributedApplicationFactory(entryPoint, (_, __) => { });
+        return await factory.CreateBuilderAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private sealed class SuspendingDistributedApplicationFactory(Type entryPoint, Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder)
+        : DistributedApplicationFactory(entryPoint)
     {
         private readonly SemaphoreSlim _continueBuilding = new(0);
 
@@ -75,7 +110,7 @@ public static class DistributedApplicationTestingBuilder
             base.Dispose();
         }
 
-        private sealed class Builder(SuspendingDistributedApplicationFactory<TEntryPoint> factory, DistributedApplicationBuilder innerBuilder) : IDistributedApplicationTestingBuilder
+        private sealed class Builder(SuspendingDistributedApplicationFactory factory, DistributedApplicationBuilder innerBuilder) : IDistributedApplicationTestingBuilder
         {
             public ConfigurationManager Configuration => innerBuilder.Configuration;
 
@@ -124,7 +159,7 @@ public static class DistributedApplicationTestingBuilder
             }
         }
 
-        private sealed class DelegatedHost(SuspendingDistributedApplicationFactory<TEntryPoint> appFactory, DistributedApplication innerApp) : IHost, IAsyncDisposable
+        private sealed class DelegatedHost(SuspendingDistributedApplicationFactory appFactory, DistributedApplication innerApp) : IHost, IAsyncDisposable
         {
             public IServiceProvider Services => innerApp.Services;
 
