@@ -9,7 +9,7 @@ internal static class CosmosConstants
     /// Defines the application name used to interact with the aszure cosmos db. This will be suffixed to the
     /// cosmos user-agent to include with every Azure Cosmos DB service interaction.
     /// </summary>
-    internal const string CosmosApplicationName = "AspireCosmosDBClient";
+    internal const string CosmosApplicationName = "Aspire";
 
     /// <summary>
     /// Gets the well-known and documented Azure Cosmos DB emulator account key.
