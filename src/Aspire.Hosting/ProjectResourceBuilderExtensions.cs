@@ -105,7 +105,7 @@ public static class ProjectResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This overload of the <see cref="AddProject{TProject}(IDistributedApplicationBuilder, string)"/> method adds takes
+    /// This overload of the <see cref="AddProject{TProject}(IDistributedApplicationBuilder, string)"/> method takes
     /// a <typeparamref name="TProject"/> type parameter. The <typeparamref name="TProject"/> type parameter is constrained
     /// to types that implement the <see cref="IProjectMetadata"/> interface.
     /// </para>
