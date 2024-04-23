@@ -117,7 +117,7 @@ public static class ProjectResourceBuilderExtensions
     /// </para>
     /// <para>
     /// The automatically generated project metadata type is named based on a normalized version of the project name. Periods, dashes, and
-    /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If this occurs the <c>&lt;ProjectReference /&gt;</c>
+    /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
     /// </remarks>
