@@ -83,7 +83,7 @@ public static class AspireRedisExtensions
         var optionsName = serviceKey is null ? Options.Options.DefaultName : connectionName;
 
         // see comments on ConfigurationOptionsFactory for why a factory is used here
-        builder.Services.AddTransient(sp => new RedisOptionsSettingsPair { OptionsName = optionsName, Settings = settings });
+        builder.Services.AddKeyedTransient(optionsName, (sp, _) => new RedisSettingsAdapterService { Settings = settings });
         builder.Services.TryAddTransient<IOptionsFactory<ConfigurationOptions>, ConfigurationOptionsFactory>();
 
         builder.Services.Configure<ConfigurationOptions>(
@@ -173,9 +173,12 @@ public static class AspireRedisExtensions
         return options;
     }
 
-    private sealed class RedisOptionsSettingsPair
+    /// <summary>
+    /// Used to pass StackExchangeRedisSettings instances to the ConfigurationOptionsFactory.
+    /// </summary>
+    /// <remarks>Not using StackExchangeRedisSettings itself because it is a public type that someone else could register in DI.</remarks>
+    private sealed class RedisSettingsAdapterService
     {
-        public required string OptionsName { get; init; }
         public required StackExchangeRedisSettings Settings { get; init; }
     }
 
@@ -192,17 +195,20 @@ public static class AspireRedisExtensions
     /// </remarks>
     private sealed class ConfigurationOptionsFactory : OptionsFactory<ConfigurationOptions>
     {
-        private readonly IEnumerable<RedisOptionsSettingsPair> _settingsPairs;
+        private readonly IServiceProvider _serviceProvider;
 
-        public ConfigurationOptionsFactory(IEnumerable<RedisOptionsSettingsPair> settingsPairs, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
+        public ConfigurationOptionsFactory(IServiceProvider serviceProvider, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
             : base(setups, postConfigures, validations)
         {
-            _settingsPairs = settingsPairs;
+            _serviceProvider = serviceProvider;
         }
 
         protected override ConfigurationOptions CreateInstance(string name)
         {
-            var connectionString = _settingsPairs.FirstOrDefault(p => p.OptionsName == name)?.Settings.ConnectionString;
+            // Don't fail if the options name isn't found. Just return a blank ConfigurationOptions to be consistent
+            // with the regular OptionsFactory.
+            var settings = _serviceProvider.GetKeyedService<RedisSettingsAdapterService>(name);
+            var connectionString = settings?.Settings.ConnectionString;
 
             var options = connectionString is not null ?
                 ConfigurationOptions.Parse(connectionString) :
