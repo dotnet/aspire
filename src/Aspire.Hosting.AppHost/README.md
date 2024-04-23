@@ -1,7 +1,6 @@
 # Aspire.Hosting.AppHost library
 
-This package imports the core package references and build targets for .NET Aspire. This package is
-added automatically when using .NET Aspire starter templates.
+Provides the core APIs and MSBuild logic for .NET Aspire AppHost projects.
 
 ## Getting started
 
