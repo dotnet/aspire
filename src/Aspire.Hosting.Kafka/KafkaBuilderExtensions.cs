@@ -14,7 +14,7 @@ public static class KafkaBuilderExtensions
     private const int KafkaBrokerPort = 9092;
 
     /// <summary>
-    /// Adds a Kafka resource to the application. A container is used for local development.  This version the package defaults to the 7.6.0 tag of the confluentinc/confluent-local container image.
+    /// Adds a Kafka resource to the application. A container is used for local development.  This version the package defaults to the 7.6.1 tag of the confluentinc/confluent-local container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>

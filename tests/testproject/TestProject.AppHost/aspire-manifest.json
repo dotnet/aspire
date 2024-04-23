@@ -263,7 +263,7 @@
     "mongodb": {
       "type": "container.v0",
       "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-      "image": "docker.io/library/mongo:7.0.5",
+      "image": "docker.io/library/mongo:7.0.8",
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -300,7 +300,7 @@
     "kafka": {
       "type": "container.v0",
       "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-      "image": "docker.io/confluentinc/confluent-local:7.6.0",
+      "image": "docker.io/confluentinc/confluent-local:7.6.1",
       "env": {
         "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
       },
