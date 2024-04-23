@@ -9,7 +9,6 @@ The Azure Key Vault extensions library allows you to extend the .NET Aspire appl
 ### Prerequisites
 
 * Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-* Authorization to create an Azure Key Vault and create role assignments.
 * A .NET Aspire project based on the starter template.
  
 ### Install the package
@@ -19,6 +18,26 @@ Install the Azure Key Vault extensions library for .NET Aspire application model
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.KeyVault
 ```
+
+## Configure Azure Provisioning for local development
+
+Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
+to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
+automatically.
+
+```json
+{
+    "Azure": {
+      "SubscriptionId": "<your subscription id>",
+      "ResourceGroupPrefix": "<prefix for the resource group>",
+      "Location": "<azure location>"
+    }
+}
+```
+
+> NOTE: Developers must have Owner access to the target subscription so that role assignments
+> can be configured for the provisioned resources.
 
 ## Usage examples
 
