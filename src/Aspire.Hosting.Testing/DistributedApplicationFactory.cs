@@ -127,8 +127,8 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
     private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
     {
         hostBuilderOptions.EnvironmentName = Environments.Development;
-        hostBuilderOptions.ApplicationName = entryPoint.Assembly.GetName().Name ?? string.Empty;
-        applicationOptions.AssemblyName = entryPoint.Assembly.GetName().Name ?? string.Empty;
+        hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
+        applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
         cfg.AddInMemoryCollection(new Dictionary<string, string?>
