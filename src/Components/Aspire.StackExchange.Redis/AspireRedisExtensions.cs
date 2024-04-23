@@ -5,6 +5,7 @@ using Aspire;
 using Aspire.StackExchange.Redis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Instrumentation.StackExchangeRedis;
@@ -83,7 +84,7 @@ public static class AspireRedisExtensions
 
         // see comments on ConfigurationOptionsFactory for why a factory is used here
         builder.Services.AddTransient(sp => new RedisOptionsSettingsPair { OptionsName = optionsName, Settings = settings });
-        builder.Services.AddTransient<IOptionsFactory<ConfigurationOptions>, ConfigurationOptionsFactory>();
+        builder.Services.TryAddTransient<IOptionsFactory<ConfigurationOptions>, ConfigurationOptionsFactory>();
 
         builder.Services.Configure<ConfigurationOptions>(
             optionsName,
