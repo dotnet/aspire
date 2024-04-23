@@ -10,7 +10,7 @@ public static class GarnetExtensions
         app.MapGet("/garnet/verify", VerifyGarnetAsync);
     }
 
-    private static async Task<IResult> VerifyGarnetAsync(IConnectionMultiplexer cm)
+    private static async Task<IResult> VerifyGarnetAsync([FromKeyedServices("garnet")] IConnectionMultiplexer cm)
     {
         try
         {
