@@ -5,7 +5,6 @@ using Aspire;
 using Aspire.StackExchange.Redis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Instrumentation.StackExchangeRedis;
@@ -80,17 +79,14 @@ public static class AspireRedisExtensions
 
         configureSettings?.Invoke(settings);
 
-        // see comments on ConfigurationOptionsFactory for why a factory is used here
-        builder.Services.TryAdd(ServiceDescriptor.Transient(typeof(IOptionsFactory<ConfigurationOptions>),
-            sp => new ConfigurationOptionsFactory(
-                settings,
-                sp.GetServices<IConfigureOptions<ConfigurationOptions>>(),
-                sp.GetServices<IPostConfigureOptions<ConfigurationOptions>>(),
-                sp.GetServices<IValidateOptions<ConfigurationOptions>>())));
+        var optionsName = serviceKey is null ? Options.Options.DefaultName : connectionName;
 
-        string? optionsName = serviceKey is null ? null : connectionName;
+        // see comments on ConfigurationOptionsFactory for why a factory is used here
+        builder.Services.AddTransient(sp => new RedisOptionsSettingsPair { OptionsName = optionsName, Settings = settings });
+        builder.Services.AddTransient<IOptionsFactory<ConfigurationOptions>, ConfigurationOptionsFactory>();
+
         builder.Services.Configure<ConfigurationOptions>(
-            optionsName ?? Options.Options.DefaultName,
+            optionsName,
             configurationOptions =>
             {
                 BindToConfiguration(configurationOptions, configSection);
@@ -140,7 +136,7 @@ public static class AspireRedisExtensions
         }
     }
 
-    private static ConnectionMultiplexer CreateConnection(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string? optionsName)
+    private static ConnectionMultiplexer CreateConnection(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string optionsName)
     {
         var connection = ConnectionMultiplexer.Connect(GetConfigurationOptions(serviceProvider, connectionName, configurationSectionName, optionsName));
 
@@ -151,9 +147,9 @@ public static class AspireRedisExtensions
         return connection;
     }
 
-    private static ConfigurationOptions GetConfigurationOptions(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string? optionsName)
+    private static ConfigurationOptions GetConfigurationOptions(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string optionsName)
     {
-        var configurationOptions = optionsName is null ?
+        var configurationOptions = string.IsNullOrEmpty(optionsName) ?
             serviceProvider.GetRequiredService<IOptions<ConfigurationOptions>>().Value :
             serviceProvider.GetRequiredService<IOptionsMonitor<ConfigurationOptions>>().Get(optionsName);
 
@@ -176,6 +172,12 @@ public static class AspireRedisExtensions
         return options;
     }
 
+    private sealed class RedisOptionsSettingsPair
+    {
+        public required string OptionsName { get; init; }
+        public required StackExchangeRedisSettings Settings { get; init; }
+    }
+
     /// <summary>
     /// ConfigurationOptionsFactory parses a ConfigurationOptions options object from Configuration.
     /// </summary>
@@ -189,17 +191,17 @@ public static class AspireRedisExtensions
     /// </remarks>
     private sealed class ConfigurationOptionsFactory : OptionsFactory<ConfigurationOptions>
     {
-        private readonly StackExchangeRedisSettings _settings;
+        private readonly IEnumerable<RedisOptionsSettingsPair> _settingsPairs;
 
-        public ConfigurationOptionsFactory(StackExchangeRedisSettings settings, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
+        public ConfigurationOptionsFactory(IEnumerable<RedisOptionsSettingsPair> settingsPairs, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
             : base(setups, postConfigures, validations)
         {
-            _settings = settings;
+            _settingsPairs = settingsPairs;
         }
 
         protected override ConfigurationOptions CreateInstance(string name)
         {
-            var connectionString = _settings.ConnectionString;
+            var connectionString = _settingsPairs.FirstOrDefault(p => p.OptionsName == name)?.Settings.ConnectionString;
 
             var options = connectionString is not null ?
                 ConfigurationOptions.Parse(connectionString) :
