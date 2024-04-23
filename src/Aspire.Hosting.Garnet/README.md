@@ -29,6 +29,7 @@ builder.AddRedisClient("cache");
 
 ## Additional documentation
 
+* https://github.com/microsoft/garnet/blob/main/README.md
 * https://stackexchange.github.io/StackExchange.Redis/Basics
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
