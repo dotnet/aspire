@@ -314,7 +314,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Start multiple instances of the same service.
-    /// <code>
+    /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice")
