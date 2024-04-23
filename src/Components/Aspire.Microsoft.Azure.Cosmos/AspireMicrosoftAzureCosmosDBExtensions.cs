@@ -83,7 +83,6 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
         configureSettings?.Invoke(settings);
 
         var clientOptions = new CosmosClientOptions();
-        clientOptions.ApplicationName = CosmosConstants.CosmosApplicationName;
 
         // Needs to be enabled for either logging or tracing to work.
         clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
@@ -103,6 +102,13 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
 
         configureClientOptions?.Invoke(clientOptions);
 
+        var cosmosApplicationName = CosmosConstants.CosmosApplicationName;
+        if (!string.IsNullOrEmpty(clientOptions.ApplicationName))
+        {
+            cosmosApplicationName += clientOptions.ApplicationName;
+        }
+
+        clientOptions.ApplicationName = cosmosApplicationName;
         if (serviceKey is null)
         {
             builder.Services.AddSingleton(_ => ConfigureDb());
