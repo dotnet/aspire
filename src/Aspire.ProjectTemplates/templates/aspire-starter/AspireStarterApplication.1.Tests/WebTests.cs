@@ -9,6 +9,8 @@ public class WebTests
 {
 #if (TestFramework == "MSTest")
     [TestMethod]
+#elif (TestFramework == "NUnit")
+    [Test]
 #elif (TestFramework == "xUnit")
     [Fact]
 #endif
@@ -26,6 +28,8 @@ public class WebTests
         // Assert
 #if (TestFramework == "MSTest")
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+#elif (TestFramework == "NUnit")
+        ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 #elif (TestFramework == "xUnit")
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 #endif
