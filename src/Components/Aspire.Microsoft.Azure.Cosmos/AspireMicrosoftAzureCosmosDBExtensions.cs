@@ -104,7 +104,7 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
         var cosmosApplicationName = CosmosConstants.CosmosApplicationName;
         if (!string.IsNullOrEmpty(clientOptions.ApplicationName))
         {
-            cosmosApplicationName += clientOptions.ApplicationName;
+            cosmosApplicationName = $"{cosmosApplicationName}|{clientOptions.ApplicationName}";
         }
 
         clientOptions.ApplicationName = cosmosApplicationName;
