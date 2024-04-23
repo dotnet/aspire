@@ -72,7 +72,7 @@ public static class GarnetBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<GarnetResource> WithDataVolume(this IResourceBuilder<GarnetResource> builder, string? name = null, bool isReadOnly = false)
     {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
+        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/garnet/data", isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
