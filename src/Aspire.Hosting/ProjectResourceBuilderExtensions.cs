@@ -302,7 +302,7 @@ public static class ProjectResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// When this method is applied to a project resource it wil configure the app host to start multiple instances
+    /// When this method is applied to a project resource it will configure the app host to start multiple instances
     /// of the application based on the specified number of replicas. By default the app host automatically starts a
     /// reverse proxy for each process. When <see cref="WithReplicas(IResourceBuilder{ProjectResource}, int)"/> is
     /// used the reverse proxy will load balance traffic between the replicas.
