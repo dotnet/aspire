@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.ServiceBus
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable automated provisioning
+Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
