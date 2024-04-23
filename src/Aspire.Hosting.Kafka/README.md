@@ -17,7 +17,7 @@ dotnet add package Aspire.Hosting.Kafka
 Then, in the _Program.cs_ file of `AppHost`, add a Kafka resource and consume the connection using the following methods:
 
 ```csharp
-var kafka = builder.AddKafka("mongodb");
+var kafka = builder.AddKafka("messaging");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(kafka);
