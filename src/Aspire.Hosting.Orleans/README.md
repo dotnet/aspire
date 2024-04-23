@@ -17,8 +17,6 @@ dotnet add package Aspire.Hosting.Orleans
 Then, in the _Program.cs_ file of `AppHost`, add a Or resource and consume the connection using the following methods:
 
 ```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
 var storage = builder.AddAzureStorage("storage").RunAsEmulator();
 var clusteringTable = storage.AddTables("clustering");
 var grainStorage = storage.AddBlobs("grainstate");
@@ -32,8 +30,6 @@ builder.AddProject<Projects.OrleansServer>("silo")
 
 builder.AddProject<Projects.OrleansClient>("frontend")
        .WithReference(orleans.AsClient());
-
-builder.Build().Run();
 ```
 
 ## Additional documentation

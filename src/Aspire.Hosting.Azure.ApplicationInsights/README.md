@@ -27,14 +27,13 @@ automatically.
 {
     "Azure": {
       "SubscriptionId": "<your subscription id>",
-      "ResourceGroup": "<your resource group name>",
-      "AllowResourceGroupCreation": true,
+      "ResourceGroupPrefix": "<prefix for the resource group>",
       "Location": "<azure location>"
     }
 }
 ```
 
-> NOTE: Note that developers must have Owner access to the target subscription so that role assignments
+> NOTE: Developers must have Owner access to the target subscription so that role assignments
 > can be configured for the provisioned resources.
 
 ## Usage example

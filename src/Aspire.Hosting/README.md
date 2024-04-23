@@ -5,6 +5,9 @@ hosting model. This package should not be referenced by AppHost projects directl
 package to add a transitive referencing including custom build targets to support code generation of metadata
 types for referenced .NET projects.
 
+Developers wishing to build their own custom resource types and supporting APIs for .NET Aspire should reference
+this package directly.
+
 ## Additional documentation
 https://learn.microsoft.com/dotnet/aspire/
 

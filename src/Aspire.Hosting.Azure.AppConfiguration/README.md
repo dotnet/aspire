@@ -27,14 +27,13 @@ automatically.
 {
     "Azure": {
       "SubscriptionId": "<your subscription id>",
-      "ResourceGroup": "<your resource group name>",
-      "AllowResourceGroupCreation": true,
+      "ResourceGroupPrefix": "<prefix for the resource group>",
       "Location": "<azure location>"
     }
 }
 ```
 
-> NOTE: Note that developers must have Owner access to the target subscription so that role assignments
+> NOTE: Developers must have Owner access to the target subscription so that role assignments
 > can be configured for the provisioned resources.
 
 ## Usage example
@@ -48,7 +47,7 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(appConfig);
 ```
 
-> NOTE: Consider setting the name of your resource to something other than "config" or "appconfig". Even though during deployment random suffix will be added it is still possible to get a name collision.
+> NOTE: Consider setting the name of your resource to something other than "config" or "appconfig". Even though during deployment a random suffix will be added it is still possible to get a name collision.
 
 ## Additional documentation
 

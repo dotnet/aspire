@@ -27,14 +27,13 @@ automatically.
 {
     "Azure": {
       "SubscriptionId": "<your subscription id>",
-      "ResourceGroup": "<your resource group name>",
-      "AllowResourceGroupCreation": true,
+      "ResourceGroupPrefix": "<prefix for the resource group>",
       "Location": "<azure location>"
     }
 }
 ```
 
-> NOTE: Note that developers must have Owner access to the target subscription so that role assignments
+> NOTE: Developers must have Owner access to the target subscription so that role assignments
 > can be configured for the provisioned resources.
 
 ## Usage example
@@ -46,6 +45,12 @@ var blobs = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(blobs);
+```
+
+The `WithReference` method passes that connection information into a connection string named `blobs` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using the client library [Aspire.Azure.Storage.Blobs](https://www.nuget.org/packages/Aspire.Azure.Storage.Blobs):
+
+```csharp
+builder.AddAzureBlobClient("blobs");
 ```
 
 ## Additional documentation
