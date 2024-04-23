@@ -4,9 +4,10 @@ using Xunit.Sdk;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class DistributedApplicationFixture<TEntryPoint> : DistributedApplicationFactory<TEntryPoint>, IAsyncLifetime where TEntryPoint : class
+public class DistributedApplicationFixture<TEntryPoint> : DistributedApplicationFactory, IAsyncLifetime where TEntryPoint : class
 {
     public DistributedApplicationFixture()
+        : base(typeof(TEntryPoint))
     {
         if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
         {
