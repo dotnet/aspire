@@ -6,6 +6,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Microsoft.Azure.Cosmos.Tests;
 
@@ -70,5 +71,34 @@ public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCos
     {
         // TODO: Get rid of GetAwaiter().GetResult()
         service.ReadAccountAsync().GetAwaiter().GetResult();
+    }
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb1", "AccountEndpoint=https://example1.documents.azure.com:443/;AccountKey=fake;"),
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb2", "AccountEndpoint=https://example2.documents.azure.com:443/;AccountKey=fake;"),
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb3", "AccountEndpoint=https://example3.documents.azure.com:443/;AccountKey=fake;"),
+        ]);
+
+        builder.AddAzureCosmosDBClient("cosmosdb1");
+        builder.AddKeyedAzureCosmosDbClient("cosmosdb2");
+        builder.AddKeyedAzureCosmosDbClient("cosmosdb3");
+
+        using var host = builder.Build();
+
+        var client1 = host.Services.GetRequiredService<CosmosClient>();
+        var client2 = host.Services.GetRequiredKeyedService<CosmosClient>("cosmosdb2");
+        var client3 = host.Services.GetRequiredKeyedService<CosmosClient>("cosmosdb3");
+
+        Assert.NotSame(client1, client2);
+        Assert.NotSame(client1, client3);
+        Assert.NotSame(client2, client3);
+
+        Assert.Equal("https://example1.documents.azure.com/", client1.Endpoint.ToString());
+        Assert.Equal("https://example2.documents.azure.com/", client2.Endpoint.ToString());
+        Assert.Equal("https://example3.documents.azure.com/", client3.Endpoint.ToString());
     }
 }

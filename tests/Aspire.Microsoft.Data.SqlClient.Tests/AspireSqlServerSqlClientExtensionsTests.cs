@@ -101,4 +101,33 @@ public class AspireSqlServerSqlClientExtensionsTests
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection1", "Data Source=fake1;Database=master"),
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection2", "Data Source=fake2;Database=master"),
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection3", "Data Source=fake3;Database=master"),
+        ]);
+
+        builder.AddSqlServerClient("sqlconnection1");
+        builder.AddKeyedSqlServerClient("sqlconnection2");
+        builder.AddKeyedSqlServerClient("sqlconnection3");
+
+        using var host = builder.Build();
+
+        var connection1 = host.Services.GetRequiredService<SqlConnection>();
+        var connection2 = host.Services.GetRequiredKeyedService<SqlConnection>("sqlconnection2");
+        var connection3 = host.Services.GetRequiredKeyedService<SqlConnection>("sqlconnection3");
+
+        Assert.NotSame(connection1, connection2);
+        Assert.NotSame(connection1, connection3);
+        Assert.NotSame(connection2, connection3);
+
+        Assert.Contains("fake1", connection1.ConnectionString);
+        Assert.Contains("fake2", connection2.ConnectionString);
+        Assert.Contains("fake3", connection3.ConnectionString);
+    }
 }

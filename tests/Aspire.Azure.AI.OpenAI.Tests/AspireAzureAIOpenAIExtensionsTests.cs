@@ -86,4 +86,29 @@ public class AspireAzureAIOpenAIExtensionsTests
         Assert.NotNull(client);
     }
 
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai1", ConnectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:openai2", ConnectionString + "2"),
+            new KeyValuePair<string, string?>("ConnectionStrings:openai3", ConnectionString + "3")
+        ]);
+
+        builder.AddAzureOpenAIClient("openai1");
+        builder.AddKeyedAzureOpenAIClient("openai2");
+        builder.AddKeyedAzureOpenAIClient("openai3");
+
+        using var host = builder.Build();
+
+        // Unkeyed services don't work with keyed services. See https://github.com/dotnet/aspire/issues/3890
+        //var client1 = host.Services.GetRequiredService<OpenAIClient>();
+        var client2 = host.Services.GetRequiredKeyedService<OpenAIClient>("openai2");
+        var client3 = host.Services.GetRequiredKeyedService<OpenAIClient>("openai3");
+
+        //Assert.NotSame(client1, client2);
+        //Assert.NotSame(client1, client3);
+        Assert.NotSame(client2, client3);
+    }
 }
