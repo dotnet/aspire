@@ -100,6 +100,10 @@
           "description": "Creates an MSTest test project using the AppHost project."
         },
         {
+          "choice": "NUnit",
+          "description": "Creates an NUnit test project using the AppHost project."
+        },
+        {
           "choice": "xUnit.net",
           "description": "Creates an xUnit.net test project using the AppHost project."
         }
