@@ -43,7 +43,7 @@ public class AddGarnetTests
     public void AddGarnetContainerAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddGarnet("myGarnet", port: 9813);
+        appBuilder.AddGarnet("myGarnet", port: 8813);
 
         using var app = appBuilder.Build();
 
@@ -56,7 +56,7 @@ public class AddGarnetTests
         Assert.Equal(6379, endpoint.TargetPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
-        Assert.Equal(9813, endpoint.Port);
+        Assert.Equal(8813, endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
@@ -88,14 +88,14 @@ public class AddGarnetTests
     public async Task VerifyManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var garnet = builder.AddGarnet("garnet");
+        var garnet = builder.AddGarnet("myGarnet");
 
         var manifest = await ManifestUtils.GetManifest(garnet.Resource);
 
         var expectedManifest = $$"""
                                  {
                                    "type": "container.v0",
-                                   "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
+                                   "connectionString": "{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port}",
                                    "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
                                    "bindings": {
                                      "tcp": {
@@ -130,7 +130,7 @@ public class AddGarnetTests
         var volumeAnnotation = garnet.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.Equal("testhost-myGarnet-data", volumeAnnotation.Source);
-        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal("/var/garnet/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
@@ -145,16 +145,16 @@ public class AddGarnetTests
         var garnet = builder.AddGarnet("myGarnet");
         if (isReadOnly.HasValue)
         {
-            garnet.WithDataBindMount("mydata", isReadOnly: isReadOnly.Value);
+            garnet.WithDataBindMount("mygarnetdata", isReadOnly: isReadOnly.Value);
         }
         else
         {
-            garnet.WithDataBindMount("mydata");
+            garnet.WithDataBindMount("mygarnetdata");
         }
 
         var volumeAnnotation = garnet.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, "mygarnetdata"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);

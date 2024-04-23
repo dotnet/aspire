@@ -586,7 +586,6 @@ public class ManifestGenerationTests
                       "scheme": "tcp",
                       "protocol": "tcp",
                       "transport": "tcp",
-                      "port": 6399,
                       "targetPort": 6379
                     }
                   }

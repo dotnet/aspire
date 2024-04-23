@@ -32,11 +32,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
-    builder.AddRedisClient("redis");
+    builder.AddKeyedRedisClient("redis");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
-    builder.AddRedisClient("garnet");
+    builder.AddKeyedRedisClient("garnet");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
