@@ -29,7 +29,7 @@ When you install, ensure that both:
 On Windows you could also use VS Code with the DevContainers extension. This requieres that you have installed a container engine installed.
 Currently it's only tested with Docker Desktop.
 
-> Warning: This will use around 16GB of RAM, after you loaded the solution.
+> :warning: This will use around 16GB of RAM, after you loaded the solution.
 
 ### Install VS Code with DevContainers Extension
 
