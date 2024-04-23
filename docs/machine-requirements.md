@@ -49,4 +49,4 @@ This will take on the free version of Codespace around 10 mins.
 
 > Warning: With the free version of Codespaces the development experience is not nice. We recommend using at least a Codespace with 16GB of RAM or use your local VS Code / DevContainers instance.
 
-> Information: Currently the codespaces can not be used to try / debug the aspire dashboard. This is a known issue. If you want to debug it, use Visual Studio or your local VS Code and the DevContainers.
+> Information: Currently the codespaces can not be used to try / debug the Aspire dashboard. This is a known issue. If you want to debug it, use Visual Studio or your local VS Code and the DevContainers.
