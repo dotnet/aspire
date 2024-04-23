@@ -339,7 +339,7 @@ public static class ProjectResourceBuilderExtensions
     /// proxy which translates an external endpoint hostname to an internal address.
     /// </para>
     /// <para>
-    /// To enable this default behavior the <c>ASPNETCORE_FORWARDEDHEADERS_ENABLED</c> variable is injected
+    /// To enable forwarded headers the <c>ASPNETCORE_FORWARDEDHEADERS_ENABLED</c> variable is injected
     /// into the project and set to true. If the <see cref="DisableForwardedHeaders(IResourceBuilder{ProjectResource})"/>
     /// extension is used this environment variable will not be set.
     /// </para>
