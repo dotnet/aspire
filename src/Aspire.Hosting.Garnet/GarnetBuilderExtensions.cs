@@ -20,9 +20,9 @@ public static class GarnetBuilderExtensions
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var api = builder.AddProject&lt;Projects.Api&gt;("api") 
-    /// var garnet = builder.AddGarnet("garnet"); 
-    /// api.WithReference(garnet);
+    /// var garnet = builder.AddGarnet("garnet");
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
+    ///                  .WithReference(garnet);
     ///  
     /// builder.Build().Run(); 
     /// </code>
