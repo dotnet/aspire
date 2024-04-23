@@ -32,7 +32,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCos
         }
         else
         {
-            builder.AddKeyedAzureCosmosDbClient(key, configure);
+            builder.AddKeyedAzureCosmosDBClient(key, configure);
         }
     }
 
