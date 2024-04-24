@@ -9,7 +9,7 @@
   "symbols/TestFramework/displayName": "Create a _tests project",
   "symbols/TestFramework/description": "Configures whether to create a project for integration tests using the AppHost project.",
   "symbols/TestFramework/choices/None/description": "Do not create a test project.",
-  "symbols/TestFramework/choices/MSTest/description": "Create a MSTest test project using the AppHost project.",
+  "symbols/TestFramework/choices/MSTest/description": "Creates an MSTest test project using the AppHost project.",
   "symbols/TestFramework/choices/NUnit/description": "Creates an NUnit test project using the AppHost project.",
   "symbols/TestFramework/choices/xUnit.net/description": "Creates an xUnit.net test project using the AppHost project.",
   "symbols/appHostHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP w pliku launchSettings.json projektu AppHost.",
