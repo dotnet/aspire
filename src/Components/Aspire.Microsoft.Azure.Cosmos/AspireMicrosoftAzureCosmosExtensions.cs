@@ -11,9 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Azure CosmosDB extension
+/// Azure Cosmos DB extension
 /// </summary>
-public static class AspireMicrosoftAzureCosmosDBExtensions
+public static class AspireMicrosoftAzureCosmosExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Microsoft:Azure:Cosmos";
 
@@ -23,17 +23,17 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="MicrosoftAzureCosmosDBSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="MicrosoftAzureCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddAzureCosmosClient(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<MicrosoftAzureCosmosDBSettings>? configureSettings = null,
+        Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosDB(builder, DefaultConfigSectionName, configureSettings, configureClientOptions, connectionName, serviceKey: null);
+        AddAzureCosmosClient(builder, DefaultConfigSectionName, configureSettings, configureClientOptions, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -42,30 +42,30 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="MicrosoftAzureCosmosDBSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="MicrosoftAzureCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddKeyedAzureCosmosClient(
         this IHostApplicationBuilder builder,
         string name,
-        Action<MicrosoftAzureCosmosDBSettings>? configureSettings = null,
+        Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosDB(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
+        AddAzureCosmosClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
     }
 
-    private static void AddAzureCosmosDB(
+    private static void AddAzureCosmosClient(
         this IHostApplicationBuilder builder,
         string configurationSectionName,
-        Action<MicrosoftAzureCosmosDBSettings>? configureSettings,
+        Action<MicrosoftAzureCosmosSettings>? configureSettings,
         Action<CosmosClientOptions>? configureClientOptions,
         string connectionName,
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = new MicrosoftAzureCosmosDBSettings();
+        var settings = new MicrosoftAzureCosmosSettings();
         builder.Configuration.GetSection(configurationSectionName).Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
