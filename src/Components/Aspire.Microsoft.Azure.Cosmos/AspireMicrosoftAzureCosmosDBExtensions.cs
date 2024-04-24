@@ -27,7 +27,7 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
-    public static void AddAzureCosmosDBClient(
+    public static void AddAzureCosmosClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<MicrosoftAzureCosmosDBSettings>? configureSettings = null,
@@ -46,7 +46,7 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
-    public static void AddKeyedAzureCosmosDbClient(
+    public static void AddKeyedAzureCosmosClient(
         this IHostApplicationBuilder builder,
         string name,
         Action<MicrosoftAzureCosmosDBSettings>? configureSettings = null,
@@ -104,7 +104,7 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
         var cosmosApplicationName = CosmosConstants.CosmosApplicationName;
         if (!string.IsNullOrEmpty(clientOptions.ApplicationName))
         {
-            cosmosApplicationName = $"{cosmosApplicationName}|{clientOptions.ApplicationName}";
+            cosmosApplicationName = $"{cosmosApplicationName}/{clientOptions.ApplicationName}";
         }
 
         clientOptions.ApplicationName = cosmosApplicationName;
