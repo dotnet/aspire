@@ -47,7 +47,7 @@ When the AppHost starts up a local container running the Azure CosmosDB will als
 
 ```csharp
 // Service code
-builder.AddAzureCosmosDbClient("cosmos");
+builder.AddAzureCosmosDBClient("cosmos");
 ```
 
 ## Additional documentation
