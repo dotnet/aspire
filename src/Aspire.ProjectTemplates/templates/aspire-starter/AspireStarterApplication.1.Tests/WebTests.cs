@@ -11,7 +11,7 @@ public class WebTests
     [TestMethod]
 #elif (TestFramework == "NUnit")
     [Test]
-#elif (TestFramework == "xUnit")
+#elif (TestFramework == "xUnit.net")
     [Fact]
 #endif
     public async Task GetWebResourceRootReturnsOkStatusCode()
@@ -29,8 +29,8 @@ public class WebTests
 #if (TestFramework == "MSTest")
         Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 #elif (TestFramework == "NUnit")
-        ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-#elif (TestFramework == "xUnit")
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+#elif (TestFramework == "xUnit.net")
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 #endif
     }
