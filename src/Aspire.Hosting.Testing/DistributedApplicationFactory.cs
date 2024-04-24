@@ -1,20 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-using System.Diagnostics;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Diagnostics;
 
 namespace Aspire.Hosting.Testing;
 
 /// <summary>
 /// Factory for creating a distributed application for testing.
 /// </summary>
-/// <typeparam name="TEntryPoint">
-/// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
-/// </typeparam>
-public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDisposable where TEntryPoint : class
+/// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
+public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyncDisposable
 {
+    private readonly Type _entryPoint = entryPoint ?? throw new ArgumentNullException(nameof(entryPoint));
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _exitTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<DistributedApplicationBuilder> _builderTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -127,8 +127,8 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
     private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
     {
         hostBuilderOptions.EnvironmentName = Environments.Development;
-        hostBuilderOptions.ApplicationName = typeof(TEntryPoint).Assembly.GetName().Name ?? string.Empty;
-        applicationOptions.AssemblyName = typeof(TEntryPoint).Assembly.GetName().Name ?? string.Empty;
+        hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
+        applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
         cfg.AddInMemoryCollection(new Dictionary<string, string?>
@@ -165,12 +165,12 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
             {
                 if (!_entryPointStarted)
                 {
-                    EnsureDepsFile();
+                    EnsureDepsFile(_entryPoint);
 
                     // This helper launches the target assembly's entry point and hooks into the lifecycle
                     // so we can intercept execution at key stages.
                     var factory = DistributedApplicationEntryPointInvoker.ResolveEntryPoint(
-                        typeof(TEntryPoint).Assembly,
+                        _entryPoint.Assembly,
                         onConstructing: OnBuilderCreatingCore,
                         onConstructed: OnBuilderCreatedCore,
                         onBuilding: OnBuildingCore,
@@ -179,7 +179,7 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
                     if (factory is null)
                     {
                         throw new InvalidOperationException(
-                            $"Could not intercept application builder instance. Ensure that {typeof(TEntryPoint)} is a type in an executable assembly, that the entrypoint creates an {typeof(DistributedApplicationBuilder)}, and that the resulting {typeof(DistributedApplication)} is being started.");
+                            $"Could not intercept application builder instance. Ensure that {_entryPoint} is a type in an executable assembly, that the entrypoint creates an {typeof(DistributedApplicationBuilder)}, and that the resulting {typeof(DistributedApplication)} is being started.");
                     }
 
                     _ = InvokeEntryPoint(factory);
@@ -242,14 +242,14 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
         }
     }
 
-    private static void EnsureDepsFile()
+    private static void EnsureDepsFile(Type entryPoint)
     {
-        if (typeof(TEntryPoint).Assembly.EntryPoint == null)
+        if (entryPoint.Assembly.EntryPoint == null)
         {
-            throw new InvalidOperationException($"Assembly of specified type {typeof(TEntryPoint).Name} does not have an entry point.");
+            throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
         }
 
-        var depsFileName = $"{typeof(TEntryPoint).Assembly.GetName().Name}.deps.json";
+        var depsFileName = $"{entryPoint.Assembly.GetName().Name}.deps.json";
         var depsFile = new FileInfo(Path.Combine(AppContext.BaseDirectory, depsFileName));
         if (!depsFile.Exists)
         {
@@ -326,7 +326,7 @@ public class DistributedApplicationFactory<TEntryPoint> : IDisposable, IAsyncDis
         applicationBuilder.Services.AddSingleton<IHost>(sp => new ObservedHost(sp.GetRequiredKeyedService<IHost>(this), this));
     }
 
-    private sealed class ObservedHost(IHost innerHost, DistributedApplicationFactory<TEntryPoint> appFactory) : IHost, IAsyncDisposable
+    private sealed class ObservedHost(IHost innerHost, DistributedApplicationFactory appFactory) : IHost, IAsyncDisposable
     {
         private bool _disposing;
 

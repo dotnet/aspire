@@ -5,11 +5,11 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests.Helpers;
 
-public class LocalOnlyFactAttribute(params string[] executablesOnPath) : FactAttribute
+public class LocalOnlyTheoryAttribute(params string[] executablesOnPath) : TheoryAttribute
 {
     public override string Skip
     {
-        get => LocalOnlyHelper.SkipIfRunningInCI(nameof(LocalOnlyFactAttribute), executablesOnPath);
+        get => LocalOnlyHelper.SkipIfRunningInCI(nameof(LocalOnlyTheoryAttribute), executablesOnPath);
 
         set
         {
