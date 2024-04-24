@@ -2,7 +2,7 @@
 
 Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Cache for Garnet.
 
-### Install the package
+## Install the package
 
 In your AppHost project, install the `Aspire.Hosting.Garnet` library with [NuGet](https://www.nuget.org):
 
