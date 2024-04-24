@@ -84,8 +84,8 @@ public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCos
         ]);
 
         builder.AddAzureCosmosDBClient("cosmosdb1");
-        builder.AddKeyedAzureCosmosDbClient("cosmosdb2");
-        builder.AddKeyedAzureCosmosDbClient("cosmosdb3");
+        builder.AddKeyedAzureCosmosDBClient("cosmosdb2");
+        builder.AddKeyedAzureCosmosDBClient("cosmosdb3");
 
         using var host = builder.Build();
 
