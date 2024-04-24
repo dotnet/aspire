@@ -1,10 +1,10 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Projet de test .NET Aspire (MSTest)",
-  "description": "Projet qui contient les tests d’intégration MSTest d’un projet .NET Aspire AppHost.",
-  "symbols/Framework/description": "Framework cible du projet.",
-  "symbols/Framework/choices/net8.0/description": "Cible net8.0",
-  "symbols/skipRestore/description": "S’il est spécifié, ignore la restauration automatique du projet lors de la création.",
-  "postActions/restore/description": "Restaurez les packages NuGet requis par ce projet.",
-  "postActions/restore/manualInstructions/default/text": "Exécutez 'dotnet restore'"
+  "name": ".NET Aspire Test Project (MSTest)",
+  "description": "A project that contains MSTest integration tests of a .NET Aspire AppHost project.",
+  "symbols/Framework/description": "The target framework for the project.",
+  "symbols/Framework/choices/net8.0/description": "Target net8.0",
+  "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",
+  "postActions/restore/description": "Restore NuGet packages required by this project.",
+  "postActions/restore/manualInstructions/default/text": "Run 'dotnet restore'"
 }
