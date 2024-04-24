@@ -101,6 +101,13 @@ public static class AspireMicrosoftAzureCosmosDBExtensions
 
         configureClientOptions?.Invoke(clientOptions);
 
+        var cosmosApplicationName = CosmosConstants.CosmosApplicationName;
+        if (!string.IsNullOrEmpty(clientOptions.ApplicationName))
+        {
+            cosmosApplicationName = $"{cosmosApplicationName}|{clientOptions.ApplicationName}";
+        }
+
+        clientOptions.ApplicationName = cosmosApplicationName;
         if (serviceKey is null)
         {
             builder.Services.AddSingleton(_ => ConfigureDb());

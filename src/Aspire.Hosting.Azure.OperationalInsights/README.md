@@ -1,6 +1,6 @@
-# Aspire.Hosting.Azure.ApplicationInsights library
+# Aspire.Hosting.Azure.OperationalInsights library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Application Insights.
+Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Log Analytics.
 
 ## Getting started
 
@@ -10,10 +10,10 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire Azure Application Insights Hosting library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Azure Operational Insights Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.Azure.ApplicationInsights
+dotnet add package Aspire.Hosting.Azure.OperationalInsights
 ```
 
 ## Configure Azure Provisioning for local development
@@ -38,18 +38,22 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add an Application Insights connection and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, add an Azure Log Analytics workspace and pass the workspace ID via an environment variable:
 
 ```csharp
-var appInsights = builder.AddAzureApplicationInsights("appInsights");
+var laws = builder.AddAzureLogAnalyticsWorkspace("laws");
 
 var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(appInsights);
+                       .WithEnvionment("LOG_ANALYTICS_WORKSPACE_ID", $"{laws.WorkspaceId}");
 ```
+
+> NOTE: By default a log analytics workspace will be created automatically when deploying an Aspire application
+> via the Azure Developer CLI. Use this resource only if your application code directly integrates with
+> Azure Log Analytics.
 
 ## Additional documentation
 
-* https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview
+* https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-workspace-overview
 
 ## Feedback & contributing
 
