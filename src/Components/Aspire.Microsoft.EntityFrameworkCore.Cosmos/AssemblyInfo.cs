@@ -4,7 +4,7 @@
 using Aspire;
 using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 
-[assembly: ConfigurationSchema("Aspire:Microsoft:EntityFrameworkCore:Cosmos", typeof(EntityFrameworkCoreCosmosDBSettings))]
+[assembly: ConfigurationSchema("Aspire:Microsoft:EntityFrameworkCore:Cosmos", typeof(EntityFrameworkCoreCosmosSettings))]
 
 [assembly: LoggingCategories(
     "Azure-Cosmos-Operation-Request-Diagnostics",
