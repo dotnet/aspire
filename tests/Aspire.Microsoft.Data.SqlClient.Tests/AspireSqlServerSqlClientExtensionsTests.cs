@@ -11,7 +11,7 @@ namespace Aspire.Microsoft.Data.SqlClient.Tests;
 
 public class AspireSqlServerSqlClientExtensionsTests
 {
-    private const string ConnectionString = "Data Source=fake;Database=master";
+    private const string ConnectionString = "Data Source=fake;Database=master;Encrypt=True";
 
     [Theory]
     [InlineData(true)]
