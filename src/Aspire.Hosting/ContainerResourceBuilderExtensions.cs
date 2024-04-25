@@ -207,7 +207,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithContainerHostRunArgs<T>(this IResourceBuilder<T> builder, Func<ContainerRunArgsCallbackContext, Task> callback) where T : ContainerResource
     {
-        var annotation = new ContainerHostRunArgsCallbackAnnotation(callback);
+        var annotation = new ContainerRunArgsCallbackAnnotation(callback);
         return builder.WithAnnotation(annotation);
     }
 
