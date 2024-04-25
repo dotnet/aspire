@@ -24,8 +24,7 @@
           <!-- Enables crash dump, with dump type "Full" or "Mini". -->
           <CollectDump DumpType="Full" />
           <!-- Enables hang dump or testhost and its child processes
-          when a test hangs for more than 10 minutes.
-          Dump type "Full", "Mini" or "None" (just kill the processes). -->
+          when a test hangs for more than 10 minutes. -->
           <CollectDumpOnTestSessionHang TestTimeout="10min" HangDumpType="Full" />
         </Configuration>
       </DataCollector>
