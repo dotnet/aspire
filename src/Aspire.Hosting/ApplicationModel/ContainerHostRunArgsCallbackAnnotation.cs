@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an additional argument to pass to the container run command.
+/// Represents an additional argument to pass to the container host run command.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
 public sealed class ContainerHostRunArgsCallbackAnnotation : IResourceAnnotation
