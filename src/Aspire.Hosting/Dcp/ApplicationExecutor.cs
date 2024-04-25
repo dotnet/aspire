@@ -1444,7 +1444,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 dcpContainerResource.Spec.Ports.Add(portSpec);
             }
         }
-Host
+
         if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
         {
             var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
