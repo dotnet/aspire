@@ -1488,7 +1488,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var args = new List<object>();
 
-            var containerRunArgsContext = new ContainerHostRunArgsCallbackAnnotation(args, cancellationToken);
+            var containerRunArgsContext = new ContainerHostRunArgsCallbackContext(args, cancellationToken);
 
             foreach (var callback in runArgsCallback)
             {
