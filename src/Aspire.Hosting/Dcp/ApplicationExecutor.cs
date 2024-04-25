@@ -1600,7 +1600,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             else
             {
-
                 Debug.Assert(ea.IsProxied);
 
                 if (ea.TargetPort is int && ea.Port is int && ea.TargetPort == ea.Port)
