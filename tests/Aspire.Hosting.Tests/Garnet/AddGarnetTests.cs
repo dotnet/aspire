@@ -155,7 +155,7 @@ public class AddGarnetTests
         var volumeAnnotation = garnet.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.Equal(Path.Combine(builder.AppHostDirectory, "mygarnetdata"), volumeAnnotation.Source);
-        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal("/var/garnet/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }

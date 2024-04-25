@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Garnet;
 using Aspire.Hosting.Utils;
@@ -12,6 +13,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class GarnetBuilderExtensions
 {
+    private const string Target = "/var/garnet/data";
+
     /// <summary>
     /// Adds a Garnet container to the application model.
     /// </summary>
@@ -43,13 +46,14 @@ public static class GarnetBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name, int? port = null)
+    public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name,
+        int? port = null)
     {
         var garnet = new GarnetResource(name);
         return builder.AddResource(garnet)
-                      .WithEndpoint(port: port, targetPort: 6379, name: GarnetResource.PrimaryEndpointName)
-                      .WithImage(GarnetContainerImageTags.Image, GarnetContainerImageTags.Tag)
-                      .WithImageRegistry(GarnetContainerImageTags.Registry);
+            .WithEndpoint(port: port, targetPort: 6379, name: GarnetResource.PrimaryEndpointName)
+            .WithImage(GarnetContainerImageTags.Image, GarnetContainerImageTags.Tag)
+            .WithImageRegistry(GarnetContainerImageTags.Registry);
     }
 
     /// <summary>
@@ -70,13 +74,16 @@ public static class GarnetBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<GarnetResource> WithDataVolume(this IResourceBuilder<GarnetResource> builder, string? name = null, bool isReadOnly = false)
+    public static IResourceBuilder<GarnetResource> WithDataVolume(this IResourceBuilder<GarnetResource> builder,
+        string? name = null, bool isReadOnly = false)
     {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/garnet/data", isReadOnly);
+        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), Target,
+            isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
         }
+
         return builder;
     }
 
@@ -100,13 +107,15 @@ public static class GarnetBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<GarnetResource> WithDataBindMount(this IResourceBuilder<GarnetResource> builder, string source, bool isReadOnly = false)
+    public static IResourceBuilder<GarnetResource> WithDataBindMount(this IResourceBuilder<GarnetResource> builder,
+        string source, bool isReadOnly = false)
     {
-        builder.WithBindMount(source, "/data", isReadOnly);
+        builder.WithBindMount(source, Target, isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
         }
+
         return builder;
     }
 
@@ -126,6 +135,13 @@ public static class GarnetBuilderExtensions
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<GarnetResource> WithPersistence(this IResourceBuilder<GarnetResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new GarnetPersistenceCommandLineArgsCallbackAnnotation(interval ?? TimeSpan.FromSeconds(60), keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace);
+    public static IResourceBuilder<GarnetResource> WithPersistence(this IResourceBuilder<GarnetResource> builder,
+        TimeSpan? interval = null, long keysChangedThreshold = 1)
+        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+        {
+            context.Args.Add("--save");
+            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+            return Task.CompletedTask;
+        }), ResourceAnnotationMutationBehavior.Replace);
 }
