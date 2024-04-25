@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace AspireStarterApplication.1.Tests;
+namespace AspireStarterApplication._1.Tests;
 
 #if (TestFramework == "MSTest")
 [TestClass]

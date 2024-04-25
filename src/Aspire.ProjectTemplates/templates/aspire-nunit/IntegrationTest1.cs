@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace Aspire.Tests1;
+namespace Aspire.Tests._1;
 
 public class IntegrationTest1
 {

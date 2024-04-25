@@ -15,7 +15,7 @@
   "defaultName": "Tests",
   "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
   "shortName": "aspire-xunit",
-  "sourceName": "Aspire.Tests1",
+  "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
   "tags": {
     "language": "C#",
@@ -58,7 +58,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "Aspire.Tests1.csproj"
+      "path": "Aspire.Tests.1.csproj"
     }
   ],
   "postActions": [
