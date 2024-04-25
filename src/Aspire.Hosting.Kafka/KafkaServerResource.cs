@@ -12,13 +12,20 @@ namespace Aspire.Hosting;
 public class KafkaServerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithEnvironment
 {
     internal const string PrimaryEndpointName = "tcp";
+    internal const string InternalEndpointName = "internal";
 
     private EndpointReference? _primaryEndpoint;
+    private EndpointReference? _internalEndpoint;
 
     /// <summary>
     /// Gets the primary endpoint for the Kafka broker.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    /// <summary>
+    /// Gets the internal endpoint for the Kafka broker.
+    /// </summary>
+    public EndpointReference InternalEndpoint => _internalEndpoint ??= new(this, InternalEndpointName);
 
     /// <summary>
     /// Gets the connection string expression for the Kafka broker.

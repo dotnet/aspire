@@ -12,6 +12,7 @@ namespace Aspire.Hosting;
 public static class KafkaBuilderExtensions
 {
     private const int KafkaBrokerPort = 9092;
+    private const int KafkaUIPort = 8080;
 
     /// <summary>
     /// Adds a Kafka resource to the application. A container is used for local development.  This version the package defaults to the 7.6.1 tag of the confluentinc/confluent-local container image.
@@ -25,9 +26,32 @@ public static class KafkaBuilderExtensions
         var kafka = new KafkaServerResource(name);
         return builder.AddResource(kafka)
             .WithEndpoint(targetPort: KafkaBrokerPort, port: port, name: KafkaServerResource.PrimaryEndpointName)
+            .WithEndpoint(targetPort: 9093, name: KafkaServerResource.InternalEndpointName)
             .WithImage(KafkaContainerImageTags.Image, KafkaContainerImageTags.Tag)
             .WithImageRegistry(KafkaContainerImageTags.Registry)
             .WithEnvironment(context => ConfigureKafkaContainer(context, kafka));
+    }
+
+    /// <summary>
+    /// Adds a Kafka UI container to the application. This version of the package defaults to the 0.7.2 tag of the provectuslabs/kafka-ui container image.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="hostPort"></param>
+    /// <param name="containerName"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<KafkaServerResource> WithKafkaUI(this IResourceBuilder<KafkaServerResource> builder, int? hostPort = null, string? containerName = null)
+    {
+        containerName ??= $"{builder.Resource.Name}-kafka-ui";
+
+        var kafkaUi = new KafkaUIContainerResource(containerName);
+        builder.ApplicationBuilder.AddResource(kafkaUi)
+            .WithImage(KafkaContainerImageTags.KafkaUiImage, KafkaContainerImageTags.KafkaUiTag)
+            .WithImageRegistry(KafkaContainerImageTags.Registry)
+            .WithHttpEndpoint(targetPort: KafkaUIPort, port: hostPort, name: containerName)
+            .WithEnvironment(context => ConfigureKafkaUIContainer(context, builder))
+            .ExcludeFromManifest();
+
+        return builder;
     }
 
     /// <summary>
@@ -57,10 +81,32 @@ public static class KafkaBuilderExtensions
         // When not explicitly set default configuration is applied.
         // See https://github.com/confluentinc/kafka-images/blob/master/local/include/etc/confluent/docker/configureDefaults for more details.
 
-        var hostPort = context.ExecutionContext.IsPublishMode
-            ? KafkaBrokerPort
-            : resource.PrimaryEndpoint.Port;
-        context.EnvironmentVariables.Add("KAFKA_ADVERTISED_LISTENERS",
-            $"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{hostPort}");
+        // Define the default listeners + an internal listener for the container to broker communication
+        context.EnvironmentVariables.Add("KAFKA_LISTENERS", "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093");
+        // Defaults default listeners security protocol map + the internal listener to be PLAINTEXT
+        context.EnvironmentVariables.Add("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT");
+
+        // primaryEndpoint is the endpoint that is exposed to the host machine
+        var primaryEndpoint = resource.PrimaryEndpoint;
+        // internalEndpoint is the endpoint that is used for communication between containers
+        var internalEndpoint = resource.InternalEndpoint;
+
+        var advertisedListeners = context.ExecutionContext.IsRunMode
+            ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.ContainerHost}:{internalEndpoint.Property(EndpointProperty.Port)}")
+            : ReferenceExpression.Create(
+            $"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.Host)}:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.Host)}:{internalEndpoint.Property(EndpointProperty.Port)}");
+
+        context.EnvironmentVariables["KAFKA_ADVERTISED_LISTENERS"] = advertisedListeners;
+    }
+
+    private static void ConfigureKafkaUIContainer(EnvironmentCallbackContext context, IResourceBuilder<KafkaServerResource> builder)
+    {
+        var endpoint = builder.GetEndpoint(KafkaServerResource.InternalEndpointName);
+        var bootstrapServers = context.ExecutionContext.IsRunMode
+            ? ReferenceExpression.Create($"{endpoint.ContainerHost}:{endpoint.Property(EndpointProperty.Port)}")
+            : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+
+        context.EnvironmentVariables.Add("KAFKA_CLUSTERS_0_NAME", endpoint.Resource.Name);
+        context.EnvironmentVariables.Add("KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS", bootstrapServers);
     }
 }
