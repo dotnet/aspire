@@ -74,9 +74,9 @@ public class SchemaTests
                     }
                 },
 
-                { "ContainerWithContainerHostRunArgs", (IDistributedApplicationBuilder builder) =>
+                { "ContainerWithContainerRuntimeArgs", (IDistributedApplicationBuilder builder) =>
                     {
-                        builder.AddContainer("foo", "bar").WithContainerHostRunArgs("one", "two", "three");
+                        builder.AddContainer("foo", "bar").WithContainerRuntimeArgs("one", "two", "three");
                     }
                 },
 
