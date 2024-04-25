@@ -9,13 +9,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an additional argument to pass to the container run command.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
-public sealed class ContainerRunArgsCallbackAnnotation : IResourceAnnotation
+public sealed class ContainerHostRunArgsCallbackAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ContainerRunArgsCallbackAnnotation"/> class with the specified callback action.
+    /// Initializes a new instance of the <see cref="ContainerHostRunArgsCallbackAnnotation"/> class with the specified callback action.
     /// </summary>
     /// <param name="callback"></param>
-    public ContainerRunArgsCallbackAnnotation(Func<ContainerRunArgsCallbackContext, Task> callback)
+    public ContainerHostRunArgsCallbackAnnotation(Func<ContainerRunArgsCallbackContext, Task> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
 
@@ -23,10 +23,10 @@ public sealed class ContainerRunArgsCallbackAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ContainerRunArgsCallbackAnnotation"/> class with the specified callback action.
+    /// Initializes a new instance of the <see cref="ContainerHostRunArgsCallbackAnnotation"/> class with the specified callback action.
     /// </summary>
     /// <param name="callback">The callback action to be executed.</param>
-    public ContainerRunArgsCallbackAnnotation(Action<IList<object>> callback)
+    public ContainerHostRunArgsCallbackAnnotation(Action<IList<object>> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
 

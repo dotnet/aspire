@@ -1444,7 +1444,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 dcpContainerResource.Spec.Ports.Add(portSpec);
             }
         }
-
+Host
         if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
         {
             var context = new EnvironmentCallbackContext(_executionContext, config, cancellationToken);
@@ -1600,7 +1600,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             else
             {
-                
+
                 Debug.Assert(ea.IsProxied);
 
                 if (ea.TargetPort is int && ea.Port is int && ea.TargetPort == ea.Port)
@@ -1613,7 +1613,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     throw new InvalidOperationException(
                         $"Resource '{modelResourceName}' can have multiple replicas, and it uses endpoint '{ea.Name}' that has {nameof(ea.TargetPort)} property set. Each replica must have a unique port; setting {nameof(ea.TargetPort)} is not allowed.");
-                } 
+                }
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);
