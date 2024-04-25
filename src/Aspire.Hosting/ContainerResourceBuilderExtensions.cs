@@ -174,7 +174,7 @@ public static class ContainerResourceBuilderExtensions
     /// Adds a callback to be executed with a list of arguments to add to the container host run command when a container resource is started.
     /// </summary>
     /// <remarks>
-    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, string[])"/> annotation.
+    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, string[])"/> method.
     /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
@@ -189,7 +189,7 @@ public static class ContainerResourceBuilderExtensions
     /// Adds a callback to be executed with a list of arguments to add to the host container run command when a container resource is started.
     /// </summary>
     /// <remarks>
-    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Action{ContainerHostRunArgsCallbackContext})"/> annotation.
+    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Action{ContainerHostRunArgsCallbackContext})"/> method.
     /// </remarks>
     /// <typeparam name="T"></typeparam>
     /// <param name="builder">Builder for the container resource.</param>
@@ -208,7 +208,7 @@ public static class ContainerResourceBuilderExtensions
     /// Adds a callback to be executed with a list of arguments to add to the host container run command when a container resource is started.
     /// </summary>
     /// <remarks>
-    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Func{ContainerHostRunArgsCallbackContext, Task})"/> annotation.
+    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Func{ContainerHostRunArgsCallbackContext, Task})"/> method.
     /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
