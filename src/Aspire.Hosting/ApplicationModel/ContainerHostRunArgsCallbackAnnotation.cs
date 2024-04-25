@@ -15,7 +15,7 @@ public sealed class ContainerHostRunArgsCallbackAnnotation : IResourceAnnotation
     /// Initializes a new instance of the <see cref="ContainerHostRunArgsCallbackAnnotation"/> class with the specified callback action.
     /// </summary>
     /// <param name="callback"></param>
-    public ContainerHostRunArgsCallbackAnnotation(Func<ContainerRunArgsCallbackContext, Task> callback)
+    public ContainerHostRunArgsCallbackAnnotation(Func<ContainerHostRunArgsCallbackContext, Task> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
 
@@ -40,7 +40,7 @@ public sealed class ContainerHostRunArgsCallbackAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets the callback action to be executed when the executable arguments are parsed.
     /// </summary>
-    public Func<ContainerRunArgsCallbackContext, Task> Callback { get; }
+    public Func<ContainerHostRunArgsCallbackContext, Task> Callback { get; }
 }
 
 /// <summary>
@@ -48,7 +48,7 @@ public sealed class ContainerHostRunArgsCallbackAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="args">The list of command-line arguments.</param>
 /// <param name="cancellationToken">The cancellation token associated with this execution.</param>
-public sealed class ContainerRunArgsCallbackContext(IList<object> args, CancellationToken cancellationToken = default)
+public sealed class ContainerHostRunArgsCallbackContext(IList<object> args, CancellationToken cancellationToken = default)
 {
     /// <summary>
     /// Gets the list of command-line arguments.
