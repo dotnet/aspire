@@ -13,9 +13,4 @@ internal class GarnetPersistenceCommandLineArgsCallbackAnnotation(TimeSpan inter
         context.Args.Add(interval.TotalSeconds.ToString(CultureInfo.InvariantCulture));
         context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
         return Task.CompletedTask;
-    })
-{
-    public TimeSpan Interval { get; } = interval;
-
-    public long KeysChangedThreshold { get; } = keysChangedThreshold;
-}
+    });

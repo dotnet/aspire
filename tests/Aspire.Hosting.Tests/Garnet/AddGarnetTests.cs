@@ -167,10 +167,16 @@ public class AddGarnetTests
         var garnet = builder.AddGarnet("myGarnet")
                               .WithDataVolume();
 
-        var persistenceAnnotation = garnet.Resource.Annotations.OfType<GarnetPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
-        Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
+
+        Assert.Equal("--save 60 1".Split(" "), args);
     }
 
     [Fact]
@@ -191,11 +197,17 @@ public class AddGarnetTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
                            .WithDataBindMount("mygarnetdata");
+        
+        Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        var persistenceAnnotation = garnet.Resource.Annotations.OfType<GarnetPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
 
-        Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
-        Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+        Assert.Equal("--save 60 1".Split(" "), args);
     }
 
     [Fact]
@@ -218,10 +230,16 @@ public class AddGarnetTests
                            .WithDataVolume()
                            .WithPersistence(TimeSpan.FromSeconds(10), 2);
 
-        var persistenceAnnotation = garnet.Resource.Annotations.OfType<GarnetPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        Assert.Equal(TimeSpan.FromSeconds(10), persistenceAnnotation.Interval);
-        Assert.Equal(2, persistenceAnnotation.KeysChangedThreshold);
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
+
+        Assert.Equal("--save 10 2".Split(" "), args);
     }
 
     [Fact]
