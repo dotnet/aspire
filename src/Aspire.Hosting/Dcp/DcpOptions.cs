@@ -120,7 +120,6 @@ internal class ConfigureDefaultDcpOptions(
         else
         {
             var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-
             options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
