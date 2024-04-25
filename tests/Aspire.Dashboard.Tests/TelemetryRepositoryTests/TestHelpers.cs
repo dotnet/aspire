@@ -143,7 +143,7 @@ internal static class TestHelpers
         return e;
     }
 
-    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
     {
         var span = new Span
         {
@@ -157,6 +157,10 @@ internal static class TestHelpers
         if (events != null)
         {
             span.Events.AddRange(events);
+        }
+        if (links != null)
+        {
+            span.Links.AddRange(links);
         }
         if (attributes != null)
         {

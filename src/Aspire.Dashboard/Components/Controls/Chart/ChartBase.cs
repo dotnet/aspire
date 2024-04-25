@@ -303,7 +303,7 @@ public abstract class ChartBase : ComponentBase
                 var key = new SpanKey(exemplar.TraceId, exemplar.SpanId);
                 if (!_currentCache.TryGetValue(key, out var span))
                 {
-                    span = GetSpan(exemplar.TraceId, exemplar.SpanId);
+                    span = TelemetryRepository.GetSpan(exemplar.TraceId, exemplar.SpanId);
                 }
                 if (span != null)
                 {
@@ -503,11 +503,6 @@ public abstract class ChartBase : ComponentBase
         _newCache = new Dictionary<SpanKey, OtlpSpan>();
 
         await OnChartUpdated(traces, xValues, exemplars, tickUpdate, inProgressDataTime);
-    }
-
-    protected OtlpSpan? GetSpan(string traceId, string spanId)
-    {
-        return MetricsHelpers.GetSpan(TelemetryRepository, traceId, spanId);
     }
 
     private DateTimeOffset GetCurrentDataTime()
