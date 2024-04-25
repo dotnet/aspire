@@ -63,6 +63,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IKubernetesService kubernetesService,
                                           IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
                                           IConfiguration configuration,
+                                          DistributedApplicationOptions distributedApplicationOptions,
                                           IOptions<DcpOptions> options,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
@@ -76,6 +77,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
     private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup = GetParentChildLookup(model);
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
+    private readonly DistributedApplicationOptions _distributedApplicationOptions = distributedApplicationOptions;
     private readonly IOptions<DcpOptions> _options = options;
     private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
     private readonly List<AppResource> _appResources = [];
@@ -1061,6 +1063,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         "--project",
                         projectMetadata.ProjectPath
                     ];
+                }
+
+                if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
+                {
+                    exeSpec.Args.AddRange(new [] {"-c", _distributedApplicationOptions.Configuration});
                 }
 
                 // We pretty much always want to suppress the normal launch profile handling
