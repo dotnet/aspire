@@ -171,8 +171,11 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the container run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the container host run command when a container resource is started.
     /// </summary>
+    /// <remarks>
+    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, string[])"/> annotation.
+    /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="args">The arguments to be passed to the container host run command when the container resource is started.</param>
@@ -183,8 +186,11 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the container run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the host container run command when a container resource is started.
     /// </summary>
+    /// <remarks>
+    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Action{ContainerHostRunArgsCallbackContext})"/> annotation.
+    /// </remarks>
     /// <typeparam name="T"></typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
@@ -199,8 +205,11 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the container run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the host container run command when a container resource is started.
     /// </summary>
+    /// <remarks>
+    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Func{ContainerHostRunArgsCallbackContext, Task})"/> annotation.
+    /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
