@@ -175,7 +175,7 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="args">The arguments to be passed to the container run command when the container resource is started.</param>
+    /// <param name="args">The arguments to be passed to the container host run command when the container resource is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithContainerHostRunArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
     {
