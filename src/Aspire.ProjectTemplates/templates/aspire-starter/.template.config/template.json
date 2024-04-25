@@ -331,7 +331,7 @@
   "primaryOutputs": [
     {
       "path": "AspireStarterApplication.1.sln",
-      "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")"
+      "condition": "(hostIdentifier == \"dotnetcli\" || hostIdentifier == \"dotnetcli-preview\")"
     },
     {
       "path": "AspireStarterApplication.1.AppHost\\AspireStarterApplication.1.AppHost.csproj"
