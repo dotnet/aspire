@@ -1444,13 +1444,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         // Apply optional extra arguments to the container run command.
-        if (modelContainerResource.TryGetAnnotationsOfType<ContainerHostRunArgsCallbackAnnotation>(out var runArgsCallback))
+        if (modelContainerResource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
         {
             dcpContainerResource.Spec.RunArgs ??= [];
 
             var args = new List<object>();
 
-            var containerRunArgsContext = new ContainerHostRunArgsCallbackContext(args, cancellationToken);
+            var containerRunArgsContext = new ContainerRuntimeArgsCallbackContext(args, cancellationToken);
 
             foreach (var callback in runArgsCallback)
             {
