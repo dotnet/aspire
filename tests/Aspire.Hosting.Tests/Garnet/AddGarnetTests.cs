@@ -186,7 +186,7 @@ public class AddGarnetTests
         var garnet = builder.AddGarnet("myGarnet")
                            .WithDataVolume(isReadOnly: true);
 
-        var persistenceAnnotation = garnet.Resource.Annotations.OfType<GarnetPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+        var persistenceAnnotation = garnet.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
         Assert.Null(persistenceAnnotation);
     }
@@ -197,7 +197,7 @@ public class AddGarnetTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
                            .WithDataBindMount("mygarnetdata");
-        
+
         Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
         var args = new List<object>();
@@ -217,7 +217,7 @@ public class AddGarnetTests
         var garnet = builder.AddGarnet("myGarnet")
                            .WithDataBindMount("mygarnetdata", isReadOnly: true);
 
-        var persistenceAnnotation = garnet.Resource.Annotations.OfType<GarnetPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+        var persistenceAnnotation = garnet.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
         Assert.Null(persistenceAnnotation);
     }

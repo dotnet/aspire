@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Garnet;
 
-internal class GarnetPersistenceCommandLineArgsCallbackAnnotation(TimeSpan interval, long keysChangedThreshold)
+internal sealed class GarnetPersistenceCommandLineArgsCallbackAnnotation(TimeSpan interval, long keysChangedThreshold)
     : CommandLineArgsCallbackAnnotation(context =>
     {
         context.Args.Add("--save");
