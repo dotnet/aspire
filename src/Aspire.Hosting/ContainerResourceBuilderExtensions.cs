@@ -189,7 +189,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithContainerHostRunArgs<T>(this IResourceBuilder<T> builder, Action<ContainerRunArgsCallbackContext> callback) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerHostRunArgs<T>(this IResourceBuilder<T> builder, Action<ContainerHostRunArgsCallbackContext> callback) where T : ContainerResource
     {
         return builder.WithContainerHostRunArgs(context =>
         {
@@ -205,9 +205,9 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithContainerHostRunArgs<T>(this IResourceBuilder<T> builder, Func<ContainerRunArgsCallbackContext, Task> callback) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerHostRunArgs<T>(this IResourceBuilder<T> builder, Func<ContainerHostRunArgsCallbackContext, Task> callback) where T : ContainerResource
     {
-        var annotation = new ContainerRunArgsCallbackAnnotation(callback);
+        var annotation = new ContainerHostRunArgsCallbackAnnotation(callback);
         return builder.WithAnnotation(annotation);
     }
 
