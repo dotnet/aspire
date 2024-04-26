@@ -202,6 +202,35 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         }, _connectionString).Dispose();
     }
 
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:nats1", "nats://aspire-host1:4222"),
+            new KeyValuePair<string, string?>("ConnectionStrings:nats2", "nats://aspire-host2:4222"),
+            new KeyValuePair<string, string?>("ConnectionStrings:nats3", "nats://aspire-host3:4222"),
+        ]);
+
+        builder.AddNatsClient("nats1");
+        builder.AddKeyedNatsClient("nats2");
+        builder.AddKeyedNatsClient("nats3");
+
+        using var host = builder.Build();
+
+        var connection1 = host.Services.GetRequiredService<INatsConnection>();
+        var connection2 = host.Services.GetRequiredKeyedService<INatsConnection>("nats2");
+        var connection3 = host.Services.GetRequiredKeyedService<INatsConnection>("nats3");
+
+        Assert.NotSame(connection1, connection2);
+        Assert.NotSame(connection1, connection3);
+        Assert.NotSame(connection2, connection3);
+
+        Assert.Contains("aspire-host1", connection1.Opts.Url);
+        Assert.Contains("aspire-host2", connection2.Opts.Url);
+        Assert.Contains("aspire-host3", connection3.Opts.Url);
+    }
+
     private static HostApplicationBuilder CreateBuilder(string connectionString)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);

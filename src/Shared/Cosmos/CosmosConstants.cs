@@ -6,8 +6,8 @@ namespace Aspire.Hosting.Azure.Cosmos;
 internal static class CosmosConstants
 {
     /// <summary>
-    /// Defines the application name used to interact with the aszure cosmos db. This will be suffixed to the
-    /// cosmos user-agent to include with every Azure Cosmos DB service interaction.
+    /// Defines the application name used to interact with the Azure Cosmos database. This will be suffixed to the
+    /// Cosmos user-agent to include with every Azure Cosmos database service interaction.
     /// </summary>
     internal const string CosmosApplicationName = "Aspire";
 

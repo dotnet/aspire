@@ -50,7 +50,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using the client library [Aspire.Microsoft.Azure.Cosmos](https://www.nuget.org/packages/Aspire.Microsoft.Azure.Cosmos):
 
 ```csharp
-builder.AddAzureCosmosDBClient("cosmosdb");
+builder.AddAzureCosmosClient("cosmosdb");
 ```
 
 ### Emulator usage
@@ -66,7 +66,7 @@ When the AppHost starts up a local container running the Azure CosmosDB will als
 
 ```csharp
 // Service code
-builder.AddAzureCosmosDbClient("cosmos");
+builder.AddAzureCosmosClient("cosmos");
 ```
 
 ## Additional documentation

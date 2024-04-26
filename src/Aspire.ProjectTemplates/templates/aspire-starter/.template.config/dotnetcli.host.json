@@ -42,13 +42,13 @@
         "longName": "use-redis-cache",
         "shortName": ""
       },
-      "CreateTestsProject": {
-        "longName": "create-tests-project",
+      "TestFramework": {
+        "longName": "test-framework",
         "shortName": "t"
       }
     },
     "usageExamples": [
       "--use-redis-cache",
-      "--create-tests-project"
+      "--test-framework MSTest"
     ]
   }

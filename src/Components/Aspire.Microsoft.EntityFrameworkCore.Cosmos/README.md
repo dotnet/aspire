@@ -71,7 +71,7 @@ See the [ConnectionString documentation](https://learn.microsoft.com/azure/cosmo
 
 ### Use configuration providers
 
-The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `EntityFrameworkCoreCosmosDBSettings` from configuration by using the `Aspire:Microsaoft:EntityFrameworkCore:Cosmos` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `EntityFrameworkCoreCosmosSettings` from configuration by using the `Aspire:Microsaoft:EntityFrameworkCore:Cosmos` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -89,7 +89,7 @@ The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microso
 
 ### Use inline delegates
 
-Also you can pass the `Action<EntityFrameworkCoreCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
+Also you can pass the `Action<EntityFrameworkCoreCosmosSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
     builder.AddCosmosDbContext<MyDbContext>("cosmosdb", "mydb", settings => settings.DisableTracing = true);
