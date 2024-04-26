@@ -8,7 +8,11 @@ namespace Aspire.Hosting.Orleans;
 /// <summary>
 /// Configuration for an Orleans provider.
 /// </summary>
-internal sealed class ProviderConfiguration(string providerType, string? serviceKey = null, IResourceBuilder<IResourceWithConnectionString>? resource = null) : IProviderConfiguration
+internal sealed class ProviderConfiguration(
+    string providerType,
+    string? serviceKey = null,
+    IResourceBuilder<IResourceWithConnectionString>? resource = null)
+    : IProviderConfiguration
 {
     /// <summary>
     /// Initializes a new instance of <see cref="ProviderConfiguration"/>.
@@ -33,7 +37,8 @@ internal sealed class ProviderConfiguration(string providerType, string? service
     /// <typeparam name="T">The underlying resource builder type.</typeparam>
     /// <param name="resourceBuilder">The resource builder.</param>
     /// <param name="configurationSectionName">The name of the configuration section which this value is being added to.</param>
-    public void ConfigureResource<T>(IResourceBuilder<T> resourceBuilder, string configurationSectionName) where T : IResourceWithEnvironment
+    public void ConfigureResource<T>(IResourceBuilder<T> resourceBuilder, string configurationSectionName)
+        where T : IResourceWithEnvironment
     {
         var envVarPrefix = configurationSectionName.Replace(":", "__");
         resourceBuilder.WithEnvironment($"Orleans__{envVarPrefix}__ProviderType", providerType);
