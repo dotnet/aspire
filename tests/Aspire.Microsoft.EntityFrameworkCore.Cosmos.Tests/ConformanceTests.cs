@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
-public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosDBSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosSettings>
 {
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -33,16 +33,16 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
                 "Host=fake;Database=catalog"),
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosSettings>? configure = null, string? key = null)
         => builder.AddCosmosDbContext<TestDbContext>("cosmosdb", "TestDatabase", configure);
 
-    protected override void SetHealthCheck(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
+    protected override void SetHealthCheck(EntityFrameworkCoreCosmosSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
+    protected override void SetTracing(EntityFrameworkCoreCosmosSettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void SetMetrics(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
+    protected override void SetMetrics(EntityFrameworkCoreCosmosSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """

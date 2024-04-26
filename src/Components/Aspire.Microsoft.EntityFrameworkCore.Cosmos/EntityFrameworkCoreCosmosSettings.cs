@@ -8,7 +8,7 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 /// <summary>
 /// The settings relevant to accessing Azure Cosmos DB database using EntityFrameworkCore.
 /// </summary>
-public sealed class EntityFrameworkCoreCosmosDBSettings
+public sealed class EntityFrameworkCoreCosmosSettings
 {
     /// <summary>
     /// The connection string of the Azure Cosmos DB server database to connect to.

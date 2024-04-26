@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Microsoft.Azure.Cosmos.Tests;
 
-public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCosmosDBSettings>
+public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCosmosSettings>
 {
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -24,25 +24,25 @@ public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCos
                 "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;")
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftAzureCosmosDBSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftAzureCosmosSettings>? configure = null, string? key = null)
     {
         if (key is null)
         {
-            builder.AddAzureCosmosDBClient("cosmosdb", configure);
+            builder.AddAzureCosmosClient("cosmosdb", configure);
         }
         else
         {
-            builder.AddKeyedAzureCosmosDBClient(key, configure);
+            builder.AddKeyedAzureCosmosClient(key, configure);
         }
     }
 
-    protected override void SetHealthCheck(MicrosoftAzureCosmosDBSettings options, bool enabled)
+    protected override void SetHealthCheck(MicrosoftAzureCosmosSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(MicrosoftAzureCosmosDBSettings options, bool enabled)
+    protected override void SetTracing(MicrosoftAzureCosmosSettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void SetMetrics(MicrosoftAzureCosmosDBSettings options, bool enabled)
+    protected override void SetMetrics(MicrosoftAzureCosmosSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override string ValidJsonConfig => """

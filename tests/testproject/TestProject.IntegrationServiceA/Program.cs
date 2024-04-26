@@ -66,7 +66,7 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
-    builder.AddAzureCosmosDBClient("cosmos");
+    builder.AddAzureCosmosClient("cosmos");
 }
 
 // Ensure healthChecks are added. Some components like Cosmos
