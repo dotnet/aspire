@@ -406,7 +406,7 @@ public class AddPostgresTests
 
         // Make sure the first server is correct.
         Assert.Equal(pg1.Resource.Name, servers.GetProperty("1").GetProperty("Name").GetString());
-        Assert.Equal("Aspire instances", servers.GetProperty("1").GetProperty("Group").GetString());
+        Assert.Equal("Servers", servers.GetProperty("1").GetProperty("Group").GetString());
         Assert.Equal(containerHost, servers.GetProperty("1").GetProperty("Host").GetString());
         Assert.Equal(5001, servers.GetProperty("1").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("Username").GetString());
@@ -416,7 +416,7 @@ public class AddPostgresTests
 
         // Make sure the second server is correct.
         Assert.Equal(pg2.Resource.Name, servers.GetProperty("2").GetProperty("Name").GetString());
-        Assert.Equal("Aspire instances", servers.GetProperty("2").GetProperty("Group").GetString());
+        Assert.Equal("Servers", servers.GetProperty("2").GetProperty("Group").GetString());
         Assert.Equal("host2", servers.GetProperty("2").GetProperty("Host").GetString());
         Assert.Equal(5002, servers.GetProperty("2").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("Username").GetString());
