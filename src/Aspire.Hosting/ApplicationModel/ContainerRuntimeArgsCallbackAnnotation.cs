@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an additional argument to pass to the container host run command.
+/// Represents an additional argument to pass to the container runtime run command.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}")]
 public sealed class ContainerRuntimeArgsCallbackAnnotation : IResourceAnnotation
@@ -44,7 +44,7 @@ public sealed class ContainerRuntimeArgsCallbackAnnotation : IResourceAnnotation
 }
 
 /// <summary>
-/// Represents a callback context for the list of command-line arguments to be passed to the container run command.
+/// Represents a callback context for the list of command-line arguments to be passed to the container runtime run command.
 /// </summary>
 /// <param name="args">The list of command-line arguments.</param>
 /// <param name="cancellationToken">The cancellation token associated with this execution.</param>

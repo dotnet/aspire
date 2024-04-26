@@ -171,14 +171,14 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the container host run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
     /// </summary>
     /// <remarks>
-    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, string[])"/> method.
+    /// This is intended to pass additional arguments to the underlying container runtime run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, string[])"/> method.
     /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
-    /// <param name="args">The arguments to be passed to the container host run command when the container resource is started.</param>
+    /// <param name="args">The arguments to be passed to the container runtime run command when the container resource is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
     {
@@ -186,10 +186,10 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the host container run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
     /// </summary>
     /// <remarks>
-    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Action{CommandLineArgsCallbackContext})"/> method.
+    /// This is intended to pass additional arguments to the underlying container runtime run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Action{CommandLineArgsCallbackContext})"/> method.
     /// </remarks>
     /// <typeparam name="T"></typeparam>
     /// <param name="builder">Builder for the container resource.</param>
@@ -205,10 +205,10 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the host container run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
     /// </summary>
     /// <remarks>
-    /// This is intended to pass additional arguments to the underlying container run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Func{CommandLineArgsCallbackContext, Task})"/> method.
+    /// This is intended to pass additional arguments to the underlying container runtime run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Func{CommandLineArgsCallbackContext, Task})"/> method.
     /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
