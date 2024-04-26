@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Redis;
@@ -13,6 +14,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class RedisBuilderExtensions
 {
+    private const string RedisContainerDataDirectory = "/var/redis/data";
+
     /// <summary>
     /// Adds a Redis container to the application model.
     /// </summary>
@@ -99,7 +102,7 @@ public static class RedisBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
     {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
+        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), RedisContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
@@ -127,7 +130,7 @@ public static class RedisBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
-        builder.WithBindMount(source, "/data", isReadOnly);
+        builder.WithBindMount(source, RedisContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
@@ -151,6 +154,13 @@ public static class RedisBuilderExtensions
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new RedisPersistenceCommandLineArgsCallbackAnnotation(interval ?? TimeSpan.FromSeconds(60), keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace);
+    public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder,
+        TimeSpan? interval = null, long keysChangedThreshold = 1)
+        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+        {
+            context.Args.Add("--save");
+            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+            return Task.CompletedTask;
+        }), ResourceAnnotationMutationBehavior.Replace);
 }

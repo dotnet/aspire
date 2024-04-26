@@ -1,14 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using System.Text;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.Redis;
 
-internal sealed class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycleHook
+/// <summary>
+/// 
+/// </summary>
+public class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycleHook
 {
+    /// <summary>
+    /// Executes after the orchestrator allocates endpoints for resources in the application model.
+    /// </summary>
+    /// <param name="appModel">The distributed application model.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         if (appModel.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is not { } commanderResource)

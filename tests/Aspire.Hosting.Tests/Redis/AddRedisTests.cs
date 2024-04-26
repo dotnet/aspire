@@ -75,7 +75,7 @@ public class AddRedisTests
         appBuilder.AddRedis("myRedis")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
-        using var app = appBuilder.Build();
+        await using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -158,7 +158,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
-        using var app = builder.Build();
+        await using var app = builder.Build();
 
         // Add fake allocated endpoints.
         redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
@@ -182,13 +182,14 @@ public class AddRedisTests
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
         var redis2 = builder.AddRedis("myredis2").WithRedisCommander();
-        using var app = builder.Build();
+        await using var app = builder.Build();
 
         // Add fake allocated endpoints.
         redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        
         var hook = new RedisCommanderConfigWriterHook();
         await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
 
@@ -219,7 +220,7 @@ public class AddRedisTests
         var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.Equal("testhost-myRedis-data", volumeAnnotation.Source);
-        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal("/var/redis/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
@@ -244,7 +245,7 @@ public class AddRedisTests
         var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
-        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal("/var/redis/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
@@ -256,10 +257,16 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                               .WithDataVolume();
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
-        Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
+
+        Assert.Equal("--save 60 1".Split(" "), args);
     }
 
     [Fact]
@@ -269,7 +276,7 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume(isReadOnly: true);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
         Assert.Null(persistenceAnnotation);
     }
@@ -281,10 +288,16 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata");
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
-        Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
+
+        Assert.Equal("--save 60 1".Split(" "), args);
     }
 
     [Fact]
@@ -294,7 +307,7 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata", isReadOnly: true);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
         Assert.Null(persistenceAnnotation);
     }
@@ -306,11 +319,17 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume()
                            .WithPersistence(TimeSpan.FromSeconds(10), 2);
+        
+        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
 
-        Assert.Equal(TimeSpan.FromSeconds(10), persistenceAnnotation.Interval);
-        Assert.Equal(2, persistenceAnnotation.KeysChangedThreshold);
+        Assert.Equal("--save 10 2".Split(" "), args);
     }
 
     [Fact]
