@@ -49,14 +49,14 @@ Aspire.Hosting.ApplicationModel.ContainerResource
 Aspire.Hosting.ApplicationModel.ContainerResource.ContainerResource(string! name, string? entrypoint = null) -> void
 Aspire.Hosting.ApplicationModel.ContainerResource.Entrypoint.get -> string?
 Aspire.Hosting.ApplicationModel.ContainerResource.Entrypoint.set -> void
-Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackAnnotation
-Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackAnnotation.Callback.get -> System.Func<Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext!, System.Threading.Tasks.Task!>!
-Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackAnnotation.ContainerRunArgsCallbackAnnotation(System.Action<System.Collections.Generic.IList<object!>!>! callback) -> void
-Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackAnnotation.ContainerRunArgsCallbackAnnotation(System.Func<Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext!, System.Threading.Tasks.Task!>! callback) -> void
-Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext
-Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext.Args.get -> System.Collections.Generic.IList<object!>!
-Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext.CancellationToken.get -> System.Threading.CancellationToken
-Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext.ContainerRunArgsCallbackContext(System.Collections.Generic.IList<object!>! args, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackAnnotation
+Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackAnnotation.Callback.get -> System.Func<Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext!, System.Threading.Tasks.Task!>!
+Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackAnnotation.ContainerRuntimeArgsCallbackAnnotation(System.Action<System.Collections.Generic.IList<object!>!>! callback) -> void
+Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackAnnotation.ContainerRuntimeArgsCallbackAnnotation(System.Func<Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext!, System.Threading.Tasks.Task!>! callback) -> void
+Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext
+Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext.Args.get -> System.Collections.Generic.IList<object!>!
+Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext.CancellationToken.get -> System.Threading.CancellationToken
+Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext.ContainerRuntimeArgsCallbackContext(System.Collections.Generic.IList<object!>! args, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
 Aspire.Hosting.ApplicationModel.CustomResourceKnownProperties
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.CreationTimeStamp.get -> System.DateTime?
@@ -434,9 +434,9 @@ static Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer(this Aspir
 static Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! image, string! tag) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.PublishAsContainer<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBindMount<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! source, string! target, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
-static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRunArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, params string![]! args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
-static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRunArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
-static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRunArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Func<Aspire.Hosting.ApplicationModel.ContainerRunArgsCallbackContext!, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRuntimeArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, params string![]! args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRuntimeArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRuntimeArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Func<Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext!, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithEntrypoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! entrypoint) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImage<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! image, string! tag = "latest") -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImageRegistry<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! registry) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
