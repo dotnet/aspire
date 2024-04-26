@@ -10,6 +10,9 @@ Aspire.Hosting.ApplicationModel.MySqlServerResource.Databases.get -> System.Coll
 Aspire.Hosting.ApplicationModel.MySqlServerResource.MySqlServerResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource! password) -> void
 Aspire.Hosting.ApplicationModel.MySqlServerResource.PasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!
 Aspire.Hosting.ApplicationModel.MySqlServerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.MySql.PhpMyAdminConfigWriterHook
+Aspire.Hosting.MySql.PhpMyAdminConfigWriterHook.AfterEndpointsAllocatedAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! appModel, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.MySql.PhpMyAdminConfigWriterHook.PhpMyAdminConfigWriterHook() -> void
 Aspire.Hosting.MySqlBuilderExtensions
 static Aspire.Hosting.MySqlBuilderExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MySqlServerResource!>! builder, string! name, string? databaseName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MySqlDatabaseResource!>!
 static Aspire.Hosting.MySqlBuilderExtensions.AddMySql(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? password = null, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MySqlServerResource!>!

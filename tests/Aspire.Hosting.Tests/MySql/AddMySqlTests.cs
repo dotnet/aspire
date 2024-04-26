@@ -206,8 +206,8 @@ public class AddMySqlTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddMySql("mySql").WithPhpMyAdmin();
         builder.AddMySql("mySql2").WithPhpMyAdmin();
-
-        Assert.Single(builder.Resources.OfType<PhpMyAdminContainerResource>());
+        
+        Assert.Single(builder.Resources.OfType<ContainerResource>().Where(resource => resource.Name is "mySql-phpmyadmin"));
     }
 
     [Theory]
