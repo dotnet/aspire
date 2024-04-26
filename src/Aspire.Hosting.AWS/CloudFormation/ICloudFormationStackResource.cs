@@ -6,4 +6,7 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// <summary>
 /// Resource representing an AWS CloudFormation stack.
 /// </summary>
-public interface ICloudFormationStackResource : ICloudFormationResource;
+public interface ICloudFormationStackResource : ICloudFormationResource
+{
+
+}

@@ -75,7 +75,7 @@ public class AddRedisTests
         appBuilder.AddRedis("myRedis")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
-        await using var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -158,7 +158,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
-        await using var app = builder.Build();
+        using var app = builder.Build();
 
         // Add fake allocated endpoints.
         redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
@@ -182,14 +182,13 @@ public class AddRedisTests
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
         var redis2 = builder.AddRedis("myredis2").WithRedisCommander();
-        await using var app = builder.Build();
+        using var app = builder.Build();
 
         // Add fake allocated endpoints.
         redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        
         var hook = new RedisCommanderConfigWriterHook();
         await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
 

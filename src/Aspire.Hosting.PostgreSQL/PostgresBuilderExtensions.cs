@@ -13,6 +13,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class PostgresBuilderExtensions
 {
+    private const string PostgresContainerDataDirectory = "/var/postgresql/data";
     private const string UserEnvVarName = "POSTGRES_USER";
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
@@ -54,10 +55,7 @@ public static class PostgresBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(
-        this IResourceBuilder<PostgresServerResource> builder,
-        string name,
-        string? databaseName = null)
+    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name, string? databaseName = null)
     {
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
@@ -74,11 +72,7 @@ public static class PostgresBuilderExtensions
     /// <param name="configureContainer">Resource builder for the </param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgAdmin<T>(
-        this IResourceBuilder<T> builder,
-        Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null,
-        string? containerName = null)
-        where T : PostgresServerResource
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgAdminContainerResource>>? configureContainer = null, string? containerName = null) where T : PostgresServerResource
     {
         if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().SingleOrDefault() is { } existingPgAdminResource)
         {
@@ -139,11 +133,8 @@ public static class PostgresBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PostgresServerResource> WithDataVolume(
-        this IResourceBuilder<PostgresServerResource> builder,
-        string? name = null,
-        bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/postgresql/data", isReadOnly);
+    public static IResourceBuilder<PostgresServerResource> WithDataVolume(this IResourceBuilder<PostgresServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), PostgresContainerDataDirectory, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a PostgreSQL container resource.
@@ -152,11 +143,8 @@ public static class PostgresBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PostgresServerResource> WithDataBindMount(
-        this IResourceBuilder<PostgresServerResource> builder,
-        string source,
-        bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/postgresql/data", isReadOnly);
+    public static IResourceBuilder<PostgresServerResource> WithDataBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, PostgresContainerDataDirectory, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the init folder to a PostgreSQL container resource.
@@ -165,9 +153,6 @@ public static class PostgresBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PostgresServerResource> WithInitBindMount(
-        this IResourceBuilder<PostgresServerResource> builder,
-        string source,
-        bool isReadOnly = true)
+    public static IResourceBuilder<PostgresServerResource> WithInitBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = true)
         => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
 }

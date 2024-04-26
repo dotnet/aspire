@@ -10,8 +10,7 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// </summary>
 /// <param name="name">The name of the output reference.</param>
 /// <param name="resource">The <see cref="ICloudFormationResource"/> resource.</param>
-public class StackOutputReference(string name, ICloudFormationResource resource)
-    : IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public class StackOutputReference(string name, ICloudFormationResource resource) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     /// <summary>
     /// Name of the output.

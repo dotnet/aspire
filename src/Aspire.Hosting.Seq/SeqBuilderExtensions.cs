@@ -44,10 +44,7 @@ public static class SeqBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SeqResource> WithDataVolume(
-        this IResourceBuilder<SeqResource> builder,
-        string? name = null,
-        bool isReadOnly = false)
+    public static IResourceBuilder<SeqResource> WithDataVolume(this IResourceBuilder<SeqResource> builder, string? name = null, bool isReadOnly = false)
         => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), SeqContainerDataDirectory, isReadOnly);
 
     /// <summary>
@@ -57,9 +54,6 @@ public static class SeqBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SeqResource> WithDataBindMount(
-        this IResourceBuilder<SeqResource> builder,
-        string source,
-        bool isReadOnly = false)
+    public static IResourceBuilder<SeqResource> WithDataBindMount(this IResourceBuilder<SeqResource> builder, string source, bool isReadOnly = false)
         => builder.WithBindMount(source, SeqContainerDataDirectory, isReadOnly);
 }

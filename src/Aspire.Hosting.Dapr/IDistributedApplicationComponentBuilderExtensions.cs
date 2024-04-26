@@ -18,11 +18,10 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="builder">The resource builder instance.</param>
     /// <param name="appId">The ID for the application, used for service discovery.</param>
     /// <returns>The resource builder instance.</returns>
-    public static IResourceBuilder<T> WithDaprSidecar<T>(
-        this IResourceBuilder<T> builder,
-        string appId)
-        where T : IResource
-            => builder.WithDaprSidecar(new DaprSidecarOptions { AppId = appId });
+    public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, string appId) where T : IResource
+    {
+        return builder.WithDaprSidecar(new DaprSidecarOptions { AppId = appId });
+    }
 
     /// <summary>
     /// Ensures that a Dapr sidecar is started for the resource.

@@ -55,10 +55,7 @@ public static class RabbitMQBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RabbitMQServerResource> WithDataVolume(
-        this IResourceBuilder<RabbitMQServerResource> builder,
-        string? name = null,
-        bool isReadOnly = false)
+    public static IResourceBuilder<RabbitMQServerResource> WithDataVolume(this IResourceBuilder<RabbitMQServerResource> builder, string? name = null, bool isReadOnly = false)
         => builder
             .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), RabbitMQContainerDataDirectory, isReadOnly)
             .RunWithStableNodeName();
@@ -70,10 +67,7 @@ public static class RabbitMQBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RabbitMQServerResource> WithDataBindMount(
-        this IResourceBuilder<RabbitMQServerResource> builder,
-        string source,
-        bool isReadOnly = false)
+    public static IResourceBuilder<RabbitMQServerResource> WithDataBindMount(this IResourceBuilder<RabbitMQServerResource> builder, string source, bool isReadOnly = false)
         => builder.WithBindMount(source, RabbitMQContainerDataDirectory, isReadOnly)
                   .RunWithStableNodeName();
 

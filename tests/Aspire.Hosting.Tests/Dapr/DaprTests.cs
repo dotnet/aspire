@@ -33,7 +33,7 @@ public class DaprTests
             })
             .WithDaprSidecar();
 
-        await using var app = builder.Build();
+        using var app = builder.Build();
         await app.ExecuteBeforeStartHooksAsync(default);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -132,8 +132,7 @@ public class DaprTests
                 AppPort = port
             });
         }
-
-        await using var app = builder.Build();
+        using var app = builder.Build();
         await app.ExecuteBeforeStartHooksAsync(default);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();

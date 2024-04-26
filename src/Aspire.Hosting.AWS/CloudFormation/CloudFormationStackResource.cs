@@ -7,8 +7,7 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting.AWS.CloudFormation;
 
 /// <inheritdoc/>
-internal sealed class CloudFormationStackResource(string name)
-    : CloudFormationResource(name), ICloudFormationStackResource
+internal sealed class CloudFormationStackResource(string name) : CloudFormationResource(name), ICloudFormationStackResource
 {
     internal void WriteToManifest(ManifestPublishingContext context)
     {
