@@ -42,7 +42,10 @@ public static class RedisBuilderExtensions
     /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
     /// <returns></returns>
-    public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
+    public static IResourceBuilder<RedisResource> WithRedisCommander(
+        this IResourceBuilder<RedisResource> builder,
+        Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null,
+        string? containerName = null)
     {
         if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is { } existingRedisCommanderResource)
         {
@@ -100,7 +103,10 @@ public static class RedisBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
+    public static IResourceBuilder<RedisResource> WithDataVolume(
+        this IResourceBuilder<RedisResource> builder,
+        string? name = null,
+        bool isReadOnly = false)
     {
         builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), RedisContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
@@ -128,7 +134,10 @@ public static class RedisBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
+    public static IResourceBuilder<RedisResource> WithDataBindMount(
+        this IResourceBuilder<RedisResource> builder,
+        string source,
+        bool isReadOnly = false)
     {
         builder.WithBindMount(source, RedisContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
