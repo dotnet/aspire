@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class GarnetBuilderExtensions
 {
-    private const string Target = "/var/garnet/data";
+    private const string GarnetContainerDataDirectory = "/var/garnet/data";
 
     /// <summary>
     /// Adds a Garnet container to the application model.
