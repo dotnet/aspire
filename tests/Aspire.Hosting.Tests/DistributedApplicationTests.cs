@@ -223,7 +223,7 @@ public class DistributedApplicationTests
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
             .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR")
-            .WithContainerRunArgs("--add-host", "testlocalhost:127.0.0.1");
+            .WithContainerRuntimeArgs("--add-host", "testlocalhost:127.0.0.1");
 
         await using var app = testProgram.Build();
 
