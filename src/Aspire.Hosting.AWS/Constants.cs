@@ -4,7 +4,6 @@
 namespace Aspire.Hosting.AWS;
 internal sealed class Constants
 {
-
     /// <summary>
     /// Error state for Aspire resource dashboard
     /// </summary>

@@ -7,7 +7,8 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting.AWS.CloudFormation;
 
 /// <inheritdoc/>
-internal sealed class CloudFormationTemplateResource(string name, string templatePath) : CloudFormationResource(name), ICloudFormationTemplateResource
+internal sealed class CloudFormationTemplateResource(string name, string templatePath)
+    : CloudFormationResource(name), ICloudFormationTemplateResource
 {
     public IDictionary<string, string> CloudFormationParameters { get; } = new Dictionary<string, string>();
 

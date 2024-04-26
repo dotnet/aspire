@@ -8,6 +8,5 @@ namespace Aspire.Hosting.AWS;
 /// </summary>
 /// <param name="message"></param>
 /// <param name="innerException"></param>
-public class AWSProvisioningException(string message, Exception? innerException = null) : Exception(message, innerException)
-{
-}
+public class AWSProvisioningException(string message, Exception? innerException = null)
+    : Exception(message, innerException);
