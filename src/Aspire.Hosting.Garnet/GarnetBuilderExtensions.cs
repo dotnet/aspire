@@ -77,7 +77,7 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> WithDataVolume(this IResourceBuilder<GarnetResource> builder,
         string? name = null, bool isReadOnly = false)
     {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), Target,
+        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), GarnetContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
         {
@@ -110,7 +110,7 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> WithDataBindMount(this IResourceBuilder<GarnetResource> builder,
         string source, bool isReadOnly = false)
     {
-        builder.WithBindMount(source, Target, isReadOnly);
+        builder.WithBindMount(source, GarnetContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
