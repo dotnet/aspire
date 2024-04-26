@@ -9,6 +9,4 @@ namespace Aspire.Hosting.Postgres;
 /// Represents a container resource for PGAdmin.
 /// </summary>
 /// <param name="name">The name of the container resource.</param>
-public sealed class PgAdminContainerResource(string name) : ContainerResource(name)
-{
-}
+public sealed class PgAdminContainerResource(string name) : ContainerResource(name);
