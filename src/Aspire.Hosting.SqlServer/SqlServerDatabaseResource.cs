@@ -9,7 +9,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="databaseName">The database name.</param>
 /// <param name="parent">The parent SQL Server server resource.</param>
-public class SqlServerDatabaseResource(string name, string databaseName, SqlServerServerResource parent) : Resource(name), IResourceWithParent<SqlServerServerResource>, IResourceWithConnectionString
+public class SqlServerDatabaseResource(
+    string name,
+    string databaseName,
+    SqlServerServerResource parent)
+    : Resource(name), IResourceWithParent<SqlServerServerResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the parent SQL Server container resource.

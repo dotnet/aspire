@@ -46,7 +46,7 @@ public class AddKafkaTests
             .AddKafka("kafka")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017));
 
-        using var app = appBuilder.Build();
+        await using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
