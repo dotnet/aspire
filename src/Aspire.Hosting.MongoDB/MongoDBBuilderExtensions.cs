@@ -12,6 +12,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class MongoDBBuilderExtensions
 {
+    private const string MongoDBContainerDataDirectory = "/var/mongoDB/data";
     // Internal port is always 27017.
     private const int DefaultContainerPort = 27017;
 
@@ -98,7 +99,7 @@ public static class MongoDBBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> WithDataVolume(this IResourceBuilder<MongoDBServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data/db", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), MongoDBContainerDataDirectory, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a MongoDB container resource.
@@ -108,7 +109,7 @@ public static class MongoDBBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> WithDataBindMount(this IResourceBuilder<MongoDBServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/data/db", isReadOnly);
+        => builder.WithBindMount(source, MongoDBContainerDataDirectory, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the init folder to a MongoDB container resource.
