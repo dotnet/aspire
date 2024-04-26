@@ -66,7 +66,8 @@ public sealed class DistributedApplicationOptions
 
     private string? ResolveProjectDirectory()
     {
-        return Assembly?.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration;
+        var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
     }
 
     private Assembly? ResolveAssembly()
@@ -94,8 +95,7 @@ public sealed class DistributedApplicationOptions
 
     private string? ResolveConfiguration()
     {
-        var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        return GetMetadataValue(assemblyMetadata, "AppHostConfiguration");
+        return Assembly?.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration;
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
