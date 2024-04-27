@@ -62,9 +62,11 @@ public static class AspireAzureOpenAIExtensions
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, OpenAIClient, OpenAIClientOptions>
     {
-        protected override IAzureClientBuilder<OpenAIClient, OpenAIClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureOpenAISettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<OpenAIClient, OpenAIClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureOpenAISettings settings, string connectionName,
+            string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<OpenAIClient, OpenAIClientOptions>((options, cred) =>
+            return azureFactoryBuilder.AddClient<OpenAIClient, OpenAIClientOptions>((options, _, _) =>
             {
                 if (settings.Endpoint is null)
                 {

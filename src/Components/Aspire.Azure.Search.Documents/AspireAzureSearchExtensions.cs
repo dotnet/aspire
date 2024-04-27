@@ -68,9 +68,11 @@ public static class AspireAzureSearchExtensions
         // https://github.com/Azure/azure-sdk-for-net/blob/bed506dee05319ff2de27ca98500daa10573fe7d/sdk/search/Azure.Search.Documents/src/Indexes/SearchIndexClient.cs#L92
         protected override string[] ActivitySourceNames => ["Azure.Search.Documents.*"];
 
-        protected override IAzureClientBuilder<SearchIndexClient, SearchClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureSearchSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<SearchIndexClient, SearchClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureSearchSettings settings, string connectionName,
+            string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<SearchIndexClient, SearchClientOptions>((options, cred) =>
+            return azureFactoryBuilder.AddClient<SearchIndexClient, SearchClientOptions>((options, _, _) =>
             {
                 if (settings.Endpoint is null)
                 {
