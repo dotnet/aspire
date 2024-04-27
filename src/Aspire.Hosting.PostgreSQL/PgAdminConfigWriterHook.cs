@@ -8,8 +8,10 @@ using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.Postgres;
 
-internal sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
+/// <inheritdoc/>
+public sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
 {
+    /// <inheritdoc/>
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         var adminResource = appModel.Resources.OfType<PgAdminContainerResource>().Single();
