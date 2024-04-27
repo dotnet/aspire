@@ -83,9 +83,9 @@ public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCos
             new KeyValuePair<string, string?>("ConnectionStrings:cosmosdb3", "AccountEndpoint=https://example3.documents.azure.com:443/;AccountKey=fake;"),
         ]);
 
-        builder.AddAzureCosmosDBClient("cosmosdb1");
-        builder.AddKeyedAzureCosmosDBClient("cosmosdb2");
-        builder.AddKeyedAzureCosmosDBClient("cosmosdb3");
+        builder.AddAzureCosmosClient("cosmosdb1");
+        builder.AddKeyedAzureCosmosClient("cosmosdb2");
+        builder.AddKeyedAzureCosmosClient("cosmosdb3");
 
         using var host = builder.Build();
 
