@@ -4,6 +4,9 @@ Aspire.Hosting.ApplicationModel.RedisResource.ConnectionStringExpression.get -> 
 Aspire.Hosting.ApplicationModel.RedisResource.GetConnectionStringAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
 Aspire.Hosting.ApplicationModel.RedisResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
 Aspire.Hosting.ApplicationModel.RedisResource.RedisResource(string! name) -> void
+Aspire.Hosting.Redis.RedisCommanderConfigWriterHook
+Aspire.Hosting.Redis.RedisCommanderConfigWriterHook.AfterEndpointsAllocatedAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! appModel, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Redis.RedisCommanderConfigWriterHook.RedisCommanderConfigWriterHook() -> void
 Aspire.Hosting.Redis.RedisCommanderResource
 Aspire.Hosting.Redis.RedisCommanderResource.RedisCommanderResource(string! name) -> void
 Aspire.Hosting.RedisBuilderExtensions
