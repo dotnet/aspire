@@ -31,6 +31,7 @@ public partial class ResourceDetails
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
 
     private bool _showAll;
+    private ResourceViewModel? _resource;
 
     private IQueryable<EnvironmentVariableViewModel> FilteredItems =>
         Resource.Environment.Where(vm =>
@@ -95,6 +96,15 @@ public partial class ResourceDetails
     }
 
     protected override void OnParametersSet()
+    {
+        if (!ReferenceEquals(Resource, _resource))
+        {
+            _resource = Resource;
+            ResetResourceEnvironmentVariableMasks();
+        }
+    }
+
+    private void ResetResourceEnvironmentVariableMasks()
     {
         foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
         {

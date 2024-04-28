@@ -55,7 +55,7 @@ See the [Azure.Messaging.EventHubs documentation](https://github.com/Azure/azure
 
 ## Configuration
 
-The .NET Aspire Azure Event Hubs library provides multiple options to configure the Azure Event Hubs connection based on the requirements and conventions of your project. Note that either a `Namespace` or a `ConnectionString` is a required to be supplied.
+The .NET Aspire Azure Event Hubs library provides multiple options to configure the Azure Event Hubs connection based on the requirements and conventions of your project. Note that either a `FullyQualifiedNamespace` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
@@ -138,13 +138,15 @@ dotnet add package Aspire.Hosting.Azure.EventHubs
 Then, in the _Program.cs_ file of `AppHost`, add an Event Hubs connection and an Event Hub resource and consume the connection using the following methods:
 
 ```csharp
-var eventHubs = builder.AddAzureEventHubs("eventHubsConnectionName").AddEventHub("MyHub");;
+var eventHubs = builder.ExecutionContext.IsPublishMode
+    ? builder.AddAzureEventHubs("eventHubsConnectionName").AddEventHub("MyHub")
+    : builder.AddConnectionString("eventHubsConnectionName");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(eventHubs);
 ```
 
-The `AddAzureEventHubs` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:eventHubsConnectionName` config key. The `WithReference` method passes that connection information into a connection string named `eventHubsConnectionName` in the `MyService` project.
+The `AddAzureEventHubs` method adds an Azure Event Hubs Namespace resource to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:eventHubsConnectionName` config key. The `WithReference` method passes that connection information into a connection string named `eventHubsConnectionName` in the `MyService` project.
 
 NOTE: Even though we are creating an Event Hub using the `AddEventHub` at the same time as the namespace, for this release of Aspire, the connection string will not include the `EntityPath` property, so the `EventHubName` property must be set in the settings callback for the preferred client. Future versions of Aspire will include the `EntityPath` property in the connection string and will not require the `EventHubName` property to be set in this scenario.
 

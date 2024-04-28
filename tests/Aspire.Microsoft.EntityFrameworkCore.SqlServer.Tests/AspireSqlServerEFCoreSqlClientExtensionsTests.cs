@@ -15,7 +15,7 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class AspireSqlServerEFCoreSqlClientExtensionsTests
 {
-    private const string ConnectionString = "Data Source=fake;Database=master";
+    private const string ConnectionString = "Data Source=fake;Database=master;Encrypt=True";
 
     [Fact]
     public void ReadsFromConnectionStringsCorrectly()
@@ -78,7 +78,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "true"),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:DisableRetry", "false"),
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:CommandTimeout", "608")
         ]);
 
@@ -123,7 +123,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "false"),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:DisableRetry", "true"),
         ]);
 
         builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configureDbContextOptions: optionsBuilder =>
@@ -230,7 +230,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
     [Fact]
     public void CanHave2DbContexts()
     {
-        const string connectionString2 = "Data Source=fake2;Database=master2";
+        const string connectionString2 = "Data Source=fake2;Database=master2;Encrypt=True";
 
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
