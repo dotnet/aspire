@@ -4,7 +4,7 @@
 using Microsoft.Extensions.ServiceDiscovery.Http;
 using Yarp.ReverseProxy.Forwarder;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
+namespace Microsoft.Extensions.ServiceResolution.Yarp;
 
 internal sealed class ServiceDiscoveryForwarderHttpClientFactory(IServiceDiscoveryHttpMessageHandlerFactory handlerFactory)
     : ForwarderHttpClientFactory

@@ -1,6 +1,6 @@
-# Microsoft.Extensions.ServiceDiscovery.Yarp
+# Microsoft.Extensions.ServiceResolution.Yarp
 
-The `Microsoft.Extensions.ServiceDiscovery.Yarp` library adds support for resolving endpoints for YARP clusters, by implementing a [YARP destination resolver](https://github.com/microsoft/reverse-proxy/blob/main/docs/docfx/articles/destination-resolvers.md).
+The `Microsoft.Extensions.ServiceResolution.Yarp` library adds support for resolving endpoints for YARP clusters, by implementing a [YARP destination resolver](https://github.com/microsoft/reverse-proxy/blob/main/docs/docfx/articles/destination-resolvers.md).
 
 ## Usage
 

@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.ServiceDiscovery;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.ServiceDiscovery;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
+namespace Microsoft.Extensions.ServiceResolution.Yarp;
 
 /// <summary>
 /// Implementation of <see cref="IDestinationResolver"/> which resolves destinations using service discovery.
