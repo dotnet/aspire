@@ -7,10 +7,8 @@ using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.Redis;
 
-/// <inheritdoc/>
-public class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycleHook
+internal sealed class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycleHook
 {
-    /// <inheritdoc/>
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         if (appModel.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is not { } commanderResource)

@@ -6,10 +6,8 @@ using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.MySql;
 
-/// <inheritdoc/>
-public class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
+internal sealed class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
 {
-    /// <inheritdoc/>
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         var adminResource = appModel.Resources.OfType<PhpMyAdminContainerResource>().Single();
