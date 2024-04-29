@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Resources;
+using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
@@ -14,7 +16,9 @@ public class LogFilter
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
 
-    public string FilterText => $"{Field} {ConditionToString(Condition)} {Value}";
+    public string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
+
+    public string GetDisplayText(IStringLocalizer<Logs> loc) => $"{Field} {ConditionToString(Condition, loc)} {Value}";
 
     public static List<string> GetAllPropertyNames(List<string> propertyKeys)
     {
@@ -23,17 +27,17 @@ public class LogFilter
         return result;
     }
 
-    public static string ConditionToString(FilterCondition c) =>
+    public static string ConditionToString(FilterCondition c, IStringLocalizer<Logs>? loc) =>
         c switch
         {
             FilterCondition.Equals => "==",
-            FilterCondition.Contains => "contains",
+            FilterCondition.Contains => loc?[nameof(Logs.LogContains)] ?? "contains",
             FilterCondition.GreaterThan => ">",
             FilterCondition.LessThan => "<",
             FilterCondition.GreaterThanOrEqual => ">=",
             FilterCondition.LessThanOrEqual => "<=",
             FilterCondition.NotEqual => "!=",
-            FilterCondition.NotContains => "not contains",
+            FilterCondition.NotContains => loc?[nameof(Logs.LogNotContains)] ?? "not contains",
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
