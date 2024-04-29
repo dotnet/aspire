@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Exporter;
 using Xunit;
 
-namespace Aspire.Seq.Tests;
+namespace Aspire.Components.Seq.Tests;
 
 public class SeqTests
 {

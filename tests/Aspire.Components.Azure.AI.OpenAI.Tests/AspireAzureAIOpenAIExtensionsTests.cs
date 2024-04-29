@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.AI.OpenAI.Tests;
+namespace Aspire.Components.Azure.AI.OpenAI.Tests;
 
 public class AspireAzureAIOpenAIExtensionsTests
 {

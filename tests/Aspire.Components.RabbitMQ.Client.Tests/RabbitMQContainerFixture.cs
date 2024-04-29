@@ -6,7 +6,7 @@ using Aspire.Hosting.RabbitMQ;
 using Testcontainers.RabbitMq;
 using Xunit;
 
-namespace Aspire.RabbitMQ.Client.Tests;
+namespace Aspire.Components.RabbitMQ.Client.Tests;
 
 public sealed class RabbitMQContainerFixture : IAsyncLifetime
 {

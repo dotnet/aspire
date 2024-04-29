@@ -3,7 +3,7 @@
 
 using Microsoft.EntityFrameworkCore;
 
-namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
+namespace Aspire.Components.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class WorkaroundToReadProtectedField : SqlServerRetryingExecutionStrategy
 {

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using MySqlConnector;
 using Xunit;
 
-namespace Aspire.MySqlConnector.Tests;
+namespace Aspire.Components.MySqlConnector.Tests;
 
 public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnectorSettings>, IClassFixture<MySqlContainerFixture>
 {

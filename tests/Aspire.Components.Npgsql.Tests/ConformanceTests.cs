@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Xunit;
 
-namespace Aspire.Npgsql.Tests;
+namespace Aspire.Components.Npgsql.Tests;
 
 public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>, IClassFixture<PostgreSQLContainerFixture>
 {

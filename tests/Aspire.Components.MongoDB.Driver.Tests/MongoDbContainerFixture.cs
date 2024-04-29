@@ -6,7 +6,7 @@ using Aspire.Hosting.MongoDB;
 using Testcontainers.MongoDb;
 using Xunit;
 
-namespace Aspire.MongoDB.Driver.Tests;
+namespace Aspire.Components.MongoDB.Driver.Tests;
 
 public sealed class MongoDbContainerFixture : IAsyncLifetime
 {

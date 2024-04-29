@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using NATS.Client.Core;
 using Xunit;
 
-namespace Aspire.NATS.Net.Tests;
+namespace Aspire.Components.NATS.Net.Tests;
 
 public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSettings>, IClassFixture<NatsContainerFixture>
 {

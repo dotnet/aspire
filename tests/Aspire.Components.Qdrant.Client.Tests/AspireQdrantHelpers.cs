@@ -4,7 +4,7 @@
 using Microsoft.DotNet.XUnitExtensions;
 using Qdrant.Client;
 
-namespace Aspire.Qdrant.Client.Tests;
+namespace Aspire.Components.Qdrant.Client.Tests;
 public static class AspireQdrantHelpers
 {
     public const string TestingEndpoint = "http://localhost:6334";

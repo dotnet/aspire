@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 
-namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+namespace Aspire.Components.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
 public class CustomRetryExecutionStrategy : NpgsqlRetryingExecutionStrategy

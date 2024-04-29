@@ -6,7 +6,7 @@ using Aspire.Hosting.Postgres;
 using Testcontainers.PostgreSql;
 using Xunit;
 
-namespace Aspire.Npgsql.Tests;
+namespace Aspire.Components.Npgsql.Tests;
 
 public sealed class PostgreSQLContainerFixture : IAsyncLifetime
 {

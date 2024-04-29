@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore;
 using Oracle.EntityFrameworkCore;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Tests;
+namespace Aspire.Components.Oracle.EntityFrameworkCore.Tests;
 
 public class WorkaroundToReadProtectedField : OracleRetryingExecutionStrategy
 {

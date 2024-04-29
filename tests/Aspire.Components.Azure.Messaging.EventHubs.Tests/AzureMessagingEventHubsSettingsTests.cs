@@ -4,7 +4,7 @@
 using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
-namespace Aspire.Azure.Messaging.EventHubs.Tests;
+namespace Aspire.Components.Azure.Messaging.EventHubs.Tests;
 
 public class AzureMessagingEventHubsSettingsTests
 {

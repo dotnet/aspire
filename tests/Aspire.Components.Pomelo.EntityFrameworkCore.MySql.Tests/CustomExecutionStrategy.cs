@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using Pomelo.EntityFrameworkCore.MySql.Storage.Internal;
 
-namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
+namespace Aspire.Components.Pomelo.EntityFrameworkCore.MySql.Tests;
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
 public class CustomExecutionStrategy : MySqlExecutionStrategy

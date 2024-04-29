@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire;
+namespace Aspire.Components;
 
 /// <summary>
 /// Attribute used to automatically generate a JSON schema for a component's configuration.

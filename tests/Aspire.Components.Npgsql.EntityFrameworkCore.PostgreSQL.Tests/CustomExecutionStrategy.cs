@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal;
 
-namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+namespace Aspire.Components.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
 public class CustomExecutionStrategy : NpgsqlExecutionStrategy

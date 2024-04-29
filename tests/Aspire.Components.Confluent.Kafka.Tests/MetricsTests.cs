@@ -9,7 +9,7 @@ using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Confluent.Kafka.Tests;
+namespace Aspire.Components.Confluent.Kafka.Tests;
 
 public class MetricsTests
 {

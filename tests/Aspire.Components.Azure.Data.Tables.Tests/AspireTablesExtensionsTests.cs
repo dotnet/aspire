@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Data.Tables.Tests;
+namespace Aspire.Components.Azure.Data.Tables.Tests;
 
 public class AspireTablesExtensionsTests
 {

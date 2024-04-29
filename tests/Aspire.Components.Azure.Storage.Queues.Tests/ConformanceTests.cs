@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Storage.Queues.Tests;
+namespace Aspire.Components.Azure.Storage.Queues.Tests;
 
 public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorageQueuesSettings>
 {

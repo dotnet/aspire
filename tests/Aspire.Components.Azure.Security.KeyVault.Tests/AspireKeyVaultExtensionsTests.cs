@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Security.KeyVault.Tests;
+namespace Aspire.Components.Azure.Security.KeyVault.Tests;
 
 public class AspireKeyVaultExtensionsTests
 {

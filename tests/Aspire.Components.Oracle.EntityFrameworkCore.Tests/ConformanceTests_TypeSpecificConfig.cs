@@ -4,7 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Tests;
+namespace Aspire.Components.Oracle.EntityFrameworkCore.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {

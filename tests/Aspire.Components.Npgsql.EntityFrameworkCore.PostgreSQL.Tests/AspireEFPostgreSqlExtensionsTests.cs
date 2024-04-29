@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Xunit;
 
-namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+namespace Aspire.Components.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class AspireEFPostgreSqlExtensionsTests
 {

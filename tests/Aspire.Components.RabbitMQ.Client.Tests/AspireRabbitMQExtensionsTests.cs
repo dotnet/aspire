@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using Xunit;
 
-namespace Aspire.RabbitMQ.Client.Tests;
+namespace Aspire.Components.RabbitMQ.Client.Tests;
 
 public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixture>
 {

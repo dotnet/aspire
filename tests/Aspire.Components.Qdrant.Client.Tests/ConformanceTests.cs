@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Qdrant.Client;
 using Xunit;
 
-namespace Aspire.Qdrant.Client.Tests;
+namespace Aspire.Components.Qdrant.Client.Tests;
 
 public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSettings>
 {

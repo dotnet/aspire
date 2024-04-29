@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Confluent.Kafka.Tests;
+namespace Aspire.Components.Confluent.Kafka.Tests;
 
 internal sealed class CommonHelpers
 {

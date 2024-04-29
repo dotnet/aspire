@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Storage.Blobs.Tests;
+namespace Aspire.Components.Azure.Storage.Blobs.Tests;
 
 public class AspireBlobStorageExtensionsTests
 {

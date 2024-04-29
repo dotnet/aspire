@@ -5,7 +5,7 @@ using Aspire.Components.Common.Tests;
 using Aspire.MySqlConnector.Tests;
 using Microsoft.Extensions.Configuration;
 
-namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
+namespace Aspire.Components.Pomelo.EntityFrameworkCore.MySql.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {

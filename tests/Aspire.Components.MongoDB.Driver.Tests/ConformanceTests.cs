@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
 using Xunit;
 
-namespace Aspire.MongoDB.Driver.Tests;
+namespace Aspire.Components.MongoDB.Driver.Tests;
 
 public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>, IClassFixture<MongoDbContainerFixture>
 {

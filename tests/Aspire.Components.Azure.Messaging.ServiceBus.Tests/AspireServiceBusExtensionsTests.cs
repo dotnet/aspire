@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Messaging.ServiceBus.Tests;
+namespace Aspire.Components.Azure.Messaging.ServiceBus.Tests;
 
 public class AspireServiceBusExtensionsTests
 {

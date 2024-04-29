@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Aspire;
+namespace Aspire.Components;
 
 internal static class EntityFrameworkUtils
 {

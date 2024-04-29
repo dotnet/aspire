@@ -13,7 +13,7 @@ using Oracle.EntityFrameworkCore;
 using Oracle.EntityFrameworkCore.Infrastructure.Internal;
 using Xunit;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Tests;
+namespace Aspire.Components.Oracle.EntityFrameworkCore.Tests;
 
 public class EnrichOracleDatabaseTests : ConformanceTests
 {

@@ -4,7 +4,7 @@
 using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
-namespace Aspire.Azure.Messaging.ServiceBus.Tests;
+namespace Aspire.Components.Azure.Messaging.ServiceBus.Tests;
 
 public class AzureMessagingServiceBusSettingsTests
 {

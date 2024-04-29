@@ -7,7 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Xunit;
 
-namespace Aspire.Npgsql.Tests;
+namespace Aspire.Components.Npgsql.Tests;
 
 public class AspirePostgreSqlNpgsqlExtensionsTests
 {

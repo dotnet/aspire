@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.Qdrant.Client.Tests;
+namespace Aspire.Components.Qdrant.Client.Tests;
 public class ConfigurationTests
 {
     [Fact]

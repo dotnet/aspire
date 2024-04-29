@@ -6,7 +6,7 @@ using Aspire.Hosting.Redis;
 using Testcontainers.Redis;
 using Xunit;
 
-namespace Aspire.StackExchange.Redis.Tests;
+namespace Aspire.Components.StackExchange.Redis.Tests;
 
 public sealed class RedisContainerFixture : IAsyncLifetime
 {

@@ -6,7 +6,7 @@ using Aspire.Components.Common.Tests;
 using Testcontainers.Nats;
 using Xunit;
 
-namespace Aspire.NATS.Net.Tests;
+namespace Aspire.Components.NATS.Net.Tests;
 
 public sealed class NatsContainerFixture : IAsyncLifetime
 {

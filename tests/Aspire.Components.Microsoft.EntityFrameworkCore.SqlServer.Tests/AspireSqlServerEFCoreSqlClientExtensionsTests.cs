@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
+namespace Aspire.Components.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class AspireSqlServerEFCoreSqlClientExtensionsTests
 {

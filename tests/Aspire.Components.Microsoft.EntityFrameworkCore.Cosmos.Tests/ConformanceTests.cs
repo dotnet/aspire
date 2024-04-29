@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
+namespace Aspire.Components.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosSettings>
 {

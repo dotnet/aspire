@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.Azure.Security.KeyVault.Tests;
+namespace Aspire.Components.Azure.Security.KeyVault.Tests;
 
 public class ConfigurationTests
 {

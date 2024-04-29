@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Search.Documents.Tests;
+namespace Aspire.Components.Azure.Search.Documents.Tests;
 
 public class AspireAzureSearchExtensionsTests
 {

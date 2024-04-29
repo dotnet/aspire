@@ -13,7 +13,7 @@ using RabbitMQ.Client.Logging;
 using Testcontainers.RabbitMq;
 using Xunit;
 
-namespace Aspire.RabbitMQ.Client.Tests;
+namespace Aspire.Components.RabbitMQ.Client.Tests;
 
 public class AspireRabbitMQLoggingTests
 {

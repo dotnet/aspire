@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.AI.OpenAI.Tests;
+namespace Aspire.Components.Azure.AI.OpenAI.Tests;
 
 public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettings>
 {
@@ -37,7 +37,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
                     "EnableCrossEntityTransactions": true,
                     "RetryOptions": {
                       "Mode": "Fixed",
-                      "MaxDelay": "00:00:30"  
+                      "MaxDelay": "00:00:30"
                     },
                     "TransportType": "AmqpWebSockets"
                   }

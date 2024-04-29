@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
 
-namespace Aspire.StackExchange.Redis.Tests;
+namespace Aspire.Components.StackExchange.Redis.Tests;
 
 public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackExchangeRedisSettings>, IClassFixture<RedisContainerFixture>
 {

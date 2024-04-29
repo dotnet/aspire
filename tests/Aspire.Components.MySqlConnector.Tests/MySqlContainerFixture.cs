@@ -6,7 +6,7 @@ using Aspire.Hosting.MySql;
 using Testcontainers.MySql;
 using Xunit;
 
-namespace Aspire.MySqlConnector.Tests;
+namespace Aspire.Components.MySqlConnector.Tests;
 
 public sealed class MySqlContainerFixture : IAsyncLifetime
 {

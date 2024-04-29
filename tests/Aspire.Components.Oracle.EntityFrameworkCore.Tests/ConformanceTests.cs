@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Tests;
+namespace Aspire.Components.Oracle.EntityFrameworkCore.Tests;
 
 public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
 {

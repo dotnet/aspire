@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 
-namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+namespace Aspire.Components.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class WorkaroundToReadProtectedField : NpgsqlRetryingExecutionStrategy
 {

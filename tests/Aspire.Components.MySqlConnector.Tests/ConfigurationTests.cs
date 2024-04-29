@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.MySqlConnector.Tests;
+namespace Aspire.Components.MySqlConnector.Tests;
 
 public class ConfigurationTests
 {

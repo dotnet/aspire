@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Messaging.EventHubs.Tests;
+namespace Aspire.Components.Azure.Messaging.EventHubs.Tests;
 
 public class AspireEventHubsExtensionsTests
 {

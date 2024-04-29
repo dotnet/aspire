@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.Microsoft.Data.SqlClient.Tests;
+namespace Aspire.Components.Microsoft.Data.SqlClient.Tests;
 
 public class ConfigurationTests
 {

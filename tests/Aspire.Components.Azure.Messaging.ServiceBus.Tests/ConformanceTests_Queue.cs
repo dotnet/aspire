@@ -7,7 +7,7 @@ using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
-namespace Aspire.Azure.Messaging.ServiceBus.Tests;
+namespace Aspire.Components.Azure.Messaging.ServiceBus.Tests;
 
 public class ConformanceTests_Queue : ConformanceTests
 {

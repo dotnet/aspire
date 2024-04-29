@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using Oracle.EntityFrameworkCore.Storage.Internal;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Tests;
+namespace Aspire.Components.Oracle.EntityFrameworkCore.Tests;
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
 public class CustomExecutionStrategy : OracleExecutionStrategy

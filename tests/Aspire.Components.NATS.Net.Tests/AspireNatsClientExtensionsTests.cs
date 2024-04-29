@@ -11,7 +11,7 @@ using NATS.Client.Core;
 using OpenTelemetry.Trace;
 using Xunit;
 
-namespace Aspire.NATS.Net.Tests;
+namespace Aspire.Components.NATS.Net.Tests;
 
 public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixture>
 {

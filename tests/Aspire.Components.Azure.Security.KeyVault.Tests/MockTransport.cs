@@ -7,7 +7,7 @@ using Azure.Core.Pipeline;
 using Azure.Core;
 using Azure;
 
-namespace Aspire.Azure;
+namespace Aspire.Components.Azure;
 
 public class MockTransport : HttpPipelineTransport
 {

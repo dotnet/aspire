@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
+namespace Aspire.Components.Pomelo.EntityFrameworkCore.MySql.Tests;
 
 public class ConfigurationTests
 {

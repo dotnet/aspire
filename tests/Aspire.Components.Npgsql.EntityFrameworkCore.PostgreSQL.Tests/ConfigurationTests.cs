@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
+namespace Aspire.Components.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class ConfigurationTests
 {

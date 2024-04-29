@@ -5,7 +5,7 @@ using Aspire.Components.Common.Tests;
 using Aspire.Microsoft.Data.SqlClient.Tests;
 using Microsoft.Extensions.Configuration;
 
-namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
+namespace Aspire.Components.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {

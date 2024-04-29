@@ -4,7 +4,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
+namespace Aspire.Components.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
 #pragma warning disable EF1001 // Internal EF Core API usage.
 public class CustomRetryExecutionStrategy : SqlServerRetryingExecutionStrategy

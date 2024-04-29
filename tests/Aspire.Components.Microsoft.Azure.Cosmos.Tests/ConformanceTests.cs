@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Microsoft.Azure.Cosmos.Tests;
+namespace Aspire.Components.Microsoft.Azure.Cosmos.Tests;
 
 public class ConformanceTests : ConformanceTests<CosmosClient, MicrosoftAzureCosmosSettings>
 {

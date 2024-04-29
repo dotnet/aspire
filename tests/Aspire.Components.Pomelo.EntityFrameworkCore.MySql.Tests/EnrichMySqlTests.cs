@@ -16,7 +16,7 @@ using MySqlConnector.Logging;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 using Xunit;
 
-namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
+namespace Aspire.Components.Pomelo.EntityFrameworkCore.MySql.Tests;
 
 public class EnrichMySqlTests : ConformanceTests
 {

@@ -4,7 +4,7 @@
 using System.Reflection;
 using Microsoft.Extensions.Hosting;
 
-namespace Aspire.Confluent.Kafka.Tests;
+namespace Aspire.Components.Confluent.Kafka.Tests;
 
 internal static class ReflectionHelpers
 {
