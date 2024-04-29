@@ -12,6 +12,7 @@ namespace Aspire.Hosting;
 public static class KafkaBuilderExtensions
 {
     private const int KafkaBrokerPort = 9092;
+    private const int KafkaInternalBrokerPort = 9093;
     private const int KafkaUIPort = 8080;
 
     /// <summary>
@@ -26,7 +27,7 @@ public static class KafkaBuilderExtensions
         var kafka = new KafkaServerResource(name);
         return builder.AddResource(kafka)
             .WithEndpoint(targetPort: KafkaBrokerPort, port: port, name: KafkaServerResource.PrimaryEndpointName)
-            .WithEndpoint(targetPort: 9093, name: KafkaServerResource.InternalEndpointName)
+            .WithEndpoint(targetPort: KafkaInternalBrokerPort, name: KafkaServerResource.InternalEndpointName)
             .WithImage(KafkaContainerImageTags.Image, KafkaContainerImageTags.Tag)
             .WithImageRegistry(KafkaContainerImageTags.Registry)
             .WithEnvironment(context => ConfigureKafkaContainer(context, kafka));
@@ -82,7 +83,7 @@ public static class KafkaBuilderExtensions
         // See https://github.com/confluentinc/kafka-images/blob/master/local/include/etc/confluent/docker/configureDefaults for more details.
 
         // Define the default listeners + an internal listener for the container to broker communication
-        context.EnvironmentVariables.Add("KAFKA_LISTENERS", "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093");
+        context.EnvironmentVariables.Add($"KAFKA_LISTENERS", $"PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:{KafkaBrokerPort},PLAINTEXT_INTERNAL://0.0.0.0:{KafkaInternalBrokerPort}");
         // Defaults default listeners security protocol map + the internal listener to be PLAINTEXT
         context.EnvironmentVariables.Add("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT");
 
