@@ -12,7 +12,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class QdrantBuilderExtensions
 {
-    private const string QdrantContainerDataDirectory = "/var/qdrant/data";
     private const int QdrantPortGrpc = 6334;
     private const int QdrantPortHttp = 6333;
     private const string ApiKeyEnvVarName = "QDRANT__SERVICE__API_KEY";
@@ -70,7 +69,7 @@ public static class QdrantBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithDataVolume(this IResourceBuilder<QdrantServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), QdrantContainerDataDirectory, isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/qdrant/storage", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Qdrant container resource.
@@ -80,7 +79,7 @@ public static class QdrantBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithDataBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, QdrantContainerDataDirectory, isReadOnly);
+        => builder.WithBindMount(source, "/qdrant/storage", isReadOnly);
 
     /// <summary>
     /// Add a reference to a Qdrant server to the resource.

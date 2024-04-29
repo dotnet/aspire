@@ -13,7 +13,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class MySqlBuilderExtensions
 {
-    private const string MySqlContainerDataDirectory = "/var/mysql/data";
     private const string PasswordEnvVarName = "MYSQL_ROOT_PASSWORD";
 
     /// <summary>
@@ -93,7 +92,7 @@ public static class MySqlBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> WithDataVolume(this IResourceBuilder<MySqlServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), MySqlContainerDataDirectory, isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/mysql", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a MySql container resource.
@@ -103,7 +102,7 @@ public static class MySqlBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> WithDataBindMount(this IResourceBuilder<MySqlServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, MySqlContainerDataDirectory, isReadOnly);
+        => builder.WithBindMount(source, "/var/lib/mysql", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the init folder to a MySql container resource.

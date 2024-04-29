@@ -14,8 +14,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class RedisBuilderExtensions
 {
-    private const string RedisContainerDataDirectory = "/var/redis/data";
-
     /// <summary>
     /// Adds a Redis container to the application model.
     /// </summary>
@@ -102,7 +100,7 @@ public static class RedisBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
     {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), RedisContainerDataDirectory, isReadOnly);
+        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
@@ -130,7 +128,7 @@ public static class RedisBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
-        builder.WithBindMount(source, RedisContainerDataDirectory, isReadOnly);
+        builder.WithBindMount(source, "/data", isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
