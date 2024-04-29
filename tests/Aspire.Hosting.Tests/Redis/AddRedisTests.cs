@@ -219,7 +219,7 @@ public class AddRedisTests
         var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.Equal("testhost-myRedis-data", volumeAnnotation.Source);
-        Assert.Equal("/var/redis/data", volumeAnnotation.Target);
+        Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
@@ -244,7 +244,7 @@ public class AddRedisTests
         var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
-        Assert.Equal("/var/redis/data", volumeAnnotation.Target);
+        Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
