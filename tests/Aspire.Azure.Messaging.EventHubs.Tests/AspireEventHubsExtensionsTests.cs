@@ -247,23 +247,23 @@ public class AspireEventHubsExtensionsTests
 
     private static void RetrieveAndAssert(bool useKeyed, int clientIndex, IHost host)
     {
-        var client = RetrieveClient(useKeyed, clientIndex, host);
+        var client = RetrieveClient(useKeyed ? "eh" : null, clientIndex, host);
 
-        AssertFullyQualifiedNamespace(client);
+        AssertFullyQualifiedNamespace(FullyQualifiedNamespace, client);
     }
 
-    private static object RetrieveClient(bool useKeyed, int clientIndex, IHost host)
+    private static object RetrieveClient(object? key, int clientIndex, IHost host)
     {
-        var client = useKeyed ?
-            host.Services.GetRequiredKeyedService(s_clientTypes[clientIndex], "eh") :
+        var client = key is not null ?
+            host.Services.GetRequiredKeyedService(s_clientTypes[clientIndex], key) :
             host.Services.GetRequiredService(s_clientTypes[clientIndex]);
 
         return client;
     }
 
-    private static void AssertFullyQualifiedNamespace(object client)
+    private static void AssertFullyQualifiedNamespace(string expectedNamespace, object client)
     {
-        Assert.Equal(FullyQualifiedNamespace, client switch
+        Assert.Equal(expectedNamespace, client switch
         {
             EventHubProducerClient producer => producer.FullyQualifiedNamespace,
             EventHubConsumerClient consumer => consumer.FullyQualifiedNamespace,
@@ -322,6 +322,50 @@ public class AspireEventHubsExtensionsTests
 
         using var host = builder.Build();
         RetrieveAndAssert(useKeyed, clientIndex, host);
+    }
+
+    [Theory]
+    [InlineData(EventHubProducerClientIndex)]
+    [InlineData(EventHubConsumerClientIndex)]
+    [InlineData(EventProcessorClientIndex)]
+    [InlineData(PartitionReceiverIndex)]
+    public void CanAddMultipleKeyedServices(int clientIndex)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:eh1", EhConnectionString),
+            new KeyValuePair<string, string?>($"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}:BlobContainerName", "checkpoints"),
+            new KeyValuePair<string, string?>($"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}:PartitionId", "foo"),
+
+            new KeyValuePair<string, string?>("ConnectionStrings:eh2", EhConnectionString.Replace("aspireeventhubstests", "aspireeventhubstests2")),
+            new KeyValuePair<string, string?>($"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}:eh2:BlobContainerName", "checkpoints"),
+            new KeyValuePair<string, string?>($"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}:eh2:PartitionId", "foo"),
+
+            new KeyValuePair<string, string?>("ConnectionStrings:eh3", EhConnectionString.Replace("aspireeventhubstests", "aspireeventhubstests3")),
+            new KeyValuePair<string, string?>($"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}:eh3:BlobContainerName", "checkpoints"),
+            new KeyValuePair<string, string?>($"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}:eh3:PartitionId", "foo"),
+        ]);
+
+        ConfigureBlobServiceClient(useKeyed: false, builder.Services);
+
+        s_clientAdders[clientIndex](builder, "eh1", null);
+        s_keyedClientAdders[clientIndex](builder, "eh2", null);
+        s_keyedClientAdders[clientIndex](builder, "eh3", null);
+
+        using var host = builder.Build();
+
+        // Unkeyed services don't work with keyed services. See https://github.com/dotnet/aspire/issues/3890
+        //var client1 = RetrieveClient(key: null, clientIndex, host);
+        var client2 = RetrieveClient(key: "eh2", clientIndex, host);
+        var client3 = RetrieveClient(key: "eh3", clientIndex, host);
+
+        //Assert.NotSame(client1, client2);
+        //Assert.NotSame(client1, client3);
+        Assert.NotSame(client2, client3);
+
+        //AssertFullyQualifiedNamespace("aspireeventhubstests.servicebus.windows.net", client1);
+        AssertFullyQualifiedNamespace("aspireeventhubstests2.servicebus.windows.net", client2);
+        AssertFullyQualifiedNamespace("aspireeventhubstests3.servicebus.windows.net", client3);
     }
 
     public static string CreateConfigKey(string prefix, string? key, string suffix)

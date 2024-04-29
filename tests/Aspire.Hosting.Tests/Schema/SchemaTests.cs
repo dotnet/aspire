@@ -74,9 +74,9 @@ public class SchemaTests
                     }
                 },
 
-                { "ContainerWithContainerRunArgs", (IDistributedApplicationBuilder builder) =>
+                { "ContainerWithContainerRuntimeArgs", (IDistributedApplicationBuilder builder) =>
                     {
-                        builder.AddContainer("foo", "bar").WithContainerRunArgs("one", "two", "three");
+                        builder.AddContainer("foo", "bar").WithContainerRuntimeArgs("one", "two", "three");
                     }
                 },
 
@@ -504,7 +504,7 @@ public class SchemaTests
                 }
               }
             }
-            
+
             """;
 
         var manifestJson = JToken.Parse(manifestTest);
