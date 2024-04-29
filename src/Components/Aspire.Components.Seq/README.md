@@ -15,7 +15,7 @@ By default, Seq is not added to the Aspire manifest for deployment.
 Install the .NET Aspire Seq library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Seq
+dotnet add package Aspire.Components.Seq
 ```
 
 ## Usage example

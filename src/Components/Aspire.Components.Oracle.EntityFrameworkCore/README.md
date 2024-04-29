@@ -13,7 +13,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext
 Install the .NET Aspire Oracle EntityFrameworkCore library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Oracle.EntityFrameworkCore
+dotnet add package Aspire.Components.Oracle.EntityFrameworkCore
 ```
 
 ## Usage example
@@ -99,7 +99,7 @@ or
     builder.EnrichOracleDatabaseDbContext<MyDbContext>(settings => settings.DisableHealthChecks = true);
 ```
 
-## AppHost extensions 
+## AppHost extensions
 
 In your AppHost project, install the `Aspire.Hosting.Oracle` library with [NuGet](https://www.nuget.org):
 
@@ -107,14 +107,14 @@ In your AppHost project, install the `Aspire.Hosting.Oracle` library with [NuGet
 dotnet add package Aspire.Hosting.Oracle
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, register an Oracle container and consume the connection using the following methods: 
-  
- ```csharp 
+Then, in the _Program.cs_ file of `AppHost`, register an Oracle container and consume the connection using the following methods:
+
+ ```csharp
  var freepdb1 = builder.AddOracle("oracle").AddDatabase("freepdb1");
-  
- var myService = builder.AddProject<Projects.MyService>() 
-                        .WithReference(freepdb1); 
- ``` 
+
+ var myService = builder.AddProject<Projects.MyService>()
+                        .WithReference(freepdb1);
+ ```
 
 The `WithReference` method configures a connection in the `MyService` project named `freepdb1`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
 

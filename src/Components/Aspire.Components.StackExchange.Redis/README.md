@@ -13,7 +13,7 @@ Registers an [IConnectionMultiplexer](https://stackexchange.github.io/StackExcha
 Install the .NET Aspire StackExchange Redis library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.StackExchange.Redis
+dotnet add package Aspire.Components.StackExchange.Redis
 ```
 
 ## Usage example

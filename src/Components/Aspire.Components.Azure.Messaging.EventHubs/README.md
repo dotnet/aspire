@@ -14,7 +14,7 @@ Offers options for registering an [EventHubProducerClient](https://learn.microso
 Install the .NET Aspire Azure Event Hubs library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Azure.Messaging.EventHubs
+dotnet add package Aspire.Components.Azure.Messaging.EventHubs
 ```
 
 ## Supported clients with Options classes

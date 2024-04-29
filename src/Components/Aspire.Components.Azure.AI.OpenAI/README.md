@@ -14,7 +14,7 @@ Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.
 Install the .NET Aspire Azure AI OpenAI library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Azure.AI.OpenAI
+dotnet add package Aspire.Components.Azure.AI.OpenAI
 ```
 
 ## Usage example

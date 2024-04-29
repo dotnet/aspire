@@ -14,7 +14,7 @@ Registers [SearchIndexClient](https://learn.microsoft.com/dotnet/api/azure.searc
 Install the .NET Aspire Azure Search library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Azure.Search.Documents
+dotnet add package Aspire.Components.Azure.Search.Documents
 ```
 
 ## Usage example

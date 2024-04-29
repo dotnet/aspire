@@ -14,7 +14,7 @@ This library wraps Confluent.Kafka binaries.
 Install the .NET Aspire Confluent Kafka library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Confluent.Kafka
+dotnet add package Aspire.Components.Confluent.Kafka
 ```
 
 ## Usage example

@@ -13,7 +13,7 @@ Registers an [ASP.NET Core Output Caching](https://learn.microsoft.com/aspnet/co
 Install the .NET Aspire StackExchange Redis OutputCache library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.StackExchange.Redis.OutputCaching
+dotnet add package Aspire.Components.StackExchange.Redis.OutputCaching
 ```
 
 ## Usage example

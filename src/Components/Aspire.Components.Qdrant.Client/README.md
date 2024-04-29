@@ -13,7 +13,7 @@ Registers a [QdrantClient](https://github.com/qdrant/qdrant-dotnet) in the DI co
 Install the .NET Aspire Qdrant Client library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Qdrant.Client
+dotnet add package Aspire.Components.Qdrant.Client
 ```
 
 ## Usage example

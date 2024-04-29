@@ -13,7 +13,7 @@ Registers an [IDistributedCache](https://learn.microsoft.com/dotnet/api/microsof
 Install the .NET Aspire StackExchange Redis Distributed Cache library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.StackExchange.Redis.DistributedCaching
+dotnet add package Aspire.Components.StackExchange.Redis.DistributedCaching
 ```
 
 ## Usage example

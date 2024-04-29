@@ -13,7 +13,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext
 Install the .NET Aspire SQL Server EntityFrameworkCore SqlClient library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Microsoft.EntityFrameworkCore.SqlServer
+dotnet add package Aspire.Components.Microsoft.EntityFrameworkCore.SqlServer
 ```
 
 ## Usage example

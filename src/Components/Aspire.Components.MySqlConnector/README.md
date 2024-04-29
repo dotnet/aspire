@@ -13,7 +13,7 @@ Registers [MySqlDataSource](https://mysqlconnector.net/api/mysqlconnector/mysqld
 Install the .NET Aspire MySQL library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.MySqlConnector
+dotnet add package Aspire.Components.MySqlConnector
 ```
 
 ## Usage example

@@ -13,7 +13,7 @@ Registers [IMongoClient](https://www.mongodb.com/docs/drivers/csharp/current/qui
 Install the .NET Aspire MongoDB.Driver library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.MongoDB.Driver
+dotnet add package Aspire.Components.MongoDB.Driver
 ```
 
 ## Usage example

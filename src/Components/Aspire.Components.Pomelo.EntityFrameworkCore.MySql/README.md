@@ -13,7 +13,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext
 Install the .NET Aspire Pomelo EntityFrameworkCore MySQL library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Pomelo.EntityFrameworkCore.MySql
+dotnet add package Aspire.Components.Pomelo.EntityFrameworkCore.MySql
 ```
 
 ## Usage example

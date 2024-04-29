@@ -13,7 +13,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/en-us/ef/core/) [DbC
 Install the .NET Aspire Microsoft EntityFrameworkCore Cosmos library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Microsoft.EntityFrameworkCore.Cosmos
+dotnet add package Aspire.Components.Microsoft.EntityFrameworkCore.Cosmos
 ```
 
 ## Usage example

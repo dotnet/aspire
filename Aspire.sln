@@ -41,7 +41,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure", "src
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{4981B3A5-4AFD-4191-BF7D-8692D9783D60}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests", "tests\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests.csproj", "{5A7D4F1C-98CB-45D5-955E-A601CFA70884}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests", "tests\Aspire.Components.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\Aspire.Components.Npgsql.EntityFrameworkCore.PostgreSQL.Tests.csproj", "{5A7D4F1C-98CB-45D5-955E-A601CFA70884}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.ServiceBus", "src\Components\Aspire.Components.Azure.Messaging.ServiceBus\Aspire.Components.Azure.Messaging.ServiceBus.csproj", "{CC9CD371-9909-4101-83F1-22C7C2617DE4}"
 EndProject
@@ -55,13 +55,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFram
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Security.KeyVault", "src\Components\Aspire.Components.Azure.Security.KeyVault\Aspire.Components.Azure.Security.KeyVault.csproj", "{0C97F423-DAAE-4B63-B1B1-CB85E2840B98}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Security.KeyVault.Tests", "tests\Aspire.Azure.Security.KeyVault.Tests\Aspire.Azure.Security.KeyVault.Tests.csproj", "{23075FC1-D893-434D-9A20-02870B96ABA7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Security.KeyVault.Tests", "tests\Aspire.Components.Azure.Security.KeyVault.Tests\Aspire.Components.Azure.Security.KeyVault.Tests.csproj", "{23075FC1-D893-434D-9A20-02870B96ABA7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Components.Common.Tests", "tests\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj", "{F371C3EE-8AB3-4261-A5F2-9A1FF77ADC19}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Components.Common.Tests", "tests\Aspire.Components.Components.Common.Tests\Aspire.Components.Components.Common.Tests.csproj", "{F371C3EE-8AB3-4261-A5F2-9A1FF77ADC19}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.Tests", "tests\Aspire.StackExchange.Redis.Tests\Aspire.StackExchange.Redis.Tests.csproj", "{6E7B2D62-A1A4-4232-8FA9-DB01A454B9C1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.Tests", "tests\Aspire.Components.StackExchange.Redis.Tests\Aspire.Components.StackExchange.Redis.Tests.csproj", "{6E7B2D62-A1A4-4232-8FA9-DB01A454B9C1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.ServiceBus.Tests", "tests\Aspire.Azure.Messaging.ServiceBus.Tests\Aspire.Azure.Messaging.ServiceBus.Tests.csproj", "{26E8EA4C-D3A6-4C6A-900D-2AA2C80D0AAF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.ServiceBus.Tests", "tests\Aspire.Components.Azure.Messaging.ServiceBus.Tests\Aspire.Components.Azure.Messaging.ServiceBus.Tests.csproj", "{26E8EA4C-D3A6-4C6A-900D-2AA2C80D0AAF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ServiceDiscovery", "ServiceDiscovery", "{7C4F0F84-BAEC-469D-A3BC-28209B2C11AC}"
 EndProject
@@ -77,25 +77,25 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Dashboard", "src\Asp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Tables", "src\Components\Aspire.Components.Azure.Data.Tables\Aspire.Components.Azure.Data.Tables.csproj", "{88A89C15-11DF-4F32-AA61-6896AF09F470}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Tables.Tests", "tests\Aspire.Azure.Data.Tables.Tests\Aspire.Azure.Data.Tables.Tests.csproj", "{06D5A9E7-8CAA-4F0F-A41E-8C97D2FF8542}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Tables.Tests", "tests\Aspire.Components.Azure.Data.Tables.Tests\Aspire.Components.Azure.Data.Tables.Tests.csproj", "{06D5A9E7-8CAA-4F0F-A41E-8C97D2FF8542}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Storage.Blobs", "src\Components\Aspire.Components.Azure.Storage.Blobs\Aspire.Components.Azure.Storage.Blobs.csproj", "{2E1E217C-A836-49E3-B655-6E42AD3E7943}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Storage.Blobs.Tests", "tests\Aspire.Azure.Storage.Blobs.Tests\Aspire.Azure.Storage.Blobs.Tests.csproj", "{59B8C4DE-FB94-4670-9DDE-B04F461219CB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Storage.Blobs.Tests", "tests\Aspire.Components.Azure.Storage.Blobs.Tests\Aspire.Components.Azure.Storage.Blobs.Tests.csproj", "{59B8C4DE-FB94-4670-9DDE-B04F461219CB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Storage.Queues", "src\Components\Aspire.Components.Azure.Storage.Queues\Aspire.Components.Azure.Storage.Queues.csproj", "{FFFD251E-F555-4008-A759-5727784B0C98}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Storage.Queues.Tests", "tests\Aspire.Azure.Storage.Queues.Tests\Aspire.Azure.Storage.Queues.Tests.csproj", "{E0E0D5C0-E8D1-458E-9C3A-F0B858BBAD3B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Storage.Queues.Tests", "tests\Aspire.Components.Azure.Storage.Queues.Tests\Aspire.Components.Azure.Storage.Queues.Tests.csproj", "{E0E0D5C0-E8D1-458E-9C3A-F0B858BBAD3B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Extensions.ServiceDiscovery.Yarp", "src\Microsoft.Extensions.ServiceDiscovery.Yarp\Microsoft.Extensions.ServiceDiscovery.Yarp.csproj", "{EEED6AD9-6FC3-4483-B44E-691FF2DECFAF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.OutputCaching", "src\Components\Aspire.Components.StackExchange.Redis.OutputCaching\Aspire.Components.StackExchange.Redis.OutputCaching.csproj", "{A3262B32-E4F6-4F95-9BB9-D522F798C0D3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.OutputCaching.Tests", "tests\Aspire.StackExchange.Redis.OutputCaching.Tests\Aspire.StackExchange.Redis.OutputCaching.Tests.csproj", "{B130B8E2-BF6E-4541-856F-F51558F8050A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.OutputCaching.Tests", "tests\Aspire.Components.StackExchange.Redis.OutputCaching.Tests\Aspire.Components.StackExchange.Redis.OutputCaching.Tests.csproj", "{B130B8E2-BF6E-4541-856F-F51558F8050A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.DistributedCaching", "src\Components\Aspire.Components.StackExchange.Redis.DistributedCaching\Aspire.Components.StackExchange.Redis.DistributedCaching.csproj", "{1CB79745-8A58-4AE7-B6C8-2362DCDB1CA6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.DistributedCaching.Tests", "tests\Aspire.StackExchange.Redis.DistributedCaching.Tests\Aspire.StackExchange.Redis.DistributedCaching.Tests.csproj", "{56D1697B-8CF9-4994-A484-060878821F9D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.DistributedCaching.Tests", "tests\Aspire.Components.StackExchange.Redis.DistributedCaching.Tests\Aspire.Components.StackExchange.Redis.DistributedCaching.Tests.csproj", "{56D1697B-8CF9-4994-A484-060878821F9D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Tests", "tests\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj", "{D3B3AFFF-211A-4450-AE5E-055BD1323D2E}"
 EndProject
@@ -117,11 +117,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.NET.Sdk.Aspire", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Sdk", "src\Aspire.Hosting.Sdk\Aspire.Hosting.Sdk.csproj", "{E20280B8-8BE0-4967-AFC2-65FFCD6EC5E4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Npgsql.Tests", "tests\Aspire.Npgsql.Tests\Aspire.Npgsql.Tests.csproj", "{6EAA089D-7ADD-4C74-B040-FD3D75DB5C75}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Npgsql.Tests", "tests\Aspire.Components.Npgsql.Tests\Aspire.Components.Npgsql.Tests.csproj", "{6EAA089D-7ADD-4C74-B040-FD3D75DB5C75}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Data.SqlClient.Tests", "tests\Aspire.Microsoft.Data.SqlClient.Tests\Aspire.Microsoft.Data.SqlClient.Tests.csproj", "{9D9C360B-9DF1-4076-8416-66964427C8F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Data.SqlClient.Tests", "tests\Aspire.Components.Microsoft.Data.SqlClient.Tests\Aspire.Components.Microsoft.Data.SqlClient.Tests.csproj", "{9D9C360B-9DF1-4076-8416-66964427C8F3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests", "tests\Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests\Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests.csproj", "{67B9A8E4-7F51-4419-85BC-4BB0C2E67E71}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests", "tests\Aspire.Components.Microsoft.EntityFrameworkCore.SqlServer.Tests\Aspire.Components.Microsoft.EntityFrameworkCore.SqlServer.Tests.csproj", "{67B9A8E4-7F51-4419-85BC-4BB0C2E67E71}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{57A42144-739E-49A7-BADB-BB8F5F20FA17}"
 EndProject
@@ -139,9 +139,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Azure.Cosm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.Cosmos", "src\Components\Aspire.Components.Microsoft.EntityFrameworkCore.Cosmos\Aspire.Components.Microsoft.EntityFrameworkCore.Cosmos.csproj", "{00C9BA50-2AFB-4D9C-A2D6-8154BCCD0A63}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Azure.Cosmos.Tests", "tests\Aspire.Microsoft.Azure.Cosmos.Tests\Aspire.Microsoft.Azure.Cosmos.Tests.csproj", "{A5836BC1-6A45-4BB6-9D22-A7F750890AB8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Azure.Cosmos.Tests", "tests\Aspire.Components.Microsoft.Azure.Cosmos.Tests\Aspire.Components.Microsoft.Azure.Cosmos.Tests.csproj", "{A5836BC1-6A45-4BB6-9D22-A7F750890AB8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests", "tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests", "tests\Aspire.Components.Microsoft.EntityFrameworkCore.Cosmos.Tests\Aspire.Components.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogDb", "playground\TestShop\CatalogDb\CatalogDb.csproj", "{A84C4EE3-2601-4804-BCDC-E9948E164A22}"
 EndProject
@@ -155,13 +155,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RabbitMQ.Client", "src\Components\Aspire.Components.RabbitMQ.Client\Aspire.Components.RabbitMQ.Client.csproj", "{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RabbitMQ.Client.Tests", "tests\Aspire.RabbitMQ.Client.Tests\Aspire.RabbitMQ.Client.Tests.csproj", "{165411FE-755E-4869-A756-F87F455860AC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RabbitMQ.Client.Tests", "tests\Aspire.Components.RabbitMQ.Client.Tests\Aspire.Components.RabbitMQ.Client.Tests.csproj", "{165411FE-755E-4869-A756-F87F455860AC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.WorkerA", "tests\testproject\TestProject.WorkerA\TestProject.WorkerA.csproj", "{6472D59F-7C04-43DE-AD33-9F20BE3804BF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector", "src\Components\Aspire.Components.MySqlConnector\Aspire.Components.MySqlConnector.csproj", "{CA283D7F-EB95-4353-B196-C409965D2B42}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests", "tests\Aspire.MySqlConnector.Tests\Aspire.MySqlConnector.Tests.csproj", "{C8079F06-304F-49B1-A0C1-45AA3782A923}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests", "tests\Aspire.Components.MySqlConnector.Tests\Aspire.Components.MySqlConnector.Tests.csproj", "{C8079F06-304F-49B1-A0C1-45AA3782A923}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.IntegrationServiceA", "tests\testproject\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj", "{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}"
 EndProject
@@ -189,17 +189,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MongoDB.Driver", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfigurationSchemaGenerator", "src\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj", "{39FA2A64-012F-4EB9-A14F-E8AC54C975F6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MongoDB.Driver.Tests", "tests\Aspire.MongoDB.Driver.Tests\Aspire.MongoDB.Driver.Tests.csproj", "{E592E447-BA3C-44FA-86C1-EBEDC864A644}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MongoDB.Driver.Tests", "tests\Aspire.Components.MongoDB.Driver.Tests\Aspire.Components.MongoDB.Driver.Tests.csproj", "{E592E447-BA3C-44FA-86C1-EBEDC864A644}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfigurationSchemaGenerator.Tests", "tests\ConfigurationSchemaGenerator.Tests\ConfigurationSchemaGenerator.Tests.csproj", "{00FEA181-84C9-42A7-AC81-29A9F176A1A0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.AI.OpenAI", "src\Components\Aspire.Components.Azure.AI.OpenAI\Aspire.Components.Azure.AI.OpenAI.csproj", "{1828FA88-6BFB-437E-A163-A98AE2B948F1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.AI.OpenAI.Tests", "tests\Aspire.Azure.AI.OpenAI.Tests\Aspire.Azure.AI.OpenAI.Tests.csproj", "{52CF3584-4861-4769-AD20-F7173F2D8F75}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.AI.OpenAI.Tests", "tests\Aspire.Components.Azure.AI.OpenAI.Tests\Aspire.Components.Azure.AI.OpenAI.Tests.csproj", "{52CF3584-4861-4769-AD20-F7173F2D8F75}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Oracle.EntityFrameworkCore", "src\Components\Aspire.Components.Oracle.EntityFrameworkCore\Aspire.Components.Oracle.EntityFrameworkCore.csproj", "{A778F29A-6C40-4C53-A793-F23F20679ADE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Oracle.EntityFrameworkCore.Tests", "tests\Aspire.Oracle.EntityFrameworkCore.Tests\Aspire.Oracle.EntityFrameworkCore.Tests.csproj", "{A331C123-35A5-4E81-9999-354159821374}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Oracle.EntityFrameworkCore.Tests", "tests\Aspire.Components.Oracle.EntityFrameworkCore.Tests\Aspire.Components.Oracle.EntityFrameworkCore.Tests.csproj", "{A331C123-35A5-4E81-9999-354159821374}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Orleans", "src\Aspire.Hosting.Orleans\Aspire.Hosting.Orleans.csproj", "{11EF253D-086B-4358-9A50-2695913BD7E1}"
 EndProject
@@ -213,7 +213,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansServiceDefaults", "p
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka", "src\Components\Aspire.Components.Confluent.Kafka\Aspire.Components.Confluent.Kafka.csproj", "{174E0507-3BB0-4CDC-829E-9CA75DA66473}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka.Tests", "tests\Aspire.Confluent.Kafka.Tests\Aspire.Confluent.Kafka.Tests.csproj", "{A8CB331A-1247-41D9-8118-538E5A2CC9DF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka.Tests", "tests\Aspire.Components.Confluent.Kafka.Tests\Aspire.Components.Confluent.Kafka.Tests.csproj", "{A8CB331A-1247-41D9-8118-538E5A2CC9DF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CosmosEndToEnd", "CosmosEndToEnd", "{DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}"
 EndProject
@@ -225,7 +225,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Playground.ServiceDefaults"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Pomelo.EntityFrameworkCore.MySql", "src\Components\Aspire.Components.Pomelo.EntityFrameworkCore.MySql\Aspire.Components.Pomelo.EntityFrameworkCore.MySql.csproj", "{C565532A-0754-44FE-A0C7-78D5338DDBCA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Pomelo.EntityFrameworkCore.MySql.Tests", "tests\Aspire.Pomelo.EntityFrameworkCore.MySql.Tests\Aspire.Pomelo.EntityFrameworkCore.MySql.Tests.csproj", "{BFAF55A8-A737-4EC1-BBA2-76001A8F16E0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Pomelo.EntityFrameworkCore.MySql.Tests", "tests\Aspire.Components.Pomelo.EntityFrameworkCore.MySql.Tests\Aspire.Components.Pomelo.EntityFrameworkCore.MySql.Tests.csproj", "{BFAF55A8-A737-4EC1-BBA2-76001A8F16E0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SqlServerEndToEnd", "SqlServerEndToEnd", "{2CA6AB88-21EF-4488-BB1B-3A5BAD5FE2AD}"
 EndProject
@@ -243,7 +243,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogModel", "playground\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Search.Documents", "src\Components\Aspire.Components.Azure.Search.Documents\Aspire.Components.Azure.Search.Documents.csproj", "{0921F457-16A7-40C8-86B4-7FB02D52244F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Search.Documents.Tests", "tests\Aspire.Azure.Search.Documents.Tests\Aspire.Azure.Search.Documents.Tests.csproj", "{3DE1697E-BB8C-4EBA-8DCA-0A6A94804689}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Search.Documents.Tests", "tests\Aspire.Components.Azure.Search.Documents.Tests\Aspire.Components.Azure.Search.Documents.Tests.csproj", "{3DE1697E-BB8C-4EBA-8DCA-0A6A94804689}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.EndToEnd.Tests", "tests\Aspire.EndToEnd.Tests\Aspire.EndToEnd.Tests.csproj", "{C1483B79-4FE9-47FF-B544-EB5DBB7A0A3E}"
 EndProject
@@ -289,7 +289,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureStorageEndToEnd.AppHos
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureStorageEndToEnd.ApiService", "playground\AzureStorageEndToEnd\AzureStorageEndToEnd.ApiService\AzureStorageEndToEnd.ApiService.csproj", "{921CB408-5E37-4354-B4CF-EAE517F633DC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.NATS.Net.Tests", "tests\Aspire.NATS.Net.Tests\Aspire.NATS.Net.Tests.csproj", "{C774BE00-EE93-4148-B866-8F0F2BA1E473}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.NATS.Net.Tests", "tests\Aspire.Components.NATS.Net.Tests\Aspire.Components.NATS.Net.Tests.csproj", "{C774BE00-EE93-4148-B866-8F0F2BA1E473}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Dashboard.Components.Tests", "tests\Aspire.Dashboard.Components.Tests\Aspire.Dashboard.Components.Tests.csproj", "{0870A667-FB0C-4758-AEAF-9E5F092AD7C1}"
 EndProject
@@ -439,15 +439,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.KeyVau
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Qdrant.Client", "src\Components\Aspire.Components.Qdrant.Client\Aspire.Components.Qdrant.Client.csproj", "{E0E1B557-D3CF-4446-B993-E5CE719234FB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Qdrant.Client.Tests", "tests\Aspire.Qdrant.Client.Tests\Aspire.Qdrant.Client.Tests.csproj", "{A9CFA376-0C90-4231-9152-FBF14065195A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Qdrant.Client.Tests", "tests\Aspire.Components.Qdrant.Client.Tests\Aspire.Components.Qdrant.Client.Tests.csproj", "{A9CFA376-0C90-4231-9152-FBF14065195A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.EventHubs.Tests", "tests\Aspire.Azure.Messaging.EventHubs.Tests\Aspire.Azure.Messaging.EventHubs.Tests.csproj", "{8191109E-130C-47F3-B84E-82070A6CD269}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.EventHubs.Tests", "tests\Aspire.Components.Azure.Messaging.EventHubs.Tests\Aspire.Components.Azure.Messaging.EventHubs.Tests.csproj", "{8191109E-130C-47F3-B84E-82070A6CD269}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansClient", "playground\orleans\OrleansClient\OrleansClient.csproj", "{906B5687-31AD-4364-AD9F-B4B26113462D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrleansContracts", "playground\orleans\OrleansContracts\OrleansContracts.csproj", "{75760E8A-7025-4F6A-B152-6622688D0E7D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Seq.Tests", "tests\Aspire.Seq.Tests\Aspire.Seq.Tests.csproj", "{0505F739-6F85-4502-A554-77E0D7325F26}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Seq.Tests", "tests\Aspire.Components.Seq.Tests\Aspire.Components.Seq.Tests.csproj", "{0505F739-6F85-4502-A554-77E0D7325F26}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

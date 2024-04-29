@@ -14,7 +14,7 @@ Registers [QueueServiceClient](https://learn.microsoft.com/dotnet/api/azure.stor
 Install the .NET Aspire Azure Storage Queues library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Azure.Storage.Queues
+dotnet add package Aspire.Components.Azure.Storage.Queues
 ```
 
 ## Usage example
