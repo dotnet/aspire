@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.Hosting;
 /// <summary>
 /// Extension methods for configuring EntityFrameworkCore DbContext to Azure Cosmos DB
 /// </summary>
-public static class AspireAzureEFCoreCosmosDBExtensions
+public static class AspireAzureEFCoreCosmosExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Microsoft:EntityFrameworkCore:Cosmos";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
@@ -34,19 +34,19 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     /// <param name="configureSettings">An optional delegate that can be used for customizing settings. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="EntityFrameworkCoreCosmosDBSettings.ConnectionString"/> is not provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="EntityFrameworkCoreCosmosSettings.ConnectionString"/> is not provided.</exception>
     public static void AddCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
         string databaseName,
-        Action<EntityFrameworkCoreCosmosDBSettings>? configureSettings = null,
+        Action<EntityFrameworkCoreCosmosSettings>? configureSettings = null,
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.EnsureDbContextNotRegistered<TContext>();
 
-        var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosDBSettings>(
+        var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)
         );
@@ -120,11 +120,11 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
     public static void EnrichCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
             this IHostApplicationBuilder builder,
-            Action<EntityFrameworkCoreCosmosDBSettings>? configureSettings = null) where TContext : DbContext
+            Action<EntityFrameworkCoreCosmosSettings>? configureSettings = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosDBSettings>(
+        var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)
         );
@@ -142,7 +142,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                     extension.RequestTimeout.HasValue &&
                     extension.RequestTimeout != settings.RequestTimeout)
                 {
-                    throw new InvalidOperationException($"Conflicting values for 'RequestTimeout' were found in {nameof(EntityFrameworkCoreCosmosDBSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
+                    throw new InvalidOperationException($"Conflicting values for 'RequestTimeout' were found in {nameof(EntityFrameworkCoreCosmosSettings)} and set in DbContextOptions<{typeof(TContext).Name}>.");
                 }
 
                 extension?.WithRequestTimeout(settings.RequestTimeout);
@@ -157,7 +157,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
         ConfigureInstrumentation<TContext>(builder, settings);
     }
 
-    private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, EntityFrameworkCoreCosmosDBSettings settings) where TContext : DbContext
+    private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, EntityFrameworkCoreCosmosSettings settings) where TContext : DbContext
     {
         if (!settings.DisableTracing)
         {

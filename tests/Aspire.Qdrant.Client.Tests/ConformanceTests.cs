@@ -6,8 +6,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Qdrant.Client;
+using Xunit;
 
 namespace Aspire.Qdrant.Client.Tests;
+
 public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSettings>
 {
     protected override bool SupportsKeyedRegistrations => true;
@@ -68,4 +70,29 @@ public class ConformanceTests : ConformanceTests<QdrantClient, QdrantClientSetti
             ("""{"Aspire": { "Qdrant":{ "Client": { "Endpoint": 3 }}}}""", "Value is \"integer\" but should be \"string\""),
             ("""{"Aspire": { "Qdrant":{ "Client": { "Endpoint": "hello" }}}}""", "Value does not match format \"uri\"")
         };
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:qdrant1", "Endpoint=http://localhost1:6331;Key=pass"),
+            new KeyValuePair<string, string?>("ConnectionStrings:qdrant2", "Endpoint=http://localhost2:6332;Key=pass"),
+            new KeyValuePair<string, string?>("ConnectionStrings:qdrant3", "Endpoint=http://localhost3:6333;Key=pass"),
+        ]);
+
+        builder.AddQdrantClient("qdrant1");
+        builder.AddKeyedQdrantClient("qdrant2");
+        builder.AddKeyedQdrantClient("qdrant3");
+
+        using var host = builder.Build();
+
+        var client1 = host.Services.GetRequiredService<QdrantClient>();
+        var client2 = host.Services.GetRequiredKeyedService<QdrantClient>("qdrant2");
+        var client3 = host.Services.GetRequiredKeyedService<QdrantClient>("qdrant3");
+
+        Assert.NotSame(client1, client2);
+        Assert.NotSame(client1, client3);
+        Assert.NotSame(client2, client3);
+    }
 }

@@ -318,9 +318,61 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.NotSame(connection1, connection3);
         Assert.NotSame(connection2, connection3);
 
-        Assert.Equal(connection1.Configuration, ConnectionString);
-        Assert.Equal(connection2.Configuration, container2.GetConnectionString());
-        Assert.Equal(connection3.Configuration, container3.GetConnectionString());
+        Assert.Equal(ConnectionString, connection1.Configuration);
+        Assert.Equal(container2.GetConnectionString(), connection2.Configuration);
+        Assert.Equal(container3.GetConnectionString(), connection3.Configuration);
+    }
+
+    /// <summary>
+    /// Tests that you can use a keyed service for a distributed cache, another for an output cache, while also adding a plain Redis service.
+    /// </summary>
+    [RequiresDockerFact]
+    public async Task CanAddMultipleKeyedCachingServices()
+    {
+        await using var container1 = await RedisContainerFixture.CreateContainerAsync();
+        await using var container2 = await RedisContainerFixture.CreateContainerAsync();
+        await using var container3 = await RedisContainerFixture.CreateContainerAsync();
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:redis1", container1.GetConnectionString()),
+            new KeyValuePair<string, string?>("ConnectionStrings:redis2", container2.GetConnectionString()),
+            new KeyValuePair<string, string?>("ConnectionStrings:redis3", container3.GetConnectionString())
+        ]);
+
+        builder.AddRedisClient("redis1");
+        builder.AddKeyedRedisDistributedCache("redis2");
+        builder.AddKeyedRedisOutputCache("redis3");
+
+        using var host = builder.Build();
+
+        var connection1 = host.Services.GetRequiredService<IConnectionMultiplexer>();
+        var connection2 = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis2");
+        var distributedCache = host.Services.GetRequiredService<IDistributedCache>();
+        var connection3 = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis3");
+        var outputCache = host.Services.GetRequiredService<IOutputCacheStore>();
+
+        Assert.NotSame(connection1, connection2);
+        Assert.NotSame(connection1, connection3);
+        Assert.NotSame(connection2, connection3);
+
+        Assert.Equal(container1.GetConnectionString(), connection1.Configuration);
+        Assert.Equal(container2.GetConnectionString(), connection2.Configuration);
+        Assert.Equal(container3.GetConnectionString(), connection3.Configuration);
+
+        // set a value in the distributed cache and ensure it is only in the redis2 server
+        distributedCache.SetString("key", "value");
+
+        Assert.Empty(connection1.GetServers().Single().Keys());
+        Assert.Single(connection2.GetServers().Single().Keys());
+        Assert.Empty(connection3.GetServers().Single().Keys());
+
+        // set a value in the output cache and ensure it was added to the redis3 server
+        await outputCache.SetAsync("outputKey", [1, 2, 3, 4], tags: null, validFor: TimeSpan.MaxValue, cancellationToken: default);
+
+        Assert.Empty(connection1.GetServers().Single().Keys());
+        Assert.Single(connection2.GetServers().Single().Keys());
+        Assert.Single(connection3.GetServers().Single().Keys());
     }
 
     private void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>

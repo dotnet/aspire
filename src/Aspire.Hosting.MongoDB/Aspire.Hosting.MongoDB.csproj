@@ -4,6 +4,7 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting MongoDB</PackageTags>
+    <PackageIconFullPath>$(SharedDir)MongoDB_300px.png</PackageIconFullPath>
     <Description>MongoDB support for .NET Aspire.</Description>
   </PropertyGroup>
 
