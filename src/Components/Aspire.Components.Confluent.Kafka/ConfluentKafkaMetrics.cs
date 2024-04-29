@@ -4,7 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
 
-namespace Aspire.Confluent.Kafka;
+namespace Aspire.Components.Confluent.Kafka;
 
 internal sealed class ConfluentKafkaMetrics
 {

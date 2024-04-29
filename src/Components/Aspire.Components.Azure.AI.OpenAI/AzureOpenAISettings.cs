@@ -6,7 +6,7 @@ using Aspire.Azure.Common;
 using Azure;
 using Azure.Core;
 
-namespace Aspire.Azure.AI.OpenAI;
+namespace Aspire.Components.Azure.AI.OpenAI;
 
 /// <summary>
 /// The settings relevant to accessing Azure OpenAI or OpenAI.

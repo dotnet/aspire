@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.MongoDB.Driver;
+namespace Aspire.Components.MongoDB.Driver;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a MongoDB database using MongoDB driver.

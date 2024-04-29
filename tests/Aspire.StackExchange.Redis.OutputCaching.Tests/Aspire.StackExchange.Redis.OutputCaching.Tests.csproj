@@ -6,12 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(RepoRoot)src\Components\Aspire.StackExchange.Redis.OutputCaching\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Components\Aspire.Components.StackExchange.Redis.OutputCaching\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
-    <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis.OutputCaching\Aspire.StackExchange.Redis.OutputCaching.csproj" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Components.StackExchange.Redis.OutputCaching\Aspire.Components.StackExchange.Redis.OutputCaching.csproj" />
 
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
-    <ProjectReference Include="..\Aspire.StackExchange.Redis.Tests\Aspire.StackExchange.Redis.Tests.csproj" />
+    <ProjectReference Include="..\Aspire.Components.StackExchange.Redis.Tests\Aspire.Components.StackExchange.Redis.Tests.csproj" />
   </ItemGroup>
 
 </Project>

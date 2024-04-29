@@ -3,7 +3,7 @@
 
 using Confluent.Kafka;
 
-namespace Aspire.Confluent.Kafka;
+namespace Aspire.Components.Confluent.Kafka;
 
 internal sealed class ProducerConnectionFactory<TKey, TValue>
 {

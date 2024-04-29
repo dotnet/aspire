@@ -5,7 +5,7 @@ using Aspire.Azure.Common;
 using Azure.Core;
 using Azure.Security.KeyVault.Secrets;
 
-namespace Aspire.Azure.Security.KeyVault;
+namespace Aspire.Components.Azure.Security.KeyVault;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Key Vault.

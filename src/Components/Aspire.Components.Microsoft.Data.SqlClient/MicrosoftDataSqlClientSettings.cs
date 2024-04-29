@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Microsoft.Data.SqlClient;
+namespace Aspire.Components.Microsoft.Data.SqlClient;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a SQL Server database using SqlClient.

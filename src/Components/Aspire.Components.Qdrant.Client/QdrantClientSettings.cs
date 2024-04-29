@@ -3,7 +3,7 @@
 
 using System.Data.Common;
 
-namespace Aspire.Qdrant.Client;
+namespace Aspire.Components.Qdrant.Client;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a Qdrant server using QdrantClient.

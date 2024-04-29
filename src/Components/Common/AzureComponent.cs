@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 
-namespace Aspire.Azure.Common;
+namespace Aspire.Components.Azure.Common;
 
 internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
     where TSettings : class, new()

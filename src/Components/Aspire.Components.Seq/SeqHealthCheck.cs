@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Seq;
+namespace Aspire.Components.Seq;
 
 /// <summary>
 /// A diagnostic health check implementation for Seq servers.

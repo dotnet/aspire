@@ -6,7 +6,7 @@ using Aspire.Azure.Common;
 using Azure;
 using Azure.Core;
 
-namespace Aspire.Azure.Search.Documents;
+namespace Aspire.Components.Azure.Search.Documents;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Search.

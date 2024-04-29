@@ -3,7 +3,7 @@
 
 using OpenTelemetry.Exporter;
 
-namespace Aspire.Seq;
+namespace Aspire.Components.Seq;
 
 /// <summary>
 /// Provides the client configuration settings for connecting telemetry to a Seq server.

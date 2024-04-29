@@ -6,10 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(RepoRoot)src\Components\Aspire.RabbitMQ.Client\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Components\Aspire.Components.RabbitMQ.Client\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.RabbitMQ\RabbitMQContainerImageTags.cs" />
 
-    <ProjectReference Include="..\..\src\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Components.RabbitMQ.Client\Aspire.Components.RabbitMQ.Client.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
     <PackageReference Include="Testcontainers.RabbitMq" />

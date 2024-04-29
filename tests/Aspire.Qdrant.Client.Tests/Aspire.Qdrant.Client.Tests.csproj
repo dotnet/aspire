@@ -6,10 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(RepoRoot)src\Components\Aspire.Qdrant.Client\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Components\Aspire.Components.Qdrant.Client\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
-    <ProjectReference Include="..\..\src\Components\Aspire.Qdrant.Client\Aspire.Qdrant.Client.csproj" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Components.Qdrant.Client\Aspire.Components.Qdrant.Client.csproj" />
   </ItemGroup>
 
 </Project>

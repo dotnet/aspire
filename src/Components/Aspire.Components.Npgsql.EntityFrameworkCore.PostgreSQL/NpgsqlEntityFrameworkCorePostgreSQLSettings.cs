@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL;
+namespace Aspire.Components.Npgsql.EntityFrameworkCore.PostgreSQL;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a PostgreSQL database using EntityFrameworkCore.

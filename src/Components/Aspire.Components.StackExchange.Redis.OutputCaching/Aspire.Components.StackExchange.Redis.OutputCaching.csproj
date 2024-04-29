@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
+    <ProjectReference Include="..\Aspire.Components.StackExchange.Redis\Aspire.Components.StackExchange.Redis.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" />
   </ItemGroup>
 

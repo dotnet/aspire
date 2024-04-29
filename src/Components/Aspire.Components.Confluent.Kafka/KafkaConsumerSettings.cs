@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using Confluent.Kafka;
 
-namespace Aspire.Confluent.Kafka;
+namespace Aspire.Components.Confluent.Kafka;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a Kafka message broker to consume messages.

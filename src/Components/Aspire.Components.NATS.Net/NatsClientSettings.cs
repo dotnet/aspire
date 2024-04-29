@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.NATS.Net;
+namespace Aspire.Components.NATS.Net;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a NATS cluster.

@@ -5,9 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(RepoRoot)src\Components\Aspire.Azure.Storage.Queues\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Components\Aspire.Components.Azure.Storage.Queues\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
-    <ProjectReference Include="..\..\src\Components\Aspire.Azure.Storage.Queues\Aspire.Azure.Storage.Queues.csproj" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Components.Azure.Storage.Queues\Aspire.Components.Azure.Storage.Queues.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
   </ItemGroup>
 

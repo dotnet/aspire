@@ -4,7 +4,7 @@
 using Aspire.Azure.Common;
 using Azure.Core;
 
-namespace Aspire.Azure.Storage.Blobs;
+namespace Aspire.Components.Azure.Storage.Blobs;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Blob Storage.
@@ -12,7 +12,7 @@ namespace Aspire.Azure.Storage.Blobs;
 public sealed class AzureStorageBlobsSettings : IConnectionStringSettings
 {
     /// <summary>
-    /// Gets or sets the connection string used to connect to the blob service. 
+    /// Gets or sets the connection string used to connect to the blob service.
     /// </summary>
     /// <remarks>
     /// If <see cref="ConnectionString"/> is set, it overrides <see cref="ServiceUri"/> and <see cref="Credential"/>.

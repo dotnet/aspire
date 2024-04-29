@@ -4,7 +4,7 @@
 using Aspire.Azure.Common;
 using Azure.Core;
 
-namespace Aspire.Azure.Messaging.ServiceBus;
+namespace Aspire.Components.Azure.Messaging.ServiceBus;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Service Bus.
@@ -14,7 +14,7 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     private bool? _disableTracing;
 
     /// <summary>
-    /// Gets or sets the connection string used to connect to the Service Bus namespace. 
+    /// Gets or sets the connection string used to connect to the Service Bus namespace.
     /// </summary>
     /// <remarks>
     /// If <see cref="ConnectionString"/> is set, it overrides <see cref="FullyQualifiedNamespace"/> and <see cref="Credential"/>.
@@ -22,7 +22,7 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the fully qualified Service Bus namespace. 
+    /// Gets or sets the fully qualified Service Bus namespace.
     /// </summary>
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
@@ -52,8 +52,8 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
-    /// <value>  
-    /// The default value is <see langword="false"/>.  
+    /// <value>
+    /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing
     {

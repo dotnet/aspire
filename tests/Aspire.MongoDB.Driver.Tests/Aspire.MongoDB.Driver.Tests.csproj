@@ -10,9 +10,9 @@
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
 
-    <None Include="$(RepoRoot)src\Components\Aspire.MongoDB.Driver\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Components\Aspire.Components.MongoDB.Driver\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
-    <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Components.MongoDB.Driver\Aspire.Components.MongoDB.Driver.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
     <PackageReference Include="TestContainers.MongoDb" />

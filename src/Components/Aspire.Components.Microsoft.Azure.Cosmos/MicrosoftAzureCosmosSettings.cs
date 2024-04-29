@@ -3,7 +3,7 @@
 
 using Azure.Core;
 
-namespace Aspire.Microsoft.Azure.Cosmos;
+namespace Aspire.Components.Microsoft.Azure.Cosmos;
 
 /// <summary>
 /// The settings relevant to accessing Azure Cosmos DB.

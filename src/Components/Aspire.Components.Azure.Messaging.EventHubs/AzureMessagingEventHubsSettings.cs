@@ -9,7 +9,7 @@ using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Primitives;
 using Azure.Messaging.EventHubs.Producer;
 
-namespace Aspire.Azure.Messaging.EventHubs;
+namespace Aspire.Components.Azure.Messaging.EventHubs;
 
 /// <summary>
 /// Represents additional shared settings for configuring an Event Hubs client.
@@ -21,7 +21,7 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     internal AzureMessagingEventHubsSettings() { }
 
     /// <summary>
-    /// Gets or sets the connection string used to connect to the Event Hubs namespace. 
+    /// Gets or sets the connection string used to connect to the Event Hubs namespace.
     /// </summary>
     /// <remarks>
     /// If <see cref="ConnectionString"/> is set, it overrides <see cref="FullyQualifiedNamespace"/> and <see cref="Credential"/>.
@@ -29,7 +29,7 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the fully qualified Event Hubs namespace. 
+    /// Gets or sets the fully qualified Event Hubs namespace.
     /// </summary>
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
@@ -54,8 +54,8 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
-    /// <value>  
-    /// The default value is <see langword="false"/>.  
+    /// <value>
+    /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing
     {

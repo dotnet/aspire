@@ -4,7 +4,7 @@
 using System.Threading.Channels;
 using Confluent.Kafka;
 
-namespace Aspire.Confluent.Kafka;
+namespace Aspire.Components.Components.Confluent.Kafka;
 
 /// <summary>
 /// Metrics are emitted using json data published by librdkafka StatisticsHandler (see https://docs.confluent.io/platform/current/clients/confluent-kafka-dotnet/_site/api/Confluent.Kafka.ConsumerBuilder-2.html#Confluent_Kafka_ConsumerBuilder_2_StatisticsHandler)

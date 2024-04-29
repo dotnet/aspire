@@ -3,7 +3,7 @@
 
 using Azure.Core;
 
-namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos;
+namespace Aspire.Components.Microsoft.EntityFrameworkCore.Cosmos;
 
 /// <summary>
 /// The settings relevant to accessing Azure Cosmos DB database using EntityFrameworkCore.

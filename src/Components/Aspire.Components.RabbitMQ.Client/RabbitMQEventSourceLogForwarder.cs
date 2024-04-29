@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.RabbitMQ.Client;
+namespace Aspire.Components.RabbitMQ.Client;
 
 internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
 {

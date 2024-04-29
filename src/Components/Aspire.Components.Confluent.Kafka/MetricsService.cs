@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using static Aspire.Confluent.Kafka.ConfluentKafkaMetrics;
 
-namespace Aspire.Confluent.Kafka;
+namespace Aspire.Components.Confluent.Kafka;
 
 internal sealed partial class MetricsService(MetricsChannel channel, ConfluentKafkaMetrics metrics, ILogger<MetricsService> logger) : BackgroundService
 {

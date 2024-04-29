@@ -3,10 +3,10 @@
 
 using System.Text.Json.Serialization;
 
-namespace Aspire.Confluent.Kafka;
+namespace Aspire.Components.Confluent.Kafka;
 
 /// <summary>
-/// Maps to the JSON output returned by the <see href="https://github.com/confluentinc/librdkafka/blob/master/STATISTICS.md">librdkafka statistics API</see>. 
+/// Maps to the JSON output returned by the <see href="https://github.com/confluentinc/librdkafka/blob/master/STATISTICS.md">librdkafka statistics API</see>.
 /// </summary>
 internal sealed class Statistics
 {

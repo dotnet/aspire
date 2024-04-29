@@ -4,7 +4,7 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using NATS.Client.Core;
 
-namespace Aspire.NATS.Net;
+namespace Aspire.Components.NATS.Net;
 
 internal sealed class NatsHealthCheck(INatsConnection connection) : IHealthCheck
 {

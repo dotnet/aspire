@@ -4,7 +4,7 @@
 using Aspire.Azure.Common;
 using Azure.Core;
 
-namespace Aspire.Azure.Data.Tables;
+namespace Aspire.Components.Azure.Data.Tables;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Tables.
@@ -12,7 +12,7 @@ namespace Aspire.Azure.Data.Tables;
 public sealed class AzureDataTablesSettings : IConnectionStringSettings
 {
     /// <summary>
-    /// Gets or sets the connection string used to connect to the table service account. 
+    /// Gets or sets the connection string used to connect to the table service account.
     /// </summary>
     /// <remarks>
     /// If <see cref="ConnectionString"/> is set, it overrides <see cref="ServiceUri"/> and <see cref="Credential"/>.
