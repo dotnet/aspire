@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Test Project (NUnit)",
-  "description": "A project that contains NUnit integration tests of a .NET Aspire AppHost project.",
+  "name": ".NET Aspire 測試專案 (NUnit)",
+  "description": "包含 .NET Aspire AppHost 專案之 NUnit 整合測試的專案。",
   "symbols/Framework/description": "專案的目標 Framework。",
   "symbols/Framework/choices/net8.0/description": "目標 net8.0",
   "symbols/skipRestore/description": "若指定，會在建立時跳過專案的自動還原。",
