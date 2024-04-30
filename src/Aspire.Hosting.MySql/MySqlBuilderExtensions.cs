@@ -90,7 +90,7 @@ public static class MySqlBuilderExtensions
     /// Configures the host port that the PGAdmin resource is exposed on instead of using randomly assigned port.
     /// </summary>
     /// <param name="builder">The resource builder for PGAdmin.</param>
-    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used, a random port will be assigned.</param>
     /// <returns>The resource builder for PGAdmin.</returns>
     public static IResourceBuilder<PhpMyAdminContainerResource> WithHostPort(this IResourceBuilder<PhpMyAdminContainerResource> builder, int? port)
     {
