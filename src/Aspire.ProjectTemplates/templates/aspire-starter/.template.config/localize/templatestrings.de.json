@@ -3,7 +3,7 @@
   "name": ".NET Aspire-Starteranwendung",
   "description": "Eine Projektvorlage zum Erstellen einer .NET Aspire-App mit einem Blazor-Web-Front-End und einem Web-API-Back-End-Dienst, die optional Redis zum Zwischenspeichern verwendet.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
-  "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
+  "symbols/Framework/choices/net9.0/description": "Ziel net9.0",
   "symbols/UseRedisCache/displayName": "_Use Redis für die Zwischenspeicherung (erfordert eine unterstützte Container-Runtime)",
   "symbols/UseRedisCache/description": "Konfiguriert, ob die Anwendung für die Verwendung von Redis für die Zwischenspeicherung eingerichtet werden soll. Erfordert eine unterstützte Container-Runtime, um lokal ausgeführt zu werden. Weitere Informationen finden Sie unter https://aka.ms/dotnet/aspire/containers.",
   "symbols/TestFramework/displayName": "Create a _tests project",

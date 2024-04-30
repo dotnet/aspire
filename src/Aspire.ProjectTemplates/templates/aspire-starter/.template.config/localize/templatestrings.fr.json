@@ -3,7 +3,7 @@
   "name": "Application de démarrage .NET Aspire",
   "description": "Un modèle de projet pour créer une application .NET Aspire avec une interface Web Blazor et un service backend d'API Web, en utilisant éventuellement Redis pour la mise en cache.",
   "symbols/Framework/description": "Framework cible du projet.",
-  "symbols/Framework/choices/net8.0/description": "Cible net8.0",
+  "symbols/Framework/choices/net9.0/description": "Cible net9.0",
   "symbols/UseRedisCache/displayName": "_Use Redis pour la mise en cache (nécessite un runtime de conteneur pris en charge)",
   "symbols/UseRedisCache/description": "Configure s’il faut configurer l’application pour utiliser Redis pour la mise en cache. Nécessite un conteneur runtime supporté pour fonctionner localement, voir https://aka.ms/dotnet/aspire/containers pour plus de détails.",
   "symbols/TestFramework/displayName": "Create a _tests project",

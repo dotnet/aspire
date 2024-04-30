@@ -29,7 +29,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     public AspireEFMySqlExtensionsTests(MySqlContainerFixture containerFixture)
         => _containerFixture = containerFixture;
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void ReadsFromConnectionStringsCorrectly()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -48,7 +48,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         Assert.Equal(expectedConnectionString, actualConnectionString);
     }
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void ConnectionStringCanBeSetInCode()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -69,7 +69,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         Assert.DoesNotContain("unused", actualConnectionString);
     }
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void ConnectionNameWinsOverConfigSection()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -91,7 +91,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         Assert.DoesNotContain("unused", actualConnectionString);
     }
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void CanConfigureDbContextOptions()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -134,7 +134,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void CanConfigureDbContextOptionsWithoutRetry()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);

@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ContainerRegistry>localhost:5001</ContainerRegistry>
     <ContainerRepository>my-frontend</ContainerRepository>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0</ContainerBaseImage>
     <!-- Razor tooling sometimes raises this warning. Don't make it an error. -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);RZ10012;RZ10021</WarningsNotAsErrors>
     <!-- Razor tooling incorrectly reports this warning -->

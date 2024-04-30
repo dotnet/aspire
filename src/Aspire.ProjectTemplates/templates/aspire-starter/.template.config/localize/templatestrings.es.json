@@ -3,7 +3,7 @@
   "name": "Aplicación de inicio .NET Aspire",
   "description": "Una plantilla de proyecto para crear una aplicación de .NET Insights con un front-end web de Blazor y un servicio back-end de API web, opcionalmente mediante Redis para el almacenamiento en caché.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
-  "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
+  "symbols/Framework/choices/net9.0/description": "net9.0 de destino",
   "symbols/UseRedisCache/displayName": "_Use Redis para el almacenamiento en caché (requiere un runtime de contenedor compatible)",
   "symbols/UseRedisCache/description": "Configura si se va a configurar la aplicación para que use Redis para el almacenamiento en caché. Requiere un contenedor de runtime compatible para ejecutarse localmente. Consulte https://aka.ms/dotnet/aspire/containers para obtener más detalles.",
   "symbols/TestFramework/displayName": "Create a _tests project",

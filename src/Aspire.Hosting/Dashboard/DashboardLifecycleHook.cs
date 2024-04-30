@@ -215,7 +215,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
         try
         {
-            await foreach (var notification in resourceNotificationService.WatchAsync(cancellationToken))
+            await foreach (var notification in resourceNotificationService.WatchAsync(cancellationToken).ConfigureAwait(true)) // Setting ConfigureAwait(true)  to silence CA2007. Consider calling ConfigureAwait(false) instead.
             {
                 // Track all dashboard resources and start watching their logs.
                 // TODO: In the future when resources can restart, we should handle purging the taskCache.

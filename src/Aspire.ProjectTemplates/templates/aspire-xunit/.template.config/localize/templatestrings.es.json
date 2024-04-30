@@ -3,7 +3,7 @@
   "name": "Proyecto de prueba .NET Aspire (xUnit)",
   "description": "Proyecto que contiene pruebas de integración de xUnit.net de un proyecto .NET Aspire AppHost.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
-  "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
+  "symbols/Framework/choices/net9.0/description": "Target net9.0",
   "symbols/skipRestore/description": "Si se especifica, se omite la restauración automática del proyecto durante la creación.",
   "postActions/restore/description": "Restaure los paquetes NuGet necesarios para este proyecto.",
   "postActions/restore/manualInstructions/default/text": "Ejecutar \"dotnet restore\""

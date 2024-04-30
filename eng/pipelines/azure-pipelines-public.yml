@@ -3,6 +3,7 @@ trigger:
   branches:
     include:
     - main
+    - vNext
     - release/*
   paths:
     include:
@@ -23,6 +24,7 @@ pr:
   branches:
     include:
     - main
+    - vNext
     - release/*
     - feature/*
   paths:
