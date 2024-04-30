@@ -36,21 +36,24 @@ public static class KafkaBuilderExtensions
     /// <summary>
     /// Adds a Kafka UI container to the application. This version of the package defaults to the 0.7.2 tag of the provectuslabs/kafka-ui container image.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="port"></param>
-    /// <param name="containerName"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<KafkaServerResource> WithKafkaUI(this IResourceBuilder<KafkaServerResource> builder, int? port = null, string? containerName = null)
+    /// <param name="builder">The Kafka server resource builder.</param>
+    /// <param name="configureContainer">Configuration callback for KafkaUI container resource.</param>
+    /// <param name="port">The host port of KafkaUI (Optional).</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{KafkaServerResource}"/>.</returns>
+    public static IResourceBuilder<KafkaServerResource> WithKafkaUI(this IResourceBuilder<KafkaServerResource> builder, Action<IResourceBuilder<KafkaUIContainerResource>>? configureContainer = null, int? port = null, string? containerName = null)
     {
         containerName ??= $"{builder.Resource.Name}-kafka-ui";
 
         var kafkaUi = new KafkaUIContainerResource(containerName);
-        builder.ApplicationBuilder.AddResource(kafkaUi)
+        var kafkaUiBuilder = builder.ApplicationBuilder.AddResource(kafkaUi)
             .WithImage(KafkaContainerImageTags.KafkaUiImage, KafkaContainerImageTags.KafkaUiTag)
             .WithImageRegistry(KafkaContainerImageTags.Registry)
             .WithHttpEndpoint(targetPort: KafkaUIPort, port: port, name: containerName)
             .WithEnvironment(context => ConfigureKafkaUIContainer(context, builder))
             .ExcludeFromManifest();
+
+        configureContainer?.Invoke(kafkaUiBuilder);
 
         return builder;
     }

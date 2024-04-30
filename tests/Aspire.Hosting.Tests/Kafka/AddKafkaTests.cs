@@ -106,4 +106,34 @@ public class AddKafkaTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
     }
+
+    public static TheoryData<string?, string, int?> WithKafkaUIAddsContainerSetNamePortAndInvokeConfigurationCallbackTestVariations()
+    {
+        return new()
+        {
+            { "kafka-ui", "kafka-ui", 8081 },
+            { null, "kafka1-kafka-ui", 8081 },
+            { "kafka-ui", "kafka-ui", null },
+            { null, "kafka1-kafka-ui", null },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(WithKafkaUIAddsContainerSetNamePortAndInvokeConfigurationCallbackTestVariations))]
+    public void WithKafkaUIAddsContainerSetNamePortAndInvokeConfigurationCallback(string? containerName, string expectedContainerName, int? port)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var configureContainerInvoked = false;
+        Action<IResourceBuilder<KafkaUIContainerResource>> kafkaUIConfigurationCallback = _ =>
+        {
+            configureContainerInvoked = true;
+        };
+        builder.AddKafka("kafka1").WithKafkaUI(configureContainer: kafkaUIConfigurationCallback, port: port, containerName: containerName);
+
+        var kafkaUiResource = Assert.Single(builder.Resources, r => r.Name == expectedContainerName);
+        Assert.True(configureContainerInvoked);
+        var kafkaUiEndpoint = kafkaUiResource.Annotations.OfType<EndpointAnnotation>().Single();
+        Assert.Equal(8080, kafkaUiEndpoint.TargetPort);
+        Assert.Equal(port, kafkaUiEndpoint.Port);
+    }
 }

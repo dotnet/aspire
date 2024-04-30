@@ -4,7 +4,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var kafka = builder.AddKafka("kafka")
-    .WithKafkaUI(8080);
+    .WithKafkaUI(port: 8080);
 
 builder.AddProject<Projects.Producer>("producer")
     .WithReference(kafka);

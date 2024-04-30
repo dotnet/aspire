@@ -5,7 +5,8 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
-internal sealed class KafkaUIContainerResource(string name) : ContainerResource(name)
-{
-    public const string PrimaryEndpointName = "http";
-}
+/// <summary>
+/// A resource that represents a Kafka UI container.
+/// </summary>
+/// <param name="name"></param>
+public sealed class KafkaUIContainerResource(string name) : ContainerResource(name);
