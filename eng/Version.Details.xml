@@ -29,13 +29,13 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>15f1cf9c067463b525e98f4d033b807fc2042e8a</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.2.24157.4">
+    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.4.24230.1">
       <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8dcff4ab2e8242d8264a027385a30f79c1888627</Sha>
+      <Sha>7e2303b9020c4a387ca8ddc9c98bf0f026eb5829</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="9.0.0-preview.2.24157.4">
+    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="9.0.0-preview.4.24230.1">
       <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>8dcff4ab2e8242d8264a027385a30f79c1888627</Sha>
+      <Sha>7e2303b9020c4a387ca8ddc9c98bf0f026eb5829</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0-preview.2.24128.5">
       <Uri>https://github.com/dotnet/runtime</Uri>
