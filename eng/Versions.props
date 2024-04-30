@@ -23,10 +23,10 @@
     <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.3.1</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
     <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.3.1</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorPackageVersion>9.0.0-beta.24223.4</MicrosoftDotNetRemoteExecutorPackageVersion>
-    <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24223.4</MicrosoftDotNetXUnitExtensionsPackageVersion>
-    <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24223.4</MicrosoftDotNetBuildTasksInstallersPackageVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24223.4</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftDotNetRemoteExecutorPackageVersion>9.0.0-beta.24223.5</MicrosoftDotNetRemoteExecutorPackageVersion>
+    <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24223.5</MicrosoftDotNetXUnitExtensionsPackageVersion>
+    <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24223.5</MicrosoftDotNetBuildTasksInstallersPackageVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24223.5</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>9.0.0-preview.2.24157.4</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>9.0.0-preview.2.24157.4</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>9.0.0-preview.2.24128.5</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
