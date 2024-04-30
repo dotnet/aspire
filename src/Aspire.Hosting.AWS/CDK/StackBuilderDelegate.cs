@@ -6,7 +6,7 @@ using Amazon.CDK;
 namespace Aspire.Hosting.AWS.CDK;
 
 /// <summary>
-///
+/// Delegate for building an AWS CDK stack
 /// </summary>
-/// <typeparam name="T"></typeparam>
+/// <typeparam name="T">Construct type</typeparam>
 public delegate T StackBuilderDelegate<out T>(App app) where T : Stack;

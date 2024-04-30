@@ -28,7 +28,7 @@ var table = stack.AddDynamoDBTable("Table", new TableProps
     PartitionKey = new Attribute { Name = "owner", Type = AttributeType.STRING },
     SortKey = new Attribute { Name = "ownerSK", Type = AttributeType.STRING },
     ProjectionType = ProjectionType.ALL
-}).WithOutput("TableName", t => t.TableName);
+});
 
 builder.AddProject<Projects.WebApp>("webapp")
     .WithReference(table);

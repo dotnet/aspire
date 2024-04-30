@@ -7,12 +7,12 @@ using Aspire.Hosting.AWS.CloudFormation;
 namespace Aspire.Hosting.AWS.CDK;
 
 /// <summary>
-///
+/// Resource representing an AWS CDK stack.
 /// </summary>
 public interface IStackResource : ICloudFormationResource, IResourceWithConstruct
 {
     /// <summary>
-    ///
+    /// The AWS CDK stack
     /// </summary>
     Stack Stack { get; }
 }

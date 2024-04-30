@@ -5,8 +5,5 @@ using Constructs;
 
 namespace Aspire.Hosting.AWS.CDK;
 
-/// <summary>
-///
-/// </summary>
-/// <typeparam name="T"></typeparam>
+/// <inheritdoc cref="IConstructResource"/>
 public interface IConstructResource<out T> : IConstructResource, IResourceWithConstruct<T> where T : IConstruct;

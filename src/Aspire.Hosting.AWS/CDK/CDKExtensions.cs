@@ -14,14 +14,14 @@ using StackResource = Aspire.Hosting.AWS.CDK.StackResource;
 namespace Aspire.Hosting;
 
 /// <summary>
-///
+/// Extension methods for adding AWS CDK as a provisioning resources.
 /// </summary>
 public static class CDKExtensions
 {
     /// <summary>
-    ///
+    /// Enable AWS CDK for the current <see cref="IDistributedApplicationBuilder"/>.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <returns></returns>
     public static ICDKApplicationBuilder WithAWSCDK(this IDistributedApplicationBuilder builder)
     {
@@ -29,11 +29,11 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    ///
+    /// Adds a AWS CDK stack as resource.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="stackName"></param>
+    /// <param name="builder">The <see cref="ICDKApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the stack resource.</param>
+    /// <param name="stackName">Optional Cloud Formation stack same if different from the resource name.</param>
     /// <returns></returns>
     public static IResourceBuilder<IStackResource> AddStack(this ICDKApplicationBuilder builder, string name, string? stackName = null)
     {
@@ -42,10 +42,10 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    ///
+    /// Adds and build a AWS CDK stack as resource.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="stackBuilder"></param>
+    /// <param name="builder">The <see cref="ICDKApplicationBuilder"/>.</param>
+    /// <param name="stackBuilder">The stack builder delegate.</param>
     /// <returns></returns>
     public static IResourceBuilder<IStackResource<T>> AddStack<T>(this ICDKApplicationBuilder builder, StackBuilderDelegate<T> stackBuilder)
         where T : Stack
@@ -55,11 +55,11 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    ///
+    /// Adds and build a AWS CDK construct as resource.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="constructBuilder"></param>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="constructBuilder">The construct builder delegate.</param>
     /// <returns></returns>
     public static IResourceBuilder<IConstructResource<T>> AddConstruct<T>(this IResourceBuilder<IResourceWithConstruct> builder, string name, ConstructBuilderDelegate<T> constructBuilder)
         where T : Construct
@@ -69,11 +69,11 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    ///
+    /// Adds a stack reference to an output from the CloudFormation stack.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="output"></param>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the output.</param>
+    /// <param name="output">The construct output delegate.</param>
     /// <typeparam name="TStack"></typeparam>
     /// <returns></returns>
     public static IResourceBuilder<IStackResource<TStack>> WithOutput<TStack>(
@@ -85,11 +85,11 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    ///
+    /// Adds a construct reference to an output from the CloudFormation stack.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="output"></param>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the output.</param>
+    /// <param name="output">The construct output delegate.</param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     public static IResourceBuilder<IConstructResource<T>> WithOutput<T>(
@@ -101,22 +101,22 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    /// Gets a reference to a  output from the CloudFormation stack.
+    /// Gets a reference to an output from the CloudFormation stack.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="name"></param>
-    /// <param name="outputDelegate"></param>
-    public static StackOutputReference GetOutput<T>(this IResourceBuilder<IConstructResource<T>> builder, string name, ConstructOutputDelegate<T> outputDelegate)
+    /// <param name="name">The name of the output.</param>
+    /// <param name="output">The construct output delegate.</param>
+    public static StackOutputReference GetOutput<T>(this IResourceBuilder<IConstructResource<T>> builder, string name, ConstructOutputDelegate<T> output)
         where T : Construct
     {
-        builder.WithAnnotation(new ConstructOutputAnnotation<T>(name, outputDelegate));
+        builder.WithAnnotation(new ConstructOutputAnnotation<T>(name, output));
         return new StackOutputReference(builder.Resource.Construct.StackUniqueId() + name, builder.Resource.FindParentOfType<StackResource>());
     }
 
     /// <summary>
     /// The AWS SDK service client configuration used to create the CloudFormation service client.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="awsSdkConfig">The name of the AWS credential profile.</param>
     public static IResourceBuilder<T> WithReference<T>(this IResourceBuilder<T> builder, IAWSSDKConfig awsSdkConfig)
         where T : IStackResource
@@ -126,10 +126,10 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    /// Add a reference of a CloudFormations stack to a project. The output parameters of the CloudFormation stack are added to the project IConfiguration.
+    /// Add a reference of a AWS CDK stack to a project. The output parameters of the CloudFormation stack are added to the project IConfiguration.
     /// </summary>
     /// <typeparam name="TDestination"></typeparam>
-    /// <param name="builder"></param>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="stack">The stack resource.</param>
     /// <param name="configSection">The config section in IConfiguration to add the output parameters.</param>
     /// <returns></returns>
@@ -140,22 +140,26 @@ public static class CDKExtensions
 
         builder.WithEnvironment(async ctx =>
         {
+            // Skip when in publish mode
             if (ctx.ExecutionContext.IsPublishMode)
             {
                 return;
             }
 
+            // When the stack has a AWS credentials profile attached, apply that to the resource
             if (stack.Resource.AWSSDKConfig != null)
             {
                 SdkUtilities.ApplySDKConfig(ctx, stack.Resource.AWSSDKConfig, false);
             }
 
+            // Wait for the stack to be ready
             if (stack.Resource.ProvisioningTaskCompletionSource is not null)
             {
                 ctx.Logger?.LogInformation("Waiting on Stack resource {Name} ...", stack.Resource.Name);
                 await stack.Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(ctx.CancellationToken).ConfigureAwait(false);
             }
 
+            // Get the stack outputs and skip when there are none
             var stackOutputs = stack.Resource.Outputs;
             if (stackOutputs == null)
             {
@@ -164,12 +168,16 @@ public static class CDKExtensions
 
             configSection = configSection.Replace(':', '_');
 
+            // Add the stack outputs for each child construct to the project configuration
             var processedOutputs = new List<Output>();
             foreach (var construct in stack.Resource.ListChildren(builder.ApplicationBuilder.Resources.OfType<IConstructResource>()))
             {
                 var constructId = construct.Construct.StackUniqueId();
+
+                // Filter the outputs attached to the construct
                 var outputs = stackOutputs.Where(o => o.OutputKey.StartsWith(constructId)).ToList();
 
+                // Compose the output name with the name of the constructs
                 var prefix = configSection.Replace(':', '_');
                 var parents = construct.ListParents(builder.ApplicationBuilder.Resources.OfType<IConstructResource>()).ToArray();
                 if (parents.Length != 0)
@@ -185,6 +193,7 @@ public static class CDKExtensions
                 }
                 processedOutputs.AddRange(outputs);
             }
+            // Add the stack outputs for the stack itself
             foreach (var output in stackOutputs.Except(processedOutputs))
             {
                 var envName = $"{configSection}__{output.OutputKey}";
@@ -196,7 +205,7 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    ///
+    /// Add a reference of a AWS CDK construct to a project. The output parameters of the CloudFormation stack are added to the project IConfiguration.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="name"></param>

@@ -7,13 +7,13 @@ using Constructs;
 namespace Aspire.Hosting.AWS.CDK;
 
 /// <summary>
-///
+/// Resource annotation to change an AWS CDK construct.
 /// </summary>
 public interface IConstructModifierAnnotation : IResourceAnnotation
 {
     /// <summary>
-    ///
+    /// Changes the AWS CDK construct.
     /// </summary>
-    /// <param name="construct"></param>
+    /// <param name="construct">Construct to be changed.</param>
     void ChangeConstruct(IConstruct construct);
 }
