@@ -1,6 +1,3 @@
-parameters: 
-  enablePublishBuildArtifacts: false
-
 jobs:
 - template: /eng/common/core-templates/job/job.yml
   parameters:
