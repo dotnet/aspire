@@ -35,7 +35,7 @@
     {
       "modifiers": [
         {
-          "condition": "(hostIdentifier == \"vs\")",
+          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
             "*.sln"
           ]
@@ -219,7 +219,7 @@
   "primaryOutputs": [
     {
       "path": "AspireApplication.1.sln",
-      "condition": "(hostIdentifier != \"vs\")"
+      "condition": "(hostIdentifier == \"dotnetcli\" || hostIdentifier == \"dotnetcli-preview\")"
     },
     {
       "path": "AspireApplication.1.AppHost\\AspireApplication.1.AppHost.csproj"

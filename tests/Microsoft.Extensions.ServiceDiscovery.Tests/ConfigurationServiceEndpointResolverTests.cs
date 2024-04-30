@@ -95,7 +95,7 @@ public class ConfigurationServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task.ConfigureAwait(true);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             var ep = Assert.Single(initialResult.EndpointSource.Endpoints);
@@ -165,10 +165,10 @@ public class ConfigurationServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task.ConfigureAwait(true);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(1, initialResult.EndpointSource.Endpoints.Count);
+            Assert.Single(initialResult.EndpointSource.Endpoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
 
             Assert.All(initialResult.EndpointSource.Endpoints, ep =>
@@ -187,10 +187,10 @@ public class ConfigurationServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task.ConfigureAwait(true);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(1, initialResult.EndpointSource.Endpoints.Count);
+            Assert.Single(initialResult.EndpointSource.Endpoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
         }
 
@@ -202,10 +202,10 @@ public class ConfigurationServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task.ConfigureAwait(true);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
-            Assert.Equal(1, initialResult.EndpointSource.Endpoints.Count);
+            Assert.Single(initialResult.EndpointSource.Endpoints);
             Assert.Equal(new UriEndPoint(new Uri("https://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
         }
     }
@@ -256,12 +256,12 @@ public class ConfigurationServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task.ConfigureAwait(true);
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             if (expectedResult is not null)
             {
-                Assert.Equal(1, initialResult.EndpointSource.Endpoints.Count);
+                Assert.Single(initialResult.EndpointSource.Endpoints);
                 Assert.Equal(new UriEndPoint(new Uri(expectedResult)), initialResult.EndpointSource.Endpoints[0].EndPoint);
             }
             else
