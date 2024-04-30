@@ -32,8 +32,42 @@ Aspire.Hosting.AWS.IAWSSDKConfig.Profile.get -> string?
 Aspire.Hosting.AWS.IAWSSDKConfig.Profile.set -> void
 Aspire.Hosting.AWS.IAWSSDKConfig.Region.get -> Amazon.RegionEndpoint?
 Aspire.Hosting.AWS.IAWSSDKConfig.Region.set -> void
+Aspire.Hosting.AWS.Lambda.AWSLambdaException
+Aspire.Hosting.AWS.Lambda.AWSLambdaException.AWSLambdaException(string! message, System.Exception? innerException = null) -> void
+Aspire.Hosting.AWS.Lambda.ILambdaFunction
+Aspire.Hosting.AWS.Lambda.ILambdaFunction.Runtime.get -> Aspire.Hosting.AWS.Lambda.LambdaRuntime!
+Aspire.Hosting.AWS.Lambda.ILambdaFunctionMetadata
+Aspire.Hosting.AWS.Lambda.ILambdaFunctionMetadata.Handler.get -> string!
+Aspire.Hosting.AWS.Lambda.ILambdaFunctionMetadata.OutputPath.get -> string?
+Aspire.Hosting.AWS.Lambda.ILambdaFunctionMetadata.ProjectPath.get -> string!
+Aspire.Hosting.AWS.Lambda.ILambdaFunctionMetadata.Traits.get -> string![]!
+Aspire.Hosting.AWS.Lambda.LambdaRuntime
+Aspire.Hosting.AWS.Lambda.LambdaRuntime.Equals(Aspire.Hosting.AWS.Lambda.LambdaRuntime? other) -> bool
+Aspire.Hosting.AWS.Lambda.LambdaRuntime.Name.get -> string!
+Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet
+Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet.Equals(Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet? other) -> bool
+Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet.Name.get -> string!
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.Disabled.get -> bool
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.Disabled.set -> void
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.DisableLaunchWindow.get -> bool
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.DisableLaunchWindow.set -> void
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.MockToolLambdaConfiguration() -> void
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.Port.get -> int
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.Port.set -> void
 Aspire.Hosting.CloudFormationExtensions
+Aspire.Hosting.LambdaExtensions
 Aspire.Hosting.SDKResourceExtensions
+override Aspire.Hosting.AWS.Lambda.LambdaRuntime.Equals(object? obj) -> bool
+override Aspire.Hosting.AWS.Lambda.LambdaRuntime.GetHashCode() -> int
+override Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet.Equals(object? obj) -> bool
+override Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet.GetHashCode() -> int
+static Aspire.Hosting.AWS.Lambda.LambdaRuntime.Custom(string! name) -> Aspire.Hosting.AWS.Lambda.LambdaRuntime!
+static Aspire.Hosting.AWS.Lambda.LambdaRuntime.Dotnet6.get -> Aspire.Hosting.AWS.Lambda.LambdaRuntime!
+static Aspire.Hosting.AWS.Lambda.LambdaRuntime.Dotnet8.get -> Aspire.Hosting.AWS.Lambda.LambdaRuntime!
+static Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet.Default.get -> Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet!
+static Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet.Dotnet6.get -> Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet!
+static Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet.Dotnet8.get -> Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet!
 static Aspire.Hosting.CloudFormationExtensions.AddAWSCloudFormationStack(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! stackName) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CloudFormation.ICloudFormationStackResource!>!
 static Aspire.Hosting.CloudFormationExtensions.AddAWSCloudFormationTemplate(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! stackName, string! templatePath) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource!>!
 static Aspire.Hosting.CloudFormationExtensions.GetOutput(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource!>! builder, string! name) -> Aspire.Hosting.AWS.CloudFormation.StackOutputReference!
@@ -44,6 +78,14 @@ static Aspire.Hosting.CloudFormationExtensions.WithReference(this Aspire.Hosting
 static Aspire.Hosting.CloudFormationExtensions.WithReference(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource!>! builder, Amazon.CloudFormation.IAmazonCloudFormation! cloudFormationClient) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource!>!
 static Aspire.Hosting.CloudFormationExtensions.WithReference(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource!>! builder, Aspire.Hosting.AWS.IAWSSDKConfig! awsSdkConfig) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource!>!
 static Aspire.Hosting.CloudFormationExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource!>! cloudFormationResourceBuilder, string! configSection = "AWS::Resources") -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
+static Aspire.Hosting.LambdaExtensions.AddAWSLambdaToolsSupport(this Aspire.Hosting.IDistributedApplicationBuilder! builder) -> Aspire.Hosting.IDistributedApplicationBuilder!
+static Aspire.Hosting.LambdaExtensions.AddLambdaFunction(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.AWS.Lambda.LambdaRuntime! runtime, string! handler, string! relativePath) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.Lambda.ILambdaFunction!>!
+static Aspire.Hosting.LambdaExtensions.AddLambdaFunction<TLambda>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.Lambda.ILambdaFunction!>!
+static Aspire.Hosting.LambdaExtensions.AddLambdaFunction<TLambda>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet! runtime, System.Action<Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration!>? configureMockTool) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.Lambda.ILambdaFunction!>!
+static Aspire.Hosting.LambdaExtensions.AddLambdaFunction<TLambda>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration!>! configureMockTool) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.Lambda.ILambdaFunction!>!
+static Aspire.Hosting.LambdaExtensions.DisableMockToolLambda(this Aspire.Hosting.IDistributedApplicationBuilder! builder) -> Aspire.Hosting.IDistributedApplicationBuilder!
+static Aspire.Hosting.LambdaExtensions.GetFunctionMetadata(this Aspire.Hosting.AWS.Lambda.ILambdaFunction! function) -> Aspire.Hosting.AWS.Lambda.ILambdaFunctionMetadata!
+static Aspire.Hosting.LambdaExtensions.SetAsDefaultFunctionInProject(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.Lambda.ILambdaFunction!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.Lambda.ILambdaFunction!>!
 static Aspire.Hosting.SDKResourceExtensions.AddAWSSDKConfig(this Aspire.Hosting.IDistributedApplicationBuilder! builder) -> Aspire.Hosting.AWS.IAWSSDKConfig!
 static Aspire.Hosting.SDKResourceExtensions.WithProfile(this Aspire.Hosting.AWS.IAWSSDKConfig! config, string! profile) -> Aspire.Hosting.AWS.IAWSSDKConfig!
 static Aspire.Hosting.SDKResourceExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.AWS.IAWSSDKConfig! awsSdkConfig) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!

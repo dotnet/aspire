@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AWSProjectType>Lambda</AWSProjectType>
+    </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.SQSEvents" />
+    <PackageReference Include="Amazon.Lambda.S3Events" />
+    <PackageReference Include="Amazon.Lambda.Core" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" />
+    <PackageReference Include="Amazon.Lambda.ApiGatewayEvents" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="aws-lambda-tools-authorizer.json" />
+    <Content Include="aws-lambda-tools-authorizer.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="aws-lambda-tools-defaults.json" />
+    <Content Include="aws-lambda-tools-defaults.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="aws-lambda-tools-s3Function.json" />
+    <Content Include="aws-lambda-tools-s3Function.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Remove="aws-lambda-tools-sendEmail.json" />
+    <Content Include="aws-lambda-tools-sendEmail.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

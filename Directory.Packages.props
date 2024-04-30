@@ -17,6 +17,13 @@
     <PackageVersion Include="AWS.Messaging" Version="0.9.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.1.0-beta.3" />
     <PackageVersion Include="OpenTelemetry.Extensions.AWS" Version="1.3.0-beta.1" />
+    <PackageVersion Include="Amazon.Lambda.Core" Version="2.2.0" />
+    <PackageVersion Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
+    <PackageVersion Include="Amazon.Lambda.S3Events" Version="3.1.0" />
+    <PackageVersion Include="Amazon.Lambda.AspNetCoreServer.Hosting" Version="1.7.0" />
+    <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.1" />
+    <PackageVersion Include="Amazon.Lambda.RuntimeSupport" Version="1.10.0" />
+    <PackageVersion Include="Amazon.Lambda.ApiGatewayEvents" Version="2.7.0" />
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="1.0.0-beta.16" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.8.3" />

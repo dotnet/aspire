@@ -108,54 +108,46 @@ namespace Projects%3B
   </Target>
 
   <!--
-  Gets the references in 'AppProjectTargetFramework' that aren't executable projects.
+  Evaluate if referenced 'AppProjectTargetFramework' is an executable projects.
   -->
-  <UsingTask TaskName="GetNonExecutableReferences"
+  <UsingTask TaskName="EvaluateIsExecutableReference"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
-      <AppProjectTargetFramework ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
-      <NonExecutableReferences ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+      <AppProjectTargetFramework ParameterType="Microsoft.Build.Framework.ITaskItem" Required="true"/>
+      <IsExecutableReference ParameterType="System.String" Output="true"/>
     </ParameterGroup>
     <Task>
-      <Using Namespace="System.Xml.Linq" />
+      <Using Namespace="System.Xml.Linq"/>
+      <Using Namespace="System.Xml"/>
       <Code Type="Fragment" Language="cs">
         <![CDATA[
-          HashSet<ITaskItem> nonExecutableReferences = new HashSet<ITaskItem>();
+          IsExecutableReference = "unknown";
 
-          foreach (var appProject in AppProjectTargetFramework)
+          var additionalProperties = AppProjectTargetFramework.GetMetadata("AdditionalPropertiesFromProject");
+
+          if (!string.IsNullOrEmpty(additionalProperties))
           {
-            var additionalProperties = appProject.GetMetadata("AdditionalPropertiesFromProject");
-            if (string.IsNullOrEmpty(additionalProperties))
-            {
-              // Skip any projects that don't contain the right metadata
-              continue;
-            }
-
+            IsExecutableReference = "false";
             var additionalPropertiesXml = XElement.Parse(additionalProperties);
             foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
             {
               var isExe = targetFrameworkElement.Element("_IsExecutable");
-              if (isExe != null && !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
+              if (isExe != null && string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
               {
-                nonExecutableReferences.Add(appProject);
+                IsExecutableReference = "true";
+                break;
               }
             }
           }
-
-          NonExecutableReferences = nonExecutableReferences.ToArray();
         ]]>
       </Code>
     </Task>
   </UsingTask>
 
-  <!--
-  Validates that all the ProjectReferences of an Aspire AppHost project are executables and
-  informs the developer to set 'IsAspireProjectResource=false' if they really intended on ProjectReferencing a library.
-  -->
-  <Target Name="_ValidateAspireHostProjectResources"
+  <Target Name="_EvaluateAspireHostProjectReferences"
           DependsOnTargets="_CreateAspireProjectResources"
-          Condition="'$(IsAspireHost)' == 'true' and '$(SkipValidateAspireHostProjectResources)' != 'true'">
+          Outputs="%(_AspireProjectResource.FullPath)">
 
     <MSBuild Projects="@(_AspireProjectResource)"
              Targets="GetTargetFrameworks"
@@ -164,16 +156,38 @@ namespace Projects%3B
              ContinueOnError="!$(BuildingProject)"
              RemoveProperties="%(_AspireProjectResource.GlobalPropertiesToRemove);TargetFramework;RuntimeIdentifier;SelfContained;$(_GlobalPropertiesToRemoveFromProjectReferences)"
              SkipNonexistentTargets="true">
-      <Output TaskParameter="TargetOutputs" ItemName="_AspireProjectResourceTargetFramework" />
+      <Output TaskParameter="TargetOutputs" ItemName="_ProjectResourceTargetFramework"/>
     </MSBuild>
 
-    <GetNonExecutableReferences AppProjectTargetFramework="@(_AspireProjectResourceTargetFramework)">
-      <Output TaskParameter="NonExecutableReferences" ItemName="_AspireNonExecutableProjectResource" />
-    </GetNonExecutableReferences>
+    <EvaluateIsExecutableReference AppProjectTargetFramework="@(_ProjectResourceTargetFramework)" Condition="'%(_AspireProjectResource.IsAspireProjectResource)' == 'true'">
+      <Output TaskParameter="IsExecutableReference" ItemName="_IsExecutableReference"/>
+    </EvaluateIsExecutableReference>
+
+    <ItemGroup>
+      <_AspireProjectResource Update="@(_AspireProjectResource)" Condition="'%(_AspireProjectResource.IsAspireProjectResource)' == 'true'">
+        <IsExecutableReference>@(_IsExecutableReference)</IsExecutableReference>
+      </_AspireProjectResource>
+    </ItemGroup>
+  </Target>
+
+  <!--
+  Validates that all the ProjectReferences of an Aspire AppHost project are executables and
+  informs the developer to set 'IsAspireProjectResource=false' if they really intended on ProjectReferencing a library.
+  If 'IsAspireIntegratedClassLibrary=true', a referenced class library does not produce a warning.
+  -->
+  <Target Name="_ValidateAspireHostProjectResources"
+          DependsOnTargets="_EvaluateAspireHostProjectReferences"
+          Condition="'$(IsAspireHost)' == 'true' and '$(SkipValidateAspireHostProjectResources)' != 'true'"
+          Outputs="%(_AspireProjectResource.FullPath)">
+
+    <PropertyGroup>
+      <WarningIsWarranted Condition="'%(_AspireProjectResource.IsAspireProjectResource)' == 'true' and '%(_AspireProjectResource.IsExecutableReference)' != 'true' and '%(_AspireProjectResource.IsAspireIntegratedClassLibrary)' != 'true'">true</WarningIsWarranted>
+      <OriginalItemSpec Condition="'$(WarningIsWarranted)' == 'true'">$([System.IO.Path]::GetRelativePath($(MSBuildProjectDirectory), %(_AspireProjectResource.FullPath)))</OriginalItemSpec>
+    </PropertyGroup>
 
     <Warning Code="ASPIRE004"
-             Condition="'@(_AspireNonExecutableProjectResource)' != ''"
-             Text="'%(_AspireNonExecutableProjectResource.OriginalItemSpec)' is referenced by an Aspire Host project, but it is not an executable. Did you mean to set IsAspireProjectResource=&quot;false&quot;?" />
+             Condition="'$(WarningIsWarranted)' == 'true'"
+             Text="'$(OriginalItemSpec)' is referenced by an Aspire Host project, but it is not an executable. Did you mean to set IsAspireProjectResource=&quot;false&quot;?"/>
   </Target>
 
   <PropertyGroup>

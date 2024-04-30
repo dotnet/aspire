@@ -1,0 +1,43 @@
+{
+  "resources": {
+    "api": {
+      "type": "aws.lambda.function.v0",
+      "path": "../LambdaRestApi/LambdaRestApi.csproj",
+      "handler": "MyRestApi",
+      "runtime": "dotnet8"
+    },
+    "executableApi": {
+      "type": "aws.lambda.function.v0",
+      "path": "../ExecutableLambdaHttpApi/ExecutableLambdaHttpApi.csproj",
+      "handler": "ExecutableLambdaHttpApi",
+      "runtime": "dotnet8"
+    },
+    "orderFunction": {
+      "type": "aws.lambda.function.v0",
+      "path": "../ClassLibraryFunctions/ClassLibraryFunctions.csproj",
+      "handler": "ClassLibraryFunctions::ClassLibraryFunctions.OrderFunction::HandleAsync",
+      "runtime": "dotnet8"
+    },
+    "sendEmail": {
+      "type": "aws.lambda.function.v0",
+      "path": "../ClassLibraryFunctions/ClassLibraryFunctions.csproj",
+      "handler": "ClassLibraryFunctions::ClassLibraryFunctions.EmailFunction::InformCustomer",
+      "runtime": "dotnet8",
+      "env": {
+        "SEND_FROM": "no-reply@example.com"
+      }
+    },
+    "authorizer": {
+      "type": "aws.lambda.function.v0",
+      "path": "../ClassLibraryFunctions/ClassLibraryFunctions.csproj",
+      "handler": "ClassLibraryFunctions::ClassLibraryFunctions.Authorizer::Authorize",
+      "runtime": "dotnet8"
+    },
+    "s3Function": {
+      "type": "aws.lambda.function.v0",
+      "path": "../ClassLibraryFunctions/ClassLibraryFunctions.csproj",
+      "handler": "ClassLibraryFunctions::ClassLibraryFunctions.Functions.S3Function::Handle",
+      "runtime": "dotnet8"
+    }
+  }
+}
