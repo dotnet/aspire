@@ -53,6 +53,12 @@ public class TestProgram : IDisposable
 
             NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
                 .WithHttpEndpoint(port: 5032, env: "PORT");
+
+            YarnAppBuilder = AppBuilder.AddYarnApp("yarnapp", path, "start")
+                .WithHttpEndpoint(port: 5032, env: "PORT");
+
+            PnpmAppBuilder = AppBuilder.AddPnpmApp("pnpmapp", path, "start")
+                .WithHttpEndpoint(port: 5032, env: "PORT");
         }
 
         if (includeIntegrationServices)
@@ -133,6 +139,8 @@ public class TestProgram : IDisposable
     public IResourceBuilder<ProjectResource>? IntegrationServiceABuilder { get; private set; }
     public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
     public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
+    public IResourceBuilder<NodeAppResource>? YarnAppBuilder { get; private set; }
+    public IResourceBuilder<NodeAppResource>? PnpmAppBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public List<IResourceBuilder<ProjectResource>> ServiceProjectBuilders => [ServiceABuilder, ServiceBBuilder, ServiceCBuilder];

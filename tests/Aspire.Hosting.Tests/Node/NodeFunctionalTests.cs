@@ -26,8 +26,12 @@ public class NodeFunctionalTests
 
         var response0 = await testProgram.NodeAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
         var response1 = await testProgram.NpmAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
+        var response2 = await testProgram.YarnAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
+        var response3 = await testProgram.PnpmAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
 
         Assert.Equal("Hello from node!", response0);
         Assert.Equal("Hello from node!", response1);
+        Assert.Equal("Hello from node!", response2);
+        Assert.Equal("Hello from node!", response3);
     }
 }
