@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Test Project (NUnit)",
-  "description": "A project that contains NUnit integration tests of a .NET Aspire AppHost project.",
+  "name": ".NET Aspire-Testprojekt (NUnit)",
+  "description": "Ein Projekt, das NUnit Integrationstests eines .NET AppHost-Projekts enthält.",
   "symbols/Framework/description": "Das Zielframework für das Projekt.",
   "symbols/Framework/choices/net8.0/description": "Ziel net8.0",
   "symbols/skipRestore/description": "Wenn angegeben, wird die automatische Wiederherstellung des Projekts beim Erstellen übersprungen.",
