@@ -38,7 +38,7 @@
     <MicrosoftExtensionsLoggingAbstractionsPackageVersion>9.0.0-preview.2.24128.5</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
     <MicrosoftExtensionsOptionsPackageVersion>9.0.0-preview.2.24128.5</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>9.0.0-preview.2.24128.5</MicrosoftExtensionsPrimitivesPackageVersion>
-    <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.3</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
+    <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.4</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>9.0.0-preview.2.24128.4</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
     <MicrosoftAspNetCoreOpenApiPackageVersion>9.0.0-preview.2.24128.4</MicrosoftAspNetCoreOpenApiPackageVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>9.0.0-preview.2.24128.4</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
