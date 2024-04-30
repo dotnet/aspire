@@ -14,6 +14,7 @@ internal sealed class ServiceEndpointImpl(EndPoint endPoint, IFeatureCollection?
 
     public override string? ToString() => EndPoint switch
     {
+        IPEndPoint ip when ip.Port == 0 && ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 => $"[{ip.Address}]",
         IPEndPoint ip when ip.Port == 0 => $"{ip.Address}",
         DnsEndPoint dns when dns.Port == 0 => $"{dns.Host}",
         DnsEndPoint dns => $"{dns.Host}:{dns.Port}",
