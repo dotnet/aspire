@@ -13,13 +13,14 @@
   </PropertyGroup>
   <PropertyGroup Label="Manual">
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
-    <MicrosoftDotnetSdkInternalPackageVersion>9.0.100-preview.1.24073.29</MicrosoftDotnetSdkInternalPackageVersion>
     <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.4</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>9.0.0-preview.2.24128.4</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24212.4</MicrosoftDotNetBuildTasksInstallersPackageVersion>
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24212.4</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
     <MicrosoftDotNetRemoteExecutorPackageVersion>9.0.0-beta.24212.4</MicrosoftDotNetRemoteExecutorPackageVersion>
+    <MicrosoftDotnetSdkInternalPackageVersion>9.0.100-preview.1.24073.29</MicrosoftDotnetSdkInternalPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24212.4</MicrosoftDotNetXUnitExtensionsPackageVersion>
+    <MicrosoftEntityFrameworkCoreDesignPackageVersion>9.0.0-preview.1.24081.2</MicrosoftEntityFrameworkCoreDesignPackageVersion>
   </PropertyGroup>
   <PropertyGroup Label="Automated">
     <!-- microsoft/usvc-apiserver -->
@@ -50,7 +51,7 @@
     <MicrosoftExtensionsFeaturesPackageVersion>9.0.0-preview.5.24229.11</MicrosoftExtensionsFeaturesPackageVersion>
     <!-- dotnet/efcore -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>9.0.0-preview.2.24128.4</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
-    <MicrosoftEntityFrameworkCoreDesignPackageVersion>9.0.0-preview.1.24081.2</MicrosoftEntityFrameworkCoreDesignPackageVersion>
+    <MicrosoftEntityFrameworkCoreRelationalPackageVersion>9.0.0-preview.5.24223.6</MicrosoftEntityFrameworkCoreRelationalPackageVersion>
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>9.0.0-preview.5.24223.6</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>9.0.0-preview.5.24223.6</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.4.24208.7</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
