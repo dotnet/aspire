@@ -5,6 +5,8 @@ using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
 using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Producer;
+
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
@@ -99,6 +101,49 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
             throw new InvalidOperationException(
                 $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
                 $"the '{configurationSectionName}' configuration section.");
+        }
+    }
+    protected sealed class AzureEventHubHealthCheck : IHealthCheck, IAsyncDisposable
+    {
+        private readonly EventHubProducerClient _probe;
+
+        public AzureEventHubHealthCheck(TSettings settings)
+        {
+            var probeOptions = new EventHubProducerClientOptions
+            {
+                Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
+                RetryOptions = new EventHubsRetryOptions()
+                {
+                    Mode = EventHubsRetryMode.Exponential,
+                    MaximumRetries = 3,
+                    Delay = TimeSpan.FromMilliseconds(800),
+                    MaximumDelay = TimeSpan.FromSeconds(10)
+                }
+            };
+
+            // At this point, the connection string or credential should already be validated by the AddClient call
+            _probe = !string.IsNullOrEmpty(settings.ConnectionString) ?
+                new EventHubProducerClient(settings.ConnectionString, probeOptions) :
+                new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential, probeOptions);
+        }
+
+        /// <inheritdoc />
+        public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await _probe.GetEventHubPropertiesAsync(cancellationToken).ConfigureAwait(false);
+                return HealthCheckResult.Healthy();
+            }
+            catch (Exception ex)
+            {
+                return new HealthCheckResult(context.Registration.FailureStatus, exception: ex);
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await _probe.DisposeAsync().ConfigureAwait(false);
         }
     }
 }
