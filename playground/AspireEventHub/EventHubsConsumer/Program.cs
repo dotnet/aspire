@@ -1,3 +1,4 @@
+using Azure.Identity;
 using EventHubsConsumer;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -14,6 +15,7 @@ if (useConsumer)
         settings =>
         {
             settings.EventHubName = "hub";
+            settings.Credential = new AzureCliCredential();
         });
 
     builder.Services.AddHostedService<Consumer>();
@@ -28,6 +30,7 @@ else
         settings =>
         {
             settings.EventHubName = "hub";
+            settings.Credential = new AzureCliCredential();
         });
     builder.Services.AddHostedService<Processor>();
     Console.WriteLine("Starting EventProcessorClient...");

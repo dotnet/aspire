@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 
@@ -8,6 +9,7 @@ builder.AddServiceDefaults();
 builder.AddAzureEventHubProducerClient("eventhubns", settings =>
 {
     settings.EventHubName = "hub";
+    settings.Credential = new AzureCliCredential();
 });
 
 var app = builder.Build();

@@ -7,6 +7,7 @@ using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Primitives;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -55,4 +56,8 @@ internal sealed class PartitionReceiverClientComponent()
 
         }, requiresCredential: false);
     }
+
+    protected override bool GetHealthCheckEnabled(AzureMessagingEventHubsPartitionReceiverSettings settings) => true;
+
+    protected override IHealthCheck CreateHealthCheck(PartitionReceiver client, AzureMessagingEventHubsPartitionReceiverSettings settings) => new AzureEventHubHealthCheck(settings);
 }

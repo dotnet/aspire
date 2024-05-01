@@ -10,6 +10,7 @@ using Azure.Storage.Blobs;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -117,4 +118,9 @@ internal sealed class EventProcessorClientComponent()
 
         return containerClient;
     }
+
+    protected override bool GetHealthCheckEnabled(AzureMessagingEventHubsProcessorSettings settings) => true;
+
+    protected override IHealthCheck CreateHealthCheck(EventProcessorClient client, AzureMessagingEventHubsProcessorSettings settings) => new AzureEventHubHealthCheck(settings);
 }
+
