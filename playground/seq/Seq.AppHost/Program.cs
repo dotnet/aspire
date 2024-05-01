@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var seq = builder.AddSeq("seq");
 
-builder.AddProject<Projects.Seq__ApiService>("api")
+builder.AddProject<Projects.Seq_ApiService>("api")
     .WithExternalHttpEndpoints()
     .WithReference(seq);
 
@@ -14,6 +14,6 @@ builder.AddProject<Projects.Seq__ApiService>("api")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire__Dashboard>("aspire-dashboard");
+builder.AddProject<Projects.Aspire_Dashboard>("aspire-dashboard");
 
 builder.Build().Run();

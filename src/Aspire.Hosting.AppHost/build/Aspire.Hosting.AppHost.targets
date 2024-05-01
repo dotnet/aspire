@@ -24,8 +24,8 @@
           DependsOnTargets="_CreateAspireProjectResources">
     <ItemGroup>
       <AspireProjectMetadataSource Include="@(_AspireProjectResource)" Condition="'@(_AspireProjectResource)' != ''">
-        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity)).Replace(".", "__").Replace("-","_").Replace(" ","_"))</ClassName>
-        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.String]::Copy(%(_AspireProjectResource.AspireProjectMetadataTypeName)).Replace(".", "__").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.String]::Copy(%(_AspireProjectResource.AspireProjectMetadataTypeName)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <ProjectPath>$([System.IO.Path]::GetFullPath(%(_AspireProjectResource.Identity)))</ProjectPath>
       </AspireProjectMetadataSource>
 		</ItemGroup>
@@ -53,7 +53,6 @@ namespace Projects%3B
     <WriteLinesToFile File="$(_AspireIntermediatePath)references\%(AspireProjectMetadataSource.ClassName).ProjectMetadata.g.cs"
                       Overwrite="true"
                       Lines="%(AspireProjectMetadataSource.Source)"
-                      Encoding="Unicode"
                       Condition="%(AspireProjectMetadataSource.ClassName) != ''"
                       WriteOnlyWhenDifferent="true" />
     <ItemGroup>
@@ -66,7 +65,7 @@ namespace Projects%3B
   <Target Name="CreateAspireHostProjectMetadataSources">
     <ItemGroup>
       <AspireHostProjectMetadataSource Include="$(MSBuildProjectDirectory)">
-        <ClassName>$([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile)).Replace(".", "__").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName>$([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <ProjectPath>$(MSBuildProjectDirectory)</ProjectPath>
       </AspireHostProjectMetadataSource>
     </ItemGroup>
@@ -95,7 +94,6 @@ namespace Projects%3B
     <WriteLinesToFile File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
                       Overwrite="true"
                       Lines="%(AspireHostProjectMetadataSource.Source)"
-                      Encoding="Unicode"
                       WriteOnlyWhenDifferent="true" />
     <ItemGroup>
       <FileWrites Include="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs" />

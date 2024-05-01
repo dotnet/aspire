@@ -88,7 +88,7 @@ var appInsights = builder.AddAzureApplicationInsights(
     appInsights.Properties.IngestionMode = ComponentIngestionMode.LogAnalytics;
 });
 
-builder.AddProject<Projects.CdkSample__ApiService>("api")
+builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()
     .WithReference(signalr)
     .WithReference(blobs)
@@ -107,6 +107,6 @@ builder.AddProject<Projects.CdkSample__ApiService>("api")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire__Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();

@@ -10,7 +10,7 @@ var catalogDb = builder.AddMySql("mysql")
     .WithPhpMyAdmin()
     .AddDatabase(catalogDbName);
 
-builder.AddProject<Projects.MySql__ApiService>("apiservice")
+builder.AddProject<Projects.MySql_ApiService>("apiservice")
     .WithExternalHttpEndpoints()
     .WithReference(catalogDb);
 

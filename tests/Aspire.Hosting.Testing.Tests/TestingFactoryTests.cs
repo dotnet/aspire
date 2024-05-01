@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingAppHost1__AppHost> fixture) : IClassFixture<DistributedApplicationFixture<Projects.TestingAppHost1__AppHost>>
+public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingAppHost1_AppHost> fixture) : IClassFixture<DistributedApplicationFixture<Projects.TestingAppHost1_AppHost>>
 {
     private readonly DistributedApplication _app = fixture.Application;
 

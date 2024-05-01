@@ -344,6 +344,36 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Whether to turn off HTTPS."
+    },
+    "GeneratedClassNamePrefix": {
+      "type": "generated",
+      "generator": "regex",
+      "datatype": "string",
+      "replaces": "GeneratedClassNamePrefix",
+      "parameters": {
+        "source": "name",
+        "steps": [
+          {
+            "regex": "\\.",
+            "replacement": "_"
+          },
+          {
+            "regex": "\\-",
+            "replacement": "_"
+          },
+          {
+            "regex": "[ ]",
+            "replacement": "_"
+          }
+        ]
+      }
+    },
+    "XmlEncodedProjectName": {
+      "type": "derived",
+      "datatype": "string",
+      "replaces": "XmlEncodedProjectName",
+      "valueSource": "name",
+      "valueTransform": "xmlEncode"
     }
   },
   "primaryOutputs": [

@@ -16,8 +16,8 @@ public class TestingBuilderTests
     public async Task HasEndPoints(bool genericEntryPoint)
     {
         var appHost = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1__AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1__AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
@@ -38,8 +38,8 @@ public class TestingBuilderTests
     public async Task CanGetResources(bool genericEntryPoint)
     {
         var appHost = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1__AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1__AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
@@ -55,8 +55,8 @@ public class TestingBuilderTests
     public async Task HttpClientGetTest(bool genericEntryPoint)
     {
         var appHost = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1__AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1__AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
@@ -72,8 +72,8 @@ public class TestingBuilderTests
     public async Task GetHttpClientBeforeStart(bool genericEntryPoint)
     {
         var appHost = await (genericEntryPoint
-            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1__AppHost>()
-            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1__AppHost)));
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         Assert.Throws<InvalidOperationException>(() => app.CreateHttpClient("mywebapp1"));
     }

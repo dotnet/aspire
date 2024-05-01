@@ -3,8 +3,8 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 builder.AddRedis("redis1");
-builder.AddProject<Projects.TestingAppHost1__MyWebApp>("mywebapp1");
-builder.AddProject<Projects.TestingAppHost1__MyWorker>("myworker1")
+builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1");
+builder.AddProject<Projects.TestingAppHost1_MyWorker>("myworker1")
     .WithEndpoint(name: "myendpoint1");
 builder.AddPostgres("postgres1");
 builder.Build().Run();

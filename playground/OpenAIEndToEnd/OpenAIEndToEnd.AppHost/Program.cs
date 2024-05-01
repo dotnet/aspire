@@ -8,7 +8,7 @@ var openai = builder.AddAzureOpenAI("openai").AddDeployment(
     new(deploymentAndModelName, deploymentAndModelName, "0613")
     );
 
-builder.AddProject<Projects.OpenAIEndToEnd__WebStory>("webstory")
+builder.AddProject<Projects.OpenAIEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
        .WithReference(openai)
        .WithEnvironment("OpenAI__DeploymentName", deploymentAndModelName);
@@ -18,6 +18,6 @@ builder.AddProject<Projects.OpenAIEndToEnd__WebStory>("webstory")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire__Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();

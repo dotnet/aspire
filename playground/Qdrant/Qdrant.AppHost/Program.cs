@@ -6,7 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var qdrant = builder.AddQdrant("qdrant")
     .WithDataVolume("qdrant-data");
 
-builder.AddProject<Projects.Qdrant__ApiService>("apiservice")
+builder.AddProject<Projects.Qdrant_ApiService>("apiservice")
     .WithExternalHttpEndpoints()
     .WithReference(qdrant);
 

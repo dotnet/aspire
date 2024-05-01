@@ -8,7 +8,7 @@ var redis = builder.AddRedis("redis", 9999).WithEndpoint("tcp", (endpoint) =>
     endpoint.IsProxied = false;
 });
 
-builder.AddProject<Projects.ProxylessEndToEnd__ApiService>("api")
+builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api")
     .WithEndpoint("http", e =>
     {
         e.IsProxied = false;
@@ -16,7 +16,7 @@ builder.AddProject<Projects.ProxylessEndToEnd__ApiService>("api")
     })
     .WithReference(redis);
 
-builder.AddProject<Projects.ProxylessEndToEnd__ApiService>("api2", launchProfileName: null)
+builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api2", launchProfileName: null)
     .WithHttpEndpoint(port: 13456)
     .WithReference(redis);
 
@@ -25,6 +25,6 @@ builder.AddProject<Projects.ProxylessEndToEnd__ApiService>("api2", launchProfile
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire__Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();
