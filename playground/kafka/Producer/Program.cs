@@ -6,11 +6,9 @@ using Producer;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-var kafka = args[0];
-
 builder.AddServiceDefaults();
-builder.AddKafkaProducer<string, string>(kafka);
-builder.AddKafkaProducer<Null, string>(kafka);
+builder.AddKafkaProducer<string, string>("kafka");
+builder.AddKafkaProducer<Null, string>("kafka");
 
 builder.Services.AddHostedService<IntermittentProducerWorker>();
 builder.Services.AddHostedService<ContinuousProducerWorker>();

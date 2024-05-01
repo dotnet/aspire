@@ -6,10 +6,8 @@ using Consumer;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-var kafka = args[0];
-
 builder.AddServiceDefaults();
-builder.AddKafkaConsumer<Ignore, string>(kafka);
+builder.AddKafkaConsumer<Ignore, string>("kafka");
 
 builder.Services.AddHostedService<ConsumerWorker>();
 
