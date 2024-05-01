@@ -433,3 +433,7 @@ fluent-data-grid-cell.no-ellipsis {
 .filter-input-container {
     width: 75%;
 }
+
+fluent-toolbar > .fluent-input-label {
+    margin-bottom: 0 !important;
+}
