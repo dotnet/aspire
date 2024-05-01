@@ -157,10 +157,7 @@ public class SchemaTests
     {
         _ = testCaseName;
 
-        var builder = TestDistributedApplicationBuilder.Create(new DistributedApplicationOptions
-        {
-            Args = ["--publisher", "manifest", "--output-path", "not-used.json"]
-        });
+        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "not-used.json"]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         configurator(builder);
 
