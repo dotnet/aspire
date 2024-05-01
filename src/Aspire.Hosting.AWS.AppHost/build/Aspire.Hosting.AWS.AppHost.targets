@@ -1,0 +1,154 @@
+<Project>
+
+  <Target Name="CreateLambdaProjectMetadataSources" DependsOnTargets="_EvaluateIsAwsLambdaProjectReference">
+    <ItemGroup>
+      <LambdaProjectMetadataSource Include="@(_AspireProjectResource)" Condition="'%(_AspireProjectResource.IsAWSProjectTypeLambda)' == 'true'">
+        <ProjectPath>$([System.IO.Path]::GetFullPath(%(_AspireProjectResource.FullPath)))</ProjectPath>
+        <MetadataTypeName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</MetadataTypeName>
+        <MetadataTypeName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.String]::Copy(%(_AspireProjectResource.AspireProjectMetadataTypeName)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</MetadataTypeName>
+      </LambdaProjectMetadataSource>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CalculateLambdaTargetOutputPaths" DependsOnTargets="CreateLambdaProjectMetadataSources" Outputs="%(LambdaProjectMetadataSource.ProjectPath)">
+    <MSBuild Projects="@(LambdaProjectMetadataSource)"
+             BuildInParallel="true"
+             Properties="%(LambdaProjectMetadataSource.SetConfiguration); %(LambdaProjectMetadataSource.SetPlatform)"
+             RemoveProperties="%(LambdaProjectMetadataSource.GlobalPropertiesToRemove);TargetFramework;RuntimeIdentifier;SelfContained;$(_GlobalPropertiesToRemoveFromProjectReferences)"
+             SkipNonexistentTargets="true"
+             Targets="GetTargetPath">
+      <Output TaskParameter="TargetOutputs" PropertyName="LambdaTargetOutputPath" />
+    </MSBuild>
+
+    <ItemGroup>
+      <LambdaProjectMetadataSource Update="@(LambdaProjectMetadataSource)">
+        <TargetOutputPath>$(LambdaTargetOutputPath)</TargetOutputPath>
+        <MetadataOutputPath>$(_AspireIntermediatePath)references\%(MetadataTypeName).LambdaProjectMetadata.g.cs</MetadataOutputPath>
+      </LambdaProjectMetadataSource>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="WriteProjectMetadataGeneratorRspFile"
+          Inputs="@(IntermediateAssembly);%(LambdaProjectMetadataSource.TargetOutputPath)"
+          Outputs="%(LambdaProjectMetadataSource.MetadataTypeName)" DependsOnTargets="CalculateLambdaTargetOutputPaths">
+    <PropertyGroup>
+      <ProjectPathInput>"%(LambdaProjectMetadataSource.FullPath)"</ProjectPathInput>
+      <AssemblyPathInput>"%(LambdaProjectMetadataSource.TargetOutputPath)"</AssemblyPathInput>
+      <OutputPathInput>"%(LambdaProjectMetadataSource.MetadataOutputPath)"</OutputPathInput>
+      <MetadataTypeNameInput>"%(LambdaProjectMetadataSource.MetadataTypeName)"</MetadataTypeNameInput>
+      <MethodFilterInput>"$(AspireAWSLambdaMetadataMethodFilter)"</MethodFilterInput>
+      <TypeFilterInput>"$(AspireAWSLambdaMetadataTypeFilter)"</TypeFilterInput>
+      <IsExecutableReferenceInput>"%(LambdaProjectMetadataSource.IsExecutableReference)"</IsExecutableReferenceInput>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ConfigSchemaGenArg Include="aws-lambda-metadata"/>
+      <ConfigSchemaGenArg Include="--project-path $(ProjectPathInput)"/>
+      <ConfigSchemaGenArg Include="--assembly-path $(AssemblyPathInput)"/>
+      <ConfigSchemaGenArg Include="--output-path $(OutputPathInput)"/>
+      <ConfigSchemaGenArg Include="--metadata-type-name $(MetadataTypeNameInput)"/>
+      <ConfigSchemaGenArg Include="--method-filter $(MethodFilterInput)"/>
+      <ConfigSchemaGenArg Include="--type-filter $(TypeFilterInput)"/>
+      <ConfigSchemaGenArg Include="--is-executable $(IsExecutableReferenceInput)"/>
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(IntermediateOutputPath)%(LambdaProjectMetadataSource.MetadataTypeName).rsp"
+                      Lines="@(ConfigSchemaGenArg)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <PropertyGroup>
+    <_MetadataGeneratorPath>$(MSBuildThisFileDirectory)../lib/$(TargetFramework)/ProjectMetadataGenerator.dll</_MetadataGeneratorPath>
+    <_MetadataGeneratorPath>$([System.IO.Path]::GetFullPath($(_MetadataGeneratorPath)))</_MetadataGeneratorPath>
+    <MetadataGeneratorPath Condition="'$(MetadataGeneratorPath)' == ''">$(_MetadataGeneratorPath)</MetadataGeneratorPath>
+  </PropertyGroup>
+
+  <Target Name="WriteLambdaProjectMetadataExec"
+          DependsOnTargets="WriteProjectMetadataGeneratorRspFile;"
+          Inputs="@(IntermediateAssembly);%(LambdaProjectMetadataSource.TargetOutputPath)"
+          Outputs="%(LambdaProjectMetadataSource.MetadataTypeName)">
+
+    <PropertyGroup>
+      <RspPath>$(IntermediateOutputPath)%(LambdaProjectMetadataSource.MetadataTypeName).rsp</RspPath>
+      <GeneratorCommandLine>"$(DotNetTool)" exec $(MetadataGeneratorPath)</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) @$(RspPath)</GeneratorCommandLine>
+    </PropertyGroup>
+
+    <Exec Command="$(GeneratorCommandLine)" />
+
+    <ItemGroup>
+      <FileWrites Include="$(_AspireIntermediatePath)references\%(LambdaProjectMetadataSource.MetadataTypeName).LambdaProjectMetadata.g.cs"/>
+      <Compile Include="$(_AspireIntermediatePath)references\%(LambdaProjectMetadataSource.MetadataTypeName).LambdaProjectMetadata.g.cs"
+               Condition="%(LambdaProjectMetadataSource.MetadataTypeName) != ''" />
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <WriteLambdaProjectMetadataSourcesDependsOn>WriteLambdaProjectMetadataExec</WriteLambdaProjectMetadataSourcesDependsOn>
+  </PropertyGroup>
+
+  <Target Name="WriteLambdaProjectMetadataSources" DependsOnTargets="$(WriteLambdaProjectMetadataSourcesDependsOn)" BeforeTargets="CoreCompile"/>
+
+  <!--
+  Find out if project has AWSProjectType=Lambda and IsExecutableReference=true/false.
+  -->
+  <UsingTask TaskName="GetAWSReferences"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ProjectPath ParameterType="System.String" Required="true"/>
+      <IsAWSProjectTypeLambda ParameterType="System.Boolean" Output="true"/>
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Xml.Linq"/>
+      <Using Namespace="System.Xml"/>
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+
+          IsAWSProjectTypeLambda = false;
+          var fileContents = File.ReadAllText(ProjectPath);
+          var doc = new XmlDocument();
+          doc.LoadXml(fileContents);
+
+          var properties = doc.SelectNodes("/Project/PropertyGroup/*");
+
+          if (properties is not null)
+          {
+            foreach (XmlElement property in properties)
+            {
+              var name = property.Name.ToLower();
+              var value = property.InnerText.ToLower();
+
+              if (name == "awsprojecttype" && value == "lambda")
+              {
+                  IsAWSProjectTypeLambda = true;
+                  break;
+              }
+            }
+          }
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+  Narrows project references elligible for Lambda Project Metadata Generation.
+  -->
+  <Target Name="_EvaluateIsAwsLambdaProjectReference"
+          DependsOnTargets="_EvaluateAspireHostProjectReferences" BeforeTargets="_ValidateAspireHostProjectResources"
+          Outputs="%(_AspireProjectResource.FullPath)">
+
+    <GetAWSReferences ProjectPath="%(_AspireProjectResource.FullPath)"
+                      Condition="'%(_AspireProjectResource.IsAspireProjectResource)' == 'true'">
+      <Output TaskParameter="IsAWSProjectTypeLambda" ItemName="_IsAWSProjectTypeLambda"/>
+    </GetAWSReferences>
+
+    <ItemGroup>
+      <_AspireProjectResource Update="@(_AspireProjectResource)" Condition="'%(_AspireProjectResource.IsAspireProjectResource)' == 'true'">
+        <IsAWSProjectTypeLambda>@(_IsAWSProjectTypeLambda)</IsAWSProjectTypeLambda>
+        <IsAspireIntegratedClassLibrary Condition="'@(_IsAWSProjectTypeLambda)' == 'true'">true</IsAspireIntegratedClassLibrary>
+      </_AspireProjectResource>
+    </ItemGroup>
+  </Target>
+</Project>
