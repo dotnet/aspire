@@ -7,7 +7,6 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 ### Prerequisites
 
 - Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-- Azure Service Bus namespace, learn more about how to [add a Service Bus namespace](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-dotnet-get-started-with-queues?#create-a-namespace-in-the-azure-portal). Alternatively, you can use a connection string, which is not recommended in production environments.
 
 ### Install the package
 
@@ -16,6 +15,26 @@ Install the .NET Aspire Azure Service Bus Hosting library with [NuGet](https://w
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.ServiceBus
 ```
+
+## Configure Azure Provisioning for local development
+
+Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
+to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
+automatically.
+
+```json
+{
+    "Azure": {
+      "SubscriptionId": "<your subscription id>",
+      "ResourceGroupPrefix": "<prefix for the resource group>",
+      "Location": "<azure location>"
+    }
+}
+```
+
+> NOTE: Developers must have Owner access to the target subscription so that role assignments
+> can be configured for the provisioned resources.
 
 ## Usage example
 
@@ -28,7 +47,7 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(serviceBus);
 ```
 
-The `AddAzureServiceBus` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:sb` config key. The `WithReference` method passes that connection information into a connection string named `sb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using the client library [Aspire.Azure.Messaging.ServiceBus](https://www.nuget.org/packages/Aspire.Azure.Messaging.ServiceBus):
+The `WithReference` method passes that connection information into a connection string named `sb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using the client library [Aspire.Azure.Messaging.ServiceBus](https://www.nuget.org/packages/Aspire.Azure.Messaging.ServiceBus):
 
 ```csharp
 builder.AddAzureServiceBusClient("sb");

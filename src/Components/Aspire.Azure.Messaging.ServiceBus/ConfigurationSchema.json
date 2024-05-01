@@ -97,6 +97,15 @@
                       "type": "string",
                       "description": "Gets or sets the connection string used to connect to the Service Bus namespace."
                     },
+                    "DisableTracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                      "default": false
+                    },
+                    "FullyQualifiedNamespace": {
+                      "type": "string",
+                      "description": "Gets or sets the fully qualified Service Bus namespace."
+                    },
                     "HealthCheckQueueName": {
                       "type": "string",
                       "description": "Name of the queue used by the health check. Mandatory to get health checks enabled."
@@ -104,14 +113,6 @@
                     "HealthCheckTopicName": {
                       "type": "string",
                       "description": "Name of the topic used by the health check. Mandatory to get health checks enabled."
-                    },
-                    "Namespace": {
-                      "type": "string",
-                      "description": "Gets or sets the fully qualified Service Bus namespace."
-                    },
-                    "Tracing": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to Azure Service Bus."

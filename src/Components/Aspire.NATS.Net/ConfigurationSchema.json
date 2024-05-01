@@ -22,15 +22,15 @@
                   "type": "string",
                   "description": "Gets or sets the connection string of the NATS cluster to connect to."
                 },
-                "HealthChecks": {
+                "DisableHealthChecks": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the NATS health check is enabled or not.",
-                  "default": true
+                  "description": "Gets or sets a boolean value that indicates whether the NATS health check is disabled or not.",
+                  "default": false
                 },
-                "Tracing": {
+                "DisableTracing": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                  "default": true
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                  "default": false
                 }
               },
               "description": "Provides the client configuration settings for connecting to a NATS cluster."

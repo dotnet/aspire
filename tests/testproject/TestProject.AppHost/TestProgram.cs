@@ -1,15 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Lifecycle;
 using Aspire.TestProject;
+using Microsoft.Extensions.DependencyInjection;
 
 public class TestProgram : IDisposable
 {
-    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard, bool allowUnsecuredTransport)
+    private TestProgram(
+        string[] args,
+        string assemblyName,
+        bool disableDashboard,
+        bool includeIntegrationServices,
+        bool includeNodeApp,
+        bool allowUnsecuredTransport,
+        bool randomizePorts)
     {
         TestResourceNames resourcesToSkip = TestResourceNames.None;
         for (int i = 0; i < args.Length; i++)
@@ -32,7 +40,19 @@ public class TestProgram : IDisposable
             disableDashboard = true;
         }
 
-        AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName, AllowUnsecuredTransport = allowUnsecuredTransport });
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions()
+        {
+            Args = args,
+            DisableDashboard = disableDashboard,
+            AssemblyName = assemblyName,
+            AllowUnsecuredTransport = allowUnsecuredTransport,
+        });
+
+        builder.Configuration["DcpPublisher:DeleteResourcesOnShutdown"] = "true";
+        builder.Configuration["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}";
+        builder.Configuration["DcpPublisher:RandomizePorts"] = randomizePorts.ToString(CultureInfo.InvariantCulture);
+
+        AppBuilder = builder;
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
@@ -120,10 +140,26 @@ public class TestProgram : IDisposable
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
+        AppBuilder.Services.AddHttpClient();
     }
 
-    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true, bool allowUnsecuredTransport = true) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, includeNodeApp, disableDashboard, allowUnsecuredTransport);
+    public static TestProgram Create<T>(
+        string[]? args = null,
+        bool includeIntegrationServices = false,
+        bool includeNodeApp = false,
+        bool disableDashboard = true,
+        bool allowUnsecuredTransport = true,
+        bool randomizePorts = true)
+    {
+        return new TestProgram(
+            args ?? [],
+            assemblyName: typeof(T).Assembly.FullName!,
+            disableDashboard: disableDashboard,
+            includeIntegrationServices: includeIntegrationServices,
+            includeNodeApp: includeNodeApp,
+            allowUnsecuredTransport: allowUnsecuredTransport,
+            randomizePorts: randomizePorts);
+    }
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
@@ -139,20 +175,20 @@ public class TestProgram : IDisposable
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        App = AppBuilder.Build();
-        await App.RunAsync(cancellationToken);
+        var app = Build();
+        await app.RunAsync(cancellationToken);
     }
 
     public DistributedApplication Build()
     {
-        if (App == null)
-        {
-            App = AppBuilder.Build();
-        }
-        return App;
+        return App ??= AppBuilder.Build();
     }
 
-    public void Run() => Build().Run();
+    public void Run()
+    {
+        var app = Build();
+        app.Run();
+    }
 
     public void Dispose() => App?.Dispose();
 

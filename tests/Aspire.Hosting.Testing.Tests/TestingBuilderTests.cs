@@ -10,10 +10,14 @@ namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests
 {
-    [LocalOnlyFact]
-    public async Task HasEndPoints()
+    [LocalOnlyTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HasEndPoints(bool genericEntryPoint)
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
@@ -28,10 +32,14 @@ public class TestingBuilderTests
         Assert.True(pgConnectionString.Length > 0);
     }
 
-    [LocalOnlyFact]
-    public async Task CanGetResources()
+    [LocalOnlyTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CanGetResources(bool genericEntryPoint)
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
@@ -41,10 +49,14 @@ public class TestingBuilderTests
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
-    [LocalOnlyFact]
-    public async Task HttpClientGetTest()
+    [LocalOnlyTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HttpClientGetTest(bool genericEntryPoint)
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
@@ -53,11 +65,15 @@ public class TestingBuilderTests
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
     }
-    
-    [LocalOnlyFact]
-    public async Task GetHttpClientBeforeStart()
+
+    [LocalOnlyTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GetHttpClientBeforeStart(bool genericEntryPoint)
     {
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>();
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         Assert.Throws<InvalidOperationException>(() => app.CreateHttpClient("mywebapp1"));
     }

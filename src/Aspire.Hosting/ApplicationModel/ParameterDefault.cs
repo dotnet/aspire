@@ -27,6 +27,55 @@ public abstract class ParameterDefault
 /// <summary>
 /// Represents that a default value should be generated.
 /// </summary>
+/// <remarks>
+/// The recommended minimum bits of entropy for a generated password is 128 bits.
+///
+/// <para>
+/// The general calculation of bits of entropy is:
+/// </para>
+///
+/// <c>log base 2 (numberPossibleOutputs)</c>
+///
+/// <para>
+/// This generator uses 23 upper case, 23 lower case (excludes i,l,o,I,L,O to prevent confusion),
+/// 10 numeric, and 11 special characters. So a total of 67 possible characters.
+/// </para>
+/// 
+/// <para>
+/// When all character sets are enabled, the number of possible outputs is <c>(67 ^ length)</c>.
+/// The minimum password length for 128 bits of entropy is 22 characters: <c>log base 2 (67 ^ 22)</c>.
+/// </para>
+///
+/// <para>
+/// When character sets are disabled, it lowers the number of possible outputs and thus the bits of entropy.
+/// </para>
+///
+/// <para>
+/// Using MinLower, MinUpper, MinNumeric, and MinSpecial also lowers the number of possible outputs and thus the bits of entropy.
+/// </para>
+/// 
+/// <para>
+/// A generalized lower-bound formula for the number of possible outputs is to consider a string of the form:
+/// </para>
+///
+/// <code>
+/// {nonRequiredCharacters}{requiredCharacters}
+///
+/// let a = MinLower, b = MinUpper, c = MinNumeric, d = MinSpecial
+/// let x = length - (a + b + c + d)
+///
+/// nonRequiredPossibilities = 67^x
+/// requiredPossibilities = 23^a * 23^b * 10^c * 11^d * (a + b + c + d)! / (a! * b! * c! * d!)
+/// 
+/// lower-bound of total possibilities = nonRequiredPossibilities * requiredPossibilities
+/// </code>
+///
+/// Putting it all together, the lower-bound bits of entropy calculation is:
+///
+/// <code>
+/// log base 2 [67^x * 23^a * 23^b * 10^c * 11^d * (a + b + c + d)! / (a! * b! * c! * d!)]
+/// </code>
+/// </remarks>
 public sealed class GenerateParameterDefault : ParameterDefault
 {
     /// <summary>

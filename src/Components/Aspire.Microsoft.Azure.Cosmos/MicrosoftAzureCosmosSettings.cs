@@ -8,7 +8,7 @@ namespace Aspire.Microsoft.Azure.Cosmos;
 /// <summary>
 /// The settings relevant to accessing Azure Cosmos DB.
 /// </summary>
-public sealed class AzureCosmosDBSettings
+public sealed class MicrosoftAzureCosmosSettings
 {
     /// <summary>
     /// Gets or sets the connection string of the Azure Cosmos database to connect to.
@@ -16,12 +16,12 @@ public sealed class AzureCosmosDBSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool DisableTracing { get; set; }
 
     /// <summary>
     /// A <see cref="Uri"/> referencing the Azure Cosmos DB Endpoint.

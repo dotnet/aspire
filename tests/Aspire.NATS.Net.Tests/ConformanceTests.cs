@@ -60,10 +60,10 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
     }
 
     protected override void SetHealthCheck(NatsClientSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(NatsClientSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(NatsClientSettings options, bool enabled)
         => throw new NotImplementedException();
@@ -74,9 +74,9 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
                                                      "Nats": {
                                                        "Client": {
                                                          "ConnectionString": "YOUR_CONNECTION_STRING",
-                                                         "HealthChecks": false,
-                                                         "Tracing": true,
-                                                         "Metrics": true
+                                                         "DisableHealthChecks": true,
+                                                         "DisableTracing": false,
+                                                         "DisableMetrics": false
                                                        }
                                                      }
                                                    }

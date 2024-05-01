@@ -332,19 +332,19 @@
                   "type": "string",
                   "description": "Gets or sets the connection string of the RabbitMQ server to connect to."
                 },
-                "HealthChecks": {
+                "DisableHealthChecks": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.",
-                  "default": true
+                  "description": "Gets or sets a boolean value that indicates whether the RabbitMQ health check is disabled or not.",
+                  "default": false
+                },
+                "DisableTracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                  "default": false
                 },
                 "MaxConnectRetryCount": {
                   "type": "integer",
                   "description": "Gets or sets the maximum number of connection retry attempts. Default value is 5, set it to 0 to disable the retry mechanism."
-                },
-                "Tracing": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                  "default": true
                 }
               },
               "description": "Provides the client configuration settings for connecting to a RabbitMQ message broker."

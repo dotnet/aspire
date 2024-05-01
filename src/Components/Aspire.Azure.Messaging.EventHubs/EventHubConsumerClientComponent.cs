@@ -36,7 +36,7 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
                 new EventHubConsumerClient(settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
                     settings.ConnectionString, options) :
                 new EventHubConsumerClient(settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
-                    settings.Namespace, settings.EventHubName, cred, options);
+                    settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
         }, requiresCredential: false);
     }
 }

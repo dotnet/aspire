@@ -48,6 +48,11 @@
                       "type": "string",
                       "description": "The connection string of the Azure Cosmos DB server database to connect to."
                     },
+                    "DisableTracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                      "default": false
+                    },
                     "Region": {
                       "type": "string",
                       "description": "Gets or sets a string value that indicates what Azure region this client will run in."
@@ -56,11 +61,6 @@
                       "type": "string",
                       "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Gets or sets the time to wait for the response to come back from the network peer."
-                    },
-                    "Tracing": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                      "default": true
                     }
                   },
                   "description": "The settings relevant to accessing Azure Cosmos DB database using EntityFrameworkCore."

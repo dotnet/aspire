@@ -41,9 +41,9 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
           "Aspire": {
             "Npgsql": {
               "ConnectionString": "YOUR_CONNECTION_STRING",
-              "HealthChecks": false,
-              "Tracing": true,
-              "Metrics": true
+              "DisableHealthChecks": true,
+              "DisableTracing": false,
+              "DisableMetrics": false
             }
           }
         }
@@ -51,8 +51,8 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Npgsql":{ "Metrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Npgsql":{ "DisableMetrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     public ConformanceTests(PostgreSQLContainerFixture? containerFixture)
@@ -82,13 +82,13 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
     }
 
     protected override void SetHealthCheck(NpgsqlSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(NpgsqlSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(NpgsqlSettings options, bool enabled)
-        => options.Metrics = enabled;
+        => options.DisableMetrics = !enabled;
 
     protected override void TriggerActivity(NpgsqlDataSource service)
     {

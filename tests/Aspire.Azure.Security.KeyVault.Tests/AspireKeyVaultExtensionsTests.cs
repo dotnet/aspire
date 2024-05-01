@@ -171,4 +171,34 @@ public class AspireKeyVaultExtensionsTests
 
         return response;
     }
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:secrets1", ConformanceTests.VaultUri),
+            new KeyValuePair<string, string?>("ConnectionStrings:secrets2", "https://aspiretests2.vault.azure.net/"),
+            new KeyValuePair<string, string?>("ConnectionStrings:secrets3", "https://aspiretests3.vault.azure.net/")
+        ]);
+
+        builder.AddAzureKeyVaultClient("secrets1");
+        builder.AddKeyedAzureKeyVaultClient("secrets2");
+        builder.AddKeyedAzureKeyVaultClient("secrets3");
+
+        using var host = builder.Build();
+
+        // Unkeyed services don't work with keyed services. See https://github.com/dotnet/aspire/issues/3890
+        //var client1 = host.Services.GetRequiredService<SecretClient>();
+        var client2 = host.Services.GetRequiredKeyedService<SecretClient>("secrets2");
+        var client3 = host.Services.GetRequiredKeyedService<SecretClient>("secrets3");
+
+        //Assert.NotSame(client1, client2);
+        //Assert.NotSame(client1, client3);
+        Assert.NotSame(client2, client3);
+
+        //Assert.Equal(new Uri(ConformanceTests.VaultUri), client1.VaultUri);
+        Assert.Equal(new Uri("https://aspiretests2.vault.azure.net/"), client2.VaultUri);
+        Assert.Equal(new Uri("https://aspiretests3.vault.azure.net/"), client3.VaultUri);
+    }
 }

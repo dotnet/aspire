@@ -103,15 +103,15 @@
                       },
                       "description": "Options that allow you to configure the requests sent to Key Vault."
                     },
-                    "HealthChecks": {
+                    "DisableHealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the Key Vault health check is enabled or not.",
-                      "default": true
+                      "description": "Gets or sets a boolean value that indicates whether the Key Vault health check is disabled or not.",
+                      "default": false
                     },
-                    "Tracing": {
+                    "DisableTracing": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                      "default": true
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                      "default": false
                     },
                     "VaultUri": {
                       "type": "string",

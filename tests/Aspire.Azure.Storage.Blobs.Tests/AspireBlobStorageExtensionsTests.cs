@@ -124,4 +124,34 @@ public class AspireBlobStorageExtensionsTests
 
         Assert.Equal("aspirestoragetests", client.AccountName);
     }
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:blob1", ConformanceTests.ServiceUri),
+            new KeyValuePair<string, string?>("ConnectionStrings:blob2", "https://aspirestoragetests2.blob.core.windows.net/"),
+            new KeyValuePair<string, string?>("ConnectionStrings:blob3", "https://aspirestoragetests3.blob.core.windows.net/")
+        ]);
+
+        builder.AddAzureBlobClient("blob1");
+        builder.AddKeyedAzureBlobClient("blob2");
+        builder.AddKeyedAzureBlobClient("blob3");
+
+        using var host = builder.Build();
+
+        // Unkeyed services don't work with keyed services. See https://github.com/dotnet/aspire/issues/3890
+        //var client1 = host.Services.GetRequiredService<BlobServiceClient>();
+        var client2 = host.Services.GetRequiredKeyedService<BlobServiceClient>("blob2");
+        var client3 = host.Services.GetRequiredKeyedService<BlobServiceClient>("blob3");
+
+        //Assert.NotSame(client1, client2);
+        //Assert.NotSame(client1, client3);
+        Assert.NotSame(client2, client3);
+
+        //Assert.Equal("aspirestoragetests", client1.AccountName);
+        Assert.Equal("aspirestoragetests2", client2.AccountName);
+        Assert.Equal("aspirestoragetests3", client3.AccountName);
+    }
 }

@@ -447,6 +447,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansClient", "playground
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrleansContracts", "playground\orleans\OrleansContracts\OrleansContracts.csproj", "{75760E8A-7025-4F6A-B152-6622688D0E7D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Seq.Tests", "tests\Aspire.Seq.Tests\Aspire.Seq.Tests.csproj", "{0505F739-6F85-4502-A554-77E0D7325F26}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1173,6 +1175,10 @@ Global
 		{75760E8A-7025-4F6A-B152-6622688D0E7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75760E8A-7025-4F6A-B152-6622688D0E7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75760E8A-7025-4F6A-B152-6622688D0E7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0505F739-6F85-4502-A554-77E0D7325F26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0505F739-6F85-4502-A554-77E0D7325F26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0505F739-6F85-4502-A554-77E0D7325F26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0505F739-6F85-4502-A554-77E0D7325F26}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1386,6 +1392,7 @@ Global
 		{8191109E-130C-47F3-B84E-82070A6CD269} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{906B5687-31AD-4364-AD9F-B4B26113462D} = {8BAF2119-8370-4E9E-A887-D92506F8C727}
 		{75760E8A-7025-4F6A-B152-6622688D0E7D} = {8BAF2119-8370-4E9E-A887-D92506F8C727}
+		{0505F739-6F85-4502-A554-77E0D7325F26} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

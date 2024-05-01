@@ -33,8 +33,8 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
             "SqlServer": {
               "SqlClient": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecks": true,
-                "Tracing": true
+                "DisableHealthChecks": false,
+                "DisableTracing": false
               }
             }
           }
@@ -43,8 +43,8 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "Tracing": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "ConnectionString": "Con", "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "DisableTracing": 0}}}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "Data" : { "SqlClient":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     public ConformanceTests(SqlServerContainerFixture? containerFixture)
@@ -75,10 +75,10 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
     }
 
     protected override void SetHealthCheck(MicrosoftDataSqlClientSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(MicrosoftDataSqlClientSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(MicrosoftDataSqlClientSettings options, bool enabled)
         => throw new NotImplementedException();

@@ -39,9 +39,9 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
           "Aspire": {
             "MySqlConnector": {
               "ConnectionString": "YOUR_CONNECTION_STRING",
-              "HealthChecks": false,
-              "Tracing": true,
-              "Metrics": true
+              "DisableHealthChecks": true,
+              "DisableTracing": false,
+              "DisableMetrics": false
             }
           }
         }
@@ -49,8 +49,8 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "MySqlConnector":{ "Metrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
-            ("""{"Aspire": { "MySqlConnector":{ "ConnectionString": "Con", "HealthChecks": "false"}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "MySqlConnector":{ "DisableMetrics": 0}}}""", "Value is \"integer\" but should be \"boolean\""),
+            ("""{"Aspire": { "MySqlConnector":{ "ConnectionString": "Con", "DisableHealthChecks": "true"}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     public ConformanceTests(MySqlContainerFixture? containerFixture)
@@ -80,13 +80,13 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
     }
 
     protected override void SetHealthCheck(MySqlConnectorSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(MySqlConnectorSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(MySqlConnectorSettings options, bool enabled)
-        => options.Metrics = enabled;
+        => options.DisableMetrics = !enabled;
 
     protected override void TriggerActivity(MySqlDataSource service)
     {

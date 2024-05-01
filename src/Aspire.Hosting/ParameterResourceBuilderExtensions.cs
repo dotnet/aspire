@@ -151,6 +151,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="minNumeric">The minimum number of numeric characters in the result.</param>
     /// <param name="minSpecial">The minimum number of special characters in the result.</param>
     /// <returns>The created <see cref="ParameterResource"/>.</returns>
+    /// <remarks>To ensure the generated password has enough entropy, see the remarks in <see cref="GenerateParameterDefault"/>.</remarks>
     public static ParameterResource CreateDefaultPasswordParameter(
         IDistributedApplicationBuilder builder, string name,
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
@@ -158,7 +159,7 @@ public static class ParameterResourceBuilderExtensions
     {
         var generatedPassword = new GenerateParameterDefault
         {
-            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
+            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in GenerateParameterDefault
             Lower = lower,
             Upper = upper,
             Numeric = numeric,

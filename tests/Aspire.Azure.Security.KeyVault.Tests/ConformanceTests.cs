@@ -36,8 +36,8 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
               "Security": {
                 "KeyVault": {
                   "VaultUri": "http://YOUR_URI",
-                  "HealthChecks": false,
-                  "Tracing": true,
+                  "DisableHealthChecks": true,
+                  "DisableTracing": false,
                   "ClientOptions": {
                     "DisableChallengeResourceVerification": true,
                     "Retry": {
@@ -55,7 +55,7 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
             ("""{"Aspire": { "Azure": { "Security":{ "KeyVault": { "VaultUri": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "Security":{ "KeyVault": { "VaultUri": "http://YOUR_URI", "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "Security":{ "KeyVault": { "VaultUri": "http://YOUR_URI", "DisableHealthChecks": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Azure": { "Security":{ "KeyVault": { "VaultUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"Mode": "Fast"}}}}}}}""", "Value should match one of the values specified by the enum"),
             ("""{"Aspire": { "Azure": { "Security":{ "KeyVault": { "VaultUri": "http://YOUR_URI", "ClientOptions": {"Retry": {"NetworkTimeout": "3S"}}}}}}}""", "The string value is not a match for the indicated regular expression")
         };
@@ -88,14 +88,14 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
         }
     }
 
-    protected override void SetHealthCheck(AzureSecurityKeyVaultSettings settings, bool enabled)
-        => settings.HealthChecks = enabled;
+    protected override void SetHealthCheck(AzureSecurityKeyVaultSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
 
-    protected override void SetMetrics(AzureSecurityKeyVaultSettings settings, bool enabled)
+    protected override void SetMetrics(AzureSecurityKeyVaultSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureSecurityKeyVaultSettings settings, bool enabled)
-        => settings.Tracing = enabled;
+    protected override void SetTracing(AzureSecurityKeyVaultSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(SecretClient service)
         => service.GetSecret("IsAlive");

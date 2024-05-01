@@ -99,6 +99,11 @@
                       },
                       "description": "Client options for OpenAIClient."
                     },
+                    "DisableTracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                      "default": false
+                    },
                     "Endpoint": {
                       "type": "string",
                       "format": "uri",
@@ -107,11 +112,6 @@
                     "Key": {
                       "type": "string",
                       "description": "Gets or sets the key to use to authenticate to the Azure OpenAI endpoint."
-                    },
-                    "Tracing": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                      "default": true
                     }
                   },
                   "description": "The settings relevant to accessing Azure OpenAI or OpenAI."

@@ -3,7 +3,7 @@
     "qdrant": {
       "type": "container.v0",
       "connectionString": "Endpoint={qdrant.bindings.grpc.url};Key={qdrant-Key.value}",
-      "image": "docker.io/qdrant/qdrant:v1.8.3",
+      "image": "docker.io/qdrant/qdrant:v1.8.4",
       "volumes": [
         {
           "name": "qdrant-data",

@@ -73,7 +73,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     [MemberData(nameof(AzureExtensions))]
     public void AzureExtensionsAutomaticallyAddAzureProvisioning(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var builder = TestDistributedApplicationBuilder.Create();
         addAzureResource(builder);
 
         var app = builder.Build();
@@ -85,7 +85,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     [MemberData(nameof(AzureExtensions))]
     public void BicepResourcesAreIdempotent(Func<IDistributedApplicationBuilder, IResourceBuilder<IResource>> addAzureResource)
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var builder = TestDistributedApplicationBuilder.Create();
         var azureResourceBuilder = addAzureResource(builder);
 
         if (azureResourceBuilder.Resource is not AzureConstructResource bicepResource)
@@ -541,7 +541,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     [Fact]
     public async Task AddApplicationInsightsWithoutExplicitLawGetsDefaultLawParameterInRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var appInsights = builder.AddAzureApplicationInsights("appInsights");
 

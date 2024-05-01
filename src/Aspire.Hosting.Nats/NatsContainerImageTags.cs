@@ -7,5 +7,5 @@ internal static class NatsContainerImageTags
 {
     public const string Registry = "docker.io";
     public const string Image = "library/nats";
-    public const string Tag = "2";
+    public const string Tag = "2.10";
 }

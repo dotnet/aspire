@@ -22,20 +22,20 @@ public sealed class KafkaProducerSettings
     public ProducerConfig Config { get; } = new ProducerConfig();
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool Metrics { get; set; } = true;
+    public bool DisableMetrics { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool HealthChecks { get; set; } = true;
+    public bool DisableHealthChecks { get; set; }
 
     internal void Consolidate()
     {
@@ -46,7 +46,7 @@ public sealed class KafkaProducerSettings
             Config.BootstrapServers = ConnectionString;
         }
 
-        if (Metrics)
+        if (!DisableMetrics)
         {
             Config.StatisticsIntervalMs ??= 1000;
         }

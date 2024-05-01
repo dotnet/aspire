@@ -254,8 +254,8 @@ public class AddMySqlTests
     public void WithPhpMyAdminProducesValidServerConfigFile(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
-        var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(8081);
-        var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(8081);
+        var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(c => c.WithHostPort(8081));
+        var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(c => c.WithHostPort(8081));
 
         // Add fake allocated endpoints.
         mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));

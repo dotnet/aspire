@@ -28,7 +28,7 @@ public class AzureResourceExtensionsTests
         });
 
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal(Path.GetFullPath(".azurite/storage"), volumeAnnotation.Source);
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, ".azurite", "storage"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -54,7 +54,7 @@ public class AzureResourceExtensionsTests
         });
 
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal(Path.GetFullPath("mydata"), volumeAnnotation.Source);
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -80,7 +80,7 @@ public class AzureResourceExtensionsTests
         });
 
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal("testhost-storage-data", volumeAnnotation.Source);
+        Assert.Equal("Aspire.Hosting.Tests-storage-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -118,9 +118,9 @@ public class AzureResourceExtensionsTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
         {
-            builder.UseBlobPort(9001);
-            builder.UseQueuePort(9002);
-            builder.UseTablePort(9003);
+            builder.WithBlobPort(9001);
+            builder.WithQueuePort(9002);
+            builder.WithTablePort(9003);
         });
 
         Assert.Collection(
@@ -142,7 +142,7 @@ public class AzureResourceExtensionsTests
 
         cosmos.RunAsEmulator(container =>
         {
-            container.UseGatewayPort(port);
+            container.WithGatewayPort(port);
         });
 
         var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();

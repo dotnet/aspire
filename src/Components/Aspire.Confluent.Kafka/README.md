@@ -85,7 +85,7 @@ The .NET Aspire Confluent Kafka component supports [Microsoft.Extensions.Configu
     "Confluent": {
       "Kafka": {
         "Producer": {
-          "HealthChecks": true,
+          "DisableHealthChecks": false,
           "Config": {
             "Acks": "All"
           }
@@ -105,12 +105,12 @@ The `Config` properties of both  `Aspire:Confluent:Kafka:Producer` and `Aspire.C
 Also you can pass the `Action<KafkaProducerSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddKafkaProducer<string, string>("messaging", settings => settings.HealthChecks = false);
+    builder.AddKafkaProducer<string, string>("messaging", settings => settings.DisableHealthChecks = true);
 ```
 
 Similarly you can configure inline a consumer from code:
 ```c#
-    builder.AddKafkaConsumer<string, string>("messaging", settings => settings.HealthChecks = false);
+    builder.AddKafkaConsumer<string, string>("messaging", settings => settings.DisableHealthChecks = true);
 ```
 
 ### Use inline delegates to configure `ProducerBuilder<TKey, TValue>` and `ConsumerBuilder<TKey, TValue>`.

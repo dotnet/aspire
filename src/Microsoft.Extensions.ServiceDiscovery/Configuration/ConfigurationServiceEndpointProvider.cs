@@ -17,6 +17,7 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
     private const string DefaultEndpointName = "default";
     private readonly string _serviceName;
     private readonly string? _endpointName;
+    private readonly bool _includeAllSchemes;
     private readonly string[] _schemes;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ConfigurationServiceEndpointProvider> _logger;
@@ -39,6 +40,7 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
     {
         _serviceName = query.ServiceName;
         _endpointName = query.EndpointName;
+        _includeAllSchemes = serviceDiscoveryOptions.Value.AllowAllSchemes && query.IncludedSchemes.Count == 0;
         _schemes = ServiceDiscoveryOptions.ApplyAllowedSchemes(query.IncludedSchemes, serviceDiscoveryOptions.Value.AllowedSchemes, serviceDiscoveryOptions.Value.AllowAllSchemes);
         _configuration = configuration;
         _logger = logger;
@@ -74,27 +76,17 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
         string endpointName;
         if (string.IsNullOrWhiteSpace(_endpointName))
         {
-            if (_schemes.Length == 0)
+            // Treat the scheme as the endpoint name and use the first section with a matching endpoint name which exists
+            endpointName = DefaultEndpointName;
+            ReadOnlySpan<string> candidateNames = [DefaultEndpointName, .. _schemes];
+            foreach (var scheme in candidateNames)
             {
-                // Use the section named "default".
-                endpointName = DefaultEndpointName;
-                namedSection = section.GetSection(endpointName);
-            }
-            else
-            {
-                // Set the ideal endpoint name for error messages.
-                endpointName = _schemes[0];
-
-                // Treat the scheme as the endpoint name and use the first section with a matching endpoint name which exists
-                foreach (var scheme in _schemes)
+                var candidate = section.GetSection(scheme);
+                if (candidate.Exists())
                 {
-                    var candidate = section.GetSection(scheme);
-                    if (candidate.Exists())
-                    {
-                        endpointName = scheme;
-                        namedSection = candidate;
-                        break;
-                    }
+                    endpointName = scheme;
+                    namedSection = candidate;
+                    break;
                 }
             }
         }
@@ -135,46 +127,60 @@ internal sealed partial class ConfigurationServiceEndpointProvider : IServiceEnd
             }
         }
 
-        // Filter the resolved endpoints to only include those which match the specified scheme.
-        var minIndex = _schemes.Length;
-        foreach (var ep in resolved)
+        int resolvedEndpointCount;
+        if (_includeAllSchemes)
         {
-            if (ep.EndPoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
+            // Include all endpoints.
+            foreach (var ep in resolved)
             {
-                var index = Array.IndexOf(_schemes, scheme);
-                if (index >= 0 && index < minIndex)
+                endpoints.Endpoints.Add(ep);
+            }
+            
+            resolvedEndpointCount = resolved.Count;
+        }
+        else
+        {
+            // Filter the resolved endpoints to only include those which match the specified, allowed schemes.
+            resolvedEndpointCount = 0;
+            var minIndex = _schemes.Length;
+            foreach (var ep in resolved)
+            {
+                if (ep.EndPoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
                 {
-                    minIndex = index;
+                    var index = Array.IndexOf(_schemes, scheme);
+                    if (index >= 0 && index < minIndex)
+                    {
+                        minIndex = index;
+                    }
                 }
             }
-        }
 
-        var added = 0;
-        foreach (var ep in resolved)
-        {
-            if (ep.EndPoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
+            foreach (var ep in resolved)
             {
-                var index = Array.IndexOf(_schemes, scheme);
-                if (index >= 0 && index <= minIndex)
+                if (ep.EndPoint is UriEndPoint uri && uri.Uri.Scheme is { } scheme)
                 {
-                    ++added;
+                    var index = Array.IndexOf(_schemes, scheme);
+                    if (index >= 0 && index <= minIndex)
+                    {
+                        ++resolvedEndpointCount;
+                        endpoints.Endpoints.Add(ep);
+                    }
+                }
+                else
+                {
+                    ++resolvedEndpointCount;
                     endpoints.Endpoints.Add(ep);
                 }
             }
-            else
-            {
-                ++added;
-                endpoints.Endpoints.Add(ep);
-            }
         }
 
-        if (added == 0)
+        if (resolvedEndpointCount == 0)
         {
             Log.ServiceConfigurationNotFound(_logger, _serviceName, configPath);
         }
         else
         {
-            Log.ConfiguredEndpoints(_logger, _serviceName, configPath, endpoints.Endpoints, added);
+            Log.ConfiguredEndpoints(_logger, _serviceName, configPath, endpoints.Endpoints, resolvedEndpointCount);
         }
 
         return default;

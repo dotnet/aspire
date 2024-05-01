@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Helpers;
 using Xunit;
 
@@ -20,28 +21,35 @@ public class SlimTestProgramTests
     public async Task TestProjectStartsAndStopsCleanly()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
-        var client = _slimTestProgramFixture.HttpClient;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
         // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await EnsureServicesAreRunning(testProgram, cts.Token);
+    }
+
+    private static async Task EnsureServicesAreRunning(TestProgram testProgram, CancellationToken cancellationToken)
+    {
+        var app = testProgram.App!;
+        using var clientA = app.CreateHttpClient(testProgram.ServiceABuilder.Resource.Name, "http");
+        await clientA.GetStringAsync("/", cancellationToken);
+
+        using var clientB = app.CreateHttpClient(testProgram.ServiceBBuilder.Resource.Name, "http");
+        await clientB.GetStringAsync("/", cancellationToken);
+
+        using var clientC = app.CreateHttpClient(testProgram.ServiceCBuilder.Resource.Name, "http");
+        await clientC.GetStringAsync("/", cancellationToken);
     }
 
     [LocalOnlyFact]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
-        var client = _slimTestProgramFixture.HttpClient;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
         // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await EnsureServicesAreRunning(testProgram, cts.Token);
 
         foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
         {
@@ -55,14 +63,11 @@ public class SlimTestProgramTests
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
-        var client = _slimTestProgramFixture.HttpClient;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
         // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await EnsureServicesAreRunning(testProgram, cts.Token);
 
         foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
         {

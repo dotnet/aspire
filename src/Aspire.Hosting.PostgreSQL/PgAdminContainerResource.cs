@@ -5,9 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
 
-internal sealed class PgAdminContainerResource : ContainerResource
+/// <summary>
+/// Represents a container resource for PGAdmin.
+/// </summary>
+/// <param name="name">The name of the container resource.</param>
+public sealed class PgAdminContainerResource(string name) : ContainerResource(name)
 {
-    public PgAdminContainerResource(string name) : base(name)
-    {
-    }
 }

@@ -109,4 +109,33 @@ public class AspireMySqlConnectorExtensionsTests : IClassFixture<MySqlContainerF
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:mysql1", "Server=localhost1;Database=test_aspire_mysql"),
+            new KeyValuePair<string, string?>("ConnectionStrings:mysql2", "Server=localhost2;Database=test_aspire_mysql"),
+            new KeyValuePair<string, string?>("ConnectionStrings:mysql3", "Server=localhost3;Database=test_aspire_mysql"),
+        ]);
+
+        builder.AddMySqlDataSource("mysql1");
+        builder.AddKeyedMySqlDataSource("mysql2");
+        builder.AddKeyedMySqlDataSource("mysql3");
+
+        using var host = builder.Build();
+
+        var connection1 = host.Services.GetRequiredService<MySqlDataSource>();
+        var connection2 = host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql2");
+        var connection3 = host.Services.GetRequiredKeyedService<MySqlDataSource>("mysql3");
+
+        Assert.NotSame(connection1, connection2);
+        Assert.NotSame(connection1, connection3);
+        Assert.NotSame(connection2, connection3);
+
+        Assert.Contains("localhost1", connection1.ConnectionString);
+        Assert.Contains("localhost2", connection2.ConnectionString);
+        Assert.Contains("localhost3", connection3.ConnectionString);
+    }
 }

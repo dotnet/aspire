@@ -131,4 +131,33 @@ public class AspirePostgreSqlNpgsqlExtensionsTests
 
         Assert.True(wasCalled);
     }
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql1", "Host=localhost1;Database=test_aspire_npgsql"),
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql2", "Host=localhost2;Database=test_aspire_npgsql"),
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql3", "Host=localhost3;Database=test_aspire_npgsql"),
+        ]);
+
+        builder.AddNpgsqlDataSource("npgsql1");
+        builder.AddKeyedNpgsqlDataSource("npgsql2");
+        builder.AddKeyedNpgsqlDataSource("npgsql3");
+
+        using var host = builder.Build();
+
+        var connection1 = host.Services.GetRequiredService<NpgsqlDataSource>();
+        var connection2 = host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql2");
+        var connection3 = host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql3");
+
+        Assert.NotSame(connection1, connection2);
+        Assert.NotSame(connection1, connection3);
+        Assert.NotSame(connection2, connection3);
+
+        Assert.Contains("localhost1", connection1.ConnectionString);
+        Assert.Contains("localhost2", connection2.ConnectionString);
+        Assert.Contains("localhost3", connection3.ConnectionString);
+    }
 }

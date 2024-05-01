@@ -37,20 +37,20 @@
               "type": "string",
               "description": "The connection string of the PostgreSQL database to connect to."
             },
-            "HealthChecks": {
+            "DisableHealthChecks": {
               "type": "boolean",
-              "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
-              "default": true
+              "description": "Gets or sets a boolean value that indicates whether the database health check is disabled or not.",
+              "default": false
             },
-            "Metrics": {
+            "DisableMetrics": {
               "type": "boolean",
-              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
-              "default": true
+              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are disabled or not.",
+              "default": false
             },
-            "Tracing": {
+            "DisableTracing": {
               "type": "boolean",
-              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-              "default": true
+              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+              "default": false
             }
           },
           "description": "Provides the client configuration settings for connecting to a PostgreSQL database using Npgsql."

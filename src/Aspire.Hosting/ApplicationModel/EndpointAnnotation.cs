@@ -44,18 +44,28 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _transport = transport;
         Name = name;
         Port = port;
-
         TargetPort = targetPort;
-
-        // If the target port was not explicitly set and the service is not being proxied,
-        // we can set the target port to the port.
-        if (TargetPort is null && !isProxied)
-        {
-            TargetPort = port;
-        }
-
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
+
+        if (!isProxied)
+        {
+            // For proxy-less Endpoints the client port and target port should be the same.
+            // Note that this is just a "sensible default"--the consumer of the EndpointAnnotation is free
+            // to change Port and TargetPort after the annotation is created, but if the final values are inconsistent,
+            // the associated resource may fail to run.
+            // It also depends on what the EndpointAnnotation is applied to.
+            // In the Container case the TargetPort is the port that the process listens on inside the container,
+            //  and the Port is the host interface port, so it is fine for them to be different.
+            if (port is null && targetPort is not null)
+            {
+                Port = targetPort;
+            }
+            if (port is not null && targetPort is null)
+            {
+                TargetPort = port;
+            }
+        }
     }
 
     /// <summary>

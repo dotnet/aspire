@@ -39,7 +39,7 @@ internal sealed class PartitionReceiverClientComponent()
                     $"A PartitionReceiver could not be configured. Ensure a valid PartitionId was provided in the '{configurationSectionName}' configuration section.");
             }
 
-            options.Identifier ??= GenerateClientIdentifier(settings);
+            options.Identifier ??= GenerateClientIdentifier(settings.EventHubName, settings.ConsumerGroup);
 
             var receiver = !string.IsNullOrEmpty(settings.ConnectionString)
                 ? new PartitionReceiver(
@@ -49,7 +49,7 @@ internal sealed class PartitionReceiverClientComponent()
                 : new PartitionReceiver(
                     settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName, settings.PartitionId,
                     settings.EventPosition,
-                    settings.Namespace, settings.EventHubName, cred, options);
+                    settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
 
             return receiver;
 

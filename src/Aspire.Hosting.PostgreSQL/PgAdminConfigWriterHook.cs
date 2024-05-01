@@ -34,7 +34,7 @@ internal sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycle
 
                 writer.WriteStartObject($"{serverIndex}");
                 writer.WriteString("Name", postgresInstance.Name);
-                writer.WriteString("Group", "Aspire instances");
+                writer.WriteString("Group", "Servers");
                 writer.WriteString("Host", endpoint.ContainerHost);
                 writer.WriteNumber("Port", endpoint.Port);
                 writer.WriteString("Username", "postgres");

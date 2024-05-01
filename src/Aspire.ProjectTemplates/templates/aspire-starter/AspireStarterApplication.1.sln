@@ -8,7 +8,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireStarterApplication.1.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireStarterApplication.1.ApiService", "AspireStarterApplication.1.ApiService\AspireStarterApplication.1.ApiService.csproj", "{9FEB877E-015D-4E20-AE63-06C596E242E4}"
 EndProject
-#if (CreateTestsProject)
+#if (TestFramework != 'None')
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireStarterApplication.1.Tests", "AspireStarterApplication.1.Tests\AspireStarterApplication.1.Tests.csproj", "{BAAC2850-FDA3-40E4-8D41-6E024DDBC980}"
 EndProject
 #endif
@@ -32,7 +32,7 @@ Global
 		{9FEB877E-015D-4E20-AE63-06C596E242E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9FEB877E-015D-4E20-AE63-06C596E242E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9FEB877E-015D-4E20-AE63-06C596E242E4}.Release|Any CPU.Build.0 = Release|Any CPU
-#if (CreateTestsProject)
+#if (TestFramework != 'None')
 		{BAAC2850-FDA3-40E4-8D41-6E024DDBC980}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BAAC2850-FDA3-40E4-8D41-6E024DDBC980}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BAAC2850-FDA3-40E4-8D41-6E024DDBC980}.Release|Any CPU.ActiveCfg = Release|Any CPU

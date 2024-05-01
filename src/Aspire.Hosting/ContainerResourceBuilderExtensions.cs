@@ -171,27 +171,33 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the container run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
     /// </summary>
+    /// <remarks>
+    /// This is intended to pass additional arguments to the underlying container runtime run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, string[])"/> method.
+    /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="args">The arguments to be passed to the container run command when the container resource is started.</param>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="args">The arguments to be passed to the container runtime run command when the container resource is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithContainerRunArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
     {
-        return builder.WithContainerRunArgs(context => context.Args.AddRange(args));
+        return builder.WithContainerRuntimeArgs(context => context.Args.AddRange(args));
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the container run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
     /// </summary>
+    /// <remarks>
+    /// This is intended to pass additional arguments to the underlying container runtime run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Action{CommandLineArgsCallbackContext})"/> method.
+    /// </remarks>
     /// <typeparam name="T"></typeparam>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">Builder for the container resource.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithContainerRunArgs<T>(this IResourceBuilder<T> builder, Action<ContainerRunArgsCallbackContext> callback) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, Action<ContainerRuntimeArgsCallbackContext> callback) where T : ContainerResource
     {
-        return builder.WithContainerRunArgs(context =>
+        return builder.WithContainerRuntimeArgs(context =>
         {
             callback(context);
             return Task.CompletedTask;
@@ -199,15 +205,18 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a callback to be executed with a list of arguments to add to the container run command when a container resource is started.
+    /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
     /// </summary>
+    /// <remarks>
+    /// This is intended to pass additional arguments to the underlying container runtime run command to enable advanced features such as exposing GPUs to the container. To pass runtime arguments to the actual container, use the <see cref="ResourceBuilderExtensions.WithArgs{T}(IResourceBuilder{T}, Func{CommandLineArgsCallbackContext, Task})"/> method.
+    /// </remarks>
     /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">Builder for the container resource.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithContainerRunArgs<T>(this IResourceBuilder<T> builder, Func<ContainerRunArgsCallbackContext, Task> callback) where T : ContainerResource
+    public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, Func<ContainerRuntimeArgsCallbackContext, Task> callback) where T : ContainerResource
     {
-        var annotation = new ContainerRunArgsCallbackAnnotation(callback);
+        var annotation = new ContainerRuntimeArgsCallbackAnnotation(callback);
         return builder.WithAnnotation(annotation);
     }
 

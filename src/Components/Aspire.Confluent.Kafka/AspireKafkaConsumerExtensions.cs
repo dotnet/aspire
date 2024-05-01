@@ -69,7 +69,7 @@ public static class AspireKafkaConsumerExtensions
             builder.Services.AddKeyedSingleton<IConsumer<TKey, TValue>>(serviceKey, (sp, key) => sp.GetRequiredKeyedService<ConsumerConnectionFactory<TKey, TValue>>(key).Create());
         }
 
-        if (settings.Metrics)
+        if (!settings.DisableMetrics)
         {
             builder.Services.TryAddSingleton<MetricsChannel>();
             builder.Services.AddHostedService<MetricsService>();
@@ -77,7 +77,7 @@ public static class AspireKafkaConsumerExtensions
             builder.Services.AddOpenTelemetry().WithMetrics(metricBuilderProvider => metricBuilderProvider.AddMeter(ConfluentKafkaCommon.MeterName));
         }
 
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             string healthCheckName = serviceKey is null
                 ? ConfluentKafkaCommon.ConsumerHealthCheckName
@@ -125,7 +125,7 @@ public static class AspireKafkaConsumerExtensions
             logger.LogWarning("LogHandler is already set. Skipping... No logs will be written.");
         }
 
-        if (settings.Metrics)
+        if (!settings.DisableMetrics)
         {
             MetricsChannel channel = serviceProvider.GetRequiredService<MetricsChannel>();
             void OnStatistics(IConsumer<TKey, TValue> _, string json)

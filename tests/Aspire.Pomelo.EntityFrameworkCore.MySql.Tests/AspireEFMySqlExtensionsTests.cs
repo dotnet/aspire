@@ -98,7 +98,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:DisableRetry", "false")
         ]);
 
         builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>
@@ -141,7 +141,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "false")
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:DisableRetry", "true")
         ]);
 
         builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>

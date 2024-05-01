@@ -84,7 +84,7 @@ public static class AspireMongoDBDriverExtensions
             configureClientSettings,
             serviceKey);
 
-        if (settings.Tracing)
+        if (!settings.DisableTracing)
         {
             builder.Services
                 .AddOpenTelemetry()
@@ -160,7 +160,7 @@ public static class AspireMongoDBDriverExtensions
         string healthCheckName,
         MongoDBSettings settings)
     {
-        if (!settings.HealthChecks || string.IsNullOrWhiteSpace(settings.ConnectionString))
+        if (settings.DisableHealthChecks || string.IsNullOrWhiteSpace(settings.ConnectionString))
         {
             return;
         }
@@ -186,7 +186,7 @@ public static class AspireMongoDBDriverExtensions
 
         var clientSettings = MongoClientSettings.FromConnectionString(mongoDbSettings.ConnectionString);
 
-        if (mongoDbSettings.Tracing)
+        if (!mongoDbSettings.DisableTracing)
         {
             clientSettings.ClusterConfigurator = cb => cb.Subscribe(new DiagnosticsActivityEventSubscriber());
         }

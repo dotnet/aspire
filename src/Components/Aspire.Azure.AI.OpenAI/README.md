@@ -88,7 +88,7 @@ The .NET Aspire Azure AI OpenAI library supports [Microsoft.Extensions.Configura
     "Azure": {
       "AI": {
         "OpenAI": {
-          "Tracing": true,
+          "DisableTracing": false,
         }
       }
     }
@@ -101,7 +101,7 @@ The .NET Aspire Azure AI OpenAI library supports [Microsoft.Extensions.Configura
 You can also pass the `Action<AzureOpenAISettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-builder.AddAzureAIOpenAIClient("openaiConnectionName", settings => settings.Tracing = false);
+builder.AddAzureAIOpenAIClient("openaiConnectionName", settings => settings.DisableTracing = true);
 ```
 
 You can also setup the [OpenAIClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclientoptions) using the optional `Action<IAzureClientBuilder<OpenAIClient, OpenAIClientOptions>> configureClientBuilder` parameter of the `AddAzureAIOpenAIClient` method. For example, to set the client ID for this client:
@@ -121,13 +121,15 @@ dotnet add package Aspire.Hosting.Azure.CognitiveServices
 Then, in the _Program.cs_ file of `AppHost`, add an Azure AI OpenAI service and consume the connection using the following methods:
 
 ```csharp
-var openai = builder.AddAzureOpenAI("openai");
+var openai = builder.ExecutionContext.IsPublishMode
+    ? builder.AddAzureOpenAI("openai")
+    : builder.AddConnectionString("openai");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(openai);
 ```
 
-The `AddAzureOpenAI` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:openai` config key. The `WithReference` method passes that connection information into a connection string named `openai` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureOpenAI` method adds an Azure OpenAI resource to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:openai` config key. The `WithReference` method passes that connection information into a connection string named `openai` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureOpenAIClient("openai");

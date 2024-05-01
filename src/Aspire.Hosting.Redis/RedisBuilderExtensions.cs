@@ -36,28 +36,47 @@ public static class RedisBuilderExtensions
     /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
+    /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
     /// <param name="containerName">Override the container name used for Redis Commander.</param>
-    /// <param name="hostPort">The host port to expose the Redis Commander container image on.</param>
     /// <returns></returns>
-    public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, string? containerName = null, int? hostPort = null)
+    public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
-        if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().Any())
+        if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is { } existingRedisCommanderResource)
         {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingRedisCommanderResource);
+            configureContainer?.Invoke(builderForExistingResource);
             return builder;
         }
+        else
+        {
+            builder.ApplicationBuilder.Services.TryAddLifecycleHook<RedisCommanderConfigWriterHook>();
+            containerName ??= $"{builder.Resource.Name}-commander";
 
-        builder.ApplicationBuilder.Services.TryAddLifecycleHook<RedisCommanderConfigWriterHook>();
+            var resource = new RedisCommanderResource(containerName);
+            var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
+                                      .WithImage(RedisContainerImageTags.RedisCommanderImage, RedisContainerImageTags.RedisCommanderTag)
+                                      .WithImageRegistry(RedisContainerImageTags.RedisCommanderRegistry)
+                                      .WithHttpEndpoint(targetPort: 8081, name: "http")
+                                      .ExcludeFromManifest();
 
-        containerName ??= $"{builder.Resource.Name}-commander";
+            configureContainer?.Invoke(resourceBuilder);
 
-        var resource = new RedisCommanderResource(containerName);
-        builder.ApplicationBuilder.AddResource(resource)
-                                  .WithImage("rediscommander/redis-commander", "latest")
-                                  .WithImageRegistry(RedisContainerImageTags.Registry)
-                                  .WithHttpEndpoint(targetPort: 8081, port: hostPort, name: containerName)
-                                  .ExcludeFromManifest();
+            return builder;
+        }
+    }
 
-        return builder;
+    /// <summary>
+    /// Configures the host port that the Redis Commander resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for Redis Commander.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for PGAdmin.</returns>
+    public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
+    {
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>

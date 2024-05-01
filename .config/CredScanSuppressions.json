@@ -11,7 +11,7 @@
     },
     {
       "placeholder": "TestKey123!",
-      "_justification": "This is fake API key, used in integration tests to try to connect to OTLP services."
+      "_justification": "This is fake API key, used in integration tests to try to connect to OTLP services and other various tests."
     },
     {
       "placeholder": "!321yeKtseT",

@@ -78,7 +78,7 @@ The .NET Aspire Oracle EntityFrameworkCore component supports [Microsoft.Extensi
   "Aspire": {
     "Oracle": {
       "EntityFrameworkCore": {
-        "HealthChecks": false
+        "DisableHealthChecks": true
       }
     }
   }
@@ -90,13 +90,13 @@ The .NET Aspire Oracle EntityFrameworkCore component supports [Microsoft.Extensi
 Also you can pass the `Action<OracleEntityFrameworkCoreSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddOracleDatabaseDbContext<MyDbContext>("orcl", settings => settings.HealthChecks = false);
+    builder.AddOracleDatabaseDbContext<MyDbContext>("orcl", settings => settings.DisableHealthChecks = true);
 ```
 
 or
 
 ```csharp
-    builder.EnrichOracleDatabaseDbContext<MyDbContext>(settings => settings.HealthChecks = false);
+    builder.EnrichOracleDatabaseDbContext<MyDbContext>(settings => settings.DisableHealthChecks = true);
 ```
 
 ## AppHost extensions 

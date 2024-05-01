@@ -171,15 +171,15 @@
                   "type": "string",
                   "description": "Gets or sets the comma-delimited configuration string used to connect to the Redis server."
                 },
-                "HealthChecks": {
+                "DisableHealthChecks": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the Redis health check is enabled or not.",
-                  "default": true
+                  "description": "Gets or sets a boolean value that indicates whether the Redis health check is disabled or not.",
+                  "default": false
                 },
-                "Tracing": {
+                "DisableTracing": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                  "default": true
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                  "default": false
                 }
               },
               "description": "Provides the client configuration settings for connecting to a Redis server."

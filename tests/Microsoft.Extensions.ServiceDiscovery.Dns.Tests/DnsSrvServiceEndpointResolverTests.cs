@@ -73,7 +73,7 @@ public class DnsSrvServiceEndpointResolverTests
     }
 
     [Fact]
-    public async Task ResolveServiceEndpoint_Dns()
+    public async Task ResolveServiceEndpoint_DnsSrv()
     {
         var dnsClientMock = new FakeDnsClient
         {
@@ -134,7 +134,7 @@ public class DnsSrvServiceEndpointResolverTests
     [InlineData(true)]
     [InlineData(false)]
     [Theory]
-    public async Task ResolveServiceEndpoint_Dns_MultipleProviders_PreventMixing(bool dnsFirst)
+    public async Task ResolveServiceEndpoint_DnsSrv_MultipleProviders_PreventMixing(bool dnsFirst)
     {
         var dnsClientMock = new FakeDnsClient
         {
@@ -231,21 +231,6 @@ public class DnsSrvServiceEndpointResolverTests
                     Assert.Null(hostNameFeature);
                 });
             }
-        }
-    }
-
-    public class MyConfigurationProvider : ConfigurationProvider, IConfigurationSource
-    {
-        public IConfigurationProvider Build(IConfigurationBuilder builder) => this;
-        public void SetValues(IEnumerable<KeyValuePair<string, string?>> values)
-        {
-            Data.Clear();
-            foreach (var (key, value) in values)
-            {
-                Data[key] = value;
-            }
-
-            OnReload();
         }
     }
 }
