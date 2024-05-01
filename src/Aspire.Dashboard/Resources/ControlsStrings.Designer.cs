@@ -447,7 +447,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select a resource:.
+        ///   Looks up a localized string similar to Select a resource.
         /// </summary>
         public static string SelectAResource {
             get {

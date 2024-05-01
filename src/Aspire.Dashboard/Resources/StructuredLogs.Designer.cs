@@ -87,7 +87,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Filters: .
+        ///   Looks up a localized string similar to Filters.
         /// </summary>
         public static string StructuredLogsFilters {
             get {
@@ -114,7 +114,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Level:.
+        ///   Looks up a localized string similar to Level.
         /// </summary>
         public static string StructuredLogsLevels {
             get {

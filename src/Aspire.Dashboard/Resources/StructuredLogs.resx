@@ -32,7 +32,7 @@
     <value>Select a minimum log level</value>
   </data>
   <data name="StructuredLogsFilters" xml:space="preserve">
-    <value>Filters: </value>
+    <value>Filters</value>
   </data>
   <data name="StructuredLogsNoFilters" xml:space="preserve">
     <value>No filters</value>
@@ -68,6 +68,6 @@
     <value>Message filter</value>
   </data>
   <data name="StructuredLogsLevels" xml:space="preserve">
-    <value>Level:</value>
+    <value>Level</value>
   </data>
 </root>

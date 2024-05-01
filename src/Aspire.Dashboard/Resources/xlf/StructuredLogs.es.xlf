@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsLevels">
-        <source>Level:</source>
-        <target state="translated">Nivel:</target>
+        <source>Level</source>
+        <target state="needs-review-translation">Nivel:</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">

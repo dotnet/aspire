@@ -434,8 +434,8 @@ fluent-data-grid-cell.no-ellipsis {
     width: 75%;
 }
 
-fluent-toolbar > .fluent-input-label {
-    margin-bottom: 0 !important;
+ .layout fluent-toolbar > .fluent-input-label {
+    margin-bottom: 0;
 }
 
 .column-header {
