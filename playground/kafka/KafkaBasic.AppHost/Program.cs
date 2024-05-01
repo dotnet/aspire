@@ -4,13 +4,25 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var kafka = builder.AddKafka("kafka")
-    .WithKafkaUI(port: 8080);
+    .WithKafkaUI(kafkaUi => kafkaUi.WithHostPort(8080));
 
 builder.AddProject<Projects.Producer>("producer")
-    .WithReference(kafka);
+    .WithReference(kafka)
+    .WithArgs(kafka.Resource.Name);
 
 builder.AddProject<Projects.Consumer>("consumer")
-    .WithReference(kafka);
+    .WithReference(kafka)
+    .WithArgs(kafka.Resource.Name);
+
+var kafka2 = builder.AddKafka("kafka2").WithKafkaUI();
+
+builder.AddProject<Projects.Producer>("producer2")
+    .WithReference(kafka2)
+    .WithArgs(kafka2.Resource.Name);
+
+builder.AddProject<Projects.Consumer>("consumer2")
+    .WithReference(kafka2)
+    .WithArgs(kafka2.Resource.Name);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

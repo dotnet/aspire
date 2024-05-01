@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Kafka;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -38,24 +40,47 @@ public static class KafkaBuilderExtensions
     /// </summary>
     /// <param name="builder">The Kafka server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for KafkaUI container resource.</param>
-    /// <param name="port">The host port of KafkaUI (Optional).</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{KafkaServerResource}"/>.</returns>
-    public static IResourceBuilder<KafkaServerResource> WithKafkaUI(this IResourceBuilder<KafkaServerResource> builder, Action<IResourceBuilder<KafkaUIContainerResource>>? configureContainer = null, int? port = null, string? containerName = null)
+    public static IResourceBuilder<KafkaServerResource> WithKafkaUI(this IResourceBuilder<KafkaServerResource> builder, Action<IResourceBuilder<KafkaUIContainerResource>>? configureContainer = null, string? containerName = null)
     {
-        containerName ??= $"{builder.Resource.Name}-kafka-ui";
+        if (builder.ApplicationBuilder.Resources.OfType<KafkaUIContainerResource>().SingleOrDefault() is { } existingKafkaUIResource)
+        {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingKafkaUIResource);
+            configureContainer?.Invoke(builderForExistingResource);
+            return builder;
+        }
+        else
+        {
+            builder.ApplicationBuilder.Services.TryAddLifecycleHook<KafkaUIConfigurationHook>();
 
-        var kafkaUi = new KafkaUIContainerResource(containerName);
-        var kafkaUiBuilder = builder.ApplicationBuilder.AddResource(kafkaUi)
-            .WithImage(KafkaContainerImageTags.KafkaUiImage, KafkaContainerImageTags.KafkaUiTag)
-            .WithImageRegistry(KafkaContainerImageTags.Registry)
-            .WithHttpEndpoint(targetPort: KafkaUIPort, port: port, name: containerName)
-            .WithEnvironment(context => ConfigureKafkaUIContainer(context, builder))
-            .ExcludeFromManifest();
+            containerName ??= $"{builder.Resource.Name}-kafka-ui";
 
-        configureContainer?.Invoke(kafkaUiBuilder);
+            var kafkaUi = new KafkaUIContainerResource(containerName);
+            var kafkaUiBuilder = builder.ApplicationBuilder.AddResource(kafkaUi)
+                .WithImage(KafkaContainerImageTags.KafkaUiImage, KafkaContainerImageTags.KafkaUiTag)
+                .WithImageRegistry(KafkaContainerImageTags.Registry)
+                .WithHttpEndpoint(targetPort: KafkaUIPort)
+                .ExcludeFromManifest();
 
-        return builder;
+            configureContainer?.Invoke(kafkaUiBuilder);
+
+            return builder;
+        }
+    }
+
+    /// <summary>
+    /// Configures the host port that the KafkaUI resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for KafkaUI.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for KafkaUI.</returns>
+    public static IResourceBuilder<KafkaUIContainerResource> WithHostPort(this IResourceBuilder<KafkaUIContainerResource> builder, int? port)
+    {
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
@@ -101,16 +126,5 @@ public static class KafkaBuilderExtensions
             $"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.Host)}:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.Host)}:{internalEndpoint.Property(EndpointProperty.Port)}");
 
         context.EnvironmentVariables["KAFKA_ADVERTISED_LISTENERS"] = advertisedListeners;
-    }
-
-    private static void ConfigureKafkaUIContainer(EnvironmentCallbackContext context, IResourceBuilder<KafkaServerResource> builder)
-    {
-        var endpoint = builder.GetEndpoint(KafkaServerResource.InternalEndpointName);
-        var bootstrapServers = context.ExecutionContext.IsRunMode
-            ? ReferenceExpression.Create($"{endpoint.ContainerHost}:{endpoint.Property(EndpointProperty.Port)}")
-            : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
-
-        context.EnvironmentVariables.Add("KAFKA_CLUSTERS_0_NAME", endpoint.Resource.Name);
-        context.EnvironmentVariables.Add("KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS", bootstrapServers);
     }
 }
