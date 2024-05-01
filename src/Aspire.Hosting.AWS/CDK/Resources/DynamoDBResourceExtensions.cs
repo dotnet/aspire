@@ -44,7 +44,7 @@ public static class DynamoDBResourceExtensions
     }
 
     /// <summary>
-    /// Adds a reference of an Amazon DynamoDB table to a project. The output parameters of the Amazon DynamoDB table are added to the project IConfiguration.
+    /// Adds a reference of an Amazon DynamoDB table to a project. The output parameters of the table are added to the project IConfiguration.
     /// </summary>
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="table">The Amazon DynamoDB table resource.</param>

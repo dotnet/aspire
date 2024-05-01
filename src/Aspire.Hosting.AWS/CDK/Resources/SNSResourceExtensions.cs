@@ -22,7 +22,7 @@ public static class SNSResourceExtensions
     }
 
     /// <summary>
-    /// Adds a reference of an Amazon SNS topic to a project. The output parameters of the Amazon DynamoDB table are added to the project IConfiguration.
+    /// Adds a reference of an Amazon SNS topic to a project. The output parameters of the topic are added to the project IConfiguration.
     /// </summary>
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="topic">The Amazon SNS topic resource.</param>

@@ -22,7 +22,7 @@ public static class SQSResourceExtensions
     }
 
     /// <summary>
-    /// Adds a reference of an Amazon SQS queue to a project. The output parameters of the Amazon DynamoDB table are added to the project IConfiguration.
+    /// Adds a reference of an Amazon SQS queue to a project. The output parameters of the queue are added to the project IConfiguration.
     /// </summary>
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="queue">The Amazon SQS queue resource.</param>
@@ -31,6 +31,6 @@ public static class SQSResourceExtensions
         where TDestination : IResourceWithEnvironment
     {
         var prefix = configSection.Replace(':', '_');
-        return builder.WithEnvironment($"{prefix}__QueueUrl", queue, t => t.QueueUrl);
+        return builder.WithEnvironment($"{prefix}__QueueUrl", queue, q => q.QueueUrl);
     }
 }

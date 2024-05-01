@@ -22,7 +22,7 @@ public static class S3ResourceExtensions
     }
 
     /// <summary>
-    /// Adds a reference of an Amazon S3 bucket to a project. The output parameters of the Amazon DynamoDB table are added to the project IConfiguration.
+    /// Adds a reference of an Amazon S3 bucket to a project. The output parameters of the bucket are added to the project IConfiguration.
     /// </summary>
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="bucket">The Amazon S3 bucket resource.</param>
@@ -31,6 +31,6 @@ public static class S3ResourceExtensions
         where TDestination : IResourceWithEnvironment
     {
         var prefix = configSection.Replace(':', '_');
-        return builder.WithEnvironment($"{prefix}__BucketName", bucket, t => t.BucketName);
+        return builder.WithEnvironment($"{prefix}__BucketName", bucket, b => b.BucketName);
     }
 }
