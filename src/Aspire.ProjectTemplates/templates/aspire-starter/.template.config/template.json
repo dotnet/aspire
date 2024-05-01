@@ -354,15 +354,7 @@
         "source": "name",
         "steps": [
           {
-            "regex": "\\.",
-            "replacement": "_"
-          },
-          {
-            "regex": "\\-",
-            "replacement": "_"
-          },
-          {
-            "regex": "[ ]",
+            "regex": "[\\.\\- ]",
             "replacement": "_"
           }
         ]
