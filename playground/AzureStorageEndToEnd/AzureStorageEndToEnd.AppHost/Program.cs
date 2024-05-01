@@ -9,7 +9,7 @@ var storage = builder.AddAzureStorage("storage").RunAsEmulator(container =>
 
 var blobs = storage.AddBlobs("blobs");
 
-builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
+builder.AddProject<Projects.AzureStorageEndToEnd__ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(blobs);
 
@@ -18,7 +18,7 @@ builder.AddProject<Projects.AzureStorageEndToEnd_ApiService>("api")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire__Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();
 

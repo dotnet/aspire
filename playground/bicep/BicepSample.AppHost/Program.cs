@@ -60,7 +60,7 @@ var serviceBus = builder.AddAzureServiceBus("sb")
                         .AddTopic("topic2", ["subscription1"]);
 var signalr = builder.AddAzureSignalR("signalr");
 
-builder.AddProject<Projects.BicepSample_ApiService>("api")
+builder.AddProject<Projects.BicepSample__ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(sqlServer)
        .WithReference(pg)
@@ -83,6 +83,6 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire__Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();

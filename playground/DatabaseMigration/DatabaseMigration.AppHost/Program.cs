@@ -5,11 +5,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var db1 = builder.AddSqlServer("sql1").AddDatabase("db1");
 
-builder.AddProject<Projects.DatabaseMigration_ApiService>("api")
+builder.AddProject<Projects.DatabaseMigration__ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(db1);
 
-builder.AddProject<Projects.DatabaseMigration_MigrationService>("migration")
+builder.AddProject<Projects.DatabaseMigration__MigrationService>("migration")
        .WithReference(db1);
 
 // This project is only added in playground projects to support development/debugging
@@ -17,6 +17,6 @@ builder.AddProject<Projects.DatabaseMigration_MigrationService>("migration")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire__Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();

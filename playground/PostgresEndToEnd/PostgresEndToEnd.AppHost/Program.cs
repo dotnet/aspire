@@ -21,7 +21,7 @@ var db9 = pg6.AddDatabase("db9", "db8"); // different connection string (db9) on
 // External resources.
 var db10 = builder.AddPostgres("pg10").WithPgAdmin().PublishAsConnectionString().AddDatabase("db10");
 
-builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
+builder.AddProject<Projects.PostgresEndToEnd__ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(db1)
        .WithReference(db2)
@@ -39,6 +39,6 @@ builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire__Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();

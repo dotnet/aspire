@@ -21,7 +21,7 @@ var db = builder.AddSqlServer("sql")
 
 var insertionrows = builder.AddParameter("insertionrows");
 
-builder.AddProject<Projects.ParameterEndToEnd_ApiService>("api")
+builder.AddProject<Projects.ParameterEndToEnd__ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithEnvironment("InsertionRows", insertionrows)
        .WithReference(db);
@@ -31,6 +31,6 @@ builder.AddProject<Projects.ParameterEndToEnd_ApiService>("api")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+builder.AddProject<Projects.Aspire__Dashboard>(KnownResourceNames.AspireDashboard);
 
 builder.Build().Run();
