@@ -85,7 +85,7 @@ var appInsights = builder.AddAzureApplicationInsights(
         logAnalyticsWorkspace.Resource.WorkspaceId,
         AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
 
-    appInsights.Properties.IngestionMode = IngestionMode.LogAnalytics;
+    appInsights.Properties.IngestionMode = ComponentIngestionMode.LogAnalytics;
 });
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
