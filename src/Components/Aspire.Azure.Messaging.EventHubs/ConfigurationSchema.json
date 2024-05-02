@@ -114,6 +114,10 @@
                           "type": "string",
                           "description": "Gets or sets the name of the consumer group."
                         },
+                        "DisableHealthChecks": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the health checks are disabled or not."
+                        },
                         "DisableTracing": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
@@ -209,6 +213,10 @@
                         "ConnectionString": {
                           "type": "string",
                           "description": "Gets or sets the connection string used to connect to the Event Hubs namespace."
+                        },
+                        "DisableHealthChecks": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the health checks are disabled or not."
                         },
                         "DisableTracing": {
                           "type": "boolean",
@@ -356,6 +364,10 @@
                           "type": "string",
                           "description": "Gets or sets the name of the consumer group."
                         },
+                        "DisableHealthChecks": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the health checks are disabled or not."
+                        },
                         "DisableTracing": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
@@ -476,6 +488,10 @@
                         "ConsumerGroup": {
                           "type": "string",
                           "description": "Gets or sets the name of the consumer group."
+                        },
+                        "DisableHealthChecks": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the health checks are disabled or not."
                         },
                         "DisableTracing": {
                           "type": "boolean",

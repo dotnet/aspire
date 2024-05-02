@@ -47,6 +47,11 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
+    /// Gets or sets a boolean value that indicates whether the health checks are disabled or not.
+    /// </summary>
+    public bool DisableHealthChecks { get; set; }
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>

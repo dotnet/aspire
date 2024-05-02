@@ -119,8 +119,6 @@ internal sealed class EventProcessorClientComponent()
         return containerClient;
     }
 
-    protected override bool GetHealthCheckEnabled(AzureMessagingEventHubsProcessorSettings settings) => true;
-
     protected override IHealthCheck CreateHealthCheck(EventProcessorClient client, AzureMessagingEventHubsProcessorSettings settings) => new AzureEventHubHealthCheck(settings);
 }
 
