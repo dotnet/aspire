@@ -18,6 +18,10 @@ public class WebTests
     {
         // Arrange
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.GeneratedClassNamePrefix_AppHost>();
+        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+        {
+            clientBuilder.AddStandardResilienceHandler();
+        });
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
