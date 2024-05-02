@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AspireStarterApplication.1.ServiceDefaults\AspireStarterApplication.1.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\XmlEncodedProjectName.ServiceDefaults\XmlEncodedProjectName.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <!--#if (UseRedisCache) -->

@@ -58,7 +58,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "Aspire.Tests1.csproj"
+      "path": "Aspire.Tests.1.csproj"
     }
   ],
   "postActions": [

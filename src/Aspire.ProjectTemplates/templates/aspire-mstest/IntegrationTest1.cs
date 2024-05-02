@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Tests._1;
 
@@ -19,6 +20,10 @@ public class IntegrationTest1
     // {
     //     // Arrange
     //     var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.MyAspireApp_AppHost>();
+    //     appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+    //     {
+    //         clientBuilder.AddStandardResilienceHandler();
+    //     });
     //     await using var app = await appHost.BuildAsync();
     //     await app.StartAsync();
 
