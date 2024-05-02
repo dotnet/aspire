@@ -93,6 +93,8 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                         $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
                         $"the '{configurationSectionName}' configuration section, or include an EntityPath in the ConnectionString.");
                 }
+                // The connection string has an EventHubName, but we'll set this anyway so the health check can use it
+                settings.EventHubName = props.EventHubName;
             }
         }
         // If we have a namespace and no connection string, ensure there's an EventHubName
