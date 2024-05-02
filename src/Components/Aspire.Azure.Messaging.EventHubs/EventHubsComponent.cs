@@ -103,6 +103,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
                 $"the '{configurationSectionName}' configuration section.");
         }
     }
+
     protected sealed class AzureEventHubHealthCheck : IHealthCheck, IAsyncDisposable
     {
         private readonly EventHubProducerClient _probe;
