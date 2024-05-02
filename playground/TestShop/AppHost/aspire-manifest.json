@@ -1,9 +1,10 @@
 {
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "postgres": {
       "type": "container.v0",
       "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-      "image": "postgres:16.2",
+      "image": "docker.io/library/postgres:16.2",
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -26,7 +27,7 @@
     "basketcache": {
       "type": "container.v0",
       "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}",
-      "image": "redis:7.2.4",
+      "image": "docker.io/library/redis:7.2.4",
       "args": [
         "--save",
         "60",
@@ -71,20 +72,10 @@
         }
       }
     },
-    "rabbitmq-password": {
-      "type": "parameter.v0",
-      "value": "{rabbitmq-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true
-        }
-      }
-    },
     "messaging": {
       "type": "container.v0",
       "connectionString": "amqp://guest:{rabbitmq-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
-      "image": "rabbitmq:3-management",
+      "image": "docker.io/library/rabbitmq:3-management",
       "volumes": [
         {
           "name": "TestShop.AppHost-messaging-data",
@@ -232,6 +223,22 @@
           "default": {
             "generate": {
               "minLength": 22
+            }
+          }
+        }
+      }
+    },
+    "rabbitmq-password": {
+      "type": "parameter.v0",
+      "value": "{rabbitmq-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
             }
           }
         }

@@ -77,8 +77,10 @@ internal sealed partial class ServiceEndpointWatcher(
         async ValueTask<ServiceEndpointSource> GetEndpointsInternal(CancellationToken cancellationToken)
         {
             ServiceEndpointSource? result;
+            var disposalToken = _disposalCancellation.Token;
             do
             {
+                disposalToken.ThrowIfCancellationRequested();
                 cancellationToken.ThrowIfCancellationRequested();
                 await RefreshAsync(force: false).WaitAsync(cancellationToken).ConfigureAwait(false);
                 result = _cachedEndpoints;
@@ -194,7 +196,14 @@ internal sealed partial class ServiceEndpointWatcher(
 
         if (OnEndpointsUpdated is { } callback)
         {
-            callback(new(newEndpoints, error));
+            try
+            {
+                callback(new(newEndpoints, error));
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error notifying observers of updated endpoints.");
+            }
         }
 
         lock (_lock)
@@ -244,10 +253,17 @@ internal sealed partial class ServiceEndpointWatcher(
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        lock (_lock)
+        try
         {
             _disposalCancellation.Cancel();
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error cancelling disposal cancellation token.");
+        }
 
+        lock (_lock)
+        {
             _changeTokenRegistration?.Dispose();
             _changeTokenRegistration = null;
 
