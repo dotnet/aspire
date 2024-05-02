@@ -24,7 +24,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         => throw new NotImplementedException();
 
     protected override bool GetHealthCheckEnabled(TSettings settings)
-        => false;
+        => !settings.DisableHealthChecks;
 
     protected override TokenCredential? GetTokenCredential(TSettings settings)
         => settings.Credential;

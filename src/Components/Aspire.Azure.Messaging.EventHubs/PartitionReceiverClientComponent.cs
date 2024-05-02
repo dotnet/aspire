@@ -57,7 +57,5 @@ internal sealed class PartitionReceiverClientComponent()
         }, requiresCredential: false);
     }
 
-    protected override bool GetHealthCheckEnabled(AzureMessagingEventHubsPartitionReceiverSettings settings) => true;
-
     protected override IHealthCheck CreateHealthCheck(PartitionReceiver client, AzureMessagingEventHubsPartitionReceiverSettings settings) => new AzureEventHubHealthCheck(settings);
 }

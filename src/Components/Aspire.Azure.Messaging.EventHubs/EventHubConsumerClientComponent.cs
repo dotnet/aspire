@@ -41,7 +41,5 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
         }, requiresCredential: false);
     }
 
-    protected override bool GetHealthCheckEnabled(AzureMessagingEventHubsConsumerSettings settings) => true;
-
     protected override IHealthCheck CreateHealthCheck(EventHubConsumerClient client, AzureMessagingEventHubsConsumerSettings settings) => new AzureEventHubHealthCheck(settings);
 }
