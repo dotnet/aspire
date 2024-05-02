@@ -354,7 +354,7 @@
         "source": "name",
         "steps": [
           {
-            "regex": "[\\.\\- ]",
+            "regex": "(((?<=\\.)|^)(?=\\d)|\\W)",
             "replacement": "_"
           }
         ]

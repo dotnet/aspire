@@ -5,6 +5,7 @@
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
     <AspireGeneratedClassesVisibility Condition="'$(AspireGeneratedClassesVisibility)' == ''">public</AspireGeneratedClassesVisibility>
     <_AspireIntermediatePath>$(IntermediateOutputPath)Aspire\</_AspireIntermediatePath>
+    <_GeneratedClassNameFixupRegex>(((?&lt;=\.)|^)(?=\d)|\W)</_GeneratedClassNameFixupRegex>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,8 +25,8 @@
           DependsOnTargets="_CreateAspireProjectResources">
     <ItemGroup>
       <AspireProjectMetadataSource Include="@(_AspireProjectResource)" Condition="'@(_AspireProjectResource)' != ''">
-        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
-        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.String]::Copy(%(_AspireProjectResource.AspireProjectMetadataTypeName)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity))), $(_GeneratedClassNameFixupRegex), '_'))</ClassName>
+        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.Text.RegularExpressions.Regex]::Replace(%(_AspireProjectResource.AspireProjectMetadataTypeName), $(_GeneratedClassNameFixupRegex), '_'))</ClassName>
         <ProjectPath>$([System.IO.Path]::GetFullPath(%(_AspireProjectResource.Identity)))</ProjectPath>
       </AspireProjectMetadataSource>
 		</ItemGroup>
@@ -65,7 +66,7 @@ namespace Projects%3B
   <Target Name="CreateAspireHostProjectMetadataSources">
     <ItemGroup>
       <AspireHostProjectMetadataSource Include="$(MSBuildProjectDirectory)">
-        <ClassName>$([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName>$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile))), $(_GeneratedClassNameFixupRegex), '_'))</ClassName>
         <ProjectPath>$(MSBuildProjectDirectory)</ProjectPath>
       </AspireHostProjectMetadataSource>
     </ItemGroup>
