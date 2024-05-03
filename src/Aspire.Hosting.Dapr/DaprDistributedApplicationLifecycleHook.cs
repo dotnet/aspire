@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
@@ -17,10 +18,12 @@ namespace Aspire.Hosting.Dapr;
 internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook, IDisposable
 {
     private readonly IConfiguration _configuration;
+    private readonly SemaphoreSlim _daprPathLock = new(1, 1);
     private readonly IHostEnvironment _environment;
     private readonly ILogger<DaprDistributedApplicationLifecycleHook> _logger;
     private readonly DaprOptions _options;
 
+    private string? _defaultDaprPath;
     private string? _onDemandResourcesRootPath;
 
     public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options)
@@ -40,7 +43,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         var sideCars = new List<ExecutableResource>();
 
         var fileName = this._options.DaprPath
-            ?? GetDefaultDaprPath()
+            ?? await GetDefaultDaprPathAsync(cancellationToken).ConfigureAwait(false)
             ?? throw new DistributedApplicationException("Unable to locate the Dapr CLI.");
 
         foreach (var resource in appModel.Resources)
@@ -281,17 +284,63 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     /// <summary>
     /// Return the first verified dapr path
     /// </summary>
-    static string? GetDefaultDaprPath()
+    async Task<string?> GetDefaultDaprPathAsync(CancellationToken cancellationToken)
     {
-        foreach (var path in GetAvailablePaths())
+        if (_defaultDaprPath is null)
         {
-            if (File.Exists(path))
+            await _daprPathLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            try
             {
-                return path;
+                if (_defaultDaprPath is null)
+                {
+                    var process = Process.Start(
+                        new ProcessStartInfo
+                        {
+                            Arguments = "version",
+                            CreateNoWindow = true,
+                            FileName = "dapr",
+                            UseShellExecute = true,
+                            WindowStyle = ProcessWindowStyle.Hidden
+                        });
+
+                    if (process is null)
+                    {
+                        throw new InvalidOperationException("Unable to determine if Dapr is in the path.");
+                    }
+
+                    await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+                    if (process.ExitCode == 0)
+                    {
+                        // TODO: "dapr.exe" on Windows?
+                        _defaultDaprPath = "dapr";
+
+                        _logger.LogInformation("Dapr CLI found in the path.");
+                    }
+                    else
+                    {
+                        foreach (var path in GetAvailablePaths())
+                        {
+                            if (File.Exists(path))
+                            {
+                                _defaultDaprPath = path;
+
+                                _logger.LogInformation("Dapr CLI found at '{DaprPath}'.", path);
+
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                _daprPathLock.Release();
             }
         }
 
-        return default;
+        return _defaultDaprPath;
 
         // Return all the possible paths for dapr
         static IEnumerable<string> GetAvailablePaths()
@@ -336,6 +385,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 _logger.LogWarning(ex, "Failed to delete temporary Dapr resources directory: {OnDemandResourcesRootPath}", _onDemandResourcesRootPath);
             }
         }
+
+        _daprPathLock.Dispose();
     }
 
     private async Task<IReadOnlyDictionary<string, string>> StartOnDemandDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
