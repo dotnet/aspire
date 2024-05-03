@@ -18,6 +18,14 @@ namespace Microsoft.Extensions.ServiceDiscovery.Yarp.Tests;
 /// </summary>
 public class YarpServiceDiscoveryTests
 {
+    private static ServiceDiscoveryDestinationResolver CreateResolver(IServiceProvider serviceProvider)
+    {
+        var coreResolver = serviceProvider.GetRequiredService<ServiceEndpointResolver>();
+        return new ServiceDiscoveryDestinationResolver(
+            coreResolver,
+            serviceProvider.GetRequiredService<IOptions<ServiceDiscoveryOptions>>());
+    }
+
     [Fact]
     public async Task ServiceDiscoveryDestinationResolverTests_PassThrough()
     {
@@ -25,8 +33,7 @@ public class YarpServiceDiscoveryTests
             .AddServiceDiscoveryCore()
             .AddPassThroughServiceEndpointProvider()
             .BuildServiceProvider();
-        var coreResolver = services.GetRequiredService<ServiceEndpointResolver>();
-        var yarpResolver = new ServiceDiscoveryDestinationResolver(coreResolver, services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>());
+        var yarpResolver = CreateResolver(services);
 
         var destinationConfigs = new Dictionary<string, DestinationConfig>
         {
@@ -57,8 +64,7 @@ public class YarpServiceDiscoveryTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndpointProvider()
             .BuildServiceProvider();
-        var coreResolver = services.GetRequiredService<ServiceEndpointResolver>();
-        var yarpResolver = new ServiceDiscoveryDestinationResolver(coreResolver, services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>());
+        var yarpResolver = CreateResolver(services);
 
         var destinationConfigs = new Dictionary<string, DestinationConfig>
         {
@@ -88,8 +94,7 @@ public class YarpServiceDiscoveryTests
             .AddServiceDiscoveryCore()
             .AddConfigurationServiceEndpointProvider()
             .BuildServiceProvider();
-        var coreResolver = services.GetRequiredService<ServiceEndpointResolver>();
-        var yarpResolver = new ServiceDiscoveryDestinationResolver(coreResolver, services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>());
+        var yarpResolver = CreateResolver(services);
 
         var destinationConfigs = new Dictionary<string, DestinationConfig>
         {
@@ -104,6 +109,89 @@ public class YarpServiceDiscoveryTests
         Assert.Equal(1, result.Destinations.Count);
         Assert.Collection(result.Destinations.Select(d => d.Value.Address),
             a => Assert.Equal("http://localhost:1111/", a));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ServiceDiscoveryDestinationResolverTests_Configuration_Host_Value(bool configHasHost)
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["services:basket:default:0"] = "https://localhost:1111",
+            ["services:basket:default:1"] = "https://127.0.0.1:2222",
+            ["services:basket:default:2"] = "https://[::1]:3333",
+            ["services:basket:default:3"] = "https://baskets-galore.faketld",
+        });
+        await using var services = new ServiceCollection()
+            .AddSingleton<IConfiguration>(config.Build())
+            .AddServiceDiscoveryCore()
+            .AddConfigurationServiceEndpointProvider()
+            .BuildServiceProvider();
+        var yarpResolver = CreateResolver(services);
+
+        var destinationConfigs = new Dictionary<string, DestinationConfig>
+        {
+            ["dest-a"] = new()
+            {
+                Address = "https://basket",
+                Host = configHasHost ? "my-basket-svc.faketld" : null
+            },
+        };
+
+        var result = await yarpResolver.ResolveDestinationsAsync(destinationConfigs, CancellationToken.None);
+
+        Assert.Equal(4, result.Destinations.Count);
+        Assert.Collection(result.Destinations.Values,
+            a =>
+            {
+                Assert.Equal("https://localhost:1111/", a.Address);
+                if (configHasHost)
+                {
+                    Assert.Equal("my-basket-svc.faketld", a.Host);
+                }
+                else
+                {
+                    Assert.Null(a.Host);
+                }
+            },
+            a =>
+            {
+                Assert.Equal("https://127.0.0.1:2222/", a.Address);
+                if (configHasHost)
+                {
+                    Assert.Equal("my-basket-svc.faketld", a.Host);
+                }
+                else
+                {
+                    Assert.Null(a.Host);
+                }
+            },
+            a =>
+            {
+                Assert.Equal("https://[::1]:3333/", a.Address);
+                if (configHasHost)
+                {
+                    Assert.Equal("my-basket-svc.faketld", a.Host);
+                }
+                else
+                {
+                    Assert.Null(a.Host);
+                }
+            },
+            a =>
+            {
+                Assert.Equal("https://baskets-galore.faketld/", a.Address);
+                if (configHasHost)
+                {
+                    Assert.Equal("my-basket-svc.faketld", a.Host);
+                }
+                else
+                {
+                    // For non-localhost values, fallback to the input address.
+                    Assert.Equal("basket", a.Host);
+                }
+            });
     }
 
     [Fact]
@@ -125,8 +213,7 @@ public class YarpServiceDiscoveryTests
             })
             .AddConfigurationServiceEndpointProvider()
             .BuildServiceProvider();
-        var coreResolver = services.GetRequiredService<ServiceEndpointResolver>();
-        var yarpResolver = new ServiceDiscoveryDestinationResolver(coreResolver, services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>());
+        var yarpResolver = CreateResolver(services);
 
         var destinationConfigs = new Dictionary<string, DestinationConfig>
         {
@@ -149,8 +236,7 @@ public class YarpServiceDiscoveryTests
             .AddServiceDiscoveryCore()
             .AddDnsServiceEndpointProvider()
             .BuildServiceProvider();
-        var coreResolver = services.GetRequiredService<ServiceEndpointResolver>();
-        var yarpResolver = new ServiceDiscoveryDestinationResolver(coreResolver, services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>());
+        var yarpResolver = CreateResolver(services);
 
         var destinationConfigs = new Dictionary<string, DestinationConfig>
         {
@@ -209,8 +295,7 @@ public class YarpServiceDiscoveryTests
             .AddServiceDiscoveryCore()
             .AddDnsSrvServiceEndpointProvider(options => options.QuerySuffix = ".ns")
             .BuildServiceProvider();
-        var coreResolver = services.GetRequiredService<ServiceEndpointResolver>();
-        var yarpResolver = new ServiceDiscoveryDestinationResolver(coreResolver, services.GetRequiredService<IOptions<ServiceDiscoveryOptions>>());
+        var yarpResolver = CreateResolver(services);
 
         var destinationConfigs = new Dictionary<string, DestinationConfig>
         {

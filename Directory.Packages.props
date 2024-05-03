@@ -28,7 +28,7 @@
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.6.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.19.1" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.17.1" />
-    <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="7.1.0" />
+    <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="7.2.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.39.1" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.25.2" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.3" />
