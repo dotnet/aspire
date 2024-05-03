@@ -30,6 +30,14 @@ public sealed class OracleEntityFrameworkCoreSettings
     public bool DisableHealthChecks { get; set; }
 
     /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableTracing { get; set; }
+
+    /// <summary>
     /// Gets or sets the time in seconds to wait for the command to execute.
     /// </summary>
     public int? CommandTimeout { get; set; }

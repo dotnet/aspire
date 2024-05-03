@@ -6,6 +6,8 @@ Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.ConnectionSt
 Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.ConnectionString.set -> void
 Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.DisableHealthChecks.get -> bool
 Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.DisableHealthChecks.set -> void
+Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.DisableTracing.get -> bool
+Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.DisableTracing.set -> void
 Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.OracleEntityFrameworkCoreSettings() -> void
 Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.DisableRetry.get -> bool
 Aspire.Oracle.EntityFrameworkCore.OracleEntityFrameworkCoreSettings.DisableRetry.set -> void
