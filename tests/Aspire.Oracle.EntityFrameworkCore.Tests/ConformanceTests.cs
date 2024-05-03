@@ -66,7 +66,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(OracleEntityFrameworkCoreSettings options, bool enabled)
-        => throw new NotImplementedException();
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(OracleEntityFrameworkCoreSettings options, bool enabled)
         => throw new NotImplementedException();
