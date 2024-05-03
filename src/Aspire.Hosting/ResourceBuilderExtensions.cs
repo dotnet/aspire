@@ -425,11 +425,6 @@ public static class ResourceBuilderExtensions
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? port = null, int? targetPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true, bool? isExternal = null) where T : IResourceWithEndpoints
     {
-        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
-        {
-            throw new DistributedApplicationException($"Endpoint with name '{name}' already exists");
-        }
-
         var annotation = new EndpointAnnotation(
             protocol: ProtocolType.Tcp,
             uriScheme: scheme,
@@ -438,6 +433,11 @@ public static class ResourceBuilderExtensions
             targetPort: targetPort,
             isExternal: isExternal,
             isProxied: isProxied);
+
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, annotation.Name, StringComparisons.EndpointAnnotationName)))
+        {
+            throw new DistributedApplicationException($"Endpoint with name '{annotation.Name}' already exists");
+        }
 
         // Set the environment variable on the resource
         if (env is not null && builder.Resource is IResourceWithEndpoints resourceWithEndpoints and IResourceWithEnvironment)

@@ -98,6 +98,21 @@ public class WithEndpointTests
     }
 
     [Fact]
+    public void AddingTwoEndpointsWithDefaultNames()
+    {
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+
+            builder.AddProject<ProjectA>("projecta")
+                    .WithHttpsEndpoint(3000, 1000)
+                    .WithHttpsEndpoint(3000, 2000);
+        });
+
+        Assert.Equal("Endpoint with name 'https' already exists", ex.Message);
+    }
+
+    [Fact]
     public void EndpointsWithSinglePortSameNameThrows()
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>
