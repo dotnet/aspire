@@ -102,7 +102,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _allApplication = new()
         {
             Id = null,
-            Name = Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllApplications)]
+            Name = Loc[nameof(Dashboard.Resources.ControlsStrings.All)]
         };
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
