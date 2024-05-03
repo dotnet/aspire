@@ -1,6 +1,7 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace AspireStarterApplication._1.Tests;
+namespace Aspire_StarterApplication._1.Tests;
 
 #if (TestFramework == "MSTest")
 [TestClass]
@@ -17,7 +18,11 @@ public class WebTests
     public async Task GetWebResourceRootReturnsOkStatusCode()
     {
         // Arrange
-        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.AspireStarterApplication._1_AppHost>();
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.GeneratedClassNamePrefix_AppHost>();
+        appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+        {
+            clientBuilder.AddStandardResilienceHandler();
+        });
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
