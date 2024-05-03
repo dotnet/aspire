@@ -57,6 +57,10 @@ internal sealed class HttpServiceEndpointResolver(ServiceEndpointWatcherFactory 
 
                 return endpoint;
             }
+            else
+            {
+                _resolvers.TryRemove(KeyValuePair.Create(resolver.ServiceName, resolver));
+            }
         }
     }
 
@@ -140,6 +144,7 @@ internal sealed class HttpServiceEndpointResolver(ServiceEndpointWatcherFactory 
                 cleanupTasks.Add(resolver.DisposeAsync().AsTask());
             }
         }
+
         if (cleanupTasks is not null)
         {
             await Task.WhenAll(cleanupTasks).ConfigureAwait(false);
