@@ -7,11 +7,6 @@
         <target state="translated">Добавить фильтр</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAllApplications">
-        <source>(All)</source>
-        <target state="translated">(Все)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsAllTypes">
         <source>All</source>
         <target state="translated">Все</target>
