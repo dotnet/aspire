@@ -451,6 +451,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansContracts", "playgro
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Seq.Tests", "tests\Aspire.Seq.Tests\Aspire.Seq.Tests.csproj", "{0505F739-6F85-4502-A554-77E0D7325F26}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Extensions.ServiceDiscovery.Yarp.Tests", "tests\Microsoft.Extensions.ServiceDiscovery.Yarp.Tests\Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj", "{B5D637F3-7E44-4C7D-AE4B-D56D400671CD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1185,6 +1187,10 @@ Global
 		{0505F739-6F85-4502-A554-77E0D7325F26}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0505F739-6F85-4502-A554-77E0D7325F26}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0505F739-6F85-4502-A554-77E0D7325F26}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5D637F3-7E44-4C7D-AE4B-D56D400671CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5D637F3-7E44-4C7D-AE4B-D56D400671CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5D637F3-7E44-4C7D-AE4B-D56D400671CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5D637F3-7E44-4C7D-AE4B-D56D400671CD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1400,6 +1406,7 @@ Global
 		{906B5687-31AD-4364-AD9F-B4B26113462D} = {8BAF2119-8370-4E9E-A887-D92506F8C727}
 		{75760E8A-7025-4F6A-B152-6622688D0E7D} = {8BAF2119-8370-4E9E-A887-D92506F8C727}
 		{0505F739-6F85-4502-A554-77E0D7325F26} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
+		{B5D637F3-7E44-4C7D-AE4B-D56D400671CD} = {7C4F0F84-BAEC-469D-A3BC-28209B2C11AC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

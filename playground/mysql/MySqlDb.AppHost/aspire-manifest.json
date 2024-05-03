@@ -1,9 +1,10 @@
 {
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "mysql": {
       "type": "container.v0",
       "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-      "image": "mysql:8.3.0",
+      "image": "docker.io/library/mysql:8.3.0",
       "bindMounts": [
         {
           "source": "../MySql.ApiService/data",

@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AspireStarterApplication.1.ApiService\AspireStarterApplication.1.ApiService.csproj" />
-    <ProjectReference Include="..\AspireStarterApplication.1.Web\AspireStarterApplication.1.Web.csproj" />
+    <ProjectReference Include="..\XmlEncodedProjectName.ApiService\XmlEncodedProjectName.ApiService.csproj" />
+    <ProjectReference Include="..\XmlEncodedProjectName.Web\XmlEncodedProjectName.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

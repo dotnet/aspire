@@ -1,4 +1,3 @@
-/*#if (SampleContent)*/
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
@@ -21,7 +20,6 @@ a, .btn-link {
     padding-top: 1.1rem;
 }
 
-/*#endif*/
 h1:focus {
     outline: none;
 }

@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AspireStarterApplication.1.AppHost\AspireStarterApplication.1.AppHost.csproj" />
+    <ProjectReference Include="..\XmlEncodedProjectName.AppHost\XmlEncodedProjectName.AppHost.csproj" />
   </ItemGroup>
 
   <ItemGroup>
