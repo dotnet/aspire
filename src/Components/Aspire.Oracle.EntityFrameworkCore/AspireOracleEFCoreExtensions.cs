@@ -63,7 +63,7 @@ public static class AspireOracleEFCoreExtensions
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-		    ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
+            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
             dbContextOptionsBuilder.UseOracle(settings.ConnectionString, builder =>
             {
@@ -168,7 +168,13 @@ public static class AspireOracleEFCoreExtensions
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
-                tracerProviderBuilder.AddOracleDataProviderInstrumentation();
+                tracerProviderBuilder.AddOracleDataProviderInstrumentation(o =>
+                {
+                    o.EnableConnectionLevelAttributes = true;
+                    o.RecordException = true;
+                    o.InstrumentOracleDataReaderRead = true;
+                    o.SetDbStatementForText = true;
+                });
             });
         }
 
