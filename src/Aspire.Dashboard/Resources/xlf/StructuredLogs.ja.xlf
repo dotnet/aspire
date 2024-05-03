@@ -7,11 +7,6 @@
         <target state="translated">フィルターの追加</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAllApplications">
-        <source>(All)</source>
-        <target state="translated">(すべて)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsAllTypes">
         <source>All</source>
         <target state="translated">すべて</target>
