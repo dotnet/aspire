@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Tests._1;
 
@@ -18,6 +19,10 @@ public class IntegrationTest1
     // {
     //     // Arrange
     //     var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.MyAspireApp_AppHost>();
+    //     appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+    //     {
+    //         clientBuilder.AddStandardResilienceHandler();
+    //     });
     //     await using var app = await appHost.BuildAsync();
     //     await app.StartAsync();
 
@@ -26,6 +31,6 @@ public class IntegrationTest1
     //     var response = await httpClient.GetAsync("/");
 
     //     // Assert
-    //     ClassicAssert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+    //     Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     // }
 }
