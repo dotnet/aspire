@@ -1,11 +1,13 @@
 param location string
 param tags object = {}
+@secure()
+param postgres_password_value string
 param containerAppEnv_outputs_id string
 param containerRegistry_outputs_loginServer string
 param containerRegistry_outputs_mid string
-param apigateway_containerImage string
+param catalogservice_containerImage string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
-    name: 'apigateway'
+    name: 'catalogservice'
     location: location
     tags: tags
     properties: {
@@ -13,9 +15,9 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-                  external: false
-                  targetPort: 8080
-                  transport: 'http'
+                external: false
+                targetPort: 8080
+                transport: 'http'
             }
             registries: [
                 {
@@ -23,23 +25,24 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                     identity: containerRegistry_outputs_mid
                 }
             ]
+            secrets: [
+                { name: 'connectionstrings--catalogdb', value: 'Host=postgres;Port=5432;Username=postgres;Password=${postgres_password_value};Database=catalogdb' }
+            ]
         }
         template: {
             scale: {
-                minReplicas: 1
+                minReplicas: 2
             }
             containers: [
                 {
-                    image: apigateway_containerImage
-                    name: 'apigateway'
+                    image: catalogservice_containerImage
+                    name: 'catalogservice'
                     env: [
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES', value: 'true' }
+                        { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY', value: 'in_memory' }
                         { name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED', value: 'true' }
-                        { name: 'services__basketservice__http__0', value: 'http://basketservice' }
-                        { name: 'services__basketservice__https__0', value: 'https://basketservice' }
-                        { name: 'services__catalogservice__http__0', value: 'http://catalogservice' }
-                        { name: 'services__catalogservice__https__0', value: 'https://catalogservice' }
+                        { name: 'ConnectionStrings__catalogdb', secretRef: 'connectionstrings--catalogdb' }
                     ]
                 }
             ]

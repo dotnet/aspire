@@ -1,7 +1,7 @@
 param location string
 param tags object = {}
 @secure()
-param messaging_password_value string
+param rabbitmq_password_value string
 param containerAppEnv_outputs_id string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
     name: 'messaging'
@@ -12,12 +12,18 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-                  external: false
-                  targetPort: 5672
-                  transport: 'tcp'
+                external: false
+                targetPort: 15672
+                transport: 'http'
+                additionalPortMappings: [
+                    {
+                        external: false
+                        targetPort: 5672
+                    }
+                ]
             }
             secrets: [
-                { name: 'rabbitmq_default_pass', value: messaging_password_value }
+                { name: 'rabbitmq_default_pass', value: rabbitmq_password_value }
             ]
         }
         template: {
@@ -26,7 +32,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: 'rabbitmq:3'
+                    image: 'docker.io/library/rabbitmq:3.13-management'
                     name: 'messaging'
                     env: [
                         { name: 'RABBITMQ_DEFAULT_USER', value: 'guest' }

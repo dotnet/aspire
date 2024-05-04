@@ -1,11 +1,12 @@
 param location string
 param tags object = {}
+param containerAppEnv_outputs_defaultDomain string
 param containerAppEnv_outputs_id string
 param containerRegistry_outputs_loginServer string
 param containerRegistry_outputs_mid string
-param api_containerImage string
+param apigateway_containerImage string
 resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
-    name: 'api'
+    name: 'apigateway'
     location: location
     tags: tags
     properties: {
@@ -13,7 +14,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-                external: true
+                external: false
                 targetPort: 8080
                 transport: 'http'
             }
@@ -23,9 +24,6 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                     identity: containerRegistry_outputs_mid
                 }
             ]
-            secrets: [
-                { name: 'connectionstrings--mongo', value: 'mongodb://mongo:27017' }
-            ]
         }
         template: {
             scale: {
@@ -33,13 +31,17 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: api_containerImage
-                    name: 'api'
+                    image: apigateway_containerImage
+                    name: 'apigateway'
                     env: [
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES', value: 'true' }
+                        { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY', value: 'in_memory' }
                         { name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED', value: 'true' }
-                        { name: 'ConnectionStrings__mongo', secretRef: 'connectionstrings--mongo' }
+                        { name: 'services__basketservice__http__0', value: 'http://basketservice.internal.${containerAppEnv_outputs_defaultDomain}' }
+                        { name: 'services__basketservice__https__0', value: 'https://basketservice.internal.${containerAppEnv_outputs_defaultDomain}' }
+                        { name: 'services__catalogservice__http__0', value: 'http://catalogservice.internal.${containerAppEnv_outputs_defaultDomain}' }
+                        { name: 'services__catalogservice__https__0', value: 'https://catalogservice.internal.${containerAppEnv_outputs_defaultDomain}' }
                     ]
                 }
             ]

@@ -2,7 +2,8 @@ param location string
 param tags object = {}
 param parameters object = {}
 param inputs object = {}
-module postgres_containerApp 'postgres-containerapp.bicep' = {
+
+module postgres_containerApp 'postgres-containerapp.module.bicep' = {
     name: 'postgres-containerApp'
     params: {
         location: location
@@ -11,7 +12,7 @@ module postgres_containerApp 'postgres-containerapp.bicep' = {
     }
 }
 
-module basketcache_containerApp 'basketcache-containerapp.bicep' = {
+module basketcache_containerApp 'basketcache-containerapp.module.bicep' = {
     name: 'basketcache-containerApp'
     params: {
         location: location
@@ -19,37 +20,37 @@ module basketcache_containerApp 'basketcache-containerapp.bicep' = {
     }
 }
 
-module messaging_containerApp 'messaging-containerapp.bicep' = {
+module messaging_containerApp 'messaging-containerapp.module.bicep' = {
     name: 'messaging-containerApp'
     params: {
         location: location
-        messaging_password_value: parameters.messaging_password
+        rabbitmq_password_value: parameters.rabbitmq_password
         containerAppEnv_outputs_id: containerAppEnv.outputs.id
     }
 }
 
-module containerAppEnv 'containerappenv.bicep' = {
+module containerAppEnv 'containerappenv.module.bicep' = {
     name: 'containerAppEnv'
     params: {
         location: location
     }
 }
 
-module containerRegistry 'containerregistry.bicep' = {
+module containerRegistry 'containerregistry.module.bicep' = {
     name: 'containerRegistry'
     params: {
         location: location
     }
 }
 
-module default_identity 'default-identity.bicep' = {
+module default_identity 'default-identity.module.bicep' = {
     name: 'default-identity'
     params: {
         location: location
     }
 }
 
-module catalogservice_containerApp 'catalogservice-containerapp.bicep' = {
+module catalogservice_containerApp 'catalogservice-containerapp.module.bicep' = {
     name: 'catalogservice-containerApp'
     params: {
         location: location
@@ -61,11 +62,11 @@ module catalogservice_containerApp 'catalogservice-containerapp.bicep' = {
     }
 }
 
-module basketservice_containerApp 'basketservice-containerapp.bicep' = {
+module basketservice_containerApp 'basketservice-containerapp.module.bicep' = {
     name: 'basketservice-containerApp'
     params: {
         location: location
-        messaging_password_value: parameters.messaging_password
+        rabbitmq_password_value: parameters.rabbitmq_password
         containerAppEnv_outputs_id: containerAppEnv.outputs.id
         containerRegistry_outputs_loginServer: containerRegistry.outputs.loginServer
         containerRegistry_outputs_mid: containerRegistry.outputs.mid
@@ -73,10 +74,11 @@ module basketservice_containerApp 'basketservice-containerapp.bicep' = {
     }
 }
 
-module frontend_containerApp 'frontend-containerapp.bicep' = {
+module frontend_containerApp 'frontend-containerapp.module.bicep' = {
     name: 'frontend-containerApp'
     params: {
         location: location
+        containerAppEnv_outputs_defaultDomain: containerAppEnv.outputs.defaultDomain
         containerAppEnv_outputs_id: containerAppEnv.outputs.id
         containerRegistry_outputs_loginServer: containerRegistry.outputs.loginServer
         containerRegistry_outputs_mid: containerRegistry.outputs.mid
@@ -84,11 +86,11 @@ module frontend_containerApp 'frontend-containerapp.bicep' = {
     }
 }
 
-module orderprocessor_containerApp 'orderprocessor-containerapp.bicep' = {
+module orderprocessor_containerApp 'orderprocessor-containerapp.module.bicep' = {
     name: 'orderprocessor-containerApp'
     params: {
         location: location
-        messaging_password_value: parameters.messaging_password
+        rabbitmq_password_value: parameters.rabbitmq_password
         containerAppEnv_outputs_id: containerAppEnv.outputs.id
         containerRegistry_outputs_loginServer: containerRegistry.outputs.loginServer
         containerRegistry_outputs_mid: containerRegistry.outputs.mid
@@ -96,10 +98,11 @@ module orderprocessor_containerApp 'orderprocessor-containerapp.bicep' = {
     }
 }
 
-module apigateway_containerApp 'apigateway-containerapp.bicep' = {
+module apigateway_containerApp 'apigateway-containerapp.module.bicep' = {
     name: 'apigateway-containerApp'
     params: {
         location: location
+        containerAppEnv_outputs_defaultDomain: containerAppEnv.outputs.defaultDomain
         containerAppEnv_outputs_id: containerAppEnv.outputs.id
         containerRegistry_outputs_loginServer: containerRegistry.outputs.loginServer
         containerRegistry_outputs_mid: containerRegistry.outputs.mid
@@ -107,7 +110,7 @@ module apigateway_containerApp 'apigateway-containerapp.bicep' = {
     }
 }
 
-module catalogdbapp_containerApp 'catalogdbapp-containerapp.bicep' = {
+module catalogdbapp_containerApp 'catalogdbapp-containerapp.module.bicep' = {
     name: 'catalogdbapp-containerApp'
     params: {
         location: location

@@ -360,7 +360,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
             private readonly Dictionary<IManifestExpressionProvider, string> _allocatedParameters = [];
             private readonly ContainerAppEnviromentContext _containerAppEnviromentContext = containerAppEnviromentContext;
 
-            record struct EndpointMapping(string Scheme, string Host, int Port, int TargetPort, bool IsHttpIngress);
+            record struct EndpointMapping(string Scheme, string Host, int Port, int TargetPort, bool IsHttpIngress, bool External);
 
             private readonly Dictionary<string, EndpointMapping> _endpointMapping = [];
 
@@ -612,7 +612,10 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
 
                     foreach (var e in httpIngress.Endpoints)
                     {
-                        _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, e.Port ?? targetPort, targetPort, true);
+                        // For the http ingress port is always 80 or 443
+                        var port = e.UriScheme is "http" ? 80 : 443;
+
+                        _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, port, targetPort, true, httpIngress.External);
                     }
                 }
 
@@ -633,7 +636,7 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
 
                     foreach (var e in g.Endpoints)
                     {
-                        _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, e.Port ?? g.Port.Value, g.Port.Value, false);
+                        _endpointMapping[e.Name] = new(e.UriScheme, resource.Name, e.Port ?? g.Port.Value, g.Port.Value, false, g.External);
                     }
                 }
             }
@@ -718,7 +721,14 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                         ? this
                         : await _containerAppEnviromentContext.ProcessResourceAsync(ep.Resource, executionContext, cancellationToken).ConfigureAwait(false);
 
-                    var (scheme, host, port, _, isHttpIngress) = context._endpointMapping[ep.EndpointName];
+                    var (scheme, host, port, _, isHttpIngress, external) = context._endpointMapping[ep.EndpointName];
+
+                    if (isHttpIngress)
+                    {
+                        var domain = AllocateParameter(context._containerAppEnviromentContext.ContainerAppDomain);
+
+                        host = external ? $$"""{{host}}.${{{domain}}}""" : $$"""{{host}}.internal.${{{domain}}}""";
+                    }
 
                     var url = isHttpIngress ? $"{scheme}://{host}" : $"{scheme}://{host}:{port}";
 
@@ -780,7 +790,14 @@ internal class AzureContainerAppsInfastructure(DistributedApplicationExecutionCo
                         ? this
                         : await _containerAppEnviromentContext.ProcessResourceAsync(epExpr.Endpoint.Resource, executionContext, cancellationToken).ConfigureAwait(false);
 
-                    var (scheme, host, port, targetPort, isHttpIngress) = context._endpointMapping[epExpr.Endpoint.EndpointName];
+                    var (scheme, host, port, targetPort, isHttpIngress, external) = context._endpointMapping[epExpr.Endpoint.EndpointName];
+
+                    if (isHttpIngress)
+                    {
+                        var domain = AllocateParameter(context._containerAppEnviromentContext.ContainerAppDomain);
+
+                        host = external ? $$"""{{host}}.${{{domain}}}""" : $$"""{{host}}.internal.${{{domain}}}""";
+                    }
 
                     var val = epExpr.Property switch
                     {

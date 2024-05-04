@@ -2,7 +2,8 @@ param location string
 param tags object = {}
 param parameters object = {}
 param inputs object = {}
-module mongo_containerApp 'mongo-containerapp.bicep' = {
+
+module mongo_containerApp 'mongo-containerapp.module.bicep' = {
     name: 'mongo-containerApp'
     params: {
         location: location
@@ -10,28 +11,28 @@ module mongo_containerApp 'mongo-containerapp.bicep' = {
     }
 }
 
-module containerAppEnv 'containerappenv.bicep' = {
+module containerAppEnv 'containerappenv.module.bicep' = {
     name: 'containerAppEnv'
     params: {
         location: location
     }
 }
 
-module containerRegistry 'containerregistry.bicep' = {
+module containerRegistry 'containerregistry.module.bicep' = {
     name: 'containerRegistry'
     params: {
         location: location
     }
 }
 
-module default_identity 'default-identity.bicep' = {
+module default_identity 'default-identity.module.bicep' = {
     name: 'default-identity'
     params: {
         location: location
     }
 }
 
-module api_containerApp 'api-containerapp.bicep' = {
+module api_containerApp 'api-containerapp.module.bicep' = {
     name: 'api-containerApp'
     params: {
         location: location

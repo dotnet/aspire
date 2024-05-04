@@ -1,5 +1,6 @@
 param location string
 param tags object = {}
+param containerAppEnv_outputs_defaultDomain string
 param containerAppEnv_outputs_id string
 param containerRegistry_outputs_loginServer string
 param containerRegistry_outputs_mid string
@@ -13,9 +14,9 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-                  external: true
-                  targetPort: 8080
-                  transport: 'http'
+                external: true
+                targetPort: 8080
+                transport: 'http'
             }
             registries: [
                 {
@@ -35,11 +36,12 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                     env: [
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES', value: 'true' }
+                        { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY', value: 'in_memory' }
                         { name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED', value: 'true' }
-                        { name: 'services__basketservice__http__0', value: 'http://basketservice' }
-                        { name: 'services__basketservice__https__0', value: 'https://basketservice' }
-                        { name: 'services__catalogservice__http__0', value: 'http://catalogservice' }
-                        { name: 'services__catalogservice__https__0', value: 'https://catalogservice' }
+                        { name: 'services__basketservice__http__0', value: 'http://basketservice.internal.${containerAppEnv_outputs_defaultDomain}' }
+                        { name: 'services__basketservice__https__0', value: 'https://basketservice.internal.${containerAppEnv_outputs_defaultDomain}' }
+                        { name: 'services__catalogservice__http__0', value: 'http://catalogservice.internal.${containerAppEnv_outputs_defaultDomain}' }
+                        { name: 'services__catalogservice__https__0', value: 'https://catalogservice.internal.${containerAppEnv_outputs_defaultDomain}' }
                     ]
                 }
             ]

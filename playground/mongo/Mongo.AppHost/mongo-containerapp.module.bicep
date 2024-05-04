@@ -21,7 +21,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: 'mongo:7.0.5'
+                    image: 'docker.io/library/mongo:7.0'
                     name: 'mongo'
                 }
             ]

@@ -10,9 +10,9 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-                  external: false
-                  targetPort: 6379
-                  transport: 'tcp'
+                external: false
+                targetPort: 6379
+                transport: 'tcp'
             }
         }
         template: {
@@ -21,7 +21,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: 'redis:7.2.4'
+                    image: 'docker.io/library/redis:7.2'
                     name: 'basketcache'
                 }
             ]

@@ -2,16 +2,10 @@
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "mongo": {
-      "type": "container.v0",
-      "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
-      "image": "docker.io/library/mongo:7.0.5",
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 27017
-        }
+      "type": "azure.bicep.v0",
+      "path": "mongo-containerapp.module.bicep",
+      "params": {
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}"
       }
     },
     "api": {
@@ -38,6 +32,32 @@
           "external": true
         }
       }
+    },
+    "containerAppEnv": {
+      "type": "azure.bicep.v0",
+      "path": "containerappenv.module.bicep"
+    },
+    "containerRegistry": {
+      "type": "azure.bicep.v0",
+      "path": "containerregistry.module.bicep"
+    },
+    "default-identity": {
+      "type": "azure.bicep.v0",
+      "path": "default-identity.module.bicep"
+    },
+    "api-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "api-containerapp.module.bicep",
+      "params": {
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "api_containerImage": "{api.containerImage}"
+      }
+    },
+    "app": {
+      "type": "azure.bicep.v0",
+      "path": "app.module.bicep"
     }
   }
 }

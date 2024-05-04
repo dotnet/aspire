@@ -12,9 +12,9 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-                  external: false
-                  targetPort: 5432
-                  transport: 'tcp'
+                external: false
+                targetPort: 5432
+                transport: 'tcp'
             }
             secrets: [
                 { name: 'postgres_password', value: postgres_password_value }
@@ -26,7 +26,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             }
             containers: [
                 {
-                    image: 'postgres:16.2'
+                    image: 'docker.io/library/postgres:16.2'
                     name: 'postgres'
                     env: [
                         { name: 'POSTGRES_HOST_AUTH_METHOD', value: 'scram-sha-256' }

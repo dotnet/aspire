@@ -1,7 +1,7 @@
 param location string
 param tags object = {}
 @secure()
-param messaging_password_value string
+param rabbitmq_password_value string
 param containerAppEnv_outputs_id string
 param containerRegistry_outputs_loginServer string
 param containerRegistry_outputs_mid string
@@ -15,9 +15,9 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
         configuration: {
             activeRevisionsMode: 'Single'
             ingress: {
-                  external: false
-                  targetPort: 8080
-                  transport: 'http2'
+                external: false
+                targetPort: 8080
+                transport: 'http2'
             }
             registries: [
                 {
@@ -27,7 +27,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
             ]
             secrets: [
                 { name: 'connectionstrings--basketcache', value: 'basketcache:6379' }
-                { name: 'connectionstrings--messaging', value: 'amqp://guest:${messaging_password_value}@messaging:5672' }
+                { name: 'connectionstrings--messaging', value: 'amqp://guest:${rabbitmq_password_value}@messaging:5672' }
             ]
         }
         template: {
@@ -41,6 +41,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-02-preview' = {
                     env: [
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES', value: 'true' }
                         { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES', value: 'true' }
+                        { name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY', value: 'in_memory' }
                         { name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED', value: 'true' }
                         { name: 'ConnectionStrings__basketcache', secretRef: 'connectionstrings--basketcache' }
                         { name: 'ConnectionStrings__messaging', secretRef: 'connectionstrings--messaging' }

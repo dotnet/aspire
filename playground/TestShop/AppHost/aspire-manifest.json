@@ -2,22 +2,11 @@
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "postgres": {
-      "type": "container.v0",
-      "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-      "image": "docker.io/library/postgres:16.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{postgres-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
+      "type": "azure.bicep.v0",
+      "path": "postgres-containerapp.module.bicep",
+      "params": {
+        "postgres_password_value": "{postgres-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}"
       }
     },
     "catalogdb": {
@@ -25,28 +14,10 @@
       "connectionString": "{postgres.connectionString};Database=catalogdb"
     },
     "basketcache": {
-      "type": "container.v0",
-      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}",
-      "image": "docker.io/library/redis:7.2.4",
-      "args": [
-        "--save",
-        "60",
-        "1"
-      ],
-      "volumes": [
-        {
-          "name": "TestShop.AppHost-basketcache-data",
-          "target": "/data",
-          "readOnly": false
-        }
-      ],
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 6379
-        }
+      "type": "azure.bicep.v0",
+      "path": "basketcache-containerapp.module.bicep",
+      "params": {
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}"
       }
     },
     "catalogservice": {
@@ -73,33 +44,11 @@
       }
     },
     "messaging": {
-      "type": "container.v0",
-      "connectionString": "amqp://guest:{rabbitmq-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
-      "image": "docker.io/library/rabbitmq:3-management",
-      "volumes": [
-        {
-          "name": "TestShop.AppHost-messaging-data",
-          "target": "/var/lib/rabbitmq",
-          "readOnly": false
-        }
-      ],
-      "env": {
-        "RABBITMQ_DEFAULT_USER": "guest",
-        "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5672
-        },
-        "management": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http",
-          "targetPort": 15672
-        }
+      "type": "azure.bicep.v0",
+      "path": "messaging-containerapp.module.bicep",
+      "params": {
+        "rabbitmq_password_value": "{rabbitmq-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}"
       }
     },
     "basketservice": {
@@ -212,6 +161,88 @@
           "transport": "http"
         }
       }
+    },
+    "containerAppEnv": {
+      "type": "azure.bicep.v0",
+      "path": "containerappenv.module.bicep"
+    },
+    "containerRegistry": {
+      "type": "azure.bicep.v0",
+      "path": "containerregistry.module.bicep"
+    },
+    "default-identity": {
+      "type": "azure.bicep.v0",
+      "path": "default-identity.module.bicep"
+    },
+    "catalogservice-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "catalogservice-containerapp.module.bicep",
+      "params": {
+        "postgres_password_value": "{postgres-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "catalogservice_containerImage": "{catalogservice.containerImage}"
+      }
+    },
+    "basketservice-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "basketservice-containerapp.module.bicep",
+      "params": {
+        "rabbitmq_password_value": "{rabbitmq-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "basketservice_containerImage": "{basketservice.containerImage}"
+      }
+    },
+    "frontend-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "frontend-containerapp.module.bicep",
+      "params": {
+        "containerAppEnv_outputs_defaultDomain": "{containerAppEnv.outputs.defaultDomain}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "frontend_containerImage": "{frontend.containerImage}"
+      }
+    },
+    "orderprocessor-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "orderprocessor-containerapp.module.bicep",
+      "params": {
+        "rabbitmq_password_value": "{rabbitmq-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "orderprocessor_containerImage": "{orderprocessor.containerImage}"
+      }
+    },
+    "apigateway-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "apigateway-containerapp.module.bicep",
+      "params": {
+        "containerAppEnv_outputs_defaultDomain": "{containerAppEnv.outputs.defaultDomain}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "apigateway_containerImage": "{apigateway.containerImage}"
+      }
+    },
+    "catalogdbapp-containerApp": {
+      "type": "azure.bicep.v0",
+      "path": "catalogdbapp-containerapp.module.bicep",
+      "params": {
+        "postgres_password_value": "{postgres-password.value}",
+        "containerAppEnv_outputs_id": "{containerAppEnv.outputs.id}",
+        "containerRegistry_outputs_loginServer": "{containerRegistry.outputs.loginServer}",
+        "containerRegistry_outputs_mid": "{containerRegistry.outputs.mid}",
+        "catalogdbapp_containerImage": "{catalogdbapp.containerImage}"
+      }
+    },
+    "app": {
+      "type": "azure.bicep.v0",
+      "path": "app.module.bicep"
     },
     "postgres-password": {
       "type": "parameter.v0",
