@@ -294,26 +294,31 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             {
                 if (_defaultDaprPath is null)
                 {
-                    var process = Process.Start(
-                        new ProcessStartInfo
-                        {
-                            Arguments = "version",
-                            CreateNoWindow = true,
-                            FileName = "dapr",
-                            UseShellExecute = true,
-                            WindowStyle = ProcessWindowStyle.Hidden
-                        });
+                    Process? process = null;
 
-                    if (process is null)
+                    try
                     {
-                        throw new InvalidOperationException("Unable to determine if Dapr is in the path.");
+                        process = Process.Start(
+                            new ProcessStartInfo
+                            {
+                                Arguments = "version",
+                                CreateNoWindow = true,
+                                FileName = "dapr",
+                                UseShellExecute = true,
+                                WindowStyle = ProcessWindowStyle.Hidden
+                            });
+
+                        if (process is not null)
+                        {
+                            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    catch
+                    {
                     }
 
-                    await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-                    if (process.ExitCode == 0)
+                    if (process?.ExitCode == 0)
                     {
-                        // TODO: "dapr.exe" on Windows?
                         _defaultDaprPath = "dapr";
 
                         _logger.LogInformation("Dapr CLI found in the path.");
