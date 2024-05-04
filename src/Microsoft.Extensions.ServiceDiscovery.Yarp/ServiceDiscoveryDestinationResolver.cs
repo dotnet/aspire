@@ -55,7 +55,6 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolve
         CancellationToken cancellationToken)
     {
         var originalUri = new Uri(originalConfig.Address);
-        var originalHost = originalConfig.Host is { Length: > 0 } h ? h : originalUri.Authority;
         var serviceName = originalUri.GetLeftPart(UriPartial.Authority);
 
         var result = await resolver.GetEndpointsAsync(serviceName, cancellationToken).ConfigureAwait(false);
@@ -90,7 +89,28 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolve
             }
 
             var name = $"{originalName}[{addressString}]";
-            var config = originalConfig with { Host = originalHost, Address = resolvedAddress, Health = healthAddress };
+            string? resolvedHost;
+
+            // Use the configured 'Host' value if it is provided.
+            if (!string.IsNullOrEmpty(originalConfig.Host))
+            {
+                resolvedHost = originalConfig.Host;
+            }
+            else if (uri.IsLoopback)
+            {
+                // If there is no configured 'Host' value and the address resolves to localhost, do not set a host.
+                // This is to account for non-wildcard development certificate.
+                resolvedHost = null;
+            }
+            else
+            {
+                // Excerpt from RFC 9110 Section 7.2: The "Host" header field in a request provides the host and port information from the target URI [...]
+                // See: https://www.rfc-editor.org/rfc/rfc9110.html#field.host
+                // i.e, use Authority and not Host.
+                resolvedHost = originalUri.Authority;
+            }
+
+            var config = originalConfig with { Host = resolvedHost, Address = resolvedAddress, Health = healthAddress };
             results.Add((name, config));
         }
 
