@@ -3,13 +3,16 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
 
 public class AspireProject : IAsyncDisposable
 {
+    public const string DefaultTargetFramework = "net8.0";
     public static Lazy<HttpClient> Client => new(CreateHttpClient);
     public Process? AppHostProcess { get; private set; }
     public string Id { get; init; }
@@ -19,7 +22,8 @@ public class AspireProject : IAsyncDisposable
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
     public Dictionary<string, ProjectInfo> InfoTable { get; private set; } = new(capacity: 0);
-    public TaskCompletionSource AppExited { get; } = new();
+    public TaskCompletionSource AppExited { get; private set; } = new();
+    public bool IsRunning => AppHostProcess is not null && !AppHostProcess.HasExited;
 
     private readonly ITestOutputHelper _testOutput;
     private readonly BuildEnvironment _buildEnv;
@@ -33,17 +37,24 @@ public class AspireProject : IAsyncDisposable
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
     }
 
-    public async Task StartAsync(string[]? extraArgs = default, CancellationToken token = default, Action<ProcessStartInfo>? configureProcess = null)
+    // FIXME: add options type
+    public async Task StartAsync(string[]? extraArgs = default, CancellationToken token = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true)
     {
+        if (IsRunning)
+        {
+            throw new InvalidOperationException("Project is already running");
+        }
+
         object outputLock = new();
         var output = new StringBuilder();
         var projectsParsed = new TaskCompletionSource();
         var appRunning = new TaskCompletionSource();
         var stdoutComplete = new TaskCompletionSource();
         var stderrComplete = new TaskCompletionSource();
+        AppExited = new();
         AppHostProcess = new Process();
 
-        var processArguments = $"run --no-build";
+        var processArguments = $"run {(noBuild ? "--no-build" : "")}";
         processArguments += extraArgs is not null ? " " + string.Join(" ", extraArgs) : "";
         AppHostProcess.StartInfo = new ProcessStartInfo(_buildEnv.DotNet, processArguments)
         {
@@ -155,13 +166,13 @@ public class AspireProject : IAsyncDisposable
             throw new ArgumentException(exceptionMessage);
         }
 
-        lock(outputLock)
+        lock (outputLock)
         {
             outputMessage = output.ToString();
         }
         if (resultTask != successfulTask)
         {
-            throw new InvalidOperationException($"App run failed: {Environment.NewLine}{outputMessage}");
+            throw new XunitException($"App run failed: {Environment.NewLine}{outputMessage}");
         }
 
         foreach (var project in InfoTable.Values)
@@ -172,17 +183,37 @@ public class AspireProject : IAsyncDisposable
         _testOutput.WriteLine($"-- Ready to run tests --");
     }
 
-    public async Task BuildAsync(CancellationToken token = default)
+    public async Task BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default)
     {
-        using var restoreCmd = new DotNetCommand(_buildEnv, _testOutput, label: "restore")
+        using var restoreCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "restore")
                                     .WithWorkingDirectory(Path.Combine(RootDir, $"{Id}.AppHost"));
-        var res = await restoreCmd.ExecuteAsync($"restore -bl:{Path.Combine(LogPath!, $"{Id}-restore.binlog")} /p:TreatWarningsAsErrors=true");
+        var res = await restoreCmd.ExecuteAsync($"restore \"-bl:{Path.Combine(LogPath!, $"{Id}-restore.binlog")}\" /p:TreatWarningsAsErrors=true");
         res.EnsureSuccessful();
 
-        using var buildCmd = new DotNetCommand(_buildEnv, _testOutput, label: "build")
+        var buildArgs = $"build \"-bl:{Path.Combine(LogPath!, $"{Id}-build.binlog")}\" /p:TreatWarningsAsErrors=true";
+        if (extraBuildArgs is not null)
+        {
+            buildArgs += " " + string.Join(" ", extraBuildArgs);
+        }
+        using var buildCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "build")
                                         .WithWorkingDirectory(Path.Combine(RootDir, $"{Id}.AppHost"));
-        res = await buildCmd.ExecuteAsync($"build -bl:{Path.Combine(LogPath!, $"{Id}-build.binlog")} /p:TreatWarningsAsErrors=true");
+        res = await buildCmd.ExecuteAsync(buildArgs);
         res.EnsureSuccessful();
+    }
+
+    public async Task StopAsync(CancellationToken token = default)
+    {
+        if (AppHostProcess is null)
+        {
+            throw new InvalidOperationException("Tried  stop the app host process but it is not running.");
+        }
+
+        if (!AppExited.Task.IsCompleted)
+        {
+            AppHostProcess.StandardInput.WriteLine("Stop");
+        }
+        await AppHostProcess.WaitForExitAsync(token);
+        AppHostProcess = null;
     }
 
     public async ValueTask DisposeAsync()
@@ -194,12 +225,7 @@ public class AspireProject : IAsyncDisposable
         }
 
         await DumpDockerInfoAsync(new TestOutputWrapper(null));
-
-        if (!AppHostProcess.HasExited)
-        {
-            AppHostProcess.StandardInput.WriteLine("Stop");
-        }
-        await AppHostProcess.WaitForExitAsync();
+        await StopAsync();
     }
 
     public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)

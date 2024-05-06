@@ -5,8 +5,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Xunit.Abstractions;
 
-#nullable enable
-
 namespace Aspire.Workload.Tests;
 
 public class ToolCommand : IDisposable
@@ -56,6 +54,15 @@ public class ToolCommand : IDisposable
             }
         }
 
+        return this;
+    }
+
+    public ToolCommand WithEnvironmentVariableRemoved(string key)
+    {
+        if (Environment.ContainsKey(key))
+        {
+            Environment.Remove(key);
+        }
         return this;
     }
 
@@ -153,6 +160,9 @@ public class ToolCommand : IDisposable
             CurrentProcess.BeginErrorReadLine();
             await exitedTask.WaitAsync(token);
 
+            // trying to wait for the output to be done
+            await CurrentProcess.WaitForExitAsync(token);
+
             RemoveNullTerminator(output);
 
             return new CommandResult(
@@ -162,7 +172,7 @@ public class ToolCommand : IDisposable
         }
         catch (Exception ex)
         {
-            _testOutput.WriteLine($"Exception: {ex}");
+            _testOutput.WriteLine($"Exception: {ex}{System.Environment.NewLine}output: {string.Join(System.Environment.NewLine, output)}");
             if (!CurrentProcess.HasExited)
             {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -198,13 +208,11 @@ public class ToolCommand : IDisposable
 
         AddEnvironmentVariablesTo(psi);
         AddWorkingDirectoryTo(psi);
-        var process = new Process
+        return new Process
         {
-            StartInfo = psi
+            StartInfo = psi,
+            EnableRaisingEvents = true
         };
-
-        process.EnableRaisingEvents = true;
-        return process;
     }
 
     private string WorkingDirectoryInfo()
@@ -245,6 +253,10 @@ public class ToolCommand : IDisposable
     {
         if (!string.IsNullOrWhiteSpace(WorkingDirectory))
         {
+            if (!Directory.Exists(WorkingDirectory))
+            {
+                throw new DirectoryNotFoundException($"Working directory '{WorkingDirectory}' does not exist.");
+            }
             psi.WorkingDirectory = WorkingDirectory;
         }
     }
