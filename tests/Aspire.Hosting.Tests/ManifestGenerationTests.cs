@@ -661,7 +661,9 @@ public class ManifestGenerationTests
                   "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
                   "image": "{{KafkaContainerImageTags.Registry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
                   "env": {
-                    "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
+                    "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
+                    "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
+                    "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}"
                   },
                   "bindings": {
                     "tcp": {
@@ -669,6 +671,12 @@ public class ManifestGenerationTests
                       "protocol": "tcp",
                       "transport": "tcp",
                       "targetPort": 9092
+                    },
+                    "internal": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 9093
                     }
                   }
                 },
