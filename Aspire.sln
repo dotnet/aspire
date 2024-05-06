@@ -459,6 +459,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consumer", "playground\kafk
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Producer", "playground\kafka\Producer\Producer.csproj", "{FEE2F9B0-F32D-41B3-8917-0C13DE4F5953}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.ActiveMQ", "src\Aspire.Hosting.ActiveMQ\Aspire.Hosting.ActiveMQ.csproj", "{C08EC963-E1A0-4096-97A9-531CE9C0183E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1205,6 +1207,10 @@ Global
 		{FEE2F9B0-F32D-41B3-8917-0C13DE4F5953}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FEE2F9B0-F32D-41B3-8917-0C13DE4F5953}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FEE2F9B0-F32D-41B3-8917-0C13DE4F5953}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C08EC963-E1A0-4096-97A9-531CE9C0183E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C08EC963-E1A0-4096-97A9-531CE9C0183E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C08EC963-E1A0-4096-97A9-531CE9C0183E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C08EC963-E1A0-4096-97A9-531CE9C0183E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1424,6 +1430,7 @@ Global
 		{A39389A0-E780-4B97-808B-DC95CF59B35C} = {920BB263-E68F-4FA2-93FC-2E385EEA405B}
 		{7AA4C56C-3BB2-4FF0-BB03-F3F0D6A4FDAB} = {920BB263-E68F-4FA2-93FC-2E385EEA405B}
 		{FEE2F9B0-F32D-41B3-8917-0C13DE4F5953} = {920BB263-E68F-4FA2-93FC-2E385EEA405B}
+		{C08EC963-E1A0-4096-97A9-531CE9C0183E} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

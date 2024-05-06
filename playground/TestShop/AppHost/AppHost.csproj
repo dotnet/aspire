@@ -28,4 +28,14 @@
     <ProjectReference Include="..\OrderProcessor\OrderProcessor.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="amqdata\activemq.log" />
+    <None Remove="amqdata\activemq.pid" />
+    <None Remove="amqdata\audit.log" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="amqconf\" />
+  </ItemGroup>
+
 </Project>

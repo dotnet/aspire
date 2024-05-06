@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting activemq</PackageTags>
+    <Description>ActiveMQ support for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\VolumeNameGenerator.cs">
+      <Link>Utils\VolumeNameGenerator.cs</Link>
+    </Compile>
+  </ItemGroup>
+</Project>
