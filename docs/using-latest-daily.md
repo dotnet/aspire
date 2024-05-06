@@ -44,8 +44,11 @@ Now you are ready to create and run an Aspire app using these latest Aspire comp
 Create an empty .NET Aspire project on the command line:
 ```shell
 dotnet new aspire
-# Alternatively, to create a .NET Aspire project using the Starter template:
-# dotnet new aspire-starter
+```
+
+Alternatively, to create a .NET Aspire project using the Starter template:
+```shell
+dotnet new aspire-starter
 ```
 
 These will create a `.sln` file and at least two projects.
