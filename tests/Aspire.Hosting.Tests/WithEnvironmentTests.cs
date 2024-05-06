@@ -43,6 +43,22 @@ public class WithEnvironmentTests
     }
 
     [Fact]
+    public async Task SimpleEnvironmentWithNameAndReferenceExpressionValue()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var childExpression = ReferenceExpression.Create($"value");
+        var parameterExpression = ReferenceExpression.Create($"{childExpression}");
+
+        var project = builder.AddProject<ProjectA>("projectA")
+            .WithEnvironment("myName", parameterExpression);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource);
+
+        Assert.Equal("value", config["myName"]);
+    }
+
+    [Fact]
     public async Task EnvironmentCallbackPopulatesValueWhenCalled()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -137,7 +153,7 @@ public class WithEnvironmentTests
                                .WithHttpEndpoint(name: "primary", targetPort: 10005)
                                .WithEndpoint("primary", ep =>
                                {
-                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90);
+                                   ep.AllocatedEndpoint = new AllocatedEndpoint(ep, "localhost", 90, targetPortExpression: "10005");
                                });
 
         var endpoint = container.GetEndpoint("primary");

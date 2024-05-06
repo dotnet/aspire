@@ -14,15 +14,17 @@ namespace Aspire.Azure.Messaging.EventHubs;
 /// <summary>
 /// Represents additional shared settings for configuring an Event Hubs client.
 /// </summary>
-public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSettings
+public abstract class AzureMessagingEventHubsSettings : IConnectionStringSettings
 {
-    private bool? _tracing;
+    private bool? _disableTracing;
+
+    internal AzureMessagingEventHubsSettings() { }
 
     /// <summary>
     /// Gets or sets the connection string used to connect to the Event Hubs namespace. 
     /// </summary>
     /// <remarks>
-    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Namespace"/> and <see cref="Credential"/>.
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="FullyQualifiedNamespace"/> and <see cref="Credential"/>.
     /// </remarks>
     public string? ConnectionString { get; set; }
 
@@ -32,7 +34,7 @@ public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSet
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
     /// </remarks>
-    public string? Namespace { get; set; }
+    public string? FullyQualifiedNamespace { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the Event Hub.
@@ -45,20 +47,23 @@ public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSet
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
     /// Event Hubs ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
-    public bool Tracing
+    /// <value>  
+    /// The default value is <see langword="false"/>.  
+    /// </value>
+    public bool DisableTracing
     {
-        get { return _tracing ??= GetTracingDefaultValue(); }
-        set { _tracing = value; }
+        get { return _disableTracing ??= !GetTracingDefaultValue(); }
+        set { _disableTracing = value; }
     }
 
-    // default Tracing to true if the experimental switch is set
+    // Defaults DisableTracing to false if the experimental switch is set
     // TODO: remove this when ActivitySource support is no longer experimental
     private static bool GetTracingDefaultValue()
     {
@@ -83,7 +88,7 @@ public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSet
             // a event hubs namespace can't contain ';'. if it is found assume it is a connection string
             if (!connectionString.Contains(';'))
             {
-                Namespace = connectionString;
+                FullyQualifiedNamespace = connectionString;
             }
             else
             {
@@ -96,12 +101,12 @@ public abstract class AzureMessagingEventHubsBaseSettings : IConnectionStringSet
 /// <summary>
 /// Represents additional settings for configuring a <see cref="EventHubProducerClient"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsProducerSettings : AzureMessagingEventHubsBaseSettings { }
+public sealed class AzureMessagingEventHubsProducerSettings : AzureMessagingEventHubsSettings { }
 
 /// <summary>
-/// Represents additional settings for configuring an Event Hubs client that may accept a ConsumerGroup
+/// Represents additional settings for configuring a <see cref="EventHubConsumerClient"/>.
 /// </summary>
-public abstract class AzureMessagingEventHubsConsumerBaseSettings : AzureMessagingEventHubsBaseSettings
+public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEventHubsSettings
 {
     /// <summary>
     /// Gets or sets the name of the consumer group.
@@ -110,45 +115,50 @@ public abstract class AzureMessagingEventHubsConsumerBaseSettings : AzureMessagi
 }
 
 /// <summary>
-/// Represents additional settings for configuring a <see cref="EventHubConsumerClient"/>.
-/// </summary>
-public sealed class AzureMessagingEventHubsConsumerSettings : AzureMessagingEventHubsConsumerBaseSettings { }
-
-/// <summary>
 /// Represents additional settings for configuring a <see cref="EventProcessorClient"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEventHubsConsumerBaseSettings
+public sealed class AzureMessagingEventHubsProcessorSettings : AzureMessagingEventHubsSettings
 {
     /// <summary>
-    /// Gets or sets the connection name used to obtain a connection string for an Azure BlobContainerClient. This is required when the Event Processor is used.
+    /// Gets or sets the name of the consumer group.
     /// </summary>
-    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
-    public string? BlobClientConnectionName { get; set; }
+    public string? ConsumerGroup { get; set; }
+
+    /// <summary>
+    /// Gets or sets the IServiceProvider service key used to obtain an Azure BlobServiceClient.
+    /// </summary>
+    /// <remarks>
+    /// A BlobServiceClient is required when using the Event Processor. If a BlobClientServiceKey is not configured,
+    /// an un-keyed BlobServiceClient will be retrieved from the IServiceProvider. If a BlobServiceClient is not available in
+    /// the IServiceProvider, an exception is thrown.
+    /// </remarks>
+    public string? BlobClientServiceKey { get; set; }
 
     /// <summary>
     /// Get or sets the name of the blob container used to store the checkpoint data. If this container does not exist, Aspire will attempt to create it.
     /// If this is not provided, Aspire will attempt to automatically create a container with a name based on the Namespace, Event Hub name and Consumer Group.
     /// If a container is provided in the connection string, it will override this value and the container will be assumed to exist.
     /// </summary>
-    /// <remarks>Applies only to <see cref="EventProcessorClient"/></remarks>
     public string? BlobContainerName { get; set; }
 }
 
 /// <summary>
 /// Represents additional settings for configuring a <see cref="PartitionReceiver"/>.
 /// </summary>
-public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMessagingEventHubsConsumerBaseSettings
+public sealed class AzureMessagingEventHubsPartitionReceiverSettings : AzureMessagingEventHubsSettings
 {
+    /// <summary>
+    /// Gets or sets the name of the consumer group.
+    /// </summary>
+    public string? ConsumerGroup { get; set; }
+
     /// <summary>
     /// Gets or sets the partition identifier.
     /// </summary>
-    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
     public string? PartitionId { get; set; }
 
     /// <summary>
     /// Gets or sets the event position to start from in the bound partition. Defaults to <see cref="EventPosition.Earliest" />.
     /// </summary>
-    /// <remarks>Applies only to <see cref="PartitionReceiver"/></remarks>
     public EventPosition EventPosition { get; set; } = EventPosition.Earliest;
 }
-

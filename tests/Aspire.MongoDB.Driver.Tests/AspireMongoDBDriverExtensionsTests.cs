@@ -95,7 +95,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddMongoDBClient(DefaultConnectionName, settings =>
         {
-            settings.HealthChecks = true;
+            settings.DisableHealthChecks = false;
             settings.HealthCheckTimeout = 1;
         });
 
@@ -117,7 +117,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddKeyedMongoDBClient(DefaultConnectionName, settings =>
         {
-            settings.HealthChecks = false;
+            settings.DisableHealthChecks = true;
         });
 
         using var host = builder.Build();
@@ -137,7 +137,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddKeyedMongoDBClient(key, settings =>
         {
-            settings.HealthChecks = true;
+            settings.DisableHealthChecks = false;
             settings.HealthCheckTimeout = 1;
         });
 
@@ -159,7 +159,7 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
         builder.AddMongoDBClient(DefaultConnectionName, settings =>
         {
-            settings.HealthChecks = false;
+            settings.DisableHealthChecks = true;
         });
 
         using var host = builder.Build();
@@ -167,6 +167,35 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         var healthCheckService = host.Services.GetService<HealthCheckService>();
 
         Assert.Null(healthCheckService);
+    }
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:mongodb1", "mongodb://localhost:27011/mydatabase1"),
+            new KeyValuePair<string, string?>("ConnectionStrings:mongodb2", "mongodb://localhost:27012/mydatabase2"),
+            new KeyValuePair<string, string?>("ConnectionStrings:mongodb3", "mongodb://localhost:27013/mydatabase3"),
+        ]);
+
+        builder.AddMongoDBClient("mongodb1");
+        builder.AddKeyedMongoDBClient("mongodb2");
+        builder.AddKeyedMongoDBClient("mongodb3");
+
+        using var host = builder.Build();
+
+        var connection1 = host.Services.GetRequiredService<IMongoDatabase>();
+        var connection2 = host.Services.GetRequiredKeyedService<IMongoDatabase>("mongodb2");
+        var connection3 = host.Services.GetRequiredKeyedService<IMongoDatabase>("mongodb3");
+
+        Assert.NotSame(connection1, connection2);
+        Assert.NotSame(connection1, connection3);
+        Assert.NotSame(connection2, connection3);
+
+        Assert.Equal("mydatabase1", connection1.DatabaseNamespace.DatabaseName);
+        Assert.Equal("mydatabase2", connection2.DatabaseNamespace.DatabaseName);
+        Assert.Equal("mydatabase3", connection3.DatabaseNamespace.DatabaseName);
     }
 
     private static HostApplicationBuilder CreateBuilder(string connectionString)

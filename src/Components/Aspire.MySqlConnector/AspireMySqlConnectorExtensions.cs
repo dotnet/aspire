@@ -69,7 +69,7 @@ public static class AspireMySqlConnectorExtensions
 
         // Same as SqlClient connection pooling is on by default and can be handled with connection string
         // https://mysqlconnector.net/connection-options/#Pooling
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 serviceKey is null ? "MySql" : $"MySql_{connectionName}",
@@ -82,7 +82,7 @@ public static class AspireMySqlConnectorExtensions
                 timeout: default));
         }
 
-        if (settings.Tracing)
+        if (!settings.DisableTracing)
         {
             builder.Services.AddOpenTelemetry()
                 .WithTracing(tracerProviderBuilder =>
@@ -91,7 +91,7 @@ public static class AspireMySqlConnectorExtensions
                 });
         }
 
-        if (settings.Metrics)
+        if (!settings.DisableMetrics)
         {
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(meterProviderBuilder =>

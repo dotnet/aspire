@@ -59,10 +59,10 @@ public static class MySqlBuilderExtensions
     /// Adds a phpMyAdmin administration and development platform for MySql to the application model. This version the package defaults to the 5.2 tag of the phpmyadmin container image
     /// </summary>
     /// <param name="builder">The MySql server resource builder.</param>
-    /// <param name="hostPort">The host port for the application ui.</param>
+    /// <param name="configureContainer">Callback to configure PhpMyAdmin container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPhpMyAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : MySqlServerResource
+    public static IResourceBuilder<T> WithPhpMyAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PhpMyAdminContainerResource>>? configureContainer = null, string? containerName = null) where T : MySqlServerResource
     {
         if (builder.ApplicationBuilder.Resources.OfType<PhpMyAdminContainerResource>().Any())
         {
@@ -74,14 +74,30 @@ public static class MySqlBuilderExtensions
         containerName ??= $"{builder.Resource.Name}-phpmyadmin";
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
-        builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
-                                  .WithImage("phpmyadmin", "5.2")
-                                  .WithImageRegistry(MySqlContainerImageTags.Registry)
-                                  .WithHttpEndpoint(targetPort: 80, port: hostPort, name: containerName)
-                                  .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
-                                  .ExcludeFromManifest();
+        var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
+                                                .WithImage("phpmyadmin", "5.2")
+                                                .WithImageRegistry(MySqlContainerImageTags.Registry)
+                                                .WithHttpEndpoint(targetPort: 80, name: "http")
+                                                .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
+                                                .ExcludeFromManifest();
+
+        configureContainer?.Invoke(phpMyAdminContainerBuilder);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the PGAdmin resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for PGAdmin.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used, a random port will be assigned.</param>
+    /// <returns>The resource builder for PGAdmin.</returns>
+    public static IResourceBuilder<PhpMyAdminContainerResource> WithHostPort(this IResourceBuilder<PhpMyAdminContainerResource> builder, int? port)
+    {
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>

@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="ErrorHandlerPageRequestId">
         <source>Request ID:</source>
-        <target state="new">Request ID:</target>
+        <target state="translated">要求 ID:</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorHandlerPageSubtitle">
         <source>An error occurred while processing your request</source>
-        <target state="new">An error occurred while processing your request</target>
+        <target state="translated">要求の処理中にエラーが発生しました。</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorHandlerPageTitle">
         <source>Error</source>
-        <target state="new">Error</target>
+        <target state="translated">エラー</target>
         <note />
       </trans-unit>
       <trans-unit id="NotFoundDescription">

@@ -119,9 +119,11 @@ public static class AspireKeyVaultExtensions
 
     private sealed class KeyVaultComponent : AzureComponent<AzureSecurityKeyVaultSettings, SecretClient, SecretClientOptions>
     {
-        protected override IAzureClientBuilder<SecretClient, SecretClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureSecurityKeyVaultSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<SecretClient, SecretClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureSecurityKeyVaultSettings settings,
+            string connectionName, string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<SecretClient, SecretClientOptions>((options, cred) =>
+            return azureFactoryBuilder.AddClient<SecretClient, SecretClientOptions>((options, cred, _) =>
             {
                 if (settings.VaultUri is null)
                 {
@@ -148,12 +150,12 @@ public static class AspireKeyVaultExtensions
         }
 
         protected override bool GetHealthCheckEnabled(AzureSecurityKeyVaultSettings settings)
-            => settings.HealthChecks;
+            => !settings.DisableHealthChecks;
 
         protected override TokenCredential? GetTokenCredential(AzureSecurityKeyVaultSettings settings)
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureSecurityKeyVaultSettings settings)
-            => settings.Tracing;
+            => !settings.DisableTracing;
     }
 }

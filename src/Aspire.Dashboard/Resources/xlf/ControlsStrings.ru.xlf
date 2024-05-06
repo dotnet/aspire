@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">График. Чтобы открыть представление с поддержкой специальных возможностей, перейдите на вкладку "Таблица"</target>
+        <target state="translated">Граф. Чтобы открыть представление с поддержкой специальных возможностей, перейдите на вкладку "Таблица"</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="translated">График</target>
+        <target state="translated">Граф</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerNoneSelected">
