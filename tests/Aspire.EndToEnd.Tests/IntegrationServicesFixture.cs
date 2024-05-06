@@ -38,13 +38,20 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        BuildEnvironment = new(TestsRunningOutsideOfRepo, (probePath, solutionRoot) =>
-            $"Running outside-of-repo: Could not find {probePath} computed from solutionRoot={solutionRoot}. ");
-        if (BuildEnvironment.HasSdkWithWorkload)
+        BuildEnvironment = new(!TestsRunningOutsideOfRepo);
+        if (BuildEnvironment.HasWorkloadFromArtifacts)
         {
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
         }
-        BuildEnvironment.EnvVars.Add("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
+        else if (BuildEnvironment.SolutionRoot is not null)
+        {
+            // Running from inside the repo
+            BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.SolutionRoot.FullName, "tests");
+            if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
+            {
+                throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
+            }
+        }
     }
 
     public async Task InitializeAsync()
