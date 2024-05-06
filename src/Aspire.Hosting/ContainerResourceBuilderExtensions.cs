@@ -221,6 +221,18 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
+    /// <summary>
+    /// Sets the lifetime behavior of the container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="lifetimeType">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetimeType.AppHost"/>)</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithContainerLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetimeType lifetimeType) where T : ContainerResource
+    {
+        return builder.WithAnnotation(new ContainerLifetimeAnnotation { LifetimeType = lifetimeType }, ResourceAnnotationMutationBehavior.Replace);
+    }
+
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
     {
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");

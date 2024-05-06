@@ -1332,6 +1332,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var ctr = Container.Create(containerObjectName, containerImageName);
 
             ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
+
+            if (container.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+            {
+                if (lifetimeAnnotation.LifetimeType == ContainerLifetimeType.Persistent)
+                {
+                    ctr.Spec.Persistent = true;
+                }
+            }
+
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);

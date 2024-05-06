@@ -84,9 +84,9 @@ public static class ResourceExtensions
     /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
     ///  .WithEnvironment("discovery.type", "single-node")
     ///  .WithEnvironment("xpack.security.enabled", "true");
-    /// 
+    ///
     /// var env = await container.Resource.GetEnvironmentVariableValuesAsync();
-    /// 
+    ///
     /// Assert.Collection(env,
     ///     env =>
     ///         {
@@ -179,7 +179,7 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
-    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference 
+    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference
     /// for the specified endpoint.</returns>
     public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
     {
