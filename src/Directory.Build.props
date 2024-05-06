@@ -3,11 +3,6 @@
   <PropertyGroup>
     <!-- Enabling this rule will cause build failures on undocumented public APIs. -->
     <SkipArcadeNoWarnCS1591>true</SkipArcadeNoWarnCS1591>
-
-    <!-- ToDo: Aspire.Hosting.Azure.* packages currently depend on a prerelease version of Azure.Provisioning.*, which prevents them from going
-         stable. Once we update the version of those dependencies to a stable version before the release, we should remove the following property
-         in order to allow those packages to also go stable. Tracked by https://github.com/dotnet/aspire/issues/3782 -->
-    <SuppressFinalPackageVersion Condition="$(MSBuildProjectName.StartsWith('Aspire.Hosting.Azure')) Or $(MSBuildProjectName.StartsWith('Aspire.Hosting.Orleans'))">true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <Import Project="..\Directory.Build.props" />
