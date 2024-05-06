@@ -2,8 +2,11 @@
   <PropertyGroup>
     <IsHelixOnlyTestProject>true</IsHelixOnlyTestProject>
     <IsWorkloadTestProject>true</IsWorkloadTestProject>
-    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <Import Project="..\Directory.Build.props" />
+
+  <PropertyGroup>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
+  </PropertyGroup>
 </Project>
