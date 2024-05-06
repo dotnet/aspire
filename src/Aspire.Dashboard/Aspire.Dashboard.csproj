@@ -31,6 +31,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
+    <PackageReference Include="BlazorPro.BlazorSize" />
   </ItemGroup>
 
   <ItemGroup>
@@ -218,5 +219,11 @@
     <Compile Include="$(SharedDir)TokenGenerator.cs" Link="Utils\TokenGenerator.cs" />
     <Compile Include="$(SharedDir)LoggingHelpers.cs" Link="Utils\LoggingHelpers.cs" />
     <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Components\Layout\DesktopLayout.razor.css">
+      <DependentUpon>DesktopLayout.razor</DependentUpon>
+    </None>
   </ItemGroup>
 </Project>

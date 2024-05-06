@@ -1,15 +1,16 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
-@inject IStringLocalizer<Resources.Routes> Loc
+﻿@inject IStringLocalizer<Resources.Routes> Loc
 
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <!-- AuthorizeRouteView protects pages from being accessed when authorization is required -->
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
-    </Found>
-    <NotFound>
-        <PageTitle>@Loc[nameof(Resources.Routes.NotFoundPageTitle)]</PageTitle>
-        <LayoutView Layout="@typeof(Layout.MainLayout)">
-            <Aspire.Dashboard.Components.Pages.NotFound />
-        </LayoutView>
-    </NotFound>
-</Router>
+<MediaQueryList>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <!-- AuthorizeRouteView protects pages from being accessed when authorization is required -->
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        </Found>
+        <NotFound>
+            <PageTitle>@Loc[nameof(Resources.Routes.NotFoundPageTitle)]</PageTitle>
+            <LayoutView Layout="@typeof(Layout.MainLayout)">
+                <Aspire.Dashboard.Components.Pages.NotFound />
+            </LayoutView>
+        </NotFound>
+    </Router>
+</MediaQueryList>
