@@ -22,7 +22,7 @@ public class AspireProject : IAsyncDisposable
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
     public Dictionary<string, ProjectInfo> InfoTable { get; private set; } = new(capacity: 0);
-    public TaskCompletionSource AppExited { get; private set; } = new();
+    public TaskCompletionSource? AppExited { get; private set; }
     public bool IsRunning => AppHostProcess is not null && !AppHostProcess.HasExited;
 
     private readonly ITestOutputHelper _testOutput;
@@ -207,7 +207,7 @@ public class AspireProject : IAsyncDisposable
             throw new InvalidOperationException("Tried  stop the app host process but it is not running.");
         }
 
-        if (!AppExited.Task.IsCompleted)
+        if (AppExited?.Task.IsCompleted == false)
         {
             AppHostProcess.StandardInput.WriteLine("Stop");
         }
@@ -266,7 +266,7 @@ public class AspireProject : IAsyncDisposable
 
     public void EnsureAppHostRunning()
     {
-        if (AppHostProcess is null || AppHostProcess.HasExited || AppExited.Task.IsCompleted)
+        if (AppHostProcess is null || AppHostProcess.HasExited || AppExited?.Task.IsCompleted == true)
         {
             throw new InvalidOperationException("The app host process is not running.");
         }
