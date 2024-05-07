@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Hosting.Garnet;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Postgres;
@@ -269,9 +270,8 @@ public class ManifestGenerationTests
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
         Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
-
     }
-
+    
     [Fact]
     public void EnsureAllPostgresManifestTypesHaveVersion0Suffix()
     {
@@ -503,6 +503,7 @@ public class ManifestGenerationTests
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
+                    "ConnectionStrings__garnet": "{garnet.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
@@ -569,6 +570,19 @@ public class ManifestGenerationTests
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
                   "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 6379
+                    }
+                  }
+                },
+                "garnet": {
+                  "type": "container.v0",
+                  "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
+                  "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",

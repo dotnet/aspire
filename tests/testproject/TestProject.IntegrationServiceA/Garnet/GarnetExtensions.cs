@@ -3,14 +3,14 @@
 
 using StackExchange.Redis;
 
-public static class RedisExtensions
+public static class GarnetExtensions
 {
-    public static void MapRedisApi(this WebApplication app)
+    public static void MapGarnetApi(this WebApplication app)
     {
-        app.MapGet("/redis/verify", VerifyRedisAsync);
+        app.MapGet("/garnet/verify", VerifyGarnetAsync);
     }
 
-    private static async Task<IResult> VerifyRedisAsync([FromKeyedServices("redis")] IConnectionMultiplexer cm)
+    private static async Task<IResult> VerifyGarnetAsync([FromKeyedServices("garnet")] IConnectionMultiplexer cm)
     {
         try
         {
