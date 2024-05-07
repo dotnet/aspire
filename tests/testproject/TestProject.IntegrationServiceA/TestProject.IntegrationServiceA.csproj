@@ -4,8 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose.
+         CA1305 Specify IFormatProvider -->
+    <NoWarn>$(NoWarn);CS8002;CA1305</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
