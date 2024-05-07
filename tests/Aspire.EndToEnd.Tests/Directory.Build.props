@@ -1,6 +1,5 @@
 <Project>
   <PropertyGroup>
-    <IsHelixOnlyTestProject>true</IsHelixOnlyTestProject>
     <IsWorkloadTestProject>true</IsWorkloadTestProject>
   </PropertyGroup>
 
