@@ -59,10 +59,7 @@ public class ToolCommand : IDisposable
 
     public ToolCommand WithEnvironmentVariableRemoved(string key)
     {
-        if (Environment.ContainsKey(key))
-        {
-            Environment.Remove(key);
-        }
+        Environment.Remove(key);
         return this;
     }
 
