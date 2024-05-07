@@ -16,7 +16,7 @@ public class BuildEnvironment
     public string                           BuiltNuGetsPath               { get; init; }
     public bool                             HasWorkloadFromArtifacts      { get; init; }
     public string                           TestAssetsPath                { get; set; }
-    public string                           NuGetPackagesPath             { get; init; }
+    public string?                          NuGetPackagesPath             { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
 
@@ -118,7 +118,7 @@ public class BuildEnvironment
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
         WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
-        NuGetPackagesPath = Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}");
+        NuGetPackagesPath = HasWorkloadFromArtifacts ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}") : null;
 
         EnvVars = new Dictionary<string, string>();
         if (HasWorkloadFromArtifacts)
@@ -129,7 +129,7 @@ public class BuildEnvironment
             EnvVars["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
             EnvVars["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
             EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
-            EnvVars["NUGET_PACKAGES"] = NuGetPackagesPath;
+            EnvVars["NUGET_PACKAGES"] = NuGetPackagesPath!;
         }
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
@@ -159,7 +159,10 @@ public class BuildEnvironment
         Directory.CreateDirectory(TestRootPath);
 
         Console.WriteLine($"*** [{TargetFramework}] Using workload path: {sdkForWorkloadPath}");
-        Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
+        if (HasWorkloadFromArtifacts)
+        {
+            Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
+        }
         Console.WriteLine($"*** [{TargetFramework}] Using path for projects: {TestRootPath}");
     }
 }
