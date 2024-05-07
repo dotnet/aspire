@@ -84,11 +84,6 @@ public class BuildEnvironment
             }
 
             BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
-            TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
-            if (!Directory.Exists(TestAssetsPath))
-            {
-                throw new ArgumentException($"Cannot find TestAssetsPath={TestAssetsPath}");
-            }
         }
         else
         {
@@ -104,8 +99,12 @@ public class BuildEnvironment
                 throw new ArgumentException($"Cannot find 'BUILT_NUGETS_PATH={EnvironmentVariables.BuiltNuGetsPath}' or {BuiltNuGetsPath}");
             }
             BuiltNuGetsPath = EnvironmentVariables.BuiltNuGetsPath;
+        }
 
-            TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
+        TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
+        if (!Directory.Exists(TestAssetsPath))
+        {
+            throw new ArgumentException($"Cannot find TestAssetsPath={TestAssetsPath}");
         }
 
         if (!string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
