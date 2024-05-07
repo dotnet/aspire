@@ -56,7 +56,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _project = new AspireProject("TestProject", BuildEnvironment.TestProjectPath, _testOutput, BuildEnvironment);
+        string testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
+        _project = new AspireProject("TestProject", testProjectPath, _testOutput, BuildEnvironment);
         if (TestsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");

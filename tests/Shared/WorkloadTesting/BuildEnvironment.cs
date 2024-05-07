@@ -16,7 +16,6 @@ public class BuildEnvironment
     public string                           BuiltNuGetsPath               { get; init; }
     public bool                             HasWorkloadFromArtifacts      { get; init; }
     public string                           TestAssetsPath                { get; set; }
-    public string                           TestProjectPath               { get; init; }
     public string                           NuGetPackagesPath             { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
@@ -119,7 +118,6 @@ public class BuildEnvironment
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
         WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
-        TestProjectPath = Path.Combine(TestAssetsPath, "testproject");
         NuGetPackagesPath = Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}");
 
         EnvVars = new Dictionary<string, string>();
