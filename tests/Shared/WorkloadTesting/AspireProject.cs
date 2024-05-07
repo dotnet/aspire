@@ -37,7 +37,6 @@ public class AspireProject : IAsyncDisposable
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
     }
 
-    // FIXME: add options type
     public async Task StartAsync(string[]? extraArgs = default, CancellationToken token = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true)
     {
         if (IsRunning)
