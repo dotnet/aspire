@@ -48,11 +48,41 @@ public static partial class AspireEFPostgreSqlExtensions
         Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
+        builder.AddNpgsqlDbContext<TContext, TContext>(connectionName, configureSettings, configureDbContextOptions);
+    }
+
+    /// <summary>
+    /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
+    /// Enables db context pooling, retries, corresponding health check, logging and telemetry.
+    /// </summary>
+    /// <typeparam name="TContextService">The class or interface that will be used to resolve the context from the container.</typeparam>
+    /// <typeparam name="TContextImplementation">The concrete implementation type to create.</typeparam>  /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
+    /// <remarks>
+    /// <para>
+    /// Reads the configuration from "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}" config section, or "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL" if former does not exist.
+    /// </para>
+    /// <para>
+    /// The <see cref="DbContext.OnConfiguring" /> method can then be overridden to configure <see cref="DbContext" /> options.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlEntityFrameworkCorePostgreSQLSettings.ConnectionString"/> is not provided.</exception>
+    public static void AddNpgsqlDbContext<TContextService, [DynamicallyAccessedMembers(RequiredByEF)] TContextImplementation>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions = null)
+        where TContextService : class
+        where TContextImplementation : DbContext, TContextService
+    {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.EnsureDbContextNotRegistered<TContext>();
+        builder.EnsureDbContextNotRegistered<TContextImplementation>();
 
-        var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
+        var settings = builder.GetDbContextSettings<TContextImplementation, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)
         );
@@ -64,14 +94,14 @@ public static partial class AspireEFPostgreSqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
+        builder.Services.AddDbContextPool<TContextService, TContextImplementation>(ConfigureDbContext);
 
-        ConfigureInstrumentation<TContext>(builder, settings);
+        ConfigureInstrumentation<TContextImplementation>(builder, settings);
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             // delay validating the ConnectionString until the DbContext is requested. This ensures an exception doesn't happen until a Logger is established.
-            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
+            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContextImplementation).Name}", isEfDesignTime: EF.IsDesignTime);
 
             // We don't register a logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
             dbContextOptionsBuilder.UseNpgsql(settings.ConnectionString, builder =>
