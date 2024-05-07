@@ -43,7 +43,11 @@ internal sealed class CloudFormationProvisioner(
                 // projects IConfiguration.
                 cloudFormationResource.Outputs = stack!.Outputs;
 
-                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack)).ConfigureAwait(false);
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack),
+                    [
+                        new UrlSnapshot("aws-console", CloudFormationAWSConsoleUrlMapper.MapCloudFormationUrl(stack.StackId), IsInternal: false)
+                    ]).ConfigureAwait(false);
+                await AddDashboardResources(cfClient, cloudFormationResource, cancellationToken).ConfigureAwait(false);
 
                 cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
@@ -93,7 +97,13 @@ internal sealed class CloudFormationProvisioner(
                     logger.LogInformation("CloudFormation provisioning complete");
 
                     cloudFormationResource.Outputs = stack.Outputs;
-                    await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack, cloudFormationResource.TemplatePath)).ConfigureAwait(false);
+
+                    await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack, cloudFormationResource.TemplatePath),
+                        [
+                            new UrlSnapshot("aws-console", CloudFormationAWSConsoleUrlMapper.MapCloudFormationUrl(stack.StackId), IsInternal: false)
+                        ]).ConfigureAwait(false);
+                    await AddDashboardResources(cfClient, cloudFormationResource, cancellationToken).ConfigureAwait(false);
+
                     cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
                 }
                 else
@@ -113,7 +123,7 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
+    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null, ImmutableArray<UrlSnapshot>? urls = default)
     {
         if (properties == null)
         {
@@ -123,7 +133,8 @@ internal sealed class CloudFormationProvisioner(
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
             State = status,
-            Properties = state.Properties.AddRange(properties)
+            Properties = state.Properties.AddRange(properties),
+            Urls = urls ?? []
         }).ConfigureAwait(false);
     }
 
@@ -175,6 +186,49 @@ internal sealed class CloudFormationProvisioner(
         catch (Exception e)
         {
             throw new AWSProvisioningException("Failed to construct AWS CloudFormation service client to provision AWS resources.", e);
+        }
+    }
+
+    private async Task AddDashboardResources(IAmazonCloudFormation cfClient, CloudFormationResource cloudFormationResource, CancellationToken cancellationToken = default)
+    {
+        var logger = loggerService.GetLogger(cloudFormationResource);
+
+        try
+        {
+            var request = new DescribeStackResourcesRequest { StackName = cloudFormationResource.Name };
+            var response = await cfClient.DescribeStackResourcesAsync(request, cancellationToken).ConfigureAwait(false);
+
+            foreach (var stackResource in response.StackResources)
+            {
+                var url = CloudFormationAWSConsoleUrlMapper.MapResourceUrl(stackResource.StackId, stackResource.ResourceType, stackResource.PhysicalResourceId);
+
+                if (url == null)
+                {
+                    continue;
+                }
+
+                var resourceName = $"{cloudFormationResource.Name}-{stackResource.LogicalResourceId}";
+
+                if (resourceName.Length > 64)
+                {
+                    resourceName = resourceName[..64];
+                }
+
+                var resource = new CloudFormationPhysicalResource(resourceName);
+
+                await notificationService.PublishUpdateAsync(resource,
+                        state => state with
+                        {
+                            State = Constants.ResourceStateRunning,
+                            Urls = [new UrlSnapshot("aws-console", url, IsInternal: false)],
+                            ResourceType = stackResource.ResourceType,
+                            Properties = [new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, stackResource.PhysicalResourceId)]
+                        }).ConfigureAwait(false);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error reading resources from {StackName}.", cloudFormationResource.Name);
         }
     }
 }
