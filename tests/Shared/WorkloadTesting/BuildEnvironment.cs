@@ -148,7 +148,7 @@ public class BuildEnvironment
         }
         else
         {
-            LogRootPath = AppContext.BaseDirectory;
+            LogRootPath = Path.Combine(AppContext.BaseDirectory, "logs");
         }
 
         if (Directory.Exists(TestRootPath))
