@@ -19,7 +19,7 @@ public class BuildEnvironment
     public string                           TestProjectPath               { get; init; }
     public string                           NuGetPackagesPath             { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
-    public DirectoryInfo?                   SolutionRoot                  { get; init; }
+    public DirectoryInfo?                   RepoRoot                      { get; init; }
 
     public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net80;
     public static readonly string           TestDataPath = Path.Combine(AppContext.BaseDirectory, "data");
@@ -37,26 +37,26 @@ public class BuildEnvironment
     public BuildEnvironment(bool useSystemDotNet = true, TestTargetFramework targetFramework = DefaultTargetFramework)
     {
         TargetFramework = targetFramework;
-        SolutionRoot = new(AppContext.BaseDirectory);
-        while (SolutionRoot != null)
+        RepoRoot = new(AppContext.BaseDirectory);
+        while (RepoRoot != null)
         {
             // To support git worktrees, check for either a directory or a file named ".git"
-            if (Directory.Exists(Path.Combine(SolutionRoot.FullName, ".git")) || File.Exists(Path.Combine(SolutionRoot.FullName, ".git")))
+            if (Directory.Exists(Path.Combine(RepoRoot.FullName, ".git")) || File.Exists(Path.Combine(RepoRoot.FullName, ".git")))
             {
                 break;
             }
 
-            SolutionRoot = SolutionRoot.Parent;
+            RepoRoot = RepoRoot.Parent;
         }
 
         string sdkForWorkloadPath;
-        if (SolutionRoot is not null)
+        if (RepoRoot is not null)
         {
             // Local run
             if (!useSystemDotNet)
             {
                 var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
-                var sdkFromArtifactsPath = Path.Combine(SolutionRoot!.FullName, "artifacts", "bin", sdkDirName);
+                var sdkFromArtifactsPath = Path.Combine(RepoRoot!.FullName, "artifacts", "bin", sdkDirName);
                 if (Directory.Exists(sdkFromArtifactsPath))
                 {
                     sdkForWorkloadPath = Path.GetFullPath(sdkFromArtifactsPath);
@@ -66,7 +66,7 @@ public class BuildEnvironment
                     string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
                     string workloadsProjString = Path.Combine("tests", "workloads.proj");
                     throw new InvalidOperationException(
-                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from solutionRoot={SolutionRoot}.{Environment.NewLine}" +
+                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from solutionRoot={RepoRoot}.{Environment.NewLine}" +
                         $"Build all the packages with '{buildCmd} -pack'.{Environment.NewLine}" +
                         $"Then install the sdk+workload with 'dotnet build {workloadsProjString}'");
                 }
@@ -84,7 +84,7 @@ public class BuildEnvironment
                 sdkForWorkloadPath = Path.GetDirectoryName(dotnetPath)!;
             }
 
-            BuiltNuGetsPath = Path.Combine(SolutionRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
+            BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
             TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
             if (!Directory.Exists(TestAssetsPath))
             {

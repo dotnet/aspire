@@ -43,10 +43,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
         }
-        else if (BuildEnvironment.SolutionRoot is not null)
+        else if (BuildEnvironment.RepoRoot is not null)
         {
             // Running from inside the repo
-            BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.SolutionRoot.FullName, "tests");
+            BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests");
             if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
             {
                 throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
