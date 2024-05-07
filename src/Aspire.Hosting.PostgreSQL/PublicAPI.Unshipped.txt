@@ -9,9 +9,9 @@ Aspire.Hosting.ApplicationModel.PostgresServerResource.ConnectionStringExpressio
 Aspire.Hosting.ApplicationModel.PostgresServerResource.Databases.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 Aspire.Hosting.ApplicationModel.PostgresServerResource.GetConnectionStringAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
 Aspire.Hosting.ApplicationModel.PostgresServerResource.PasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!
-Aspire.Hosting.ApplicationModel.PostgresServerResource.PostgresServerResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource? userName, Aspire.Hosting.ApplicationModel.ParameterResource! password) -> void
+Aspire.Hosting.ApplicationModel.PostgresServerResource.PostgresServerResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource! userName, Aspire.Hosting.ApplicationModel.ParameterResource! password) -> void
 Aspire.Hosting.ApplicationModel.PostgresServerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
-Aspire.Hosting.ApplicationModel.PostgresServerResource.UserNameParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
+Aspire.Hosting.ApplicationModel.PostgresServerResource.UserNameParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!
 Aspire.Hosting.Postgres.PgAdminContainerResource
 Aspire.Hosting.Postgres.PgAdminContainerResource.PgAdminContainerResource(string! name) -> void
 Aspire.Hosting.PostgresBuilderExtensions

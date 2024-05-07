@@ -580,12 +580,12 @@ public class ManifestGenerationTests
                 },
                 "postgres": {
                   "type": "container.v0",
-                  "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
+                  "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username={postgres-username.value};Password={postgres-password.value}",
                   "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                     "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-                    "POSTGRES_USER": "postgres",
+                    "POSTGRES_USER": "{postgres-username.value}",
                     "POSTGRES_PASSWORD": "{postgres-password.value}",
                     "POSTGRES_DB": "postgresdb"
                   },
@@ -718,6 +718,15 @@ public class ManifestGenerationTests
                           "minLength": 22
                         }
                       }
+                    }
+                  }
+                },
+                "postgres-username": {
+                  "type": "parameter.v0",
+                  "value": "{postgres-username.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string"
                     }
                   }
                 },

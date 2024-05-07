@@ -130,8 +130,8 @@ public class AddPostgresTests
         var connectionStringResource = postgres.Resource as IResourceWithConnectionString;
 
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
-        Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={postgres.Resource.PasswordParameter.Value}", connectionString);
+        Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username={postgres-username.value};Password={postgres-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal($"Host=localhost;Port=2000;Username={postgres.Resource.UserNameParameter.Value};Password={postgres.Resource.PasswordParameter.Value}", connectionString);
     }
 
     [Fact]
@@ -225,12 +225,12 @@ public class AddPostgresTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username=postgres;Password={pg-password.value}",
+              "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username={pg-username.value};Password={pg-password.value}",
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-                "POSTGRES_USER": "postgres",
+                "POSTGRES_USER": "{pg-username.value}",
                 "POSTGRES_PASSWORD": "{pg-password.value}"
               },
               "bindings": {
@@ -320,12 +320,12 @@ public class AddPostgresTests
         expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username=postgres;Password={pass.value}",
+              "connectionString": "Host={pg3.bindings.tcp.host};Port={pg3.bindings.tcp.port};Username={pg3-username.value};Password={pass.value}",
               "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
               "env": {
                 "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                 "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-                "POSTGRES_USER": "postgres",
+                "POSTGRES_USER": "{pg3-username.value}",
                 "POSTGRES_PASSWORD": "{pass.value}"
               },
               "bindings": {
