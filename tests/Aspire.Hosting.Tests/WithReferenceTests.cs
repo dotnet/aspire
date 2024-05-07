@@ -10,9 +10,11 @@ namespace Aspire.Hosting.Tests;
 public class WithReferenceTests
 {
     [Theory]
-    [InlineData("mybinding")]
-    [InlineData("MYbinding")]
-    public async Task ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables(string endpointName)
+    [InlineData("mybinding", null)]
+    [InlineData("MYbinding", null)]
+    [InlineData("mybinding", "myservice")]
+    [InlineData("MYbinding", "MYservice")]
+    public async Task ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables(string endpointName, string? serviceName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -22,12 +24,12 @@ public class WithReferenceTests
                 .WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         // Get the service provider.
-        var projectB = builder.AddProject<ProjectB>("b").WithReference(projectA.GetEndpoint(endpointName));
+        var projectB = builder.AddProject<ProjectB>("b").WithReference(projectA.GetEndpoint(endpointName), serviceName);
 
         // Call environment variable callbacks.
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource);
 
-        Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
+        Assert.Equal("https://localhost:2000", config[$"services__{ serviceName ?? "projecta"}__mybinding__0"]);
     }
 
     [Fact]
@@ -121,6 +123,27 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mybinding2__0"]);
+    }
+
+    [Fact]
+    public async Task ResourceWithEndpointsWithServiceNameOverrideProducesAllEnvironmentVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithHttpsEndpoint(1000, 2000, "mybinding")
+                              .WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000))
+                              .WithHttpEndpoint(1000, 3000, "mybinding2")
+                              .WithEndpoint("mybinding2", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000));
+
+        // Get the service provider.
+        var projectB = builder.AddProject<ProjectB>("projectb")
+                              .WithReference(projectA, "serviceA");
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource);
+
+        Assert.Equal("https://localhost:2000", config["services__serviceA__mybinding__0"]);
+        Assert.Equal("http://localhost:3000", config["services__serviceA__mybinding2__0"]);
     }
 
     [Fact]
