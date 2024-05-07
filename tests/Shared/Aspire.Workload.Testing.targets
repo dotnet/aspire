@@ -127,7 +127,8 @@
           packageSourceMapping.FirstNode.AddBeforeSelf(
             new XElement("packageSource",
               new XAttribute("key", "nuget-local"),
-              new XElement("package", new XAttribute("pattern", "*Aspire*"))));
+              new XElement("package", new XAttribute("pattern", "*Aspire*")),
+              new XElement("package", new XAttribute("pattern", "Microsoft.Extensions.ServiceDiscovery*"))));
 
           doc.Save(OutputFile);
           Log.LogMessage(MessageImportance.Low, $"Generated patched nuget.config at {OutputFile}");
