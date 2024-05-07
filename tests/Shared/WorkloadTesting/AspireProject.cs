@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -204,7 +203,7 @@ public class AspireProject : IAsyncDisposable
     {
         if (AppHostProcess is null)
         {
-            throw new InvalidOperationException("Tried  stop the app host process but it is not running.");
+            throw new InvalidOperationException("Tried to stop the app host process but it is not running.");
         }
 
         if (AppExited?.Task.IsCompleted == false)
