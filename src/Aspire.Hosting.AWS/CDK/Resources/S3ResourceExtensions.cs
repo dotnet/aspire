@@ -1,4 +1,7 @@
 using Amazon.CDK.AWS.S3;
+using Amazon.CDK.AWS.S3.Notifications;
+using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SQS;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CDK;
@@ -19,6 +22,57 @@ public static class S3ResourceExtensions
     public static IResourceBuilder<IConstructResource<Bucket>> AddS3Bucket(this IResourceBuilder<IResourceWithConstruct> builder, string name, IBucketProps? props = null)
     {
         return builder.AddConstruct(name, scope => new Bucket(scope, name, props));
+    }
+
+    /// <summary>Subscribes a destination to receive notifications when an object is created in the bucket.</summary>
+    /// <param name="builder">The builder for the bucket resource.</param>
+    /// <param name="destination">The notification destination queue.</param>
+    /// <param name="eventType">The type of bucket event.</param>
+    /// <param name="filters">Filters.</param>
+    public static IResourceBuilder<IConstructResource<Bucket>> AddEventNotification(IResourceBuilder<IConstructResource<Bucket>> builder, IResourceBuilder<IConstructResource<IQueue>> destination, EventType eventType, params INotificationKeyFilter[] filters )
+    {
+        builder.Resource.Construct.AddEventNotification(eventType, new SqsDestination(destination.Resource.Construct), filters);
+        return builder;
+    }
+
+    /// <summary>Subscribes a destination to receive notifications when an object is created in the bucket.</summary>
+    /// <param name="builder">The builder for the bucket resource.</param>
+    /// <param name="destination">The notification destination queue.</param>
+    /// <param name="filters">Filters.</param>
+    public static IResourceBuilder<IConstructResource<Bucket>> AddObjectCreatedNotification(IResourceBuilder<IConstructResource<Bucket>> builder, IResourceBuilder<IConstructResource<IQueue>> destination, params INotificationKeyFilter[] filters )
+    {
+        builder.Resource.Construct.AddObjectCreatedNotification(new SqsDestination(destination.Resource.Construct), filters);
+        return builder;
+    }
+
+    /// <summary>Subscribes a destination to receive notifications when an object is created in the bucket.</summary>
+    /// <param name="builder">The builder for the bucket resource.</param>
+    /// <param name="destination">The notification destination topic.</param>
+    /// <param name="filters">Filters.</param>
+    public static IResourceBuilder<IConstructResource<Bucket>> AddObjectCreatedNotification(IResourceBuilder<IConstructResource<Bucket>> builder, IResourceBuilder<IConstructResource<ITopic>> destination, params INotificationKeyFilter[] filters )
+    {
+        builder.Resource.Construct.AddObjectCreatedNotification(new SnsDestination(destination.Resource.Construct), filters);
+        return builder;
+    }
+
+    /// <summary>Subscribes a destination to receive notifications when an object is removed from the bucket.</summary>
+    /// <param name="builder">The builder for the bucket resource.</param>
+    /// <param name="destination">The notification destination queue.</param>
+    /// <param name="filters">Filters.</param>
+    public static IResourceBuilder<IConstructResource<Bucket>> AddObjectRemovedNotification(IResourceBuilder<IConstructResource<Bucket>> builder, IResourceBuilder<IConstructResource<IQueue>> destination, params INotificationKeyFilter[] filters )
+    {
+        builder.Resource.Construct.AddObjectCreatedNotification(new SqsDestination(destination.Resource.Construct), filters);
+        return builder;
+    }
+
+    /// <summary>Subscribes a destination to receive notifications when an object is removed from the bucket.</summary>
+    /// <param name="builder">The builder for the bucket resource.</param>
+    /// <param name="destination">The notification destination topic.</param>
+    /// <param name="filters">Filters.</param>
+    public static IResourceBuilder<IConstructResource<Bucket>> AddObjectRemovedNotification(IResourceBuilder<IConstructResource<Bucket>> builder, IResourceBuilder<IConstructResource<ITopic>> destination, params INotificationKeyFilter[] filters )
+    {
+        builder.Resource.Construct.AddObjectRemovedNotification(new SnsDestination(destination.Resource.Construct), filters);
+        return builder;
     }
 
     /// <summary>

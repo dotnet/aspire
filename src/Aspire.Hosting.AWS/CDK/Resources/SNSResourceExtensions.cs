@@ -1,4 +1,6 @@
 using Amazon.CDK.AWS.SNS;
+using Amazon.CDK.AWS.SNS.Subscriptions;
+using Amazon.CDK.AWS.SQS;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CDK;
@@ -19,6 +21,16 @@ public static class SNSResourceExtensions
     public static IResourceBuilder<IConstructResource<Topic>> AddSNSTopic(this IResourceBuilder<IResourceWithConstruct> builder, string name, ITopicProps? props = null)
     {
         return builder.AddConstruct(name, scope => new Topic(scope, name, props));
+    }
+
+    /// <summary>Subscribe some endpoint to this topic.</summary>
+    /// <param name="builder">The builder for the topic resource.</param>
+    /// <param name="destination">The notification destination queue.</param>
+    /// <param name="props">>Properties for an SQS subscription.</param>
+    public static IResourceBuilder<IConstructResource<Topic>> AddSubscription(IResourceBuilder<IConstructResource<Topic>> builder, IResourceBuilder<IConstructResource<IQueue>> destination, SqsSubscriptionProps? props)
+    {
+        builder.Resource.Construct.AddSubscription(new SqsSubscription(destination.Resource.Construct, props));
+        return builder;
     }
 
     /// <summary>
