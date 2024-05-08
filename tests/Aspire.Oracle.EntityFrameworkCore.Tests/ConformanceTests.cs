@@ -19,7 +19,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string ActivitySourceName => "oracle";
+    protected override string ActivitySourceName => "Oracle.ManagedDataAccess.Core";
 
     protected override string[] RequiredLogCategories => new string[]
     {
@@ -35,6 +35,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         "Microsoft.EntityFrameworkCore.Update",
         "Microsoft.EntityFrameworkCore.Migrations"
     };
+
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {

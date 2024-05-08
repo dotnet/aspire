@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting;
 using Testcontainers.Oracle;
 using Xunit;
 
@@ -19,12 +18,10 @@ public sealed class OracleContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
-            Container = new OracleBuilder()
-                .WithImage($"{OracleContainerImageTags.Registry}/{OracleContainerImageTags.Image}:{OracleContainerImageTags.Tag}")
+            Container = new OracleFreeBuilder()
+                .WithImage($"gvenzl/oracle-free:23-slim-faststart")
                 .Build();
 
-
-            new OracleBuilder().Mer
             await Container.StartAsync();
         }
     }
