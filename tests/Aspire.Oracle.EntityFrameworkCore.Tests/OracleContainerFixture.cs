@@ -18,8 +18,7 @@ public sealed class OracleContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
-            Container = new OracleFreeBuilder()
-                .WithImage($"gvenzl/oracle-free:23-slim-faststart")
+            Container = new OracleBuilder()
                 .Build();
 
             await Container.StartAsync();

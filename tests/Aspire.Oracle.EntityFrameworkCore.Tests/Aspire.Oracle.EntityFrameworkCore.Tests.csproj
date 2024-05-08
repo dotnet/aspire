@@ -7,12 +7,10 @@
   <ItemGroup>
     <!-- this file is included as a link, as both components rely on different versions of EF (for now) -->
     <Compile Include="..\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\TestDbContext.cs" Link="TestDbContext.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Oracle\OracleContainerImageTags.cs" />
 
     <None Include="$(RepoRoot)src\Components\Aspire.Oracle.EntityFrameworkCore\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
 
     <ProjectReference Include="..\..\src\Aspire.Hosting.Oracle\Aspire.Hosting.Oracle.csproj" />
-
     <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
