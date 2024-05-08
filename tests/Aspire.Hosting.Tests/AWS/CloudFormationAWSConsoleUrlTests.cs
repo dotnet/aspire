@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Tests.AWS;
 public class CloudFormationAWSConsoleUrlTests
 {
     [Fact]
-    public void ConsoleUrlCreated()
+    public void ConsoleUrlCreated_RegionEndpoint()
     {
         const string stackId = "arn:aws:cloudformation:eu-west-1:111111111111:stack/Stack1/abcdef-example";
         using var client = new AmazonCloudFormationClient(RegionEndpoint.EUWest1);
@@ -24,7 +24,23 @@ public class CloudFormationAWSConsoleUrlTests
     }
 
     [Fact]
-    public void ConsoleUrlNotCreated()
+    public void ConsoleUrlCreated_ServiceUrl()
+    {
+        const string stackId = "arn:aws:cloudformation:ap-southeast-1:111111111111:stack/Stack1/abcdef-example";
+        using var client = new AmazonCloudFormationClient(new AmazonCloudFormationConfig
+        {
+            ServiceURL = "https://cloudformation.ap-southeast-1.amazonaws.com/"
+        });
+
+        var urls = CloudFormationProvisioner.MapCloudFormationStackUrl(client, stackId);
+
+        Assert.Equal(
+            "https://console.aws.amazon.com/cloudformation/home?region=ap-southeast-1#/stacks/resources?stackId=arn:aws:cloudformation:ap-southeast-1:111111111111:stack/Stack1/abcdef-example",
+            urls!.Value.Single().Url);
+    }
+
+    [Fact]
+    public void ConsoleUrlNotCreated_LocalStackServiceUrl()
     {
         using var client = new AmazonCloudFormationClient(new AmazonCloudFormationConfig
         {
@@ -32,6 +48,20 @@ public class CloudFormationAWSConsoleUrlTests
         });
 
         const string stackId = "arn:aws:cloudformation:eu-west-1:111111111111:stack/Stack1/abcdef-example";
+
+        var urls = CloudFormationProvisioner.MapCloudFormationStackUrl(client, stackId);
+        Assert.Null(urls);
+    }
+
+    [Fact]
+    public void ConsoleUrlNotCreated_UnknownRegion()
+    {
+        using var client = new AmazonCloudFormationClient(new AmazonCloudFormationConfig
+        {
+            ServiceURL = "https://cloudformation.example-north-1.amazonaws.example.com/",
+        });
+
+        const string stackId = "arn:aws:cloudformation:example-north-1:111111111111:stack/Stack1/abcdef-example";
 
         var urls = CloudFormationProvisioner.MapCloudFormationStackUrl(client, stackId);
         Assert.Null(urls);

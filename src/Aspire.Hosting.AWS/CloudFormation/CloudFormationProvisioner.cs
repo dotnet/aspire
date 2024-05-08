@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Text.RegularExpressions;
+using Amazon;
 using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Amazon.Runtime;
@@ -183,6 +185,8 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
+    private static readonly Regex s_awsRegionRegex = new("^(us|eu|ap|sa|ca|me|af|il)-\\w+-\\d+$", RegexOptions.Singleline);
+
     internal static ImmutableArray<UrlSnapshot>? MapCloudFormationStackUrl(IAmazonCloudFormation client, string stackId)
     {
         try
@@ -193,7 +197,12 @@ internal sealed class CloudFormationProvisioner(
                 return null;
             }
 
-            var url = $"https://console.aws.amazon.com/cloudformation/home?region={client.Config.RegionEndpoint.SystemName}#/stacks/resources?stackId={stackId}";
+            if (!Arn.TryParse(stackId, out var arn) || !s_awsRegionRegex.IsMatch(arn.Region))
+            {
+                return null;
+            }
+
+            var url = $"https://console.aws.amazon.com/cloudformation/home?region={arn.Region}#/stacks/resources?stackId={stackId}";
 
             return
             [
