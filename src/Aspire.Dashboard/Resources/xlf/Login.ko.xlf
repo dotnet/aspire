@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AuthorizedUser">
         <source>Authorized User</source>
-        <target state="new">Authorized User</target>
+        <target state="translated">권한 있는 사용자</target>
         <note>Placeholder text for the name of the authorized user when no name claim exists</note>
       </trans-unit>
       <trans-unit id="Header">
@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="HelpScreenshotAltText">
         <source>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</source>
-        <target state="new">Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</target>
+        <target state="translated">대시보드 프런트 엔드 토큰을 찾을 위치를 표시하는 예제 콘솔 출력의 스크린샷. 빨간 상자가 URL 끝에 있는 토큰을 강조 표시합니다. 토큰은 't'라는 이름의 쿼리 매개 변수의 값입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="InvalidTokenErrorMessage">
@@ -29,12 +29,12 @@
       </trans-unit>
       <trans-unit id="LoggedInAs">
         <source>Logged in as:</source>
-        <target state="new">Logged in as:</target>
+        <target state="translated">다음으로 로그인:</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoLinkText">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">자세한 정보</target>
         <note />
       </trans-unit>
       <trans-unit id="PageTitle">
@@ -49,12 +49,12 @@
       </trans-unit>
       <trans-unit id="TokenHelpTextLine1">
         <source>Copy the highlighted token from the console to the login page and log in.</source>
-        <target state="new">Copy the highlighted token from the console to the login page and log in.</target>
+        <target state="translated">콘솔에서 강조 표시된 토큰을 로그인 페이지로 복사하고 로그인합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenHelpTextLine2">
         <source>Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</source>
-        <target state="new">Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</target>
+        <target state="translated">또는 콘솔 링크를 클릭하여 자동으로 로그인합니다. 대시보드가 컨테이너에서 실행되고 외부 포트가 다른 값에 매핑되는 경우 주소가 올바르지 않을 수 있습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="TokenRequiredErrorMessage">

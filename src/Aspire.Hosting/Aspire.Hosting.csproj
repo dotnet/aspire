@@ -28,13 +28,14 @@
     <Compile Include="$(SharedDir)TokenGenerator.cs" Link="Utils\TokenGenerator.cs" />
     <Compile Include="$(SharedDir)LoggingHelpers.cs" Link="Utils\LoggingHelpers.cs" />
     <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
+    <Compile Include="$(SharedDir)SchemaUtils.cs" Link="Utils\SchemaUtils.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="Polly" />
+    <PackageReference Include="Polly.Core" />
   </ItemGroup>
 
   <ItemGroup>

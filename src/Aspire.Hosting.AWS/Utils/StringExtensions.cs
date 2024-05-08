@@ -21,4 +21,15 @@ internal static class StringExtensions
         return result;
 
     }
+
+    /// <summary>
+    /// Replaces : characters to __ for environment variables support with Microsoft.Extensions.Configuration
+    /// </summary>
+    /// <param name="configuration"></param>
+    public static string ToEnvironmentVariables(this string configuration)
+    {
+        return configuration
+            .Replace("::", "__")
+            .Replace(":", "__");
+    }
 }

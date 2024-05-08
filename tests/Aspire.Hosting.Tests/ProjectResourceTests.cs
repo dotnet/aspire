@@ -51,6 +51,16 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_DOTNET_EXPERIMENTAL_ASPNETCORE_DISABLE_URL_QUERY_REDACTION", env.Key);
+                Assert.Equal("true", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_DOTNET_EXPERIMENTAL_HTTPCLIENT_DISABLE_URL_QUERY_REDACTION", env.Key);
+                Assert.Equal("true", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("OTEL_EXPORTER_OTLP_ENDPOINT", env.Key);
                 Assert.Equal("http://localhost:18889", env.Value);
             },

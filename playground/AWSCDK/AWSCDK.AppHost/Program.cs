@@ -7,7 +7,7 @@ var builder = DistributedApplication.CreateBuilder(args).WithAWSCDK();
 
 // Setup a configuration for the AWS .NET SDK.
 var awsConfig = builder.AddAWSSDKConfig()
-    .WithProfile("default")
+    .WithProfile("vinles+labs-Admin")
     .WithRegion(RegionEndpoint.EUWest1);
 
 /*var stack = builder.AddStack(

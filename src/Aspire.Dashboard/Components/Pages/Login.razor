@@ -18,15 +18,19 @@
                     <h1><ApplicationName ResourceName="@nameof(Dashboard.Resources.Login.Header)" Loc="@Loc" /></h1>
                 </div>
                 <div class="token-entry">
+                    @*
+                    * AutoComplete value of one-time-code prevents the browser asking to save the value.
+                    * Immediate value of true ensures the value is set to the server token with every key press in textbox.
+                    *@
                     <FluentTextField @ref="_tokenTextField" Id="token-text-field" @bind-Value="_formModel.Token"
                                      Placeholder="@Loc[nameof(Dashboard.Resources.Login.TextFieldPlaceholder)]"
-                                     TextFieldType="TextFieldType.Password" AutoComplete="one-time-code" Class="token-entry-text" />
+                                     TextFieldType="TextFieldType.Password" AutoComplete="one-time-code" Class="token-entry-text" Immediate="true" />
                 </div>
                 <div class="token-validation">
                     <FluentValidationMessage For="() => _formModel.Token" />
                 </div>
                 <div class="token-entry-footer">
-                    <a href="javascript:;" id="helpLink">@Loc[nameof(Dashboard.Resources.Login.WhereIsMyTokenLinkText)]</a>
+                    <a href="@NavigationManager.Uri" id="helpLink">@Loc[nameof(Dashboard.Resources.Login.WhereIsMyTokenLinkText)]</a>
                     <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">@Loc[nameof(Dashboard.Resources.Login.LogInButtonText)]</FluentButton>
                     <FluentTooltip Anchor="helpLink" Position="TooltipPosition.Bottom" MaxWidth="650px">
                         <div class="token-help-container">

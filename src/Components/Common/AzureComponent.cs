@@ -31,8 +31,9 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
     protected abstract void BindClientOptionsToConfiguration(IAzureClientBuilder<TClient, TClientOptions> clientBuilder, IConfiguration configuration);
 
-    protected abstract IAzureClientBuilder<TClient, TClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, TSettings settings, string connectionName, string configurationSectionName)
-        where TBuilder : IAzureClientFactoryBuilder, IAzureClientFactoryBuilderWithCredential;
+    protected abstract IAzureClientBuilder<TClient, TClientOptions> AddClient(
+        AzureClientFactoryBuilder azureFactoryBuilder, TSettings settings, string connectionName,
+        string configurationSectionName);
 
     protected abstract IHealthCheck CreateHealthCheck(TClient client, TSettings settings);
 

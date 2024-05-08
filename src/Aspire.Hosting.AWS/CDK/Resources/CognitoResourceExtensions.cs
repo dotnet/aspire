@@ -1,5 +1,6 @@
 using Amazon.CDK.AWS.Cognito;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CDK;
 
 namespace Aspire.Hosting;
@@ -29,5 +30,18 @@ public static class CognitoResourceExtensions
     public static IResourceBuilder<IConstructResource<UserPoolClient>> AddClient(this IResourceBuilder<IConstructResource<UserPool>> builder, string name, IUserPoolClientOptions? options)
     {
         return builder.AddConstruct(name, scope => builder.Resource.Construct.AddClient(name, options));
+    }
+
+    /// <summary>
+    /// Adds a reference of an Amazon Cognito user pool to a project. The output parameters of the user pool are added to the project IConfiguration.
+    /// </summary>
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="userPool">The Amazon Cognito user pool resource.</param>
+    /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<UserPool>> userPool, string configSection = Constants.DefaultConfigSection)
+        where TDestination : IResourceWithEnvironment
+    {
+        var prefix = configSection.ToEnvironmentVariables();
+        return builder.WithEnvironment($"{prefix}__UserPoolId", userPool, p => p.UserPoolId);
     }
 }

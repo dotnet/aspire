@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <!-- This library can't ship stable until Azure.AI.OpenAI ships stable. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>$(ComponentAzurePackageTags) ai openai</PackageTags>
     <Description>A client for Azure OpenAI that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>

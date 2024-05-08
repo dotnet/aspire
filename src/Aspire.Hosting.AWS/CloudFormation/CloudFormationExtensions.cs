@@ -184,7 +184,7 @@ public static class CloudFormationExtensions
                 return;
             }
 
-            configSection = configSection.Replace(':', '_');
+            configSection = configSection.ToEnvironmentVariables();
 
             foreach (var output in cloudFormationResourceBuilder.Resource.Outputs)
             {

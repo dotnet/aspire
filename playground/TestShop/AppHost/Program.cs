@@ -6,14 +6,16 @@ var catalogDb = builder.AddPostgres("postgres")
 
 var basketCache = builder.AddRedis("basketcache")
                          .WithDataVolume()
-                         .WithRedisCommander();
+                         .WithRedisCommander(c =>
+                         {
+                             c.WithHostPort(33801);
+                         });
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
                             .WithReplicas(2);
 
-var rabbitMqPassword = builder.AddParameter("rabbitmq-password", secret: true);
-var messaging = builder.AddRabbitMQ("messaging", password: rabbitMqPassword)
+var messaging = builder.AddRabbitMQ("messaging", password: builder.CreateStablePassword("rabbitmq-password", special: false))
                        .WithDataVolume()
                        .WithManagementPlugin()
                        .PublishAsContainer();

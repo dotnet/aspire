@@ -18,10 +18,10 @@ public static class QdrantBuilderExtensions
     private const string EnableStaticContentEnvVarName = "QDRANT__SERVICE__ENABLE_STATIC_CONTENT";
 
     /// <summary>
-    /// Adds a Qdrant resource to the application. A container is used for local development.  
+    /// Adds a Qdrant resource to the application. A container is used for local development.
     /// </summary>
     /// <remarks>
-    /// This version the package defaults to the v1.8.3 tag of the qdrant/qdrant container image.
+    /// This version the package defaults to the v1.8.4 tag of the qdrant/qdrant container image.
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
@@ -43,6 +43,10 @@ public static class QdrantBuilderExtensions
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithImageRegistry(QdrantContainerImageTags.Registry)
             .WithHttpEndpoint(port: grpcPort, targetPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
+            .WithEndpoint(QdrantServerResource.PrimaryEndpointName, endpoint =>
+            {
+                endpoint.Transport = "http2";
+            })
             .WithHttpEndpoint(port: httpPort, targetPort: QdrantPortHttp, name: QdrantServerResource.HttpEndpointName)
             .WithEnvironment(context =>
             {

@@ -89,8 +89,8 @@ The .NET Aspire Azure Key Vault library supports [Microsoft.Extensions.Configura
     "Azure": {
       "Security": {
         "KeyVault": {
-          "HealthChecks": false,
-          "Tracing": true,
+          "DisableHealthChecks": true,
+          "DisableTracing": false,
           "ClientOptions": {
             "Diagnostics": {
               "ApplicationId": "myapp"
@@ -108,7 +108,7 @@ The .NET Aspire Azure Key Vault library supports [Microsoft.Extensions.Configura
 You can also pass the `Action<AzureSecurityKeyVaultSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddAzureKeyVaultClient("secrets", settings => settings.HealthChecks = false);
+builder.AddAzureKeyVaultClient("secrets", settings => settings.DisableHealthChecks = true);
 ```
 
 You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using the optional `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>> configureClientBuilder` parameter of the `AddAzureKeyVaultClient` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
@@ -128,13 +128,17 @@ dotnet add package Aspire.Hosting.Azure.KeyVault
 Then, in the _Program.cs_ file of `AppHost`, add a Key Vault connection and consume the connection using the following methods:
 
 ```csharp
-var keyVault = builder.AddAzureKeyVault("secrets");
+// Service registration
+var keyVault = builder.ExecutionContext.IsPublishMode
+    ? builder.AddAzureKeyVault("secrets")
+    : builder.AddConnectionString("secrets");
 
+// Service consumption
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(keyVault);
 ```
 
-The `AddAzureKeyVault` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:secrets` config key. The `WithReference` method passes that connection information into a connection string named `secrets` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureKeyVault` method adds an Azure Key Vault resource to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:secrets` config key. The `WithReference` method passes that connection information into a connection string named `secrets` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureKeyVaultClient("secrets");

@@ -8,7 +8,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests;
+namespace Aspire.Hosting.Tests.MongoDB;
 
 public class AddMongoDBTests
 {
@@ -102,6 +102,36 @@ public class AddMongoDBTests
             .WithMongoExpress();
 
         Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+    }
+
+    [Fact]
+    public void WithMongoExpressSupportsChangingContainerImageValues()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo").WithMongoExpress(c => {
+            c.WithImageRegistry("example.mycompany.com");
+            c.WithImage("customongoexpresscontainer");
+            c.WithImageTag("someothertag");
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+        var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
+        Assert.Equal("customongoexpresscontainer", containerAnnotation.Image);
+        Assert.Equal("someothertag", containerAnnotation.Tag);
+    }
+
+    [Fact]
+    public void WithMongoExpressSupportsChangingHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo").WithMongoExpress(c => {
+            c.WithHostPort(1000);
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
     }
 
     [Theory]

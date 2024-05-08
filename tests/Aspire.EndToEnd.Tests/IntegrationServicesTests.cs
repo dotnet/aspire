@@ -30,6 +30,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
+    [InlineData(TestResourceNames.garnet)]
     [InlineData(TestResourceNames.sqlserver)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
@@ -99,14 +100,14 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     private async Task RunTestAsync(Func<Task> test)
     {
-        _integrationServicesFixture.EnsureAppHostRunning();
+        _integrationServicesFixture.Project.EnsureAppHostRunning();
         try
         {
             await test();
         }
         catch
         {
-            await _integrationServicesFixture.DumpDockerInfoAsync();
+            await _integrationServicesFixture.Project.DumpDockerInfoAsync();
             throw;
         }
     }

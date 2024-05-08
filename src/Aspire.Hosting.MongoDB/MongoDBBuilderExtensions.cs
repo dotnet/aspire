@@ -16,7 +16,7 @@ public static class MongoDBBuilderExtensions
     private const int DefaultContainerPort = 27017;
 
     /// <summary>
-    /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.5 tag of the mongo container image.
+    /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.8 tag of the mongo container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -56,22 +56,38 @@ public static class MongoDBBuilderExtensions
     /// Adds a MongoExpress administration and development platform for MongoDB to the application model. This version the package defaults to the 1.0.2-20 tag of the mongo-express container image
     /// </summary>
     /// <param name="builder">The MongoDB server resource builder.</param>
-    /// <param name="hostPort">The host port for the application ui.</param>
+    /// <param name="configureContainer">Configuration callback for Mongo Express container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithMongoExpress<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : MongoDBServerResource
+    public static IResourceBuilder<T> WithMongoExpress<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<MongoExpressContainerResource>>? configureContainer = null, string? containerName = null) where T : MongoDBServerResource
     {
         containerName ??= $"{builder.Resource.Name}-mongoexpress";
 
         var mongoExpressContainer = new MongoExpressContainerResource(containerName);
-        builder.ApplicationBuilder.AddResource(mongoExpressContainer)
-                                  .WithImage("mongo-express", "1.0.2-20")
-                                  .WithImageRegistry(MongoDBContainerImageTags.Registry)
-                                  .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
-                                  .WithHttpEndpoint(targetPort: 8081, port: hostPort, name: containerName)
-                                  .ExcludeFromManifest();
+        var resourceBuilder = builder.ApplicationBuilder.AddResource(mongoExpressContainer)
+                                                        .WithImage(MongoDBContainerImageTags.MongoExpressImage, MongoDBContainerImageTags.MongoExpressTag)
+                                                        .WithImageRegistry(MongoDBContainerImageTags.MongoExpressRegistry)
+                                                        .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
+                                                        .WithHttpEndpoint(targetPort: 8081, name: "http")
+                                                        .ExcludeFromManifest();
+
+        configureContainer?.Invoke(resourceBuilder);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the Mongo Express resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for Mongo Express.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for PGAdmin.</returns>
+    public static IResourceBuilder<MongoExpressContainerResource> WithHostPort(this IResourceBuilder<MongoExpressContainerResource> builder, int? port)
+    {
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>

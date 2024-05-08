@@ -31,7 +31,7 @@ public static class KinesisResourceExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Stream>> stream, string configSection = Constants.DefaultConfigSection)
         where TDestination : IResourceWithEnvironment
     {
-        var prefix = configSection.Replace(':', '_');
+        var prefix = configSection.ToEnvironmentVariables();
         return builder.WithEnvironment($"{prefix}__StreamArn", stream, s => s.StreamArn);
     }
 }

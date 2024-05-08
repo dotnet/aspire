@@ -30,7 +30,7 @@ public static class SNSResourceExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Topic>> topic, string configSection = Constants.DefaultConfigSection)
         where TDestination : IResourceWithEnvironment
     {
-        var prefix = configSection.Replace(':', '_');
+        var prefix = configSection.ToEnvironmentVariables();
         return builder.WithEnvironment($"{prefix}__TopicArn", topic, t => t.TopicArn);
     }
 }

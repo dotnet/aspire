@@ -26,7 +26,7 @@
 }
 else if (Resource is { State: ResourceStates.StartingState })
 {
-    <FluentIcon Icon="Icons.Filled.Size16.Circle"
+    <FluentIcon Icon="Icons.Regular.Size16.CircleHint"
                 Color="Color.Info"
                 Class="severity-icon" />
 }
@@ -51,12 +51,12 @@ else if (!string.IsNullOrEmpty(Resource.StateStyle))
                         Class="severity-icon" />
             break;
         case "success":
-            <FluentIcon Icon="Icons.Filled.Size16.Circle"
+            <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
                         Color="Color.Success"
                         Class="severity-icon" />
             break;
         case "info":
-            <FluentIcon Icon="Icons.Filled.Size16.Circle"
+            <FluentIcon Icon="Icons.Filled.Size16.Info"
                         Color="Color.Info"
                         Class="severity-icon" />
             break;

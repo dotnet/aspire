@@ -166,7 +166,7 @@ public static class CDKExtensions
                 return;
             }
 
-            configSection = configSection.Replace(':', '_');
+            configSection = configSection.ToEnvironmentVariables();
 
             // Add the stack outputs for each child construct to the project configuration
             var processedOutputs = new List<Output>();
@@ -178,7 +178,7 @@ public static class CDKExtensions
                 var outputs = stackOutputs.Where(o => o.OutputKey.StartsWith(constructId)).ToList();
 
                 // Compose the output name with the name of the constructs
-                var prefix = configSection.Replace(':', '_');
+                var prefix = configSection.ToEnvironmentVariables();
                 var parents = construct.ListParents(builder.ApplicationBuilder.Resources.OfType<IConstructResource>()).ToArray();
                 if (parents.Length != 0)
                 {

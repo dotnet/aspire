@@ -157,14 +157,14 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
         {
             builder.AddKeyedNatsClient(DefaultConnectionName, settings =>
             {
-                settings.HealthChecks = false;
+                settings.DisableHealthChecks = true;
             });
         }
         else
         {
             builder.AddNatsClient(DefaultConnectionName, settings =>
             {
-                settings.HealthChecks = false;
+                settings.DisableHealthChecks = true;
             });
         }
 
@@ -184,7 +184,7 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
 
             builder.AddNatsClient(DefaultConnectionName);
 
-            var notifier = new ActivityNotifier();
+            using var notifier = new ActivityNotifier();
             builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
 
             using var host = builder.Build();
@@ -193,13 +193,42 @@ public class AspireNatsClientExtensionsTests : IClassFixture<NatsContainerFixtur
             var nats = host.Services.GetRequiredService<INatsConnection>();
             await nats.PublishAsync("test");
 
-            await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
-            Assert.Single(notifier.ExportedActivities);
+            var activityList = await notifier.TakeAsync(1, TimeSpan.FromSeconds(10));
+            Assert.Single(activityList);
 
-            var activity = notifier.ExportedActivities[0];
+            var activity = activityList[0];
             Assert.Equal("test publish", activity.OperationName);
             Assert.Contains(activity.Tags, kvp => kvp.Key == "messaging.system" && kvp.Value == "nats");
         }, _connectionString).Dispose();
+    }
+
+    [Fact]
+    public void CanAddMultipleKeyedServices()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:nats1", "nats://aspire-host1:4222"),
+            new KeyValuePair<string, string?>("ConnectionStrings:nats2", "nats://aspire-host2:4222"),
+            new KeyValuePair<string, string?>("ConnectionStrings:nats3", "nats://aspire-host3:4222"),
+        ]);
+
+        builder.AddNatsClient("nats1");
+        builder.AddKeyedNatsClient("nats2");
+        builder.AddKeyedNatsClient("nats3");
+
+        using var host = builder.Build();
+
+        var connection1 = host.Services.GetRequiredService<INatsConnection>();
+        var connection2 = host.Services.GetRequiredKeyedService<INatsConnection>("nats2");
+        var connection3 = host.Services.GetRequiredKeyedService<INatsConnection>("nats3");
+
+        Assert.NotSame(connection1, connection2);
+        Assert.NotSame(connection1, connection3);
+        Assert.NotSame(connection2, connection3);
+
+        Assert.Contains("aspire-host1", connection1.Opts.Url);
+        Assert.Contains("aspire-host2", connection2.Opts.Url);
+        Assert.Contains("aspire-host3", connection3.Opts.Url);
     }
 
     private static HostApplicationBuilder CreateBuilder(string connectionString)

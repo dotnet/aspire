@@ -52,7 +52,7 @@ public static class DynamoDBResourceExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Table>> table, string configSection = Constants.DefaultConfigSection)
         where TDestination : IResourceWithEnvironment
     {
-        var prefix = configSection.Replace(':', '_');
+        var prefix = configSection.ToEnvironmentVariables();
         return builder.WithEnvironment($"{prefix}__TableName", table, t => t.TableName);
     }
 }

@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.PostgreSQL\Aspire.Hosting.PostgreSQL.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.RabbitMQ\Aspire.Hosting.RabbitMQ.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Garnet\Aspire.Hosting.Garnet.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.SqlServer\Aspire.Hosting.SqlServer.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
@@ -33,6 +34,7 @@
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
     <PackageReference Include="Aspire.Hosting.Redis" />
+    <PackageReference Include="Aspire.Hosting.Garnet" />
     <PackageReference Include="Aspire.Hosting.SqlServer" />
   </ItemGroup>
 

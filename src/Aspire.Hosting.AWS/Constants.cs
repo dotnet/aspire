@@ -23,5 +23,5 @@ internal sealed class Constants
     /// <summary>
     /// Default Configuration Section
     /// </summary>
-    public const string DefaultConfigSection = "AWS::Resources";
+    public const string DefaultConfigSection = "AWS:Resources";
 }

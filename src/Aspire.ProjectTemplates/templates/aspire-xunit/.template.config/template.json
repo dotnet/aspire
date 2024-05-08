@@ -15,16 +15,16 @@
   "defaultName": "Tests",
   "description": "A project that contains xUnit.net integration tests of a .NET Aspire AppHost project.",
   "shortName": "aspire-xunit",
-  "sourceName": "Aspire.Tests1",
+  "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
   "tags": {
     "language": "C#",
     "type": "project"
   },
   "precedence": "8000",
-  "identity": "Aspire.Tests.CSharp.8.0",
+  "identity": "Aspire.Tests.xUnit.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.Tests",
+  "groupIdentity": "Aspire.Tests.xUnit",
   "constraints": {
     "aspire": {
       "type": "workload",
@@ -58,7 +58,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "Aspire.Tests1.csproj"
+      "path": "Aspire.Tests.1.csproj"
     }
   ],
   "postActions": [

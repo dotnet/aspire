@@ -6,7 +6,7 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
-/// <inheritdoc/>
+/// <inheritdoc cref="Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource" />
 internal sealed class CloudFormationTemplateResource(string name, string templatePath) : CloudFormationResource(name), ICloudFormationTemplateResource, ICloudFormationTemplateProvider
 {
     public IDictionary<string, string> CloudFormationParameters { get; } = new Dictionary<string, string>();
@@ -14,16 +14,16 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
     /// <inheritdoc/>
     public string TemplatePath { get; } = templatePath;
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="ICloudFormationTemplateResource.RoleArn" />
     public string? RoleArn { get; set; }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="ICloudFormationTemplateResource.StackPollingInterval" />
     public int StackPollingInterval { get; set; } = 3;
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="ICloudFormationTemplateResource.DisableDiffCheck" />
     public bool DisableDiffCheck { get; set; }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="ICloudFormationTemplateResource.DisabledCapabilities" />
     public IList<string> DisabledCapabilities { get; } = [];
 
     /// <inheritdoc/>

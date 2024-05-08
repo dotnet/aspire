@@ -99,7 +99,7 @@ public static class AspireNatsClientExtensions
             builder.Services.TryAddKeyedSingleton<INatsConnection>(serviceKey, static (provider, key) => provider.GetRequiredKeyedService<NatsConnection>(key));
         }
 
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 serviceKey is null ? "NATS" : $"NATS_{connectionName}",
@@ -111,7 +111,7 @@ public static class AspireNatsClientExtensions
                 timeout: default));
         }
 
-        if (settings.Tracing)
+        if (!settings.DisableTracing)
         {
             builder.Services
                 .AddOpenTelemetry()

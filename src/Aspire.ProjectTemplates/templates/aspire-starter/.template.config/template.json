@@ -15,7 +15,7 @@
   "defaultName": "AspireApp",
   "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "shortName": "aspire-starter",
-  "sourceName": "AspireStarterApplication.1",
+  "sourceName": "Aspire-StarterApplication.1",
   "preferNameDirectory": false,
   "tags": {
     "language": "C#",
@@ -39,15 +39,15 @@
     {
       "modifiers": [
         {
-          "condition": "(hostIdentifier == \"vs\")",
+          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
           "exclude": [
             "*.sln"
           ]
         },
         {
-          "condition": "(!CreateTestsProject)",
+          "condition": "(TestFramework == None)",
           "exclude": [
-            "AspireStarterApplication.1.Tests/**/*.*"
+            "Aspire-StarterApplication.1.Tests/**/*.*"
           ]
         }
       ]
@@ -82,14 +82,32 @@
       "datatype": "bool",
       "defaultValue": "false",
       "displayName": "_Use Redis for caching (requires a supported container runtime)",
-      "description": "Configures whether to setup the application to use Redis for caching. Requires a supported continer runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
+      "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
     },
-    "CreateTestsProject": {
+    "TestFramework": {
       "type": "parameter",
-      "datatype": "bool",
-      "defaultValue": "false",
-      "displayName": "Create a _tests project",
-      "description": "Configures whether to create a project for integration tests using the AppHost project."
+      "datatype": "choice",
+      "defaultValue": "None",
+      "displayName": "Create a _test project",
+      "description": "Configures whether to create a project for integration tests using the AppHost project.",
+      "choices": [
+        {
+          "choice": "None",
+          "description": "Do not create a test project."
+        },
+        {
+          "choice": "MSTest",
+          "description": "Creates an MSTest test project using the AppHost project."
+        },
+        {
+          "choice": "NUnit",
+          "description": "Creates an NUnit test project using the AppHost project."
+        },
+        {
+          "choice": "xUnit.net",
+          "description": "Creates an xUnit.net test project using the AppHost project."
+        }
+      ]
     },
     "appHostHttpPort": {
       "type": "parameter",
@@ -326,28 +344,50 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Whether to turn off HTTPS."
+    },
+    "GeneratedClassNamePrefix": {
+      "type": "generated",
+      "generator": "regex",
+      "datatype": "string",
+      "replaces": "GeneratedClassNamePrefix",
+      "parameters": {
+        "source": "name",
+        "steps": [
+          {
+            "regex": "(((?<=\\.)|^)(?=\\d)|\\W)",
+            "replacement": "_"
+          }
+        ]
+      }
+    },
+    "XmlEncodedProjectName": {
+      "type": "derived",
+      "datatype": "string",
+      "replaces": "XmlEncodedProjectName",
+      "valueSource": "name",
+      "valueTransform": "xmlEncode"
     }
   },
   "primaryOutputs": [
     {
-      "path": "AspireStarterApplication.1.sln",
-      "condition": "(hostIdentifier != \"vs\")"
+      "path": "Aspire-StarterApplication.1.sln",
+      "condition": "(hostIdentifier == \"dotnetcli\" || hostIdentifier == \"dotnetcli-preview\")"
     },
     {
-      "path": "AspireStarterApplication.1.AppHost\\AspireStarterApplication.1.AppHost.csproj"
+      "path": "Aspire-StarterApplication.1.AppHost\\Aspire-StarterApplication.1.AppHost.csproj"
     },
     {
-      "path": "AspireStarterApplication.1.ServiceDefaults\\AspireStarterApplication.1.ServiceDefaults.csproj"
+      "path": "Aspire-StarterApplication.1.ServiceDefaults\\Aspire-StarterApplication.1.ServiceDefaults.csproj"
     },
     {
-      "path": "AspireStarterApplication.1.ApiService\\AspireStarterApplication.1.ApiService.csproj"
+      "path": "Aspire-StarterApplication.1.ApiService\\Aspire-StarterApplication.1.ApiService.csproj"
     },
     {
-      "path": "AspireStarterApplication.1.Web\\AspireStarterApplication.1.Web.csproj"
+      "path": "Aspire-StarterApplication.1.Web\\Aspire-StarterApplication.1.Web.csproj"
     },
     {
-      "path": "AspireStarterApplication.1.Tests\\AspireStarterApplication.1.Tests.csproj",
-      "condition": "(CreateTestsProject)"
+      "path": "Aspire-StarterApplication.1.Tests\\Aspire-StarterApplication.1.Tests.csproj",
+      "condition": "(TestFramework != None)"
     }
   ],
   "postActions": [

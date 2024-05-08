@@ -83,7 +83,7 @@ public class AddRabbitMQTests
     }
 
     [Theory]
-    [InlineData(null, "3-management")]
+    [InlineData(null, RabbitMQContainerImageTags.TagManagement)]
     [InlineData("3", "3-management")]
     [InlineData("3.12", "3.12-management")]
     [InlineData("3.12.0", "3.12.0-management")]
