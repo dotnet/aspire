@@ -19,6 +19,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <param name="password">A parameter that contains the PostgreSQL server password.</param>
     public PostgresServerResource(string name, ParameterResource userName, ParameterResource password) : base(name)
     {
+        ArgumentNullException.ThrowIfNull(userName);
         ArgumentNullException.ThrowIfNull(password);
 
         PrimaryEndpoint = new(this, PrimaryEndpointName);
