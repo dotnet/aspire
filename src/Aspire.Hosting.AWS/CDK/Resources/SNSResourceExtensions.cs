@@ -27,7 +27,7 @@ public static class SNSResourceExtensions
     /// <param name="builder">The builder for the topic resource.</param>
     /// <param name="destination">The notification destination queue.</param>
     /// <param name="props">>Properties for an SQS subscription.</param>
-    public static IResourceBuilder<IConstructResource<Topic>> AddSubscription(IResourceBuilder<IConstructResource<Topic>> builder, IResourceBuilder<IConstructResource<IQueue>> destination, SqsSubscriptionProps? props)
+    public static IResourceBuilder<IConstructResource<Topic>> AddSubscription(this IResourceBuilder<IConstructResource<Topic>> builder, IResourceBuilder<IConstructResource<IQueue>> destination, SqsSubscriptionProps? props)
     {
         builder.Resource.Construct.AddSubscription(new SqsSubscription(destination.Resource.Construct, props));
         return builder;
