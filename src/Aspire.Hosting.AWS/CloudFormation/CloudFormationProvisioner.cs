@@ -44,10 +44,7 @@ internal sealed class CloudFormationProvisioner(
                 cloudFormationResource.Outputs = stack!.Outputs;
 
                 await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack),
-                    [
-                        new UrlSnapshot("aws-console", CloudFormationAWSConsoleUrlMapper.MapCloudFormationUrl(stack.StackId), IsInternal: false)
-                    ]).ConfigureAwait(false);
-                await AddDashboardResources(cfClient, cloudFormationResource, cancellationToken).ConfigureAwait(false);
+                    MapCloudFormationStackUrl(cfClient, stack.StackId)).ConfigureAwait(false);
 
                 cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
@@ -99,10 +96,7 @@ internal sealed class CloudFormationProvisioner(
                     cloudFormationResource.Outputs = stack.Outputs;
 
                     await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack, cloudFormationResource.TemplatePath),
-                        [
-                            new UrlSnapshot("aws-console", CloudFormationAWSConsoleUrlMapper.MapCloudFormationUrl(stack.StackId), IsInternal: false)
-                        ]).ConfigureAwait(false);
-                    await AddDashboardResources(cfClient, cloudFormationResource, cancellationToken).ConfigureAwait(false);
+                        MapCloudFormationStackUrl(cfClient, stack.StackId)).ConfigureAwait(false);
 
                     cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
                 }
@@ -189,46 +183,26 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private async Task AddDashboardResources(IAmazonCloudFormation cfClient, CloudFormationResource cloudFormationResource, CancellationToken cancellationToken = default)
+    internal static ImmutableArray<UrlSnapshot>? MapCloudFormationStackUrl(IAmazonCloudFormation client, string stackId)
     {
-        var logger = loggerService.GetLogger(cloudFormationResource);
-
         try
         {
-            var request = new DescribeStackResourcesRequest { StackName = cloudFormationResource.Name };
-            var response = await cfClient.DescribeStackResourcesAsync(request, cancellationToken).ConfigureAwait(false);
-
-            foreach (var stackResource in response.StackResources)
+            var endpointUrl = client.DetermineServiceOperationEndpoint(new DescribeStacksRequest { StackName = stackId })?.URL;
+            if (endpointUrl == null || !endpointUrl.Contains(".amazonaws."))
             {
-                var url = CloudFormationAWSConsoleUrlMapper.MapResourceUrl(stackResource.StackId, stackResource.ResourceType, stackResource.PhysicalResourceId);
-
-                if (url == null)
-                {
-                    continue;
-                }
-
-                var resourceName = $"{cloudFormationResource.Name}-{stackResource.LogicalResourceId}";
-
-                if (resourceName.Length > 64)
-                {
-                    resourceName = resourceName[..64];
-                }
-
-                var resource = new CloudFormationPhysicalResource(resourceName);
-
-                await notificationService.PublishUpdateAsync(resource,
-                        state => state with
-                        {
-                            State = Constants.ResourceStateRunning,
-                            Urls = [new UrlSnapshot("aws-console", url, IsInternal: false)],
-                            ResourceType = stackResource.ResourceType,
-                            Properties = [new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, stackResource.PhysicalResourceId)]
-                        }).ConfigureAwait(false);
+                return null;
             }
+
+            var url = $"https://console.aws.amazon.com/cloudformation/home?region={client.Config.RegionEndpoint.SystemName}#/stacks/resources?stackId={stackId}";
+
+            return
+            [
+                new UrlSnapshot("aws-console", url, IsInternal: false)
+            ];
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            logger.LogError(e, "Error reading resources from {StackName}.", cloudFormationResource.Name);
+            return null;
         }
     }
 }
