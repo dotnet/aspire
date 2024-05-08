@@ -94,7 +94,7 @@ public class WithEndpointTests
                     .WithHttpsEndpoint(3000, 2000, name: "mybinding");
         });
 
-        Assert.Equal("Endpoint with name 'mybinding' already exists", ex.Message);
+        Assert.Equal("Endpoint with name 'mybinding' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp;). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class WithEndpointTests
                     .WithHttpsEndpoint(3000, 2000);
         });
 
-        Assert.Equal("Endpoint with name 'https' already exists", ex.Message);
+        Assert.Equal("Endpoint with name 'https' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp;). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public class WithEndpointTests
                    .WithHttpsEndpoint(2000, name: "mybinding");
         });
 
-        Assert.Equal("Endpoint with name 'mybinding' already exists", ex.Message);
+        Assert.Equal("Endpoint with name 'mybinding' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp;). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
     }
 
     [Fact]
