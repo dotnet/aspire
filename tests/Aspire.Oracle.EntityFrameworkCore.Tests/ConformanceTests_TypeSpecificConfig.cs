@@ -8,6 +8,11 @@ namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
+    public ConformanceTests_TypeSpecificConfig(OracleContainerFixture containerFixture) : base(containerFixture)
+    {
+        
+    }
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {

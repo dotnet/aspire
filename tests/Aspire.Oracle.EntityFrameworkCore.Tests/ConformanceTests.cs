@@ -3,6 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,13 +12,14 @@ using Xunit;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
-public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>, IClassFixture<OracleContainerFixture>
 {
-    protected const string ConnectionString = "Data Source=fake;";
+    private readonly OracleContainerFixture? _containerFixture;
+    protected string ConnectionString { get; private set; }
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string ActivitySourceName => throw new NotImplementedException();
+    protected override string ActivitySourceName => "oracle";
 
     protected override string[] RequiredLogCategories => new string[]
     {
@@ -79,6 +81,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         }
     }
 
+    public ConformanceTests(OracleContainerFixture? containerFixture)
+    {
+        _containerFixture = containerFixture;
+        ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
+    }
+
     [Fact]
     public void DbContextPoolingRegistersIDbContextPool()
     {
@@ -100,4 +110,12 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
         Assert.NotNull(dbContext);
     }
+
+    [RequiresDockerFact]
+    public void TracingEnablesTheRightActivitySource()
+    => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+                             ConnectionString).Dispose();
+
+    private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
+    => test(new ConformanceTests(null) { ConnectionString = connectionString });
 }

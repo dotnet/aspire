@@ -17,6 +17,10 @@ namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
 public class EnrichOracleDatabaseTests : ConformanceTests
 {
+    public EnrichOracleDatabaseTests(OracleContainerFixture? containerFixture) : base(containerFixture)
+    {
+    }
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<OracleEntityFrameworkCoreSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseOracle(ConnectionString));
