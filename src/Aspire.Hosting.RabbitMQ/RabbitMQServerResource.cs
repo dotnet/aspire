@@ -43,7 +43,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
             ReferenceExpression.Create($"{DefaultUserName}");
 
     /// <summary>
-    /// Gets the parameter that contains the PostgreSQL server password.
+    /// Gets the parameter that contains the RabbitMQ server password.
     /// </summary>
     public ParameterResource PasswordParameter { get; }
 
