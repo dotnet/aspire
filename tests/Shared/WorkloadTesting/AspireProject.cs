@@ -36,7 +36,7 @@ public class AspireProject : IAsyncDisposable
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
     }
 
-    public async Task StartAsync(string[]? extraArgs = default, CancellationToken token = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true)
+    public async Task StartAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, CancellationToken token = default)
     {
         if (IsRunning)
         {
