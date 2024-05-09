@@ -383,6 +383,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.RabbitMQ", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Redis", "src\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj", "{7D57BF77-AD99-48C5-BC4D-AB133A155D97}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Garnet", "src\Aspire.Hosting.Garnet\Aspire.Hosting.Garnet.csproj", "{96D36588-B223-4381-B774-FB1A3F8BC269}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Seq", "src\Aspire.Hosting.Seq\Aspire.Hosting.Seq.csproj", "{C72FECC5-DA40-4440-A3C8-CFF9CF14F028}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.SqlServer", "src\Aspire.Hosting.SqlServer\Aspire.Hosting.SqlServer.csproj", "{CBFB476E-6999-4AB3-88FE-375CD39BB073}"
@@ -465,6 +467,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{96D36588-B223-4381-B774-FB1A3F8BC269}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96D36588-B223-4381-B774-FB1A3F8BC269}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96D36588-B223-4381-B774-FB1A3F8BC269}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96D36588-B223-4381-B774-FB1A3F8BC269}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -1210,6 +1216,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{96D36588-B223-4381-B774-FB1A3F8BC269} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 		{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 		{E958BE04-81C2-434C-9E6C-CA145A2B8218} = {A68BA1A5-1604-433D-9778-DC0199831C2A}
 		{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1} = {A68BA1A5-1604-433D-9778-DC0199831C2A}
