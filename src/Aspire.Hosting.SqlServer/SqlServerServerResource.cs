@@ -24,12 +24,12 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     }
 
     /// <summary>
-    /// Gets the primary endpoint for the Redis server.
+    /// Gets the primary endpoint for the SQL Server.
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
     /// <summary>
-    /// Gets the parameter that contains the PostgreSQL server password.
+    /// Gets the parameter that contains the SQL Server password.
     /// </summary>
     public ParameterResource PasswordParameter { get; }
 
