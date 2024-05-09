@@ -93,8 +93,10 @@ public static class PulsarManagerBuilderExtensions
     /// Seeds default super-user to a Pulsar Manager.
     /// </summary>
     /// <remarks>
-    /// This method only supports the Pulsar Manager container image and tags including and above v<c>0.4.1</c><br />
-    /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
+    /// This method only supports the Pulsar Manager container image and tags above v<c>0.4.0</c><br />
+    /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.<br /><br />
+    /// To support seeding super-user on v0.4.0 or lower, please refer to following documentation:<br />
+    /// <see href="https://pulsar.apache.org/docs/3.2.x/administration-pulsar-manager/#3-set-the-administrator-account-and-password"/>
     /// </remarks>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="PulsarManagerResource"/>.</param>
     /// <param name="userName">The parameter used to provide the username for the Pulsar Manager default superuser. If <see langword="null"/> a default value will be used.</param>

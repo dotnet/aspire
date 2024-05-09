@@ -104,5 +104,6 @@ public static class PulsarBuilderExtensions
         this IResourceBuilder<PulsarResource> builder,
         string source,
         bool isReadOnly = false
-    ) => builder.WithBindMount(source, "/pulsar/conf", isReadOnly);
+    ) => builder
+        .WithBindMount(source, "/pulsar/conf", isReadOnly);
 }

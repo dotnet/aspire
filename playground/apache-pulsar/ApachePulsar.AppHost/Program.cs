@@ -3,9 +3,6 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var pulsarSuperUserUserName = builder.AddParameter("pulsar-manager-superuser-username");
-var pulsarSuperUserPassword = builder.AddParameter("pulsar-manager-superuser-password");
-
 var pulsar = builder
     .AddPulsar(
         name: "pulsar",
@@ -19,11 +16,6 @@ var pulsar = builder
         configureContainer: c => c
             .WithApplicationProperties()
             .WithDefaultEnvironment("pulsar-playground")
-    // TODO: Uncomment after new pulsar manager release (>0.4.0)
-    //.WithDefaultSuperUser(
-    //    userName: pulsarSuperUserUserName,
-    //    password: pulsarSuperUserPassword
-    //)
     );
 
 builder.AddProject<Projects.ApachePulsar_Api>("api")

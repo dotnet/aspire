@@ -11,11 +11,6 @@ internal static class PulsarManagerContainerImageTags
     public const string Image = "apachepulsar/pulsar-manager";
     public const string Tag = "v0.4.0";
 
-    // TODO: Bump after release of Pulsar Manager
-    // Below PRs add value:
-    // https://github.com/apache/pulsar-manager/pull/565 - adds super-user via env vars
-    // https://github.com/apache/pulsar-manager/pull/564 - fixes duplicate super-user seed
-
     private static readonly Version s_versionThresholdNotSupportingDefaultSuperUserViaEnvVars = new(0, 4, 0);
 
     /// <summary>
