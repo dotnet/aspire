@@ -1,0 +1,104 @@
+{
+  "resources": {
+    "pulsar-manager-superuser-username": {
+      "type": "parameter.v0",
+      "value": "{pulsar-manager-superuser-username.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "pulsar-manager-superuser-password": {
+      "type": "parameter.v0",
+      "value": "{pulsar-manager-superuser-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "pulsar": {
+      "type": "container.v0",
+      "connectionString": "{pulsar.bindings.broker.url}",
+      "image": "docker.io/apachepulsar/pulsar:3.2.0",
+      "entrypoint": "/bin/bash",
+      "args": [
+        "-c",
+        "bin/apply-config-from-env.py conf/standalone.conf \u0026\u0026 bin/pulsar standalone"
+      ],
+      "bindings": {
+        "service": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 8080
+        },
+        "broker": {
+          "scheme": "pulsar",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6650
+        }
+      }
+    },
+    "pulsar-manager": {
+      "type": "container.v0",
+      "image": "docker.io/apachepulsar/pulsar-manager:v0.4.0",
+      "bindMounts": [
+        {
+          "source": "application.properties",
+          "target": "/pulsar-manager/pulsar-manager/application.properties",
+          "readOnly": false
+        }
+      ],
+      "env": {
+        "services__pulsar__service__0": "{pulsar.bindings.service.url}",
+        "services__pulsar__broker__0": "{pulsar.bindings.broker.url}",
+        "SPRING_CONFIGURATION_FILE": "/pulsar-manager/pulsar-manager/application.properties",
+        "DEFAULT_ENVIRONMENT_NAME": "pulsar-playground",
+        "DEFAULT_ENVIRONMENT_BOOKIE_URL": "{pulsar.bindings.broker.url}",
+        "DEFAULT_ENVIRONMENT_SERVICE_URL": "{pulsar.bindings.service.url}"
+      },
+      "bindings": {
+        "frontend": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 9527
+        },
+        "backend": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 7750
+        }
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../ApachePulsar.Api/ApachePulsar.Api.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "ConnectionStrings__pulsar": "{pulsar.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    }
+  }
+}
