@@ -147,6 +147,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddLocalization();
 
         builder.Services.AddMediaQueryService();
+        builder.Services.AddResizeListener();
 
         _app = builder.Build();
 

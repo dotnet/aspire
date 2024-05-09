@@ -5,6 +5,7 @@ using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
+using BlazorPro.BlazorSize;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
@@ -55,6 +56,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required IOptionsMonitor<DashboardOptions> Options { get; init; }
+
+    private bool _isSmall;
+    private BrowserWindowSize _browserSize = new();
+
+    private ViewportInformation ViewportInformation => new(IsDesktop: !_isSmall, Height: _browserSize.Height, Width: _browserSize.Width);
 
     protected override async Task OnInitializedAsync()
     {
@@ -117,6 +123,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             ShortcutManager.AddGlobalKeydownListener(this);
+
+            ResizeListener.OnResized += WindowResized;
         }
     }
 
@@ -224,12 +232,21 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
     }
 
+    private async void WindowResized(object? _, BrowserWindowSize browserSize)
+    {
+        _browserSize = browserSize;
+        _isSmall = await ResizeListener.MatchMedia(Breakpoints.SmallDown);
+        StateHasChanged();
+    }
+
     public async ValueTask DisposeAsync()
     {
         _shortcutManagerReference?.Dispose();
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
+
+        ResizeListener.OnResized -= WindowResized;
 
         if (_keyboardHandlers is { } h)
         {

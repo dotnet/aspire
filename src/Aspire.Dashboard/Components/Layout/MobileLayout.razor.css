@@ -34,8 +34,8 @@
     grid-template-rows: auto auto 1fr;
     grid-template-areas:
         "icon head"
-        "nav messagebar"
-        "nav main";
+        "messagebar messagebar"
+        "main main";
     background-color: var(--fill-color);
     color: var(--neutral-foreground-rest);
 }
@@ -79,6 +79,19 @@
 ::deep.layout > header > .header-gutters > fluent-anchor[appearance=stealth].logo::part(control),
 ::deep.layout > .aspire-icon fluent-anchor[appearance=stealth].logo::part(control) {
     background-color: var(--neutral-layer-4);
+}
+
+::deep.layout > .aspire-icon {
+    padding-left: 15px;
+    background-color: var(--neutral-layer-4);
+}
+
+::deep.layout > .aspire-icon fluent-anchor {
+    margin-left: 5px;
+}
+
+::deep.layout > .aspire-icon .navigation-button {
+    border: 1px solid #a8aeb3;
 }
 
 ::deep.layout > header {

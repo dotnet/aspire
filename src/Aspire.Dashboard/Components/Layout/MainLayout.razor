@@ -1,6 +1,21 @@
 ﻿@inherits LayoutComponentBase
+@inject IResizeListener ResizeListener
 
-<DesktopLayout LaunchHelpAsync="@LaunchHelpAsync"
-               LaunchSettingsAsync="@LaunchSettingsAsync"
-               MessageBarSection="@MessageBarSection"
-               LayoutBody="@Body"/>
+<CascadingValue Value="@ViewportInformation">
+    @if (ViewportInformation.IsDesktop)
+    {
+        <DesktopLayout LaunchHelpAsync="@LaunchHelpAsync"
+                       LaunchSettingsAsync="@LaunchSettingsAsync"
+                       MessageBarSection="@MessageBarSection"
+                       LayoutBody="@Body"/>
+    }
+    else
+    {
+        <MobileLayout LaunchHelpAsync="@LaunchHelpAsync"
+                       LaunchSettingsAsync="@LaunchSettingsAsync"
+                       MessageBarSection="@MessageBarSection"
+                       LayoutBody="@Body"/>
+    }
+</CascadingValue>
+
+<MediaQuery Media="@Breakpoints.SmallDown" @bind-Matches="_isSmall" />
