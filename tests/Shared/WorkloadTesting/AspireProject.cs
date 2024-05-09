@@ -36,7 +36,7 @@ public class AspireProject : IAsyncDisposable
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
     }
 
-    public async Task StartAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, CancellationToken token = default)
+    public async Task StartAppHostAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, CancellationToken token = default)
     {
         if (IsRunning)
         {
@@ -199,7 +199,7 @@ public class AspireProject : IAsyncDisposable
         res.EnsureSuccessful();
     }
 
-    public async Task StopAsync(CancellationToken token = default)
+    public async Task StopAppHostAsync(CancellationToken token = default)
     {
         if (AppHostProcess is null)
         {
@@ -223,7 +223,7 @@ public class AspireProject : IAsyncDisposable
         }
 
         await DumpDockerInfoAsync(new TestOutputWrapper(null));
-        await StopAsync();
+        await StopAppHostAsync();
     }
 
     public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)

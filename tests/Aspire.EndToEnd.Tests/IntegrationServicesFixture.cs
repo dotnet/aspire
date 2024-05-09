@@ -85,7 +85,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             extraArgs += $"--skip-resources {skipArg}";
         }
-        await Project.StartAsync([extraArgs]);
+        await Project.StartAppHostAsync([extraArgs]);
 
         foreach (var project in Projects.Values)
         {
