@@ -57,12 +57,6 @@ public class ToolCommand : IDisposable
         return this;
     }
 
-    public ToolCommand WithEnvironmentVariableRemoved(string key)
-    {
-        Environment.Remove(key);
-        return this;
-    }
-
     public ToolCommand WithOutputDataReceived(Action<string?> handler)
     {
         OutputDataReceived += (_, args) => handler(args.Data);

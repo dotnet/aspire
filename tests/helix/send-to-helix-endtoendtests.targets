@@ -33,8 +33,6 @@
       <_E2ETestScenarios Include="basicservices" />
       <_E2ETestScenarios Include="cosmos" />
 
-      <!--<HelixCorrelationPayload Condition="'$(OS)' != 'Windows_NT'" Include="$(_CreateDotNetDevCertsDirectory)" Destination="create-dotnet-devcert" />-->
-
       <HelixWorkItem Include="@(_E2ETestScenarios -> '$(_WorkItemName)-%(Identity)')">
         <PayloadArchive>$(_E2ETestsArchivePath)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=$(_WorkItemName)&quot; &amp; set TEST_SCENARIO=%(Identity) &amp; set &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
