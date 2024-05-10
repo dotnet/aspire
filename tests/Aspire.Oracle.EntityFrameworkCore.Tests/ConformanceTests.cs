@@ -121,7 +121,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     [RequiresDockerFact]
     public void TracingEnablesTheRightActivitySource()
-    => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
                              ConnectionString).Dispose();
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
