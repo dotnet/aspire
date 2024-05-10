@@ -7,13 +7,16 @@ builder.AddLambdaFunction<LambdaFunctions.LambdaRestApi>("api");
 
 builder.AddLambdaFunction<LambdaFunctions.ExecutableLambdaHttpApi>("executableApi", config =>
 {
+    // Mock Tool Config (Optional).
+
     // config.Disabled = true;
+    // config.Port = 8090;
+    // config.EnableLaunchWindow = true;
 });
 
-builder.AddLambdaFunction<LambdaFunctions.ClassLibraryFunctions_OrderFunction_HandleAsync>("orderFunction", config =>
+builder.AddLambdaFunction<LambdaFunctions.ClassLibraryFunctions_OrderFunction_HandleAsync>("orderFunction", _ =>
     {
-        // config.Port = 8090;
-        config.DisableLaunchWindow = true;
+        // When Class Library, Mock Tool Config must be set in the first Lambda Function created for the project.
     })
     .SetAsDefaultFunctionInProject();
 builder.AddLambdaFunction<LambdaFunctions.ClassLibraryFunctions_EmailFunction_InformCustomer>("sendEmail")

@@ -21,6 +21,11 @@ internal sealed class Constants
     public const string ResourceStateRunning = "Running";
 
     /// <summary>
+    /// Hidden state for Aspire resource dashboard
+    /// </summary>
+    public const string ResourceStateHidden = "Hidden";
+
+    /// <summary>
     /// Environment variable for globally disabling Mock Tools Lambda
     /// </summary>
     public const string MockToolsLambdaDisable = "ASPIRE_AWS_MOCK_TOOLS_LAMBDA_DISABLE";

@@ -50,8 +50,8 @@ Aspire.Hosting.AWS.Lambda.LambdaRuntimeDotnet.Name.get -> string!
 Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration
 Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.Disabled.get -> bool
 Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.Disabled.set -> void
-Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.DisableLaunchWindow.get -> bool
-Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.DisableLaunchWindow.set -> void
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.EnableLaunchWindow.get -> bool
+Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.EnableLaunchWindow.set -> void
 Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.MockToolLambdaConfiguration() -> void
 Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.Port.get -> int
 Aspire.Hosting.AWS.Lambda.RuntimeEnvironment.MockToolLambdaConfiguration.Port.set -> void

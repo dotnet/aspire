@@ -15,7 +15,7 @@ public sealed class MockToolLambdaConfiguration
     /// <summary>
     ///
     /// </summary>
-    public bool DisableLaunchWindow { get; set; }
+    public bool EnableLaunchWindow { get; set; }
 
     /// <summary>
     ///

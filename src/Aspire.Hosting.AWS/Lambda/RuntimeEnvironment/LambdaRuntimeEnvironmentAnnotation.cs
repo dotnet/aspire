@@ -7,10 +7,11 @@ namespace Aspire.Hosting.AWS.Lambda.RuntimeEnvironment;
 
 internal sealed class LambdaRuntimeEnvironmentAnnotation : IResourceAnnotation
 {
-    public ILambdaRuntimeEnvironment RuntimeEnvironment { get; }
+    public EndpointReference[] EndpointReferences { get; }
+    public string? PathAndQuery { get; init; }
 
-    public LambdaRuntimeEnvironmentAnnotation(ILambdaRuntimeEnvironment runtimeEnvironment)
+    public LambdaRuntimeEnvironmentAnnotation(params EndpointReference[] endpointReferences)
     {
-        RuntimeEnvironment = runtimeEnvironment;
+        EndpointReferences = endpointReferences;
     }
 }

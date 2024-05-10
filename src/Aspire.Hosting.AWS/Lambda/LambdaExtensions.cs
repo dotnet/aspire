@@ -24,8 +24,7 @@ public static class LambdaExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<ILambdaFunction> AddLambdaFunction<TLambda>(
-        this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<ILambdaFunction> AddLambdaFunction<TLambda>(this IDistributedApplicationBuilder builder, string name)
         where TLambda : ILambdaFunctionMetadata, new()
     {
         return builder.AddLambdaFunction<TLambda>(name, LambdaRuntimeDotnet.Default, null);
@@ -41,8 +40,7 @@ public static class LambdaExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="configureMockTool">Configure Lambda Mock Tool</param>
     /// <returns></returns>
-    public static IResourceBuilder<ILambdaFunction> AddLambdaFunction<TLambda>(
-        this IDistributedApplicationBuilder builder, string name, Action<MockToolLambdaConfiguration> configureMockTool)
+    public static IResourceBuilder<ILambdaFunction> AddLambdaFunction<TLambda>(this IDistributedApplicationBuilder builder, string name, Action<MockToolLambdaConfiguration> configureMockTool)
         where TLambda : ILambdaFunctionMetadata, new()
     {
         return builder.AddLambdaFunction<TLambda>(name, LambdaRuntimeDotnet.Default, configureMockTool);
@@ -59,9 +57,7 @@ public static class LambdaExtensions
     /// <param name="runtime">Specify non-default .NET Runtime for this Lambda Function.</param>
     /// <param name="configureMockTool">Configure Lambda Mock Tool</param>
     /// <returns></returns>
-    public static IResourceBuilder<ILambdaFunction> AddLambdaFunction<TLambda>(
-        this IDistributedApplicationBuilder builder, string name, LambdaRuntimeDotnet runtime,
-        Action<MockToolLambdaConfiguration>? configureMockTool)
+    public static IResourceBuilder<ILambdaFunction> AddLambdaFunction<TLambda>(this IDistributedApplicationBuilder builder, string name, LambdaRuntimeDotnet runtime, Action<MockToolLambdaConfiguration>? configureMockTool)
         where TLambda : ILambdaFunctionMetadata, new()
     {
         builder.Services.TryAddLifecycleHook<LambdaFunctionLifecycleHook>();
@@ -84,8 +80,7 @@ public static class LambdaExtensions
     /// <param name="handler">Handler</param>
     /// <param name="relativePath">Relative path from AppHost project to function directory</param>
     /// <returns></returns>
-    public static IResourceBuilder<ILambdaFunction> AddLambdaFunction(this IDistributedApplicationBuilder builder,
-        string name, LambdaRuntime runtime, string handler, string relativePath)
+    public static IResourceBuilder<ILambdaFunction> AddLambdaFunction(this IDistributedApplicationBuilder builder, string name, LambdaRuntime runtime, string handler, string relativePath)
     {
         relativePath =
             PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, relativePath));
@@ -112,8 +107,7 @@ public static class LambdaExtensions
     /// </summary>
     /// <param name="builder"></param>
     /// <returns></returns>
-    public static IResourceBuilder<ILambdaFunction> SetAsDefaultFunctionInProject(
-        this IResourceBuilder<ILambdaFunction> builder)
+    public static IResourceBuilder<ILambdaFunction> SetAsDefaultFunctionInProject(this IResourceBuilder<ILambdaFunction> builder)
     {
         return builder.WithAnnotation(new DefaultFunction());
     }
@@ -130,8 +124,7 @@ public static class LambdaExtensions
 
         if (builder.Resources.OfType<LambdaFunction>().Any())
         {
-            throw new AWSLambdaException(
-                "Functions have already been added to the App Model. Make sure to Use 'DisableMockToolLambda' before adding any functions.");
+            throw new AWSLambdaException("Functions have already been added to the App Model. Make sure to Use 'DisableMockToolLambda' before adding any functions.");
         }
 
         return builder;

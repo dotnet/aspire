@@ -5,15 +5,14 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.AWS.Lambda.RuntimeEnvironment;
 
-internal sealed class MockToolLambdaRuntimeEnvironment : ExecutableResource, ILambdaRuntimeEnvironment
+internal sealed class MockToolLambdaRuntimeEnvironment : ExecutableResource
 {
     private readonly ILambdaFunctionMetadata _metadata;
     private readonly string _runtime;
     private readonly MockToolLambdaConfiguration _configuration;
 
     public MockToolLambdaRuntimeEnvironment(string name, ILambdaFunctionMetadata metadata,
-        MockToolLambdaConfiguration configuration, string runtime) : base(name, "dotnet",
-        metadata.OutputPath!)
+        MockToolLambdaConfiguration configuration, string runtime) : base(name, "dotnet", metadata.OutputPath!)
     {
         _metadata = metadata;
         _runtime = runtime;
@@ -34,7 +33,7 @@ internal sealed class MockToolLambdaRuntimeEnvironment : ExecutableResource, ILa
 
             args.Add($"lambda-test-tool-{suffix}");
 
-            if (_configuration.DisableLaunchWindow)
+            if (!_configuration.EnableLaunchWindow)
             {
                 args.Add("--no-launch-window");
             }
