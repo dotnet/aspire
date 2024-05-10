@@ -3,7 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddPythonProjectWithVirtualEnvironment("script_only", "script_only", "main.py");
-builder.AddPythonProjectWithVirtualEnvironment("instrumented_script", "instrumented_script", "main.py");
+builder.AddPythonProjectWithVirtualEnvironment("script-only", "../script_only", "main.py");
+builder.AddPythonProjectWithVirtualEnvironment("instrumented-script", "../instrumented_script", "main.py");
 
 builder.Build().Run();
