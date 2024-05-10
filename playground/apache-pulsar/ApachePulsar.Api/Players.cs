@@ -6,49 +6,36 @@ using DotPulsar.Abstractions;
 using DotPulsar.Exceptions;
 using DotPulsar.Extensions;
 
-/// <summary>
-/// Ping player produces pings
-/// He receives pongs from Pong player
-/// </summary>
-public sealed class PingPlayer(IConsumerBuilder<string> consumerBuilder, IProducerBuilder<string> producerBuilder, ILogger logger)
-    : Player(consumerBuilder, producerBuilder, logger)
-{
-    protected override string Move => "ping";
-}
-
-/// <summary>
-/// Pong player produces pongs
-/// He receives pings from Ping player
-/// </summary>
-public sealed class PongPlayer(IConsumerBuilder<string> consumerBuilder, IProducerBuilder<string> producerBuilder, ILogger logger)
-    : Player(consumerBuilder, producerBuilder, logger)
-{
-    protected override string Move => "pong";
-}
-
 public abstract class Player(
-    IConsumerBuilder<string> consumerBuilder,
-    IProducerBuilder<string> producerBuilder,
+    IConsumerBuilder<string> consumerB,
+    IProducerBuilder<string> producerB,
+    MatchCoordinator coordinator,
     ILogger logger
 ) : BackgroundService
 {
-    protected abstract string Move { get; }
-
     private uint _receivedBalls;
     public uint ReceivedBalls => _receivedBalls;
 
-    private readonly Lazy<IProducer<string>> _producer = new(producerBuilder.Create);
+    protected abstract string Move { get; }
 
     /// <summary>
     /// Kick the ball (message) into opponent field (topic)
     /// </summary>
-    public async Task SmackTheBall(CancellationToken cancellation)
+    public async Task SmackTheBall(CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("Responding: {message}", Move);
+        if (coordinator.MatchHalt)
+        {
+            logger.LogWarning("Match halted");
+            return;
+        }
 
-        await Task.Delay(700, cancellation); // add some sim...
+        var producer = producerB.Create();
 
-        await _producer.Value.Send(new MessageMetadata(), Move, cancellation);
+        logger.LogInformation("Sending: {message}", Move);
+
+        await Task.Delay(700, cancellationToken); // add some sim...
+
+        await producer.Send(new MessageMetadata(), Move, cancellationToken);
     }
 
     /// <summary>
@@ -56,7 +43,7 @@ public abstract class Player(
     /// </summary>
     private async Task ReceiveBall(CancellationToken cancellation)
     {
-        var consumer = consumerBuilder.Create();
+        var consumer = consumerB.Create();
         await foreach (var message in consumer.Messages(cancellation))
         {
             logger.LogInformation("Received: {message}", message);
@@ -85,5 +72,39 @@ public abstract class Player(
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
+    }
+}
+
+public sealed class PingPlayer(
+    [FromKeyedServices(typeof(PingPlayer))] IConsumerBuilder<string> consumerB,
+    [FromKeyedServices(typeof(PingPlayer))] IProducerBuilder<string> producerB,
+    MatchCoordinator coordinator,
+    ILogger<PingPlayer> logger
+) : Player(consumerB, producerB, coordinator, logger)
+{
+    protected override string Move => "ping";
+}
+
+public sealed class PongPlayer(
+    [FromKeyedServices(typeof(PongPlayer))] IConsumerBuilder<string> consumerB,
+    [FromKeyedServices(typeof(PongPlayer))] IProducerBuilder<string> producerB,
+    MatchCoordinator coordinator,
+    ILogger<PongPlayer> logger
+) : Player(consumerB, producerB, coordinator, logger)
+{
+    protected override string Move => "pong";
+}
+
+public sealed class MatchCoordinator(ILogger<MatchCoordinator> logger)
+{
+    public bool MatchHalt { get; private set; }
+
+    public async Task HaltMatch()
+    {
+        MatchHalt = true;
+        logger.LogWarning("Match halted, match will be able to resume after 3 seconds timeout");
+
+        await Task.Delay(TimeSpan.FromSeconds(3));
+        MatchHalt = false;
     }
 }

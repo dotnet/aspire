@@ -50,10 +50,6 @@ public static class PulsarManagerBuilderExtensions
             .WithEndpoint(port: backendPort, targetPort: 7750, name: PulsarManagerResource.BackendEndpointName, scheme: "http");
 
         pulsarManagerBuilder
-            .WithReference(builder.GetEndpoint(PulsarResource.ServiceEndpointName))
-            .WithReference(builder.GetEndpoint(PulsarResource.BrokerEndpointName));
-
-        pulsarManagerBuilder
             .WithEnvironment("SPRING_CONFIGURATION_FILE", "/pulsar-manager/pulsar-manager/application.properties");
 
         configureContainer?.Invoke(pulsarManagerBuilder);

@@ -1,4 +1,10 @@
 @Url=http://localhost:5226
 
-POST {{Url}}/start-match
-Content-Type: application/json
+POST {{Url}}/match/start
+###
+POST {{Url}}/match/stop
+###
+GET {{Url}}/ping-player/received
+###
+GET {{Url}}/pong-player/received
+###
