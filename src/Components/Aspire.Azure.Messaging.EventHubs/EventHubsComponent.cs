@@ -114,14 +114,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         {
             var probeOptions = new EventHubProducerClientOptions
             {
-                Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
-                RetryOptions = new EventHubsRetryOptions()
-                {
-                    Mode = EventHubsRetryMode.Exponential,
-                    MaximumRetries = 3,
-                    Delay = TimeSpan.FromMilliseconds(800),
-                    MaximumDelay = TimeSpan.FromSeconds(10)
-                }
+                Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}"
             };
 
             // At this point, the connection string or credential should already be validated by the AddClient call
