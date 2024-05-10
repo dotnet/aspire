@@ -19,7 +19,7 @@ public class CloudFormationAWSConsoleUrlTests
         var urls = CloudFormationProvisioner.MapCloudFormationStackUrl(client, stackId);
 
         Assert.Equal(
-            "https://console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/resources?stackId=arn:aws:cloudformation:eu-west-1:111111111111:stack/Stack1/abcdef-example",
+            "https://console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/resources?stackId=arn%3Aaws%3Acloudformation%3Aeu-west-1%3A111111111111%3Astack%2FStack1%2Fabcdef-example",
             urls!.Value.Single().Url);
     }
 
@@ -35,7 +35,7 @@ public class CloudFormationAWSConsoleUrlTests
         var urls = CloudFormationProvisioner.MapCloudFormationStackUrl(client, stackId);
 
         Assert.Equal(
-            "https://console.aws.amazon.com/cloudformation/home?region=ap-southeast-1#/stacks/resources?stackId=arn:aws:cloudformation:ap-southeast-1:111111111111:stack/Stack1/abcdef-example",
+            "https://console.aws.amazon.com/cloudformation/home?region=ap-southeast-1#/stacks/resources?stackId=arn%3Aaws%3Acloudformation%3Aap-southeast-1%3A111111111111%3Astack%2FStack1%2Fabcdef-example",
             urls!.Value.Single().Url);
     }
 

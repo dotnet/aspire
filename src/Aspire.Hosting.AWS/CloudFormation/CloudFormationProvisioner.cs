@@ -11,7 +11,7 @@ using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
-internal sealed class CloudFormationProvisioner(
+internal sealed partial class CloudFormationProvisioner(
     DistributedApplicationModel appModel,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService)
@@ -185,24 +185,25 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private static readonly Regex s_awsRegionRegex = new("^(us|eu|ap|sa|ca|me|af|il)-\\w+-\\d+$", RegexOptions.Singleline);
+    [GeneratedRegex("^(us|eu|ap|sa|ca|me|af|il)-\\w+-\\d+$", RegexOptions.Singleline)]
+    private static partial Regex AwsRegionRegex();
 
     internal static ImmutableArray<UrlSnapshot>? MapCloudFormationStackUrl(IAmazonCloudFormation client, string stackId)
     {
         try
         {
             var endpointUrl = client.DetermineServiceOperationEndpoint(new DescribeStacksRequest { StackName = stackId })?.URL;
-            if (endpointUrl == null || !endpointUrl.Contains(".amazonaws."))
+            if (endpointUrl == null || !endpointUrl.Contains(".amazonaws.", StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
 
-            if (!Arn.TryParse(stackId, out var arn) || !s_awsRegionRegex.IsMatch(arn.Region))
+            if (!Arn.TryParse(stackId, out var arn) || !AwsRegionRegex().IsMatch(arn.Region))
             {
                 return null;
             }
 
-            var url = $"https://console.aws.amazon.com/cloudformation/home?region={arn.Region}#/stacks/resources?stackId={stackId}";
+            var url = $"https://console.aws.amazon.com/cloudformation/home?region={Uri.EscapeDataString(arn.Region)}#/stacks/resources?stackId={Uri.EscapeDataString(stackId)}";
 
             return
             [
