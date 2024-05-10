@@ -549,4 +549,27 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
     }
+
+    /// <summary>
+    /// Adds a health probe to the resource to check its health state.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="type">The type of the health probe.</param>
+    /// <param name="endpoint">The endpoint reference to be used for the probe.</param>
+    /// <param name="path">The path to be used in case of a http endpoint.</param>
+    /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
+    /// <param name="periodSeconds">The period between each probe.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithHealthProbe<T>(this IResourceBuilder<T> builder, HealthProbeType type,
+        EndpointReference endpoint, string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5)
+        where T : IResourceWithHealthProbes
+    {
+        if (builder.Resource.Annotations.OfType<HealthProbeAnnotation>().Any(a => a.ProbeType.Equals(type)))
+        {
+            throw new DistributedApplicationException($"Probe with type '{type}' already exists");
+        }
+
+        return builder.WithAnnotation(new HealthProbeAnnotation(type, endpoint, path, initialDelaySeconds, periodSeconds));
+    }
 }
