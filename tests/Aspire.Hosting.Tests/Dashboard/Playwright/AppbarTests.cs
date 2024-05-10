@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -15,7 +16,7 @@ public class AppbarTests : IClassFixture<PlaywrightFixture>
         _playwrightFixture = playwrightFixture;
     }
 
-    [Fact]
+    [LocalOnlyFact]
     public async Task Dashboard_Test_Change_Theme()
     {
         var (_, page) = await _playwrightFixture.SetupDashboardForPlaywrightAsync();
