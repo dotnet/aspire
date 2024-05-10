@@ -6,6 +6,12 @@ namespace Aspire.Hosting.Azure.Cosmos;
 internal static class CosmosConstants
 {
     /// <summary>
+    /// Defines the application name used to interact with the Azure Cosmos database. This will be suffixed to the
+    /// Cosmos user-agent to include with every Azure Cosmos database service interaction.
+    /// </summary>
+    internal const string CosmosApplicationName = "Aspire";
+
+    /// <summary>
     /// Gets the well-known and documented Azure Cosmos DB emulator account key.
     /// See <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
     /// </summary>

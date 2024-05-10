@@ -74,9 +74,9 @@ public class SchemaTests
                     }
                 },
 
-                { "ContainerWithContainerRunArgs", (IDistributedApplicationBuilder builder) =>
+                { "ContainerWithContainerRuntimeArgs", (IDistributedApplicationBuilder builder) =>
                     {
-                        builder.AddContainer("foo", "bar").WithContainerRunArgs("one", "two", "three");
+                        builder.AddContainer("foo", "bar").WithContainerRuntimeArgs("one", "two", "three");
                     }
                 },
 
@@ -157,10 +157,7 @@ public class SchemaTests
     {
         _ = testCaseName;
 
-        var builder = TestDistributedApplicationBuilder.Create(new DistributedApplicationOptions
-        {
-            Args = ["--publisher", "manifest", "--output-path", "not-used.json"]
-        });
+        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "not-used.json"]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         configurator(builder);
 
@@ -504,7 +501,7 @@ public class SchemaTests
                 }
               }
             }
-            
+
             """;
 
         var manifestJson = JToken.Parse(manifestTest);

@@ -19,8 +19,9 @@ public enum TestResourceNames
     redis = 1 << 9,
     sqlserver = 1 << 10,
     efnpgsql = 1 << 11,
-    valkey = 1 << 12,
-    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | valkey
+    garnet = 1 << 12,
+    valkey = 1 << 13,
+    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | garnet | valkey
 }
 
 public static class TestResourceNamesExtensions

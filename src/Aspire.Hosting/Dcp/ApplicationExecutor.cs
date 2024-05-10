@@ -1482,13 +1482,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         // Apply optional extra arguments to the container run command.
-        if (modelContainerResource.TryGetAnnotationsOfType<ContainerRunArgsCallbackAnnotation>(out var runArgsCallback))
+        if (modelContainerResource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
         {
             dcpContainerResource.Spec.RunArgs ??= [];
 
             var args = new List<object>();
 
-            var containerRunArgsContext = new ContainerRunArgsCallbackContext(args, cancellationToken);
+            var containerRunArgsContext = new ContainerRuntimeArgsCallbackContext(args, cancellationToken);
 
             foreach (var callback in runArgsCallback)
             {
@@ -1600,7 +1600,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             else
             {
-                
                 Debug.Assert(ea.IsProxied);
 
                 if (ea.TargetPort is int && ea.Port is int && ea.TargetPort == ea.Port)
@@ -1613,7 +1612,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     throw new InvalidOperationException(
                         $"Resource '{modelResourceName}' can have multiple replicas, and it uses endpoint '{ea.Name}' that has {nameof(ea.TargetPort)} property set. Each replica must have a unique port; setting {nameof(ea.TargetPort)} is not allowed.");
-                } 
+                }
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);

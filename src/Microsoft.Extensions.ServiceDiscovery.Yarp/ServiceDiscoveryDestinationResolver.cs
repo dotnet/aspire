@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.ServiceDiscovery;
@@ -14,8 +15,11 @@ namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
 /// Initializes a new <see cref="ServiceDiscoveryDestinationResolver"/> instance.
 /// </remarks>
 /// <param name="resolver">The endpoint resolver registry.</param>
-internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolver resolver) : IDestinationResolver
+/// <param name="options">The service discovery options.</param>
+internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolver resolver, IOptions<ServiceDiscoveryOptions> options) : IDestinationResolver
 {
+    private readonly ServiceDiscoveryOptions _options = options.Value;
+
     /// <inheritdoc/>
     public async ValueTask<ResolvedDestinationCollection> ResolveDestinationsAsync(IReadOnlyDictionary<string, DestinationConfig> destinations, CancellationToken cancellationToken)
     {
@@ -51,7 +55,6 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolve
         CancellationToken cancellationToken)
     {
         var originalUri = new Uri(originalConfig.Address);
-        var originalHost = originalConfig.Host is { Length: > 0 } h ? h : originalUri.Authority;
         var serviceName = originalUri.GetLeftPart(UriPartial.Authority);
 
         var result = await resolver.GetEndpointsAsync(serviceName, cancellationToken).ConfigureAwait(false);
@@ -65,13 +68,15 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolve
             Uri uri;
             if (!addressString.Contains("://"))
             {
-                uri = new Uri($"https://{addressString}");
+                var scheme = GetDefaultScheme(originalUri);
+                uri = new Uri($"{scheme}://{addressString}");
             }
             else
             {
                 uri = new Uri(addressString);
             }
 
+            uriBuilder.Scheme = uri.Scheme;
             uriBuilder.Host = uri.Host;
             uriBuilder.Port = uri.Port;
             var resolvedAddress = uriBuilder.Uri.ToString();
@@ -84,10 +89,53 @@ internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndpointResolve
             }
 
             var name = $"{originalName}[{addressString}]";
-            var config = originalConfig with { Host = originalHost, Address = resolvedAddress, Health = healthAddress };
+            string? resolvedHost;
+
+            // Use the configured 'Host' value if it is provided.
+            if (!string.IsNullOrEmpty(originalConfig.Host))
+            {
+                resolvedHost = originalConfig.Host;
+            }
+            else if (uri.IsLoopback)
+            {
+                // If there is no configured 'Host' value and the address resolves to localhost, do not set a host.
+                // This is to account for non-wildcard development certificate.
+                resolvedHost = null;
+            }
+            else
+            {
+                // Excerpt from RFC 9110 Section 7.2: The "Host" header field in a request provides the host and port information from the target URI [...]
+                // See: https://www.rfc-editor.org/rfc/rfc9110.html#field.host
+                // i.e, use Authority and not Host.
+                resolvedHost = originalUri.Authority;
+            }
+
+            var config = originalConfig with { Host = resolvedHost, Address = resolvedAddress, Health = healthAddress };
             results.Add((name, config));
         }
 
         return (results, result.ChangeToken);
+    }
+
+    private string GetDefaultScheme(Uri originalUri)
+    {
+        if (originalUri.Scheme.IndexOf('+') > 0)
+        {
+            // Use the first allowed scheme.
+            var specifiedSchemes = originalUri.Scheme.Split('+');
+            foreach (var scheme in specifiedSchemes)
+            {
+                if (_options.AllowAllSchemes || _options.AllowedSchemes.Contains(scheme, StringComparer.OrdinalIgnoreCase))
+                {
+                    return scheme;
+                }
+            }
+
+            throw new InvalidOperationException($"None of the specified schemes ('{string.Join(", ", specifiedSchemes)}') are allowed by configuration.");
+        }
+        else
+        {
+            return originalUri.Scheme;
+        }
     }
 }
