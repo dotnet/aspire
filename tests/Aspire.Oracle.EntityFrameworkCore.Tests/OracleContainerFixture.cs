@@ -18,7 +18,7 @@ public sealed class OracleContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
-            Container = new OracleFreeBuilder()
+            Container = new OracleBuilder()
                 .Build();
 
             await Container.StartAsync();
