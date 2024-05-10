@@ -44,7 +44,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
             "Oracle": {
               "EntityFrameworkCore": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "DisableHealthChecks": true
+                "DisableHealthChecks": true,
+                "DisableTracing": false
               }
             }
           }
@@ -55,6 +56,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         {
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableRetry": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableHealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableTracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -81,6 +83,10 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         {
             service.Database.EnsureCreated();
         }
+        else
+        {
+            Assert.Fail($"Cannot connect to database: {ConnectionString}");
+        }
     }
 
     public ConformanceTests(OracleContainerFixture? containerFixture)
@@ -88,7 +94,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         _containerFixture = containerFixture;
         ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
                                         ? _containerFixture.GetConnectionString()
-                                        : "Server=localhost;User ID=root;Password=password;Database=test_aspire_mysql";
+                                        : "Server=localhost;User ID=oracle;Password=oracle;Database=FREEPDB1";
     }
 
     [Fact]
