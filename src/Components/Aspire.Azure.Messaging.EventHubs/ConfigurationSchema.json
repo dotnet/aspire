@@ -116,7 +116,8 @@
                         },
                         "DisableHealthChecks": {
                           "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the health checks are disabled or not."
+                          "description": "Gets or sets a boolean value that indicates whether the Azure Event Hubs health check is disabled or not.",
+                          "default": false
                         },
                         "DisableTracing": {
                           "type": "boolean",
@@ -216,7 +217,8 @@
                         },
                         "DisableHealthChecks": {
                           "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the health checks are disabled or not."
+                          "description": "Gets or sets a boolean value that indicates whether the Azure Event Hubs health check is disabled or not.",
+                          "default": false
                         },
                         "DisableTracing": {
                           "type": "boolean",
@@ -366,7 +368,8 @@
                         },
                         "DisableHealthChecks": {
                           "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the health checks are disabled or not."
+                          "description": "Gets or sets a boolean value that indicates whether the Azure Event Hubs health check is disabled or not.",
+                          "default": false
                         },
                         "DisableTracing": {
                           "type": "boolean",
@@ -491,7 +494,8 @@
                         },
                         "DisableHealthChecks": {
                           "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the health checks are disabled or not."
+                          "description": "Gets or sets a boolean value that indicates whether the Azure Event Hubs health check is disabled or not.",
+                          "default": false
                         },
                         "DisableTracing": {
                           "type": "boolean",
