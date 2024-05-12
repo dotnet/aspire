@@ -12,11 +12,14 @@ namespace Aspire.Hosting.Python;
 public static class FlaskProjectResourceExtensionBuilder
 {
     /// <summary>
+    /// Adds a Python Flask project to the <see cref="IDistributedApplicationBuilder"/>.
+    /// <para>
     /// The python script in the project is automatically instrumented with opentelemetry when the virtual environment
     /// contains the opentelemetry-instrument executable. You can get this by adding the opentelemtry-distro package
     /// to your python project. In addition to the opentelemetry-distro package, you need to add the opentelemetry-exporter-otlp,
     /// and the opentelemetry-instrumentation-flask packages to your project. This will allow for the traces, logs, and metrics
-    /// to be exported to the Aspire observability platform. 
+    /// to be exported to the Aspire observability platform.
+    /// </para>
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
