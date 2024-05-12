@@ -10,20 +10,14 @@ namespace Aspire.Hosting.Tests.Python;
 
 public class AddPythonProjectTests
 {
-    private readonly string _playgroundDirectory;
-
-    private readonly static Regex s_pythonExecutablePattern  = new Regex("python(\\.(exe|bat|cmd|sh|ps1))?$", RegexOptions.IgnoreCase);
-    private readonly static Regex s_telemetryExecutablePattern = new Regex("opentelemetry-instrument(\\.(exe|bat|cmd|sh|ps1))?$", RegexOptions.IgnoreCase);
-
-    public AddPythonProjectTests()
-    {
-        _playgroundDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../playground/python/"));
-    }
+    private static readonly Regex s_pythonExecutablePattern  = new Regex("python(\\.(exe|bat|cmd|sh|ps1))?$", RegexOptions.IgnoreCase);
+    private static readonly Regex s_telemetryExecutablePattern = new Regex("opentelemetry-instrument(\\.(exe|bat|cmd|sh|ps1))?$", RegexOptions.IgnoreCase);
+    private static readonly string s_playgroundDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../playground/python/"));
 
     [LocalOnlyFact("python")]
     public void AddPythonProjectWithVirtualEnvironment_ExecutesPython()
     {
-        var pythonProjectDirectory = Path.Combine(_playgroundDirectory, "script_only");
+        var pythonProjectDirectory = Path.Combine(s_playgroundDirectory, "script_only");
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.AddPythonProjectWithVirtualEnvironment("python", pythonProjectDirectory, "main.py");
@@ -42,7 +36,7 @@ public class AddPythonProjectTests
     [LocalOnlyFact("python")]
     public void AddInstrumentedPythonProject_ExecutesInstrumentationTool()
     {
-        var pythonProjectDirectory = Path.Combine(_playgroundDirectory, "instrumented_script");
+        var pythonProjectDirectory = Path.Combine(s_playgroundDirectory, "instrumented_script");
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.AddPythonProjectWithVirtualEnvironment("python", pythonProjectDirectory, "main.py");

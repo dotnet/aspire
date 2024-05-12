@@ -12,7 +12,6 @@ namespace Aspire.Hosting.Tests.Python;
 public class AddFlaskProjectWithVirtualEnvironmentTests
 {
     private readonly static string s_playgroundDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../playground/python/"));
-
     private readonly static Regex s_flaskExecutablePattern = new Regex("flask(\\.(exe|bat|cmd|sh|ps1))?$", RegexOptions.IgnoreCase);
     private readonly static Regex s_telemetryExecutablePattern = new Regex("opentelemetry-instrument(\\.(exe|bat|cmd|sh|ps1))?$", RegexOptions.IgnoreCase);
 
