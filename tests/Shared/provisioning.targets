@@ -1,0 +1,18 @@
+<Project>
+
+  <Target Name="ProvisionChrome" AfterTargets="Build" Condition="'$(InstallChromeForPlaywright)' == 'true'">
+    <PropertyGroup>
+      <ChromeDirectory>$(ArtifactsBinDir)chrome</ChromeDirectory>
+      <_BrowsersToInstall>chromium</_BrowsersToInstall>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_EnvVarsForPlaywrightInstall Include="PLAYWRIGHT_BROWSERS_PATH=$(PlaywrightDependenciesDirectory)" />
+      <_EnvVarsForPlaywrightInstall Condition="'$(ContinuousIntegrationBuild)' == 'true'" Include="PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true" />
+    </ItemGroup>
+
+    <Exec Command="dotnet run --project $(RepoRoot)tests/PlaywrightWrapper/PlaywrightWrapper.csproj install $(_BrowsersToInstall)"
+          EnvironmentVariables="@(_EnvVarsForPlaywrightInstall)" />
+  </Target>
+
+</Project>

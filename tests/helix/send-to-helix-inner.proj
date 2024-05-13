@@ -67,6 +67,16 @@
 
   <Import Project="$(MSBuildThisFileDirectory)send-to-helix-$(TestCategory).targets" />
 
+  <ItemGroup Condition="'$(NeedsPlaywright)' == 'true'">
+    <HelixCorrelationPayload Include="$(PlaywrightDependenciesDirectory)" Destination="playwright-deps" />
+
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x $HELIX_WORKITEM_ROOT/.playwright/node/linux-x64/node" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="sudo apt-get install -y libgbm1 libxkbcommon0" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PLAYWRIGHT_BROWSERS_PATH=%HELIX_CORRELATION_PAYLOAD%\playwright-deps" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PLAYWRIGHT_BROWSERS_PATH=$HELIX_CORRELATION_PAYLOAD/playwright-deps" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest%3B%PATH%" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />
