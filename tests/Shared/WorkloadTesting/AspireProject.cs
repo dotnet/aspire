@@ -22,7 +22,7 @@ public class AspireProject : IAsyncDisposable
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
     public Dictionary<string, ProjectInfo> InfoTable { get; private set; } = new(capacity: 0);
     public TaskCompletionSource? AppExited { get; private set; }
-    public bool IsRunning => AppHostProcess is not null && !AppHostProcess.HasExited;
+    public bool IsRunning => AppHostProcess is not null && !AppHostProcess.TryGetHasExited();
 
     private readonly ITestOutputHelper _testOutput;
     private readonly BuildEnvironment _buildEnv;
@@ -43,6 +43,7 @@ public class AspireProject : IAsyncDisposable
             throw new InvalidOperationException("Project is already running");
         }
 
+        Stopwatch runTimeStopwatch = new();
         object outputLock = new();
         var output = new StringBuilder();
         var projectsParsed = new TaskCompletionSource();
@@ -128,33 +129,48 @@ public class AspireProject : IAsyncDisposable
 
         configureProcess?.Invoke(AppHostProcess.StartInfo);
 
+        runTimeStopwatch.Start();
         AppHostProcess.Start();
         AppHostProcess.BeginOutputReadLine();
         AppHostProcess.BeginErrorReadLine();
 
-        var successfulTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
-        var failedAppTask = AppExited.Task;
-        var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5), token);
+        var successfulStartupTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
+        var startupTimeoutTask = Task.Delay(TimeSpan.FromSeconds(AppStartupWaitTimeoutSecs), token);
 
         string outputMessage;
         // FIXME: cancellation token for the successfulTask?
-        var resultTask = await Task.WhenAny(successfulTask, failedAppTask, timeoutTask);
-        if (resultTask == failedAppTask)
+        var resultTask = await Task.WhenAny(successfulStartupTask, AppExited.Task, startupTimeoutTask).ConfigureAwait(false);
+        if (resultTask != successfulStartupTask)
         {
-            // wait for all the output to be read
-            var allOutputComplete = Task.WhenAll(stdoutComplete.Task, stderrComplete.Task);
-            var appExitTimeout = Task.Delay(TimeSpan.FromSeconds(5), token);
-            var t = await Task.WhenAny(allOutputComplete, appExitTimeout);
-            if (t == appExitTimeout)
+            string reason;
+            // timed out, or the app has exited
+            if (startupTimeoutTask.IsCompleted)
             {
-                _testOutput.WriteLine($"\tand timed out waiting for the full output");
+                reason = $"Timed out after {AppStartupWaitTimeoutSecs} secs waiting for the app to start.";
+                _testOutput.WriteLine($"{reason}. Killing ..");
+                AppHostProcess.CloseAndKillProcessIfRunning();
+                AppHostProcess = null;
+            }
+            else
+            {
+                reason = $"App exited before startup could complete with exit code {AppHostProcess.ExitCode}";
+                _testOutput.WriteLine(reason);
+
+                // wait for all the output to be read
+                var allOutputCompleteTask = Task.WhenAll(stdoutComplete.Task, stderrComplete.Task);
+                var allOutputCompleteTimeoutTask = Task.Delay(TimeSpan.FromSeconds(5), token);
+                var completedTask = await Task.WhenAny(allOutputCompleteTask, allOutputCompleteTimeoutTask).ConfigureAwait(false);
+                if (completedTask == allOutputCompleteTimeoutTask)
+                {
+                    _testOutput.WriteLine($"\tand timed out waiting for the full output");
+                }
             }
 
-            lock(outputLock)
+            lock (outputLock)
             {
                 outputMessage = output.ToString();
             }
-            var exceptionMessage = $"App run failed: {Environment.NewLine}{outputMessage}";
+            var exceptionMessage = $"{reason}: {Environment.NewLine}{outputMessage}";
             if (outputMessage.Contains("docker was found but appears to be unhealthy", StringComparison.OrdinalIgnoreCase))
             {
                 exceptionMessage = "Docker was found but appears to be unhealthy. " + exceptionMessage;
@@ -168,7 +184,7 @@ public class AspireProject : IAsyncDisposable
         {
             outputMessage = output.ToString();
         }
-        if (resultTask != successfulTask)
+        if (resultTask != successfulStartupTask)
         {
             throw new XunitException($"App run failed: {Environment.NewLine}{outputMessage}");
         }
@@ -210,7 +226,9 @@ public class AspireProject : IAsyncDisposable
         {
             AppHostProcess.StandardInput.WriteLine("Stop");
         }
-        await AppHostProcess.WaitForExitAsync(token);
+        await AppHostProcess.WaitForExitAsync(token).ConfigureAwait(false);
+        AppHostProcess.WaitForExit(500);
+        AppHostProcess.Dispose();
         AppHostProcess = null;
     }
 
@@ -222,8 +240,8 @@ public class AspireProject : IAsyncDisposable
             return;
         }
 
-        await DumpDockerInfoAsync(new TestOutputWrapper(null));
-        await StopAppHostAsync();
+        await DumpDockerInfoAsync(new TestOutputWrapper(null)).ConfigureAwait(false);
+        await StopAppHostAsync().ConfigureAwait(false);
     }
 
     public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)
@@ -232,7 +250,7 @@ public class AspireProject : IAsyncDisposable
         testOutput.WriteLine("--------------------------- Docker info ---------------------------");
 
         using var cmd = new ToolCommand("docker", testOutput!, "container-list");
-        (await cmd.ExecuteAsync(CancellationToken.None, $"container list --all"))
+        (await cmd.ExecuteAsync($"container list --all").ConfigureAwait(false))
             .EnsureSuccessful();
 
         testOutput.WriteLine("--------------------------- Docker info (end) ---------------------------");
@@ -240,13 +258,18 @@ public class AspireProject : IAsyncDisposable
 
     public async Task DumpComponentLogsAsync(string component, ITestOutputHelper? testOutputArg = null)
     {
+        if (!RequiresDockerTheoryAttribute.IsSupported)
+        {
+            return;
+        }
+
         var testOutput = testOutputArg ?? _testOutput!;
-        var cts = new CancellationTokenSource();
 
         string containerName;
         {
-            using var cmd = new ToolCommand("docker", testOutput, label: "container-list");
-            var res = (await cmd.ExecuteAsync(cts.Token, $"container list --all --filter name={component} --format {{{{.Names}}}}"))
+            using var cmd = new ToolCommand("docker", testOutput, label: "container-list")
+                                .WithTimeout(TimeSpan.FromSeconds(30));
+            var res = (await cmd.ExecuteAsync($"container list --all --filter name={component} --format {{{{.Names}}}}"))
                 .EnsureSuccessful();
             containerName = res.Output;
         }
@@ -257,15 +280,16 @@ public class AspireProject : IAsyncDisposable
         }
         else
         {
-            using var cmd = new ToolCommand("docker", testOutput, label: component);
-            (await cmd.ExecuteAsync(cts.Token, $"container logs {containerName} -n 50"))
+            using var cmd = new ToolCommand("docker", testOutput, label: component)
+                                .WithTimeout(TimeSpan.FromSeconds(30));
+            (await cmd.ExecuteAsync($"container logs {containerName} -n 50"))
                 .EnsureSuccessful();
         }
     }
 
     public void EnsureAppHostRunning()
     {
-        if (AppHostProcess is null || AppHostProcess.HasExited || AppExited?.Task.IsCompleted == true)
+        if (AppHostProcess is null || AppHostProcess.TryGetHasExited() || AppExited?.Task.IsCompleted == true)
         {
             throw new InvalidOperationException("The app host process is not running.");
         }
