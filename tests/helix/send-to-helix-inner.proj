@@ -42,6 +42,8 @@
 
     <_EnvVarSetKeyword Condition="'$(OS)' == 'Windows_NT'">set</_EnvVarSetKeyword>
     <_EnvVarSetKeyword Condition="'$(OS)' != 'Windows_NT'">export</_EnvVarSetKeyword>
+
+    <_ShutdownDockerContainersCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker ps -aq`%3B do docker stop $f%3B docker rm $f%3B done</_ShutdownDockerContainersCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -86,10 +88,10 @@
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker info" />
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker ps" />
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true' and '$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
+    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
 
     <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
-    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="docker ps -aq | xargs docker stop | xargs docker rm" />
+    <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
   </ItemGroup>
 
   <ItemGroup>
