@@ -1,0 +1,51 @@
+<Project>
+
+  <PropertyGroup>
+    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForWorkloadTests</BuildHelixWorkItemsDependsOn>
+    <NeedsWorkload>true</NeedsWorkload>
+    <NeedsPlaywright>true</NeedsPlaywright>
+
+    <TestProjectName>Aspire.Workload.Tests</TestProjectName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
+  </ItemGroup>
+
+  <Target Name="BuildHelixWorkItemsForWorkloadTests">
+    <ItemGroup>
+      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="${TEST_ARGS}" />
+      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_ARGS%" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+    </PropertyGroup>
+
+    <ReadLinesFromFile File="$(TestArchiveTestsDirForWorkloadTests)$(TestProjectName).tests.list">
+      <Output TaskParameter="Lines" ItemName="_WorkloadTestsClassNames" />
+    </ReadLinesFromFile>
+
+    <Error Condition="@(_WorkloadTestsClassNames->Count()) == 0"
+           Text="No workload test class names found" />
+
+    <ItemGroup>
+      <_WorkloadTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Workload.Tests.', ''))" />
+
+      <HelixWorkItem Include="@(_WorkloadTestsClassNames)">
+        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
+
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot; &amp; set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot; &amp; set &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot; &amp;&amp; export &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
+
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_workItemTimeout)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+    </ItemGroup>
+  </Target>
+</Project>
