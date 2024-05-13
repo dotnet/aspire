@@ -5,8 +5,8 @@ using Aspire.Hosting.Python;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddPythonProjectWithVirtualEnvironment("script-only", "../script_only", "main.py");
-builder.AddPythonProjectWithVirtualEnvironment("instrumented-script", "../instrumented_script", "main.py");
+builder.AddPythonProject("script-only", "../script_only", "main.py");
+builder.AddPythonProject("instrumented-script", "../instrumented_script", "main.py");
 builder.AddFlaskProjectWithVirtualEnvironment("flask-app", "../flask_app", "main");
 builder.AddFlaskProjectWithVirtualEnvironment("instrumented-flask-app", "../instrumented_flask_app", "main");
 
