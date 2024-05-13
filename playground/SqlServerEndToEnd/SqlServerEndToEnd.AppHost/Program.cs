@@ -5,11 +5,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var db1 = builder.AddSqlServer("sql1").PublishAsAzureSqlDatabase().AddDatabase("db1");
 var db2 = builder.AddSqlServer("sql2").PublishAsContainer().AddDatabase("db2");
+var db3 = builder.AddSqlServer("sql3").PublishAsContainer().AddDatabase("db3");
 
 builder.AddProject<Projects.SqlServerEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(db1)
-       .WithReference(db2);
+       .WithReference(db2)
+       .WithReference(db3);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

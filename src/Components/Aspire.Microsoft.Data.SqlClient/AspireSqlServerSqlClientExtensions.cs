@@ -19,6 +19,134 @@ public static class AspireSqlServerSqlClientExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Microsoft:Data:SqlClient";
 
+    private static string EscapeIdentifier(string identifier) => identifier.Replace("]", "]]");
+
+    /// <summary>
+    /// Opens a database connection with the property settings specified by the <see cref="SqlConnection.ConnectionString"/>. If the database does not exist it attempts to create it.
+    /// </summary>
+    /// <param name="connection">The <see cref="Microsoft.Data.SqlClient.SqlConnection" />.</param>
+    /// <remarks>
+    /// <para>
+    /// This method wraps <see cref="Microsoft.Data.SqlClient.SqlConnection.Open()"/> but adds exception handling to detect
+    /// a <see cref="SqlException"/> with a <see cref="SqlException.Number"/> of 4060 (Database not found). If this exception is
+    /// throw the connection is closed and the connection string updated to connect to the <c>master</c> database.
+    /// </para>
+    /// <para>
+    /// If database creation succeeds then the connection is changed to use the original database, if creation fails then
+    /// the original exception is thrown.
+    /// </para>
+    /// </remarks>
+    public static void OpenWithCreate(this SqlConnection connection)
+    {
+        try
+        {
+            connection.Open();
+        }
+        catch (SqlException ex) when (ex.Number == 4060)
+        {
+            connection.Close();
+
+            var builder = new SqlConnectionStringBuilder(connection.ConnectionString);
+            var originalDatabase = builder.InitialCatalog;
+
+            builder.InitialCatalog = "master";
+            connection.ConnectionString = builder.ConnectionString;
+
+            connection.Open();
+
+            var createCommand = connection.CreateCommand();
+            createCommand.CommandText = $"CREATE DATABASE [{EscapeIdentifier(originalDatabase)}]";
+            createCommand.ExecuteNonQuery();
+
+            connection.ChangeDatabase(originalDatabase);
+        }
+    }
+
+    /// <summary>
+    /// Opens a database connection with the property settings specified by the <see cref="SqlConnection.ConnectionString"/>. If the database does not exist it attempts to create it.
+    /// </summary>
+    /// <param name="connection">The <see cref="Microsoft.Data.SqlClient.SqlConnection" />.</param>
+    /// <param name="overrides">Options to override default connection open behavior.</param>
+    /// <remarks>
+    /// <para>
+    /// This method wraps <see cref="Microsoft.Data.SqlClient.SqlConnection.Open()"/> but adds exception handling to detect
+    /// a <see cref="SqlException"/> with a <see cref="SqlException.Number"/> of 4060 (Database not found). If this exception is
+    /// throw the connection is closed and the connection string updated to connect to the <c>master</c> database.
+    /// </para>
+    /// <para>
+    /// If database creation succeeds then the connection is changed to use the original database, if creation fails then
+    /// the original exception is thrown.
+    /// </para>
+    /// </remarks>
+    public static void OpenWithCreate(this SqlConnection connection, SqlConnectionOverrides overrides)
+    {
+        try
+        {
+            connection.Open(overrides);
+        }
+        catch (SqlException ex) when (ex.Number == 4060)
+        {
+            connection.Close();
+
+            var builder = new SqlConnectionStringBuilder(connection.ConnectionString);
+            var originalDatabase = builder.InitialCatalog;
+
+            builder.InitialCatalog = "master";
+            connection.ConnectionString = builder.ConnectionString;
+
+            connection.Open(overrides);
+
+            var createCommand = connection.CreateCommand();
+            createCommand.CommandText = $"CREATE DATABASE [{EscapeIdentifier(originalDatabase)}]";
+            createCommand.ExecuteNonQuery();
+
+            connection.ChangeDatabase(originalDatabase);
+        }
+    }
+
+    /// <summary>
+    /// Opens a database connection with the property settings specified by the <see cref="SqlConnection.ConnectionString"/>. If the database does not exist it attempts to create it.
+    /// </summary>
+    /// <param name="connection">The <see cref="Microsoft.Data.SqlClient.SqlConnection" />.</param>
+    /// <param name="cancellationToken"></param>
+    /// <remarks>
+    /// <para>
+    /// This method wraps <see cref="Microsoft.Data.SqlClient.SqlConnection.Open()"/> but adds exception handling to detect
+    /// a <see cref="SqlException"/> with a <see cref="SqlException.Number"/> of 4060 (Database not found). If this exception is
+    /// throw the connection is closed and the connection string updated to connect to the <c>master</c> database.
+    /// </para>
+    /// <para>
+    /// If database creation succeeds then the connection is changed to use the original database, if creation fails then
+    /// the original exception is thrown.
+    /// </para>
+    /// </remarks>
+    public static async Task OpenWithCreateAsync(this SqlConnection connection, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (SqlException ex) when (ex.Number == 4060)
+        {
+            connection.Close();
+
+            var builder = new SqlConnectionStringBuilder(connection.ConnectionString);
+            var originalDatabase = builder.InitialCatalog;
+
+            builder.InitialCatalog = "master";
+            connection.ConnectionString = builder.ConnectionString;
+
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+            var createCommand = connection.CreateCommand();
+            createCommand.CommandText = $"CREATE DATABASE [{EscapeIdentifier(originalDatabase)}]";
+            await createCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+
+            await connection.ChangeDatabaseAsync(originalDatabase, cancellationToken)
+                            .ConfigureAwait(false);
+        }
+    }
+
     /// <summary>
     /// Registers 'Scoped' <see cref="SqlConnection" /> factory for connecting Azure SQL, MS SQL database using Microsoft.Data.SqlClient.
     /// Configures health check, logging and telemetry for the SqlClient.

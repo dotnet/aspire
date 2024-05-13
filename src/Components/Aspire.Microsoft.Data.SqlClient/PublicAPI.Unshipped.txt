@@ -10,3 +10,6 @@ Aspire.Microsoft.Data.SqlClient.MicrosoftDataSqlClientSettings.DisableTracing.se
 Microsoft.Extensions.Hosting.AspireSqlServerSqlClientExtensions
 static Microsoft.Extensions.Hosting.AspireSqlServerSqlClientExtensions.AddKeyedSqlServerClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Microsoft.Data.SqlClient.MicrosoftDataSqlClientSettings!>? configureSettings = null) -> void
 static Microsoft.Extensions.Hosting.AspireSqlServerSqlClientExtensions.AddSqlServerClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Microsoft.Data.SqlClient.MicrosoftDataSqlClientSettings!>? configureSettings = null) -> void
+static Microsoft.Extensions.Hosting.AspireSqlServerSqlClientExtensions.OpenWithCreate(this Microsoft.Data.SqlClient.SqlConnection! connection) -> void
+static Microsoft.Extensions.Hosting.AspireSqlServerSqlClientExtensions.OpenWithCreate(this Microsoft.Data.SqlClient.SqlConnection! connection, Microsoft.Data.SqlClient.SqlConnectionOverrides overrides) -> void
+static Microsoft.Extensions.Hosting.AspireSqlServerSqlClientExtensions.OpenWithCreateAsync(this Microsoft.Data.SqlClient.SqlConnection! connection, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
