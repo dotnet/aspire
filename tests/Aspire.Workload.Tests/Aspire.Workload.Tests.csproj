@@ -21,20 +21,19 @@
   </PropertyGroup>
 
   <Import Project="..\Shared\provisioning.targets" />
+  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
 
   <ItemGroup>
-    <Compile Include="..\Shared\WorkloadTesting\*.cs" Link="WorkloadTestingCommon" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
-    <Compile Include="..\Aspire.Components.Common.Tests\RequiresDockerTheoryAttribute.cs" />
 
     <None Include="data\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)eng\helix\runtests.*" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-    <PackageReference Include="Microsoft.Playwright" />
   </ItemGroup>
 
+  <!-- Used for running one helix job per test class -->
   <Target Name="_ExtractTestClassNames"
           Condition="'$(ExtractTestClassNamesForHelix)' == 'true'"
           BeforeTargets="ZipTestArchive">
@@ -57,5 +56,4 @@
                       Lines="@(TestClassName->Distinct())"
                       Overwrite="true" />
   </Target>
-
 </Project>

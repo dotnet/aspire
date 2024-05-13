@@ -4,4 +4,8 @@
   </PropertyGroup>
 
   <Import Project="..\Directory.Build.props" />
+
+  <PropertyGroup>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
+  </PropertyGroup>
 </Project>

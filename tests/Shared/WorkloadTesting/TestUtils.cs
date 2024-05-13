@@ -12,7 +12,7 @@ public static class TestExtensions
     public static async Task<IPage> NewPageWithLoggingAsync(this IBrowserContext context, ITestOutputHelper testOutput)
     {
         var page = await context.NewPageAsync();
-        page.Console += (_, e) => testOutput.WriteLine($"[browser] Console: {e.Text}");
+        page.Console += (_, e) => testOutput.WriteLine($"[browser-console] {e.Text}");
         return page;
     }
 

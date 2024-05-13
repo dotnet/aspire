@@ -180,6 +180,21 @@ public class BuildEnvironment
         }
         Console.WriteLine($"*** [{TargetFramework}] Using path for projects: {TestRootPath}");
     }
+
+    public BuildEnvironment(BuildEnvironment otherBuildEnvironment)
+    {
+        DotNet = otherBuildEnvironment.DotNet;
+        DefaultBuildArgs = otherBuildEnvironment.DefaultBuildArgs;
+        EnvVars = new Dictionary<string, string>(otherBuildEnvironment.EnvVars);
+        LogRootPath = otherBuildEnvironment.LogRootPath;
+        WorkloadPacksDir = otherBuildEnvironment.WorkloadPacksDir;
+        BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
+        HasWorkloadFromArtifacts = otherBuildEnvironment.HasWorkloadFromArtifacts;
+        TestAssetsPath = otherBuildEnvironment.TestAssetsPath;
+        NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
+        TargetFramework = otherBuildEnvironment.TargetFramework;
+        RepoRoot = otherBuildEnvironment.RepoRoot;
+    }
 }
 
 public enum TestTargetFramework

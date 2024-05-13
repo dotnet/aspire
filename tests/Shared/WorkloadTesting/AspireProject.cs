@@ -3,7 +3,10 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
+using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Playwright;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -11,7 +14,14 @@ namespace Aspire.Workload.Tests;
 
 public class AspireProject : IAsyncDisposable
 {
+    public const int DashboardAvailabilityTimeoutSecs = 60;
+    private const int AppStartupWaitTimeoutSecs = 5 * 60;
     public const string DefaultTargetFramework = "net8.0";
+    private static readonly Regex s_dashboardUrlRegex = new(@"Login to the dashboard at (?<url>.*)", RegexOptions.Compiled);
+
+    public static string GetNuGetConfigPathFor(string targetFramework) =>
+        Path.Combine(BuildEnvironment.TestDataPath, "nuget8.config");
+
     public static Lazy<HttpClient> Client => new(CreateHttpClient);
     public Process? AppHostProcess { get; private set; }
     public string Id { get; init; }
@@ -20,6 +30,7 @@ public class AspireProject : IAsyncDisposable
     public string AppHostProjectDirectory => Path.Combine(RootDir, $"{Id}.AppHost");
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
+    public string? DashboardUrl { get; private set; }
     public Dictionary<string, ProjectInfo> InfoTable { get; private set; } = new(capacity: 0);
     public TaskCompletionSource? AppExited { get; private set; }
     public bool IsRunning => AppHostProcess is not null && !AppHostProcess.TryGetHasExited();
@@ -34,6 +45,61 @@ public class AspireProject : IAsyncDisposable
         _testOutput = testOutput;
         _buildEnv = buildEnv;
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
+    }
+
+    protected void InitPaths()
+    {
+        Directory.CreateDirectory(LogPath);
+    }
+
+    protected static void InitProjectDir(string dir, string targetFramework = DefaultTargetFramework)
+    {
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
+        File.WriteAllText(Path.Combine(dir, "Directory.Build.targets"), "<Project />");
+
+        string srcNuGetConfigPath = GetNuGetConfigPathFor(targetFramework);
+        string targetNuGetConfigPath = Path.Combine(dir, "nuget.config");
+        File.Copy(srcNuGetConfigPath, targetNuGetConfigPath);
+    }
+
+    public static async Task<AspireProject> CreateNewTemplateProjectAsync(string id, string template, ITestOutputHelper testOutput, BuildEnvironment buildEnvironment, string extraArgs = "", bool addEndpointsHook = true)
+    {
+        string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
+        string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
+        if (!Directory.Exists(logPath))
+        {
+            Directory.CreateDirectory(logPath);
+        }
+
+        InitProjectDir(rootDir);
+
+        File.WriteAllText(Path.Combine(rootDir, "Directory.Build.props"), "<Project />");
+        File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
+
+        using var cmd = new DotNetCommand(testOutput, useDefaultArgs: true, label: "dotnet-new")
+                            .WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
+                            .WithTimeout(TimeSpan.FromMinutes(5));
+
+        var res = await cmd.ExecuteAsync($"new {template} {extraArgs} -o \"{id}\"").ConfigureAwait(false);
+        res.EnsureSuccessful();
+        if (res.Output.Contains("Restore failed", StringComparison.OrdinalIgnoreCase) ||
+            res.Output.Contains("Post action failed", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new XunitException($"`dotnet {$"new {template} {extraArgs} -o \"{id}\""}` . Output: {res.Output}");
+        }
+
+        var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);
+        if (addEndpointsHook)
+        {
+            File.Copy(Path.Combine(BuildEnvironment.TestDataPath, "Endpoint_cs"), Path.Combine(project.AppHostProjectDirectory, "Endpoint.cs"));
+            string programCsPath = Path.Combine(project.AppHostProjectDirectory, "Program.cs");
+            string programCs = File.ReadAllText(programCsPath);
+            programCs = "using Aspire.Hosting.Lifecycle; " + programCs;
+            programCs = programCs.Replace("builder.Build().Run();", EndpointWritersCodeSnippet);
+            File.WriteAllText(programCsPath, programCs);
+        }
+        return project;
     }
 
     public async Task StartAppHostAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, CancellationToken token = default)
@@ -88,6 +154,12 @@ public class AspireProject : IAsyncDisposable
             }
             _testOutput.WriteLine(logLine);
 
+            var m = s_dashboardUrlRegex.Match(line);
+            if (m.Success)
+            {
+                DashboardUrl = m.Groups["url"].Value;
+            }
+
             if (line?.StartsWith("$ENDPOINTS: ") == true)
             {
                 InfoTable = ProjectInfo.Parse(line.Substring("$ENDPOINTS: ".Length));
@@ -138,7 +210,6 @@ public class AspireProject : IAsyncDisposable
         var startupTimeoutTask = Task.Delay(TimeSpan.FromSeconds(AppStartupWaitTimeoutSecs), token);
 
         string outputMessage;
-        // FIXME: cancellation token for the successfulTask?
         var resultTask = await Task.WhenAny(successfulStartupTask, AppExited.Task, startupTimeoutTask).ConfigureAwait(false);
         if (resultTask != successfulStartupTask)
         {
@@ -215,6 +286,51 @@ public class AspireProject : IAsyncDisposable
         res.EnsureSuccessful();
     }
 
+    public async Task<IPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
+    {
+        string dashboardUrlToUse;
+        if (Environment.GetEnvironmentVariable("DASHBOARD_URL_FOR_TEST") is string dashboardUrlForTest)
+        {
+            dashboardUrlToUse = dashboardUrlForTest;
+        }
+        else
+        {
+            dashboardUrlToUse = DashboardUrl!;
+        }
+        if (string.IsNullOrEmpty(dashboardUrlToUse))
+        {
+            throw new InvalidOperationException("Dashboard URL is not available");
+        }
+
+        CancellationTokenSource cts = new();
+        cts.CancelAfter(TimeSpan.FromSeconds(DashboardAvailabilityTimeoutSecs));
+        await WaitForDashboardToBeAvailableAsync(dashboardUrlToUse, _testOutput, cts.Token).ConfigureAwait(false);
+
+        var dashboardPage = await context.NewPageWithLoggingAsync(_testOutput);
+        await dashboardPage.GotoAsync(dashboardUrlToUse);
+
+        return dashboardPage;
+    }
+
+    public Task WaitForDashboardToBeAvailableAsync(CancellationToken token = default)
+    {
+        if (string.IsNullOrEmpty(DashboardUrl))
+        {
+            throw new InvalidOperationException("Dashboard URL is not available");
+        }
+
+        return WaitForDashboardToBeAvailableAsync(DashboardUrl, _testOutput, token);
+    }
+
+    public static async Task WaitForDashboardToBeAvailableAsync(string dashboardUrl, ITestOutputHelper testOutput, CancellationToken token = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(dashboardUrl, nameof(dashboardUrl));
+
+        testOutput.WriteLine($"Waiting for the dashboard to be available at {dashboardUrl}...");
+        var res = await Client.Value.GetAsync(dashboardUrl, token);
+        res.EnsureSuccessStatusCode();
+    }
+
     public async Task StopAppHostAsync(CancellationToken token = default)
     {
         if (AppHostProcess is null)
@@ -246,6 +362,11 @@ public class AspireProject : IAsyncDisposable
 
     public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)
     {
+        if (!RequiresDockerTheoryAttribute.IsSupported)
+        {
+            return;
+        }
+
         var testOutput = testOutputArg ?? _testOutput!;
         testOutput.WriteLine("--------------------------- Docker info ---------------------------");
 
@@ -337,4 +458,22 @@ public class AspireProject : IAsyncDisposable
 
         return services.BuildServiceProvider().GetRequiredService<IHttpClientFactory>().CreateClient();
     }
+
+    public const string EndpointWritersCodeSnippet = """
+        builder.Services.AddLifecycleHook<EndPointWriterHook>();
+
+        var app = builder.Build();
+
+        // Run a task to read from the console and stop the app if an external process sends "Stop".
+        // This allows for easier control than sending CTRL+C to the console in a cross-platform way.
+        _ = Task.Run(async () =>
+        {
+            var s = Console.ReadLine();
+            if (s == "Stop")
+            {
+                await app.StopAsync();
+            }
+        });
+        app.Run();
+        """;
 }
