@@ -1,9 +1,5 @@
 #nullable enable
-Aspire.Hosting.Python.FlaskProjectResource
-Aspire.Hosting.Python.FlaskProjectResource.FlaskProjectResource(string! name, string! executablePath, string! projectDirectory) -> void
-Aspire.Hosting.Python.FlaskProjectResourceExtensionBuilder
 Aspire.Hosting.Python.PythonProjectResource
 Aspire.Hosting.Python.PythonProjectResource.PythonProjectResource(string! name, string! executablePath, string! projectDirectory) -> void
 Aspire.Hosting.PythonProjectResourceBuilderExtensions
-static Aspire.Hosting.Python.FlaskProjectResourceExtensionBuilder.AddFlaskProjectWithVirtualEnvironment(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectDirectory, string! entrypoint) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Python.FlaskProjectResource!>!
-static Aspire.Hosting.PythonProjectResourceBuilderExtensions.AddPythonProjectWithVirtualEnvironment(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectDirectory, string! scriptPath, params string![]! scriptArgs) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Python.PythonProjectResource!>!
+static Aspire.Hosting.PythonProjectResourceBuilderExtensions.AddPythonProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectDirectory, string! scriptPath, string! virtualEnvironmentPath = ".venv", params string![]! scriptArgs) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Python.PythonProjectResource!>!

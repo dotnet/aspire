@@ -15,12 +15,12 @@ public class AddPythonProjectTests
     private static readonly string s_playgroundDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../playground/python/"));
 
     [LocalOnlyFact("python")]
-    public void AddPythonProjectWithVirtualEnvironment_ExecutesPython()
+    public void AddPythonProject_SetsResourcePropertiesCorrectly()
     {
         var pythonProjectDirectory = Path.Combine(s_playgroundDirectory, "script_only");
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.AddPythonProjectWithVirtualEnvironment("python", pythonProjectDirectory, "main.py");
+        appBuilder.AddPythonProject("python", pythonProjectDirectory, "main.py");
 
         var app = appBuilder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -28,9 +28,29 @@ public class AddPythonProjectTests
 
         var pythonProjectResource = Assert.Single(executableResources);
 
+        Assert.Equal("python", pythonProjectResource.Name);
+        Assert.Equal(pythonProjectDirectory, pythonProjectResource.WorkingDirectory);
+    }
+
+    [LocalOnlyFact("python")]
+    public void AddPythonProject_SetsPythonExecutable()
+    {
+        var pythonProjectDirectory = Path.Combine(s_playgroundDirectory, "script_only");
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.AddPythonProject("python", pythonProjectDirectory, "main.py");
+
+        var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        Assert.Equal("python", pythonProjectResource.Name);
         Assert.Equal(pythonProjectDirectory, pythonProjectResource.WorkingDirectory);
         Assert.Contains(".venv", pythonProjectResource.Command);
         Assert.Matches(s_pythonExecutablePattern, pythonProjectResource.Command);
+        Assert.Equal("python", pythonProjectResource.Name);
     }
 
     [LocalOnlyFact("python")]
@@ -39,7 +59,7 @@ public class AddPythonProjectTests
         var pythonProjectDirectory = Path.Combine(s_playgroundDirectory, "instrumented_script");
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.AddPythonProjectWithVirtualEnvironment("python", pythonProjectDirectory, "main.py");
+        appBuilder.AddPythonProject("python", pythonProjectDirectory, "main.py");
 
         var app = appBuilder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -47,6 +67,7 @@ public class AddPythonProjectTests
 
         var pythonProjectResource = Assert.Single(executableResources);
 
+        Assert.Equal("python", pythonProjectResource.Name);
         Assert.Equal(pythonProjectDirectory, pythonProjectResource.WorkingDirectory);
         Assert.Contains(".venv", pythonProjectResource.Command);
         Assert.Matches(s_telemetryExecutablePattern, pythonProjectResource.Command);

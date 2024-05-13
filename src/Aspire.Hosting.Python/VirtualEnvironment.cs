@@ -6,8 +6,8 @@ namespace Aspire.Hosting.Python;
 /// <summary>
 /// Handles location of files within the virtual environment of a python project.
 /// </summary>
-/// <param name="projectDirectory">The path to the directory containing the python project files.</param>
-internal sealed class VirtualEnvironment(string projectDirectory)
+/// <param name="virtualEnvironmentPath">The path to the directory containing the python project files.</param>
+internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
 {
     /// <summary>
     /// Locates an executable in the virtual environment.
@@ -23,7 +23,7 @@ internal sealed class VirtualEnvironment(string projectDirectory)
         {
             foreach (var extension in allowedExtensions)
             {
-                string executablePath = Path.Join(projectDirectory, ".venv", executableDirectory, name + extension);
+                var executablePath = Path.Join(virtualEnvironmentPath, executableDirectory, name + extension);
 
                 if (File.Exists(executablePath))
                 {

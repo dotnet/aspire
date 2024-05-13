@@ -26,17 +26,19 @@ public static class PythonProjectResourceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="projectDirectory">The path to the directory containing the python project files.</param>
     /// <param name="scriptPath">The path to the script relative to the project directory to run.</param>
+    /// <param name="virtualEnvironmentPath">Path to the virtual environment.</param>
     /// <param name="scriptArgs">The arguments for the script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PythonProjectResource> AddPythonProjectWithVirtualEnvironment(
-        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
+    public static IResourceBuilder<PythonProjectResource> AddPythonProject(
+        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, string virtualEnvironmentPath = ".venv", params string[] scriptArgs)
     {
         projectDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectDirectory));
-        var virtualEnvironment = new VirtualEnvironment(projectDirectory);
+        var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
+            ? virtualEnvironmentPath
+            : Path.Join(projectDirectory, virtualEnvironmentPath));
 
         var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
         var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
-
         var projectExecutable = instrumentationExecutable ?? pythonExecutable;
 
         var projectResource = new PythonProjectResource(name, projectExecutable, projectDirectory);
@@ -44,28 +46,15 @@ public static class PythonProjectResourceBuilderExtensions
         var resourceBuilder = builder.AddResource(projectResource).WithArgs(context =>
         {
             // If the project is to be automatically instrumented, add the instrumentation executable arguments first.
-
             if (!string.IsNullOrEmpty(instrumentationExecutable))
             {
-                context.Args.Add("--traces_exporter");
-                context.Args.Add("otlp");
-
-                context.Args.Add("--logs_exporter");
-                context.Args.Add("console,otlp");
-
-                context.Args.Add("--metrics_exporter");
-                context.Args.Add("otlp");
+                AddOpenTelemetryArguments(context);
 
                 // Add the python executable as the next argument so we can run the project.
                 context.Args.Add(pythonExecutable!);
             }
 
-            context.Args.Add(scriptPath);
-
-            foreach (var arg in scriptArgs)
-            {
-                context.Args.Add(arg);
-            }
+            AddProjectArguments(scriptPath, scriptArgs, context);
         });
 
         if(!string.IsNullOrEmpty(instrumentationExecutable))
@@ -77,10 +66,30 @@ public static class PythonProjectResourceBuilderExtensions
             resourceBuilder.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
         }
 
-        // Python projects need their own Dockerfile, we can't provide it through the hosting package.
-        // Maybe in the future we can add a way to provide a Dockerfile template.
-        resourceBuilder.WithManifestPublishingCallback(projectResource.WriteDockerFileManifestAsync);
+        resourceBuilder.PublishAsDockerFile();
 
         return resourceBuilder;
+    }
+
+    private static void AddProjectArguments(string scriptPath, string[] scriptArgs, CommandLineArgsCallbackContext context)
+    {
+        context.Args.Add(scriptPath);
+
+        foreach (var arg in scriptArgs)
+        {
+            context.Args.Add(arg);
+        }
+    }
+
+    private static void AddOpenTelemetryArguments(CommandLineArgsCallbackContext context)
+    {
+        context.Args.Add("--traces_exporter");
+        context.Args.Add("otlp");
+
+        context.Args.Add("--logs_exporter");
+        context.Args.Add("console,otlp");
+
+        context.Args.Add("--metrics_exporter");
+        context.Args.Add("otlp");
     }
 }
