@@ -38,18 +38,35 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        BuildEnvironment = new(TestsRunningOutsideOfRepo, (probePath, solutionRoot) =>
-            $"Running outside-of-repo: Could not find {probePath} computed from solutionRoot={solutionRoot}. ");
-        if (BuildEnvironment.HasSdkWithWorkload)
+        BuildEnvironment = new(useSystemDotNet: !TestsRunningOutsideOfRepo);
+        if (TestsRunningOutsideOfRepo)
         {
+            if (!BuildEnvironment.HasWorkloadFromArtifacts)
+            {
+                throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
+            }
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
         }
-        BuildEnvironment.EnvVars.Add("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
+        else
+        {
+            // inside the repo
+            if (BuildEnvironment.RepoRoot is null)
+            {
+                throw new InvalidOperationException("These tests should be run from inside the repo when using `TestsRunningOutsideOfRepo=false`");
+            }
+
+            BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests");
+            if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
+            {
+                throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
+            }
+        }
     }
 
     public async Task InitializeAsync()
     {
-        _project = new AspireProject("TestProject", BuildEnvironment.TestProjectPath, _testOutput, BuildEnvironment);
+        string testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
+        _project = new AspireProject("TestProject", testProjectPath, _testOutput, BuildEnvironment);
         if (TestsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
@@ -68,7 +85,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             extraArgs += $"--skip-resources {skipArg}";
         }
-        await Project.StartAsync([extraArgs]);
+        await Project.StartAppHostAsync([extraArgs]);
 
         foreach (var project in Projects.Values)
         {
