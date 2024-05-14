@@ -18,7 +18,7 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     public MilvusServerResource(string name, ParameterResource apiKey) : base(name)
     {
         ArgumentNullException.ThrowIfNull(apiKey);
-        TokenParameter = apiKey;
+        ApiKeyParameter = apiKey;
     }
 
     internal const string PrimaryEndpointName = "grpc";
@@ -27,7 +27,7 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     /// <summary>
     /// Gets the parameter that contains the Qdrant API key.
     /// </summary>
-    public ParameterResource TokenParameter { get; }
+    public ParameterResource ApiKeyParameter { get; }
 
     /// <summary>
     /// Gets the gRPC endpoint for the Milvus database.
@@ -39,5 +39,5 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create(
-            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key={TokenParameter}");
+            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
 }
