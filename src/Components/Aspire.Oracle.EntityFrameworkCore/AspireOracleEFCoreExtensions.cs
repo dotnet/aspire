@@ -15,7 +15,7 @@ using Oracle.EntityFrameworkCore.Storage.Internal;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Extension methods for configuring EntityFrameworkCore DbContext to Oracle database 
+/// Extension methods for configuring EntityFrameworkCore DbContext to Oracle database
 /// </summary>
 public static class AspireOracleEFCoreExtensions
 {
@@ -42,9 +42,35 @@ public static class AspireOracleEFCoreExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.EnsureDbContextNotRegistered<TContext>();
+        builder.AddOracleDatabaseDbContext<TContext, TContext>(connectionName, configureSettings, configureDbContextOptions);
+    }
 
-        var settings = builder.GetDbContextSettings<TContext, OracleEntityFrameworkCoreSettings>(
+    /// <summary>
+    /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
+    /// Enables db context pooling, retries, health check, logging and telemetry for the <see cref="DbContext" />.
+    /// </summary>
+    /// <typeparam name="TContextService">The class or interface that will be used to resolve the context from the container.</typeparam>
+    /// <typeparam name="TContextImplementation">The concrete implementation type to create.</typeparam>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
+    /// <remarks>Reads the configuration from "Aspire:Oracle:EntityFrameworkCore:{typeof(TContext).Name}" config section, or "Aspire:Oracle:EntityFrameworkCore" if former does not exist.</remarks>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="OracleEntityFrameworkCoreSettings.ConnectionString"/> is not provided.</exception>
+    public static void AddOracleDatabaseDbContext<TContextService, [DynamicallyAccessedMembers(RequiredByEF)] TContextImplementation>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<OracleEntityFrameworkCoreSettings>? configureSettings = null,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions = null)
+        where TContextService : class
+        where TContextImplementation : DbContext, TContextService
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.EnsureDbContextNotRegistered<TContextImplementation>();
+
+        var settings = builder.GetDbContextSettings<TContextImplementation, OracleEntityFrameworkCoreSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)
         );
@@ -56,13 +82,13 @@ public static class AspireOracleEFCoreExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
+        builder.Services.AddDbContextPool<TContextService, TContextImplementation>(ConfigureDbContext);
 
-        ConfigureInstrumentation<TContext>(builder, settings);
+        ConfigureInstrumentation<TContextImplementation>(builder, settings);
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-		    ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
+		    ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContextImplementation).Name}", isEfDesignTime: EF.IsDesignTime);
 
             dbContextOptionsBuilder.UseOracle(settings.ConnectionString, builder =>
             {

@@ -48,6 +48,8 @@ public static partial class AspireEFPostgreSqlExtensions
         Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.AddNpgsqlDbContext<TContext, TContext>(connectionName, configureSettings, configureDbContextOptions);
     }
 
@@ -56,7 +58,8 @@ public static partial class AspireEFPostgreSqlExtensions
     /// Enables db context pooling, retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <typeparam name="TContextService">The class or interface that will be used to resolve the context from the container.</typeparam>
-    /// <typeparam name="TContextImplementation">The concrete implementation type to create.</typeparam>  /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <typeparam name="TContextImplementation">The concrete implementation type to create.</typeparam>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>

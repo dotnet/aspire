@@ -54,9 +54,42 @@ public static partial class AspireEFMySqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.EnsureDbContextNotRegistered<TContext>();
+        builder.AddMySqlDbContext<TContext, TContext>(connectionName, configureSettings, configureDbContextOptions);
+    }
 
-        var settings = builder.GetDbContextSettings<TContext, PomeloEntityFrameworkCoreMySqlSettings>(
+    /// <summary>
+    /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
+    /// Enables db context pooling, retries, corresponding health check, logging and telemetry.
+    /// </summary>
+    /// <typeparam name="TContextService">The class or interface that will be used to resolve the context from the container.</typeparam>
+    /// <typeparam name="TContextImplementation">The concrete implementation type to create.</typeparam>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
+    /// <remarks>
+    /// <para>
+    /// Reads the configuration from "Aspire:Pomelo:EntityFrameworkCore:MySql:{typeof(TContext).Name}" config section, or "Aspire:Pomelo:EntityFrameworkCore:MySql" if former does not exist.
+    /// </para>
+    /// <para>
+    /// The <see cref="DbContext.OnConfiguring" /> method can then be overridden to configure <see cref="DbContext" /> options.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="PomeloEntityFrameworkCoreMySqlSettings.ConnectionString"/> is not provided.</exception>
+    public static void AddMySqlDbContext<TContextService, [DynamicallyAccessedMembers(RequiredByEF)] TContextImplementation>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings = null,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions = null)
+        where TContextService : class
+        where TContextImplementation : DbContext, TContextService
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.EnsureDbContextNotRegistered<TContextImplementation>();
+
+        var settings = builder.GetDbContextSettings<TContextImplementation, PomeloEntityFrameworkCoreMySqlSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)
         );
@@ -68,7 +101,7 @@ public static partial class AspireEFMySqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
+        builder.Services.AddDbContextPool<TContextService, TContextImplementation>(ConfigureDbContext);
 
         const string resilienceKey = "Microsoft.Extensions.Hosting.AspireEFMySqlExtensions.ServerVersion";
         builder.Services.AddResiliencePipeline(resilienceKey, static builder =>
@@ -86,7 +119,7 @@ public static partial class AspireEFMySqlExtensions
             });
         });
 
-        ConfigureInstrumentation<TContext>(builder, settings);
+        ConfigureInstrumentation<TContextImplementation>(builder, settings);
 
         void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
@@ -101,7 +134,7 @@ public static partial class AspireEFMySqlExtensions
             ServerVersion serverVersion;
             if (settings.ServerVersion is null)
             {
-                ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
+                ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContextImplementation).Name}", isEfDesignTime: EF.IsDesignTime);
 
                 var resiliencePipelineProvider = serviceProvider.GetRequiredService<ResiliencePipelineProvider<string>>();
                 var resiliencePipeline = resiliencePipelineProvider.GetPipeline(resilienceKey);
@@ -115,7 +148,7 @@ public static partial class AspireEFMySqlExtensions
             var builder = dbContextOptionsBuilder.UseMySql(connectionString, serverVersion, builder =>
             {
                 // delay validating the ConnectionString until the DbContext is configured. This ensures an exception doesn't happen until a Logger is established.
-                ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
+                ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContextImplementation).Name}", isEfDesignTime: EF.IsDesignTime);
 
                 // Resiliency:
                 // 1. Connection resiliency automatically retries failed database commands: https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/wiki/Configuration-Options#enableretryonfailure

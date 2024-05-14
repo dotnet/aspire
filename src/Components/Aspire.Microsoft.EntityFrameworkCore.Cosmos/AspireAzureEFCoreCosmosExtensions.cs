@@ -44,9 +44,36 @@ public static class AspireAzureEFCoreCosmosExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.EnsureDbContextNotRegistered<TContext>();
+        builder.AddCosmosDbContext<TContext, TContext>(connectionName, databaseName, configureSettings, configureDbContextOptions);
+    }
 
-        var settings = builder.GetDbContextSettings<TContext, EntityFrameworkCoreCosmosSettings>(
+    /// <summary>
+    /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
+    /// Enables db context pooling, logging and telemetry.
+    /// </summary>
+    /// <typeparam name="TContextService">The class or interface that will be used to resolve the context from the container.</typeparam>
+    /// <typeparam name="TContextImplementation">The concrete implementation type to create.</typeparam>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="databaseName">The name of the database to use within the Azure Cosmos DB account.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing settings. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="EntityFrameworkCoreCosmosSettings.ConnectionString"/> is not provided.</exception>
+    public static void AddCosmosDbContext<TContextService, [DynamicallyAccessedMembers(RequiredByEF)] TContextImplementation>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        string databaseName,
+        Action<EntityFrameworkCoreCosmosSettings>? configureSettings = null,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions = null)
+        where TContextService : class
+        where TContextImplementation : DbContext, TContextService
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.EnsureDbContextNotRegistered<TContextImplementation>();
+
+        var settings = builder.GetDbContextSettings<TContextImplementation, EntityFrameworkCoreCosmosSettings>(
             DefaultConfigSectionName,
             (settings, section) => section.Bind(settings)
         );
@@ -65,9 +92,9 @@ public static class AspireAzureEFCoreCosmosExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
+        builder.Services.AddDbContextPool<TContextService, TContextImplementation>(ConfigureDbContext);
 
-        ConfigureInstrumentation<TContext>(builder, settings);
+        ConfigureInstrumentation<TContextImplementation>(builder, settings);
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
@@ -85,7 +112,7 @@ public static class AspireAzureEFCoreCosmosExtensions
                 throw new InvalidOperationException(
                   $"A DbContext could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                   $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
-                  $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{typeof(TContext).Name}' configuration section.");
+                  $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{typeof(TContextImplementation).Name}' configuration section.");
             }
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);

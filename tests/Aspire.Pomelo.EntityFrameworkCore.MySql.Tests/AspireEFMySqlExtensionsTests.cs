@@ -247,6 +247,25 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
 
+    /// <summary>
+    /// Verifies that a DbContext can be registered with a specified context service (interface).
+    /// </summary>
+    [Fact]
+    public void CanSpecifyContextService()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
+        ]);
+
+        builder.AddMySqlDbContext<ITestDbContext, TestDbContext>("mysql");
+
+        using var host = builder.Build();
+        var context = host.Services.GetService<ITestDbContext>();
+
+        Assert.NotNull(context);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

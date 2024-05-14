@@ -253,6 +253,25 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         Assert.Equal(connectionString2, actualConnectionString);
     }
 
+    /// <summary>
+    /// Verifies that a DbContext can be registered with a specified context service (interface).
+    /// </summary>
+    [Fact]
+    public void CanSpecifyContextService()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
+        ]);
+
+        builder.AddOracleDatabaseDbContext<ITestDbContext, TestDbContext>("orclconnection");
+
+        using var host = builder.Build();
+        var context = host.Services.GetService<ITestDbContext>();
+
+        Assert.NotNull(context);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
