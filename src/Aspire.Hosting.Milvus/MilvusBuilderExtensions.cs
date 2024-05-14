@@ -1,0 +1,101 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Milvus;
+using Aspire.Hosting.Utils;
+
+namespace Aspire.Hosting;
+
+/// <summary>
+/// Provides extension methods for adding Milvus resources to the application model.
+/// </summary>
+public static class MilvusBuilderExtensions
+{
+    private const int MilvusPortGrpc = 19530;
+    //private const string DefaultApiKey = "root:Milvus";
+
+    /// <summary>
+    /// Adds a Milvus resource to the application. A container is used for local development.
+    /// </summary>
+    /// <remarks>
+    /// This version the package defaults to the v2.4.0 tag of the milvusdb/milvus container image.
+    /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
+    /// </remarks>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
+    /// <param name="apiKey">The parameter used to provide the auth key/token user for the Milvus resource.</param>
+    /// <param name="grpcPort">The host port of gRPC endpoint of Milvus database.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{MilvusServerResource}"/>.</returns>
+    public static IResourceBuilder<MilvusServerResource> AddMilvus(this IDistributedApplicationBuilder builder,
+        string name,
+        IResourceBuilder<ParameterResource>? apiKey = null,
+        int? grpcPort = null)
+    {
+        var tokenParameter = apiKey?.Resource ??
+            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
+        var milvus = new MilvusServerResource(name, tokenParameter);
+        return builder.AddResource(milvus)
+            .WithImage(MilvusContainerImageTags.Image, MilvusContainerImageTags.Tag)
+            .WithImageRegistry(MilvusContainerImageTags.Registry)
+            .WithHttpEndpoint(port: grpcPort, targetPort: MilvusPortGrpc, name: MilvusServerResource.PrimaryEndpointName)
+            .WithEndpoint(MilvusServerResource.PrimaryEndpointName, endpoint =>
+            {
+                endpoint.Transport = "http2";
+            })
+            .WithEnvironment("COMMON_STORAGETYPE", "local")
+            .WithEnvironment("ETCD_USE_EMBED", "true")
+            .WithEnvironment("ETCD_DATA_DIR", "/var/lib/milvus/etcd")
+            .WithEnvironment("COMMON_SECURITY_AUTHORIZATIONENABLED", "true")
+            .WithArgs("milvus","run","standalone");
+    }
+
+    /// <summary>
+    /// Adds an administration and development platform for Milvus to the application model using Attu. This version the package defaults to the v2.3.10 tag of the attu container image
+    /// </summary>
+    /// <param name="builder">The Milvus server resource builder.</param>
+    /// <param name="configureContainer">Configuration callback for Attu container resource.</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithAttu<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<AttuResource>>? configureContainer = null, string? containerName = null) where T : MilvusServerResource
+    {
+        containerName ??= $"{builder.Resource.Name}-attu";
+
+        var attuContainer = new AttuResource(containerName);
+        var resourceBuilder = builder.ApplicationBuilder.AddResource(attuContainer)
+                                                        .WithImage(MilvusContainerImageTags.AttuImage, MilvusContainerImageTags.AttuTag)
+                                                        .WithImageRegistry(MilvusContainerImageTags.Registry)
+                                                        .WithHttpEndpoint(targetPort: 3000, name: "http")
+                                                        .WithEnvironment(context => ConfigureAttuContainer(context, builder.Resource))
+                                                        .ExcludeFromManifest();
+
+        configureContainer?.Invoke(resourceBuilder);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a Milvus container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the resource name.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MilvusServerResource> WithDataVolume(this IResourceBuilder<MilvusServerResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/milvus", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the configuration of a Milvus container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MilvusServerResource> WithConfiguration(this IResourceBuilder<MilvusServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/milvus/configs/milvus.yaml", isReadOnly);
+
+    private static void ConfigureAttuContainer(EnvironmentCallbackContext context, MilvusServerResource resource)
+    {
+        context.EnvironmentVariables.Add("MILVUS_URL", $"http://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}");
+    }
+}

@@ -1,0 +1,39 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Milvus.Client": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Milvus": {
+          "type": "object",
+          "properties": {
+            "Client": {
+              "type": "object",
+              "properties": {
+                "Endpoint": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "The endpoint URI string of the Milvus server to connect to."
+                },
+                "Token": {
+                  "type": "string",
+                  "description": "The token of the Milvus server to connect to."
+                }
+              },
+              "description": "Provides the client configuration settings for connecting to a Milvus server using MilvusClient."
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object"
+}

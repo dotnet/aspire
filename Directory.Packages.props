@@ -101,6 +101,7 @@
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.7.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.7.2" />
+    <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
     <PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.4.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
@@ -149,6 +150,8 @@
     <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
+
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.13.0" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0-nightly.20240307.1" />
