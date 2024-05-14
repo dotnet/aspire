@@ -255,11 +255,11 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString)
         ]);
 
-        builder.AddMySqlDbContext<ITestDbContext, TestDbContext>("mysql",
-            configureDbContextOptions: optionsBuilder => optionsBuilder.UseMySql(s_serverVersion));
+        builder.AddMySqlDbContext<ITestDbContext, TestDbContext>("mysql");
 
         using var host = builder.Build();
         var context = host.Services.GetService<ITestDbContext>();
