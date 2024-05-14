@@ -152,7 +152,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
             context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = dashboardUrls;
             context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
-            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpUrlName.EnvVarName] = otlpEndpointUrl;
+            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = otlpEndpointUrl;
 
             // Configure frontend browser token
             if (!string.IsNullOrEmpty(browserToken))

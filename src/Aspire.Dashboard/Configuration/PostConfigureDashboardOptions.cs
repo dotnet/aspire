@@ -18,9 +18,14 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
     public void PostConfigure(string? name, DashboardOptions options)
     {
         // Copy aliased config values to the strongly typed options.
-        if (_configuration[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] is { Length: > 0 } otlpUrl)
+        if (_configuration[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] is { Length: > 0 } otlpUrl)
         {
-            options.Otlp.EndpointUrl = otlpUrl;
+            options.Otlp.GrpcEndpointUrl = otlpUrl;
+        }
+        // Copy aliased config values to the strongly typed options.
+        if (_configuration[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] is { Length: > 0 } otlpHttpUrl)
+        {
+            options.Otlp.HttpEndpointUrl = otlpHttpUrl;
         }
         if (_configuration[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] is { Length: > 0 } frontendUrls)
         {

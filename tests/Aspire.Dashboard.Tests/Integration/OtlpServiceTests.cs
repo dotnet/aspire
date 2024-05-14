@@ -1,15 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Http.Json;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
+using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
+using OpenTelemetry.Proto.Collector.Metrics.V1;
+using OpenTelemetry.Proto.Collector.Trace.V1;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -25,13 +29,13 @@ public class OtlpServiceTests
     }
 
     [Fact]
-    public async Task CallService_OtlpEndPoint_Success()
+    public async Task CallService_OtlpGrpcEndPoint_Success()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
         await app.StartAsync();
 
-        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
@@ -45,7 +49,7 @@ public class OtlpServiceTests
     }
 
     [Fact]
-    public async Task CallService_OtlpEndPoint_RequiredApiKeyMissing_Failure()
+    public async Task CallService_OtlpGrpcEndPoint_RequiredApiKeyMissing_Failure()
     {
         // Arrange
         var apiKey = "TestKey123!";
@@ -56,7 +60,7 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
@@ -67,7 +71,7 @@ public class OtlpServiceTests
     }
 
     [Fact]
-    public async Task CallService_OtlpEndPoint_RequiredApiKeyWrong_Failure()
+    public async Task CallService_OtlpGrpcEndPoint_RequiredApiKeyWrong_Failure()
     {
         // Arrange
         var apiKey = "TestKey123!";
@@ -78,7 +82,7 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -94,7 +98,7 @@ public class OtlpServiceTests
     }
 
     [Fact]
-    public async Task CallService_OtlpEndPoint_RequiredApiKeySent_Success()
+    public async Task CallService_OtlpGrpcEndPoint_RequiredApiKeySent_Success()
     {
         // Arrange
         var apiKey = "TestKey123!";
@@ -105,7 +109,7 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -121,7 +125,7 @@ public class OtlpServiceTests
     }
 
     [Fact]
-    public async Task CallService_OtlpEndPoint_RequiredSecondaryApiKeySent_Success()
+    public async Task CallService_OtlpGrpcEndPoint_RequiredSecondaryApiKeySent_Success()
     {
         // Arrange
         var apiKey = "TestKey123!";
@@ -134,7 +138,7 @@ public class OtlpServiceTests
         });
         await app.StartAsync();
 
-        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -150,7 +154,7 @@ public class OtlpServiceTests
     }
 
     [Fact]
-    public async Task CallService_OtlpEndPoint_ExternalFile_FileChanged_UseConfiguredKey()
+    public async Task CallService_OtlpGrpcEndPoint_ExternalFile_FileChanged_UseConfiguredKey()
     {
         // Arrange
         var apiKey = "TestKey123!";
@@ -181,7 +185,7 @@ public class OtlpServiceTests
             tcs.TrySetResult();
         });
 
-        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -256,13 +260,13 @@ public class OtlpServiceTests
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
             // Change dashboard to HTTPS so the caller can negotiate a HTTP/2 connection.
-            config[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = "https://127.0.0.1:0";
+            config[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "https://127.0.0.1:0";
 
             config[DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = OtlpAuthMode.ClientCertificate.ToString();
         });
         await app.StartAsync();
 
-        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.OtlpServiceEndPointAccessor().EndPoint}", _testOutputHelper);
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", _testOutputHelper);
         var client = new LogsService.LogsServiceClient(channel);
 
         // Act
@@ -282,7 +286,7 @@ public class OtlpServiceTests
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
             // Change dashboard to HTTPS so the caller can negotiate a HTTP/2 connection.
-            config[DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = "https://127.0.0.1:0";
+            config[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "https://127.0.0.1:0";
 
             config[DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = OtlpAuthMode.ClientCertificate.ToString();
 
@@ -293,7 +297,7 @@ public class OtlpServiceTests
 
         var clientCertificates = new X509CertificateCollection(new[] { TestCertificateLoader.GetTestCertificate("eku.client.pfx") });
         using var channel = IntegrationTestHelpers.CreateGrpcChannel(
-            $"https://{app.OtlpServiceEndPointAccessor().EndPoint}",
+            $"https://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}",
             _testOutputHelper,
             validationCallback: cert =>
             {
@@ -308,5 +312,80 @@ public class OtlpServiceTests
 
         // Assert
         Assert.Equal(0, response.PartialSuccess.RejectedLogRecords);
+    }
+
+    [Fact]
+    public async Task CallService_OtlpHttpEndPoint_Logs_Success()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, dictionary =>
+        {
+            dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:4318";
+        });
+        await app.StartAsync();
+
+        var endpoint = app.OtlpServiceHttpEndPointAccessor();
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
+
+        var request = new ExportLogsServiceRequest();
+        using var content = new ByteArrayContent(request.ToByteArray());
+        var response = await client.PostAsync("/v1/logs", content);
+
+        // Act
+        var message = await response.Content.ReadFromJsonAsync<ExportLogsServiceResponse>();
+
+        // Assert
+        Assert.Equal(0, message!.PartialSuccess.RejectedLogRecords);
+        Assert.True(string.IsNullOrWhiteSpace(message.PartialSuccess.ErrorMessage), "error message should be empty");
+    }
+
+    [Fact]
+    public async Task CallService_OtlpHttpEndPoint_Traces_Success()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, dictionary =>
+        {
+            dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:4318";
+        });
+        await app.StartAsync();
+
+        var endpoint = app.OtlpServiceHttpEndPointAccessor();
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
+
+        var request = new ExportTraceServiceRequest();
+        using var content = new ByteArrayContent(request.ToByteArray());
+        var response = await client.PostAsync("/v1/traces", content);
+
+        // Act
+        var message = await response.Content.ReadFromJsonAsync<ExportTraceServiceResponse>();
+
+        // Assert
+        Assert.Equal(0, message!.PartialSuccess.RejectedSpans);
+        Assert.True(string.IsNullOrWhiteSpace(message.PartialSuccess.ErrorMessage), "error message should be empty");
+    }
+
+    [Fact]
+    public async Task CallService_OtlpHttpEndPoint_Metrics_Success()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, dictionary =>
+        {
+            dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:4318";
+        });
+        await app.StartAsync();
+
+        var endpoint = app.OtlpServiceHttpEndPointAccessor();
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
+
+        var request = new ExportMetricsServiceRequest();
+        using var content = new ByteArrayContent(request.ToByteArray());
+        var response = await client.PostAsync("/v1/metrics", content);
+
+        // Act
+        var message = await response.Content.ReadFromJsonAsync<ExportMetricsServiceResponse>();
+
+        // Assert
+        Assert.Equal(0, message!.PartialSuccess.RejectedDataPoints);
+        Assert.True(string.IsNullOrWhiteSpace(message.PartialSuccess.ErrorMessage), "error message should be empty");
     }
 }

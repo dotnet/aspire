@@ -4,16 +4,15 @@
 using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 
-namespace Aspire.Dashboard.Otlp.Grpc;
+namespace Aspire.Dashboard.Otlp;
 
 [Authorize(Policy = OtlpAuthorization.PolicyName)]
 [SkipStatusCodePages]
-public class OtlpMetricsService : MetricsService.MetricsServiceBase
+public class OtlpMetricsService
 {
     private readonly ILogger<OtlpMetricsService> _logger;
     private readonly TelemetryRepository _telemetryRepository;
@@ -24,7 +23,7 @@ public class OtlpMetricsService : MetricsService.MetricsServiceBase
         _telemetryRepository = telemetryRepository;
     }
 
-    public override Task<ExportMetricsServiceResponse> Export(ExportMetricsServiceRequest request, ServerCallContext context)
+    public Task<ExportMetricsServiceResponse> Export(ExportMetricsServiceRequest request)
     {
         var addContext = new AddContext();
         _telemetryRepository.AddMetrics(addContext, request.ResourceMetrics);
