@@ -258,7 +258,8 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
         ]);
 
-        builder.AddMySqlDbContext<ITestDbContext, TestDbContext>("mysql");
+        builder.AddMySqlDbContext<ITestDbContext, TestDbContext>("mysql",
+            configureDbContextOptions: optionsBuilder => optionsBuilder.UseMySql(s_serverVersion));
 
         using var host = builder.Build();
         var context = host.Services.GetService<ITestDbContext>();
