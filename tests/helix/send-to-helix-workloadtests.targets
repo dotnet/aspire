@@ -6,15 +6,14 @@
     <NeedsPlaywright>true</NeedsPlaywright>
 
     <TestProjectName>Aspire.Workload.Tests</TestProjectName>
+
+    <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
+
+    <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-latest|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
+
   </PropertyGroup>
 
   <ItemGroup>
-    <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'"
-      Include="powershell -ExecutionPolicy ByPass -NoProfile -command &quot;&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath; stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }&quot;" />
-
-    <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'"
-      Include="pgrep -lf &quot;dotnet-latest|dcp.exe|dcpctrl.exe&quot; | awk '{print;system(&quot;kill -9 &quot;$1)}'" />
-
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
     <!-- xunit diagnostic output doesn't show up on windowss, so use SHOW_BUILD_OUTPUT=true -->
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
