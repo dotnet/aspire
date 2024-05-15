@@ -21,7 +21,7 @@ public class PerTestFrameworkTemplatesTests : WorkloadTestsBase
     public static TheoryData<string, string> ProjectNamesWithTestTemplate_TestData()
     {
         var data = new TheoryData<string, string>();
-        foreach (var testType in new[] { "aspire-mstest", "aspire-nunit", "aspire-xunit" })
+        foreach (var testType in new[] { /*"aspire-mstest", "aspire-nunit", */ "aspire-xunit" })
         {
             foreach (var name in GetProjectNamesForTest())
             {

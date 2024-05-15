@@ -25,9 +25,8 @@ public class StarterTemplateProjectNamesTests : WorkloadTestsBase
 
     [Theory]
     [MemberData(nameof(ProjectNamesWithTestType_TestData))]
-    public async Task StarterTemplateWithTest_ProjectNames(string prefix, string testType)
+    public async Task StarterTemplateWithTest_ProjectNames(string id)
     {
-        string id = $"{prefix}-{testType}";
         string config = "Debug";
 
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
