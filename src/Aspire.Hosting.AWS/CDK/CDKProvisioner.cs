@@ -24,7 +24,7 @@ internal sealed class CDKProvisioner(
         var context = new CDKProvisionerContext(appModel, notificationService);
         if (executionContext.IsPublishMode)
         {
-            SynthesizeStackResources(appModel);
+            await SynthesizeStackResources(appModel).ConfigureAwait(false);
             return;
         }
 
@@ -37,36 +37,35 @@ internal sealed class CDKProvisioner(
         _ = Task.Run(() => ProvisionStackResources(appModel, cancellationToken), cancellationToken);
     }
 
-    private void SynthesizeStackResources(DistributedApplicationModel appModel)
+    private async Task SynthesizeStackResources(DistributedApplicationModel appModel)
     {
         var context = new CDKProvisionerContext(appModel, notificationService);
-        SynthesizeStackResourcesInternal(context);
+        _ = await SynthesizeStackResourcesInternal(context).ConfigureAwait(false);
     }
 
     private async Task ProvisionStackResources(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         var context = new CDKProvisionerContext(appModel, notificationService);
-        var templates = SynthesizeStackResourcesInternal(context);
+        var templates = await SynthesizeStackResourcesInternal(context).ConfigureAwait(false);
 
         await DeployCDKStackTemplatesAsync(templates, context, cancellationToken).ConfigureAwait(false);
     }
 
-    private IEnumerable<CDKStackTemplate> SynthesizeStackResourcesInternal(CDKProvisionerContext context)
+    private async Task<IEnumerable<CDKStackTemplate>> SynthesizeStackResourcesInternal(CDKProvisionerContext context)
     {
         ModifyResourcesWithConstructs(context);
         var cloudAssembly = cdkContext.App.Synth();
+        var stackResources = context.StackResources.ToDictionary(x => x.Stack.StackName);
         // Guard when stack contains assets
-        foreach (var stack in cloudAssembly.Stacks)
+        var assetStacks = cloudAssembly.Stacks.Where(stack => stack.Assets.Length > 0);
+        foreach (var stack in assetStacks)
         {
-            var stackResource = context.StackResources.Single(s => s.Stack.StackName == stack.StackName);
-            if (stack.Assets.Length != 0)
-            {
-                var logger = loggerService.GetLogger(stackResource);
-                logger.LogError("CDK stack {StackResourceName} contains assets and is currently not supported", stackResource.Name);
-                context.PublishUpdateStateAsync(stackResource, Constants.ResourceStateFailedToStart).Wait();
-            }
-            yield return new CDKStackTemplate(stack, context.StackResources.Single(s => s.Stack.StackName == stack.StackName));
+            var stackResource = stackResources[stack.StackName];
+            var logger = loggerService.GetLogger(stackResource);
+            logger.LogError("CDK stack {StackResourceName} contains assets and is currently not supported", stackResource.Name);
+            await context.PublishUpdateStateAsync(stackResource, Constants.ResourceStateFailedToStart).ConfigureAwait(false);
         }
+        return cloudAssembly.Stacks.Where(stack => stack.Assets.Length == 0).Select(stack => new CDKStackTemplate(stack, stackResources[stack.StackName])).ToArray();
     }
 
     private static void ModifyResourcesWithConstructs(CDKProvisionerContext context)
