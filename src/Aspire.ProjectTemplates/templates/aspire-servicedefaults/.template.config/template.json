@@ -24,12 +24,6 @@
   "identity": "Aspire.ServiceDefaults.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
   "groupIdentity": "Aspire.ServiceDefaults",
-  "constraints": {
-    "aspire": {
-      "type": "workload",
-      "args": [ "aspire" ]
-    }
-  },
   "symbols": {
     "Framework": {
       "type": "parameter",
