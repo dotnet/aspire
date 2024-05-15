@@ -159,5 +159,7 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="Newtonsoft.Json.Schema" Version="3.0.15" />
     <!-- Introduced by Microsoft.Azure.Cosmos, https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->
+
+    <PackageVersion Include="Microsoft.Playwright" Version="1.42.0" />
   </ItemGroup>
 </Project>

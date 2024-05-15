@@ -19,9 +19,10 @@
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
+  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
+
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
-    <Compile Include="..\Shared\WorkloadTesting\*.cs" Link="WorkloadTestingCommon" />
 
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(PatchedNuGetConfigPath)" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
