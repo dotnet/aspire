@@ -80,7 +80,7 @@ public static class AspireMilvusExtensions
 
         MilvusClient ConfigureMilvus(IServiceProvider serviceProvider)
         {
-            if (settings.Endpoint is not null)
+            if (settings.Endpoint is not null && settings.Key is not null)
             {
                 return new MilvusClient(settings.Endpoint, apiKey: settings.Key!, loggerFactory: serviceProvider.GetRequiredService<ILoggerFactory>());
             }
@@ -88,7 +88,7 @@ public static class AspireMilvusExtensions
             {
                 throw new InvalidOperationException(
                         $"A MilvusClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
-                        $"{nameof(settings.Endpoint)} must be provided " +
+                        $"{nameof(settings.Endpoint)} and {nameof(settings.Key)} must both be provided " +
                         $"in the '{configurationSectionName}' configuration section.");
             }
         }

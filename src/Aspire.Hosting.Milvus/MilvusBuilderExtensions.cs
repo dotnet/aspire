@@ -13,7 +13,6 @@ namespace Aspire.Hosting;
 public static class MilvusBuilderExtensions
 {
     private const int MilvusPortGrpc = 19530;
-    //private const string DefaultApiKey = "root:Milvus";
 
     /// <summary>
     /// Adds a Milvus resource to the application. A container is used for local development.
@@ -47,7 +46,7 @@ public static class MilvusBuilderExtensions
             .WithEnvironment("ETCD_USE_EMBED", "true")
             .WithEnvironment("ETCD_DATA_DIR", "/var/lib/milvus/etcd")
             .WithEnvironment("COMMON_SECURITY_AUTHORIZATIONENABLED", "true")
-            .WithArgs("milvus","run","standalone");
+            .WithArgs("milvus", "run", "standalone");
     }
 
     /// <summary>
@@ -88,11 +87,10 @@ public static class MilvusBuilderExtensions
     /// Adds a bind mount for the configuration of a Milvus container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="source">The source directory on the host to mount into the container.</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <param name="configurationFilePath">The source directory on the host to mount into the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MilvusServerResource> WithConfiguration(this IResourceBuilder<MilvusServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/milvus/configs/milvus.yaml", isReadOnly);
+    public static IResourceBuilder<MilvusServerResource> WithConfigurationBindMount(this IResourceBuilder<MilvusServerResource> builder, string configurationFilePath)
+        => builder.WithBindMount(configurationFilePath, "/milvus/configs/milvus.yaml");
 
     private static void ConfigureAttuContainer(EnvironmentCallbackContext context, MilvusServerResource resource)
     {

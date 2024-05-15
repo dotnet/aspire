@@ -23,9 +23,9 @@
                   "format": "uri",
                   "description": "The endpoint URI string of the Milvus server to connect to."
                 },
-                "Token": {
+                "Key": {
                   "type": "string",
-                  "description": "The token of the Milvus server to connect to."
+                  "description": "The auth Key of the Milvus server to connect to."
                 }
               },
               "description": "Provides the client configuration settings for connecting to a Milvus server using MilvusClient."

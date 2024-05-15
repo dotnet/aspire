@@ -31,7 +31,7 @@ app.MapGet("/create", async (MilvusClient milvusClient, ILogger<Program> logger)
         Console.WriteLine("Drop collection {0}", collectionName);
     }
 
-    await milvusClient.CreateCollectionAsync(
+    collection = await milvusClient.CreateCollectionAsync(
                 collectionName,
                 new[] {
                 FieldSchema.Create<long>("book_id", isPrimaryKey:true),
@@ -41,11 +41,7 @@ app.MapGet("/create", async (MilvusClient milvusClient, ILogger<Program> logger)
                 }
             );
     logger.LogInformation("Collection created: book");
-    return Results.Ok("Collection created");
-});
 
-app.MapGet("/insert", async (MilvusClient milvusClient, ILogger<Program> logger) =>
-{
     Random ran = new();
     List<long> bookIds = new();
     List<long> wordCounts = new();
@@ -65,8 +61,6 @@ app.MapGet("/insert", async (MilvusClient milvusClient, ILogger<Program> logger)
         bookIntros.Add(vector);
     }
 
-    MilvusCollection collection = milvusClient.GetCollection("book");
-
     MutationResult result = await collection.InsertAsync(
         new FieldData[]
         {
@@ -81,7 +75,7 @@ app.MapGet("/insert", async (MilvusClient milvusClient, ILogger<Program> logger)
     // Check result
     logger.LogInformation("Insert status: {0},", result.ToString());
 
-    return Results.Ok("Inserted vectors");
+    return Results.Ok("Collection created");
 });
 
 app.MapGet("/search", async (MilvusClient milvusClient, ILogger<Program> logger) =>

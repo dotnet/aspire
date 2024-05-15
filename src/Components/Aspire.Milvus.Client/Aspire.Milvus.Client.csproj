@@ -3,9 +3,11 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentCommonPackageTags) milvus</PackageTags>
+    <PackageTags>$(ComponentCommonPackageTags) milvus database vector search</PackageTags>
     <Description>A Milvus client that integrates with Aspire, including logging.</Description>
     <PackageIconFullPath>$(SharedDir)Milvus_200x.png</PackageIconFullPath>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- Milvus.Client packages are not signed -->
   </PropertyGroup>
 
   <ItemGroup>

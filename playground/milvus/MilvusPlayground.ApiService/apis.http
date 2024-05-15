@@ -6,10 +6,5 @@ GET {{hostname}}/create
 
 ###
 
-# insert vectors
-GET {{hostname}}/insert
-
-###
-
 # search
 GET {{hostname}}/search

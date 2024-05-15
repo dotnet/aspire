@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+    // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
@@ -10,6 +10,8 @@ namespace Aspire.Hosting.Milvus;
 /// </summary>
 public class MilvusServerResource : ContainerResource, IResourceWithConnectionString
 {
+    internal const string PrimaryEndpointName = "grpc";
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MilvusServerResource"/> class.
     /// </summary>
@@ -21,7 +23,6 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
         ApiKeyParameter = apiKey;
     }
 
-    internal const string PrimaryEndpointName = "grpc";
     private EndpointReference? _primaryEndpoint;
 
     /// <summary>

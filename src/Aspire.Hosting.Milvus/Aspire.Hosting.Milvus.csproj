@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting milvus</PackageTags>
+    <PackageTags>aspire hosting milvus database vector search</PackageTags>
     <Description>Milvus vector database support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Milvus_200x.png</PackageIconFullPath>
   </PropertyGroup>
