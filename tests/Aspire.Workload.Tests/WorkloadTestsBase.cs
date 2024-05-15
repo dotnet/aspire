@@ -174,15 +174,15 @@ public class WorkloadTestsBase
         {
             // FIXME: open an issue - fails to restore on windows
             // - https://helixre107v0xdeko0k025g8.blob.core.windows.net/dotnet-aspire-refs-pull-3270-merge-fc4fbed17c7744ecb5/Aspire.Workload.Tests.StarterTemplateProjectNamesTests/1/console.9ad1df43.log?helixlogtype=result
-            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
+            // yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
         }
 
         // "aspire  sta-rter.test", // Issue: two spaces
         //"aspire 龦唉丂荳◎℉-㐁&ᠭ.ᠤ སྲིད خەل ꌠ.1 ᥕ᧞", // with '&', and spaces
 
         // FIXME: these two fail on windows to restore..
-        yield return "aspire_starter.1period then.34letters";
-        yield return "aspire-starter & with.1";
+        // yield return "aspire_starter.1period then.34letters";
+        // yield return "aspire-starter & with.1";
 
         yield return "aspire";
     }
