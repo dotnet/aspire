@@ -8,7 +8,7 @@
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">true</StabilizePackageVersion>
     <_PackageVersion>$(PackageVersion)</_PackageVersion>
     <!-- If package versions are being stabilized, the version used shouldn't have the prerelease tag in it. -->
-    <_PackageVersion Condition="'$(StabilizePackageVersion)' == 'true'">8.0.0</_PackageVersion>
+    <_PackageVersion Condition="'$(StabilizePackageVersion)' == 'true'">8.0.1</_PackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
