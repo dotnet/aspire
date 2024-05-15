@@ -14,26 +14,19 @@ public class TemplateTests : WorkloadTestsBase
     {}
 
     [Theory]
-    [InlineData("Debug", "none")]
-    [InlineData("Debug", "mstest")]
-    [InlineData("Debug", "nunit")]
-    [InlineData("Debug", "xunit.net")]
-    [InlineData("Release", "none")]
-    // ActiveIssue: https://github.com/dotnet/aspire/issues/3939
-    // [InlineData("Release", "mstest")]
-    // [InlineData("Release", "nunit")]
-    // [InlineData("Release", "xunit.net")]
-    public async Task BuildAndRunStarterTemplateBuiltInTest(string config, string testType)
+    [InlineData("Debug")]
+    [InlineData("Release")]
+    public async Task BuildAndRunStarterTemplateBuiltInTest(string config)
     {
-        string id = GetNewProjectId(prefix: $"starter test.{config}-{testType.Replace(".", "_")}");
+        string id = GetNewProjectId(prefix: $"starter_test.{config}");
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
                                             id,
                                             "aspire-starter",
                                             _testOutput,
                                             buildEnvironment: BuildEnvironment.ForDefaultFramework,
-                                            extraArgs: $"-t {testType}").ConfigureAwait(false);
+                                            extraArgs: $"-t").ConfigureAwait(false);
 
-        await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config);
+        await AssertTestProjectRunAsync(project.TestsProjectDirectory, _testOutput, config);
     }
 
     [Theory]

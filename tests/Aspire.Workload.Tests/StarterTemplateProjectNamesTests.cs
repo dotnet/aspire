@@ -13,15 +13,12 @@ public class StarterTemplateProjectNamesTests : WorkloadTestsBase
     {
     }
 
-    public static TheoryData<string, string> ProjectNamesWithTestType_TestData()
+    public static TheoryData<string> ProjectNamesWithTestType_TestData()
     {
-        var data = new TheoryData<string, string>();
-        foreach (var testType in new[] { "none", "mstest", "nunit", "xunit.net" })
+        var data = new TheoryData<string>();
+        foreach (var name in GetProjectNamesForTest())
         {
-            foreach (var name in GetProjectNamesForTest())
-            {
-                data.Add(name, testType);
-            }
+            data.Add(name);
         }
         return data;
     }
@@ -38,13 +35,13 @@ public class StarterTemplateProjectNamesTests : WorkloadTestsBase
             "aspire-starter",
             _testOutput,
             BuildEnvironment.ForDefaultFramework,
-            $"-t {testType}").ConfigureAwait(false);
+            $"-t").ConfigureAwait(false);
 
         await using var context = await CreateNewBrowserContextAsync();
         _testOutput.WriteLine($"Checking the starter template project");
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput).ConfigureAwait(false);
 
         _testOutput.WriteLine($"Checking the starter template project tests");
-        await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config).ConfigureAwait(false);
+        await AssertTestProjectRunAsync(project.TestsProjectDirectory, _testOutput, config).ConfigureAwait(false);
     }
 }

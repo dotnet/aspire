@@ -191,26 +191,18 @@ public class WorkloadTestsBase
     public static string GetNewProjectId(string? prefix = null)
         => (prefix is null ? "" : $"{prefix}_") + FixupSymbolName(Path.GetRandomFileName());
 
-    public static async Task<CommandResult?> AssertTestProjectRunAsync(string testProjectDirectory, string testType, ITestOutputHelper testOutput, string config = "Debug", int testRunTimeoutSecs = 3 * 60)
+    public static async Task<CommandResult?> AssertTestProjectRunAsync(string testProjectDirectory, ITestOutputHelper testOutput, string config = "Debug", int testRunTimeoutSecs = 3 * 60)
     {
-        if (testType == "none")
-        {
-            Assert.False(Directory.Exists(testProjectDirectory), "Expected no tests project to be created");
-            return null;
-        }
-        else
-        {
-            Assert.True(Directory.Exists(testProjectDirectory), $"Expected tests project at {testProjectDirectory}");
-            using var cmd = new DotNetCommand(testOutput, label: $"test-{testType}")
-                                    .WithWorkingDirectory(testProjectDirectory)
-                                    .WithTimeout(TimeSpan.FromSeconds(testRunTimeoutSecs));
+        Assert.True(Directory.Exists(testProjectDirectory), $"Expected tests project at {testProjectDirectory}");
+        using var cmd = new DotNetCommand(testOutput, label: $"test")
+                                .WithWorkingDirectory(testProjectDirectory)
+                                .WithTimeout(TimeSpan.FromSeconds(testRunTimeoutSecs));
 
-            var res = (await cmd.ExecuteAsync($"test -c {config}"))
-                                .EnsureSuccessful();
+        var res = (await cmd.ExecuteAsync($"test -c {config}"))
+                            .EnsureSuccessful();
 
-            Assert.Matches("Passed! * - Failed: *0, Passed: *1, Skipped: *0, Total: *1", res.Output);
-            return res;
-        }
+        Assert.Matches("Passed! * - Failed: *0, Passed: *1, Skipped: *0, Total: *1", res.Output);
+        return res;
     }
 
     internal static async Task AssertStarterTemplateRunAsync(IBrowserContext context, AspireProject project, string config, ITestOutputHelper _testOutput)
