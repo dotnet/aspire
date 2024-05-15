@@ -68,6 +68,6 @@ public class DurationFormatterTests
     public void DisplaysTimesOf0()
     {
         var input = 0;
-        Assert.Equal("0μs", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
+        Assert.Equal("0", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
     }
 }
