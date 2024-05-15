@@ -21,6 +21,7 @@ public sealed class MilvusContainerFixture : IAsyncLifetime
         {
             Container = new MilvusBuilder()
                 .WithImage($"{MilvusContainerImageTags.Image}:{MilvusContainerImageTags.Tag}")
+                .WithPortBinding(19530)
                 .Build();
             await Container.StartAsync();
         }

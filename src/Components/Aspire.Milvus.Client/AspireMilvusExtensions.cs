@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireMilvusExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:MilvusMilvus:Client";
+    private const string DefaultConfigSectionName = "Aspire:Milvus:Client";
 
     /// <summary>
     /// Registers <see cref="MilvusClient" /> as a singleton in the services provided by the <paramref name="builder"/>.

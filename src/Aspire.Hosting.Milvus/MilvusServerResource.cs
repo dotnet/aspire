@@ -25,7 +25,7 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     private EndpointReference? _primaryEndpoint;
 
     /// <summary>
-    /// Gets the parameter that contains the Qdrant API key.
+    /// Gets the parameter that contains the Milvus API key.
     /// </summary>
     public ParameterResource ApiKeyParameter { get; }
 

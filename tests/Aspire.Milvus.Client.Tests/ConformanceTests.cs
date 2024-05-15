@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,7 @@ public class ConformanceTests : ConformanceTests<MilvusClient, MilvusClientSetti
 
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => AspireMilvusHelpers.CanConnectToServer;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -45,6 +46,7 @@ public class ConformanceTests : ConformanceTests<MilvusClient, MilvusClientSetti
 
     protected override void TriggerActivity(MilvusClient service)
     {
+        service.GetVersionAsync().Wait();
     }
 
     protected override void SetHealthCheck(MilvusClientSettings options, bool enabled) => throw new NotImplementedException();
