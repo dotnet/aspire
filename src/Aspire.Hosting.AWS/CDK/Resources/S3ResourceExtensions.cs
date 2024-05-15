@@ -13,6 +13,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class S3ResourceExtensions
 {
+
+    private const string BucketNameOutputName = "BucketName";
+
     /// <summary>
     /// Adds an Amazon S3 bucket.
     /// </summary>
@@ -85,6 +88,6 @@ public static class S3ResourceExtensions
         where TDestination : IResourceWithEnvironment
     {
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__BucketName", bucket, b => b.BucketName);
+        return builder.WithEnvironment($"{prefix}__BucketName", bucket, b => b.BucketName, BucketNameOutputName);
     }
 }

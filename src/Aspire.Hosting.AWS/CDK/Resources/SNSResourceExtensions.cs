@@ -12,6 +12,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class SNSResourceExtensions
 {
+
+    private const string TopicArnOutputName = "TopicArn";
+
     /// <summary>
     /// Adds an Amazon SNS topic.
     /// </summary>
@@ -43,6 +46,6 @@ public static class SNSResourceExtensions
         where TDestination : IResourceWithEnvironment
     {
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__TopicArn", topic, t => t.TopicArn);
+        return builder.WithEnvironment($"{prefix}__TopicArn", topic, t => t.TopicArn, TopicArnOutputName);
     }
 }

@@ -205,19 +205,23 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    /// Add a reference of a AWS CDK construct to a project. The output parameters of the CloudFormation stack are added to the project IConfiguration.
+    /// Add a environment variable with a reference of a AWS CDK construct to a project. The output parameters of the CloudFormation stack are added to the project IConfiguration.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="source"></param>
-    /// <param name="outputDelegate"></param>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="source">The construct resource.</param>
+    /// <param name="outputDelegate">The construct output delegate.</param>
+    /// <param name="outputName">The name of the construct output</param>
     /// <returns></returns>
-    public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IConstructResource<TConstruct>> source, ConstructOutputDelegate<TConstruct> outputDelegate)
+    public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IConstructResource<TConstruct>> source, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
         where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment
     {
-        var constructName = name.Split('_').Last();
-        source.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(constructName, outputDelegate));
-        return builder.WithEnvironment(name, new StackOutputReference(source.Resource.Construct.StackUniqueId() + constructName, source.Resource.FindParentOfType<StackResource>()));
+        outputName ??= name.Replace("_", string.Empty);
+        if (!source.Resource.Annotations.OfType<IConstructOutputAnnotation>().Where(annotation => annotation.OutputName == outputName).Any())
+        {
+            source.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
+        }
+        return builder.WithEnvironment(name, new StackOutputReference(source.Resource.Construct.StackUniqueId() + outputName, source.Resource.FindParentOfType<StackResource>()));
     }
 }

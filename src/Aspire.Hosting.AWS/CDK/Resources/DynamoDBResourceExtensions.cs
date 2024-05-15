@@ -10,6 +10,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class DynamoDBResourceExtensions
 {
+
+    private const string TableNameOutputName = "TableName";
+
     /// <summary>
     /// Adds an Amazon DynamoDB table.
     /// </summary>
@@ -53,6 +56,6 @@ public static class DynamoDBResourceExtensions
         where TDestination : IResourceWithEnvironment
     {
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__TableName", table, t => t.TableName);
+        return builder.WithEnvironment($"{prefix}__TableName", table, t => t.TableName, TableNameOutputName);
     }
 }

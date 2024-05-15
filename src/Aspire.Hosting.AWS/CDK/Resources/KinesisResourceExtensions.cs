@@ -11,6 +11,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class KinesisResourceExtensions
 {
+
+    private const string StreamArnOutputName = "StreamArn";
+
     /// <summary>
     /// Adds an Amazon Kinesis stream.
     /// </summary>
@@ -32,6 +35,6 @@ public static class KinesisResourceExtensions
         where TDestination : IResourceWithEnvironment
     {
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__StreamArn", stream, s => s.StreamArn);
+        return builder.WithEnvironment($"{prefix}__StreamArn", stream, s => s.StreamArn, StreamArnOutputName);
     }
 }

@@ -10,6 +10,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class CognitoResourceExtensions
 {
+
+    private const string UserPoolIdOutputName = "UserPoolId";
+
     /// <summary>
     /// Adds an Amazon Cognito user pool.
     /// </summary>
@@ -42,6 +45,6 @@ public static class CognitoResourceExtensions
         where TDestination : IResourceWithEnvironment
     {
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__UserPoolId", userPool, p => p.UserPoolId);
+        return builder.WithEnvironment($"{prefix}__UserPoolId", userPool, p => p.UserPoolId, UserPoolIdOutputName);
     }
 }

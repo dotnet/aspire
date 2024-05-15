@@ -10,6 +10,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class SQSResourceExtensions
 {
+
+    private const string QueueUrlOutputName = "QueueUrl";
+
     /// <summary>
     /// Adds an Amazon SQS queue.
     /// </summary>
@@ -31,6 +34,6 @@ public static class SQSResourceExtensions
         where TDestination : IResourceWithEnvironment
     {
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__QueueUrl", queue, q => q.QueueUrl);
+        return builder.WithEnvironment($"{prefix}__QueueUrl", queue, q => q.QueueUrl, QueueUrlOutputName);
     }
 }
