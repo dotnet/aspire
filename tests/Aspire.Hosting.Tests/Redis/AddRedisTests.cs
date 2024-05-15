@@ -152,6 +152,7 @@ public class AddRedisTests
     }
 
     [Theory]
+    [InlineData("host.aspire.internal")]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
     public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
@@ -175,6 +176,7 @@ public class AddRedisTests
     }
 
     [Theory]
+    [InlineData("host.aspire.internal")]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
     public async Task MultipleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)

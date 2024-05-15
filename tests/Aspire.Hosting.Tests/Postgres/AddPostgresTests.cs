@@ -378,6 +378,7 @@ public class AddPostgresTests
     }
 
     [Theory]
+    [InlineData("host.aspire.internal")]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
     public void WithPostgresProducesValidServersJsonFile(string containerHost)

@@ -135,6 +135,7 @@ public class AddMongoDBTests
     }
 
     [Theory]
+    [InlineData("host.aspire.internal")]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
     public async Task WithMongoExpressUsesContainerHost(string containerHost)

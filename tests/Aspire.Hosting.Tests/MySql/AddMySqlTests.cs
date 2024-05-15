@@ -211,6 +211,7 @@ public class AddMySqlTests
     }
 
     [Theory]
+    [InlineData("host.aspire.internal")]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
     public async Task SingleMySqlInstanceProducesCorrectMySqlHostsVariable(string containerHost)
@@ -249,6 +250,7 @@ public class AddMySqlTests
     }
 
     [Theory]
+    [InlineData("host.aspire.internal")]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
     public void WithPhpMyAdminProducesValidServerConfigFile(string containerHost)
