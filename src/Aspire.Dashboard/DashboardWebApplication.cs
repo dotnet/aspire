@@ -124,8 +124,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddResponseCompression(options =>
         {
             options.EnableForHttps = true;
-            // Avoid compressing HTML to mitigate user supplied data being compressed over HTTPS
-            options.ExcludedMimeTypes = ["text/html"];
+            // Limit to compressing static text assets to mitigate user supplied data being compressed over HTTPS
+            // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
+            options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
 
         // Data from the server.
