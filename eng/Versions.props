@@ -3,8 +3,8 @@
     <!-- This repo version -->
     <MajorVersion>8</MajorVersion>
     <MinorVersion>0</MinorVersion>
-    <PatchVersion>0</PatchVersion>
-    <VersionPrefix>8.0.0</VersionPrefix>
+    <PatchVersion>1</PatchVersion>
+    <VersionPrefix>8.0.1</VersionPrefix>
     <PreReleaseVersionLabel>preview.8</PreReleaseVersionLabel>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
