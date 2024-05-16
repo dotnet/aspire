@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire;
 using Aspire.Milvus.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Milvus.Client;
 
@@ -76,6 +78,18 @@ public static class AspireMilvusExtensions
         else
         {
             builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureMilvus(sp));
+        }
+
+        if (!settings.DisableHealthChecks)
+        {
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
+                serviceKey is null ? "Milvus" : $"Milvus_{connectionName}",
+                sp => new MilvusHealthCheck(serviceKey is null
+                    ? sp.GetRequiredService<MilvusClient>()
+                    : sp.GetRequiredKeyedService<MilvusClient>(serviceKey)),
+                failureStatus: default,
+                tags: default,
+                timeout: default));
         }
 
         MilvusClient ConfigureMilvus(IServiceProvider serviceProvider)

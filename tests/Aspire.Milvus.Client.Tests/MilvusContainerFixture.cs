@@ -12,7 +12,7 @@ public sealed class MilvusContainerFixture : IAsyncLifetime
 {
     public MilvusContainer? Container { get; private set; }
 
-    public string GetConnectionString() => Container?.GetEndpoint().AbsoluteUri ??
+    public string GetConnectionString() => $"Endpoint={Container?.GetEndpoint().AbsoluteUri};Key=root:Milvus" ??
         throw new InvalidOperationException("The test container was not initialized.");
 
     public async Task InitializeAsync()

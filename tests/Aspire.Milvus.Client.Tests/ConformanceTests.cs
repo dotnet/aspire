@@ -11,11 +11,21 @@ using Xunit;
 
 namespace Aspire.Milvus.Client.Tests;
 
-public class ConformanceTests : ConformanceTests<MilvusClient, MilvusClientSettings>
+public class ConformanceTests : ConformanceTests<MilvusClient, MilvusClientSettings>, IClassFixture<MilvusContainerFixture>
 {
+    private readonly MilvusContainerFixture? _containerFixture;
+    private string ConnectionString { get; set; }
+
+    public ConformanceTests(MilvusContainerFixture? containerFixture)
+    {
+        _containerFixture = containerFixture;
+        ConnectionString = (_containerFixture is not null && RequiresDockerTheoryAttribute.IsSupported)
+                                        ? _containerFixture.GetConnectionString()
+                                        : $"Endpoint=http://localhost:19530;Key=root:Milvus";
+    }
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanCreateClientWithoutConnectingToServer => false;
+    protected override bool CanCreateClientWithoutConnectingToServer => true;
 
     protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
@@ -40,16 +50,32 @@ public class ConformanceTests : ConformanceTests<MilvusClient, MilvusClientSetti
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[2]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Milvus:Client", key, "Endpoint"), "http://localhost:19530"),
-            new KeyValuePair<string, string?>($"ConnectionStrings:{key}","Endpoint=http://localhost:19530;Key=pass")
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Milvus:Client", key, "Endpoint"), GetConnectionStringKeyValue(ConnectionString, "Endpoint")),
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Milvus:Client", key, "Key"), GetConnectionStringKeyValue(ConnectionString, "Key"))
         });
+
+    internal static string GetConnectionStringKeyValue(string connectionString, string configKey)
+    {
+        // from the connection string, extract the key value of the configKey
+        var parts = connectionString.Split(';');
+        foreach (var part in parts)
+        {
+            var keyValue = part.Split('=');
+            if (keyValue.Length == 2 && keyValue[0].Equals(configKey, StringComparison.OrdinalIgnoreCase))
+            {
+                return keyValue[1];
+            }
+        }
+        return string.Empty;
+    }
 
     protected override void TriggerActivity(MilvusClient service)
     {
         service.GetVersionAsync().Wait();
     }
 
-    protected override void SetHealthCheck(MilvusClientSettings options, bool enabled) => throw new NotImplementedException();
+    protected override void SetHealthCheck(MilvusClientSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(MilvusClientSettings options, bool enabled) => throw new NotImplementedException();
 

@@ -18,6 +18,11 @@
             "Client": {
               "type": "object",
               "properties": {
+                "DisableHealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the Milvus client health check is disabled or not.",
+                  "default": false
+                },
                 "Endpoint": {
                   "type": "string",
                   "format": "uri",

@@ -23,6 +23,14 @@ public sealed class MilvusClientSettings
     /// </summary>
     public string? Key { get; set; }
 
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the Milvus client health check is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableHealthChecks { get; set; }
+
     internal void ParseConnectionString(string? connectionString)
     {
         if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))

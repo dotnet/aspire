@@ -17,9 +17,22 @@ public static class MilvusBuilderExtensions
     /// <summary>
     /// Adds a Milvus resource to the application. A container is used for local development.
     /// </summary>
+    /// <example>
+    /// Use in application host
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var milvus = builder.AddMilvus("milvus");
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///                  .WithReference(milvus);
+    ///  
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </example>
     /// <remarks>
     /// This version the package defaults to the v2.4.0 tag of the milvusdb/milvus container image.
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
+    /// A web-based administration tool for Milvus can also be added using <see cref="WithAttu"/>.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
@@ -50,8 +63,21 @@ public static class MilvusBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an administration and development platform for Milvus to the application model using Attu. This version the package defaults to the v2.3.10 tag of the attu container image
+    /// Adds an administration and development platform for Milvus to the application model using Attu. This version the package defaults to the 2.3-latest tag of the attu container image
     /// </summary>
+    /// <example>
+    /// Use in application host with a Milvus resource
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var milvus = builder.AddMilvus("milvus")
+    ///   .WithAttu();
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///                  .WithReference(milvus);
+    ///  
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </example>
     /// <param name="builder">The Milvus server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for Attu container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
@@ -84,6 +110,16 @@ public static class MilvusBuilderExtensions
         => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/milvus", isReadOnly);
 
     /// <summary>
+    /// Adds a bind mount for the data folder to a Milvus container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MilvusServerResource> WithDataBindMount(this IResourceBuilder<MilvusServerResource> builder, string source, bool isReadOnly = false)
+        => builder.WithBindMount(source, "/var/lib/milvus", isReadOnly);
+
+    /// <summary>
     /// Adds a bind mount for the configuration of a Milvus container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
@@ -94,6 +130,6 @@ public static class MilvusBuilderExtensions
 
     private static void ConfigureAttuContainer(EnvironmentCallbackContext context, MilvusServerResource resource)
     {
-        context.EnvironmentVariables.Add("MILVUS_URL", $"http://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}");
+        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}");
     }
 }
