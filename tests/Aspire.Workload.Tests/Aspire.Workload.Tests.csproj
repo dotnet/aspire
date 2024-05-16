@@ -43,7 +43,7 @@
     </Exec>
 
     <PropertyGroup>
-      <_Regex>^ *(Aspire.Workload.Tests[^\($]+)</_Regex>
+      <_Regex>^\s*(Aspire.Workload.Tests[^\($]+)</_Regex>
     </PropertyGroup>
     <ItemGroup>
       <_TestLines0 Include="$([System.Text.RegularExpressions.Regex]::Match('%(_ListOfTestsLines.Identity)', '$(_Regex)'))" />
