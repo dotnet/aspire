@@ -23,7 +23,6 @@
 
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
-    <Compile Include="..\Shared\WorkloadTesting\*.cs" Link="WorkloadTestingCommon" />
 
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\.editorconfig" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -32,6 +31,7 @@
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
-    <PackageReference Include="Microsoft.Playwright" />
   </ItemGroup>
+
+  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
 </Project>
