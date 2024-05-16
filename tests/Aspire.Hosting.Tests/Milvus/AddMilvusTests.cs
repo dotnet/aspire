@@ -17,7 +17,10 @@ public class AddMilvusTests
     public void AddMilvusWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddMilvus("my-milvus");
+        appBuilder.Configuration["Parameters:apikey"] = "pass";
+
+        var pass = appBuilder.AddParameter("apikey");
+        appBuilder.AddMilvus("my-milvus", apiKey: pass);
 
         using var app = appBuilder.Build();
 
@@ -45,9 +48,9 @@ public class AddMilvusTests
     public void AddMilvusAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass";
+        appBuilder.Configuration["Parameters:apikey"] = "pass";
 
-        var pass = appBuilder.AddParameter("pass");
+        var pass = appBuilder.AddParameter("apikey");
         appBuilder.AddMilvus("my-milvus", apiKey: pass);
 
         using var app = appBuilder.Build();
@@ -77,8 +80,8 @@ public class AddMilvusTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration["Parameters:pass"] = "pass";
-        var pass = appBuilder.AddParameter("pass");
+        appBuilder.Configuration["Parameters:apikey"] = "pass";
+        var pass = appBuilder.AddParameter("apikey");
 
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
                                  .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc));
@@ -95,8 +98,8 @@ public class AddMilvusTests
         using var testProgram = CreateTestProgram();
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration["Parameters:pass"] = "pass";
-        var pass = appBuilder.AddParameter("pass");
+        appBuilder.Configuration["Parameters:apikey"] = "pass";
+        var pass = appBuilder.AddParameter("apikey");
 
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
             .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc));
@@ -128,14 +131,16 @@ public class AddMilvusTests
     public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions() { Args = new string[] { "--publisher", "manifest" } });
-        var milvus = appBuilder.AddMilvus("milvus");
+        appBuilder.Configuration["Parameters:apikey"] = "pass";
+        var pass = appBuilder.AddParameter("apikey");
+        var milvus = appBuilder.AddMilvus("milvus", pass);
 
         var serverManifest = await ManifestUtils.GetManifest(milvus.Resource); // using this method does not get any ExecutionContext.IsPublishMode changes
 
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvus-Key.value}",
+              "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={apikey.value}",
               "image": "{{MilvusContainerImageTags.Registry}}/{{MilvusContainerImageTags.Image}}:{{MilvusContainerImageTags.Tag}}",
               "args": [
                 "milvus",
@@ -166,7 +171,10 @@ public class AddMilvusTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var milvus = builder.AddMilvus("my-milvus", grpcPort: 5503);
+        builder.Configuration["Parameters:apikey"] = "pass";
+        var pass = builder.AddParameter("apikey");
+
+        var milvus = builder.AddMilvus("my-milvus", grpcPort: 5503, apiKey: pass);
 
         using var app = builder.Build();
 
