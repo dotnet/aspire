@@ -30,7 +30,7 @@ public static class MilvusBuilderExtensions
     /// </code>
     /// </example>
     /// <remarks>
-    /// This version the package defaults to the v2.4.0 tag of the milvusdb/milvus container image.
+    /// This version the package defaults to the 2.3-latest tag of the milvusdb/milvus container image.
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
     /// A web-based administration tool for Milvus can also be added using <see cref="WithAttu"/>.
     /// </remarks>
@@ -41,12 +41,14 @@ public static class MilvusBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{MilvusServerResource}"/>.</returns>
     public static IResourceBuilder<MilvusServerResource> AddMilvus(this IDistributedApplicationBuilder builder,
         string name,
-        IResourceBuilder<ParameterResource>? apiKey = null,
+        IResourceBuilder<ParameterResource> apiKey,
         int? grpcPort = null)
     {
-        var tokenParameter = apiKey?.Resource ??
-            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
+        ArgumentNullException.ThrowIfNull(apiKey, nameof(apiKey));
+
+        var tokenParameter = apiKey.Resource;
         var milvus = new MilvusServerResource(name, tokenParameter);
+
         return builder.AddResource(milvus)
             .WithImage(MilvusContainerImageTags.Image, MilvusContainerImageTags.Tag)
             .WithImageRegistry(MilvusContainerImageTags.Registry)
