@@ -4,7 +4,7 @@
 
 ### Steps to prepare for `outside-of-repo` runs
 
-1. [Install the sdk+workload](#install-the-sdkworkload)
+1. [Install the sdk+workload](../Aspire.Workload.Tests/README.md#install-the-sdkworkload)
 
 ### Using it from VS
 
@@ -37,7 +37,7 @@ This requires:
 
 ### SDK+workload
 
-- [sdk+workload](#sdkworkload) FIXME: link
+[Sdk+workload](../Aspire.Workload.Tests/README.md#solution-sdkworkload)
 
 ### TestProject
 
