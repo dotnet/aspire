@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
+    <!-- xunit diagnostic output doesn't show up on windows, so use SHOW_BUILD_OUTPUT=true -->
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
   </ItemGroup>
 
@@ -32,13 +33,17 @@
            Text="No workload test class names found" />
 
     <ItemGroup>
-      <_WorkloadTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Workload.Tests.', ''))" />
+      <!-- PreCommands="" needed for batching below -->
+      <_WorkloadTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Workload.Tests.', ''))" PreCommands="" />
 
       <HelixWorkItem Include="@(_WorkloadTestsClassNames)">
         <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
 
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot; &amp; set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot; &amp; set &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot; &amp;&amp; export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot; &amp;&amp; export &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
+
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>

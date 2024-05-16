@@ -43,6 +43,9 @@
     <_EnvVarSetKeyword Condition="'$(OS)' == 'Windows_NT'">set</_EnvVarSetKeyword>
     <_EnvVarSetKeyword Condition="'$(OS)' != 'Windows_NT'">export</_EnvVarSetKeyword>
 
+    <_ShellCommandSeparator Condition="'$(OS)' == 'Windows_NT'">&amp;</_ShellCommandSeparator>
+    <_ShellCommandSeparator Condition="'$(OS)' != 'Windows_NT'">&amp;&amp;</_ShellCommandSeparator>
+
     <_ShutdownDockerContainersCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker ps -aq`%3B do docker stop $f%3B docker rm $f%3B done</_ShutdownDockerContainersCommand>
   </PropertyGroup>
 
