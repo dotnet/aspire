@@ -232,18 +232,42 @@ public static class ProjectResourceBuilderExtensions
                 return builder;
             }
 
-            var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
-            foreach (var url in urlsFromApplicationUrl)
+            // Check for any endpoint bindings at Kestrel configuration level
+            var kestrelConfig = GetKestrelConfiguration(projectResource);
+            var kestrelEndpoints = kestrelConfig.GetSection("Kestrel:Endpoints").GetChildren();
+            foreach (var endpoint in kestrelEndpoints)
             {
-                var uri = new Uri(url);
-
-                builder.WithEndpoint(uri.Scheme, e =>
+                var endpointConfig = endpoint.GetChildren().ToDictionary(c => c.Key, c => c.Value);
+                if (endpointConfig.TryGetValue("Url", out var url) && url != null)
                 {
-                    e.Port = uri.Port;
-                    e.UriScheme = uri.Scheme;
-                    e.FromLaunchProfile = true;
-                },
-                createIfNotExists: true);
+                    // DISCUSS: check whether it's correct to replace * with localhost. Not sure what * really means, but it's not a valid in new Uri().
+                    url = url.Replace("*", "localhost");
+                    var uri = new Uri(url);
+
+                    // We need to turn off the proxy, because we cannot easily override Kestrel bindings
+                    // DISCUSS: we use the scheme as the name instead of the endpoint name from config (endpoint.Key),
+                    //   as it seems that the framework expects it to be http/https. This may not be correct.
+                    builder.WithEndpoint(name: uri.Scheme, port: uri.Port, scheme:uri.Scheme, isProxied: false);
+                }
+            }
+
+            // If there are any Kestrel endpoints, we ignore the launch profile endpoints,
+            // as that is what happens at runtime
+            if (!kestrelEndpoints.Any())
+            {
+                var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
+                foreach (var url in urlsFromApplicationUrl)
+                {
+                    var uri = new Uri(url);
+
+                    builder.WithEndpoint(uri.Scheme, e =>
+                    {
+                        e.Port = uri.Port;
+                        e.UriScheme = uri.Scheme;
+                        e.FromLaunchProfile = true;
+                    },
+                    createIfNotExists: true);
+                }
             }
 
             builder.WithEnvironment(context =>
@@ -359,7 +383,7 @@ public static class ProjectResourceBuilderExtensions
         return builder;
     }
 
-    private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
+    private static IConfiguration GetKestrelConfiguration(ProjectResource projectResource)
     {
         var projectMetadata = projectResource.GetProjectMetadata();
 
@@ -371,7 +395,12 @@ public static class ProjectResourceBuilderExtensions
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddJsonFile(appSettingsPath, optional: true);
         configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
-        var config = configBuilder.Build();
+        return configBuilder.Build();
+    }
+
+    private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
+    {
+        var config = GetKestrelConfiguration(projectResource);
         var protocol = config["Kestrel:EndpointDefaults:Protocols"];
         return protocol == "Http2";
     }
