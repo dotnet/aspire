@@ -11,7 +11,7 @@ using Azure.ResourceManager.Search.Models;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding the Azure Search resources to the application model.
+/// Provides extension methods for adding the Azure AI Search resources to the application model.
 /// </summary>
 public static class AzureSearchExtensions
 {

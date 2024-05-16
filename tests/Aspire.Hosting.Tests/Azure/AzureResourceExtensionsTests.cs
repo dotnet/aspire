@@ -28,7 +28,7 @@ public class AzureResourceExtensionsTests
         });
 
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal(Path.GetFullPath(".azurite/storage"), volumeAnnotation.Source);
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, ".azurite", "storage"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -54,7 +54,7 @@ public class AzureResourceExtensionsTests
         });
 
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal(Path.GetFullPath("mydata"), volumeAnnotation.Source);
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -80,7 +80,7 @@ public class AzureResourceExtensionsTests
         });
 
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal("testhost-storage-data", volumeAnnotation.Source);
+        Assert.Equal("Aspire.Hosting.Tests-storage-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);

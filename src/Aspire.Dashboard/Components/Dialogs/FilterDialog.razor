@@ -10,7 +10,14 @@
     <DataAnnotationsValidator />
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentCombobox Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]" Items=@Parameters @bind-Value="@_formModel.Parameter" Width="100%" Height="500px" />
+        <FluentCombobox TOption="SelectViewModel<string>"
+                        Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]"
+                        Items="@_parameters"
+                        @bind-SelectedOption="@_formModel.Parameter"
+                        Width="100%"
+                        Height="500px"
+                        OptionText="@(c => c.Name)"
+                        OptionDisabled="@(c => c.Id is null)" />
 
         <FluentSelect TOption="SelectViewModel<FilterCondition>" Items="@_filterConditions" @bind-SelectedOption="@_formModel.Condition" aria-label="@Loc[Dialogs.FilterDialogConditionSelectLabel]" OptionText="@(i => i.Name)" Width="100%" />
 

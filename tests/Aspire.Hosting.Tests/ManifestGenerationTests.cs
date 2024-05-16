@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Hosting.Garnet;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Postgres;
@@ -203,6 +204,7 @@ public class ManifestGenerationTests
         {
             verify.Add(arg => Assert.Equal(addExecutableArg, arg.GetString()));
         }
+
         foreach (var withArgsArg in withArgsArgs)
         {
             verify.Add(arg => Assert.Equal(withArgsArg, arg.GetString()));
@@ -268,9 +270,8 @@ public class ManifestGenerationTests
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
         Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
-
     }
-
+    
     [Fact]
     public void EnsureAllPostgresManifestTypesHaveVersion0Suffix()
     {
@@ -413,6 +414,7 @@ public class ManifestGenerationTests
 
         var expectedManifest = $$"""
             {
+              "$schema": "{{SchemaUtils.SchemaVersion}}",
               "resources": {
                 "servicea": {
                   "type": "project.v0",
@@ -501,6 +503,7 @@ public class ManifestGenerationTests
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
+                    "ConnectionStrings__garnet": "{garnet.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
@@ -567,6 +570,19 @@ public class ManifestGenerationTests
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
                   "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 6379
+                    }
+                  }
+                },
+                "garnet": {
+                  "type": "container.v0",
+                  "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
+                  "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -659,7 +675,9 @@ public class ManifestGenerationTests
                   "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
                   "image": "{{KafkaContainerImageTags.Registry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
                   "env": {
-                    "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
+                    "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
+                    "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
+                    "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}"
                   },
                   "bindings": {
                     "tcp": {
@@ -667,6 +685,12 @@ public class ManifestGenerationTests
                       "protocol": "tcp",
                       "transport": "tcp",
                       "targetPort": 9092
+                    },
+                    "internal": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 9093
                     }
                   }
                 },

@@ -15,7 +15,7 @@
   "defaultName": "Tests",
   "description": "A project that contains NUnit integration tests of a .NET Aspire AppHost project.",
   "shortName": "aspire-nunit",
-  "sourceName": "Aspire.Tests1",
+  "sourceName": "Aspire.Tests.1",
   "preferNameDirectory": true,
   "tags": {
     "language": "C#",
@@ -25,12 +25,6 @@
   "identity": "Aspire.Tests.NUnit.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
   "groupIdentity": "Aspire.Tests.NUnit",
-  "constraints": {
-    "aspire": {
-      "type": "workload",
-      "args": [ "aspire" ]
-    }
-  },
   "symbols": {
     "Framework": {
       "type": "parameter",
@@ -58,7 +52,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "Aspire.Tests1.csproj"
+      "path": "Aspire.Tests.1.csproj"
     }
   ],
   "postActions": [

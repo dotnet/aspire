@@ -218,7 +218,7 @@ public class AddRedisTests
 
         var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal("testhost-myRedis-data", volumeAnnotation.Source);
+        Assert.Equal("Aspire.Hosting.Tests-myRedis-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -256,10 +256,16 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                               .WithDataVolume();
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
-        Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
+
+        Assert.Equal("--save 60 1".Split(" "), args);
     }
 
     [Fact]
@@ -269,7 +275,7 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume(isReadOnly: true);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
         Assert.Null(persistenceAnnotation);
     }
@@ -281,10 +287,16 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata");
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        Assert.Equal(TimeSpan.FromSeconds(60), persistenceAnnotation.Interval);
-        Assert.Equal(1, persistenceAnnotation.KeysChangedThreshold);
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
+
+        Assert.Equal("--save 60 1".Split(" "), args);
     }
 
     [Fact]
@@ -294,7 +306,7 @@ public class AddRedisTests
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata", isReadOnly: true);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().SingleOrDefault();
+        var persistenceAnnotation = redis.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
         Assert.Null(persistenceAnnotation);
     }
@@ -307,10 +319,16 @@ public class AddRedisTests
                            .WithDataVolume()
                            .WithPersistence(TimeSpan.FromSeconds(10), 2);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<RedisPersistenceCommandLineArgsCallbackAnnotation>().Single();
+        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
-        Assert.Equal(TimeSpan.FromSeconds(10), persistenceAnnotation.Interval);
-        Assert.Equal(2, persistenceAnnotation.KeysChangedThreshold);
+        var args = new List<object>();
+        foreach (var argsAnnotation in argsCallbacks)
+        {
+            Assert.NotNull(argsAnnotation.Callback);
+            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
+        }
+
+        Assert.Equal("--save 10 2".Split(" "), args);
     }
 
     [Fact]
