@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -49,7 +48,8 @@ public class WorkloadTestsBase
             return await playwright.Chromium.LaunchAsync(options).ConfigureAwait(false);
         });
 
-        // default timeout for LaunchAsync is 30secs, so pick something larger than that
+        // default timeout for playwright.Chromium.LaunchAsync is 30secs,
+        // so using a timeout here as a fallback
         if (!t.Wait(45 * 1000))
         {
             throw new TimeoutException("Browser creation timed out");
@@ -76,11 +76,10 @@ public class WorkloadTestsBase
         HashSet<string> foundNames = [];
         List<ResourceRow> foundRows = [];
 
-        var timeout = TimeSpan.FromSeconds(timeoutSecs);
-        Stopwatch sw = new();
-        sw.Start();
+        var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromSeconds(timeoutSecs));
 
-        while (foundNames.Count < expectedRowsTable.Count && sw.Elapsed < timeout)
+        while (foundNames.Count < expectedRowsTable.Count && !cts.IsCancellationRequested)
         {
             await Task.Delay(500);
 
