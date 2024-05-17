@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -240,14 +241,11 @@ public static class ProjectResourceBuilderExtensions
                 var endpointConfig = endpoint.GetChildren().ToDictionary(c => c.Key, c => c.Value);
                 if (endpointConfig.TryGetValue("Url", out var url) && url != null)
                 {
-                    // DISCUSS: check whether it's correct to replace * with localhost. Not sure what * really means, but it's not a valid in new Uri().
-                    url = url.Replace("*", "localhost");
-                    var uri = new Uri(url);
-
                     // We need to turn off the proxy, because we cannot easily override Kestrel bindings
                     // DISCUSS: we use the scheme as the name instead of the endpoint name from config (endpoint.Key),
                     //   as it seems that the framework expects it to be http/https. This may not be correct.
-                    builder.WithEndpoint(name: uri.Scheme, port: uri.Port, scheme:uri.Scheme, isProxied: false);
+                    var bindingAddress = BindingAddress.Parse(url);
+                    builder.WithEndpoint(name: bindingAddress.Scheme, port: bindingAddress.Port, scheme: bindingAddress.Scheme, isProxied: false);
                 }
             }
 
