@@ -305,7 +305,7 @@ public class AspireProject : IAsyncDisposable
         return dashboardPage;
     }
 
-    public Task WaitForDashboardToBeAvailableAsync(CancellationToken token = default)
+    public Task WaitForDashboardToBeAvailableAsync(CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(DashboardUrl))
         {
