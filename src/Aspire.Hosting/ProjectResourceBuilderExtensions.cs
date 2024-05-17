@@ -238,7 +238,7 @@ public static class ProjectResourceBuilderExtensions
             var kestrelEndpoints = kestrelConfig.GetSection("Kestrel:Endpoints").GetChildren();
             foreach (var endpoint in kestrelEndpoints)
             {
-                if (endpoint.GetValue<string>("Url") is var url && url != null)
+                if (endpoint["Url"] is string url)
                 {
                     // We need to turn off the proxy, because we cannot easily override Kestrel bindings
                     // DISCUSS: we use the scheme as the name instead of the endpoint name from config (endpoint.Key),
