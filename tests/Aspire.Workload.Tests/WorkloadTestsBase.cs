@@ -26,14 +26,25 @@ public class WorkloadTestsBase
         var t = Task.Run(async () =>
         {
             var playwright = await Playwright.CreateAsync();
-            BrowserTypeLaunchOptions? options = null;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            string? browserPath = EnvironmentVariables.BrowserPath;
+            if (!string.IsNullOrEmpty(browserPath) && !File.Exists(browserPath))
             {
-                options = new BrowserTypeLaunchOptions
+                throw new FileNotFoundException($"Browser path BROWSER_PATH='{browserPath}' does not exist");
+            }
+
+            BrowserTypeLaunchOptions options = new()
+            {
+                Headless = false,
+                ExecutablePath = browserPath
+            };
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && string.IsNullOrEmpty(browserPath))
+            {
+                var probePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+                if (File.Exists(probePath))
                 {
-                    Headless = false,
-                    ExecutablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-                };
+                    options.ExecutablePath = probePath;
+                }
             }
             return await playwright.Chromium.LaunchAsync(options).ConfigureAwait(false);
         });
