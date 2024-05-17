@@ -92,7 +92,7 @@ public class AspireProject : IAsyncDisposable
         var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);
         if (addEndpointsHook)
         {
-            File.Copy(Path.Combine(BuildEnvironment.TestDataPath, "Endpoint_cs"), Path.Combine(project.AppHostProjectDirectory, "Endpoint.cs"));
+            File.Copy(Path.Combine(BuildEnvironment.TestDataPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
             string programCsPath = Path.Combine(project.AppHostProjectDirectory, "Program.cs");
             string programCs = File.ReadAllText(programCsPath);
             programCs = "using Aspire.Hosting.Lifecycle; " + programCs;
@@ -109,7 +109,6 @@ public class AspireProject : IAsyncDisposable
             throw new InvalidOperationException("Project is already running");
         }
 
-        Stopwatch runTimeStopwatch = new();
         object outputLock = new();
         var output = new StringBuilder();
         var projectsParsed = new TaskCompletionSource();
@@ -201,6 +200,7 @@ public class AspireProject : IAsyncDisposable
 
         configureProcess?.Invoke(AppHostProcess.StartInfo);
 
+        Stopwatch runTimeStopwatch = new();
         runTimeStopwatch.Start();
         AppHostProcess.Start();
         AppHostProcess.BeginOutputReadLine();
