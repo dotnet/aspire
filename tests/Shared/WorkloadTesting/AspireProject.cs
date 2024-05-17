@@ -312,7 +312,7 @@ public class AspireProject : IAsyncDisposable
             throw new InvalidOperationException("Dashboard URL is not available");
         }
 
-        return WaitForDashboardToBeAvailableAsync(DashboardUrl, _testOutput, token);
+        return WaitForDashboardToBeAvailableAsync(DashboardUrl, _testOutput, cancellationToken);
     }
 
     public static async Task WaitForDashboardToBeAvailableAsync(string dashboardUrl, ITestOutputHelper testOutput, CancellationToken token = default)
