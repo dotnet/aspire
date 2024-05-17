@@ -5,7 +5,7 @@
 
     <RunTestsOnHelix>true</RunTestsOnHelix>
     <TestUsingWorkloads>true</TestUsingWorkloads>
-    <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
+    <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
