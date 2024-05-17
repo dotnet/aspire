@@ -13,8 +13,10 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureConstruct">Callback to configure the Azure Event Hubs resource.</param>
-public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct> configureConstruct)
-    : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString
+public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct),
+    IResourceWithConnectionString,
+    IResourceWithEndpoints
 {
     internal List<(string Name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? Configure)> Hubs { get; } = [];
 
@@ -23,9 +25,18 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
     /// </summary>
     public BicepOutputReference EventHubsEndpoint => new("eventHubsEndpoint", this);
 
+    internal EndpointReference EmulatorEndpoint => new(this, "emulator");
+
+    /// <summary>
+    /// Gets a value indicating whether the Azure Event Hubs resource is running in the local emulator.
+    /// </summary>
+    public bool IsEmulator => this.IsContainer();
+
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Event Hubs endpoint.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{EventHubsEndpoint}");
+        IsEmulator
+        ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Host}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;EntityPath={Hubs.First().Name}")
+        : ReferenceExpression.Create($"{EventHubsEndpoint}");
 }

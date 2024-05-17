@@ -46,17 +46,21 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
 
         try
         {
-            // extract the namespace from the connection string or qualified namespace
-            var fullyQualifiedNs = string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace) ?
-                EventHubsConnectionStringProperties.Parse(settings.ConnectionString).FullyQualifiedNamespace :
-                new Uri(settings.FullyQualifiedNamespace).Host;
+            // Extract the namespace from the connection string or qualified namespace
+            ns = string.IsNullOrWhiteSpace(settings.FullyQualifiedNamespace)
+                ? EventHubsConnectionStringProperties.Parse(settings.ConnectionString).Endpoint.Host
+                : new Uri(settings.FullyQualifiedNamespace).Host;
 
-            ns = fullyQualifiedNs[..fullyQualifiedNs.IndexOf('.')];
+            // This is likely to be similar to {yournamespace}.servicebus.windows.net.
+            if (ns.EndsWith(".servicebus.windows.net", StringComparison.OrdinalIgnoreCase))
+            {
+                ns = ns[..ns.IndexOf('.')];
+            }
         }
         catch (Exception ex) when (ex is FormatException or IndexOutOfRangeException)
         {
             throw new InvalidOperationException(
-                $"A {typeof(TClient).Name} could not be configured. Please ensure that the ConnectionString or Namespace is well-formed.");
+                $"A {typeof(TClient).Name} could not be configured. Please ensure that the ConnectionString or FullyQualifiedNamespace is well-formed.");
         }
 
         return ns;
@@ -72,7 +76,7 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
         {
             throw new InvalidOperationException(
                 $"A {typeof(TClient).Name} could not be configured. Ensure valid connection information was provided in " +
-                $"'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
+                $"'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'FullyQualifiedNamespace' in the '{configurationSectionName}' configuration section.");
         }
 
         // If we have a connection string, ensure there's an EntityPath if settings.EventHubName is missing

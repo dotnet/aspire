@@ -4,6 +4,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
 
@@ -98,5 +100,109 @@ public static class AzureEventHubsExtensions
     {
         builder.Resource.Hubs.Add((name, configureHub));
         return builder;
+    }
+
+    /// <summary>
+    /// Configures an Azure Event Hubs resource to be emulated. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure Event Hubs resource builder.</param>
+    /// <param name="storageResource">An optional Azure Storage resource.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, IResourceBuilder<IResource>? storageResource = null, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
+    {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook<AzureEventHubsEmulatorConfigWriterHook>();
+
+        // Add emulator container
+
+        builder
+            .WithEndpoint(name: "emulator", targetPort: 5672)
+            .WithAnnotation(new ContainerImageAnnotation
+            {
+                Registry = "messagingemulators.azurecr.io",
+                Image = "microsoft/azure/eventhubs/emulator",
+                Tag = "latest"
+            })
+            .WithAnnotation(new ContainerMountAnnotation(
+                Path.GetFullPath(Path.GetTempFileName(), builder.ApplicationBuilder.AppHostDirectory),
+                AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
+                ContainerMountType.BindMount,
+                isReadOnly: false))
+            ;
+
+        if (storageResource == null)
+        {
+            storageResource = builder.ApplicationBuilder
+                .AddAzureStorage($"{builder.Resource.Name}-storage")
+                .RunAsEmulator();
+        }
+
+        if (storageResource.Resource is not AzureStorageResource storage)
+        {
+            throw new InvalidOperationException($"An Azure Event Bus emulator could not be configured. Ensure a valid Azure Storage resource was provided.");
+        }
+
+        builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
+        {
+            var blobEndpoint = storage.GetEndpoint("blob");
+            var tableEndpoint = storage.GetEndpoint("table");
+
+            if (blobEndpoint == null || tableEndpoint == null)
+            {
+                throw new InvalidOperationException($"A Blob and Table endpoints could not be found is the provided Azure Storage resource.");
+            }
+
+            context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
+            context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.ContainerHost}:{blobEndpoint.Port}");
+            context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.ContainerHost}:{tableEndpoint.Port}");
+        }));
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureEventHubsEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to an Azure Event Hubs emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
+    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.eventhubs/{builder.Resource.Name}'</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path = null, bool isReadOnly = false)
+        => builder.WithBindMount(path ?? $".eventhubs/{builder.Resource.Name}", "/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a named volume for the data folder to an Azure Event Hubs emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
+
+    /// <summary>
+    /// Configures the gateway port for the Azure Event Hubs emulator.
+    /// </summary>
+    /// <param name="builder">Builder for the Azure Event Hubs emulator container</param>
+    /// <param name="port">Host port to bind to the emulator gateway port.</param>
+    /// <returns>Cosmos emulator resource builder.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithGatewayPort(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, int? port)
+    {
+        return builder.WithEndpoint("emulator", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 }
