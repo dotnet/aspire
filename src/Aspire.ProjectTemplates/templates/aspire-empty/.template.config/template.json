@@ -10,7 +10,7 @@
     "API",
     "Service"
   ],
-  "name": ".NET Aspire App",
+  "name": ".NET Aspire Empty App",
   "defaultName": "AspireApp",
   "description": "A project template for creating an empty .NET Aspire app.",
   "shortName": "aspire",
