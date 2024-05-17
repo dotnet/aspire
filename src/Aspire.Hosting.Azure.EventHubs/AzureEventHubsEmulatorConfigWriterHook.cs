@@ -38,29 +38,25 @@ internal sealed class AzureEventHubsEmulatorConfigWriterHook : IDistributedAppli
 
         foreach (var hub in emulatorResource.Hubs)
         {
-            // The default consumer group ('$default') is automatically created, and this
-            // is also the one used by a consumer client if no ConsumerGroup value
-            // is provided.
+            // The default consumer group ('$default') is automatically created
+
             writer.WriteStartObject();                  //           {
             writer.WriteString("Name", hub.Name);       //             "Name": "hub",
             writer.WriteString("PartitionCount", "2");  //             "PartitionCount": "2",
-            writer.WriteStartArray("ConsumerGroups");   //              "ConsumerGroups": [
-            writer.WriteStartObject();                  //                {
-            writer.WriteString("Name", "cg1");          //                  "Name": "cg1"
-            writer.WriteEndObject();                    //                }
-            writer.WriteEndArray();                     //              ]
-            writer.WriteEndObject();                    //            }
+            writer.WriteStartArray("ConsumerGroups");   //             "ConsumerGroups": [
+            writer.WriteEndArray();                     //             ]
+            writer.WriteEndObject();                    //           }
         }
 
-        writer.WriteEndArray();                         //          ] (/Entities)
-        writer.WriteEndObject();                        //        } 
-        writer.WriteEndArray();                         //      ], (/NamespaceConfig)
-        writer.WriteStartObject("LoggingConfig");       //      "LoggingConfig": {
-        writer.WriteString("Type", "File");             //        "Type": "File"
-        writer.WriteEndObject();                        //        } (/LoggingConfig)
+        writer.WriteEndArray();                         //         ] (/Entities)
+        writer.WriteEndObject();                        //       } 
+        writer.WriteEndArray();                         //     ], (/NamespaceConfig)
+        writer.WriteStartObject("LoggingConfig");       //     "LoggingConfig": {
+        writer.WriteString("Type", "File");             //       "Type": "File"
+        writer.WriteEndObject();                        //     } (/LoggingConfig)
 
-        writer.WriteEndObject();                        //        } (/UserConfig)
-        writer.WriteEndObject();                        //      } (/Root)
+        writer.WriteEndObject();                        //   } (/UserConfig)
+        writer.WriteEndObject();                        // } (/Root)
 
         return Task.CompletedTask;
     }
