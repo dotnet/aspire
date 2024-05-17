@@ -116,14 +116,14 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                 Type: "Project",
                 Name: "apiservice",
                 State: "Running",
-                Source: $"{project!.Id}.ApiService.csproj",
+                Source: $"{project.Id}.ApiService.csproj",
                 Endpoints: ["http://localhost:\\d+/weatherforecast", "https://localhost:\\d+/weatherforecast"]),
 
             new ResourceRow(
                 Type: "Project",
                 Name: "webfrontend",
                 State: "Running",
-                Source: $"{project!.Id}.Web.csproj",
+                Source: $"{project.Id}.Web.csproj",
                 Endpoints: ["https://localhost:\\d+", "http://localhost:\\d+"])
         };
         if (hasRedisCache)
