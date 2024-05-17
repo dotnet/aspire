@@ -129,7 +129,7 @@ public static class AzureEventHubsExtensions
                 Tag = "latest"
             })
             .WithAnnotation(new ContainerMountAnnotation(
-                Path.GetFullPath(Path.GetTempFileName(), builder.ApplicationBuilder.AppHostDirectory),
+                Path.GetTempFileName(),
                 AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
                 ContainerMountType.BindMount,
                 isReadOnly: false))
