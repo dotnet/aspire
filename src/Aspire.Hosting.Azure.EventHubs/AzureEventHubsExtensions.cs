@@ -109,7 +109,7 @@ public static class AzureEventHubsExtensions
     /// <param name="storageResource">An optional Azure Storage resource.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, IResourceBuilder<IResource>? storageResource = null, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
+    public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, IResourceBuilder<AzureStorageResource>? storageResource = null, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -142,10 +142,7 @@ public static class AzureEventHubsExtensions
                 .RunAsEmulator();
         }
 
-        if (storageResource.Resource is not AzureStorageResource storage)
-        {
-            throw new InvalidOperationException($"An Azure Event Bus emulator could not be configured. Ensure a valid Azure Storage resource was provided.");
-        }
+        var storage = storageResource.Resource;
 
         builder.WithAnnotation(new EnvironmentCallbackAnnotation((EnvironmentCallbackContext context) =>
         {
