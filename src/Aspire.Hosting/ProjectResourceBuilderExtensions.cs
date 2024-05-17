@@ -224,6 +224,9 @@ public static class ProjectResourceBuilderExtensions
             builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
         }
 
+        var kestrelConfig = GetKestrelConfiguration(projectResource);
+        var kestrelEndpoints = kestrelConfig.GetSection("Kestrel:Endpoints").GetChildren();
+
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
             // Process the launch profile and turn it into environment variables and endpoints.
@@ -234,8 +237,6 @@ public static class ProjectResourceBuilderExtensions
             }
 
             // Check for any endpoint bindings at Kestrel configuration level
-            var kestrelConfig = GetKestrelConfiguration(projectResource);
-            var kestrelEndpoints = kestrelConfig.GetSection("Kestrel:Endpoints").GetChildren();
             foreach (var endpoint in kestrelEndpoints)
             {
                 if (endpoint["Url"] is string url)
@@ -284,7 +285,7 @@ public static class ProjectResourceBuilderExtensions
         else
         {
             // If we aren't a web project we don't automatically add bindings.
-            if (!IsWebProject(projectResource))
+            if (!IsWebProject(projectResource) && !kestrelEndpoints.Any())
             {
                 return builder;
             }
