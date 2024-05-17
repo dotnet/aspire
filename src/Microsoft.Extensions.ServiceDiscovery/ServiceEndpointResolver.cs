@@ -49,6 +49,7 @@ public sealed class ServiceEndpointResolver : IAsyncDisposable
         while (true)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
             var resolver = _resolvers.GetOrAdd(
                 serviceName,
                 static (name, self) => self.CreateResolver(name),
@@ -63,6 +64,10 @@ public sealed class ServiceEndpointResolver : IAsyncDisposable
                 }
 
                 return result;
+            }
+            else
+            {
+                _resolvers.TryRemove(KeyValuePair.Create(resolver.ServiceName, resolver));
             }
         }
     }
@@ -148,6 +153,7 @@ public sealed class ServiceEndpointResolver : IAsyncDisposable
                 cleanupTasks.Add(resolver.DisposeAsync().AsTask());
             }
         }
+
         if (cleanupTasks is not null)
         {
             await Task.WhenAll(cleanupTasks).ConfigureAwait(false);

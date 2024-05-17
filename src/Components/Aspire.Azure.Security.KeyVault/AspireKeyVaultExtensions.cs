@@ -150,12 +150,12 @@ public static class AspireKeyVaultExtensions
         }
 
         protected override bool GetHealthCheckEnabled(AzureSecurityKeyVaultSettings settings)
-            => settings.HealthChecks;
+            => !settings.DisableHealthChecks;
 
         protected override TokenCredential? GetTokenCredential(AzureSecurityKeyVaultSettings settings)
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureSecurityKeyVaultSettings settings)
-            => settings.Tracing;
+            => !settings.DisableTracing;
     }
 }

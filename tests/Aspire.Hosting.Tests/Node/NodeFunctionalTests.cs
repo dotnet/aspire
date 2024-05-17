@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Testing;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Node;
@@ -20,12 +21,14 @@ public class NodeFunctionalTests
     public async Task VerifyNodeAppWorks()
     {
         var testProgram = _nodeJsFixture.TestProgram;
-        var client = _nodeJsFixture.HttpClient;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
-        var response0 = await testProgram.NodeAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
+        using var nodeClient = testProgram.App!.CreateHttpClient(testProgram.NodeAppBuilder!.Resource.Name, "http");
+        var response0 = await nodeClient.GetStringAsync("/", cts.Token);
+
+        using var npmClient = testProgram.App!.CreateHttpClient(testProgram.NodeAppBuilder!.Resource.Name, "http");
+        var response1 = await npmClient.GetStringAsync("/", cts.Token);
 
         Assert.Equal("Hello from node!", response0);
         Assert.Equal("Hello from node!", response1);

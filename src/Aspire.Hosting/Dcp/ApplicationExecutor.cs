@@ -63,6 +63,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IKubernetesService kubernetesService,
                                           IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
                                           IConfiguration configuration,
+                                          DistributedApplicationOptions distributedApplicationOptions,
                                           IOptions<DcpOptions> options,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
@@ -76,6 +77,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
     private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup = GetParentChildLookup(model);
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
+    private readonly DistributedApplicationOptions _distributedApplicationOptions = distributedApplicationOptions;
     private readonly IOptions<DcpOptions> _options = options;
     private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
     private readonly List<AppResource> _appResources = [];
@@ -1063,6 +1065,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     ];
                 }
 
+                if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
+                {
+                    exeSpec.Args.AddRange(new [] {"-c", _distributedApplicationOptions.Configuration});
+                }
+
                 // We pretty much always want to suppress the normal launch profile handling
                 // because the settings from the profile will override the ambient environment settings, which is not what we want
                 // (the ambient environment settings for service processes come from the application model
@@ -1482,13 +1489,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         // Apply optional extra arguments to the container run command.
-        if (modelContainerResource.TryGetAnnotationsOfType<ContainerRunArgsCallbackAnnotation>(out var runArgsCallback))
+        if (modelContainerResource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
         {
             dcpContainerResource.Spec.RunArgs ??= [];
 
             var args = new List<object>();
 
-            var containerRunArgsContext = new ContainerRunArgsCallbackContext(args, cancellationToken);
+            var containerRunArgsContext = new ContainerRuntimeArgsCallbackContext(args, cancellationToken);
 
             foreach (var callback in runArgsCallback)
             {
@@ -1600,7 +1607,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             else
             {
-                
                 Debug.Assert(ea.IsProxied);
 
                 if (ea.TargetPort is int && ea.Port is int && ea.TargetPort == ea.Port)
@@ -1613,7 +1619,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     throw new InvalidOperationException(
                         $"Resource '{modelResourceName}' can have multiple replicas, and it uses endpoint '{ea.Name}' that has {nameof(ea.TargetPort)} property set. Each replica must have a unique port; setting {nameof(ea.TargetPort)} is not allowed.");
-                } 
+                }
             }
 
             var spAnn = new ServiceProducerAnnotation(sp.Service.Metadata.Name);

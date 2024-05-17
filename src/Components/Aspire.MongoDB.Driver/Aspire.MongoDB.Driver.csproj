@@ -4,6 +4,7 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) MongoDB</PackageTags>
+    <PackageIconFullPath>$(SharedDir)MongoDB_300px.png</PackageIconFullPath>
     <Description>A generic MongoDB client that integrates with Aspire.</Description>
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB packages are not signed -->
   </PropertyGroup>

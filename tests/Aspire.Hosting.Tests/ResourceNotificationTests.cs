@@ -149,7 +149,8 @@ public class ResourceNotificationTests
 
     private sealed class CustomResource(string name) : Resource(name),
         IResourceWithEnvironment,
-        IResourceWithConnectionString
+        IResourceWithConnectionString,
+        IResourceWithEndpoints
     {
         public ReferenceExpression ConnectionStringExpression =>
             ReferenceExpression.Create($"CustomConnectionString");

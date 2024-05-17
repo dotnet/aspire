@@ -23,14 +23,26 @@ public class AddKafkaTests
         var containerResource = Assert.Single(appModel.Resources.OfType<KafkaServerResource>());
         Assert.Equal("kafka", containerResource.Name);
 
-        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(9092, endpoint.TargetPort);
-        Assert.False(endpoint.IsExternal);
-        Assert.Equal("tcp", endpoint.Name);
-        Assert.Null(endpoint.Port);
-        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
-        Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("tcp", endpoint.UriScheme);
+        var endpoints = containerResource.Annotations.OfType<EndpointAnnotation>();
+        Assert.Equal(2, endpoints.Count());
+
+        var primaryEndpoint = Assert.Single(endpoints, e => e.Name == "tcp");
+        Assert.Equal(9092, primaryEndpoint.TargetPort);
+        Assert.False(primaryEndpoint.IsExternal);
+        Assert.Equal("tcp", primaryEndpoint.Name);
+        Assert.Null(primaryEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, primaryEndpoint.Protocol);
+        Assert.Equal("tcp", primaryEndpoint.Transport);
+        Assert.Equal("tcp", primaryEndpoint.UriScheme);
+
+        var internalEndpoint = Assert.Single(endpoints, e => e.Name == "internal");
+        Assert.Equal(9093, internalEndpoint.TargetPort);
+        Assert.False(internalEndpoint.IsExternal);
+        Assert.Equal("internal", internalEndpoint.Name);
+        Assert.Null(internalEndpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, internalEndpoint.Protocol);
+        Assert.Equal("tcp", internalEndpoint.Transport);
+        Assert.Equal("tcp", internalEndpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal(KafkaContainerImageTags.Tag, containerAnnotation.Tag);
@@ -72,7 +84,9 @@ public class AddKafkaTests
               "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
               "image": "{{KafkaContainerImageTags.Registry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
               "env": {
-                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:9092"
+                "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
+                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
+                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}"
               },
               "bindings": {
                 "tcp": {
@@ -80,10 +94,49 @@ public class AddKafkaTests
                   "protocol": "tcp",
                   "transport": "tcp",
                   "targetPort": 9092
+                },
+                "internal": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 9093
                 }
               }
             }
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    public static TheoryData<string?, string, int?> WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallbackTestVariations()
+    {
+        return new()
+        {
+            { "kafka-ui", "kafka-ui", 8081 },
+            { null, "kafka1-kafka-ui", 8081 },
+            { "kafka-ui", "kafka-ui", null },
+            { null, "kafka1-kafka-ui", null },
+        };
+    }
+
+    [Theory]
+    [MemberData(nameof(WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallbackTestVariations))]
+    public void WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallback(string? containerName, string expectedContainerName, int? port)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var configureContainerInvocations = 0;
+        Action<IResourceBuilder<KafkaUIContainerResource>> kafkaUIConfigurationCallback = kafkaUi =>
+        {
+            kafkaUi.WithHostPort(port);
+            configureContainerInvocations++;
+        };
+        builder.AddKafka("kafka1").WithKafkaUI(configureContainer: kafkaUIConfigurationCallback, containerName: containerName);
+        builder.AddKafka("kafka2").WithKafkaUI();
+
+        Assert.Single(builder.Resources.OfType<KafkaUIContainerResource>());
+        var kafkaUiResource = Assert.Single(builder.Resources, r => r.Name == expectedContainerName);
+        Assert.Equal(1, configureContainerInvocations);
+        var kafkaUiEndpoint = kafkaUiResource.Annotations.OfType<EndpointAnnotation>().Single();
+        Assert.Equal(8080, kafkaUiEndpoint.TargetPort);
+        Assert.Equal(port, kafkaUiEndpoint.Port);
     }
 }

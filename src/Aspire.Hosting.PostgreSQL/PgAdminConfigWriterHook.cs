@@ -20,6 +20,11 @@ internal sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycle
 
         using var stream = new FileStream(serverFileMount.Source!, FileMode.Create);
         using var writer = new Utf8JsonWriter(stream);
+        // Need to grant read access to the config file on unix like systems.
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(serverFileMount.Source!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+        }
 
         var serverIndex = 1;
 
@@ -34,7 +39,7 @@ internal sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycle
 
                 writer.WriteStartObject($"{serverIndex}");
                 writer.WriteString("Name", postgresInstance.Name);
-                writer.WriteString("Group", "Aspire instances");
+                writer.WriteString("Group", "Servers");
                 writer.WriteString("Host", endpoint.ContainerHost);
                 writer.WriteNumber("Port", endpoint.Port);
                 writer.WriteString("Username", "postgres");

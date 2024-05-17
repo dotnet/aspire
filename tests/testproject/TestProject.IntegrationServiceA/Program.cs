@@ -32,7 +32,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
-    builder.AddRedisClient("redis");
+    builder.AddKeyedRedisClient("redis");
+}
+if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
+{
+    builder.AddKeyedRedisClient("garnet");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
@@ -66,7 +70,7 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
-    builder.AddAzureCosmosDBClient("cosmos");
+    builder.AddAzureCosmosClient("cosmos");
 }
 
 // Ensure healthChecks are added. Some components like Cosmos
@@ -84,6 +88,11 @@ app.MapGet("/pid", () => Environment.ProcessId);
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     app.MapRedisApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
+{
+    app.MapGarnetApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))

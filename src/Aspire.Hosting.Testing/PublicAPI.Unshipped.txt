@@ -1,10 +1,10 @@
 #nullable enable
-Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>
-Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.CreateHttpClient(string! resourceName, string? endpointName = null) -> System.Net.Http.HttpClient!
-Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.DistributedApplicationFactory() -> void
-Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.GetConnectionString(string! resourceName) -> System.Threading.Tasks.ValueTask<string?>
-Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.GetEndpoint(string! resourceName, string? endpointName = null) -> System.Uri!
-Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Testing.DistributedApplicationFactory
+Aspire.Hosting.Testing.DistributedApplicationFactory.CreateHttpClient(string! resourceName, string? endpointName = null) -> System.Net.Http.HttpClient!
+Aspire.Hosting.Testing.DistributedApplicationFactory.DistributedApplicationFactory(System.Type! entryPoint) -> void
+Aspire.Hosting.Testing.DistributedApplicationFactory.GetConnectionString(string! resourceName) -> System.Threading.Tasks.ValueTask<string?>
+Aspire.Hosting.Testing.DistributedApplicationFactory.GetEndpoint(string! resourceName, string? endpointName = null) -> System.Uri!
+Aspire.Hosting.Testing.DistributedApplicationFactory.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions
 Aspire.Hosting.Testing.DistributedApplicationTestingBuilder
 Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder
@@ -20,10 +20,11 @@ Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder.Services.get -> Mic
 static Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions.CreateHttpClient(this Aspire.Hosting.DistributedApplication! app, string! resourceName, string? endpointName = null) -> System.Net.Http.HttpClient!
 static Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions.GetConnectionStringAsync(this Aspire.Hosting.DistributedApplication! app, string! resourceName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
 static Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions.GetEndpoint(this Aspire.Hosting.DistributedApplication! app, string! resourceName, string? endpointName = null) -> System.Uri!
+static Aspire.Hosting.Testing.DistributedApplicationTestingBuilder.CreateAsync(System.Type! entryPoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder!>!
 static Aspire.Hosting.Testing.DistributedApplicationTestingBuilder.CreateAsync<TEntryPoint>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder!>!
-virtual Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.Dispose() -> void
-virtual Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.DisposeAsync() -> System.Threading.Tasks.ValueTask
-virtual Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.OnBuilderCreated(Aspire.Hosting.DistributedApplicationBuilder! applicationBuilder) -> void
-virtual Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.OnBuilderCreating(Aspire.Hosting.DistributedApplicationOptions! applicationOptions, Microsoft.Extensions.Hosting.HostApplicationBuilderSettings! hostOptions) -> void
-virtual Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.OnBuilding(Aspire.Hosting.DistributedApplicationBuilder! applicationBuilder) -> void
-virtual Aspire.Hosting.Testing.DistributedApplicationFactory<TEntryPoint>.OnBuilt(Aspire.Hosting.DistributedApplication! application) -> void
+virtual Aspire.Hosting.Testing.DistributedApplicationFactory.Dispose() -> void
+virtual Aspire.Hosting.Testing.DistributedApplicationFactory.DisposeAsync() -> System.Threading.Tasks.ValueTask
+virtual Aspire.Hosting.Testing.DistributedApplicationFactory.OnBuilderCreated(Aspire.Hosting.DistributedApplicationBuilder! applicationBuilder) -> void
+virtual Aspire.Hosting.Testing.DistributedApplicationFactory.OnBuilderCreating(Aspire.Hosting.DistributedApplicationOptions! applicationOptions, Microsoft.Extensions.Hosting.HostApplicationBuilderSettings! hostOptions) -> void
+virtual Aspire.Hosting.Testing.DistributedApplicationFactory.OnBuilding(Aspire.Hosting.DistributedApplicationBuilder! applicationBuilder) -> void
+virtual Aspire.Hosting.Testing.DistributedApplicationFactory.OnBuilt(Aspire.Hosting.DistributedApplication! application) -> void

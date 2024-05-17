@@ -119,7 +119,7 @@ public static partial class AspireEFMySqlExtensions
 
                 // Resiliency:
                 // 1. Connection resiliency automatically retries failed database commands: https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/wiki/Configuration-Options#enableretryonfailure
-                if (settings.Retry)
+                if (!settings.DisableRetry)
                 {
                     builder.EnableRetryOnFailure();
                 }
@@ -158,7 +158,7 @@ public static partial class AspireEFMySqlExtensions
         void ConfigureRetry()
         {
 #pragma warning disable EF1001 // Internal EF Core API usage.
-            if (settings.Retry || settings.CommandTimeout.HasValue)
+            if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
                 builder.PatchServiceDescriptor<TContext>(optionsBuilder =>
                 {
@@ -172,7 +172,7 @@ public static partial class AspireEFMySqlExtensions
                     {
                         var extension = optionsBuilder.Options.FindExtension<MySqlOptionsExtension>();
 
-                        if (settings.Retry)
+                        if (!settings.DisableRetry)
                         {
                             var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
 
@@ -182,13 +182,13 @@ public static partial class AspireEFMySqlExtensions
                                 {
                                     // Keep custom Retry strategy.
                                     // Any sub-class of MySqlRetryingExecutionStrategy is a valid retry strategy
-                                    // which shouldn't be replaced even with Retry == true
+                                    // which shouldn't be replaced even with DisableRetry == false
                                 }
                                 else if (executionStrategy.GetType() != typeof(MySqlExecutionStrategy))
                                 {
                                     // Check MySqlExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
 
-                                    throw new InvalidOperationException($"{nameof(PomeloEntityFrameworkCoreMySqlSettings)}.Retry can't be set when a custom Execution Strategy is configured.");
+                                    throw new InvalidOperationException($"{nameof(PomeloEntityFrameworkCoreMySqlSettings)}.{nameof(PomeloEntityFrameworkCoreMySqlSettings.DisableRetry)} needs to be set when a custom Execution Strategy is configured.");
                                 }
                                 else
                                 {
@@ -222,7 +222,7 @@ public static partial class AspireEFMySqlExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, PomeloEntityFrameworkCoreMySqlSettings settings) where TContext : DbContext
     {
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             // calling MapHealthChecks is the responsibility of the app, not Component
             builder.TryAddHealthCheck(
@@ -230,7 +230,7 @@ public static partial class AspireEFMySqlExtensions
                 static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
         }
 
-        if (settings.Tracing)
+        if (!settings.DisableTracing)
         {
             builder.Services.AddOpenTelemetry()
                 .WithTracing(tracerProviderBuilder =>
@@ -240,7 +240,7 @@ public static partial class AspireEFMySqlExtensions
                 });
         }
 
-        if (settings.Metrics)
+        if (!settings.DisableMetrics)
         {
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(meterProviderBuilder =>
