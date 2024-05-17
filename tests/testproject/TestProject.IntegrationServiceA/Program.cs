@@ -72,6 +72,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     builder.AddAzureCosmosClient("cosmos");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+{
+    builder.AddKeyedMilvusClient("milvus");
+}
 
 // Ensure healthChecks are added. Some components like Cosmos
 // don't add this
@@ -142,6 +146,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+{
+    app.MapMilvusApi();
 }
 
 app.Run();

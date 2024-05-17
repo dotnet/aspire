@@ -142,6 +142,15 @@ public class TestProgram : IDisposable
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
             }
+            if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+            {
+                builder.Configuration["Parameters:milvusApiKey"] = "root:Milvus";
+
+                var milvusApiKey = builder.AddParameter("milvusApiKey");
+
+                var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
+            }
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
