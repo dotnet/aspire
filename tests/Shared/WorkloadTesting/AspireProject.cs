@@ -186,11 +186,13 @@ public class AspireProject : IAsyncDisposable
             _testOutput.WriteLine(line);
         };
 
+        Stopwatch runTimeStopwatch = new();
         EventHandler appExitedCallback = (sender, e) =>
         {
             _testOutput.WriteLine("");
             _testOutput.WriteLine($"----------- [{Path.GetFileName(AppHostProjectDirectory)}] app has exited -------------");
             _testOutput.WriteLine("");
+            runTimeStopwatch.Stop();
             AppExited.SetResult();
         };
         AppHostProcess.EnableRaisingEvents = true;
@@ -200,7 +202,6 @@ public class AspireProject : IAsyncDisposable
 
         configureProcess?.Invoke(AppHostProcess.StartInfo);
 
-        Stopwatch runTimeStopwatch = new();
         runTimeStopwatch.Start();
         AppHostProcess.Start();
         AppHostProcess.BeginOutputReadLine();
@@ -217,6 +218,7 @@ public class AspireProject : IAsyncDisposable
             // timed out, or the app has exited
             if (startupTimeoutTask.IsCompleted)
             {
+                runTimeStopwatch.Stop();
                 reason = $"Timed out after {AppStartupWaitTimeoutSecs} secs waiting for the app to start.";
                 _testOutput.WriteLine($"{reason}. Killing ..");
                 AppHostProcess.CloseAndKillProcessIfRunning();
@@ -224,7 +226,7 @@ public class AspireProject : IAsyncDisposable
             }
             else
             {
-                reason = $"App exited before startup could complete with exit code {AppHostProcess.ExitCode}";
+                reason = $"App exited before startup could complete with exit code {AppHostProcess.ExitCode}. It ran for {runTimeStopwatch.Elapsed} secs.";
                 _testOutput.WriteLine(reason);
 
                 // wait for all the output to be read
@@ -248,16 +250,7 @@ public class AspireProject : IAsyncDisposable
             }
 
             // should really fail and quit after this
-            throw new ArgumentException(exceptionMessage);
-        }
-
-        lock (outputLock)
-        {
-            outputMessage = output.ToString();
-        }
-        if (resultTask != successfulStartupTask)
-        {
-            throw new XunitException($"App run failed: {Environment.NewLine}{outputMessage}");
+            throw new InvalidOperationException(exceptionMessage);
         }
 
         foreach (var project in InfoTable.Values)
