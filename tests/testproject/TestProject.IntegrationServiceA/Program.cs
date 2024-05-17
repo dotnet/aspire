@@ -74,7 +74,7 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
 {
-    builder.AddKeyedMilvusClient("milvus");
+    builder.AddMilvusClient("milvus");
 }
 
 // Ensure healthChecks are added. Some components like Cosmos

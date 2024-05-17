@@ -10,7 +10,7 @@ public static class MilvusExtensions
         app.MapGet("/milvus/verify", VerifyMilvusAsync);
     }
 
-    private static async Task<IResult> VerifyMilvusAsync([FromKeyedServices("milvus")] MilvusClient client)
+    private static async Task<IResult> VerifyMilvusAsync(MilvusClient client)
     {
         try
         {
