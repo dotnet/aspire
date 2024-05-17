@@ -31,7 +31,7 @@ public class WorkloadTestsBase
 
             BrowserTypeLaunchOptions options = new()
             {
-                Headless = false,
+                Headless = true,
                 ExecutablePath = browserPath
             };
 
