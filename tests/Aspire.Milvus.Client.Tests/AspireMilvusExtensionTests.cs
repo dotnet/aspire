@@ -18,7 +18,7 @@ public class AspireMilvusExtensionTests : IClassFixture<MilvusContainerFixture>
 
     private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
                                         ? _containerFixture.GetConnectionString()
-                                        : $"Endpoint=http://localhost:19530;Key={DefaultApiKey}";
+                                        : $"Endpoint=http://localhost:19530/;Key={DefaultApiKey}";
 
     private string NormalizedConnectionString => ConnectionString;
 
