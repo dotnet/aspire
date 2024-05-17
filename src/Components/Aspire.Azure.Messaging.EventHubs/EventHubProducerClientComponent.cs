@@ -32,9 +32,21 @@ internal sealed class EventHubProducerClientComponent : EventHubsComponent<Azure
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
-            return !string.IsNullOrEmpty(settings.ConnectionString) ?
-                new EventHubProducerClient(settings.ConnectionString, options) :
-                new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+            if (!string.IsNullOrEmpty(settings.ConnectionString))
+            {
+                if (!string.IsNullOrEmpty(settings.EventHubName))
+                {
+                    return new EventHubProducerClient(settings.ConnectionString, settings.EventHubName, options);
+                }
+                else
+                {
+                    return new EventHubProducerClient(settings.ConnectionString, options);
+                }
+            }
+            else
+            {
+                return new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+            }
         }, requiresCredential: false);
     }
 }
