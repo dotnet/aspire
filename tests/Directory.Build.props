@@ -18,6 +18,11 @@
 
   <Import Project="Shared\Aspire.Workload.Testing.props" Condition="'$(IsWorkloadTestProject)' == 'true'" />
 
+  <PropertyGroup Condition="'$(IsWorkloadTestProject)' == 'true'">
+    <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
+    <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!--
       Test projects don't need XML docs

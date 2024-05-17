@@ -7,9 +7,6 @@
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
 
-    <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
-    <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
-
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForWorkloadTests)</TestArchiveTestsDir>
