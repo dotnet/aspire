@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
@@ -180,7 +178,7 @@ public class WorkloadTestsBase
 
     // Don't fixup the prefix so it can have characters meant for testing, like spaces
     public static string GetNewProjectId(string? prefix = null)
-        => (prefix is null ? "" : $"{prefix}_") + FixupSymbolName(Path.GetRandomFileName());
+        => (prefix is null ? "" : $"{prefix}_") + Path.GetRandomFileName();
 
     public static async Task<CommandResult?> AssertTestProjectRunAsync(string testProjectDirectory, string testType, ITestOutputHelper testOutput, string config = "Debug", int testRunTimeoutSecs = 3 * 60)
     {
@@ -202,35 +200,5 @@ public class WorkloadTestsBase
             Assert.Matches("Passed! * - Failed: *0, Passed: *1, Skipped: *0, Total: *1", res.Output);
             return res;
         }
-    }
-
-    private static readonly char[] s_charsToReplace = ['.', '-', '+'];
-
-    public static string FixupSymbolName(string name)
-    {
-        UTF8Encoding utf8 = new();
-        byte[] bytes = utf8.GetBytes(name);
-        StringBuilder sb = new();
-
-        foreach (byte b in bytes)
-        {
-            if ((b >= (byte)'0' && b <= (byte)'9') ||
-                (b >= (byte)'a' && b <= (byte)'z') ||
-                (b >= (byte)'A' && b <= (byte)'Z') ||
-                (b == (byte)'_'))
-            {
-                sb.Append((char)b);
-            }
-            else if (s_charsToReplace.Contains((char)b))
-            {
-                sb.Append('_');
-            }
-            else
-            {
-                sb.Append(CultureInfo.InvariantCulture, $"_{b:X}_");
-            }
-        }
-
-        return sb.ToString();
     }
 }
