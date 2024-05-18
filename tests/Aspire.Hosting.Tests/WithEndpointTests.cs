@@ -31,6 +31,40 @@ public class WithEndpointTests
     }
 
     [Fact]
+    public void WithEndpointMakesTargetPortEqualToPortIfProxyless()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithEndpoint("mybinding", endpoint =>
+                              {
+                                  endpoint.Port = 2000;
+                                  endpoint.IsProxied = false;
+                              });
+
+        var endpoint = projectA.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
+        Assert.Equal(2000, endpoint.TargetPort);
+    }
+
+    [Fact]
+    public void WithEndpointMakesPortEqualToTargetPortIfProxyless()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithEndpoint("mybinding", endpoint =>
+                              {
+                                  endpoint.TargetPort = 2000;
+                                  endpoint.IsProxied = false;
+                              });
+
+        var endpoint = projectA.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
+        Assert.Equal(2000, endpoint.Port);
+    }
+
+    [Fact]
     public void WithEndpointCallbackDoesNotRunIfEndpointDoesntExistAndCreateIfNotExistsIsFalse()
     {
         var executed = false;
