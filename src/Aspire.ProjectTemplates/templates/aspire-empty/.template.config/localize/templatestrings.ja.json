@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire アプリケーション",
+  "name": ".NET Aspire Empty App",
   "description": "空の .NET Aspire アプリを作成するためのプロジェクト テンプレート。",
   "symbols/Framework/description": "プロジェクトのターゲット フレームワークです。",
   "symbols/Framework/choices/net8.0/description": "ターゲット net8.0",
