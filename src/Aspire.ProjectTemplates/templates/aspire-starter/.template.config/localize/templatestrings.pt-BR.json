@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aplicativo inicial do .NET Aspire Starter",
+  "name": ".NET Aspire Starter App",
   "description": "Um modelo de projeto para criar um aplicativo .NET Pool com um front-end da Web Blazor e um serviço de back-end da API Web, opcionalmente usando o Redis para cache.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net8.0/description": "Destino net8.0",

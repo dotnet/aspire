@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Application de démarrage .NET Aspire",
+  "name": ".NET Aspire Starter App",
   "description": "Un modèle de projet pour créer une application .NET Aspire avec une interface Web Blazor et un service backend d'API Web, en utilisant éventuellement Redis pour la mise en cache.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",

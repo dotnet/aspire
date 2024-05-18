@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aplicación de inicio .NET Aspire",
+  "name": ".NET Aspire Starter App",
   "description": "Una plantilla de proyecto para crear una aplicación de .NET Insights con un front-end web de Blazor y un servicio back-end de API web, opcionalmente mediante Redis para el almacenamiento en caché.",
   "symbols/Framework/description": "Marco de destino del proyecto.",
   "symbols/Framework/choices/net8.0/description": "NET8.0 de destino",
