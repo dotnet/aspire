@@ -15,7 +15,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class ProjectResourceBuilderExtensions
 {
-    private const string AspNetCoreForwaredHeadersEnabledVariableName = "ASPNETCORE_FORWARDEDHEADERS_ENABLED";
+    private const string AspNetCoreForwardedHeadersEnabledVariableName = "ASPNETCORE_FORWARDEDHEADERS_ENABLED";
 
     /// <summary>
     /// Adds a .NET project to the application model.
@@ -208,7 +208,7 @@ public static class ProjectResourceBuilderExtensions
                 // If we have any endpoints & the forwarded headers wasn't disabled then add it
                 if (projectResource.GetEndpoints().Any() && !projectResource.Annotations.OfType<DisableForwardedHeadersAnnotation>().Any())
                 {
-                    context.EnvironmentVariables[AspNetCoreForwaredHeadersEnabledVariableName] = "true";
+                    context.EnvironmentVariables[AspNetCoreForwardedHeadersEnabledVariableName] = "true";
                 }
             });
         }
@@ -226,32 +226,53 @@ public static class ProjectResourceBuilderExtensions
 
         var kestrelConfig = GetKestrelConfiguration(projectResource);
         var kestrelEndpoints = kestrelConfig.GetSection("Kestrel:Endpoints").GetChildren();
+        var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
+
+        // Get all the Kestrel configuration endpoint bindings, grouped by scheme
+        var kestrelEndpointsByScheme = kestrelEndpoints
+            .Where(endpoint => endpoint["Url"] is string)
+            .Select(endpoint => new
+            {
+                EndpointName = endpoint.Key,
+                BindingAddress = BindingAddress.Parse(endpoint["Url"]!)
+            })
+            .GroupBy(entry => entry.BindingAddress.Scheme);
+
+        // Helper to change the transport to http2 if needed
+        var isHttp2ConfiguredInAppSettings = kestrelConfig["Kestrel:EndpointDefaults:Protocols"] == "Http2";
+        var adjustTransport = (EndpointAnnotation e) => e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
+            foreach (var schemeGroup in kestrelEndpointsByScheme)
+            {
+                // If there is only one endpoint for a given scheme, we use the scheme as the endpoint name
+                // Otherwise, we use the actual endpoint names from the config
+                var schemeAsEndpointName = schemeGroup.Count() <= 1 ? schemeGroup.Key : null;
+
+                foreach (var endpoint in schemeGroup)
+                {
+                    builder.WithEndpoint(schemeAsEndpointName ?? endpoint.EndpointName, e =>
+                    {
+                        e.Port = endpoint.BindingAddress.Port;
+                        e.UriScheme = endpoint.BindingAddress.Scheme;
+                        e.IsProxied = false; // turn off the proxy, as we cannot easily override Kestrel bindings
+                        e.TargetPort = e.Port; // Should be implied, but is needed due to sequencing bug in WithEndpoint()
+                        e.Transport = adjustTransport(e);
+                    },
+                    createIfNotExists: true);
+                }
+            }
+
             // Process the launch profile and turn it into environment variables and endpoints.
-            var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
             if (launchProfile is null)
             {
                 return builder;
             }
 
-            // Check for any endpoint bindings at Kestrel configuration level
-            foreach (var endpoint in kestrelEndpoints)
-            {
-                if (endpoint["Url"] is string url)
-                {
-                    // We need to turn off the proxy, because we cannot easily override Kestrel bindings
-                    // DISCUSS: we use the scheme as the name instead of the endpoint name from config (endpoint.Key),
-                    //   as it seems that the framework expects it to be http/https. This may not be correct.
-                    var bindingAddress = BindingAddress.Parse(url);
-                    builder.WithEndpoint(name: bindingAddress.Scheme, port: bindingAddress.Port, scheme: bindingAddress.Scheme, isProxied: false);
-                }
-            }
-
-            // If there are any Kestrel endpoints, we ignore the launch profile endpoints,
-            // as that is what happens at runtime
-            if (!kestrelEndpoints.Any())
+            // If we had found any Kestrel endpoints, we ignore the launch profile endpoints,
+            // to match the Kestrel runtime behavior.
+            if (!kestrelEndpointsByScheme.Any())
             {
                 var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
                 foreach (var url in urlsFromApplicationUrl)
@@ -263,6 +284,7 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = uri.Port;
                         e.UriScheme = uri.Scheme;
                         e.FromLaunchProfile = true;
+                        e.Transport = adjustTransport(e);
                     },
                     createIfNotExists: true);
                 }
@@ -284,20 +306,18 @@ public static class ProjectResourceBuilderExtensions
         }
         else
         {
-            // If we aren't a web project we don't automatically add bindings.
-            if (!IsWebProject(projectResource) && !kestrelEndpoints.Any())
+            // If we aren't a web project (looking at both launch profile and Kestrel config) we don't automatically add bindings.
+            if (launchProfile?.ApplicationUrl == null && !kestrelEndpointsByScheme.Any())
             {
                 return builder;
             }
-
-            var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
 
             if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || string.Equals(sb.Name, "http", StringComparisons.EndpointAnnotationName)))
             {
                 builder.WithEndpoint("http", e =>
                 {
                     e.UriScheme = "http";
-                    e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
+                    e.Transport = adjustTransport(e);
                 },
                 createIfNotExists: true);
             }
@@ -307,7 +327,7 @@ public static class ProjectResourceBuilderExtensions
                 builder.WithEndpoint("https", e =>
                 {
                     e.UriScheme = "https";
-                    e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
+                    e.Transport = adjustTransport(e);
                 },
                 createIfNotExists: true);
             }
@@ -394,19 +414,6 @@ public static class ProjectResourceBuilderExtensions
         configBuilder.AddJsonFile(appSettingsPath, optional: true);
         configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
         return configBuilder.Build();
-    }
-
-    private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
-    {
-        var config = GetKestrelConfiguration(projectResource);
-        var protocol = config["Kestrel:EndpointDefaults:Protocols"];
-        return protocol == "Http2";
-    }
-
-    private static bool IsWebProject(ProjectResource projectResource)
-    {
-        var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
-        return launchProfile?.ApplicationUrl != null;
     }
 
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
