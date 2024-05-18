@@ -15,10 +15,10 @@ public class WithHealthProbeTests
         {
             const string endpointName = "myEndpoint";
             var appBuilder = DistributedApplication.CreateBuilder();
-            var resource = appBuilder.AddResource(new CustomResource("myResouce"));
-            resource.WithHttpsEndpoint(3000, endpointName);
-            resource.WithHealthProbe(HealthProbeType.Readiness, resource.GetEndpoint(endpointName), "/health");
-            resource.WithHealthProbe(HealthProbeType.Readiness, resource.GetEndpoint(endpointName), "/ready");
+            var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
+            resource.WithHttpsEndpoint(3000, 3000, endpointName);
+            resource.WithProbe(ProbeType.Readiness, resource.GetEndpoint(endpointName), "/health");
+            resource.WithProbe(ProbeType.Readiness, resource.GetEndpoint(endpointName), "/ready");
         });
 
         Assert.Equal("Probe with type 'Readiness' already exists", ex.Message);
@@ -29,11 +29,11 @@ public class WithHealthProbeTests
     {
         const string endpointName = "myEndpoint";
         var appBuilder = DistributedApplication.CreateBuilder();
-        var resource = appBuilder.AddResource(new CustomResource("myResouce"));
-        resource.WithHttpsEndpoint(3000, endpointName);
-        resource.WithHealthProbe(HealthProbeType.Startup, resource.GetEndpoint(endpointName), "/health");
+        var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
+        resource.WithHttpsEndpoint(3000, 3000, endpointName);
+        resource.WithProbe(ProbeType.Startup, resource.GetEndpoint(endpointName), "/health");
 
-        var annotations = resource.Resource.Annotations.OfType<HealthProbeAnnotation>().ToArray();
+        var annotations = resource.Resource.Annotations.OfType<ProbeAnnotation>().ToArray();
 
         Assert.Single(annotations);
     }
@@ -43,12 +43,12 @@ public class WithHealthProbeTests
     {
         const string endpointName = "myEndpoint";
         var appBuilder = DistributedApplication.CreateBuilder();
-        var resource = appBuilder.AddResource(new CustomResource("myResouce"));
-        resource.WithHttpsEndpoint(3000, endpointName);
-        resource.WithHealthProbe(HealthProbeType.Startup, resource.GetEndpoint(endpointName), "/health");
-        resource.WithHealthProbe(HealthProbeType.Readiness, resource.GetEndpoint(endpointName), "/ready");
+        var resource = appBuilder.AddResource(new CustomResourceWithProbes("myResouce"));
+        resource.WithHttpsEndpoint(3000, 3000, endpointName);
+        resource.WithProbe(ProbeType.Startup, resource.GetEndpoint(endpointName), "/health");
+        resource.WithProbe(ProbeType.Readiness, resource.GetEndpoint(endpointName), "/ready");
 
-        var annotations = resource.Resource.Annotations.OfType<HealthProbeAnnotation>().ToArray();
+        var annotations = resource.Resource.Annotations.OfType<ProbeAnnotation>().ToArray();
 
         Assert.Equal(2, annotations.Length);
     }
@@ -56,11 +56,11 @@ public class WithHealthProbeTests
 }
 
 /// <summary>
-/// Temporary dummy resource to test the health probes. TODO: remove when one the actual resources implements <see cref="IResourceWithHealthProbes"/>
+/// Temporary dummy resource to test the health probes. TODO: remove when one the actual resources implements <see cref="IResourceWithProbes"/>
 /// </summary>
-file sealed class CustomResource : ContainerResource, IResourceWithHealthProbes
+internal sealed class CustomResourceWithProbes : ContainerResource, IResourceWithProbes
 {
-    public CustomResource(string name) : base(name)
+    public CustomResourceWithProbes(string name) : base(name)
     {
     }
 }
