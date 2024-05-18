@@ -12,6 +12,7 @@ public sealed class MilvusClientSettings
 {
     private const string ConnectionStringEndpoint = "Endpoint";
     private const string ConnectionStringApiKey = "Key";
+    private const string ConnectionStringDatabase = "Database";
 
     /// <summary>
     /// The endpoint URI string of the Milvus server to connect to.
@@ -22,6 +23,11 @@ public sealed class MilvusClientSettings
     /// The auth Key of the Milvus server to connect to.
     /// </summary>
     public string? Key { get; set; }
+
+    /// <summary>
+    /// The database name of the Milvus server to connect to.
+    /// </summary>
+    public string? Database { get; set; }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the Milvus client health check is disabled or not.
@@ -52,6 +58,11 @@ public sealed class MilvusClientSettings
             if (connectionBuilder.ContainsKey(ConnectionStringApiKey))
             {
                 Key = connectionBuilder[ConnectionStringApiKey].ToString();
+            }
+
+            if (connectionBuilder.ContainsKey(ConnectionStringDatabase))
+            {
+                Database = connectionBuilder[ConnectionStringDatabase].ToString();
             }
         }
     }

@@ -1,5 +1,7 @@
 #nullable enable
 Aspire.Milvus.Client.MilvusClientSettings
+Aspire.Milvus.Client.MilvusClientSettings.Database.get -> string?
+Aspire.Milvus.Client.MilvusClientSettings.Database.set -> void
 Aspire.Milvus.Client.MilvusClientSettings.DisableHealthChecks.get -> bool
 Aspire.Milvus.Client.MilvusClientSettings.DisableHealthChecks.set -> void
 Aspire.Milvus.Client.MilvusClientSettings.Endpoint.get -> System.Uri?

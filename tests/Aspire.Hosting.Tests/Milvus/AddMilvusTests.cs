@@ -134,8 +134,10 @@ public class AddMilvusTests
         appBuilder.Configuration["Parameters:apikey"] = "pass";
         var pass = appBuilder.AddParameter("apikey");
         var milvus = appBuilder.AddMilvus("milvus", pass);
+        var db1 = milvus.AddDatabase("db1");
 
         var serverManifest = await ManifestUtils.GetManifest(milvus.Resource); // using this method does not get any ExecutionContext.IsPublishMode changes
+        var dbManifest = await ManifestUtils.GetManifest(db1.Resource);
 
         var expectedManifest = $$"""
             {
@@ -164,6 +166,14 @@ public class AddMilvusTests
             }
             """;
         Assert.Equal(expectedManifest, serverManifest.ToString());
+
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{milvus.connectionString};Database=db1"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
     [Fact]

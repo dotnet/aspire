@@ -96,7 +96,9 @@ public static class AspireMilvusExtensions
         {
             if (settings.Endpoint is not null && settings.Key is not null)
             {
-                return new MilvusClient(settings.Endpoint, apiKey: settings.Key!, loggerFactory: serviceProvider.GetRequiredService<ILoggerFactory>());
+                return settings.Database is not null
+                    ? new MilvusClient(settings.Endpoint, apiKey: settings.Key!, database: settings.Database, loggerFactory: serviceProvider.GetRequiredService<ILoggerFactory>())
+                    : new MilvusClient(settings.Endpoint, apiKey: settings.Key!, loggerFactory: serviceProvider.GetRequiredService<ILoggerFactory>());
             }
             else
             {

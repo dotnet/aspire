@@ -65,6 +65,38 @@ public static class MilvusBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a Milvus database to the application model.
+    /// </summary>
+    /// <example>
+    /// Use in application host
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var booksdb = builder.AddMilvus("milvus");
+    ///   .AddDatabase("booksdb");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///                  .WithReference(booksdb);
+    ///  
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </example>
+    /// <param name="builder">The Milvus server resource builder.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <remarks>This method does not actually create the database in Milvus, rather helps complete a connection string that is used by the client component.</remarks>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MilvusDatabaseResource> AddDatabase(this IResourceBuilder<MilvusServerResource> builder, string name, string? databaseName = null)
+    {
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var milvusResource = new MilvusDatabaseResource(name, databaseName, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(milvusResource);
+    }
+
+    /// <summary>
     /// Adds an administration and development platform for Milvus to the application model using Attu. This version the package defaults to the 2.3-latest tag of the attu container image
     /// </summary>
     /// <example>

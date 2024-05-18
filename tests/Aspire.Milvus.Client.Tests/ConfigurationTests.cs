@@ -9,4 +9,8 @@ public class ConfigurationTests
     [Fact]
     public void EndpointIsNullByDefault()
     => Assert.Null(new MilvusClientSettings().Endpoint);
+
+    [Fact]
+    public void DatabaseIsNullByDefault()
+    => Assert.Null(new MilvusClientSettings().Database);
 }
