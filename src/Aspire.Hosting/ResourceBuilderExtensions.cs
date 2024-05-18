@@ -551,7 +551,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a health probe to the resource to check its health state.
+    /// Adds a probe to the resource to check its health state.
     /// </summary>
     /// <typeparam name="T">Type of resource.</typeparam>
     /// <param name="builder">Resource builder.</param>
@@ -561,15 +561,15 @@ public static class ResourceBuilderExtensions
     /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
     /// <param name="periodSeconds">The period between each probe.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithHealthProbe<T>(this IResourceBuilder<T> builder, HealthProbeType type,
+    public static IResourceBuilder<T> WithProbe<T>(this IResourceBuilder<T> builder, ProbeType type,
         EndpointReference endpoint, string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5)
-        where T : IResourceWithHealthProbes
+        where T : IResourceWithProbes
     {
-        if (builder.Resource.Annotations.OfType<HealthProbeAnnotation>().Any(a => a.ProbeType.Equals(type)))
+        if (builder.Resource.Annotations.OfType<ProbeAnnotation>().Any(a => a.ProbeType.Equals(type)))
         {
             throw new DistributedApplicationException($"Probe with type '{type}' already exists");
         }
 
-        return builder.WithAnnotation(new HealthProbeAnnotation(type, endpoint, path, initialDelaySeconds, periodSeconds));
+        return builder.WithAnnotation(new ProbeAnnotation(type, endpoint, path, initialDelaySeconds, periodSeconds));
     }
 }

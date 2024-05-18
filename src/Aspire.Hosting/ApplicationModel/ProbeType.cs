@@ -5,7 +5,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 ///
 /// </summary>
-public enum HealthProbeType
+public enum ProbeType
 {
     /// <summary>
     ///

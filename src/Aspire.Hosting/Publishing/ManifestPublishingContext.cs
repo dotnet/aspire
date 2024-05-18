@@ -161,6 +161,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
         WriteBindings(project);
+        WriteProbes(project);
     }
 
     private async Task WriteExecutableAsync(ExecutableResource executable)
@@ -180,6 +181,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(executable).ConfigureAwait(false);
         WriteBindings(executable);
+        WriteProbes(executable);
     }
 
     internal Task WriteParameterAsync(ParameterResource parameter)
@@ -249,6 +251,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container);
+        WriteProbes(container);
     }
 
     /// <summary>
@@ -504,6 +507,46 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                 Writer.WriteEndArray();
             }
+        }
+    }
+
+    /// <summary>
+    /// Writes the "probes" annotations for the underlying resource.
+    /// </summary>
+    /// <param name="resource"></param>
+    private void WriteProbes(IResource resource) // TODO: change to IResourceWithHealthProbes?
+    {
+        if (resource.TryGetProbes(out var healthProbes))
+        {
+            Writer.WriteStartArray("probes");
+            foreach (var probe in healthProbes)
+            {
+                Writer.WriteStartObject();
+                Writer.WriteString("type", probe.ProbeType.ToString().ToLowerInvariant());
+
+                if (probe.EndpointReference.Scheme.Equals("http") || probe.EndpointReference.Scheme.Equals("https"))
+                {
+                    Writer.WriteStartObject("httpGet");
+                    Writer.WriteString("path", probe.Path);
+                    Writer.WriteNumber("port", probe.EndpointReference.Port);
+                    Writer.WriteEndObject();
+                }
+                else if (probe.EndpointReference.Scheme.Equals("tcp"))
+                {
+                    Writer.WriteStartObject("tcpSocket");
+                    Writer.WriteNumber("port", probe.EndpointReference.Port);
+                    Writer.WriteEndObject();
+                }
+                else
+                {
+                    throw new DistributedApplicationException("Only HttpRequest and TcpSocket probes are supported");
+                }
+
+                Writer.WriteNumber("initialDelaySeconds", probe.InitialDelaySeconds);
+                Writer.WriteNumber("periodSeconds", probe.InitialDelaySeconds);
+                Writer.WriteEndObject();
+            }
+            Writer.WriteEndArray();
         }
     }
 

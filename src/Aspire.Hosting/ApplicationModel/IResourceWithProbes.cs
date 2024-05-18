@@ -6,6 +6,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a resource that has endpoints associated with it.
 /// </summary>
-public interface IResourceWithHealthProbes : IResource
+public interface IResourceWithProbes : IResource
 {
 }

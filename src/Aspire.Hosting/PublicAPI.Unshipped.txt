@@ -203,6 +203,7 @@ Aspire.Hosting.ApplicationModel.IResourceWithParent
 Aspire.Hosting.ApplicationModel.IResourceWithParent.Parent.get -> Aspire.Hosting.ApplicationModel.IResource!
 Aspire.Hosting.ApplicationModel.IResourceWithParent<T>
 Aspire.Hosting.ApplicationModel.IResourceWithParent<T>.Parent.get -> T
+Aspire.Hosting.ApplicationModel.IResourceWithProbes
 Aspire.Hosting.ApplicationModel.IValueProvider
 Aspire.Hosting.ApplicationModel.IValueProvider.GetValueAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
 Aspire.Hosting.ApplicationModel.IValueWithReferences
@@ -240,6 +241,20 @@ Aspire.Hosting.ApplicationModel.ParameterResource.ParameterResource(string! name
 Aspire.Hosting.ApplicationModel.ParameterResource.Secret.get -> bool
 Aspire.Hosting.ApplicationModel.ParameterResource.Value.get -> string!
 Aspire.Hosting.ApplicationModel.ParameterResource.ValueExpression.get -> string!
+Aspire.Hosting.ApplicationModel.ProbeAnnotation
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.EndpointReference.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.InitialDelaySeconds.get -> int
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.Path.get -> string?
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.PeriodSeconds.get -> int
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeAnnotation(Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference) -> void
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeAnnotation(Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference, int initialDelaySeconds, int periodSeconds) -> void
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeAnnotation(Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference, string! path) -> void
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeAnnotation(Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference, string? path, int initialDelaySeconds, int periodSeconds) -> void
+Aspire.Hosting.ApplicationModel.ProbeAnnotation.ProbeType.get -> Aspire.Hosting.ApplicationModel.ProbeType
+Aspire.Hosting.ApplicationModel.ProbeType
+Aspire.Hosting.ApplicationModel.ProbeType.Liveness = 2 -> Aspire.Hosting.ApplicationModel.ProbeType
+Aspire.Hosting.ApplicationModel.ProbeType.Readiness = 1 -> Aspire.Hosting.ApplicationModel.ProbeType
+Aspire.Hosting.ApplicationModel.ProbeType.Startup = 0 -> Aspire.Hosting.ApplicationModel.ProbeType
 Aspire.Hosting.ApplicationModel.ProjectResource
 Aspire.Hosting.ApplicationModel.ProjectResource.ProjectResource(string! name) -> void
 Aspire.Hosting.ApplicationModel.ProjectResourceExtensions
@@ -429,6 +444,7 @@ static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetContainerMounts(
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetEndpoints(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.EndpointAnnotation!>? endpoints) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetEnvironmentVariables(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation!>? environmentVariables) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetLastAnnotation<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out T? annotation) -> bool
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetProbes(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.ProbeAnnotation!>? probes) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceStateSnapshot.implicit operator Aspire.Hosting.ApplicationModel.ResourceStateSnapshot?(string? s) -> Aspire.Hosting.ApplicationModel.ResourceStateSnapshot?
 static Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! image) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! image, string! tag) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
@@ -494,6 +510,7 @@ static Aspire.Hosting.ResourceBuilderExtensions.WithHttpEndpoint<T>(this Aspire.
 static Aspire.Hosting.ResourceBuilderExtensions.WithHttpsEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? port = null, int? targetPort = null, string? name = null, string? env = null, bool isProxied = true) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithManifestPublishingCallback<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Action<Aspire.Hosting.Publishing.ManifestPublishingContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithManifestPublishingCallback<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Func<Aspire.Hosting.Publishing.ManifestPublishingContext!, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithProbe<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.ProbeType type, Aspire.Hosting.ApplicationModel.EndpointReference! endpoint, string? path = null, int initialDelaySeconds = 5, int periodSeconds = 5) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResourceWithConnectionString!>! source, string? connectionName = null, bool optional = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.IResourceWithServiceDiscovery!>! source) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
