@@ -11,5 +11,7 @@
     <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="shared/TestCertificateLoader.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Content Include="$(TestsSharedDir)TestCertificates\*.pfx" LinkBase="shared/TestCertificates" CopyToOutputDirectory="PreserveNewest" />
+
+    <Content Include="..\..\src\Aspire.Dashboard\wwwroot\**\*.*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
