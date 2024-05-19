@@ -583,7 +583,7 @@ public class ProjectResourceTests
     {
         public string ProjectPath => "projectC";
         public LaunchSettings LaunchSettings { get; } = new();
-        public IConfiguration KestrelConfiguration
+        public IConfiguration Configuration
         {
             get
             {

@@ -19,7 +19,7 @@ public interface IProjectMetadata : IResourceAnnotation
 
     // These are for testing
     internal LaunchSettings? LaunchSettings => null;
-    internal IConfiguration? KestrelConfiguration => null;
+    internal IConfiguration? Configuration => null;
 }
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]

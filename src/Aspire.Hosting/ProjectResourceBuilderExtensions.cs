@@ -224,8 +224,8 @@ public static class ProjectResourceBuilderExtensions
             builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
         }
 
-        var kestrelConfig = GetKestrelConfiguration(projectResource);
-        var kestrelEndpoints = kestrelConfig.GetSection("Kestrel:Endpoints").GetChildren();
+        var config = GetConfiguration(projectResource);
+        var kestrelEndpoints = config.GetSection("Kestrel:Endpoints").GetChildren();
         var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
 
         // Get all the Kestrel configuration endpoint bindings, grouped by scheme
@@ -239,7 +239,7 @@ public static class ProjectResourceBuilderExtensions
             .GroupBy(entry => entry.BindingAddress.Scheme);
 
         // Helper to change the transport to http2 if needed
-        var isHttp2ConfiguredInAppSettings = kestrelConfig["Kestrel:EndpointDefaults:Protocols"] == "Http2";
+        var isHttp2ConfiguredInAppSettings = config["Kestrel:EndpointDefaults:Protocols"] == "Http2";
         var adjustTransport = (EndpointAnnotation e) => e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
@@ -401,14 +401,14 @@ public static class ProjectResourceBuilderExtensions
         return builder;
     }
 
-    private static IConfiguration GetKestrelConfiguration(ProjectResource projectResource)
+    private static IConfiguration GetConfiguration(ProjectResource projectResource)
     {
         var projectMetadata = projectResource.GetProjectMetadata();
 
         // For testing
-        if (projectMetadata.KestrelConfiguration is { } kestrelConfiguration)
+        if (projectMetadata.Configuration is { } configuration)
         {
-            return kestrelConfiguration;
+            return configuration;
         }
 
         var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
