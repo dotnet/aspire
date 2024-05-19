@@ -5,6 +5,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -361,6 +362,26 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public async Task ProjectWithKestrelConfigConfiguresEndpoint()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.AddProject<TestProjectWithKestrelConfig>("projectName");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        Assert.Equal("http://localhost:7002", config["ASPNETCORE_URLS"]);
+    }
+
+    [Fact]
     public void DisabledForwardedHeadersAddsAnnotationToProject()
     {
         var appBuilder = CreateBuilder();
@@ -556,5 +577,25 @@ public class ProjectResourceTests
                     }
                 }
             };
+    }
+
+    private sealed class TestProjectWithKestrelConfig : IProjectMetadata
+    {
+        public string ProjectPath => "projectC";
+        public LaunchSettings LaunchSettings { get; } = new();
+        public IConfiguration KestrelConfiguration
+        {
+            get
+            {
+                var values = new Dictionary<string, string?>
+                {
+                    {"Kestrel:Endpoints:OnlyHttp:Url", "http://*:7002"}
+                };
+
+                return new ConfigurationBuilder()
+                    .AddInMemoryCollection(values)
+                    .Build();
+            }
+        }
     }
 }

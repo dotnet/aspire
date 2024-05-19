@@ -257,7 +257,7 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                         e.UriScheme = endpoint.BindingAddress.Scheme;
                         e.IsProxied = false; // turn off the proxy, as we cannot easily override Kestrel bindings
-                        e.TargetPort = e.Port; // Should be implied, but is needed due to sequencing bug in WithEndpoint()
+                        e.TargetPort = e.Port; // Should be implied, but is needed due to https://github.com/dotnet/aspire/issues/4225
                         e.Transport = adjustTransport(e);
                     },
                     createIfNotExists: true);
@@ -404,6 +404,12 @@ public static class ProjectResourceBuilderExtensions
     private static IConfiguration GetKestrelConfiguration(ProjectResource projectResource)
     {
         var projectMetadata = projectResource.GetProjectMetadata();
+
+        // For testing
+        if (projectMetadata.KestrelConfiguration is { } kestrelConfiguration)
+        {
+            return kestrelConfiguration;
+        }
 
         var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
         var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
