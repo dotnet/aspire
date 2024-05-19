@@ -45,6 +45,10 @@ public class WithEndpointTests
         var endpoint = projectA.Resource.Annotations.OfType<EndpointAnnotation>()
             .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
         Assert.Equal(2000, endpoint.TargetPort);
+
+        // Setting it to null explicitly should disable the override mechanism
+        endpoint.TargetPort = null;
+        Assert.Null(endpoint.TargetPort);
     }
 
     [Fact]
@@ -62,6 +66,10 @@ public class WithEndpointTests
         var endpoint = projectA.Resource.Annotations.OfType<EndpointAnnotation>()
             .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
         Assert.Equal(2000, endpoint.Port);
+
+        // Setting it to null explicitly should disable the override mechanism
+        endpoint.Port = null;
+        Assert.Null(endpoint.Port);
     }
 
     [Fact]

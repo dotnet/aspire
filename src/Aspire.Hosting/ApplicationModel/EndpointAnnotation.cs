@@ -17,7 +17,9 @@ public sealed class EndpointAnnotation : IResourceAnnotation
 {
     private string? _transport;
     private int? _port;
+    private bool _portSetToNull;
     private int? _targetPort;
+    private bool _targetPortSetToNull;
     /// <summary>
     /// Initializes a new instance of <see cref="EndpointAnnotation"/>.
     /// </summary>
@@ -45,8 +47,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         UriScheme = uriScheme;
         _transport = transport;
         Name = name;
-        Port = port;
-        TargetPort = targetPort;
+        _port = port;
+        _targetPort = targetPort;
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
     }
@@ -72,8 +74,12 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         // It also depends on what the EndpointAnnotation is applied to.
         // In the Container case the TargetPort is the port that the process listens on inside the container,
         //  and the Port is the host interface port, so it is fine for them to be different.
-        get => _port ?? (IsProxied ? null : _targetPort);
-        set => _port = value;
+        get => _port ?? (IsProxied || _portSetToNull ? null : _targetPort);
+        set
+        {
+            _port = value;
+            _portSetToNull = value == null;
+        }
     }
 
     /// <summary>
@@ -85,8 +91,12 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public int? TargetPort
     {
         // See comment on the Port setter, as this is the reciprocal logic
-        get => _targetPort ?? (IsProxied ? null : _port);
-        set => _targetPort = value;
+        get => _targetPort ?? (IsProxied || _targetPortSetToNull ? null : _port);
+        set
+        {
+            _targetPort = value;
+            _targetPortSetToNull = value == null;
+        }
     }
 
     /// <summary>
