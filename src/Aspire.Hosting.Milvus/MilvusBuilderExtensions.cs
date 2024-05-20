@@ -24,7 +24,7 @@ public static class MilvusBuilderExtensions
     ///
     /// var milvus = builder.AddMilvus("milvus");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
-    ///                  .WithReference(milvus);
+    ///   .WithReference(milvus);
     ///  
     /// builder.Build().Run(); 
     /// </code>
@@ -76,7 +76,7 @@ public static class MilvusBuilderExtensions
     ///   .AddDatabase("booksdb");
     /// 
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
-    ///                  .WithReference(booksdb);
+    ///   .WithReference(booksdb);
     ///  
     /// builder.Build().Run(); 
     /// </code>
@@ -107,7 +107,7 @@ public static class MilvusBuilderExtensions
     /// var milvus = builder.AddMilvus("milvus")
     ///   .WithAttu();
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
-    ///                  .WithReference(milvus);
+    ///   .WithReference(milvus);
     ///  
     /// builder.Build().Run(); 
     /// </code>
