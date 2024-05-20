@@ -27,7 +27,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     }
 
     /// <summary>
-    /// Gets the primary endpoint for the Redis server.
+    /// Gets the primary endpoint for the PostgreSQL server.
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
