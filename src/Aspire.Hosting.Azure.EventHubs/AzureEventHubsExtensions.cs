@@ -106,10 +106,9 @@ public static class AzureEventHubsExtensions
     /// Configures an Azure Event Hubs resource to be emulated. This resource requires an <see cref="AzureEventHubsResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
-    /// <param name="storageResource">An optional Azure Storage resource.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, IResourceBuilder<AzureStorageResource>? storageResource = null, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
+    public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -135,12 +134,10 @@ public static class AzureEventHubsExtensions
                 isReadOnly: false))
             ;
 
-        if (storageResource == null)
-        {
-            storageResource = builder.ApplicationBuilder
+        // Create a separate storage emulator for the Event Hub one
+        var storageResource = builder.ApplicationBuilder
                 .AddAzureStorage($"{builder.Resource.Name}-storage")
                 .RunAsEmulator();
-        }
 
         var storage = storageResource.Resource;
 
@@ -148,11 +145,6 @@ public static class AzureEventHubsExtensions
         {
             var blobEndpoint = storage.GetEndpoint("blob");
             var tableEndpoint = storage.GetEndpoint("table");
-
-            if (blobEndpoint == null || tableEndpoint == null)
-            {
-                throw new InvalidOperationException($"A Blob and Table endpoints could not be found is the provided Azure Storage resource.");
-            }
 
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
             context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.ContainerHost}:{blobEndpoint.Port}");
