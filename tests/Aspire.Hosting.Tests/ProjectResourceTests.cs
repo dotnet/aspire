@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
@@ -361,24 +362,146 @@ public class ProjectResourceTests
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
     }
 
+    private sealed class ProjectWithProfileEndpointAndKestrelHttpEndpoint : BaseProjectWithProfileAndConfig
+    {
+        public ProjectWithProfileEndpointAndKestrelHttpEndpoint()
+        {
+            Profiles = new()
+            {
+                ["OnlyHttp"] = new LaunchProfile
+                {
+                    ApplicationUrl = "http://localhost:5031",
+                }
+            };
+            JsonConfigString = """
+            {
+              "Kestrel": {
+                "Endpoints": {
+                  "SomeHttpEndpoint": { "Url": "http://*:5002" }
+                }
+              }
+            }
+            """;
+        }
+    }
+
     [Fact]
-    public async Task ProjectWithKestrelConfigConfiguresEndpoint()
+    public async Task SingleKestrelHttpEndpointIsNamedHttpAndOverridesProfile()
     {
         var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
-
-        appBuilder.AddProject<TestProjectWithKestrelConfig>("projectName");
-
+        var projectBuilder = appBuilder.AddProject<ProjectWithProfileEndpointAndKestrelHttpEndpoint>("projectName");
         using var app = appBuilder.Build();
-
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
         var projectResources = appModel.GetProjectResources();
-
         var resource = Assert.Single(projectResources);
+
+        Assert.Collection(
+            resource.Annotations.OfType<EndpointAnnotation>(),
+            a =>
+            {
+                // Endpoint is named "http", because there is only one Kestrel http endpoint
+                Assert.Equal("http", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5002, a.Port);
+            }
+            );
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
-        Assert.Equal("http://localhost:7002", config["ASPNETCORE_URLS"]);
+        // The Kestrel endpoint overrides the profile endpoint
+        Assert.Equal("http://localhost:5002", config["ASPNETCORE_URLS"]);
+    }
+    private sealed class ProjectWithKestrelHttpsEndpoint : BaseProjectWithProfileAndConfig
+    {
+        public ProjectWithKestrelHttpsEndpoint()
+        {
+            JsonConfigString = """
+            {
+              "Kestrel": {
+                "Endpoints": {
+                  "SomeHttpsEndpoint": { "Url": "https://*:7002" }
+                }
+              }
+            }
+            """;
+        }
+    }
+
+    [Fact]
+    public async Task SingleKestrelHttpsEndpointIsNamedHttps()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+        var projectBuilder = appBuilder.AddProject<ProjectWithKestrelHttpsEndpoint>("projectName");
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+        var resource = Assert.Single(projectResources);
+
+        Assert.Collection(
+            resource.Annotations.OfType<EndpointAnnotation>(),
+            a =>
+            {
+                // Endpoint is named "https"", because there is only one Kestrel https endpoint
+                Assert.Equal("https", a.Name);
+                Assert.Equal("https", a.UriScheme);
+                Assert.Equal(7002, a.Port);
+            }
+            );
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        Assert.Equal("https://localhost:7002", config["ASPNETCORE_URLS"]);
+    }
+    private sealed class ProjectWithMultipleHttpKestrelEndpoints : BaseProjectWithProfileAndConfig
+    {
+        public ProjectWithMultipleHttpKestrelEndpoints()
+        {
+            JsonConfigString = """
+            {
+              "Kestrel": {
+                "EndpointDefaults": {
+                  "Protocols": "Http2"
+                },
+                "Endpoints": {
+                  "FirstHttpEndpoint": { "Url": "http://*:5002" },
+                  "SecondHttpEndpoint": { "Url": "http://*:5003" }
+                }
+              }
+            }
+            """;
+        }
+    }
+
+    [Fact]
+    public async Task MultipleKestrelHttpEndpointsKeepTheirNames()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+        var projectBuilder = appBuilder.AddProject<ProjectWithMultipleHttpKestrelEndpoints>("projectName");
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+        var resource = Assert.Single(projectResources);
+
+        Assert.Collection(
+            resource.Annotations.OfType<EndpointAnnotation>(),
+            a =>
+            {
+                // Endpoints keep their config names because there are multiple Kestrel http endpoints
+                Assert.Equal("FirstHttpEndpoint", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5002, a.Port);
+            },
+            a =>
+            {
+                Assert.Equal("SecondHttpEndpoint", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5003, a.Port);
+            }
+            );
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        Assert.Equal("http://localhost:5002;http://localhost:5003", config["ASPNETCORE_URLS"]);
     }
 
     [Fact]
@@ -555,47 +678,36 @@ public class ProjectResourceTests
         public LaunchSettings? LaunchSettings { get; set; }
     }
 
-    private sealed class TestProjectWithLaunchSettings : IProjectMetadata
+    private abstract class BaseProjectWithProfileAndConfig : IProjectMetadata
     {
-        public string ProjectPath => "another-path";
+        protected Dictionary<string, LaunchProfile>? Profiles { get; set; } = new();
+        protected string? JsonConfigString { get; set; }
 
-        public LaunchSettings? LaunchSettings { get; } =
-            new LaunchSettings
+        public string ProjectPath => "another-path";
+        public LaunchSettings? LaunchSettings => new LaunchSettings { Profiles = Profiles! };
+        public IConfiguration? Configuration => JsonConfigString == null ? null : new ConfigurationBuilder()
+            .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(JsonConfigString)))
+            .Build();
+    }
+
+    private sealed class TestProjectWithLaunchSettings : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithLaunchSettings()
+        {
+            Profiles = new()
             {
-                Profiles = new()
+                ["OnlyHttp"] = new LaunchProfile
                 {
-                    ["http"] = new()
+                    CommandName = "Project",
+                    CommandLineArgs = "arg1 arg2",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://localhost:5031",
+                    EnvironmentVariables = new()
                     {
-                        CommandName = "Project",
-                        CommandLineArgs = "arg1 arg2",
-                        LaunchBrowser = true,
-                        ApplicationUrl = "http://localhost:5031",
-                        EnvironmentVariables = new()
-                        {
-                            ["ASPNETCORE_ENVIRONMENT"] = "Development"
-                        }
+                        ["ASPNETCORE_ENVIRONMENT"] = "Development"
                     }
                 }
             };
-    }
-
-    private sealed class TestProjectWithKestrelConfig : IProjectMetadata
-    {
-        public string ProjectPath => "projectC";
-        public LaunchSettings LaunchSettings { get; } = new();
-        public IConfiguration Configuration
-        {
-            get
-            {
-                var values = new Dictionary<string, string?>
-                {
-                    {"Kestrel:Endpoints:OnlyHttp:Url", "http://*:7002"}
-                };
-
-                return new ConfigurationBuilder()
-                    .AddInMemoryCollection(values)
-                    .Build();
-            }
         }
     }
 }
