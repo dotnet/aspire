@@ -35,7 +35,7 @@
           Condition="'$(ExtractTestClassNamesForHelix)' == 'true'"
           BeforeTargets="ZipTestArchive">
 
-    <Exec Command="&quot;$(DotNetTool)&quot; test --no-build -c $(Configuration) -s $(RunSettingsFilePath) -t --nologo -v:q -p:VsTestUseMSBuildOutput=false" ConsoleToMSBuild="true">
+    <Exec Command="&quot;$(DotNetTool)&quot; test --no-build -c $(Configuration) -s $(RunSettingsFilePath) --list-tests --nologo -v:q -p:VsTestUseMSBuildOutput=false" ConsoleToMSBuild="true">
       <Output TaskParameter="ConsoleOutput" ItemName="_ListOfTestsLines" />
     </Exec>
 
