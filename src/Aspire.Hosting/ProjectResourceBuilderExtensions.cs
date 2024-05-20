@@ -216,17 +216,15 @@ public static class ProjectResourceBuilderExtensions
         if (excludeLaunchProfile)
         {
             builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
-            return builder;
         }
-
-        if (!string.IsNullOrEmpty(launchProfileName))
+        else if (!string.IsNullOrEmpty(launchProfileName))
         {
             builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
         }
 
         var config = GetConfiguration(projectResource);
         var kestrelEndpoints = config.GetSection("Kestrel:Endpoints").GetChildren();
-        var launchProfile = projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
+        var launchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
 
         // Get all the Kestrel configuration endpoint bindings, grouped by scheme
         var kestrelEndpointsByScheme = kestrelEndpoints
