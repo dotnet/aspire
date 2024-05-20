@@ -29,3 +29,5 @@ var myService = builder.AddProject<Projects.MyService>()
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
+
+_Milvus, and the Milvus logo are used with permission from the Milvus project. All rights reserved by LF AI & Data foundation_

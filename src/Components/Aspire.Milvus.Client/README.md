@@ -41,7 +41,7 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 ```json
 {
   "ConnectionStrings": {
-    "milvus": "Endpoint=http://localhost:19530;Key=root:123456!@#$%"
+    "milvus": "Endpoint=http://localhost:19530/;Key=root:123456!@#$%"
   }
 }
 ```
@@ -57,7 +57,7 @@ The .NET Aspire Milvus Client component supports [Microsoft.Extensions.Configura
   "Aspire": {
     "Milvus": {
       "Client": {
-        "Key": "123456!@#$%"
+        "Key": "root:123456!@#$%"
       }
     }
   }
@@ -103,3 +103,5 @@ builder.AddMilvusClient("milvus");
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
+
+_Milvus, and the Milvus logo are used with permission from the Milvus project. All rights reserved by LF AI & Data foundation_
