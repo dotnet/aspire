@@ -455,3 +455,11 @@ fluent-data-grid-cell.no-ellipsis {
      */
     height: inherit !important;
 }
+
+ .mobile-absolute-toolbar {
+     width: 100%;
+     height: 32px;
+     position: absolute;
+     left: 0;
+     bottom: 0;
+ }

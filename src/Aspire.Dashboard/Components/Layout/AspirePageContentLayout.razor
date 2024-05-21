@@ -1,0 +1,43 @@
+﻿@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Layout> LayoutLoc
+
+<div class="content-layout">
+    @if (ViewportInformation.IsDesktop)
+    {
+        <FluentToolbar Orientation="Orientation.Horizontal" Style="grid-area: page-header">
+            <h1 class="page-header">@PageTitle</h1>
+            @ToolbarContent
+        </FluentToolbar>
+
+        <div style="grid-area: main">@MainContent</div>
+
+        if (FooterContent is not null)
+        {
+            <div style="grid-area: footer">@FooterContent</div>
+        }
+    }
+    else
+    {
+        <FluentToolbar Orientation="Orientation.Horizontal" Style="grid-area: page-header">
+            <h1 class="page-header">@PageTitle</h1>
+        </FluentToolbar>
+
+        <div style="grid-area: main">@MainContent</div>
+
+        if (FooterContent is not null)
+        {
+            <div style="grid-area: footer">@FooterContent</div>
+        }
+
+        if (ToolbarContent is not null)
+        {
+            <FluentButton Class="mobile-absolute-toolbar"
+                          Appearance="@Appearance.Accent"
+                          Disabled="@_isMobileToolbarOpen"
+                          OnClick="@OpenMobileToolbarAsync">
+                @LayoutLoc[nameof(Layout.PageLayoutViewFilters)]
+            </FluentButton>
+        }
+    }
+
+</div>

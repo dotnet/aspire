@@ -1,0 +1,21 @@
+﻿::deep.content-layout {
+    height: 100%;
+    width: 100%;
+    display: grid;
+
+    grid-template-areas:
+            "page-header"
+            "main"
+            "foot";
+
+    grid-template-rows: auto 1fr auto;
+}
+
+
+@media (min-width: 768px) {
+
+}
+
+@media (max-width: 768px) {
+
+}

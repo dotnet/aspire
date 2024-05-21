@@ -35,6 +35,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 

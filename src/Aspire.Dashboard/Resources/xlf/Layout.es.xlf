@@ -87,6 +87,11 @@
         <target state="translated">Seguimientos</target>
         <note />
       </trans-unit>
+      <trans-unit id="PageLayoutViewFilters">
+        <source>View Filters</source>
+        <target state="new">View Filters</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

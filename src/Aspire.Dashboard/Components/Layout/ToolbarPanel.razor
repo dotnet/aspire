@@ -1,0 +1,20 @@
+﻿@using Aspire.Dashboard.Resources
+@implements IDialogContentComponent<RenderFragment>
+@inject IStringLocalizer<Layout> LayoutLoc
+
+<FluentDialogBody>
+    <FluentStack Orientation="@Orientation.Vertical">
+        @Content
+    </FluentStack>
+
+    <FluentButton Class="mobile-absolute-toolbar"
+                  Appearance="@Appearance.Accent"
+                  Disabled="true">
+        @LayoutLoc[nameof(Layout.PageLayoutViewFilters)]
+    </FluentButton>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public RenderFragment Content { get; set; } = default!;
+}
