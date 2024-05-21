@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -98,31 +97,4 @@ public class TemplateTests : WorkloadTestsBase
         var page = await project.OpenDashboardPageAsync(context);
         await CheckDashboardHasResourcesAsync(page, []).ConfigureAwait(false);
     }
-
-    private static async Task AssertStarterTemplateRunAsync(IBrowserContext context, AspireProject project, string config, ITestOutputHelper _testOutput)
-    {
-        await project.StartAppHostAsync(extraArgs: [$"-c {config}"], noBuild: false);
-
-        var page = await project.OpenDashboardPageAsync(context);
-        ResourceRow[] resourceRows;
-        try
-        {
-            resourceRows = await CheckDashboardHasResourcesAsync(
-                                    page,
-                                    StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
-                                    _testOutput).ConfigureAwait(false);
-        }
-        catch
-        {
-            string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
-            await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
-            _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
-            throw;
-        }
-
-        string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
-        await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
-        await project.StopAppHostAsync();
-    }
-
 }

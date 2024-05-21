@@ -180,6 +180,51 @@ public class WorkloadTestsBase
     public static string GetNewProjectId(string? prefix = null)
         => (prefix is null ? "" : $"{prefix}_") + Path.GetRandomFileName();
 
+    public static IEnumerable<string> GetProjectNamesForTest()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // FIXME: open an issue - fails to restore on windows
+            // - https://helixre107v0xdeko0k025g8.blob.core.windows.net/dotnet-aspire-refs-pull-3270-merge-fc4fbed17c7744ecb5/Aspire.Workload.Tests.StarterTemplateProjectNamesTests/1/console.9ad1df43.log?helixlogtype=result
+            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
+        }
+
+        // "aspire  sta-rter.test", // Issue: two spaces
+        //"aspire 龦唉丂荳◎℉-㐁&ᠭ.ᠤ སྲིད خەل ꌠ.1 ᥕ᧞", // with '&', and spaces
+
+        // FIXME: these two fail on windows to restore..
+        yield return "aspire_starter.1period then.34letters";
+        yield return "aspire-starter & with.1";
+
+        yield return "aspire";
+    }
+
+    public static async Task AssertStarterTemplateRunAsync(IBrowserContext context, AspireProject project, string config, ITestOutputHelper _testOutput)
+    {
+        await project.StartAppHostAsync(extraArgs: [$"-c {config}"], noBuild: false);
+
+        var page = await project.OpenDashboardPageAsync(context);
+        ResourceRow[] resourceRows;
+        try
+        {
+            resourceRows = await CheckDashboardHasResourcesAsync(
+                                    page,
+                                    StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
+                                    _testOutput).ConfigureAwait(false);
+        }
+        catch
+        {
+            string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
+            await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+            _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
+            throw;
+        }
+
+        string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+        await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
+        await project.StopAppHostAsync();
+    }
+
     public static async Task<CommandResult?> AssertTestProjectRunAsync(string testProjectDirectory, string testType, ITestOutputHelper testOutput, string config = "Debug", int testRunTimeoutSecs = 3 * 60)
     {
         if (testType == "none")
