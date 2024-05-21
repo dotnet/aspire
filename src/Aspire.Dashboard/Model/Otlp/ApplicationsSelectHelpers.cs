@@ -5,9 +5,19 @@ using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
-public class SelectViewModelFactory
+public static class ApplicationsSelectHelpers
 {
-    public static List<SelectViewModel<ResourceTypeDetails>> CreateApplicationsSelectViewModel(List<OtlpApplication> applications)
+    public static SelectViewModel<ResourceTypeDetails> GetApplication(this List<SelectViewModel<ResourceTypeDetails>> applications, string? name, SelectViewModel<ResourceTypeDetails> fallback)
+    {
+        if (name is null)
+        {
+            return fallback;
+        }
+
+        return applications.SingleOrDefault(e => e.Id?.Type is OtlpApplicationType.ReplicaInstance or OtlpApplicationType.Singleton && string.Equals(name, e.Name, StringComparisons.ResourceName)) ?? fallback;
+    }
+
+    public static List<SelectViewModel<ResourceTypeDetails>> CreateApplications(List<OtlpApplication> applications)
     {
         var replicasByApplicationName = OtlpApplication.GetReplicasByApplicationName(applications);
 

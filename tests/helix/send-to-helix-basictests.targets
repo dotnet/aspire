@@ -18,8 +18,7 @@
 
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 

@@ -15,6 +15,7 @@ public class BuildEnvironment
     public string                           WorkloadPacksDir              { get; init; }
     public string                           BuiltNuGetsPath               { get; init; }
     public bool                             HasWorkloadFromArtifacts      { get; init; }
+    public bool                             UsesSystemDotNet => !HasWorkloadFromArtifacts;
     public string                           TestAssetsPath                { get; set; }
     public string?                          NuGetPackagesPath             { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
@@ -33,8 +34,9 @@ public class BuildEnvironment
     public static BuildEnvironment ForNet80 => s_instance_80.Value;
     public static BuildEnvironment ForDefaultFramework => ForNet80;
 
-    public BuildEnvironment(bool useSystemDotNet = true, TestTargetFramework targetFramework = DefaultTargetFramework)
+    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework)
     {
+        HasWorkloadFromArtifacts = !useSystemDotNet;
         TargetFramework = targetFramework;
         RepoRoot = new(AppContext.BaseDirectory);
         while (RepoRoot != null)
@@ -65,7 +67,7 @@ public class BuildEnvironment
                     string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
                     string workloadsProjString = Path.Combine("tests", "workloads.proj");
                     throw new InvalidOperationException(
-                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from solutionRoot={RepoRoot}.{Environment.NewLine}" +
+                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}.{Environment.NewLine}" +
                         $"Build all the packages with '{buildCmd} -pack'.{Environment.NewLine}" +
                         $"Then install the sdk+workload with 'dotnet build {workloadsProjString}'");
                 }
@@ -84,6 +86,17 @@ public class BuildEnvironment
             }
 
             BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
+
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH")) && RepoRoot is not null)
+            {
+                // Check if we already have playwright-deps in artifacts
+                var probePath = Path.Combine(RepoRoot.FullName, "artifacts", "bin", "playwright-deps");
+                if (Directory.Exists(probePath))
+                {
+                    Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", probePath);
+                    Console.WriteLine($"** Found playwright dependencies in {probePath}");
+                }
+            }
         }
         else
         {
@@ -113,7 +126,6 @@ public class BuildEnvironment
             sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
         }
 
-        HasWorkloadFromArtifacts = !useSystemDotNet;
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
         WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
@@ -130,6 +142,10 @@ public class BuildEnvironment
             EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
             EnvVars["NUGET_PACKAGES"] = NuGetPackagesPath!;
         }
+        EnvVars["TreatWarningsAsErrors"] = "true";
+        // Set DEBUG_SESSION_PORT='' to avoid the app from the tests connecting
+        // to the IDE
+        EnvVars["DEBUG_SESSION_PORT"] = "";
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -163,6 +179,21 @@ public class BuildEnvironment
             Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
         }
         Console.WriteLine($"*** [{TargetFramework}] Using path for projects: {TestRootPath}");
+    }
+
+    public BuildEnvironment(BuildEnvironment otherBuildEnvironment)
+    {
+        DotNet = otherBuildEnvironment.DotNet;
+        DefaultBuildArgs = otherBuildEnvironment.DefaultBuildArgs;
+        EnvVars = new Dictionary<string, string>(otherBuildEnvironment.EnvVars);
+        LogRootPath = otherBuildEnvironment.LogRootPath;
+        WorkloadPacksDir = otherBuildEnvironment.WorkloadPacksDir;
+        BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
+        HasWorkloadFromArtifacts = otherBuildEnvironment.HasWorkloadFromArtifacts;
+        TestAssetsPath = otherBuildEnvironment.TestAssetsPath;
+        NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
+        TargetFramework = otherBuildEnvironment.TargetFramework;
+        RepoRoot = otherBuildEnvironment.RepoRoot;
     }
 }
 
