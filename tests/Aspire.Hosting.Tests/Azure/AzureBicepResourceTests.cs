@@ -14,6 +14,7 @@ using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Microsoft.Extensions.DependencyInjection;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -1766,6 +1767,160 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             """;
         output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddDefaultAzureWebPubSub()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1");
+
+        wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "wps1.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": ""
+              }
+            }
+            """;
+
+        var connectionStringResource = (IResourceWithConnectionString)wps.Resource;
+
+        Assert.Equal("https://mywebpubsubendpoint", await connectionStringResource.GetConnectionStringAsync());
+        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        Assert.Equal("wps1", wps.Resource.Name);
+        output.WriteLine(manifest.BicepText);
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param sku string = 'Free_F1'
+
+            @description('')
+            param capacity int = 1
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource webPubSubService_L5mmKvg0U 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
+              name: toLower(take('wps1${uniqueString(resourceGroup().id)}', 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'wps1'
+              }
+              sku: {
+                name: sku
+                capacity: capacity
+              }
+              properties: {
+              }
+            }
+
+            resource roleAssignment_yvXMOMBDZ 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: webPubSubService_L5mmKvg0U
+              name: guid(webPubSubService_L5mmKvg0U.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            output endpoint string = 'https://${webPubSubService_L5mmKvg0U.properties.hostName}'
+            
+            """;
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureWebPubSubWithParameters()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var wps = builder.AddAzureWebPubSub("wps1")
+        .WithParameter("sku", "Standard_S1")
+        .WithParameter("capacity", 2);
+
+        wps.Resource.Outputs["endpoint"] = "https://mywebpubsubendpoint";
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "{wps1.outputs.endpoint}",
+              "path": "wps1.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": "",
+                "sku": "Standard_S1",
+                "capacity": 2
+              }
+            }
+            """;
+        var manifest = await ManifestUtils.GetManifestWithBicep(wps.Resource);
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        Assert.Equal("wps1", wps.Resource.Name);
+        output.WriteLine(manifest.BicepText);
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param sku string = 'Free_F1'
+
+            @description('')
+            param capacity int = 1
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource webPubSubService_L5mmKvg0U 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
+              name: toLower(take('wps1${uniqueString(resourceGroup().id)}', 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'wps1'
+              }
+              sku: {
+                name: sku
+                capacity: capacity
+              }
+              properties: {
+              }
+            }
+
+            resource roleAssignment_yvXMOMBDZ 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: webPubSubService_L5mmKvg0U
+              name: guid(webPubSubService_L5mmKvg0U.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+            
+            output endpoint string = 'https://${webPubSubService_L5mmKvg0U.properties.hostName}'
+
+            """;
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 

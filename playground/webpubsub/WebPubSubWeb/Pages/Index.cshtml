@@ -1,0 +1,60 @@
+﻿@page
+<div class="container">
+    <div class="row p-1">
+        <div class="col-1">Message</div>
+        <div class="col-5"><input type="text" class="w-100" id="messageInput" /></div>
+    </div>
+    <div class="row p-1">
+        <div class="col-6 text-end">
+            <input type="button" id="sendButton" value="Send Message" />
+        </div>
+    </div>
+    <div class="row p-1">
+        <div class="col-6">
+            <hr />
+        </div>
+    </div>
+    <div class="row p-1">
+        <div class="col-6">
+            <ul id="messagesList"></ul>
+        </div>
+    </div>
+</div>
+<script>
+    (async function () {
+        //Disable the send button until connection is established.
+        document.getElementById("sendButton").disabled = true;
+        let res = await fetch('/negotiate')
+        let data = await res.json();
+        let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
+        ws.onopen = () => {
+            document.getElementById("sendButton").disabled = false;
+            console.log('connected');
+            ws.send(JSON.stringify({
+                type: 'joinGroup',
+                group: 'group1'
+            }));
+        };
+
+        let output = document.querySelector('#output');
+        ws.onmessage = event => {
+            let message = JSON.parse(event.data);
+            if (message.type === 'message' && message.group === 'group1') {
+                var li = document.createElement("li");
+                document.getElementById("messagesList").appendChild(li);
+                li.textContent = message.data;
+            }
+        };
+
+        document.getElementById("sendButton").addEventListener("click", function (event) {
+            var message = document.getElementById("messageInput").value;
+            ws.send(JSON.stringify({
+                type: 'sendToGroup',
+                group: 'group1',
+                data: message,
+                dataType: "text"
+            }));
+            event.preventDefault();
+        });
+    })();
+</script>
