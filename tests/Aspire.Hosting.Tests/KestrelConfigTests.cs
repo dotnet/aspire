@@ -146,7 +146,7 @@ public class KestrelConfigTests
         {
             Profiles = new()
             {
-                ["OnlyHttp"] = new LaunchProfile
+                ["OnlyHttp"] = new ()
                 {
                     ApplicationUrl = "http://localhost:5031",
                 }

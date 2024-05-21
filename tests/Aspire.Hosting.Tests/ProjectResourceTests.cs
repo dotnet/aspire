@@ -554,7 +554,7 @@ public class ProjectResourceTests
         {
             Profiles = new()
             {
-                ["OnlyHttp"] = new LaunchProfile
+                ["http"] = new ()
                 {
                     CommandName = "Project",
                     CommandLineArgs = "arg1 arg2",
