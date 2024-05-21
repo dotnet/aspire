@@ -168,9 +168,8 @@
     "wps": {
       "type": "azure.bicep.v0",
       "connectionString": "{wps.outputs.endpoint}",
-      "path": "aspire.hosting.azure.bicep.webpubsub.bicep",
+      "path": "wps.module.bicep",
       "params": {
-        "name": "wps",
         "principalId": "",
         "principalType": ""
       }
