@@ -205,25 +205,6 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     background: var(--fill-layer);
 }
 
-.content-layout-with-toolbar {
-    height: 100%;
-    width: 100%;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-        "toolbar"
-        "main";
-}
-
-.content-layout-with-toolbar > fluent-toolbar {
-    grid-area: toolbar;
-}
-
-.content-layout-with-toolbar > .datagrid-overflow-area,
-.content-layout-with-toolbar > .parent-details-container {
-    grid-area: main;
-}
-
 .pane-details-subtext {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
@@ -458,7 +439,7 @@ fluent-data-grid-cell.no-ellipsis {
 
  .mobile-absolute-toolbar {
      width: 100%;
-     height: 32px;
+     height: 38px;
      position: absolute;
      left: 0;
      bottom: 0;

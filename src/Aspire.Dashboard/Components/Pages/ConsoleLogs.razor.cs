@@ -29,6 +29,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Inject]
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
+
     [Parameter]
     public string? ResourceName { get; set; }
 

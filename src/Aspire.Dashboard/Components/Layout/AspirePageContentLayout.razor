@@ -4,14 +4,28 @@
 <div class="content-layout">
     @if (ViewportInformation.IsDesktop)
     {
-        <FluentToolbar Orientation="Orientation.Horizontal" Style="grid-area: page-header">
-            <h1 class="page-header">@PageTitle</h1>
-            @ToolbarContent
-        </FluentToolbar>
+        <div style="grid-area: page-header">
+            @if (AddNewlineOnDesktopToolbar)
+            {
+                <h1 class="page-header">@PageTitle</h1>
+            }
+
+            <FluentToolbar Orientation="Orientation.Horizontal">
+                @if (AddNewlineOnDesktopToolbar)
+                {
+                    @ToolbarContent
+                }
+                else
+                {
+                    <h1 class="page-header">@PageTitle</h1>
+                    @ToolbarContent
+                }
+            </FluentToolbar>
+        </div>
 
         <div style="grid-area: main">@MainContent</div>
 
-        if (FooterContent is not null)
+        @if (FooterContent is not null)
         {
             <div style="grid-area: footer">@FooterContent</div>
         }
@@ -20,6 +34,7 @@
     {
         <FluentToolbar Orientation="Orientation.Horizontal" Style="grid-area: page-header">
             <h1 class="page-header">@PageTitle</h1>
+            @MobilePageTitleToolbarContent
         </FluentToolbar>
 
         <div style="grid-area: main">@MainContent</div>
@@ -33,7 +48,6 @@
         {
             <FluentButton Class="mobile-absolute-toolbar"
                           Appearance="@Appearance.Accent"
-                          Disabled="@_isMobileToolbarOpen"
                           OnClick="@OpenMobileToolbarAsync">
                 @LayoutLoc[nameof(Layout.PageLayoutViewFilters)]
             </FluentButton>
