@@ -31,9 +31,10 @@
     width: 100vw;
     display: grid;
     grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
     grid-template-areas:
         "icon head"
+        "nav-menu nav-menu"
         "messagebar messagebar"
         "main main";
     background-color: var(--fill-color);

@@ -1,7 +1,74 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons;
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<Layout> Loc
+@inject IStringLocalizer<Layout> LayoutLoc
+@inject IStringLocalizer<Dialogs> DialogsLoc
+@inject NavigationManager NavigationManager
+@inject IDashboardClient DashboardClient
+
+@{
+    Task NavigateToAsync(string url)
+    {
+        NavigationManager.NavigateTo(url);
+        return Task.CompletedTask;
+    }
+    IEnumerable<NavMenuItemEntry> GetNavMenu()
+    {
+        if (DashboardClient.IsEnabled)
+        {
+            yield return new(
+                LayoutLoc[nameof(Layout.NavMenuResourcesTab)],
+                () => NavigateToAsync(DashboardUrls.ResourcesUrl()),
+                NavMenu.ResourcesIcon()
+            );
+
+            yield return new(
+                LayoutLoc[nameof(Layout.NavMenuConsoleLogsTab)],
+                () => NavigateToAsync(DashboardUrls.ConsoleLogsUrl()),
+                NavMenu.ConsoleLogsIcon()
+            );
+        }
+
+        yield return new(
+            LayoutLoc[nameof(Layout.NavMenuStructuredLogsTab)],
+            () => NavigateToAsync(DashboardUrls.StructuredLogsUrl()),
+            NavMenu.StructuredLogsIcon()
+        );
+
+        yield return new(
+            LayoutLoc[nameof(Layout.NavMenuTracesTab)],
+            () => NavigateToAsync(DashboardUrls.TracesUrl()),
+            NavMenu.TracesIcon()
+        );
+
+        yield return new(
+            LayoutLoc[nameof(Layout.NavMenuMetricsTab)],
+            () => NavigateToAsync(DashboardUrls.MetricsUrl()),
+            NavMenu.MetricsIcon()
+        );
+
+        yield return new(
+            LayoutLoc[nameof(Layout.MainLayoutAspireRepoLink)],
+            () => NavigateToAsync("https://aka.ms/dotnet/aspire/repo"),
+            new AspireIcons.Size24.GitHub()
+        );
+
+        yield return new(
+            LayoutLoc[nameof(Layout.MainLayoutAspireDashboardHelpLink)],
+            LaunchHelpAsync,
+            new Icons.Regular.Size24.QuestionCircle()
+        );
+
+        yield return new(
+            LayoutLoc[nameof(Layout.MainLayoutLaunchSettings)],
+            LaunchSettingsAsync,
+            new Icons.Regular.Size24.Settings()
+        );
+    }
+}
 
 <div class="layout">
     <div class="aspire-icon">
@@ -12,9 +79,6 @@
         </FluentAnchor>
     </div>
 
-<div id="test-header">
-</div>
-
     <FluentHeader>
         <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo">
             <ApplicationName/>
@@ -22,9 +86,33 @@
         <div class="flex-filler"></div>
 
         <UserProfile/>
-        <MobileNavigationHamburger LaunchHelpAsync="@LaunchHelpAsync"
-                                   LaunchSettingsAsync="@LaunchSettingsAsync"/>
+        <FluentButton
+            IconEnd="@(_isNavMenuOpen ? new Icons.Regular.Size24.Dismiss() : new Icons.Regular.Size24.Navigation())"
+            Title="@(DialogsLoc[nameof(Dialogs.HelpDialogCategoryNavigation)])"
+            Appearance="Appearance.Stealth"
+            BackgroundColor="transparent"
+            OnClick="@(() => _isNavMenuOpen = !_isNavMenuOpen)"
+            Class="navigation-button"/>
+
     </FluentHeader>
+
+    <FluentMenu Open="@_isNavMenuOpen" Anchored="false" Style="grid-area: nav-menu; height: 100vh">
+        @foreach (var item in GetNavMenu())
+        {
+            <FluentMenuItem OnClick="@(async () => { _isNavMenuOpen = false; await item.OnClick(); })" Style="height: 40px; width: 100vw; margin-bottom: 6px;">
+                @item.Text
+
+                @if (item.Icon is { } icon)
+                {
+                    <span slot="start">
+                        <FluentIcon Value="@icon" Slot="start" Color="Color.Neutral"/>
+                    </span>
+                }
+            </FluentMenuItem>
+
+            <FluentDivider/>
+        }
+    </FluentMenu>
 
     <div class="messagebar-container">
         <FluentMessageBarProvider Section="@MessageBarSection" Class="top-messagebar"/>
@@ -44,8 +132,12 @@
 </div>
 
 @code {
-[Parameter] public RenderFragment? LayoutBody { get; set; }
-[Parameter] public required Func<Task> LaunchHelpAsync { get; set; }
-[Parameter] public required Func<Task> LaunchSettingsAsync { get; set; }
-[Parameter] public required string MessageBarSection { get; set; }
+    [Parameter] public RenderFragment? LayoutBody { get; set; }
+    [Parameter] public required Func<Task> LaunchHelpAsync { get; set; }
+    [Parameter] public required Func<Task> LaunchSettingsAsync { get; set; }
+    [Parameter] public required string MessageBarSection { get; set; }
+
+
+    private bool _isNavMenuOpen;
+    private record NavMenuItemEntry(string Text, Func<Task> OnClick, Icon? Icon = null);
 }
