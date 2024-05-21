@@ -176,7 +176,18 @@ public class BuildEnvironment
         Console.WriteLine($"*** [{TargetFramework}] Using workload path: {sdkForWorkloadPath}");
         if (HasWorkloadFromArtifacts)
         {
-            Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
+            if (EnvironmentVariables.IsRunningOnCI)
+            {
+                Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache: {NuGetPackagesPath}");
+                if (Directory.Exists(NuGetPackagesPath))
+                {
+                    Directory.Delete(NuGetPackagesPath, recursive: true);
+                }
+            }
+            else
+            {
+                Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
+            }
         }
         Console.WriteLine($"*** [{TargetFramework}] Using path for projects: {TestRootPath}");
     }
